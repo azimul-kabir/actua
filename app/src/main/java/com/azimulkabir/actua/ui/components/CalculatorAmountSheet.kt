@@ -11,15 +11,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
@@ -33,8 +29,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import androidx.compose.foundation.layout.navigationBarsPadding
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalculatorAmountSheet(
     title: String,
@@ -43,21 +41,27 @@ fun CalculatorAmountSheet(
     onDismiss: () -> Unit,
     onApply: (Long) -> Unit,
 ) {
-    val calculator = remember(initialCents, conventionalAmountEntry) {
+    val calculator = remember(conventionalAmountEntry) {
         CalculatorAmountState(initialCents, conventionalAmountEntry = conventionalAmountEntry)
     }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
+    Popup(
+        alignment = Alignment.BottomCenter,
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = null,
+        properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true),
     ) {
-        CompactCalculatorPad(
-            calculator = calculator,
-            conventionalAmountEntry = conventionalAmountEntry,
-            onClose = onDismiss,
-            onDone = { onApply(calculator.finish()) },
-        )
+        Surface(
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 3.dp,
+        ) {
+            CompactCalculatorPad(
+                calculator = calculator,
+                conventionalAmountEntry = conventionalAmountEntry,
+                showDisplay = false,
+                onValueChange = onApply,
+                onDone = { onApply(calculator.finish()); onDismiss() },
+            )
+        }
     }
 }
 
@@ -66,8 +70,12 @@ fun CompactCalculatorPad(
     calculator: CalculatorAmountState,
     conventionalAmountEntry: Boolean = false,
     allowSign: Boolean = false,
-    doneLabel: String = "Done",
     horizontalPadding: androidx.compose.ui.unit.Dp = 16.dp,
+    moveMoneyMode: Boolean = false,
+    displayLabel: String? = null,
+    showDisplay: Boolean = true,
+    onValueChange: (Long) -> Unit = {},
+    canFinish: (Long) -> Boolean = { true },
     onClose: (() -> Unit)? = null,
     onDone: () -> Unit,
 ) {
@@ -77,67 +85,74 @@ fun CompactCalculatorPad(
             "C" -> calculator.clear()
             "±" -> calculator.toggleSign()
             "⌫" -> calculator.backspace()
+            "00" -> { calculator.digit(0); calculator.digit(0) }
             "." -> calculator.decimalPoint()
             "+" -> calculator.operator(CalculatorAmountState.Operator.ADD)
             "−" -> calculator.operator(CalculatorAmountState.Operator.SUBTRACT)
             "×" -> calculator.operator(CalculatorAmountState.Operator.MULTIPLY)
             "÷" -> calculator.operator(CalculatorAmountState.Operator.DIVIDE)
+            "✓" -> if (canFinish(calculator.cents)) onDone()
             else -> calculator.digit(key.toInt())
         }
         revision++
+        if (key != "✓") onValueChange(calculator.cents)
     }
-    val utilityKey = if (allowSign) "±" else if (conventionalAmountEntry) "." else "C"
     val rows = listOf(
-        listOf("7", "8", "9", "÷"),
-        listOf("4", "5", "6", "×"),
-        listOf("1", "2", "3", "−"),
-        listOf(utilityKey, "0", "⌫", "+"),
+        listOf("7", "8", "9", "⌫"),
+        listOf("4", "5", "6", "−"),
+        listOf("1", "2", "3", "+"),
+        listOf(".", "0", "±", "✓"),
     )
     Column(
         Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().height(42.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            onClose?.let {
-                IconButton(onClick = it, modifier = Modifier.height(38.dp).width(38.dp)) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Close calculator")
+        if (showDisplay) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(42.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                onClose?.let {
+                    IconButton(onClick = it, modifier = Modifier.height(38.dp).width(38.dp)) {
+                        Icon(Icons.Outlined.Close, contentDescription = "Close calculator")
+                    }
                 }
+                Spacer(Modifier.weight(1f))
+                displayLabel?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(end = 10.dp),
+                    )
+                }
+                Text(
+                    calculator.display,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                )
+                Box(
+                    Modifier.padding(start = 3.dp).height(26.dp).width(2.dp)
+                        .clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary),
+                )
             }
-            Spacer(Modifier.weight(1f))
-            Text(
-                calculator.display,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.End,
-                maxLines = 1,
-            )
-            Box(
-                Modifier.padding(start = 3.dp).height(26.dp).width(2.dp)
-                    .clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary),
-            )
         }
         rows.forEach { keys ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                keys.forEach { key ->
+                keys.forEachIndexed { columnIndex, key ->
                     CompactCalculatorKey(
                         label = key,
                         operator = key in setOf("÷", "×", "−", "+"),
-                        modifier = Modifier.weight(1f),
+                        confirm = key == "✓",
+                        enabled = key != "✓" || canFinish(calculator.cents),
+                        modifier = Modifier.weight(if (columnIndex < 3) 1.1f else 0.9f),
                         onClick = { press(key) },
                     )
                 }
             }
-        }
-        Button(
-            onClick = onDone,
-            modifier = Modifier.fillMaxWidth().height(44.dp),
-            shape = RoundedCornerShape(14.dp),
-        ) {
-            Text(doneLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(10.dp))
     }
@@ -148,23 +163,33 @@ fun CompactCalculatorPad(
 private fun CompactCalculatorKey(
     label: String,
     operator: Boolean,
+    confirm: Boolean = false,
+    enabled: Boolean = true,
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
     Surface(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier.height(40.dp),
         shape = RoundedCornerShape(14.dp),
-        color = if (operator) MaterialTheme.colorScheme.secondaryContainer
-            else MaterialTheme.colorScheme.surfaceContainer,
+        color = when {
+            confirm -> MaterialTheme.colorScheme.primaryContainer
+            operator -> MaterialTheme.colorScheme.secondaryContainer
+            else -> MaterialTheme.colorScheme.surfaceContainer
+        },
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
                 label,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Medium,
-                color = if (operator) MaterialTheme.colorScheme.onSecondaryContainer
-                    else MaterialTheme.colorScheme.onSurface,
+                color = when {
+                    !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    confirm -> MaterialTheme.colorScheme.onPrimaryContainer
+                    operator -> MaterialTheme.colorScheme.onSecondaryContainer
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
             )
         }
     }

@@ -6,6 +6,17 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [0.1.0-alpha.9] - 2026-09-07
+
+Ninth public testing release.
+
+### Changed
+
+- Rebuilt Move Money as a fixed full-page flow with From and To category selectors, balances, and a swap action
+- Added an inline Move Money amount cursor and prevented confirmation when the amount exceeds the source balance
+- Unified amount-entry keyboards around a compact equal-size grid with addition, subtraction, clear, decimal/sign, and backspace controls
+- Removed multiplication, division, and separate equals controls from budgeting keypads
+
 ## [0.1.0-alpha.8] - 2026-09-07
 
 Bugfix testing release.
@@ -182,11 +193,12 @@ Initial public testing release.
 - [Actual Budget](https://github.com/actualbudget/actual) provides the underlying budgeting platform and source reference for CRDT behavior
 - The Actuali icon was designed by [u/bdownz](https://www.reddit.com/user/bdownz/)
 
-[0.1.0-alpha.1]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.1
-[0.1.0-alpha.2]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.2
-[0.1.0-alpha.3]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.3
-[0.1.0-alpha.4]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.4
-[0.1.0-alpha.5]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.5
-[0.1.0-alpha.6]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.6
-[0.1.0-alpha.7]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.7
-[0.1.0-alpha.8]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.8
+[0.1.0-alpha.1]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.1
+[0.1.0-alpha.2]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.2
+[0.1.0-alpha.3]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.3
+[0.1.0-alpha.4]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.4
+[0.1.0-alpha.5]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.5
+[0.1.0-alpha.6]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.6
+[0.1.0-alpha.7]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.7
+[0.1.0-alpha.8]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.8
+[0.1.0-alpha.9]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.9

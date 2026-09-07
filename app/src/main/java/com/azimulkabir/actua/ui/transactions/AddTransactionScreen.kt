@@ -46,6 +46,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -121,6 +126,14 @@ fun AddTransactionScreen(
     } && splitTotal == amountCents)
     val canSave = amountCents > 0 && account.isNotBlank() &&
         (transactionType != Type.TRANSFER.displayName || transferAccount.isNotBlank()) && splitIsValid
+    val cursorTransition = rememberInfiniteTransition(label = "Amount cursor")
+    val cursorAlpha by cursorTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(tween(520), repeatMode = RepeatMode.Reverse),
+        label = "Amount cursor alpha",
+    )
+    val amountCursor = if (showCalculator && cursorAlpha > 0.5f) " │" else ""
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -168,7 +181,7 @@ fun AddTransactionScreen(
             }
             Box(Modifier.fillMaxWidth()) {
                 OutlinedTextField(
-                    value = "৳${centsToInput(amountCents)}", onValueChange = {}, readOnly = true,
+                    value = "৳${centsToInput(amountCents)}$amountCursor", onValueChange = {}, readOnly = true,
                     label = { Text("Amount") }, singleLine = true,
                     trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
                     supportingText = { if (hideDecimalPlaces) Text("Decimal places are hidden in lists") },
@@ -280,7 +293,7 @@ fun AddTransactionScreen(
                                 )
                                 Box(Modifier.fillMaxWidth()) {
                                     OutlinedTextField(
-                                        value = "৳${centsToInput(line.amountCents)}",
+                                        value = "৳${centsToInput(line.amountCents)}${if (splitCalculatorIndex == index) amountCursor else ""}",
                                         onValueChange = {},
                                         readOnly = true,
                                         label = { Text("Amount") },
@@ -412,7 +425,7 @@ fun AddTransactionScreen(
         initialCents = amountCents,
         conventionalAmountEntry = conventionalAmountEntry,
         onDismiss = { showCalculator = false },
-        onApply = { amountCents = it; showCalculator = false },
+        onApply = { amountCents = it },
     )
     splitCalculatorIndex?.let { index ->
         val line = splitLines.getOrNull(index)
@@ -423,7 +436,6 @@ fun AddTransactionScreen(
             onDismiss = { splitCalculatorIndex = null },
             onApply = { value ->
                 splitLines = splitLines.toMutableList().also { it[index] = line.copy(amountCents = value) }
-                splitCalculatorIndex = null
             },
         ) else splitCalculatorIndex = null
     }

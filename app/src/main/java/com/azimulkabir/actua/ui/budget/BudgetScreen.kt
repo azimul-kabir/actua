@@ -4,6 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -36,6 +39,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Checkbox
@@ -178,6 +182,23 @@ fun BudgetScreen(
     var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var autoAssignCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var assignFromBudgetOpen by remember { mutableStateOf(false) }
+
+    movingBudget?.let { (group, category) ->
+        MoveBudgetScreen(
+            modifier = modifier,
+            sourceGroup = group,
+            source = category,
+            groups = groups,
+            toBudgetCents = overview.toBudgetCents ?: 0L,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { movingBudget = null },
+            onSave = { fromGroup, fromCategory, toGroup, toCategory, amount ->
+                onTransferBudget(fromGroup, fromCategory, toGroup, toCategory, amount)
+                movingBudget = null
+            },
+        )
+        return
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         BudgetToolbar(
@@ -374,12 +395,6 @@ fun BudgetScreen(
     if (creatingGroup) RenameDialog("New category group", "", { creatingGroup = false }) { name ->
         onCreateGroup(name); creatingGroup = false
     }
-    movingBudget?.let { (group, category) -> MoveBudgetSheet(group, category, groups,
-        onDismiss = { movingBudget = null }, onSave = { targetGroup, targetCategory, amount ->
-            if (category.available < 0) onTransferBudget(targetGroup, targetCategory, group.name, category.name, amount)
-            else onTransferBudget(group.name, category.name, targetGroup, targetCategory, amount)
-            movingBudget = null
-        }) }
     fundingCategory?.let { (group, category) ->
         FundingActionsSheet(
             category = category,
@@ -1079,6 +1094,7 @@ private fun EditBudgetAmountSheet(
     val calculator = remember(category) {
         CalculatorAmountState(category.assignedCents, allowsNegative = true)
     }
+    var enteredAmount by remember(category) { mutableStateOf(category.assignedCents) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
         Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
@@ -1088,10 +1104,12 @@ private fun EditBudgetAmountSheet(
                 BudgetEntryAction(Icons.Outlined.SwapHoriz, "Move Money", Modifier.weight(1f), onMoveMoney)
                 BudgetEntryAction(Icons.Outlined.MoreHoriz, "Details", Modifier.weight(1f), onDetails)
             }
+            InlineCalculatorAmount("Budgeted", enteredAmount, Modifier.padding(horizontal = 20.dp))
             CompactCalculatorPad(
                 calculator = calculator,
                 allowSign = true,
-                onClose = onDismiss,
+                showDisplay = false,
+                onValueChange = { enteredAmount = it },
                 onDone = { onSave(calculator.finish()) },
             )
         }
@@ -1108,6 +1126,38 @@ private fun BudgetEntryAction(icon: ImageVector, label: String, modifier: Modifi
         }
         Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1,
             modifier = Modifier.padding(top = 5.dp))
+    }
+}
+
+@Composable
+private fun InlineCalculatorAmount(label: String, amount: Long, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "$label cursor")
+    val cursorAlpha by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(tween(520), repeatMode = RepeatMode.Reverse),
+        label = "$label cursor alpha",
+    )
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label, style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.weight(1f))
+            Text(formatMoneyCents(amount, false), style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold)
+            Box(
+                Modifier.padding(start = 3.dp).height(24.dp).width(2.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = cursorAlpha)),
+            )
+        }
     }
 }
 
@@ -1176,6 +1226,7 @@ private fun AssignBudgetSheet(
     val calculator = remember(toBudgetCents) {
         CalculatorAmountState(kotlin.math.abs(toBudgetCents), allowsNegative = false)
     }
+    var enteredAmount by remember(toBudgetCents) { mutableStateOf(kotlin.math.abs(toBudgetCents)) }
     val covering = toBudgetCents < 0L
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
@@ -1209,11 +1260,12 @@ private fun AssignBudgetSheet(
                     }
                 }
             }
+            InlineCalculatorAmount("Amount", enteredAmount)
             CompactCalculatorPad(
                 calculator = calculator,
-                doneLabel = if (covering) "Cover" else "Budget",
                 horizontalPadding = 0.dp,
-                onClose = onDismiss,
+                showDisplay = false,
+                onValueChange = { enteredAmount = it },
                 onDone = {
                     selected?.let { target ->
                         calculator.finish().takeIf { it > 0L }?.let { onSave(target.first, target.second, it) }
@@ -1224,46 +1276,166 @@ private fun AssignBudgetSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private data class MoveEndpoint(
+    val group: String?,
+    val category: String?,
+    val balanceCents: Long,
+) {
+    val title: String get() = category ?: "To Budget"
+    val subtitle: String? get() = group
+}
+
 @Composable
-private fun MoveBudgetSheet(
+private fun MoveBudgetScreen(
+    modifier: Modifier,
     sourceGroup: BudgetGroup,
     source: BudgetCategory,
     groups: List<BudgetGroup>,
+    toBudgetCents: Long,
+    hideDecimalPlaces: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String?, String?, Long) -> Unit,
+    onSave: (String?, String?, String?, String?, Long) -> Unit,
 ) {
-    val options = listOf<Pair<String?, String?>>(null to null) + groups.filterNot { it.isIncome }.flatMap { group ->
-        group.categories.filterNot { group.name == sourceGroup.name && it.name == source.name }.map { group.name to it.name }
-    }
-    var selected by remember(source) { mutableStateOf(options.first()) }
-    var expanded by remember { mutableStateOf(false) }
-    val calculator = remember(source) { CalculatorAmountState(kotlin.math.abs(source.balanceCents), allowsNegative = false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Text(if (source.available < 0) "Cover overspending" else "Move money",
-                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Box(Modifier.fillMaxWidth()) {
-                Button(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(selected.second?.let { "${selected.first} · $it" }
-                        ?: if (source.available < 0) "From To Budget" else "To Budget")
-                }
-                DropdownMenu(expanded, { expanded = false }) { options.forEach { option ->
-                    DropdownMenuItem(text = { Text(option.second?.let { "${option.first} · $it" }
-                        ?: if (source.available < 0) "From To Budget" else "To Budget") },
-                        onClick = { selected = option; expanded = false })
-                } }
+    val options = remember(groups, toBudgetCents) {
+        listOf(MoveEndpoint(null, null, toBudgetCents)) + groups.filterNot { it.isIncome }.flatMap { group ->
+            group.categories.filterNot { it.hidden }.map { category ->
+                MoveEndpoint(group.name, category.name, category.balanceCents)
             }
+        }
+    }
+    val anchor = remember(sourceGroup, source) {
+        MoveEndpoint(sourceGroup.name, source.name, source.balanceCents)
+    }
+    var from by remember(anchor) { mutableStateOf(if (source.balanceCents < 0) options.first() else anchor) }
+    var to by remember(anchor) { mutableStateOf(if (source.balanceCents < 0) anchor else options.first()) }
+    val calculator = remember(anchor) {
+        CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = true)
+    }
+    var enteredAmount by remember(anchor) { mutableStateOf(0L) }
+    BackHandler(onBack = onDismiss)
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Close Move Money")
+                }
+                Text(
+                    "Move Money",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.width(48.dp))
+            }
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MoveEndpointSelector(
+                    label = "From",
+                    selected = from,
+                    options = options.filterNot { it.group == to.group && it.category == to.category },
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    onSelect = { from = it },
+                )
+                IconButton(
+                    onClick = { val previousFrom = from; from = to; to = previousFrom },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ) {
+                    Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap source and destination")
+                }
+                MoveEndpointSelector(
+                    label = "To",
+                    selected = to,
+                    options = options.filterNot { it.group == from.group && it.category == from.category },
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    onSelect = { to = it },
+                )
+                Text(
+                    "Available to move: ${formatMoneyCents(from.balanceCents.coerceAtLeast(0L), hideDecimalPlaces)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            InlineCalculatorAmount("Amount", enteredAmount, Modifier.padding(horizontal = 16.dp))
             CompactCalculatorPad(
                 calculator = calculator,
-                doneLabel = "Move",
-                horizontalPadding = 0.dp,
-                onClose = onDismiss,
+                moveMoneyMode = true,
+                showDisplay = false,
+                onValueChange = { enteredAmount = it },
+                canFinish = { amount ->
+                    amount > 0L && amount <= from.balanceCents.coerceAtLeast(0L) &&
+                        (from.group != to.group || from.category != to.category)
+                },
                 onDone = {
-                    calculator.finish().takeIf { it > 0L }?.let { onSave(selected.first, selected.second, it) }
+                    calculator.finish().takeIf { it > 0L }?.let { amount ->
+                        onSave(from.group, from.category, to.group, to.category, amount)
+                    }
                 },
             )
+        }
+    }
+}
+
+@Composable
+private fun MoveEndpointSelector(
+    label: String,
+    selected: MoveEndpoint,
+    options: List<MoveEndpoint>,
+    hideDecimalPlaces: Boolean,
+    onSelect: (MoveEndpoint) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxWidth()) {
+        Surface(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(label, style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(selected.title, style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    selected.subtitle?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Text(formatMoneyCents(selected.balanceCents, hideDecimalPlaces),
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null,
+                    modifier = Modifier.padding(start = 6.dp))
+            }
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(option.title)
+                            Text(
+                                listOfNotNull(option.subtitle, formatMoneyCents(option.balanceCents, hideDecimalPlaces))
+                                    .joinToString(" · "),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    onClick = { onSelect(option); expanded = false },
+                )
+            }
         }
     }
 }
