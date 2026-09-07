@@ -16,6 +16,7 @@ Ninth public testing release.
 - Added an inline Move Money amount cursor and prevented confirmation when the amount exceeds the source balance
 - Unified amount-entry keyboards around a compact equal-size grid with addition, subtraction, clear, decimal/sign, and backspace controls
 - Removed multiplication, division, and separate equals controls from budgeting keypads
+- Kept the compact Material key styling while standardizing the four-row keypad layout
 
 ## [0.1.0-alpha.8] - 2026-09-07
 
