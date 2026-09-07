@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.budget
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -398,7 +399,7 @@ fun BudgetScreen(
         )
     }
     categoryDetails?.let { (group, category) ->
-        CategoryDetailsSheet(
+        CategoryDetailsScreen(
             category = category,
             month = month,
             hideDecimalPlaces = hideDecimalPlaces,
@@ -858,11 +859,12 @@ private fun BudgetOverviewRow(
             OverviewCell(
                 "To budget",
                 overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
-                Modifier.weight(1.35f).clickable(role = Role.Button, onClick = onToBudgetClick),
+                Modifier.weight(1.35f),
                 Alignment.Start,
                 positive = overview.toBudgetCents?.let { it > 0 } == true,
                 pill = true,
                 pillOffset = (-8).dp,
+                onClick = onToBudgetClick,
             )
             OverviewCell("Budgeted", formatMoneyCents(overview.budgetedCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
             if (showSpent) OverviewCell("Spent", formatMoneyCents(overview.spentCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
@@ -881,21 +883,24 @@ private fun OverviewCell(
     positive: Boolean = false,
     pill: Boolean = false,
     pillOffset: androidx.compose.ui.unit.Dp = 0.dp,
+    onClick: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier, horizontalAlignment = alignment) {
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.68f), maxLines = 1)
         if (pill) {
-            Surface(
-                modifier = Modifier.offset(x = pillOffset),
-                color = if (positive) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = RoundedCornerShape(8.dp),
-            ) {
-                Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-                    color = if (positive) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+            val pillModifier = Modifier.offset(x = pillOffset)
+            val pillColor = if (positive) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surfaceContainerHighest
+            if (onClick != null) {
+                Surface(onClick = onClick, modifier = pillModifier, color = pillColor,
+                    shape = RoundedCornerShape(8.dp)) {
+                    OverviewPillAmount(amount, positive)
+                }
+            } else {
+                Surface(modifier = pillModifier, color = pillColor, shape = RoundedCornerShape(8.dp)) {
+                    OverviewPillAmount(amount, positive)
+                }
             }
         } else {
             Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
@@ -903,6 +908,14 @@ private fun OverviewCell(
                 maxLines = 1)
         }
     }
+}
+
+@Composable
+private fun OverviewPillAmount(amount: String, positive: Boolean) {
+    Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+        color = if (positive) MaterialTheme.colorScheme.onPrimaryContainer
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -1230,9 +1243,8 @@ private fun MoveBudgetSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CategoryDetailsSheet(
+private fun CategoryDetailsScreen(
     category: BudgetCategory,
     month: String,
     hideDecimalPlaces: Boolean,
@@ -1269,12 +1281,27 @@ private fun CategoryDetailsSheet(
             if (category.assignedCents != 0L) add("Set budgeted to zero" to 0L)
         }.distinctBy { it.first }
     }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
-            .verticalScroll(androidx.compose.foundation.rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(formatMonth(month), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    BackHandler(onBack = onDismiss)
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.fillMaxSize()) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
+                }
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(category.name, style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(formatMonth(month), style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.width(48.dp))
+            }
+            Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp)
+                .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 DetailSummary("Budgeted", category.assignedCents, hideDecimalPlaces, Modifier.weight(1f))
                 DetailSummary("Spent", -category.spentCents, hideDecimalPlaces, Modifier.weight(1f))
@@ -1288,7 +1315,7 @@ private fun CategoryDetailsSheet(
             ) {
                 Text(
                     text = note.ifBlank { "Add note" },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (note.isBlank()) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface,
@@ -1304,20 +1331,31 @@ private fun CategoryDetailsSheet(
                 }
                 Switch(rollover, { enabled -> rollover = enabled; onSetCarryover(enabled) })
             }
-            Text("Auto-assign", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("Current budgeted: ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Auto-assign", style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text("Budgeted ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             if (suggestions.isEmpty()) Text("No suggestions available", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            suggestions.forEach { (label, amount) ->
-                Surface(onClick = { onAssign(amount) }, color = MaterialTheme.colorScheme.surfaceContainer,
-                    shape = RoundedCornerShape(12.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(16.dp)) {
-                        Text(label, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-                        Text(formatMoneyCents(amount, hideDecimalPlaces), fontWeight = FontWeight.SemiBold)
+            if (suggestions.isNotEmpty()) {
+                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(12.dp)) {
+                    Column {
+                        suggestions.forEachIndexed { index, (label, amount) ->
+                            if (index > 0) HorizontalDivider()
+                            Row(Modifier.fillMaxWidth().clickable { onAssign(amount) }
+                                .padding(horizontal = 12.dp, vertical = 9.dp)) {
+                                Text(label, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium)
+                                Text(formatMoneyCents(amount, hideDecimalPlaces), fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
                     }
                 }
             }
-            Text("Recent transactions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("Recent transactions", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             if (transactions.isEmpty()) {
                 Text("No recent transactions", color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else transactions.forEach { transaction ->
@@ -1336,7 +1374,8 @@ private fun CategoryDetailsSheet(
             SheetAction("Rename category", onRename)
             SheetAction(if (hidden) "Unhide category" else "Hide category", { onSetHidden(!hidden) }, destructive = !hidden)
             SheetAction("Delete category", { deleteConfirmOpen = true }, destructive = true)
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
+            }
         }
     }
     if (noteEditorOpen) {
@@ -1380,10 +1419,11 @@ private fun CategoryDetailsSheet(
 @Composable
 private fun DetailSummary(label: String, amount: Long, hideDecimals: Boolean, modifier: Modifier) {
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(14.dp)) {
-        Column(Modifier.padding(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 9.dp),
+            horizontalAlignment = Alignment.CenterHorizontally) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(formatMoneyCents(amount, hideDecimals), style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold, maxLines = 1)
+                fontWeight = FontWeight.SemiBold, maxLines = 1, textAlign = TextAlign.Center)
         }
     }
 }

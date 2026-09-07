@@ -13,6 +13,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Aligned Table overview amounts and category balance pills to the same column anchors used by Plan view
 - Unified transaction, Budget, To Budget, and Move Money calculators around one compact equal-size Material key grid
 - Replaced Budget entry headings and separate amount labels with a focused inline amount and cursor
+- Moved category details to a dedicated full-screen view with centered summaries and denser auto-assign choices
+- Limited the To Budget pressed state to its rounded amount pill instead of the full overview cell
 
 ## [0.1.0-alpha.5] - 2026-09-07
 
