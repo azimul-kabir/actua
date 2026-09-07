@@ -466,6 +466,18 @@ fun AppNavigation(
                     onDeleteCategory = { group, category ->
                         mutate("Deleting category") { repository.deleteCategory(group, category) }
                     },
+                    onEditTransaction = { transaction ->
+                        editingTransaction = transaction
+                        editorReturnsToTransactions = true
+                        transactionAccount = null
+                        transactionCategory = transaction.category
+                        transactionMonth = null
+                        transactionSearch = ""
+                        detail = DetailDestination.EditTransaction
+                    },
+                    onDeleteTransaction = { transaction ->
+                        mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
+                    },
                 )
                 MainDestination.Accounts -> AccountsScreen(
                     modifier = contentModifier,

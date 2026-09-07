@@ -8,6 +8,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Anchored the Plan Ready to Budget amount left and its label right
 - Matched group-total amount typography to category balance amounts
+- Kept the full category details page inside the app's safe content bounds
+- Made recent category transactions open the shared view mode with Edit and Delete actions
 
 ## [0.1.0-alpha.6] - 2026-09-07
 

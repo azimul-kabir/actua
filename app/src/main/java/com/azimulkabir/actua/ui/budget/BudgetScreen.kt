@@ -79,6 +79,7 @@ import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.NewCategoryDialog
+import com.azimulkabir.actua.ui.transactions.TransactionDetailsSheet
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
@@ -144,6 +145,8 @@ fun BudgetScreen(
     onSearch: () -> Unit = {},
     transactions: List<Transaction> = emptyList(),
     onDeleteCategory: (String, String) -> Boolean = { _, _ -> false },
+    onEditTransaction: (Transaction) -> Unit = {},
+    onDeleteTransaction: (Transaction) -> Unit = {},
 ) {
     val context = LocalContext.current
     val budgetUiPreferences = remember(context) {
@@ -400,6 +403,7 @@ fun BudgetScreen(
     }
     categoryDetails?.let { (group, category) ->
         CategoryDetailsScreen(
+            modifier = modifier,
             category = category,
             month = month,
             hideDecimalPlaces = hideDecimalPlaces,
@@ -426,6 +430,8 @@ fun BudgetScreen(
             onDelete = {
                 if (onDeleteCategory(group.name, category.name)) categoryDetails = null
             },
+            onEditTransaction = onEditTransaction,
+            onDeleteTransaction = onDeleteTransaction,
         )
     }
     autoAssignCategory?.let { (group, category) ->
@@ -1250,6 +1256,7 @@ private fun MoveBudgetSheet(
 
 @Composable
 private fun CategoryDetailsScreen(
+    modifier: Modifier = Modifier,
     category: BudgetCategory,
     month: String,
     hideDecimalPlaces: Boolean,
@@ -1264,11 +1271,14 @@ private fun CategoryDetailsScreen(
     hidden: Boolean,
     onSetHidden: (Boolean) -> Unit,
     onDelete: () -> Unit,
+    onEditTransaction: (Transaction) -> Unit,
+    onDeleteTransaction: (Transaction) -> Unit,
 ) {
     var note by remember(category) { mutableStateOf(category.note) }
     var noteEditorOpen by remember(category) { mutableStateOf(false) }
     var rollover by remember(category) { mutableStateOf(category.carryoverEnabled) }
     var deleteConfirmOpen by remember(category) { mutableStateOf(false) }
+    var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     val suggestions = remember(category) {
         buildList {
             category.history.firstOrNull()?.let { last ->
@@ -1287,7 +1297,7 @@ private fun CategoryDetailsScreen(
         }.distinctBy { it.first }
     }
     BackHandler(onBack = onDismiss)
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
@@ -1364,7 +1374,8 @@ private fun CategoryDetailsScreen(
             if (transactions.isEmpty()) {
                 Text("No recent transactions", color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else transactions.forEach { transaction ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clickable { selectedTransaction = transaction }
+                    .padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(transaction.payee.ifBlank { "Unknown payee" }, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(formatStoredDate(transaction.date), style = MaterialTheme.typography.bodySmall,
@@ -1382,6 +1393,15 @@ private fun CategoryDetailsScreen(
             Spacer(Modifier.height(12.dp))
             }
         }
+    }
+    selectedTransaction?.let { transaction ->
+        TransactionDetailsSheet(
+            transaction = transaction,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { selectedTransaction = null },
+            onEdit = { selectedTransaction = null; onEditTransaction(transaction) },
+            onDelete = { selectedTransaction = null; onDeleteTransaction(transaction) },
+        )
     }
     if (noteEditorOpen) {
         var noteDraft by remember(category, noteEditorOpen) { mutableStateOf(note) }
