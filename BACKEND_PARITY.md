@@ -1,4 +1,4 @@
-# Actuali Android backend parity
+# Actua backend parity
 
 The original [Actuali for iOS project by Matt Farrell](https://github.com/MattFaz/actuali)
 is the upstream behavioral reference for this independent Android port. A local
@@ -26,6 +26,7 @@ Android backlog items and will never be ported.
 
 - Budget archive validation, import, download, active selection, and export
 - Password login and server file lifecycle endpoints
+- Editable primary/fallback server addresses with explicitly scoped private-LAN HTTP support and automatic failover without replacing local budgets
 - HLC, CRDT values/messages, protobuf sync protocol, Merkle tree, encryption
 - Sync convergence loop and Android Keystore-backed credentials/keys
 - Actual schema migrations required by current Android reads
@@ -58,6 +59,8 @@ Android backlog items and will never be ported.
   payee deduplication, and create-form projection
 - Account, category, and category-group rename/close/hide long-press actions
   wired through CRDT mutations and immediate UI refresh
+- Category deletion through Actual-compatible tombstone mutations, with existing
+  transactions safely falling back to uncategorized
 - Account/category/group creation with Actual transfer-payee, opening-balance,
   mapping, duplicate-name, and sort-order behavior
 - Category context actions for budget editing, month/all transaction lists,
@@ -75,6 +78,9 @@ Android backlog items and will never be ported.
 - Exact-cent account, category, transaction, summary, and transaction-entry presentation;
   hiding decimals never changes stored values
 - Real database-backed Budget overview and Accounts monthly income/expense/net totals
+- Actual income/source-of-funds categories rendered as the final Budget section,
+  with received totals and income-safe contextual actions
+- Persistent table and availability-focused Plan budget presentations
 - Working previous/next budget month navigation, with reads and budget writes scoped to the selected month
 - App-wide display currency selection (including no currency), symbol-only mode,
   and decimal-place presentation
@@ -89,9 +95,8 @@ Android backlog items and will never be ported.
 
 ## Remaining version 1 work
 
-- Remaining entity creation/deletion/merge/reorder mutations and Android action wiring
+- Remaining entity deletion/merge/reorder mutations and Android action wiring
 - Budget templates, goals, and broader automation UI
-- Server failover parity
 - Local-backup export/share and import picker
 
 ## Post-v1 portable features

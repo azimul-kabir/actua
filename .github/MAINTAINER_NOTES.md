@@ -1,7 +1,7 @@
 # Community setup
 
 Issue forms, the PR template and AGENTS.md are adapted from
-[MattFaz/actuali](https://github.com/MattFaz/actuali) for this Android port.
+[MattFaz/actuali](https://github.com/MattFaz/actuali) for Actua.
 Merge this branch into `main` to make the issue chooser and privileged review
 workflow available. Ensure the `bug` and `enhancement` labels exist.
 
@@ -15,6 +15,12 @@ still require a connected device/emulator and are not part of this CI job;
 run `./gradlew connectedInstrumentedAndroidTest` locally when relevant.
 After a successful GitHub run, select the build-test-lint check in the main
 branch ruleset if it should be required for merging.
+
+Release metadata changes on `rebrand/actua` run the Android Release workflow. It
+builds and validates the debug-signed testing APK, creates the version tag and
+GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
+description, and attaches the versioned APK. Update `versionCode`,
+`versionName`, and `CHANGELOG.md` together for each release.
 
 ## Recommended: Codex GitHub review with ChatGPT Plus
 

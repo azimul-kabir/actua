@@ -18,7 +18,7 @@ concurrency:
 jobs:
   review:
     if: >-
-      github.repository == 'azimul-kabir/actuali-android' &&
+      (github.repository == 'azimul-kabir/actuali-android' || github.repository == 'azimul-kabir/actua') &&
       vars.AI_REVIEW_ENABLED == 'true' &&
       !github.event.pull_request.draft
     runs-on: ubuntu-latest

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Actua Fold A</title>
+  <desc id="desc">An abstract monoline A with folded breaks on both legs and a floating allocation chevron.</desc>
+  <rect width="1024" height="1024" fill="#4B18D1"/>
+  <g fill="none" stroke="#FFFDF5" stroke-width="60" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M270 748 320 635"/>
+    <path d="M400 470 452 338c24-54 96-54 120 0l52 132"/>
+    <path d="M704 635 753 748"/>
+    <path d="M370 560 482 650c18 14 42 14 60 0l112-90"/>
+  </g>
+</svg>

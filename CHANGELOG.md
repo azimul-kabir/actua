@@ -1,8 +1,104 @@
 # Changelog
 
-All notable user-facing changes to Actuali for Android are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
+All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
 
 ## Unreleased
+
+No user-facing changes yet.
+
+## [0.1.0-alpha.7] - 2026-09-07
+
+Seventh public testing release.
+
+### Changed
+
+- Anchored the Plan Ready to Budget amount left and its label right
+- Matched group-total amount typography to category balance amounts
+- Kept the full category details page inside the app's safe content bounds
+- Made recent category transactions open the shared view mode with Edit and Delete actions
+- Slimmed every calculator key vertically and forced calculator sheets to open fully expanded
+- Removed calculator drag handles, added compact close controls, and replaced budget action glyphs with Material icons
+- Replaced the center Add tab with a dedicated Transactions tab and date-grouping controls
+- Added an adaptive Material `+ Transaction` button to Budget, Accounts, Transactions, and Reports
+- Replaced full-width transaction editor actions with compact Save, Delete, and Cancel buttons
+- Hid the fixed Category field from transfer entry while preserving transfer behavior
+
+## [0.1.0-alpha.6] - 2026-09-07
+
+Sixth public testing release.
+
+### Changed
+
+- Replaced transaction cleared-state letters with compact green or gray check controls without changing amount alignment
+- Transaction taps now open a read-only detail sheet with explicit Edit and Delete actions
+- Global search transaction results now use the same detailed row and view flow as All Accounts
+- Restored the compact single-line Ready to Budget overview in Plan view
+- Aligned Table overview amounts and category balance pills to the same column anchors used by Plan view
+- Unified transaction, Budget, To Budget, and Move Money calculators around one compact equal-size Material key grid
+- Replaced Budget entry headings and separate amount labels with a focused inline amount and cursor
+- Moved category details to a dedicated full-screen view with centered summaries and denser auto-assign choices
+- Limited the To Budget pressed state to its rounded amount pill instead of the full overview cell
+
+## [0.1.0-alpha.5] - 2026-09-07
+
+Fifth public testing release.
+
+### Added
+
+- Global Material You search across transactions, accounts, payees, categories, notes, and transfer accounts
+- Unified category budget sheet with Budget entry, Auto-Assign, Move Money, Details, recent transactions, notes, rollover, rename, hide, and deletion actions
+- Screenshot-inspired Material You calculators for transaction amounts and category budgeting
+
+### Changed
+
+- Redesigned transaction rows with category chips, notes, cleared status, per-row dates when date grouping is disabled, and account context in All Accounts
+- Transfers in All Accounts now identify both source and destination accounts, while individual account views omit the current account
+- Saving a new transaction now opens All Accounts transactions
+- Renamed Assigned to Budgeted and Available to Balance throughout the Budget views
+- Made the complete category row open Budget entry in both Table and Plan views; amount fields no longer have separate tap actions
+- Unified the Plan and Table overview layouts and added aligned pills to To Budget and Balance amounts
+- Plan group Budgeted totals are shown only while the group is collapsed
+
+## [0.1.0-alpha.4] - 2026-09-07
+
+Fourth public testing release.
+
+### Added
+
+- Full-screen Material account, payee, and category selectors with immediate search, alphabetical sections, selected-item indicators, transfer-account grouping, new-payee creation, and account balances
+- A persistent availability-focused Plan budget view alongside the existing table view
+- Interactive Plan figures: Assigned opens assignment and money-moving actions, while Spent opens the category's transactions for the selected month
+- Ready to Assign and To Budget funding flows for assigning money to categories or covering a negative To Budget balance
+- Source of Fund/Income as the final Budget section, with Actual-backed received totals and income-safe actions
+
+### Changed
+
+- Adopted the original Actua Fold A as a fully scalable SVG and native Android vector icon
+- Preserved the solid violet adaptive background with matching Android 13+ Material You vector geometry
+- Aligned account working-balance values by moving the disclosure control beside the label
+- Remembered collapsed account summaries and Budget category groups across navigation and app restarts
+- Replaced always-open account and category note forms with compact tappable note rows and focused editors
+- Added a tappable Budget month label with a Material month-and-year selector
+- Ported Actuali's rule manager with searchable summaries, stage ordering, all/any conditions, typed values, entity pickers, and editable actions
+- Added Actual-compatible CRDT rule creation, updates, deletion, schedule-owned rule protection, and native transaction execution
+- Added editable primary and fallback Actual server URLs without disconnecting or replacing downloaded budgets, with automatic failover during connection and sync
+- Allowed cleartext HTTP for the configured local Actual server at `192.168.68.109` while retaining Android's cleartext block for other destinations
+- Renamed the independent Android client from Actuali for Android to Actua
+- Changed the application ID and Kotlin namespace from `com.azimulkabir.actuali`
+  to `com.azimulkabir.actua`
+- Added an original Material You-ready adaptive launcher icon with a monochrome
+  themed-icon layer
+- Updated project documentation while preserving credit to Actuali for iOS and
+  Actual Budget
+- Transaction notes now use a compact single-line field
+- Budget groups, categories, account sections, and account rows have clearer Material hierarchy
+- Availability pills in Plan view use tighter corners and aligned amount text
+- Saving or cancelling an edited transaction returns to its originating account
+
+### Migration
+
+- Android treats Actua as a separate app from earlier Actuali for Android alpha
+  builds. Synchronize and back up local changes before removing an older build.
 
 ## [0.1.0-alpha.3] - 2026-09-06
 
@@ -66,7 +162,7 @@ Initial public testing release.
 
 - This build is alpha software and should be used with tested backups
 - The APK is debug-signed for sideload testing, not Play Store distribution
-- OpenID Connect, custom proxy headers, advanced dashboards, bank-feed setup, rule editing, and schedule-management UI are not yet included
+- OpenID Connect, custom proxy headers, advanced dashboards, bank-feed setup, and schedule-management UI are not yet included
 - Some advanced entity merge, reorder, template, goal, and automation workflows remain incomplete
 - Apple-only features from the iOS project are intentionally excluded
 
@@ -79,3 +175,7 @@ Initial public testing release.
 [0.1.0-alpha.1]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.1
 [0.1.0-alpha.2]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.2
 [0.1.0-alpha.3]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.3
+[0.1.0-alpha.4]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.4
+[0.1.0-alpha.5]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.5
+[0.1.0-alpha.6]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.6
+[0.1.0-alpha.7]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.7

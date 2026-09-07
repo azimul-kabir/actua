@@ -1,0 +1,58 @@
+name: Android Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - app/build.gradle.kts
+      - CHANGELOG.md
+      - .github/workflows/android-release.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android 17 compile SDK
+        run: |
+          curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+          export PATH="$HOME/.local/bin:$PATH"
+          android --sdk="$ANDROID_SDK_ROOT" sdk install --canary platforms/android-37
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build, test and lint
+        run: ./gradlew --no-daemon assembleDebug testInstrumentedUnitTest lintDebug
+      - name: Read release version
+        id: version
+        run: echo "name=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+      - name: Prepare release notes
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.name }}
+        run: |
+          awk -v version="$RELEASE_VERSION" '
+            $0 ~ "^## \\[" version "\\]" { found = 1; next }
+            found && $0 ~ "^## \\[" { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+      - name: Prepare testing APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk "Actua-v${{ steps.version.outputs.name }}.apk"
+      - name: Publish GitHub prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          tag_name: v${{ steps.version.outputs.name }}
+          name: Actua ${{ steps.version.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          body_path: release-notes.md
+          files: Actua-v${{ steps.version.outputs.name }}.apk

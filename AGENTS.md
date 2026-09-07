@@ -2,7 +2,7 @@
 
 ## Scope and references
 
-Actuali for Android is an independent Kotlin/Jetpack Compose port of
+Actua is an independent Kotlin/Jetpack Compose Android client originally based on
 [MattFaz/actuali](https://github.com/MattFaz/actuali), connecting directly to
 [Actual Budget](https://github.com/actualbudget/actual). Read README.md and
 BACKEND_PARITY.md before changing behavior. Preserve LICENSE and NOTICE.md credits.
@@ -17,11 +17,11 @@ implementation boundary changes.
 
 ## Repository map
 
-Sources are under `app/src/main/java/com/azimulkabir/actuali/`:
+Sources are under `app/src/main/java/com/azimulkabir/actua/`:
 
 - `MainActivity.kt`, `ui/navigation/`, `ui/*`: Compose screens, navigation, shared
   components and theme. Follow existing state/event patterns and Material 3.
-- `data/ActualiRepository.kt`: bridge from UI models to the selected budget,
+- `data/ActuaRepository.kt`: bridge from UI models to the selected budget,
   mutation writers and sync scheduling.
 - `data/budget/ActualBudgetDatabase.kt`: Actual-compatible SQLite storage and
   read models. `ActualTransactionWriter`, `ActualEntityWriter`, and
