@@ -313,10 +313,16 @@ fun AppNavigation(
                 categories = categoryNames,
                 hideDecimalPlaces = hideDecimalPlaces,
                 onBack = { detail = DetailDestination.Main },
-                onTransactionClick = {
+                onTransactionEdit = {
                     editingTransaction = it
                     editorReturnsToTransactions = false
                     detail = DetailDestination.EditTransaction
+                },
+                onTransactionDelete = { transaction ->
+                    mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
+                },
+                onTransactionClearedChange = { transaction, cleared ->
+                    mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
                 },
                 onAccountClick = {
                     transactionAccount = it; transactionCategory = null; transactionMonth = null; transactionSearch = ""

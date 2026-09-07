@@ -31,7 +31,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.Transaction
-import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.transactions.TransactionDetailsSheet
+import com.azimulkabir.actua.ui.transactions.TransactionRow
 
 private enum class SearchFilter(val label: String) { ALL("All"), TRANSACTIONS("Transactions"), ACCOUNTS("Accounts"), PAYEES("Payees"), CATEGORIES("Categories") }
 
@@ -43,7 +44,9 @@ fun GlobalSearchScreen(
     categories: List<String>,
     hideDecimalPlaces: Boolean,
     onBack: () -> Unit,
-    onTransactionClick: (Transaction) -> Unit,
+    onTransactionEdit: (Transaction) -> Unit,
+    onTransactionDelete: (Transaction) -> Unit,
+    onTransactionClearedChange: (Transaction, Boolean) -> Unit,
     onAccountClick: (String) -> Unit,
     onCategoryClick: (String) -> Unit,
     onPayeeClick: (String) -> Unit,
@@ -51,6 +54,7 @@ fun GlobalSearchScreen(
 ) {
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(SearchFilter.ALL) }
+    var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     val term = query.trim()
     val matchingTransactions = remember(term, transactions) {
         if (term.isBlank()) emptyList() else transactions.filter {
@@ -90,10 +94,15 @@ fun GlobalSearchScreen(
             LazyColumn(Modifier.fillMaxSize()) {
                 if (filter == SearchFilter.ALL || filter == SearchFilter.TRANSACTIONS) {
                     searchSection("Transactions", matchingTransactions) { transaction ->
-                        SearchRow(transaction.payee.ifBlank { "Unknown payee" },
-                            "${transaction.category} · ${transaction.account}",
-                            trailing = formatMoneyCents(transaction.amountCents, hideDecimalPlaces),
-                            onClick = { onTransactionClick(transaction) })
+                        TransactionRow(
+                            transaction = transaction,
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            showDate = true,
+                            showAccount = true,
+                            onClick = { selectedTransaction = transaction },
+                            onLongClick = { selectedTransaction = transaction },
+                            onClearedClick = { onTransactionClearedChange(transaction, !transaction.cleared) },
+                        )
                     }
                 }
                 if (filter == SearchFilter.ALL || filter == SearchFilter.ACCOUNTS) {
@@ -109,6 +118,15 @@ fun GlobalSearchScreen(
                 }
             }
         }
+    }
+    selectedTransaction?.let { transaction ->
+        TransactionDetailsSheet(
+            transaction = transaction,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { selectedTransaction = null },
+            onEdit = { selectedTransaction = null; onTransactionEdit(transaction) },
+            onDelete = { selectedTransaction = null; onTransactionDelete(transaction) },
+        )
     }
 }
 

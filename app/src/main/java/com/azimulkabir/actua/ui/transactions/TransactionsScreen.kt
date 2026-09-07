@@ -3,6 +3,7 @@ package com.azimulkabir.actua.ui.transactions
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -100,6 +102,7 @@ fun TransactionsScreen(
     var menuOpen by remember { mutableStateOf(false) }
     var hideCleared by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Transaction?>(null) }
+    var viewed by remember { mutableStateOf<Transaction?>(null) }
     var accountNote by remember(account) { mutableStateOf(account?.note.orEmpty()) }
 
     val visible = transactions.filter {
@@ -169,17 +172,28 @@ fun TransactionsScreen(
                                 .padding(horizontal = 20.dp, vertical = 8.dp))
                     }
                     items(transactions, key = { it.id }) { transaction ->
-                        TransactionRow(transaction, hideDecimalPlaces, showDate = false, onClick = { onEdit(transaction) },
-                            showAccount = accountName == null, onLongClick = { selected = transaction })
+                        TransactionRow(transaction, hideDecimalPlaces, showDate = false, onClick = { viewed = transaction },
+                            showAccount = accountName == null, onLongClick = { selected = transaction },
+                            onClearedClick = { onSetCleared(transaction, !transaction.cleared) })
                     }
                 }
             } else {
                 items(visible, key = { it.id }) { transaction ->
-                    TransactionRow(transaction, hideDecimalPlaces, showDate = true, onClick = { onEdit(transaction) },
-                        showAccount = accountName == null, onLongClick = { selected = transaction })
+                    TransactionRow(transaction, hideDecimalPlaces, showDate = true, onClick = { viewed = transaction },
+                        showAccount = accountName == null, onLongClick = { selected = transaction },
+                        onClearedClick = { onSetCleared(transaction, !transaction.cleared) })
                 }
             }
         }
+    }
+    viewed?.let { transaction ->
+        TransactionDetailsSheet(
+            transaction = transaction,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { viewed = null },
+            onEdit = { viewed = null; onEdit(transaction) },
+            onDelete = { viewed = null; onDelete(transaction) },
+        )
     }
     selected?.let { transaction ->
         ModalBottomSheet(onDismissRequest = { selected = null }) {
@@ -336,8 +350,9 @@ private fun ToggleItem(label: String, checked: Boolean, onChange: (Boolean) -> U
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
-    showDate: Boolean, showAccount: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
+    showDate: Boolean, showAccount: Boolean, onClick: () -> Unit, onLongClick: () -> Unit,
+    onClearedClick: (() -> Unit)? = null) {
     val presentation = transactionRowPresentation(transaction, showAccount)
     Column(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
         .padding(horizontal = 20.dp, vertical = 12.dp)) {
@@ -345,7 +360,7 @@ private fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
             Text(presentation.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
-            ClearedIndicator(transaction.cleared)
+            ClearedIndicator(transaction.cleared, onClearedClick)
         }
         presentation.transferContext?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
@@ -420,15 +435,78 @@ private fun CategoryChip(label: String, transfer: Boolean) {
 }
 
 @Composable
-private fun ClearedIndicator(cleared: Boolean) {
+private fun ClearedIndicator(cleared: Boolean, onClick: (() -> Unit)? = null) {
     Surface(
-        modifier = Modifier.padding(start = 7.dp).size(18.dp),
+        modifier = Modifier.padding(start = 7.dp).size(18.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = CircleShape,
-        color = if (cleared) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        color = if (cleared) Color(0xFF2E7D32) else MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
-        Text("C", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
-            color = if (cleared) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center)
+        Icon(
+            Icons.Rounded.Check,
+            contentDescription = if (cleared) "Cleared" else "Uncleared",
+            tint = if (cleared) Color.White else MaterialTheme.colorScheme.outline,
+            modifier = Modifier.padding(3.dp),
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TransactionDetailsSheet(
+    transaction: Transaction,
+    hideDecimalPlaces: Boolean,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var confirmDelete by remember(transaction.id) { mutableStateOf(false) }
+    val presentation = transactionRowPresentation(transaction, showAccount = true)
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Transaction details", style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Amount(transaction.amountCents, FontWeight.Bold, hideDecimalPlaces)
+                ClearedIndicator(transaction.cleared)
+            }
+            HorizontalDivider()
+            TransactionDetail("Payee", presentation.title)
+            TransactionDetail("Date", formatTransactionDate(transaction.date))
+            TransactionDetail("Category", presentation.categoryLabel)
+            TransactionDetail("Account", transaction.account)
+            transaction.transferAccount?.takeIf(String::isNotBlank)?.let {
+                TransactionDetail("Transfer account", it)
+            }
+            TransactionDetail("Status", if (transaction.cleared) "Cleared" else "Uncleared")
+            transaction.notes.takeIf(String::isNotBlank)?.let { TransactionDetail("Notes", it) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { confirmDelete = true }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+                TextButton(onClick = onEdit) { Text("Edit") }
+            }
+        }
+    }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete transaction?") },
+            text = { Text("This transaction will be deleted.") },
+            confirmButton = { TextButton(onClick = onDelete) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+@Composable
+private fun TransactionDetail(label: String, value: String) {
+    Row(Modifier.fillMaxWidth()) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(0.4f))
+        Text(value, modifier = Modifier.weight(0.6f), textAlign = TextAlign.End)
     }
 }
 

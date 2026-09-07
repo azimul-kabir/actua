@@ -4,6 +4,12 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Replaced transaction cleared-state letters with compact green or gray check controls without changing amount alignment
+- Transaction taps now open a read-only detail sheet with explicit Edit and Delete actions
+- Global search transaction results now use the same detailed row and view flow as All Accounts
+
 ## [0.1.0-alpha.5] - 2026-09-07
 
 Fifth public testing release.
