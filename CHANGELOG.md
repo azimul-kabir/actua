@@ -6,6 +6,16 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [0.1.0-alpha.8] - 2026-09-07
+
+Bugfix testing release.
+
+### Fixed
+
+- Replaced the transaction editor's bottom action row with a fixed extended Save button
+- Moved Cancel to the top-left close control and Edit-mode Delete to the top-right
+- Kept transaction fields scrollable above the floating Save button
+
 ## [0.1.0-alpha.7] - 2026-09-07
 
 Seventh public testing release.
@@ -179,3 +189,4 @@ Initial public testing release.
 [0.1.0-alpha.5]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.5
 [0.1.0-alpha.6]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.6
 [0.1.0-alpha.7]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.7
+[0.1.0-alpha.8]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.8
