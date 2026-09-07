@@ -9,6 +9,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Replaced transaction cleared-state letters with compact green or gray check controls without changing amount alignment
 - Transaction taps now open a read-only detail sheet with explicit Edit and Delete actions
 - Global search transaction results now use the same detailed row and view flow as All Accounts
+- Restored the compact single-line Ready to Budget overview in Plan view
+- Aligned Table overview amounts and category balance pills to the same column anchors used by Plan view
 
 ## [0.1.0-alpha.5] - 2026-09-07
 

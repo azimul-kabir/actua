@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -200,12 +201,20 @@ fun BudgetScreen(
             onSearch = onSearch,
         )
         AnimatedVisibility(visible = showOverview) {
-            BudgetOverviewRow(
-                overview,
-                showSpent = showSpent,
-                hideDecimalPlaces = hideDecimalPlaces,
-                onToBudgetClick = { assignFromBudgetOpen = true },
-            )
+            if (budgetView == "Plan") {
+                PlanBudgetOverview(
+                    overview = overview,
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    onClick = { assignFromBudgetOpen = true },
+                )
+            } else {
+                BudgetOverviewRow(
+                    overview,
+                    showSpent = showSpent,
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    onToBudgetClick = { assignFromBudgetOpen = true },
+                )
+            }
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -611,6 +620,39 @@ private fun ToggleMenuItem(label: String, checked: Boolean, onChange: (Boolean) 
     )
 }
 
+@Composable
+private fun PlanBudgetOverview(
+    overview: BudgetOverview,
+    hideDecimalPlaces: Boolean,
+    onClick: () -> Unit,
+) {
+    val ready = overview.toBudgetCents ?: 0L
+    Surface(
+        onClick = onClick,
+        color = if (ready >= 0L) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.errorContainer,
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                "Ready to Budget",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PlanBudgetGroupHeader(
@@ -679,21 +721,14 @@ private fun PlanBudgetCategoryRow(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = when {
-                    category.balanceCents < 0 -> MaterialTheme.colorScheme.errorContainer
-                    category.balanceCents > 0 -> MaterialTheme.colorScheme.primaryContainer
-                    else -> MaterialTheme.colorScheme.surfaceContainerHighest
-                },
-            ) {
-                Text(
-                    formatMoneyCents(category.balanceCents, hideDecimalPlaces),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
-                )
-            }
+            BalancePill(
+                category.balanceCents,
+                hideDecimalPlaces,
+                textStyle = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                horizontalPadding = 10.dp,
+                verticalPadding = 3.dp,
+            )
         }
         val fraction = if (category.assignedCents <= 0L) 0f else
             (category.spentCents.toFloat() / category.assignedCents).coerceIn(0f, 1f)
@@ -826,11 +861,12 @@ private fun BudgetOverviewRow(
                 Alignment.Start,
                 positive = overview.toBudgetCents?.let { it > 0 } == true,
                 pill = true,
+                pillOffset = (-8).dp,
             )
             OverviewCell("Budgeted", formatMoneyCents(overview.budgetedCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
             if (showSpent) OverviewCell("Spent", formatMoneyCents(overview.spentCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
             OverviewCell("Balance", formatMoneyCents(overview.availableCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End,
-                positive = overview.availableCents >= 0, pill = true)
+                positive = overview.availableCents >= 0, pill = true, pillOffset = 8.dp)
         }
     }
 }
@@ -843,12 +879,14 @@ private fun OverviewCell(
     alignment: Alignment.Horizontal,
     positive: Boolean = false,
     pill: Boolean = false,
+    pillOffset: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     Column(modifier = modifier, horizontalAlignment = alignment) {
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.68f), maxLines = 1)
         if (pill) {
             Surface(
+                modifier = Modifier.offset(x = pillOffset),
                 color = if (positive) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.surfaceContainerHighest,
                 shape = RoundedCornerShape(8.dp),
@@ -928,7 +966,7 @@ private fun AmountColumn(
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         if (balance) {
-            BalancePill(amount, hideDecimalPlaces)
+            BalancePill(amount, hideDecimalPlaces, modifier = Modifier.offset(x = 8.dp))
         } else {
             Text(formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold,
                 color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
@@ -969,7 +1007,15 @@ private fun CategoryRow(
                 muted = category.spentCents == 0L,
             )
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                BalancePill(category.balanceCents, hideDecimalPlaces)
+                BalancePill(
+                    category.balanceCents,
+                    hideDecimalPlaces,
+                    modifier = Modifier.offset(x = 10.dp),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    horizontalPadding = 10.dp,
+                    verticalPadding = 3.dp,
+                )
             }
         }
         AnimatedVisibility(visible = showProgressBar) {
@@ -1080,20 +1126,39 @@ private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: 
 }
 
 @Composable
-private fun BalancePill(amount: Long, hideDecimalPlaces: Boolean) {
+private fun BalancePill(
+    amount: Long,
+    hideDecimalPlaces: Boolean,
+    modifier: Modifier = Modifier,
+    textStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodySmall,
+    fontWeight: FontWeight = FontWeight.SemiBold,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 8.dp,
+    verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
+) {
     val positive = amount > 0
     val negative = amount < 0
-    Text(
-        text = formatMoneyCents(amount, hideDecimalPlaces),
-        style = MaterialTheme.typography.bodySmall,
-        fontWeight = FontWeight.SemiBold,
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
         color = when {
-            positive -> MaterialTheme.colorScheme.primary
-            negative -> MaterialTheme.colorScheme.error
-            else -> MaterialTheme.colorScheme.onSurfaceVariant
+            positive -> MaterialTheme.colorScheme.primaryContainer
+            negative -> MaterialTheme.colorScheme.errorContainer
+            else -> MaterialTheme.colorScheme.surfaceContainerHighest
         },
-        maxLines = 1,
-    )
+    ) {
+        Text(
+            text = formatMoneyCents(amount, hideDecimalPlaces),
+            style = textStyle,
+            fontWeight = fontWeight,
+            color = when {
+                positive -> MaterialTheme.colorScheme.onPrimaryContainer
+                negative -> MaterialTheme.colorScheme.onErrorContainer
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
+            maxLines = 1,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
