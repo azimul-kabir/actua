@@ -12,6 +12,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Made recent category transactions open the shared view mode with Edit and Delete actions
 - Slimmed every calculator key vertically and forced calculator sheets to open fully expanded
 - Removed calculator drag handles, added compact close controls, and replaced budget action glyphs with Material icons
+- Replaced the center Add tab with a dedicated Transactions tab and date-grouping controls
+- Added an adaptive Material `+ Transaction` button to Budget, Accounts, Transactions, and Reports
+- Replaced full-width transaction editor actions with compact Save, Delete, and Cancel buttons
+- Hid the fixed Category field from transfer entry while preserving transfer behavior
 
 ## [0.1.0-alpha.6] - 2026-09-07
 

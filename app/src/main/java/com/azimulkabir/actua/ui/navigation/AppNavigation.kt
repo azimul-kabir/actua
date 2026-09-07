@@ -17,10 +17,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.PieChartOutline
+import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -38,6 +40,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -68,7 +74,7 @@ private enum class MainDestination(
 ) {
     Budget("Budget", Icons.Outlined.PieChartOutline),
     Accounts("Accounts", Icons.Outlined.AccountBalanceWallet),
-    Add("Add", Icons.Outlined.AddCircleOutline),
+    Transactions("Transactions", Icons.Outlined.ReceiptLong),
     Reports("Reports", Icons.Outlined.BarChart),
     More("More", Icons.Outlined.MoreHoriz),
 }
@@ -112,6 +118,8 @@ fun AppNavigation(
     var transactionSearch by rememberSaveable { mutableStateOf("") }
     var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
     var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
+    var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
+    var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
     var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
@@ -146,6 +154,23 @@ fun AppNavigation(
         },
     )
 
+    fun openAddTransaction() {
+        addOrigin = destination
+        editingTransaction = null
+        editorReturnsToTransactions = false
+        detail = DetailDestination.EditTransaction
+    }
+
+    val fabScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -2f) transactionFabExpanded = false
+                if (available.y > 2f) transactionFabExpanded = true
+                return Offset.Zero
+            }
+        }
+    }
+
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -169,7 +194,6 @@ fun AppNavigation(
             detail != DetailDestination.Main -> {
                 detail = DetailDestination.Main
                 editingTransaction = null
-                if (destination == MainDestination.Add) destination = MainDestination.Accounts
             }
             else -> destination = MainDestination.Budget
         }
@@ -178,24 +202,39 @@ fun AppNavigation(
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            if (
+                detail == DetailDestination.Main &&
+                repository.isUsingActualBudget &&
+                destination in setOf(
+                    MainDestination.Budget,
+                    MainDestination.Accounts,
+                    MainDestination.Transactions,
+                    MainDestination.Reports,
+                )
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = ::openAddTransaction,
+                    expanded = transactionFabExpanded,
+                    icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
+                    text = { Text("Transaction") },
+                )
+            }
+        },
         bottomBar = {
             NavigationBar {
                 MainDestination.entries.forEach { item ->
                     NavigationBarItem(
                         selected = destination == item && detail == DetailDestination.Main,
                         onClick = {
-                            if (item == MainDestination.Add && !repository.isUsingActualBudget) {
+                            if (item != MainDestination.More && !repository.isUsingActualBudget) {
                                 destination = MainDestination.More
                                 detail = DetailDestination.Connection
                                 return@NavigationBarItem
                             }
                             destination = item
-                            detail = if (item == MainDestination.Add) DetailDestination.EditTransaction
-                            else DetailDestination.Main
-                            if (item == MainDestination.Add) {
-                                editingTransaction = null
-                                editorReturnsToTransactions = false
-                            }
+                            detail = DetailDestination.Main
+                            transactionFabExpanded = true
                         },
                         icon = { Icon(item.icon, contentDescription = item.label) },
                         label = { Text(item.label) },
@@ -204,7 +243,7 @@ fun AppNavigation(
             }
         },
     ) { innerPadding ->
-        val contentModifier = Modifier.padding(innerPadding)
+        val contentModifier = Modifier.padding(innerPadding).nestedScroll(fabScrollConnection)
         AnimatedContent(
             targetState = detail to destination,
             transitionSpec = {
@@ -264,9 +303,10 @@ fun AppNavigation(
                 onBack = {
                     detail = if (editorReturnsToTransactions) DetailDestination.Transactions else DetailDestination.Main
                     editingTransaction = null
-                    if (!editorReturnsToTransactions && destination == MainDestination.Add) destination = MainDestination.Accounts
+                    if (!editorReturnsToTransactions) destination = addOrigin
                 },
                 onSave = {
+                    val wasEditing = editingTransaction != null
                     if (runCatching { repository.saveTransaction(it) }.fold(
                             onSuccess = { true },
                             onFailure = { error ->
@@ -278,20 +318,27 @@ fun AppNavigation(
                         editingTransaction = null
                         if (editorReturnsToTransactions) {
                             detail = DetailDestination.Transactions
+                        } else if (wasEditing) {
+                            detail = DetailDestination.Main
                         } else {
-                            destination = MainDestination.Accounts
+                            destination = MainDestination.Transactions
                             transactionAccount = null
                             transactionCategory = null
                             transactionMonth = null
                             transactionSearch = ""
-                            detail = DetailDestination.Transactions
+                            detail = DetailDestination.Main
                         }
                     }
                 },
                 onDelete = { transaction ->
                     if (mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }) {
                         editingTransaction = null
-                        detail = DetailDestination.Transactions
+                        detail = if (editorReturnsToTransactions) {
+                            DetailDestination.Transactions
+                        } else {
+                            destination = addOrigin
+                            DetailDestination.Main
+                        }
                     }
                 },
                 modifier = contentModifier,
@@ -314,6 +361,7 @@ fun AppNavigation(
                 hideDecimalPlaces = hideDecimalPlaces,
                 onBack = { detail = DetailDestination.Main },
                 onTransactionEdit = {
+                    addOrigin = destination
                     editingTransaction = it
                     editorReturnsToTransactions = false
                     detail = DetailDestination.EditTransaction
@@ -511,7 +559,33 @@ fun AppNavigation(
                     },
                     onSearch = { detail = DetailDestination.Search },
                 )
-                MainDestination.Add -> Unit
+                MainDestination.Transactions -> TransactionsScreen(
+                    accountName = null,
+                    categoryName = null,
+                    month = null,
+                    onBack = {},
+                    onEdit = {
+                        addOrigin = MainDestination.Transactions
+                        editingTransaction = it
+                        editorReturnsToTransactions = false
+                        detail = DetailDestination.EditTransaction
+                    },
+                    modifier = contentModifier,
+                    transactions = transactions,
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    groupTransactionsByDate = groupTransactionsByDate,
+                    onGroupTransactionsByDateChange = {
+                        displayPreferences.groupTransactionsByDate = it
+                        groupTransactionsByDate = it
+                    },
+                    onSetCleared = { transaction, cleared ->
+                        mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
+                    },
+                    onDelete = { transaction ->
+                        mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
+                    },
+                    showBackButton = false,
+                )
                 MainDestination.Reports -> ReportsScreen(reportSnapshot, hideDecimalPlaces, contentModifier,
                     onSearch = { detail = DetailDestination.Search })
                 MainDestination.More -> SettingsScreen(

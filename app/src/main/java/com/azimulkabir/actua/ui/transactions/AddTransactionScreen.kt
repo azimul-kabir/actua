@@ -15,8 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -27,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
@@ -117,6 +119,8 @@ fun AddTransactionScreen(
     val splitIsValid = !isSplit || (splitLines.size >= 2 && splitLines.all {
         it.category.isNotBlank() && it.amountCents > 0
     } && splitTotal == amountCents)
+    val canSave = amountCents > 0 && account.isNotBlank() &&
+        (transactionType != Type.TRANSFER.displayName || transferAccount.isNotBlank()) && splitIsValid
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
@@ -196,17 +200,7 @@ fun AddTransactionScreen(
                     }, allowCustom = true,
                 )
             }
-            if (transactionType == Type.TRANSFER.displayName) {
-                OutlinedTextField(
-                    value = "Transfer",
-                    onValueChange = {},
-                    readOnly = true,
-                    enabled = false,
-                    label = { Text("Category") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            } else if (!isSplit) {
+            if (transactionType != Type.TRANSFER.displayName && !isSplit) {
                 PickerTextField(
                     label = "Category", value = category, options = categoryOptions,
                     onValueChange = { category = it },
@@ -370,47 +364,55 @@ fun AddTransactionScreen(
                 Text("Cleared", modifier = Modifier.weight(1f))
                 Switch(checked = cleared, onCheckedChange = { cleared = it })
             }
-            Button(onClick = {
-                onSave(
-                    Transaction(
-                        id = editing?.id.orEmpty(),
-                        date = storageDate(date),
-                        payee = payee,
-                        category = if (transactionType == "Transfer") "" else category.ifBlank { "Uncategorized" },
-                        account = account,
-                        amount = (amountCents / 100L).toInt() * if (transactionType == "Income") 1 else -1,
-                        cleared = cleared,
-                        amountCents = amountCents * if (transactionType == "Income") 1 else -1,
-                        type = Type.entries.first { it.displayName == transactionType },
-                        transferAccount = transferAccount.takeIf { transactionType == "Transfer" },
-                        notes = notes,
-                        splits = splitLines,
-                    )
-                )
-            }, enabled = amountCents > 0 && account.isNotBlank() &&
-                (transactionType != "Transfer" || transferAccount.isNotBlank()) && splitIsValid,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RoundedCornerShape(16.dp)) {
-                Text(if (editing == null) "Add transaction" else "Save changes")
-            }
-            if (editing != null) {
-                FilledTonalButton(
-                    onClick = { confirmDelete = true },
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-                ) {
-                    Text("Delete")
-                }
-            }
-            FilledTonalButton(
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RoundedCornerShape(16.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Cancel")
+                SmallFloatingActionButton(
+                    onClick = {
+                        if (canSave) {
+                            onSave(
+                                Transaction(
+                                    id = editing?.id.orEmpty(),
+                                    date = storageDate(date),
+                                    payee = payee,
+                                    category = if (transactionType == "Transfer") "" else category.ifBlank { "Uncategorized" },
+                                    account = account,
+                                    amount = (amountCents / 100L).toInt() * if (transactionType == "Income") 1 else -1,
+                                    cleared = cleared,
+                                    amountCents = amountCents * if (transactionType == "Income") 1 else -1,
+                                    type = Type.entries.first { it.displayName == transactionType },
+                                    transferAccount = transferAccount.takeIf { transactionType == "Transfer" },
+                                    notes = notes,
+                                    splits = splitLines,
+                                ),
+                            )
+                        }
+                    },
+                    containerColor = if (canSave) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (canSave) MaterialTheme.colorScheme.onPrimaryContainer
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                ) {
+                    Icon(Icons.Outlined.Check, contentDescription = if (editing == null) "Add transaction" else "Save changes")
+                }
+                if (editing != null) {
+                    SmallFloatingActionButton(
+                        onClick = { confirmDelete = true },
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ) {
+                        Icon(Icons.Outlined.Delete, contentDescription = "Delete transaction")
+                    }
+                }
+                SmallFloatingActionButton(
+                    onClick = onBack,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Cancel")
+                }
             }
         }
     }

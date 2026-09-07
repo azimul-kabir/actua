@@ -118,7 +118,10 @@ fun AccountsScreen(
             }
         }
 
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
+        ) {
             item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary) }
             accountSections.forEach { section ->
                 val collapsed = section.title in collapsedSections

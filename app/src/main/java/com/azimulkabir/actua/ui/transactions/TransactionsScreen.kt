@@ -96,6 +96,7 @@ fun TransactionsScreen(
     creditCard: CreditCardStatus? = null,
     onSaveAccountNote: (String) -> Unit = {},
     initialSearch: String = "",
+    showBackButton: Boolean = true,
 ) {
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
     var showSearch by remember { mutableStateOf(false) }
@@ -118,10 +119,13 @@ fun TransactionsScreen(
     Column(modifier = modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
+            if (showBackButton) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
+                }
             }
-            Text(categoryName ?: accountName ?: "All accounts", style = MaterialTheme.typography.titleLarge,
+            Text(categoryName ?: accountName ?: if (showBackButton) "All accounts" else "Transactions",
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1,
                 overflow = TextOverflow.Ellipsis)
             IconButton(onClick = { showSearch = !showSearch }) {
@@ -148,7 +152,10 @@ fun TransactionsScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
             )
         }
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
+        ) {
             account?.let { selectedAccount ->
                 item("account-details") {
                     AccountDetails(selectedAccount, creditCard, accountNote,

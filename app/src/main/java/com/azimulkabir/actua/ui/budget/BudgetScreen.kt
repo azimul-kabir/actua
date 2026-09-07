@@ -227,7 +227,10 @@ fun BudgetScreen(
             }
         }
 
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
+        ) {
             groups.filter { showHidden || !it.hidden }.forEach { group ->
                 val collapsed = group.name in collapsedGroups
                 val visibleCategories = group.categories.filter { category ->

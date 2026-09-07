@@ -97,7 +97,12 @@ fun SettingsScreen(
                     "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
                     currencySymbolOnly, onCurrencySymbolOnlyChange)
                 SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
-                SettingsChoice("Start page", startPage, listOf("Budget", "Accounts", "Add", "Reports", "More"), onStartPageChange)
+                SettingsChoice(
+                    "Start page",
+                    startPage,
+                    listOf("Budget", "Accounts", "Transactions", "Reports", "More"),
+                    onStartPageChange,
+                )
                 SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
                     hideDecimalPlaces, onHideDecimalPlacesChange)
             }
