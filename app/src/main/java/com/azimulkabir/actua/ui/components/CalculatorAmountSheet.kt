@@ -15,8 +15,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,10 +46,16 @@ fun CalculatorAmountSheet(
     val calculator = remember(initialCents, conventionalAmountEntry) {
         CalculatorAmountState(initialCents, conventionalAmountEntry = conventionalAmountEntry)
     }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = null,
+    ) {
         CompactCalculatorPad(
             calculator = calculator,
             conventionalAmountEntry = conventionalAmountEntry,
+            onClose = onDismiss,
             onDone = { onApply(calculator.finish()) },
         )
     }
@@ -57,6 +68,7 @@ fun CompactCalculatorPad(
     allowSign: Boolean = false,
     doneLabel: String = "Done",
     horizontalPadding: androidx.compose.ui.unit.Dp = 16.dp,
+    onClose: (() -> Unit)? = null,
     onDone: () -> Unit,
 ) {
     var revision by remember { mutableIntStateOf(0) }
@@ -83,13 +95,19 @@ fun CompactCalculatorPad(
     )
     Column(
         Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 8.dp),
+            modifier = Modifier.fillMaxWidth().height(42.dp),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            onClose?.let {
+                IconButton(onClick = it, modifier = Modifier.height(38.dp).width(38.dp)) {
+                    Icon(Icons.Outlined.Close, contentDescription = "Close calculator")
+                }
+            }
+            Spacer(Modifier.weight(1f))
             Text(
                 calculator.display,
                 style = MaterialTheme.typography.headlineMedium,
@@ -98,12 +116,12 @@ fun CompactCalculatorPad(
                 maxLines = 1,
             )
             Box(
-                Modifier.padding(start = 3.dp).height(30.dp).width(2.dp)
+                Modifier.padding(start = 3.dp).height(26.dp).width(2.dp)
                     .clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary),
             )
         }
         rows.forEach { keys ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 keys.forEach { key ->
                     CompactCalculatorKey(
                         label = key,
@@ -116,8 +134,8 @@ fun CompactCalculatorPad(
         }
         Button(
             onClick = onDone,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().height(44.dp),
+            shape = RoundedCornerShape(14.dp),
         ) {
             Text(doneLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
@@ -135,8 +153,8 @@ private fun CompactCalculatorKey(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.height(40.dp),
+        shape = RoundedCornerShape(14.dp),
         color = if (operator) MaterialTheme.colorScheme.secondaryContainer
             else MaterialTheme.colorScheme.surfaceContainer,
     ) {

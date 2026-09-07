@@ -35,6 +35,9 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -54,6 +57,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +73,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
@@ -1071,17 +1076,19 @@ private fun EditBudgetAmountSheet(
     val calculator = remember(category) {
         CalculatorAmountState(category.assignedCents, allowsNegative = true)
     }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
         Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                BudgetEntryAction("⚡", "Auto-Assign", Modifier.weight(1f), onAutoAssign)
-                BudgetEntryAction("→", "Move Money", Modifier.weight(1f), onMoveMoney)
-                BudgetEntryAction("•••", "Details", Modifier.weight(1f), onDetails)
+                BudgetEntryAction(Icons.Outlined.Bolt, "Auto-Assign", Modifier.weight(1f), onAutoAssign)
+                BudgetEntryAction(Icons.Outlined.SwapHoriz, "Move Money", Modifier.weight(1f), onMoveMoney)
+                BudgetEntryAction(Icons.Outlined.MoreHoriz, "Details", Modifier.weight(1f), onDetails)
             }
             CompactCalculatorPad(
                 calculator = calculator,
                 allowSign = true,
+                onClose = onDismiss,
                 onDone = { onSave(calculator.finish()) },
             )
         }
@@ -1089,12 +1096,12 @@ private fun EditBudgetAmountSheet(
 }
 
 @Composable
-private fun BudgetEntryAction(symbol: String, label: String, modifier: Modifier, onClick: () -> Unit) {
+private fun BudgetEntryAction(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(onClick = onClick, color = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
-            Text(symbol, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center,
-                modifier = Modifier.padding(vertical = 11.dp))
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 11.dp))
         }
         Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1,
             modifier = Modifier.padding(top = 5.dp))
@@ -1167,7 +1174,8 @@ private fun AssignBudgetSheet(
         CalculatorAmountState(kotlin.math.abs(toBudgetCents), allowsNegative = false)
     }
     val covering = toBudgetCents < 0L
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
             Text(
                 if (covering) "Cover To Budget" else "Budget category",
@@ -1202,6 +1210,7 @@ private fun AssignBudgetSheet(
                 calculator = calculator,
                 doneLabel = if (covering) "Cover" else "Budget",
                 horizontalPadding = 0.dp,
+                onClose = onDismiss,
                 onDone = {
                     selected?.let { target ->
                         calculator.finish().takeIf { it > 0L }?.let { onSave(target.first, target.second, it) }
@@ -1227,7 +1236,8 @@ private fun MoveBudgetSheet(
     var selected by remember(source) { mutableStateOf(options.first()) }
     var expanded by remember { mutableStateOf(false) }
     val calculator = remember(source) { CalculatorAmountState(kotlin.math.abs(source.balanceCents), allowsNegative = false) }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
             Text(if (source.available < 0) "Cover overspending" else "Move money",
                 style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -1246,6 +1256,7 @@ private fun MoveBudgetSheet(
                 calculator = calculator,
                 doneLabel = "Move",
                 horizontalPadding = 0.dp,
+                onClose = onDismiss,
                 onDone = {
                     calculator.finish().takeIf { it > 0L }?.let { onSave(selected.first, selected.second, it) }
                 },

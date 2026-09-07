@@ -10,6 +10,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Matched group-total amount typography to category balance amounts
 - Kept the full category details page inside the app's safe content bounds
 - Made recent category transactions open the shared view mode with Edit and Delete actions
+- Slimmed every calculator key vertically and forced calculator sheets to open fully expanded
+- Removed calculator drag handles, added compact close controls, and replaced budget action glyphs with Material icons
 
 ## [0.1.0-alpha.6] - 2026-09-07
 
