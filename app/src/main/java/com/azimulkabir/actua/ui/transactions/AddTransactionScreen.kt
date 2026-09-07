@@ -14,11 +14,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
@@ -28,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
@@ -122,18 +121,29 @@ fun AddTransactionScreen(
     val canSave = amountCents > 0 && account.isNotBlank() &&
         (transactionType != Type.TRANSFER.displayName || transferAccount.isNotBlank()) && splitIsValid
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Cancel")
+                Icon(Icons.Outlined.Close, contentDescription = "Cancel")
             }
             Text(if (editing == null) "Add transaction" else "Edit transaction",
-                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f))
+            if (editing != null) {
+                IconButton(onClick = { confirmDelete = true }) {
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = "Delete transaction",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
         }
         Column(
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).imePadding()
-                .padding(start = 20.dp, end = 20.dp, bottom = 32.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -364,57 +374,37 @@ fun AddTransactionScreen(
                 Text("Cleared", modifier = Modifier.weight(1f))
                 Switch(checked = cleared, onCheckedChange = { cleared = it })
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SmallFloatingActionButton(
-                    onClick = {
-                        if (canSave) {
-                            onSave(
-                                Transaction(
-                                    id = editing?.id.orEmpty(),
-                                    date = storageDate(date),
-                                    payee = payee,
-                                    category = if (transactionType == "Transfer") "" else category.ifBlank { "Uncategorized" },
-                                    account = account,
-                                    amount = (amountCents / 100L).toInt() * if (transactionType == "Income") 1 else -1,
-                                    cleared = cleared,
-                                    amountCents = amountCents * if (transactionType == "Income") 1 else -1,
-                                    type = Type.entries.first { it.displayName == transactionType },
-                                    transferAccount = transferAccount.takeIf { transactionType == "Transfer" },
-                                    notes = notes,
-                                    splits = splitLines,
-                                ),
-                            )
-                        }
-                    },
-                    containerColor = if (canSave) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (canSave) MaterialTheme.colorScheme.onPrimaryContainer
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                ) {
-                    Icon(Icons.Outlined.Check, contentDescription = if (editing == null) "Add transaction" else "Save changes")
-                }
-                if (editing != null) {
-                    SmallFloatingActionButton(
-                        onClick = { confirmDelete = true },
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    ) {
-                        Icon(Icons.Outlined.Delete, contentDescription = "Delete transaction")
-                    }
-                }
-                SmallFloatingActionButton(
-                    onClick = onBack,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Cancel")
-                }
-            }
         }
+        }
+        ExtendedFloatingActionButton(
+            onClick = {
+                if (canSave) {
+                    onSave(
+                        Transaction(
+                            id = editing?.id.orEmpty(),
+                            date = storageDate(date),
+                            payee = payee,
+                            category = if (transactionType == "Transfer") "" else category.ifBlank { "Uncategorized" },
+                            account = account,
+                            amount = (amountCents / 100L).toInt() * if (transactionType == "Income") 1 else -1,
+                            cleared = cleared,
+                            amountCents = amountCents * if (transactionType == "Income") 1 else -1,
+                            type = Type.entries.first { it.displayName == transactionType },
+                            transferAccount = transferAccount.takeIf { transactionType == "Transfer" },
+                            notes = notes,
+                            splits = splitLines,
+                        ),
+                    )
+                }
+            },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+            containerColor = if (canSave) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = if (canSave) MaterialTheme.colorScheme.onPrimaryContainer
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+            icon = { Icon(Icons.Outlined.Check, contentDescription = null) },
+            text = { Text("Save") },
+        )
     }
     if (showCalculator) CalculatorAmountSheet(
         title = if (editing == null) "Transaction amount" else "Edit amount",
