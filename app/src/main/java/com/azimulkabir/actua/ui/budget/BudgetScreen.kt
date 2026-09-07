@@ -638,18 +638,18 @@ private fun PlanBudgetOverview(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
             )
             Text(
                 "Ready to Budget",
                 style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.padding(start = 8.dp),
+                textAlign = TextAlign.End,
             )
         }
     }
@@ -980,9 +980,14 @@ private fun AmountColumn(
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         if (balance) {
-            BalancePill(amount, hideDecimalPlaces, modifier = Modifier.offset(x = 8.dp))
+            BalancePill(
+                amount,
+                hideDecimalPlaces,
+                modifier = Modifier.offset(x = 8.dp),
+                textStyle = MaterialTheme.typography.bodyMedium,
+            )
         } else {
-            Text(formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold,
+            Text(formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
                 color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                 else MaterialTheme.colorScheme.onSurface, maxLines = 1)
         }

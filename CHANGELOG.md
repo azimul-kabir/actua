@@ -4,6 +4,11 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Anchored the Plan Ready to Budget amount left and its label right
+- Matched group-total amount typography to category balance amounts
+
 ## [0.1.0-alpha.6] - 2026-09-07
 
 Sixth public testing release.
