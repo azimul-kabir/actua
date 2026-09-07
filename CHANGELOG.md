@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [0.1.0-alpha.6] - 2026-09-07
+
+Sixth public testing release.
+
 ### Changed
 
 - Replaced transaction cleared-state letters with compact green or gray check controls without changing amount alignment
@@ -154,3 +158,4 @@ Initial public testing release.
 [0.1.0-alpha.3]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.3
 [0.1.0-alpha.4]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.4
 [0.1.0-alpha.5]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.5
+[0.1.0-alpha.6]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.6
