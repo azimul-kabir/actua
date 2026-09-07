@@ -73,6 +73,7 @@ import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.components.CalculatorAmountState
+import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.RenameDialog
@@ -1046,59 +1047,21 @@ private fun EditBudgetAmountSheet(
     val calculator = remember(category) {
         CalculatorAmountState(category.assignedCents, allowsNegative = true)
     }
-    var revision by remember { mutableStateOf(0) }
-    fun refresh(action: () -> Unit) { action(); revision += 1 }
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 BudgetEntryAction("⚡", "Auto-Assign", Modifier.weight(1f), onAutoAssign)
                 BudgetEntryAction("→", "Move Money", Modifier.weight(1f), onMoveMoney)
                 BudgetEntryAction("•••", "Details", Modifier.weight(1f), onDetails)
             }
-            Text("Budgeted amount", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
-            Text(calculator.display, style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Column(Modifier.weight(3f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf(listOf("7", "8", "9"), listOf("4", "5", "6"), listOf("1", "2", "3"),
-                        listOf("±", "0", "⌫")).forEach { row ->
-                        Row(Modifier.fillMaxWidth()) {
-                            row.forEach { key ->
-                                TextButton(onClick = { refresh {
-                                    when (key) {
-                                        "±" -> calculator.toggleSign()
-                                        "⌫" -> calculator.backspace()
-                                        else -> calculator.digit(key.toInt())
-                                    }
-                                } }, modifier = Modifier.weight(1f).height(56.dp)) {
-                                    Text(key, style = MaterialTheme.typography.headlineMedium)
-                                }
-                            }
-                        }
-                    }
-                }
-                Column(Modifier.weight(1.35f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("−", "+", "=").forEach { key ->
-                        FilledTonalButton(onClick = { refresh {
-                            when (key) {
-                                "−" -> calculator.operator(CalculatorAmountState.Operator.SUBTRACT)
-                                "+" -> calculator.operator(CalculatorAmountState.Operator.ADD)
-                                else -> calculator.finish()
-                            }
-                        } }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(20.dp)) {
-                            Text(key, style = MaterialTheme.typography.headlineSmall)
-                        }
-                    }
-                    Button(onClick = { onSave(calculator.finish()) }, modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(20.dp)) { Text("Done", fontWeight = FontWeight.Bold) }
-                }
-            }
-            Spacer(Modifier.height(16.dp))
+            CompactCalculatorPad(
+                calculator = calculator,
+                allowSign = true,
+                onDone = { onSave(calculator.finish()) },
+            )
         }
     }
-    @Suppress("UNUSED_EXPRESSION") revision
 }
 
 @Composable
@@ -1179,7 +1142,6 @@ private fun AssignBudgetSheet(
     val calculator = remember(toBudgetCents) {
         CalculatorAmountState(kotlin.math.abs(toBudgetCents), allowsNegative = false)
     }
-    var revision by remember { mutableStateOf(0) }
     val covering = toBudgetCents < 0L
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
@@ -1212,48 +1174,18 @@ private fun AssignBudgetSheet(
                     }
                 }
             }
-            Text(
-                calculator.display,
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-            )
-            listOf(
-                listOf("7", "8", "9", "÷"), listOf("4", "5", "6", "×"),
-                listOf("1", "2", "3", "−"), listOf("0", "⌫", "+"),
-            ).forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { key ->
-                        Button(onClick = {
-                            when (key) {
-                                "⌫" -> calculator.backspace()
-                                "+" -> calculator.operator(CalculatorAmountState.Operator.ADD)
-                                "−" -> calculator.operator(CalculatorAmountState.Operator.SUBTRACT)
-                                "×" -> calculator.operator(CalculatorAmountState.Operator.MULTIPLY)
-                                "÷" -> calculator.operator(CalculatorAmountState.Operator.DIVIDE)
-                                else -> calculator.digit(key.toInt())
-                            }
-                            revision++
-                        }, modifier = Modifier.weight(1f)) { Text(key) }
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                Button(
-                    onClick = {
-                        val target = selected ?: return@Button
+            CompactCalculatorPad(
+                calculator = calculator,
+                doneLabel = if (covering) "Cover" else "Budget",
+                horizontalPadding = 0.dp,
+                onDone = {
+                    selected?.let { target ->
                         calculator.finish().takeIf { it > 0L }?.let { onSave(target.first, target.second, it) }
-                    },
-                    enabled = selected != null,
-                    modifier = Modifier.weight(1f),
-                ) { Text(if (covering) "Cover" else "Budget") }
-            }
-            Spacer(Modifier.height(16.dp))
+                    }
+                },
+            )
         }
     }
-    @Suppress("UNUSED_EXPRESSION") revision
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1271,7 +1203,6 @@ private fun MoveBudgetSheet(
     var selected by remember(source) { mutableStateOf(options.first()) }
     var expanded by remember { mutableStateOf(false) }
     val calculator = remember(source) { CalculatorAmountState(kotlin.math.abs(source.balanceCents), allowsNegative = false) }
-    var revision by remember { mutableStateOf(0) }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
             Text(if (source.available < 0) "Cover overspending" else "Move money",
@@ -1287,33 +1218,16 @@ private fun MoveBudgetSheet(
                         onClick = { selected = option; expanded = false })
                 } }
             }
-            Text(calculator.display, style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp))
-            listOf(listOf("7", "8", "9", "÷"), listOf("4", "5", "6", "×"),
-                listOf("1", "2", "3", "−"), listOf("0", "⌫", "+")).forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { key -> Button(onClick = {
-                        when (key) {
-                            "⌫" -> calculator.backspace()
-                            "+" -> calculator.operator(CalculatorAmountState.Operator.ADD)
-                            "−" -> calculator.operator(CalculatorAmountState.Operator.SUBTRACT)
-                            "×" -> calculator.operator(CalculatorAmountState.Operator.MULTIPLY)
-                            "÷" -> calculator.operator(CalculatorAmountState.Operator.DIVIDE)
-                            else -> calculator.digit(key.toInt())
-                        }; revision++
-                    }, modifier = Modifier.weight(1f)) { Text(key) } }
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                Button(onClick = { calculator.finish().takeIf { it > 0 }?.let { onSave(selected.first, selected.second, it) } },
-                    modifier = Modifier.weight(1f)) { Text("Move") }
-            }
-            Spacer(Modifier.height(16.dp))
+            CompactCalculatorPad(
+                calculator = calculator,
+                doneLabel = "Move",
+                horizontalPadding = 0.dp,
+                onDone = {
+                    calculator.finish().takeIf { it > 0L }?.let { onSave(selected.first, selected.second, it) }
+                },
+            )
         }
     }
-    @Suppress("UNUSED_EXPRESSION") revision
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

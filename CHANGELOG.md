@@ -11,6 +11,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Global search transaction results now use the same detailed row and view flow as All Accounts
 - Restored the compact single-line Ready to Budget overview in Plan view
 - Aligned Table overview amounts and category balance pills to the same column anchors used by Plan view
+- Unified transaction, Budget, To Budget, and Move Money calculators around one compact equal-size Material key grid
+- Replaced Budget entry headings and separate amount labels with a focused inline amount and cursor
 
 ## [0.1.0-alpha.5] - 2026-09-07
 
