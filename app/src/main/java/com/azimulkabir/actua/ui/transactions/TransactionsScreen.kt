@@ -105,6 +105,23 @@ fun TransactionsScreen(
     var selected by remember { mutableStateOf<Transaction?>(null) }
     var viewed by remember { mutableStateOf<Transaction?>(null) }
     var accountNote by remember(account) { mutableStateOf(account?.note.orEmpty()) }
+    val context = LocalContext.current
+    val accountDetailPreferences = remember(context) {
+        context.applicationContext.getSharedPreferences(
+            "account_detail_preferences",
+            android.content.Context.MODE_PRIVATE,
+        )
+    }
+    var showAccountSummary by remember(account?.id) {
+        mutableStateOf(account?.let {
+            accountDetailPreferences.getBoolean("show_summary_${it.id}", true)
+        } ?: true)
+    }
+    var showAccountNotes by remember(account?.id) {
+        mutableStateOf(account?.let {
+            accountDetailPreferences.getBoolean("show_notes_${it.id}", true)
+        } ?: true)
+    }
 
     val visible = transactions.filter {
         (accountName == null || it.account == accountName) &&
@@ -138,6 +155,18 @@ fun TransactionsScreen(
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     ToggleItem("Group by date", groupTransactionsByDate, onGroupTransactionsByDateChange)
                     ToggleItem("Hide cleared transactions", hideCleared) { hideCleared = it }
+                    account?.let { selectedAccount ->
+                        ToggleItem("Show current balance summary", showAccountSummary) { show ->
+                            showAccountSummary = show
+                            accountDetailPreferences.edit()
+                                .putBoolean("show_summary_${selectedAccount.id}", show).apply()
+                        }
+                        ToggleItem("Show notes", showAccountNotes) { show ->
+                            showAccountNotes = show
+                            accountDetailPreferences.edit()
+                                .putBoolean("show_notes_${selectedAccount.id}", show).apply()
+                        }
+                    }
                 }
             }
         }
@@ -158,8 +187,15 @@ fun TransactionsScreen(
         ) {
             account?.let { selectedAccount ->
                 item("account-details") {
-                    AccountDetails(selectedAccount, creditCard, accountNote,
-                        { savedNote -> accountNote = savedNote; onSaveAccountNote(savedNote) }, hideDecimalPlaces)
+                    AccountDetails(
+                        selectedAccount,
+                        creditCard,
+                        accountNote,
+                        { savedNote -> accountNote = savedNote; onSaveAccountNote(savedNote) },
+                        hideDecimalPlaces,
+                        showAccountSummary,
+                        showAccountNotes,
+                    )
                 }
             }
             item("transaction-total") {
@@ -223,7 +259,7 @@ fun TransactionsScreen(
 
 @Composable
 private fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
-    onSaveNote: (String) -> Unit, hideDecimals: Boolean) {
+    onSaveNote: (String) -> Unit, hideDecimals: Boolean, showSummary: Boolean, showNotes: Boolean) {
     val context = LocalContext.current
     val detailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("account_detail_preferences", android.content.Context.MODE_PRIVATE)
@@ -244,7 +280,7 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
     )
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Surface(
+        if (showSummary) Surface(
             onClick = toggleBalance,
             color = MaterialTheme.colorScheme.surfaceContainer,
             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
@@ -257,7 +293,7 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
                         modifier = Modifier.padding(end = 8.dp).size(20.dp).rotate(balanceArrowRotation),
                     )
                     Text(
-                        "Working balance",
+                        "Current balance",
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
@@ -294,8 +330,8 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
                 }
             }
         }
-        Text("Note", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-        Surface(
+        if (showNotes) Text("Note", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+        if (showNotes) Surface(
             onClick = { noteEditorOpen = true },
             color = MaterialTheme.colorScheme.surfaceContainer,
             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),

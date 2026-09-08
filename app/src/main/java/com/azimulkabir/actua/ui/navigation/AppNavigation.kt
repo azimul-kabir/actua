@@ -161,6 +161,13 @@ fun AppNavigation(
         detail = DetailDestination.EditTransaction
     }
 
+    fun openAddTransactionForAccount() {
+        editingTransaction = null
+        editorReturnsToTransactions = true
+        transactionFabExpanded = true
+        detail = DetailDestination.EditTransaction
+    }
+
     val fabScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -203,18 +210,16 @@ fun AppNavigation(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            if (
-                detail == DetailDestination.Main &&
-                repository.isUsingActualBudget &&
-                destination in setOf(
-                    MainDestination.Budget,
-                    MainDestination.Accounts,
-                    MainDestination.Transactions,
-                    MainDestination.Reports,
-                )
-            ) {
+            val onMainTab = detail == DetailDestination.Main && destination in setOf(
+                MainDestination.Budget,
+                MainDestination.Accounts,
+                MainDestination.Transactions,
+                MainDestination.Reports,
+            )
+            val inAccount = detail == DetailDestination.Transactions && transactionAccount != null
+            if (repository.isUsingActualBudget && (onMainTab || inAccount)) {
                 ExtendedFloatingActionButton(
-                    onClick = ::openAddTransaction,
+                    onClick = if (inAccount) ::openAddTransactionForAccount else ::openAddTransaction,
                     expanded = transactionFabExpanded,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
                     text = { Text("Transaction") },
@@ -348,7 +353,11 @@ fun AppNavigation(
                         .associate { it.name to formatMoneyCents(it.balanceCents, hideDecimalPlaces) },
                     categoryOptions = categoryNames,
                     payeeOptions = (payeeNames + accounts.filterNot { it.closed }.map { "Transfer: ${it.name}" }).distinct(),
-                    defaultAccount = defaultAccount,
+                    defaultAccount = if (editingTransaction == null && editorReturnsToTransactions) {
+                        transactionAccount ?: defaultAccount
+                    } else {
+                        defaultAccount
+                    },
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,
                     onResolveRuleCategory = repository::ruleCategoryFor,
