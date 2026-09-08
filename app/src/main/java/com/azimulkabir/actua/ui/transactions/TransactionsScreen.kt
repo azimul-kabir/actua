@@ -36,8 +36,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.Composable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -97,6 +99,7 @@ fun TransactionsScreen(
     account: Account? = null,
     creditCard: CreditCardStatus? = null,
     onSaveAccountNote: (String) -> Unit = {},
+    searchTransactions: (suspend (String) -> List<Transaction>)? = null,
     initialSearch: String = "",
     showBackButton: Boolean = true,
     showCurrentBalanceSummary: Boolean = true,
@@ -133,14 +136,37 @@ fun TransactionsScreen(
         } ?: true)
     }
 
-    val visible = transactions.filter {
+    var searchResults by remember { mutableStateOf<List<Transaction>>(emptyList()) }
+    var completedQuery by remember { mutableStateOf<String?>(null) }
+    var searchError by remember { mutableStateOf(false) }
+    LaunchedEffect(search, transactions, searchTransactions) {
+        completedQuery = null
+        searchError = false
+        if (search.isNotBlank() && searchTransactions != null) {
+            delay(200)
+            try {
+                searchResults = searchTransactions(search)
+                completedQuery = search
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                searchError = true
+            }
+        }
+    }
+    val searchingDatabase = search.isNotBlank() && searchTransactions != null
+    val candidates = if (searchingDatabase) {
+        if (completedQuery == search) searchResults else emptyList()
+    } else transactions
+    val visible = candidates.filter {
         (accountName == null || it.account == accountName) &&
             (categoryName == null || it.category == categoryName) &&
             (month == null || it.date.filter(Char::isDigit).startsWith(month.replace("-", ""))) &&
             (!hideCleared || !it.cleared) &&
-            (search.isBlank() || listOf(it.payee, it.category, it.account).any { text ->
-                text.contains(search, ignoreCase = true)
-            })
+            (searchingDatabase || search.isBlank() ||
+                (listOf(it.payee, it.category, it.account, it.notes, it.transferAccount.orEmpty()) +
+                    it.splits.flatMap { split -> listOf(split.payee, split.notes, split.category) })
+                    .any { text -> text.contains(search, ignoreCase = true) })
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -190,6 +216,10 @@ fun TransactionsScreen(
                 placeholder = { Text("Search transactions") }, singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
             )
+        }
+        if (searchingDatabase && completedQuery != search) {
+            Text(if (searchError) "Search failed. Change the search to try again." else "Searching…",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         }
         LazyColumn(
             state = listState,

@@ -29,6 +29,8 @@ Android backlog items and will never be ported.
 - Editable primary/fallback server addresses with explicitly scoped private-LAN HTTP support and automatic failover without replacing local budgets
 - HLC, CRDT values/messages, protobuf sync protocol, Merkle tree, encryption
 - Sync convergence loop and Android Keystore-backed credentials/keys
+- Stored sync clock validation and legacy/epoch recovery from the message-log
+  high-water mark, preserving pending edits and Merkle-guided restart recovery
 - Actual schema migrations required by current Android reads
 - Accounts, payees, category groups/categories, transactions, transfers, splits
 - Transaction form planning and atomic transaction mutations, including split
@@ -90,6 +92,8 @@ Android backlog items and will never be ported.
 - Collapsible account balance details with compact Budget-tab typography
 - Credit-card account details with limit, available credit, current billing cycle,
   cycle spending, and calculated payment due date
+- Database-backed complete-history transaction search, including live split-child
+  payees, notes, imported descriptions and categories; stable database paging
 - Add/edit split transaction UI with per-line category, amount, direction, payee,
   notes, remaining allocation, and Actual-compatible child-row persistence
 

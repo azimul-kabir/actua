@@ -111,6 +111,9 @@ fun AppNavigation(
     val budgetOverview = remember(dataVersion, budgetMonth) { repository.budgetOverview(budgetMonth) }
     val accounts = remember(dataVersion) { repository.accounts() }
     val transactions = remember(dataVersion) { repository.transactions() }
+    val searchTransactions: suspend (String) -> List<Transaction> = remember(repository) {
+        { query -> withContext(Dispatchers.IO) { repository.transactions(query) } }
+    }
     val categoryNames = remember(dataVersion) { repository.categoryNames() }
     val payeeNames = remember(dataVersion) { repository.payeeNames() }
     val reportSnapshot = remember(dataVersion) { repository.reports() }
@@ -371,6 +374,7 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
                 transactions = transactions,
+                searchTransactions = searchTransactions,
                 hideDecimalPlaces = hideDecimalPlaces,
                 groupTransactionsByDate = groupTransactionsByDate,
                 onGroupTransactionsByDateChange = {
@@ -475,6 +479,11 @@ fun AppNavigation(
             )
             DetailDestination.Search -> GlobalSearchScreen(
                 transactions = transactions,
+                searchTransactions = remember(repository) {
+                    { query, limit, offset ->
+                        withContext(Dispatchers.IO) { repository.transactions(query, limit, offset) }
+                    }
+                },
                 accounts = accounts,
                 payees = payeeNames,
                 categories = categoryNames,

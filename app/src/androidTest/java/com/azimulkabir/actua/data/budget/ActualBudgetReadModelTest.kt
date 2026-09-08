@@ -343,6 +343,65 @@ class ActualBudgetReadModelTest {
         })
     }
 
+    @Test
+    fun searchFindsChildPayeesAndNotesOnceAndReturnsHydratedParent() = withDatabase { db ->
+        val writer = ActualTransactionWriter(db)
+        val special = writer.resolveOrCreatePayee("Unique child merchant")
+        val parent = transaction("search-parent", "checking", -100, 20260904, "store", null, parentFlag = true)
+        writer.createSplit(parent, listOf(
+            transaction("search-a", "checking", -60, 20260904, special.id, "grocery", parent = parent.id)
+                .copy(notes = "Secret child memo"),
+            transaction("search-b", "checking", -40, 20260904, "store", "rent", parent = parent.id)
+                .copy(notes = "Secret child memo"),
+        ))
+        for (query in listOf("unique CHILD merchant", "secret child memo")) {
+            val result = db.fetchTransactions(query = query)
+            assertEquals(listOf(parent.id), result.map { it.id })
+            assertEquals(2, result.single().splitPortions.size)
+        }
+        assertTrue(db.fetchTransactions(accountId = "savings", query = "secret child memo").isEmpty())
+        writer.deleteTransaction(db.fetchChildTransactions(parent.id).first { it.id == "search-a" })
+        assertTrue(db.fetchTransactions(query = "Unique child merchant").isEmpty())
+        writer.deleteTransaction(parent)
+        assertTrue(db.fetchTransactions(query = "Secret child memo").isEmpty())
+    }
+
+    @Test
+    fun searchFiltersBeforePagingAndFindsOldHistory() = withDatabase { db ->
+        val history = (0..600).map { index ->
+            transaction("history-${index.toString().padStart(4, '0')}", "checking", -100, 20260904, "store", "grocery")
+                .copy(notes = "paged match", sortOrder = index.toDouble())
+        }
+        val old = transaction("old-result", "checking", -100, 20200101, "store", "grocery")
+            .copy(notes = "Ancient unique note")
+        db.insertTransactions(history + old, emptyList())
+        assertTrue(db.fetchTransactions().none { it.id == old.id })
+        assertEquals(listOf(old.id), db.fetchTransactions(query = "Ancient unique").map { it.id })
+        val first = db.fetchTransactions(query = "paged match", limit = 50)
+        val second = db.fetchTransactions(query = "paged match", limit = 50, offset = 50)
+        assertEquals(50, first.size)
+        assertEquals(50, second.size)
+        assertTrue(first.map { it.id }.intersect(second.map { it.id }.toSet()).isEmpty())
+        assertEquals("history-0600", first.first().id)
+        assertEquals("history-0550", second.first().id)
+        assertEquals(601, db.fetchTransactions(query = "paged match", limit = Int.MAX_VALUE).size)
+    }
+
+    @Test
+    fun searchTreatsWildcardsAndQuotesLiterallyAndKeepsExistingFields() = withDatabase { db ->
+        val special = transaction("literal", "checking", -100, 20260904, "store", "grocery")
+            .copy(notes = "100%_ O'Brien", importedPayee = "Imported merchant")
+        db.insertTransactions(listOf(special), emptyList())
+        for (query in listOf("%", "_", "O'Brien", "Imported merchant")) {
+            assertEquals(listOf("literal"), db.fetchTransactions(query = query).map { it.id })
+        }
+        assertTrue(db.fetchTransactions(query = "' OR 1=1 --").isEmpty())
+        assertTrue(db.fetchTransactions(query = "Checking").any { it.id == "literal" })
+        assertTrue(db.fetchTransactions(query = "Groceries").any { it.id == "literal" })
+        assertTrue(db.fetchTransactions(query = "Savings").any { it.id == "transfer-out" })
+        assertEquals(db.fetchTransactions().map { it.id }, db.fetchTransactions(query = " ").map { it.id })
+    }
+
     private fun withDatabase(block: (ActualBudgetDatabase) -> Unit) {
         val file = createDatabaseFile()
         try {

@@ -516,7 +516,12 @@ class ActualBudgetDatabase private constructor(
     }
 
     @Synchronized
-    fun fetchTransactions(accountId: String? = null, limit: Int = 500, offset: Int = 0): List<ActualTransaction> {
+    fun fetchTransactions(
+        accountId: String? = null,
+        limit: Int = 500,
+        offset: Int = 0,
+        query: String? = null,
+    ): List<ActualTransaction> {
         require(limit >= 0 && offset >= 0)
         val args = mutableListOf<String>()
         var accountClause = ""
@@ -524,38 +529,47 @@ class ActualBudgetDatabase private constructor(
             accountClause = " AND t.acct = ?"
             args += accountId
         }
+        val searchClause = if (query.isNullOrBlank()) "" else {
+            // Bind a literal substring: %, _ and backslash are user text, not wildcards.
+            val pattern = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+            repeat(10) { args += pattern }
+            transactionSearchClause
+        }
         args += limit.toString()
         args += offset.toString()
         val rows = mutableListOf<ActualTransaction>()
-        database.rawQuery(transactionSelect + accountClause + " ORDER BY t.date DESC, t.sort_order DESC LIMIT ? OFFSET ?", args.toTypedArray()).use { cursor ->
+        database.rawQuery(transactionSelect + accountClause + searchClause + " ORDER BY t.date DESC, t.sort_order DESC, t.id LIMIT ? OFFSET ?", args.toTypedArray()).use { cursor ->
             while (cursor.moveToNext()) rows += cursor.toActualTransaction()
         }
         val parentIds = rows.filter(ActualTransaction::isParent).map(ActualTransaction::id)
         if (parentIds.isEmpty()) return rows
         val portions = mutableMapOf<String, MutableList<ActualTransaction.SplitPortion>>()
-        val placeholders = parentIds.joinToString { "?" }
-        database.rawQuery(
-            """
-                SELECT ct.parent_id, ct.id, ct.amount, c.name, ct.notes,
-                       COALESCE(p.name, ct.imported_description)
-                FROM transactions ct
-                LEFT JOIN category_mapping cm ON cm.id = ct.category
-                LEFT JOIN categories c ON c.id = COALESCE(cm.transferId, ct.category)
-                LEFT JOIN payee_mapping pm ON pm.id = ct.description
-                LEFT JOIN payees p ON p.id = pm.targetId
-                WHERE ct.parent_id IN ($placeholders)
-                  AND (ct.tombstone = 0 OR ct.tombstone IS NULL)
-                ORDER BY ct.sort_order DESC
-            """.trimIndent(), parentIds.toTypedArray(),
-        ).use { cursor ->
-            while (cursor.moveToNext()) portions.getOrPut(cursor.getString(0)) { mutableListOf() } +=
-                ActualTransaction.SplitPortion(
-                    id = cursor.getString(1),
-                    amountCents = cursor.longOrZero(2),
-                    categoryName = cursor.stringOrNull(3),
-                    notes = cursor.stringOrNull(4),
-                    payeeName = cursor.stringOrNull(5),
-                )
+        // Stay below SQLite's bind limit even for complete-history results.
+        parentIds.chunked(500).forEach { batch ->
+            val placeholders = batch.joinToString { "?" }
+            database.rawQuery(
+                """
+                    SELECT ct.parent_id, ct.id, ct.amount, c.name, ct.notes,
+                           COALESCE(p.name, ct.imported_description)
+                    FROM transactions ct
+                    LEFT JOIN category_mapping cm ON cm.id = ct.category
+                    LEFT JOIN categories c ON c.id = COALESCE(cm.transferId, ct.category)
+                    LEFT JOIN payee_mapping pm ON pm.id = ct.description
+                    LEFT JOIN payees p ON p.id = pm.targetId
+                    WHERE ct.parent_id IN ($placeholders)
+                      AND (ct.tombstone = 0 OR ct.tombstone IS NULL)
+                    ORDER BY ct.sort_order DESC
+                """.trimIndent(), batch.toTypedArray(),
+            ).use { cursor ->
+                while (cursor.moveToNext()) portions.getOrPut(cursor.getString(0)) { mutableListOf() } +=
+                    ActualTransaction.SplitPortion(
+                        id = cursor.getString(1),
+                        amountCents = cursor.longOrZero(2),
+                        categoryName = cursor.stringOrNull(3),
+                        notes = cursor.stringOrNull(4),
+                        payeeName = cursor.stringOrNull(5),
+                    )
+            }
         }
         return rows.map { it.copy(splitPortions = portions[it.id].orEmpty()) }
     }
@@ -1013,6 +1027,30 @@ class ActualBudgetDatabase private constructor(
 
     companion object {
         const val CREDIT_CARD_PREFERENCE_PREFIX = "actuali:credit_card:"
+        private const val transactionSearchClause = """
+            AND (
+                COALESCE(pa.name, p.name, cpa.name, cp.name,
+                         CASE WHEN t.isParent = 1 THEN 'Split' ELSE '' END) LIKE ? ESCAPE '\'
+                OR COALESCE(c.name, CASE WHEN t.isParent = 1 THEN 'Split' ELSE 'Uncategorized' END) LIKE ? ESCAPE '\'
+                OR t.notes LIKE ? ESCAPE '\'
+                OR t.imported_description LIKE ? ESCAPE '\'
+                OR EXISTS (SELECT 1 FROM accounts a WHERE a.id = t.acct AND a.name LIKE ? ESCAPE '\')
+                OR (t.isParent = 1 AND EXISTS (
+                    SELECT 1 FROM transactions child
+                    LEFT JOIN payee_mapping spm ON spm.id = child.description
+                    LEFT JOIN payees sp ON sp.id = spm.targetId
+                    LEFT JOIN accounts sa ON sa.id = sp.transfer_acct
+                    LEFT JOIN category_mapping scm ON scm.id = child.category
+                    LEFT JOIN categories sc ON sc.id = COALESCE(scm.transferId, child.category)
+                    WHERE child.parent_id = t.id AND child.isChild = 1
+                      AND (child.tombstone = 0 OR child.tombstone IS NULL)
+                      AND (sp.name LIKE ? ESCAPE '\' OR child.notes LIKE ? ESCAPE '\'
+                           OR child.imported_description LIKE ? ESCAPE '\'
+                           OR sa.name LIKE ? ESCAPE '\' OR sc.name LIKE ? ESCAPE '\')
+                ))
+            )
+        """
+
         private const val transactionSelect = """
             SELECT t.id, t.isParent, t.isChild, t.acct, t.category, t.amount,
                    t.description, t.notes, t.date, t.imported_description, t.schedule,

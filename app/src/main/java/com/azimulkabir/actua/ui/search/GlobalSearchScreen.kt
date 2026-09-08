@@ -19,6 +19,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.TextButton
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +43,7 @@ private enum class SearchFilter(val label: String) { ALL("All"), TRANSACTIONS("T
 @Composable
 fun GlobalSearchScreen(
     transactions: List<Transaction>,
+    searchTransactions: suspend (String, Int, Int) -> List<Transaction>,
     accounts: List<Account>,
     payees: List<String>,
     categories: List<String>,
@@ -56,11 +61,28 @@ fun GlobalSearchScreen(
     var filter by remember { mutableStateOf(SearchFilter.ALL) }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     val term = query.trim()
-    val matchingTransactions = remember(term, transactions) {
-        if (term.isBlank()) emptyList() else transactions.filter {
-            listOf(it.payee, it.category, it.account, it.transferAccount.orEmpty(), it.notes)
-                .any { value -> value.contains(term, ignoreCase = true) }
-        }.take(50)
+    var page by remember(term, transactions) { mutableStateOf(0) }
+    var matchingTransactions by remember(term, transactions) { mutableStateOf(emptyList<Transaction>()) }
+    var loading by remember(term, transactions) { mutableStateOf(term.isNotBlank()) }
+    var hasMore by remember(term, transactions) { mutableStateOf(false) }
+    var searchFailed by remember(term, transactions) { mutableStateOf(false) }
+    LaunchedEffect(term, page, transactions, searchTransactions) {
+        if (term.isBlank()) return@LaunchedEffect
+        loading = true
+        searchFailed = false
+        try {
+            if (page == 0) delay(200)
+            val results = searchTransactions(term, 51, page * 50)
+            matchingTransactions = (if (page == 0) results.take(50)
+                else matchingTransactions + results.take(50)).distinctBy { it.id }
+            hasMore = results.size > 50
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            searchFailed = true
+        } finally {
+            loading = false
+        }
     }
     val matchingAccounts = remember(term, accounts) { if (term.isBlank()) emptyList() else accounts.filter { it.name.contains(term, true) } }
     val matchingPayees = remember(term, payees) { if (term.isBlank()) emptyList() else payees.filter { it.contains(term, true) }.take(20) }
@@ -103,6 +125,16 @@ fun GlobalSearchScreen(
                             onLongClick = { selectedTransaction = transaction },
                             onClearedClick = { onTransactionClearedChange(transaction, !transaction.cleared) },
                         )
+                    }
+                }
+                if (filter == SearchFilter.ALL || filter == SearchFilter.TRANSACTIONS) {
+                    item("transaction-search-status") {
+                        when {
+                            loading -> Text("Searching…", modifier = Modifier.padding(20.dp))
+                            searchFailed -> Text("Search failed. Change the search to try again.", modifier = Modifier.padding(20.dp))
+                            hasMore -> TextButton(onClick = { page += 1 }) { Text("Load more transactions") }
+                            matchingTransactions.isEmpty() -> Text("No matching transactions", modifier = Modifier.padding(20.dp))
+                        }
                     }
                 }
                 if (filter == SearchFilter.ALL || filter == SearchFilter.ACCOUNTS) {

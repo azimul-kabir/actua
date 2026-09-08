@@ -234,13 +234,13 @@ class ActuaRepository(context: Context) {
         return true
     }
 
-    fun transactions(): List<Transaction> {
+    fun transactions(query: String? = null, limit: Int = Int.MAX_VALUE, offset: Int = 0): List<Transaction> {
         actualDatabase?.let { db ->
             val accountNames = db.fetchAccounts().associate { it.id to it.name }
             // The database API defaults to a 500-row page. This repository currently backs
             // an in-memory Compose list, so explicitly load the complete history; otherwise
             // older synced transactions exist locally but silently disappear from Accounts.
-            return db.fetchTransactions(limit = Int.MAX_VALUE).map {
+            return db.fetchTransactions(limit = limit, offset = offset, query = query).map {
                 val isTransfer = it.transferId != null
                 Transaction(
                     id = it.id,
