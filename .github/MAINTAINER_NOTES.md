@@ -16,7 +16,7 @@ run `./gradlew connectedInstrumentedAndroidTest` locally when relevant.
 After a successful GitHub run, select the build-test-lint check in the main
 branch ruleset if it should be required for merging.
 
-Release metadata changes on `rebrand/actua` run the Android Release workflow. It
+Release metadata changes on `main` run the Android Release workflow. It
 builds and validates the debug-signed testing APK, creates the version tag and
 GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
 description, and attaches the versioned APK. Update `versionCode`,

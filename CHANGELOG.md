@@ -6,6 +6,29 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [0.1.0-alpha.10] - 2026-09-08
+
+Tenth public testing release.
+
+### Added
+
+- Added an account-specific Transaction button that preselects the open account and returns to that account after saving or cancelling
+- Added persistent Icons only and Icons and names choices for the bottom navigation bar
+- Added a global Current balance summary setting, synchronized with the account-page display menu
+- Added account-page controls for showing the current balance summary and notes
+
+### Changed
+
+- Moved From, To and Available to move into the existing budget keypad instead of opening a separate Move Money page
+- Made Auto-Assign suggestions expand inside the existing budget keypad
+- Kept complete transaction calculator expressions visible while entering amounts, then replaced them with the final result on confirmation
+- Renamed Working balance to Current balance throughout the interface
+- Made Plan view progress bars, spending details and group totals independently configurable while leaving Table view unchanged
+
+### Fixed
+
+- Allowed large Plan group balances to use enough width instead of being clipped to a minus sign
+
 ## [0.1.0-alpha.9] - 2026-09-07
 
 Ninth public testing release.
@@ -203,3 +226,4 @@ Initial public testing release.
 [0.1.0-alpha.7]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.7
 [0.1.0-alpha.8]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.8
 [0.1.0-alpha.9]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.9
+[0.1.0-alpha.10]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.10
