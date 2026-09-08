@@ -449,10 +449,8 @@ fun AddTransactionScreen(
             },
             modifier = Modifier.align(Alignment.BottomEnd)
                 .padding(end = 20.dp, bottom = saveBottomPadding),
-            containerColor = if (canSave) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = if (canSave) MaterialTheme.colorScheme.onPrimary
-            else MaterialTheme.colorScheme.onSurfaceVariant,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             icon = { Icon(Icons.Outlined.Check, contentDescription = null) },
             text = { Text("Save") },
         )
