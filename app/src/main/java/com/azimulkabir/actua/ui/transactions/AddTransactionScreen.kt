@@ -183,7 +183,11 @@ fun AddTransactionScreen(
             }
             Box(Modifier.fillMaxWidth()) {
                 OutlinedTextField(
-                    value = "৳${amountExpression.takeIf { showCalculator } ?: centsToInput(amountCents)}" +
+                    value = "৳${when {
+                        showCalculator && amountExpression != null -> amountExpression.orEmpty()
+                        showCalculator && amountCents == 0L -> ""
+                        else -> centsToInput(amountCents)
+                    }}" +
                         if (showCalculator) blinkingCursor else "",
                     onValueChange = {}, readOnly = true,
                     label = { Text("Amount") }, singleLine = true,
@@ -300,8 +304,12 @@ fun AddTransactionScreen(
                                 )
                                 Box(Modifier.fillMaxWidth()) {
                                     OutlinedTextField(
-                                        value = "৳${splitAmountExpression.takeIf { splitCalculatorIndex == index }
-                                            ?: centsToInput(line.amountCents)}" +
+                                        value = "৳${when {
+                                            splitCalculatorIndex == index && splitAmountExpression != null ->
+                                                splitAmountExpression.orEmpty()
+                                            splitCalculatorIndex == index && line.amountCents == 0L -> ""
+                                            else -> centsToInput(line.amountCents)
+                                        }}" +
                                             if (splitCalculatorIndex == index) blinkingCursor else "",
                                         onValueChange = {},
                                         readOnly = true,
