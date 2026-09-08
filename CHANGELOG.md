@@ -6,6 +6,26 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [0.1.0-alpha.11] - 2026-09-08
+
+Eleventh public testing release.
+
+### Added
+
+- Added a category-specific Transaction button that preselects the category and returns to its details page after saving, cancelling or pressing Back
+- Added direct Budget, Move Money and Auto-Assign actions to the redesigned category summary
+
+### Changed
+
+- Redesigned Category Details around a balance-focused summary card, compact category settings and a unified recent-activity card
+- Moved category rename, visibility, deletion and current-month transactions into the top overflow menu
+- Reused the expandable budget keypad for Category Details Budget, Move Money and Auto-Assign actions
+- Made Plan category separators clearer while retaining the same first-, middle- and last-row behavior as Table view
+
+### Fixed
+
+- Opening a zero transaction or split amount now clears the displayed 0.00 before the first digit is entered
+
 ## [0.1.0-alpha.10] - 2026-09-08
 
 Tenth public testing release.
@@ -227,3 +247,4 @@ Initial public testing release.
 [0.1.0-alpha.8]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.8
 [0.1.0-alpha.9]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.9
 [0.1.0-alpha.10]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.10
+[0.1.0-alpha.11]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.11

@@ -38,7 +38,7 @@ by either the Actuali project or the Actual Budget team.
 - Account, category, and group creation plus working contextual actions
 - Local backup, restore, retention, and pre-restore revert
 - Actual-compatible rules management, editing, CRDT sync, and transaction processing
-- Category notes, rollover overspending, and history-based quick assign
+- Balance-focused category details with shared Budget, Move Money and Auto-Assign keypads, notes, rollover overspending, recent activity and category-preselected transaction entry
 - Credit-card limits, billing-cycle metadata, due dates, and cycle spending stored through Actual preferences
 - Reports, display currency, decimal, appearance, start-page, and privacy preferences
 - Global search across transactions, accounts, payees, categories, notes, and transfers
@@ -67,7 +67,7 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-alpha.10](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.10). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-alpha.11](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.11). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
 
 Actua uses the application ID `com.azimulkabir.actua`. Android therefore treats
 it as a separate app from the earlier Actuali for Android alpha builds. Confirm
