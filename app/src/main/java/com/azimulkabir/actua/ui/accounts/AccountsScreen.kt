@@ -259,28 +259,30 @@ private fun AccountRow(
     onLongClick: () -> Unit,
     hideDecimalPlaces: Boolean,
 ) {
-    if (showTopDivider) {
-        HorizontalDivider(
-            modifier = Modifier.padding(start = 24.dp, end = 12.dp),
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.32f),
-        )
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(start = 24.dp, top = 15.dp, end = 12.dp, bottom = 15.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(account.name, style = MaterialTheme.typography.bodyMedium)
-            Text(creditCard?.let { "${it.cycle.dueShortSummary()} · Spend ${formatMoneyCents(it.cycleSpendCents, hideDecimalPlaces)}" }
-                ?: account.type, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+        if (showTopDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 24.dp, end = 12.dp),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.32f),
+            )
         }
-        BalanceText(account.balanceCents, FontWeight.SemiBold, hideDecimalPlaces)
-        Icon(Icons.Outlined.ChevronRight, contentDescription = "Open ${account.name}",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                .padding(start = 24.dp, top = 15.dp, end = 12.dp, bottom = 15.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(account.name, style = MaterialTheme.typography.bodyMedium)
+                Text(creditCard?.let { "${it.cycle.dueShortSummary()} · Spend ${formatMoneyCents(it.cycleSpendCents, hideDecimalPlaces)}" }
+                    ?: account.type, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            BalanceText(account.balanceCents, FontWeight.SemiBold, hideDecimalPlaces)
+            Icon(Icons.Outlined.ChevronRight, contentDescription = "Open ${account.name}",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
