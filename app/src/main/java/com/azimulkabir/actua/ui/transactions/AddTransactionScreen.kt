@@ -144,7 +144,7 @@ fun AddTransactionScreen(
     val blinkingCursor = if (cursorAlpha > 0.5f) " │" else ""
     val calculatorOpen = showCalculator || splitCalculatorIndex != null
     val saveBottomPadding by animateDpAsState(
-        targetValue = if (calculatorOpen) 226.dp else 20.dp,
+        targetValue = if (calculatorOpen) 212.dp else 20.dp,
         animationSpec = tween(220),
         label = "Save button keyboard offset",
     )
@@ -447,11 +447,11 @@ fun AddTransactionScreen(
                     )
                 }
             },
-            modifier = Modifier.align(Alignment.BottomEnd).imePadding()
+            modifier = Modifier.align(Alignment.BottomEnd)
                 .padding(end = 20.dp, bottom = saveBottomPadding),
-            containerColor = if (canSave) MaterialTheme.colorScheme.primaryContainer
+            containerColor = if (canSave) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = if (canSave) MaterialTheme.colorScheme.onPrimaryContainer
+            contentColor = if (canSave) MaterialTheme.colorScheme.onPrimary
             else MaterialTheme.colorScheme.onSurfaceVariant,
             icon = { Icon(Icons.Outlined.Check, contentDescription = null) },
             text = { Text("Save") },
