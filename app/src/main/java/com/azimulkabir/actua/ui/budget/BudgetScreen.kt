@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -719,8 +720,16 @@ private fun PlanBudgetGroupHeader(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f).padding(start = 4.dp),
             )
-            if (collapsed) AmountColumn("Budgeted", assigned, Modifier.width(92.dp), hideDecimalPlaces)
-            AmountColumn("Balance", available, Modifier.width(92.dp), hideDecimalPlaces, balance = true)
+            if (collapsed) {
+                AmountColumn("Budgeted", assigned, Modifier.widthIn(min = 92.dp), hideDecimalPlaces)
+            }
+            AmountColumn(
+                "Balance",
+                available,
+                Modifier.widthIn(min = 92.dp),
+                hideDecimalPlaces,
+                balance = true,
+            )
         }
     }
 }
