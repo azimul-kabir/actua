@@ -41,6 +41,7 @@ fun CalculatorAmountSheet(
     onDismiss: () -> Unit,
     onApply: (Long) -> Unit,
     onExpressionChange: (String) -> Unit = {},
+    topContent: (@Composable () -> Unit)? = null,
 ) {
     val calculator = remember(conventionalAmountEntry) {
         CalculatorAmountState(initialCents, conventionalAmountEntry = conventionalAmountEntry)
@@ -55,14 +56,17 @@ fun CalculatorAmountSheet(
             color = MaterialTheme.colorScheme.surfaceContainer,
             tonalElevation = 3.dp,
         ) {
-            CompactCalculatorPad(
-                calculator = calculator,
-                conventionalAmountEntry = conventionalAmountEntry,
-                showDisplay = false,
-                onValueChange = onApply,
-                onExpressionChange = onExpressionChange,
-                onDone = { onApply(calculator.finish()); onDismiss() },
-            )
+            Column {
+                topContent?.invoke()
+                CompactCalculatorPad(
+                    calculator = calculator,
+                    conventionalAmountEntry = conventionalAmountEntry,
+                    showDisplay = false,
+                    onValueChange = onApply,
+                    onExpressionChange = onExpressionChange,
+                    onDone = { onApply(calculator.finish()); onDismiss() },
+                )
+            }
         }
     }
 }
