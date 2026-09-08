@@ -149,7 +149,6 @@ fun AddTransactionScreen(
         label = "Amount cursor alpha",
     )
     val blinkingCursor = if (cursorAlpha > 0.5f) " │" else ""
-    val calculatorOpen = showCalculator || splitCalculatorIndex != null
     val saveTransaction = {
         if (canSave) {
             onSave(
@@ -453,10 +452,10 @@ fun AddTransactionScreen(
             }
         }
         }
-        if (!calculatorOpen) TransactionSaveButton(
+        TransactionSaveButton(
             canSave = canSave,
             onClick = saveTransaction,
-            modifier = Modifier.align(Alignment.BottomEnd).imePadding().padding(20.dp),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
         )
     }
     if (showCalculator) CalculatorAmountSheet(
@@ -469,15 +468,6 @@ fun AddTransactionScreen(
         },
         onApply = { amountCents = it },
         onExpressionChange = { amountExpression = it },
-        topContent = {
-            Box(Modifier.fillMaxWidth().padding(top = 4.dp, end = 16.dp, bottom = 4.dp)) {
-                TransactionSaveButton(
-                    canSave = canSave,
-                    onClick = saveTransaction,
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                )
-            }
-        },
     )
     splitCalculatorIndex?.let { index ->
         val line = splitLines.getOrNull(index)
@@ -493,15 +483,6 @@ fun AddTransactionScreen(
                 splitLines = splitLines.toMutableList().also { it[index] = line.copy(amountCents = value) }
             },
             onExpressionChange = { splitAmountExpression = it },
-            topContent = {
-                Box(Modifier.fillMaxWidth().padding(top = 4.dp, end = 16.dp, bottom = 4.dp)) {
-                    TransactionSaveButton(
-                        canSave = canSave,
-                        onClick = saveTransaction,
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                    )
-                }
-            },
         ) else splitCalculatorIndex = null
     }
     if (confirmDelete && editing != null) {

@@ -82,6 +82,7 @@ class CalculatorAmountState(
             accumulatorCents = null
             pending = null
             hasOperand = operandCents != 0L
+            expressionParts.clear()
         }
     }
 

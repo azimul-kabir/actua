@@ -66,4 +66,20 @@ class CalculatorAmountStateTest {
         assertEquals(40_000, state.finish())
         assertEquals("400", state.expressionDisplay)
     }
+
+    @Test fun backspaceRemovesThePendingOperatorFromTheVisibleExpression() {
+        val state = CalculatorAmountState(conventionalAmountEntry = true)
+        state.digit(1); state.digit(0); state.digit(0)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.digit(1); state.digit(0); state.digit(0)
+
+        state.backspace()
+        assertEquals("100 + 10", state.expressionDisplay)
+        state.backspace()
+        assertEquals("100 + 1", state.expressionDisplay)
+        state.backspace()
+        assertEquals("100 +", state.expressionDisplay)
+        state.backspace()
+        assertEquals("100", state.expressionDisplay)
+    }
 }
