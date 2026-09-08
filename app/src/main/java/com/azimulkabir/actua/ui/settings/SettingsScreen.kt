@@ -23,6 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,10 +69,17 @@ fun SettingsScreen(
     onShowBottomNavigationLabelsChange: (Boolean) -> Unit = {},
     showCurrentBalanceSummary: Boolean = true,
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
+    returnToRootRequest: Int = 0,
 ) {
     var page by rememberSaveable { mutableStateOf(SettingsPage.Main) }
+    val scrollState = rememberScrollState()
+    LaunchedEffect(returnToRootRequest) {
+        if (returnToRootRequest > 0) {
+            if (page != SettingsPage.Main) page = SettingsPage.Main else scrollState.animateScrollTo(0)
+        }
+    }
     BackHandler(enabled = page != SettingsPage.Main) { page = SettingsPage.Main }
-    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    Column(modifier = modifier.fillMaxSize().verticalScroll(scrollState)) {
         SettingsHeader(page.title, page != SettingsPage.Main) { page = SettingsPage.Main }
         when (page) {
             SettingsPage.Main -> {
