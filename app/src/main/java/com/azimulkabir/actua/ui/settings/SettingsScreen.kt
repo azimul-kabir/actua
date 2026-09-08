@@ -64,6 +64,10 @@ fun SettingsScreen(
     onRulesClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = false,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
+    showBottomNavigationLabels: Boolean = true,
+    onShowBottomNavigationLabelsChange: (Boolean) -> Unit = {},
+    showCurrentBalanceSummary: Boolean = true,
+    onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
 ) {
     var page by rememberSaveable { mutableStateOf(SettingsPage.Main) }
     BackHandler(enabled = page != SettingsPage.Main) { page = SettingsPage.Main }
@@ -86,6 +90,12 @@ fun SettingsScreen(
                     conventionalAmountEntry, onConventionalAmountEntryChange)
                 SettingsToggle("Account monthly summary", "Show Income, Expenses and Net at the top of Accounts",
                     showAccountsMonthlySummary, onShowAccountsMonthlySummaryChange)
+                SettingsToggle(
+                    "Current balance summary",
+                    "Show current, cleared, uncleared and reconciled balances inside accounts",
+                    showCurrentBalanceSummary,
+                    onShowCurrentBalanceSummaryChange,
+                )
                 SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, onCreditCardsClick)
                 SettingsRow("Rules", "Automatically categorize and transform transactions", true, onRulesClick)
             }
@@ -103,6 +113,11 @@ fun SettingsScreen(
                     listOf("Budget", "Accounts", "Transactions", "Reports", "More"),
                     onStartPageChange,
                 )
+                SettingsChoice(
+                    "Bottom navigation labels",
+                    if (showBottomNavigationLabels) "Icons and names" else "Icons only",
+                    listOf("Icons and names", "Icons only"),
+                ) { onShowBottomNavigationLabelsChange(it == "Icons and names") }
                 SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
                     hideDecimalPlaces, onHideDecimalPlacesChange)
             }

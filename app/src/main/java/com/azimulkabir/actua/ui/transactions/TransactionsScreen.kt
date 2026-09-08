@@ -97,6 +97,8 @@ fun TransactionsScreen(
     onSaveAccountNote: (String) -> Unit = {},
     initialSearch: String = "",
     showBackButton: Boolean = true,
+    showCurrentBalanceSummary: Boolean = true,
+    onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
 ) {
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
     var showSearch by remember { mutableStateOf(false) }
@@ -111,11 +113,6 @@ fun TransactionsScreen(
             "account_detail_preferences",
             android.content.Context.MODE_PRIVATE,
         )
-    }
-    var showAccountSummary by remember(account?.id) {
-        mutableStateOf(account?.let {
-            accountDetailPreferences.getBoolean("show_summary_${it.id}", true)
-        } ?: true)
     }
     var showAccountNotes by remember(account?.id) {
         mutableStateOf(account?.let {
@@ -156,11 +153,11 @@ fun TransactionsScreen(
                     ToggleItem("Group by date", groupTransactionsByDate, onGroupTransactionsByDateChange)
                     ToggleItem("Hide cleared transactions", hideCleared) { hideCleared = it }
                     account?.let { selectedAccount ->
-                        ToggleItem("Show current balance summary", showAccountSummary) { show ->
-                            showAccountSummary = show
-                            accountDetailPreferences.edit()
-                                .putBoolean("show_summary_${selectedAccount.id}", show).apply()
-                        }
+                        ToggleItem(
+                            "Show current balance summary",
+                            showCurrentBalanceSummary,
+                            onShowCurrentBalanceSummaryChange,
+                        )
                         ToggleItem("Show notes", showAccountNotes) { show ->
                             showAccountNotes = show
                             accountDetailPreferences.edit()
@@ -193,7 +190,7 @@ fun TransactionsScreen(
                         accountNote,
                         { savedNote -> accountNote = savedNote; onSaveAccountNote(savedNote) },
                         hideDecimalPlaces,
-                        showAccountSummary,
+                        showCurrentBalanceSummary,
                         showAccountNotes,
                     )
                 }

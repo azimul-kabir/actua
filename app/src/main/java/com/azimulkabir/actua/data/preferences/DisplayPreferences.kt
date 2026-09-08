@@ -75,6 +75,14 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(CONVENTIONAL_AMOUNT_ENTRY, false)
         set(value) { preferences.edit().putBoolean(CONVENTIONAL_AMOUNT_ENTRY, value).apply() }
 
+    var showBottomNavigationLabels: Boolean
+        get() = preferences.getBoolean(SHOW_BOTTOM_NAVIGATION_LABELS, true)
+        set(value) { preferences.edit().putBoolean(SHOW_BOTTOM_NAVIGATION_LABELS, value).apply() }
+
+    var showCurrentBalanceSummary: Boolean
+        get() = preferences.getBoolean(SHOW_CURRENT_BALANCE_SUMMARY, true)
+        set(value) { preferences.edit().putBoolean(SHOW_CURRENT_BALANCE_SUMMARY, value).apply() }
+
     private companion object {
         const val HIDE_DECIMAL_PLACES = "hide_decimal_places"
         const val CURRENCY_CODE = "currency_code"
@@ -93,5 +101,7 @@ class DisplayPreferences(context: Context) {
         const val GROUP_TRANSACTIONS_BY_DATE = "group_transactions_by_date"
         const val SHOW_ACCOUNTS_MONTHLY_SUMMARY = "show_accounts_monthly_summary"
         const val CONVENTIONAL_AMOUNT_ENTRY = "conventional_amount_entry"
+        const val SHOW_BOTTOM_NAVIGATION_LABELS = "show_bottom_navigation_labels"
+        const val SHOW_CURRENT_BALANCE_SUMMARY = "show_current_balance_summary"
     }
 }

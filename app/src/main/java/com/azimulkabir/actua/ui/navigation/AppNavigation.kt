@@ -137,6 +137,8 @@ fun AppNavigation(
     var groupTransactionsByDate by remember { mutableStateOf(displayPreferences.groupTransactionsByDate) }
     var showAccountsMonthlySummary by remember { mutableStateOf(displayPreferences.showAccountsMonthlySummary) }
     var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
+    var showBottomNavigationLabels by remember { mutableStateOf(displayPreferences.showBottomNavigationLabels) }
+    var showCurrentBalanceSummary by remember { mutableStateOf(displayPreferences.showCurrentBalanceSummary) }
     BalanceVisibility.hidden = hideBalances
     CurrencyDisplay.code = currencyCode
     CurrencyDisplay.symbolOnly = currencySymbolOnly
@@ -242,7 +244,7 @@ fun AppNavigation(
                             transactionFabExpanded = true
                         },
                         icon = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label) },
+                        label = if (showBottomNavigationLabels) { { Text(item.label) } } else null,
                     )
                 }
             }
@@ -302,6 +304,11 @@ fun AppNavigation(
                     }
                 },
                 initialSearch = transactionSearch,
+                showCurrentBalanceSummary = showCurrentBalanceSummary,
+                onShowCurrentBalanceSummaryChange = {
+                    displayPreferences.showCurrentBalanceSummary = it
+                    showCurrentBalanceSummary = it
+                },
             )
             DetailDestination.EditTransaction -> AddTransactionScreen(
                 editing = editingTransaction,
@@ -653,6 +660,16 @@ fun AppNavigation(
                     onConventionalAmountEntryChange = {
                         displayPreferences.conventionalAmountEntry = it
                         conventionalAmountEntry = it
+                    },
+                    showBottomNavigationLabels = showBottomNavigationLabels,
+                    onShowBottomNavigationLabelsChange = {
+                        displayPreferences.showBottomNavigationLabels = it
+                        showBottomNavigationLabels = it
+                    },
+                    showCurrentBalanceSummary = showCurrentBalanceSummary,
+                    onShowCurrentBalanceSummaryChange = {
+                        displayPreferences.showCurrentBalanceSummary = it
+                        showCurrentBalanceSummary = it
                     },
                 )
             }
