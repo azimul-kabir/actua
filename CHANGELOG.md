@@ -6,6 +6,25 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [0.1.0-beta.1] - 2026-09-08
+
+First public beta release.
+
+### Added
+
+- Added fixed day-of-month credit-card payment dates while retaining the existing days-after-statement option
+- Added fixed-date handling for short months and a compatible fallback offset for older Actua and Actuali builds
+
+### Changed
+
+- Global transaction search now queries complete local history and matches split-child payees, notes, imported descriptions and categories
+- Updated rule documentation to reflect the existing editor, supported standard actions and CRDT mutation support
+
+### Fixed
+
+- Recovered missing, malformed and epoch-like sync clocks from the local message-log high-water mark without discarding pending changes
+- Removed categories from off-budget standard and split transactions during creation, editing, account changes and rule processing
+
 ## [0.1.0-alpha.14] - 2026-09-08
 
 Fourteenth public testing release.
