@@ -93,6 +93,7 @@ fun AddTransactionScreen(
 ) {
     var amountCents by remember(editing) { mutableStateOf(abs(editing?.amountCents ?: 0L)) }
     var showCalculator by remember { mutableStateOf(false) }
+    var amountExpression by remember(editing) { mutableStateOf<String?>(null) }
     var confirmDelete by remember(editing) { mutableStateOf(false) }
     var payee by remember(editing) { mutableStateOf(editing?.payee ?: "") }
     var category by remember(editing) { mutableStateOf(editing?.category ?: "") }
@@ -119,6 +120,7 @@ fun AddTransactionScreen(
     }
     var splitLines by remember(editing) { mutableStateOf(editing?.splits.orEmpty()) }
     var splitCalculatorIndex by remember { mutableStateOf<Int?>(null) }
+    var splitAmountExpression by remember(editing) { mutableStateOf<String?>(null) }
     val isSplit = splitLines.isNotEmpty()
     val splitTotal = splitLines.sumOf { if (it.isOpposite) -it.amountCents else it.amountCents }
     val splitIsValid = !isSplit || (splitLines.size >= 2 && splitLines.all {
@@ -133,7 +135,7 @@ fun AddTransactionScreen(
         animationSpec = infiniteRepeatable(tween(520), repeatMode = RepeatMode.Reverse),
         label = "Amount cursor alpha",
     )
-    val amountCursor = if (showCalculator && cursorAlpha > 0.5f) " │" else ""
+    val blinkingCursor = if (cursorAlpha > 0.5f) " │" else ""
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -181,13 +183,18 @@ fun AddTransactionScreen(
             }
             Box(Modifier.fillMaxWidth()) {
                 OutlinedTextField(
-                    value = "৳${centsToInput(amountCents)}$amountCursor", onValueChange = {}, readOnly = true,
+                    value = "৳${amountExpression.takeIf { showCalculator } ?: centsToInput(amountCents)}" +
+                        if (showCalculator) blinkingCursor else "",
+                    onValueChange = {}, readOnly = true,
                     label = { Text("Amount") }, singleLine = true,
                     trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
                     supportingText = { if (hideDecimalPlaces) Text("Decimal places are hidden in lists") },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Box(Modifier.matchParentSize().clickable { showCalculator = true })
+                Box(Modifier.matchParentSize().clickable {
+                    amountExpression = null
+                    showCalculator = true
+                })
             }
             if (transactionType != Type.TRANSFER.displayName) {
                 PickerTextField(
@@ -293,7 +300,9 @@ fun AddTransactionScreen(
                                 )
                                 Box(Modifier.fillMaxWidth()) {
                                     OutlinedTextField(
-                                        value = "৳${centsToInput(line.amountCents)}${if (splitCalculatorIndex == index) amountCursor else ""}",
+                                        value = "৳${splitAmountExpression.takeIf { splitCalculatorIndex == index }
+                                            ?: centsToInput(line.amountCents)}" +
+                                            if (splitCalculatorIndex == index) blinkingCursor else "",
                                         onValueChange = {},
                                         readOnly = true,
                                         label = { Text("Amount") },
@@ -301,7 +310,10 @@ fun AddTransactionScreen(
                                         trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
                                         modifier = Modifier.fillMaxWidth(),
                                     )
-                                    Box(Modifier.matchParentSize().clickable { splitCalculatorIndex = index })
+                                    Box(Modifier.matchParentSize().clickable {
+                                        splitAmountExpression = null
+                                        splitCalculatorIndex = index
+                                    })
                                 }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -424,8 +436,12 @@ fun AddTransactionScreen(
         title = if (editing == null) "Transaction amount" else "Edit amount",
         initialCents = amountCents,
         conventionalAmountEntry = conventionalAmountEntry,
-        onDismiss = { showCalculator = false },
+        onDismiss = {
+            showCalculator = false
+            amountExpression = null
+        },
         onApply = { amountCents = it },
+        onExpressionChange = { amountExpression = it },
     )
     splitCalculatorIndex?.let { index ->
         val line = splitLines.getOrNull(index)
@@ -433,10 +449,14 @@ fun AddTransactionScreen(
             title = "Split ${index + 1} amount",
             initialCents = line.amountCents,
             conventionalAmountEntry = conventionalAmountEntry,
-            onDismiss = { splitCalculatorIndex = null },
+            onDismiss = {
+                splitCalculatorIndex = null
+                splitAmountExpression = null
+            },
             onApply = { value ->
                 splitLines = splitLines.toMutableList().also { it[index] = line.copy(amountCents = value) }
             },
+            onExpressionChange = { splitAmountExpression = it },
         ) else splitCalculatorIndex = null
     }
     if (confirmDelete && editing != null) {

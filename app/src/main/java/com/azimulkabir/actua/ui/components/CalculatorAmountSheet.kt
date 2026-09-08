@@ -40,6 +40,7 @@ fun CalculatorAmountSheet(
     conventionalAmountEntry: Boolean = false,
     onDismiss: () -> Unit,
     onApply: (Long) -> Unit,
+    onExpressionChange: (String) -> Unit = {},
 ) {
     val calculator = remember(conventionalAmountEntry) {
         CalculatorAmountState(initialCents, conventionalAmountEntry = conventionalAmountEntry)
@@ -59,6 +60,7 @@ fun CalculatorAmountSheet(
                 conventionalAmountEntry = conventionalAmountEntry,
                 showDisplay = false,
                 onValueChange = onApply,
+                onExpressionChange = onExpressionChange,
                 onDone = { onApply(calculator.finish()); onDismiss() },
             )
         }
@@ -75,6 +77,7 @@ fun CompactCalculatorPad(
     displayLabel: String? = null,
     showDisplay: Boolean = true,
     onValueChange: (Long) -> Unit = {},
+    onExpressionChange: (String) -> Unit = {},
     canFinish: (Long) -> Boolean = { true },
     onClose: (() -> Unit)? = null,
     onDone: () -> Unit,
@@ -95,7 +98,10 @@ fun CompactCalculatorPad(
             else -> calculator.digit(key.toInt())
         }
         revision++
-        if (key != "✓") onValueChange(calculator.cents)
+        if (key != "✓") {
+            onValueChange(calculator.cents)
+            onExpressionChange(calculator.expressionDisplay)
+        }
     }
     val rows = listOf(
         listOf("7", "8", "9", "⌫"),

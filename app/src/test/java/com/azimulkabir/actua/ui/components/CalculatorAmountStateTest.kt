@@ -53,4 +53,17 @@ class CalculatorAmountStateTest {
         state.digit(1); state.digit(2); state.decimalPoint(); state.digit(3); state.digit(4); state.digit(9)
         assertEquals(1_234, state.finish())
     }
+
+    @Test fun expressionDisplayKeepsEveryEnteredTermUntilFinish() {
+        val state = CalculatorAmountState(conventionalAmountEntry = true)
+        state.digit(1); state.digit(0); state.digit(0)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.digit(1); state.digit(0); state.digit(0)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.digit(2); state.digit(0); state.digit(0)
+
+        assertEquals("100 + 100 + 200", state.expressionDisplay)
+        assertEquals(40_000, state.finish())
+        assertEquals("400", state.expressionDisplay)
+    }
 }

@@ -16,6 +16,7 @@ class CalculatorAmountState(
     private var pending: Operator? = null
     private var hasOperand = initialCents != 0L
     private var decimalDigits: Int? = null
+    private val expressionParts = mutableListOf<String>()
 
     val cents: Long
         get() = accumulatorCents?.let { left ->
@@ -29,6 +30,12 @@ class CalculatorAmountState(
             val op = pending ?: return operand
             return if (hasOperand) "${format(left)} ${op.symbol} $operand" else "${format(left)} ${op.symbol}"
         }
+
+    val expressionDisplay: String
+        get() = buildList {
+            addAll(expressionParts)
+            if (hasOperand || expressionParts.isEmpty()) add(formatCompact(operandCents))
+        }.joinToString(" ")
 
     fun digit(value: Int) {
         require(value in 0..9)
@@ -84,6 +91,7 @@ class CalculatorAmountState(
         pending = null
         hasOperand = false
         decimalDigits = null
+        expressionParts.clear()
     }
 
     fun toggleSign() {
@@ -92,6 +100,12 @@ class CalculatorAmountState(
 
     fun operator(operator: Operator) {
         if (accumulatorCents == null && !hasOperand) return
+        if (hasOperand) {
+            expressionParts += formatCompact(operandCents)
+            expressionParts += operator.symbol
+        } else if (expressionParts.isNotEmpty()) {
+            expressionParts[expressionParts.lastIndex] = operator.symbol
+        }
         if (hasOperand) {
             accumulatorCents = accumulatorCents?.let { apply(it, operandCents, requireNotNull(pending)) }
                 ?: operandCents
@@ -108,6 +122,7 @@ class CalculatorAmountState(
         pending = null
         operandCents = result
         hasOperand = result != 0L
+        expressionParts.clear()
         return result
     }
 
@@ -128,5 +143,10 @@ class CalculatorAmountState(
             append('.')
             append((magnitude % 100).toString().padStart(2, '0'))
         }
+    }
+
+    private fun formatCompact(value: Long): String {
+        val formatted = format(value)
+        return if (formatted.endsWith(".00")) formatted.dropLast(3) else formatted
     }
 }
