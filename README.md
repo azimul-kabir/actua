@@ -39,7 +39,7 @@ by either the Actuali project or the Actual Budget team.
 - Local backup, restore, retention, and pre-restore revert
 - Actual-compatible rules management, editing, CRDT sync, and transaction processing
 - Balance-focused category details with shared Budget, Move Money and Auto-Assign keypads, notes, rollover overspending, recent activity and category-preselected transaction entry
-- Credit-card limits, billing-cycle metadata, due dates, and cycle spending stored through Actual preferences
+- Credit-card limits, billing-cycle metadata, fixed or offset due dates, and cycle spending stored through Actual preferences
 - Reports, display currency, decimal, appearance, start-page, and privacy preferences
 - Global search across transactions, accounts, payees, categories, notes, and transfers
 - Unified Material You category budgeting with auto-assign, money movement, details, and recent activity

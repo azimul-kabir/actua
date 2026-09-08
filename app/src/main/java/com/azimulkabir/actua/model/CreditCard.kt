@@ -8,6 +8,7 @@ data class CreditCardConfig(
     val statementDay: Int,
     val dueOffsetDays: Int = CreditCardCycle.DEFAULT_DUE_OFFSET_DAYS,
     val limitCents: Long? = null,
+    val dueDay: Int? = null,
 )
 
 data class CreditCardStatus(
@@ -19,14 +20,33 @@ data class CreditCardStatus(
     val availableCreditCents: Long?,
     val closed: Boolean,
 ) {
-    val cycle: CreditCardCycle get() = CreditCardCycle(config.statementDay, config.dueOffsetDays)
+    val cycle: CreditCardCycle get() = CreditCardCycle(config.statementDay, config.paymentDue)
 }
 
 /** Billing-cycle calculations matching Actuali iOS CreditCardCycle. */
-data class CreditCardCycle(val statementDay: Int, val dueOffsetDays: Int = DEFAULT_DUE_OFFSET_DAYS) {
+data class CreditCardCycle(
+    val statementDay: Int,
+    val paymentDue: PaymentDue = PaymentDue.DaysAfter(DEFAULT_DUE_OFFSET_DAYS),
+) {
+    sealed interface PaymentDue {
+        data class DaysAfter(val days: Int) : PaymentDue
+        data class DayOfMonth(val day: Int) : PaymentDue
+    }
+
+    constructor(statementDay: Int, dueOffsetDays: Int) :
+        this(statementDay, PaymentDue.DaysAfter(dueOffsetDays))
+
+    val dueOffsetDays: Int get() = when (val due = paymentDue) {
+        is PaymentDue.DaysAfter -> due.days
+        is PaymentDue.DayOfMonth -> DEFAULT_DUE_OFFSET_DAYS
+    }
+
     init {
         require(statementDay in 1..31)
-        require(dueOffsetDays in 1..MAX_DUE_OFFSET_DAYS)
+        when (val due = paymentDue) {
+            is PaymentDue.DaysAfter -> require(due.days in 1..MAX_DUE_OFFSET_DAYS)
+            is PaymentDue.DayOfMonth -> require(due.day in 1..31)
+        }
     }
 
     fun cycleRange(today: DayDate = DayDate.today()): Pair<DayDate, DayDate> {
@@ -45,11 +65,19 @@ data class CreditCardCycle(val statementDay: Int, val dueOffsetDays: Int = DEFAU
 
     fun previousStatementDate(today: DayDate = DayDate.today()) = cycleRange(today).first.addingDays(-1)
 
+    fun dueDate(statement: DayDate): DayDate = when (val due = paymentDue) {
+        is PaymentDue.DaysAfter -> statement.addingDays(due.days)
+        is PaymentDue.DayOfMonth -> {
+            val month = if (due.day > statementDay) statement else statement.addingMonths(1)
+            DayDate(month.year, month.month, minOf(due.day, DayDate.lastDay(month.year, month.month)))
+        }
+    }
+
     fun upcomingDueDate(today: DayDate = DayDate.today()): DayDate {
-        var due = cycleRange(today).second.addingDays(dueOffsetDays)
+        var due = dueDate(cycleRange(today).second)
         var statement = previousStatementDate(today)
         repeat(dueOffsetDays / 28 + 2) {
-            val statementDue = statement.addingDays(dueOffsetDays)
+            val statementDue = dueDate(statement)
             if (today > statementDue) return due
             due = statementDue
             statement = previousStatementDate(statement)
@@ -83,3 +111,7 @@ data class CreditCardCycle(val statementDay: Int, val dueOffsetDays: Int = DEFAU
         const val MAX_DUE_OFFSET_DAYS = 60
     }
 }
+
+val CreditCardConfig.paymentDue: CreditCardCycle.PaymentDue
+    get() = dueDay?.let(CreditCardCycle.PaymentDue::DayOfMonth)
+        ?: CreditCardCycle.PaymentDue.DaysAfter(dueOffsetDays)

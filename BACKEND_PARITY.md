@@ -91,7 +91,8 @@ Android backlog items and will never be ported.
 - Account details with notes and working, cleared, uncleared, and reconciled balances
 - Collapsible account balance details with compact Budget-tab typography
 - Credit-card account details with limit, available credit, current billing cycle,
-  cycle spending, and calculated payment due date
+  cycle spending, and calculated payment due date using either a fixed due day or
+  a legacy days-after-statement offset
 - Database-backed complete-history transaction search, including live split-child
   payees, notes, imported descriptions and categories; stable database paging
 - Add/edit split transaction UI with per-line category, amount, direction, payee,

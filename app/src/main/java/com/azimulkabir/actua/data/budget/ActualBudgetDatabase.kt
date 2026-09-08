@@ -120,8 +120,11 @@ class ActualBudgetDatabase private constructor(
                     val json = JSONObject(value)
                     val day = json.getInt("statementDay")
                     val offset = json.optInt("dueOffsetDays", CreditCardCycle.DEFAULT_DUE_OFFSET_DAYS)
+                    val dueDay = if (json.has("dueDay") && !json.isNull("dueDay")) {
+                        json.getInt("dueDay").also { require(it in 1..31) }
+                    } else null
                     val limit = if (json.has("limit") && !json.isNull("limit")) json.getLong("limit") else null
-                    CreditCardConfig(day, offset, limit)
+                    CreditCardConfig(day, offset, limit, dueDay)
                 }.getOrNull()?.let { result[id.removePrefix(prefix)] = it }
             }
         }

@@ -531,8 +531,8 @@ fun AppNavigation(
                 accounts = accounts,
                 hideDecimalPlaces = hideDecimalPlaces,
                 onBack = { detail = DetailDestination.Main },
-                onSave = { accountId, day, offset, limit ->
-                    mutate("Saving credit card") { repository.setCreditCard(accountId, day, offset, limit) }
+                onSave = { accountId, day, paymentDue, limit ->
+                    mutate("Saving credit card") { repository.setCreditCard(accountId, day, paymentDue, limit) }
                 },
                 onRemove = { accountId ->
                     mutate("Removing credit card") { repository.setCreditCard(accountId, null) }

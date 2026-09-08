@@ -18,6 +18,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +49,7 @@ fun CreditCardsScreen(
     accounts: List<Account>,
     hideDecimalPlaces: Boolean,
     onBack: () -> Unit,
-    onSave: (String, Int, Int, Long?) -> Unit,
+    onSave: (String, Int, CreditCardCycle.PaymentDue, Long?) -> Unit,
     onRemove: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -78,11 +79,11 @@ fun CreditCardsScreen(
         }
     }
 
-    if (adding) CardEditorDialog(null, availableAccounts, onDismiss = { adding = false }, onSave = { id, day, offset, limit ->
-        onSave(id, day, offset, limit); adding = false
+    if (adding) CardEditorDialog(null, availableAccounts, onDismiss = { adding = false }, onSave = { id, day, paymentDue, limit ->
+        onSave(id, day, paymentDue, limit); adding = false
     })
-    editing?.let { card -> CardEditorDialog(card, accounts, onDismiss = { editing = null }, onSave = { id, day, offset, limit ->
-        onSave(id, day, offset, limit); editing = null
+    editing?.let { card -> CardEditorDialog(card, accounts, onDismiss = { editing = null }, onSave = { id, day, paymentDue, limit ->
+        onSave(id, day, paymentDue, limit); editing = null
     }, onRemove = { onRemove(card.accountId); editing = null }) }
 }
 
@@ -119,16 +120,19 @@ private fun CreditCardRow(card: CreditCardStatus, hideDecimals: Boolean, modifie
 @Composable
 private fun CardEditorDialog(
     card: CreditCardStatus?, accounts: List<Account>, onDismiss: () -> Unit,
-    onSave: (String, Int, Int, Long?) -> Unit, onRemove: (() -> Unit)? = null,
+    onSave: (String, Int, CreditCardCycle.PaymentDue, Long?) -> Unit, onRemove: (() -> Unit)? = null,
 ) {
     var accountId by remember { mutableStateOf(card?.accountId ?: accounts.firstOrNull()?.id.orEmpty()) }
     var day by remember { mutableStateOf((card?.config?.statementDay ?: 15).toString()) }
     var offset by remember { mutableStateOf((card?.config?.dueOffsetDays ?: CreditCardCycle.DEFAULT_DUE_OFFSET_DAYS).toString()) }
+    var useFixedDueDay by remember { mutableStateOf(card?.config?.dueDay != null) }
+    var dueDay by remember { mutableStateOf((card?.config?.dueDay ?: 1).toString()) }
     var limit by remember { mutableStateOf(card?.config?.limitCents?.let { BigDecimal(it).movePointLeft(2).toPlainString() }.orEmpty()) }
     var accountsExpanded by remember { mutableStateOf(false) }
     val account = accounts.firstOrNull { it.id == accountId }
     val validDay = day.toIntOrNull()?.takeIf { it in 1..31 }
     val validOffset = offset.toIntOrNull()?.takeIf { it in 1..CreditCardCycle.MAX_DUE_OFFSET_DAYS }
+    val validDueDay = dueDay.toIntOrNull()?.takeIf { it in 1..31 }
     val limitCents = runCatching { limit.takeIf(String::isNotBlank)?.let {
         BigDecimal(it).movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact().takeIf { cents -> cents > 0 }
     } }.getOrNull()
@@ -143,14 +147,38 @@ private fun CardEditorDialog(
                 } }
             } else Text("Account  ${card.accountName}")
             TextField(day, { day = it.filter(Char::isDigit).take(2) }, label = { Text("Statement closing day (1–31)") }, singleLine = true)
-            TextField(offset, { offset = it.filter(Char::isDigit).take(2) }, label = { Text("Payment due after (1–60 days)") }, singleLine = true)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = !useFixedDueDay,
+                    onClick = { useFixedDueDay = false },
+                    label = { Text("Days after") },
+                    modifier = Modifier.weight(1f),
+                )
+                FilterChip(
+                    selected = useFixedDueDay,
+                    onClick = { useFixedDueDay = true },
+                    label = { Text("Day of month") },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (useFixedDueDay) {
+                TextField(dueDay, { dueDay = it.filter(Char::isDigit).take(2) }, label = { Text("Payment due day (1–31)") }, singleLine = true)
+            } else {
+                TextField(offset, { offset = it.filter(Char::isDigit).take(2) }, label = { Text("Payment due after (1–60 days)") }, singleLine = true)
+            }
             TextField(limit, { value -> limit = value.filter { it.isDigit() || it == '.' } }, label = { Text("Credit limit (optional)") }, singleLine = true)
-            Text("The due date is the statement closing date plus the issuer’s payment period.",
+            Text(if (useFixedDueDay) "The due date uses the issuer’s fixed calendar day, clamped for shorter months."
+                else "The due date is the statement closing date plus the issuer’s payment period.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (onRemove != null) TextButton(onClick = onRemove) { Text("Remove Credit Card Tracking", color = MaterialTheme.colorScheme.error) }
         }
     }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }, confirmButton = {
-        Button(enabled = accountId.isNotBlank() && validDay != null && validOffset != null && (limit.isBlank() || limitCents != null),
-            onClick = { onSave(accountId, validDay!!, validOffset!!, limitCents) }) { Text("Save") }
+        val validPaymentDue = if (useFixedDueDay) validDueDay != null else validOffset != null
+        Button(enabled = accountId.isNotBlank() && validDay != null && validPaymentDue && (limit.isBlank() || limitCents != null),
+            onClick = {
+                val paymentDue = if (useFixedDueDay) CreditCardCycle.PaymentDue.DayOfMonth(validDueDay!!)
+                else CreditCardCycle.PaymentDue.DaysAfter(validOffset!!)
+                onSave(accountId, validDay!!, paymentDue, limitCents)
+            }) { Text("Save") }
     })
 }

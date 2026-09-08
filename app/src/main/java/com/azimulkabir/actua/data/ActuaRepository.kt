@@ -24,6 +24,7 @@ import com.azimulkabir.actua.model.ReportMonth
 import com.azimulkabir.actua.model.ReportSnapshot
 import com.azimulkabir.actua.model.CreditCardConfig
 import com.azimulkabir.actua.model.CreditCardCycle
+import com.azimulkabir.actua.model.paymentDue
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import org.json.JSONObject
@@ -209,7 +210,7 @@ class ActuaRepository(context: Context) {
         return db.fetchAccounts().mapNotNull { account ->
             val config = configs[account.id] ?: return@mapNotNull null
             if (account.closed && !includeClosed) return@mapNotNull null
-            val cycle = CreditCardCycle(config.statementDay, config.dueOffsetDays)
+            val cycle = CreditCardCycle(config.statementDay, config.paymentDue)
             val range = cycle.cycleRange()
             CreditCardStatus(
                 account.id, account.name, account.balanceCents, config,
@@ -219,14 +220,23 @@ class ActuaRepository(context: Context) {
         }.sortedWith(compareBy({ it.cycle.daysUntilDue() }, { it.accountName.lowercase() }))
     }
 
-    fun setCreditCard(accountId: String, statementDay: Int?, dueOffsetDays: Int = CreditCardCycle.DEFAULT_DUE_OFFSET_DAYS,
+    fun setCreditCard(accountId: String, statementDay: Int?,
+        paymentDue: CreditCardCycle.PaymentDue = CreditCardCycle.PaymentDue.DaysAfter(CreditCardCycle.DEFAULT_DUE_OFFSET_DAYS),
         limitCents: Long? = null): Boolean {
         val db = actualDatabase ?: return false
         require(db.fetchAccounts().any { it.id == accountId }) { "That account no longer exists" }
         val value = statementDay?.let {
             require(it in 1..31) { "Statement day must be between 1 and 31" }
-            require(dueOffsetDays in 1..CreditCardCycle.MAX_DUE_OFFSET_DAYS) { "Payment due period must be between 1 and 60 days" }
-            JSONObject().put("statementDay", it).put("dueOffsetDays", dueOffsetDays).apply {
+            val cycle = CreditCardCycle(it, paymentDue)
+            val fallbackOffset = when (paymentDue) {
+                is CreditCardCycle.PaymentDue.DaysAfter -> paymentDue.days
+                is CreditCardCycle.PaymentDue.DayOfMonth -> {
+                    val statement = cycle.previousStatementDate()
+                    maxOf(1, statement.daysUntil(cycle.dueDate(statement)))
+                }
+            }
+            JSONObject().put("statementDay", it).put("dueOffsetDays", fallbackOffset).apply {
+                if (paymentDue is CreditCardCycle.PaymentDue.DayOfMonth) put("dueDay", paymentDue.day)
                 if (limitCents != null && limitCents > 0) put("limit", limitCents)
             }.toString()
         }
