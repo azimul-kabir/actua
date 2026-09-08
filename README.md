@@ -34,7 +34,7 @@ by either the Actuali project or the Actual Budget team.
 - Full-screen searchable account, payee, and category selection with account balances, transfer grouping, and new-payee creation
 - Ready to Assign/To Budget assignment plus category-to-category and category-to-budget money movement
 - Calculator-style and conventional amount entry
-- Inline transaction calculator expressions that remain visible until confirmation
+- Inline transaction calculator expressions with predictable backspace editing that remain visible until confirmation
 - Account, category, and group creation plus working contextual actions
 - Local backup, restore, retention, and pre-restore revert
 - Actual-compatible rule listing, editing, CRDT mutations, and transaction
@@ -72,7 +72,7 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-beta.1](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-beta.1). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-beta.2](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-beta.2). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
 
 Actua uses the application ID `com.azimulkabir.actua`. Android therefore treats
 it as a separate app from the earlier Actuali for Android alpha builds. Confirm

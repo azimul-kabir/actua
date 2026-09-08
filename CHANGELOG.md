@@ -6,6 +6,25 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [0.1.0-beta.2] - 2026-09-08
+
+### Added
+
+- Added a searchable Scheduled Transactions screen with due-state visibility and skip, complete, restart and delete actions
+- Added opt-in Android credit-card payment reminders for 7, 5, 3 and 1 days before the calculated due date
+- Added a persistent app-wide option to hide reconciled transactions from lists and searches
+
+### Changed
+
+- Sorted credit cards with unpaid balances first, followed by their upcoming payment due date
+- Restored the transaction Save action to its fixed bottom-right position instead of moving or duplicating it around the keyboard
+- Matched transaction amount entry to the existing compact Budget-tab keypad without an extra amount or Save row above the keys
+
+### Fixed
+
+- Made backspace visually remove every part of calculator expressions such as `100 + 100`, including the pending operator
+- Revalidated notification permission at delivery time so revoked access cannot crash a due-date reminder
+
 ## [0.1.0-beta.1] - 2026-09-08
 
 First public beta release.

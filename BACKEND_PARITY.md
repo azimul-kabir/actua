@@ -39,7 +39,8 @@ Android backlog items and will never be ported.
 - Zero/reflect budget month calculations, carryover, To Budget, and exact-cent writes
 - Synced account/category notes, per-account working/cleared/uncleared/reconciled
   balances, and category rollover-overspending preferences
-- Calculator-style amount entry parity for budget writes
+- Shared compact calculator-style amount entry for budget and transaction writes,
+  including complete expression display and predictable operator backspace editing
 - Local backup snapshots, CRDT stripping, retention, restore, and one-shot revert
 - Rule JSON parsing, schema translation, ranking, condition/action evaluation,
   named-payee resolution, and rule application for incoming transactions
