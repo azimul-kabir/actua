@@ -184,23 +184,6 @@ fun BudgetScreen(
     var autoAssignCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var assignFromBudgetOpen by remember { mutableStateOf(false) }
 
-    movingBudget?.let { (group, category) ->
-        MoveBudgetScreen(
-            modifier = modifier,
-            sourceGroup = group,
-            source = category,
-            groups = groups,
-            toBudgetCents = overview.toBudgetCents ?: 0L,
-            hideDecimalPlaces = hideDecimalPlaces,
-            onDismiss = { movingBudget = null },
-            onSave = { fromGroup, fromCategory, toGroup, toCategory, amount ->
-                onTransferBudget(fromGroup, fromCategory, toGroup, toCategory, amount)
-                movingBudget = null
-            },
-        )
-        return
-    }
-
     Column(modifier = modifier.fillMaxSize()) {
         BudgetToolbar(
             month = month,
@@ -373,13 +356,21 @@ fun BudgetScreen(
     }
     editingBudget?.let { (group, category) ->
         EditBudgetAmountSheet(
+            sourceGroup = group,
             category = category,
+            groups = groups,
+            toBudgetCents = overview.toBudgetCents ?: 0L,
+            hideDecimalPlaces = hideDecimalPlaces,
+            startInMoveMode = false,
             onDismiss = { editingBudget = null },
             onAutoAssign = { editingBudget = null; autoAssignCategory = group to category },
-            onMoveMoney = { editingBudget = null; movingBudget = group to category },
             onDetails = { editingBudget = null; categoryDetails = group to category },
             onSave = { amount ->
                 onSetBudgetAmount(group.name, category.name, amount)
+                editingBudget = null
+            },
+            onMove = { fromGroup, fromCategory, toGroup, toCategory, amount ->
+                onTransferBudget(fromGroup, fromCategory, toGroup, toCategory, amount)
                 editingBudget = null
             },
         )
@@ -466,6 +457,27 @@ fun BudgetScreen(
             onAssign = { amount ->
                 onSetBudgetAmount(group.name, category.name, amount)
                 autoAssignCategory = null
+            },
+        )
+    }
+    movingBudget?.let { (group, category) ->
+        EditBudgetAmountSheet(
+            sourceGroup = group,
+            category = category,
+            groups = groups,
+            toBudgetCents = overview.toBudgetCents ?: 0L,
+            hideDecimalPlaces = hideDecimalPlaces,
+            startInMoveMode = true,
+            onDismiss = { movingBudget = null },
+            onAutoAssign = { movingBudget = null; autoAssignCategory = group to category },
+            onDetails = { movingBudget = null; categoryDetails = group to category },
+            onSave = { amount ->
+                onSetBudgetAmount(group.name, category.name, amount)
+                movingBudget = null
+            },
+            onMove = { fromGroup, fromCategory, toGroup, toCategory, amount ->
+                onTransferBudget(fromGroup, fromCategory, toGroup, toCategory, amount)
+                movingBudget = null
             },
         )
     }
@@ -1085,44 +1097,142 @@ private fun CategoryRow(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBudgetAmountSheet(
+    sourceGroup: BudgetGroup,
     category: BudgetCategory,
+    groups: List<BudgetGroup>,
+    toBudgetCents: Long,
+    hideDecimalPlaces: Boolean,
+    startInMoveMode: Boolean,
     onDismiss: () -> Unit,
     onAutoAssign: () -> Unit,
-    onMoveMoney: () -> Unit,
     onDetails: () -> Unit,
     onSave: (Long) -> Unit,
+    onMove: (String?, String?, String?, String?, Long) -> Unit,
 ) {
-    val calculator = remember(category) {
-        CalculatorAmountState(category.assignedCents, allowsNegative = true)
+    var moveMode by remember(category, startInMoveMode) { mutableStateOf(startInMoveMode) }
+    val options = remember(groups, toBudgetCents) {
+        listOf(MoveEndpoint(null, null, toBudgetCents)) + groups.filterNot { it.isIncome }.flatMap { group ->
+            group.categories.filterNot { it.hidden }.map { item ->
+                MoveEndpoint(group.name, item.name, item.balanceCents)
+            }
+        }
     }
-    var enteredAmount by remember(category) { mutableStateOf(category.assignedCents) }
+    val anchor = remember(sourceGroup, category) {
+        MoveEndpoint(sourceGroup.name, category.name, category.balanceCents)
+    }
+    var from by remember(anchor) {
+        mutableStateOf(if (category.balanceCents < 0) options.first() else anchor)
+    }
+    var to by remember(anchor) {
+        mutableStateOf(if (category.balanceCents < 0) anchor else options.first())
+    }
+    val calculator = remember(category, moveMode) {
+        if (moveMode) CalculatorAmountState(0L, allowsNegative = false, conventionalAmountEntry = true)
+        else CalculatorAmountState(category.assignedCents, allowsNegative = true)
+    }
+    var enteredAmount by remember(category, moveMode) {
+        mutableStateOf(if (moveMode) 0L else category.assignedCents)
+    }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
         Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 BudgetEntryAction(Icons.Outlined.Bolt, "Auto-Assign", Modifier.weight(1f), onAutoAssign)
-                BudgetEntryAction(Icons.Outlined.SwapHoriz, "Move Money", Modifier.weight(1f), onMoveMoney)
+                BudgetEntryAction(
+                    Icons.Outlined.SwapHoriz,
+                    "Move Money",
+                    Modifier.weight(1f),
+                    onClick = { moveMode = true },
+                    selected = moveMode,
+                )
                 BudgetEntryAction(Icons.Outlined.MoreHoriz, "Details", Modifier.weight(1f), onDetails)
             }
-            InlineCalculatorAmount("Budgeted", enteredAmount, Modifier.padding(horizontal = 20.dp))
+            AnimatedVisibility(
+                visible = moveMode,
+                enter = slideInVertically(tween(220)) { it / 2 } + fadeIn(tween(160)),
+                exit = slideOutVertically(tween(160)) { it / 2 } + fadeOut(tween(100)),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    MoveEndpointSelector(
+                        label = "From",
+                        selected = from,
+                        options = options.filterNot { it.group == to.group && it.category == to.category },
+                        hideDecimalPlaces = hideDecimalPlaces,
+                        onSelect = { from = it },
+                    )
+                    IconButton(
+                        onClick = { val oldFrom = from; from = to; to = oldFrom },
+                        modifier = Modifier.align(Alignment.CenterHorizontally).height(30.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.SwapHoriz,
+                            contentDescription = "Swap source and destination",
+                            modifier = Modifier.height(20.dp),
+                        )
+                    }
+                    MoveEndpointSelector(
+                        label = "To",
+                        selected = to,
+                        options = options.filterNot { it.group == from.group && it.category == from.category },
+                        hideDecimalPlaces = hideDecimalPlaces,
+                        onSelect = { to = it },
+                    )
+                    Text(
+                        "Available to move: ${formatMoneyCents(from.balanceCents.coerceAtLeast(0L), hideDecimalPlaces)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                    )
+                }
+            }
+            InlineCalculatorAmount(
+                if (moveMode) "Amount" else "Budgeted",
+                enteredAmount,
+                Modifier.padding(horizontal = 20.dp),
+            )
             CompactCalculatorPad(
                 calculator = calculator,
-                allowSign = true,
+                conventionalAmountEntry = moveMode,
+                allowSign = !moveMode,
+                moveMoneyMode = moveMode,
                 showDisplay = false,
                 onValueChange = { enteredAmount = it },
-                onDone = { onSave(calculator.finish()) },
+                canFinish = { amount ->
+                    !moveMode || (amount > 0L && amount <= from.balanceCents.coerceAtLeast(0L) &&
+                        (from.group != to.group || from.category != to.category))
+                },
+                onDone = {
+                    if (moveMode) {
+                        calculator.finish().takeIf { it > 0L }?.let { amount ->
+                            onMove(from.group, from.category, to.group, to.category, amount)
+                        }
+                    } else {
+                        onSave(calculator.finish())
+                    }
+                },
             )
         }
     }
 }
 
 @Composable
-private fun BudgetEntryAction(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+private fun BudgetEntryAction(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier,
+    onClick: () -> Unit,
+    selected: Boolean = false,
+) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(onClick = onClick, color = MaterialTheme.colorScheme.surfaceContainer,
+        Surface(onClick = onClick, color = if (selected) MaterialTheme.colorScheme.secondaryContainer
+            else MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            Icon(icon, contentDescription = null, tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 11.dp))
         }
         Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1,
@@ -1287,104 +1397,6 @@ private data class MoveEndpoint(
 }
 
 @Composable
-private fun MoveBudgetScreen(
-    modifier: Modifier,
-    sourceGroup: BudgetGroup,
-    source: BudgetCategory,
-    groups: List<BudgetGroup>,
-    toBudgetCents: Long,
-    hideDecimalPlaces: Boolean,
-    onDismiss: () -> Unit,
-    onSave: (String?, String?, String?, String?, Long) -> Unit,
-) {
-    val options = remember(groups, toBudgetCents) {
-        listOf(MoveEndpoint(null, null, toBudgetCents)) + groups.filterNot { it.isIncome }.flatMap { group ->
-            group.categories.filterNot { it.hidden }.map { category ->
-                MoveEndpoint(group.name, category.name, category.balanceCents)
-            }
-        }
-    }
-    val anchor = remember(sourceGroup, source) {
-        MoveEndpoint(sourceGroup.name, source.name, source.balanceCents)
-    }
-    var from by remember(anchor) { mutableStateOf(if (source.balanceCents < 0) options.first() else anchor) }
-    var to by remember(anchor) { mutableStateOf(if (source.balanceCents < 0) anchor else options.first()) }
-    val calculator = remember(anchor) {
-        CalculatorAmountState(0L, allowsNegative = true, conventionalAmountEntry = true)
-    }
-    var enteredAmount by remember(anchor) { mutableStateOf(0L) }
-    BackHandler(onBack = onDismiss)
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Close Move Money")
-                }
-                Text(
-                    "Move Money",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.width(48.dp))
-            }
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                MoveEndpointSelector(
-                    label = "From",
-                    selected = from,
-                    options = options.filterNot { it.group == to.group && it.category == to.category },
-                    hideDecimalPlaces = hideDecimalPlaces,
-                    onSelect = { from = it },
-                )
-                IconButton(
-                    onClick = { val previousFrom = from; from = to; to = previousFrom },
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                ) {
-                    Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap source and destination")
-                }
-                MoveEndpointSelector(
-                    label = "To",
-                    selected = to,
-                    options = options.filterNot { it.group == from.group && it.category == from.category },
-                    hideDecimalPlaces = hideDecimalPlaces,
-                    onSelect = { to = it },
-                )
-                Text(
-                    "Available to move: ${formatMoneyCents(from.balanceCents.coerceAtLeast(0L), hideDecimalPlaces)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            InlineCalculatorAmount("Amount", enteredAmount, Modifier.padding(horizontal = 16.dp))
-            CompactCalculatorPad(
-                calculator = calculator,
-                moveMoneyMode = true,
-                showDisplay = false,
-                onValueChange = { enteredAmount = it },
-                canFinish = { amount ->
-                    amount > 0L && amount <= from.balanceCents.coerceAtLeast(0L) &&
-                        (from.group != to.group || from.category != to.category)
-                },
-                onDone = {
-                    calculator.finish().takeIf { it > 0L }?.let { amount ->
-                        onSave(from.group, from.category, to.group, to.category, amount)
-                    }
-                },
-            )
-        }
-    }
-}
-
-@Composable
 private fun MoveEndpointSelector(
     label: String,
     selected: MoveEndpoint,
@@ -1397,11 +1409,11 @@ private fun MoveEndpointSelector(
         Surface(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
