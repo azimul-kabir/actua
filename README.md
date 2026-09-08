@@ -29,7 +29,7 @@ by either the Actuali project or the Actual Budget team.
 - Offline local budget storage and encrypted CRDT synchronization
 - Automatic, foreground, post-mutation, and manual sync
 - Budget table and availability-focused Plan views, category groups, Source of Fund/Income, monthly amounts, progress bars, and hide/show management
-- Account lists, working/cleared/uncleared/reconciled balances, notes, monthly summaries, and full transaction history
+- Account lists, current/cleared/uncleared/reconciled balances, notes, monthly summaries, and full transaction history
 - Expense, income, transfer, editable split, edit, clear, and delete transaction flows
 - Full-screen searchable account, payee, and category selection with account balances, transfer grouping, and new-payee creation
 - Ready to Assign/To Budget assignment plus category-to-category and category-to-budget money movement
@@ -67,7 +67,7 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-alpha.11](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.11). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-alpha.12](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.12). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
 
 Actua uses the application ID `com.azimulkabir.actua`. Android therefore treats
 it as a separate app from the earlier Actuali for Android alpha builds. Confirm
