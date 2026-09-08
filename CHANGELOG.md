@@ -6,6 +6,19 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [0.1.0-alpha.14] - 2026-09-08
+
+Fourteenth public testing release.
+
+### Changed
+
+- Signed GitHub release APKs with one persistent release key so alpha.14 and later builds can upgrade each other in place
+- Added release-signature verification before publishing an APK
+
+### Important
+
+- Earlier releases used temporary GitHub runner debug keys. Back up and synchronize Actua, uninstall the older build once, then install alpha.14. Future persistently signed releases will install as normal updates.
+
 ## [0.1.0-alpha.13] - 2026-09-08
 
 Thirteenth public testing release.

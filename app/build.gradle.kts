@@ -3,6 +3,11 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val releaseKeystorePath = providers.environmentVariable("ACTUA_KEYSTORE_PATH").orNull
+val releaseStorePassword = providers.environmentVariable("ACTUA_KEYSTORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("ACTUA_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("ACTUA_KEY_PASSWORD").orNull
+
 android {
     namespace = "com.azimulkabir.actua"
     compileSdk {
@@ -13,10 +18,19 @@ android {
         applicationId = "com.azimulkabir.actua"
         minSdk = 28
         targetSdk = 37
-        versionCode = 13
-        versionName = "0.1.0-alpha.13"
+        versionCode = 14
+        versionName = "0.1.0-alpha.14"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            releaseKeystorePath?.let { storeFile = file(it) }
+            storePassword = releaseStorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPassword
+        }
     }
 
     buildTypes {
@@ -27,6 +41,7 @@ android {
             matchingFallbacks += listOf("debug")
         }
         release {
+            signingConfig = signingConfigs.getByName("release")
             optimization {
                 enable = false
             }

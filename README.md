@@ -68,13 +68,18 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-alpha.13](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.13). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-alpha.14](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.14). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
 
 Actua uses the application ID `com.azimulkabir.actua`. Android therefore treats
 it as a separate app from the earlier Actuali for Android alpha builds. Confirm
 that local changes are synchronized and backed up before removing an older build.
 
-Testing builds are currently debug-signed and intended only for trusted testers. Android updates require exactly the same signing key. If an APK reports “App not installed,” synchronize and back up Actua, uninstall the existing build, and install the new APK cleanly. A persistent release key is required before seamless in-place APK updates can be guaranteed.
+Starting with the first persistently signed release, later GitHub release APKs
+can upgrade it in place. Builds published before that transition used ephemeral
+GitHub runner debug keys and cannot be upgraded by the new release key. Before
+installing the first persistently signed APK, synchronize and back up Actua,
+uninstall the older build once, and install the new APK. Keep that installation
+for normal in-place upgrades afterward.
 
 ## Build and test
 

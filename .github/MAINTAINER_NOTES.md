@@ -17,10 +17,37 @@ After a successful GitHub run, select the build-test-lint check in the main
 branch ruleset if it should be required for merging.
 
 Release metadata changes on `main` run the Android Release workflow. It
-builds and validates the debug-signed testing APK, creates the version tag and
+builds and validates the persistently signed release APK, creates the version tag and
 GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
 description, and attaches the versioned APK. Update `versionCode`,
 `versionName`, and `CHANGELOG.md` together for each release.
+
+The release workflow requires one long-lived signing key. Generate and back up
+the keystore outside the repository, then configure these GitHub Actions secrets:
+
+- `ACTUA_RELEASE_KEYSTORE_BASE64`: the base64-encoded keystore file
+- `ACTUA_RELEASE_STORE_PASSWORD`: the keystore password
+- `ACTUA_RELEASE_KEY_ALIAS`: the key alias
+- `ACTUA_RELEASE_KEY_PASSWORD`: the key password
+
+Never commit the keystore or its passwords. Losing them means future APKs cannot
+upgrade installations signed with that key. Rotating the key also requires users
+to uninstall the existing app unless distribution has moved to Google Play with
+an approved signing-key upgrade.
+
+On macOS, create the key once and keep the file in a private backed-up location:
+
+```sh
+mkdir -p "$HOME/Documents/Actua-Signing"
+keytool -genkeypair -v \
+  -keystore "$HOME/Documents/Actua-Signing/actua-release.jks" \
+  -alias actua -keyalg RSA -keysize 4096 -validity 10000
+base64 < "$HOME/Documents/Actua-Signing/actua-release.jks" | tr -d '\n' | pbcopy
+```
+
+Paste the clipboard value into `ACTUA_RELEASE_KEYSTORE_BASE64`. Save the two
+passwords and alias in a password manager, add the other three secrets, and keep
+an encrypted backup of the keystore somewhere other than the Mac.
 
 ## Recommended: Codex GitHub review with ChatGPT Plus
 

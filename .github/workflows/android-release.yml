@@ -31,8 +31,30 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           android --sdk="$ANDROID_SDK_ROOT" sdk install --canary platforms/android-37
       - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare persistent release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ACTUA_RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ACTUA_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/actua-release.jks"
+          chmod 600 "$RUNNER_TEMP/actua-release.jks"
       - name: Build, test and lint
-        run: ./gradlew --no-daemon assembleDebug testInstrumentedUnitTest lintDebug
+        env:
+          ACTUA_KEYSTORE_PATH: ${{ runner.temp }}/actua-release.jks
+          ACTUA_KEYSTORE_PASSWORD: ${{ secrets.ACTUA_RELEASE_STORE_PASSWORD }}
+          ACTUA_KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
+          ACTUA_KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleRelease testInstrumentedUnitTest lintDebug
+      - name: Verify release signature
+        run: |
+          BUILD_TOOLS_VERSION="$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)"
+          "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
       - name: Read release version
         id: version
         run: echo "name=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
@@ -47,7 +69,7 @@ jobs:
           ' CHANGELOG.md > release-notes.md
           test -s release-notes.md
       - name: Prepare testing APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk "Actua-v${{ steps.version.outputs.name }}.apk"
+        run: cp app/build/outputs/apk/release/app-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
       - name: Publish GitHub prerelease
         uses: softprops/action-gh-release@v2
         with:
