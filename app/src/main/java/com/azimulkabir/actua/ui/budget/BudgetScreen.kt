@@ -262,6 +262,7 @@ fun BudgetScreen(
                         PlanBudgetGroupHeader(
                             group = group.copy(categories = visibleCategories),
                             collapsed = collapsed,
+                            showTotals = showGroupTotals,
                             hideDecimalPlaces = hideDecimalPlaces,
                             onClick = onGroupClick,
                             onLongClick = { selectedGroup = group },
@@ -298,6 +299,8 @@ fun BudgetScreen(
                         } else if (budgetView == "Plan") {
                             PlanBudgetCategoryRow(
                                 category = category,
+                                showSpendingDetails = showSpent,
+                                showProgressBar = showProgressBars,
                                 showTopDivider = index > 0,
                                 hideDecimalPlaces = hideDecimalPlaces,
                                 onClick = { editingBudget = group to category },
@@ -544,7 +547,11 @@ private fun BudgetToolbar(
                 }
                 HorizontalDivider()
                 ToggleMenuItem("Show overview", showOverview, onShowOverviewChange)
-                ToggleMenuItem("Show spent column", showSpent, onShowSpentChange)
+                ToggleMenuItem(
+                    if (budgetView == "Plan") "Show spending details" else "Show spent column",
+                    showSpent,
+                    onShowSpentChange,
+                )
                 ToggleMenuItem("Show progress bars", showProgressBars, onShowProgressBarsChange)
                 ToggleMenuItem("Show group totals", showGroupTotals, onShowGroupTotalsChange)
                 HorizontalDivider()
@@ -689,6 +696,7 @@ private fun PlanBudgetOverview(
 private fun PlanBudgetGroupHeader(
     group: BudgetGroup,
     collapsed: Boolean,
+    showTotals: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -720,16 +728,18 @@ private fun PlanBudgetGroupHeader(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f).padding(start = 4.dp),
             )
-            if (collapsed) {
-                AmountColumn("Budgeted", assigned, Modifier.widthIn(min = 92.dp), hideDecimalPlaces)
+            if (showTotals) {
+                if (collapsed) {
+                    AmountColumn("Budgeted", assigned, Modifier.widthIn(min = 92.dp), hideDecimalPlaces)
+                }
+                AmountColumn(
+                    "Balance",
+                    available,
+                    Modifier.widthIn(min = 92.dp),
+                    hideDecimalPlaces,
+                    balance = true,
+                )
             }
-            AmountColumn(
-                "Balance",
-                available,
-                Modifier.widthIn(min = 92.dp),
-                hideDecimalPlaces,
-                balance = true,
-            )
         }
     }
 }
@@ -738,6 +748,8 @@ private fun PlanBudgetGroupHeader(
 @Composable
 private fun PlanBudgetCategoryRow(
     category: BudgetCategory,
+    showSpendingDetails: Boolean,
+    showProgressBar: Boolean,
     showTopDivider: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
@@ -769,34 +781,41 @@ private fun PlanBudgetCategoryRow(
                 verticalPadding = 3.dp,
             )
         }
-        val fraction = if (category.assignedCents <= 0L) 0f else
-            (category.spentCents.toFloat() / category.assignedCents).coerceIn(0f, 1f)
-        LinearProgressIndicator(
-            progress = { fraction },
-            modifier = Modifier.fillMaxWidth().padding(top = 9.dp).height(5.dp)
-                .clip(RoundedCornerShape(100)),
-            color = if (category.balanceCents < 0) MaterialTheme.colorScheme.error
-            else MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-        )
-        Row(modifier = Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Budgeted ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 4.dp),
+        if (showProgressBar) {
+            val fraction = if (category.assignedCents <= 0L) 0f else
+                (category.spentCents.toFloat() / category.assignedCents).coerceIn(0f, 1f)
+            LinearProgressIndicator(
+                progress = { fraction },
+                modifier = Modifier.fillMaxWidth().padding(top = 9.dp).height(5.dp)
+                    .clip(RoundedCornerShape(100)),
+                color = if (category.balanceCents < 0) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             )
-            Text(
-                " · ",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                "Spent ${formatMoneyCents(category.spentCents, hideDecimalPlaces)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 4.dp),
-            )
+        }
+        if (showSpendingDetails) {
+            Row(
+                modifier = Modifier.padding(top = if (showProgressBar) 2.dp else 1.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Budgeted ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+                Text(
+                    " · ",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Spent ${formatMoneyCents(category.spentCents, hideDecimalPlaces)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+            }
         }
     }
 }
