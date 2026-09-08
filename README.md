@@ -46,6 +46,7 @@ by either the Actuali project or the Actual Budget team.
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
 - Account-specific transaction entry, collapsible account summaries and notes, and configurable bottom navigation labels
 - Material You motion for tab changes, detail navigation, searches, and expandable sections
+- Android-style per-tab navigation state, root reselect behavior, scroll-to-top actions, and contextual Back restoration
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for the implementation boundary and detailed port status.
 
@@ -67,7 +68,7 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-alpha.12](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.12). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-alpha.13](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.13). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
 
 Actua uses the application ID `com.azimulkabir.actua`. Android therefore treats
 it as a separate app from the earlier Actuali for Android alpha builds. Confirm

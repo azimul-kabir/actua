@@ -6,6 +6,25 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [0.1.0-alpha.13] - 2026-09-08
+
+Thirteenth public testing release.
+
+### Added
+
+- Added predictable Android-style bottom navigation with per-tab state restoration and reselect-to-top behavior
+- Added category-aware Back navigation from View all and Transactions this month to the originating Category Details page
+
+### Changed
+
+- Attached the transaction Save action directly above the amount and split keypads without relying on a fixed floating offset
+- Matched the Save action color to the main Transaction action and hid bottom navigation during Add/Edit Transaction
+
+### Fixed
+
+- Kept Plan expense-category and account separators above opaque row backgrounds so they remain visible
+- Removed excessive spacing between the transaction Save action and the amount keypad
+
 ## [0.1.0-alpha.12] - 2026-09-08
 
 Twelfth public testing release.
@@ -263,3 +282,4 @@ Initial public testing release.
 [0.1.0-alpha.11]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.11
 
 [0.1.0-alpha.12]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.12
+[0.1.0-alpha.13]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.13
