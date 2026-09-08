@@ -121,6 +121,7 @@ fun AppNavigation(
     var editorReturnsToCategory by rememberSaveable { mutableStateOf(false) }
     var activeBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var reopenBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
+    var transactionsReturnCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
@@ -222,6 +223,11 @@ fun AppNavigation(
                 editingTransaction = null
             }
             detail != DetailDestination.Main -> {
+                if (detail == DetailDestination.Transactions && transactionsReturnCategory != null) {
+                    reopenBudgetCategory = transactionsReturnCategory
+                    transactionsReturnCategory = null
+                    destination = MainDestination.Budget
+                }
                 detail = DetailDestination.Main
                 editingTransaction = null
             }
@@ -270,6 +276,7 @@ fun AppNavigation(
                             detail = DetailDestination.Main
                             activeBudgetCategory = null
                             reopenBudgetCategory = null
+                            transactionsReturnCategory = null
                             transactionFabExpanded = true
                         },
                         icon = { Icon(item.icon, contentDescription = item.label) },
@@ -303,7 +310,14 @@ fun AppNavigation(
                 accountName = transactionAccount,
                 categoryName = transactionCategory,
                 month = transactionMonth,
-                onBack = { detail = DetailDestination.Main },
+                onBack = {
+                    transactionsReturnCategory?.let {
+                        reopenBudgetCategory = it
+                        transactionsReturnCategory = null
+                        destination = MainDestination.Budget
+                    }
+                    detail = DetailDestination.Main
+                },
                 onEdit = {
                     editingTransaction = it
                     editorReturnsToTransactions = true
@@ -542,8 +556,9 @@ fun AppNavigation(
                     onRenameGroup = { group, name ->
                         mutate("Renaming group") { repository.renameCategoryGroup(group, name) }
                     },
-                    onShowCategoryTransactions = { category, thisMonth ->
+                    onShowCategoryTransactions = { category, thisMonth, returnToDetails ->
                         activeBudgetCategory = null
+                        transactionsReturnCategory = category.takeIf { returnToDetails }
                         transactionAccount = null
                         transactionCategory = category
                         transactionMonth = if (thisMonth) budgetMonth else null
