@@ -792,17 +792,18 @@ private fun PlanBudgetCategoryRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    if (showTopDivider) HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        thickness = 1.dp,
-        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.32f),
-    )
-    Column(
-        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
-            .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
-            .padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+        if (showTopDivider) HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.32f),
+        )
+        Column(
+            modifier = Modifier.fillMaxWidth()
+                .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
+                .padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (category.hidden) "${category.name} · Hidden" else category.name,
                 style = MaterialTheme.typography.bodyLarge,
@@ -831,9 +832,9 @@ private fun PlanBudgetCategoryRow(
                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             )
         }
-        if (showSpendingDetails) {
-            Row(
-                modifier = Modifier.padding(top = if (showProgressBar) 2.dp else 1.dp),
+            if (showSpendingDetails) {
+                Row(
+                    modifier = Modifier.padding(top = if (showProgressBar) 2.dp else 1.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -853,6 +854,7 @@ private fun PlanBudgetCategoryRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
+                }
             }
         }
     }
