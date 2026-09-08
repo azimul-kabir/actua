@@ -43,6 +43,9 @@ class ActualTransactionWriter(
             final = result.transaction
             result.pendingPayeeName?.let { final = final.copy(payeeId = resolveOrCreatePayee(it).id) }
         }
+        if (database.fetchAccounts().any { it.id == final.accountId && it.offBudget }) {
+            final = final.copy(categoryId = null)
+        }
         validateBase(final)
         require(!final.isParent && final.parentId == null) { "Use createSplit for split rows" }
         database.insertTransactions(listOf(final), fieldsForInsert(final))

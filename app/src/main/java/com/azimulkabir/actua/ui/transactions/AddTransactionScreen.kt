@@ -85,6 +85,7 @@ fun AddTransactionScreen(
     onDelete: (Transaction) -> Unit = {},
     modifier: Modifier = Modifier,
     accountOptions: List<String> = listOf("Everyday account", "Cash", "Credit card"),
+    offBudgetAccountOptions: Set<String> = emptySet(),
     categoryOptions: List<String> = listOf("Groceries", "Dining", "Transport", "Rent"),
     payeeOptions: List<String> = emptyList(),
     accountBalanceLabels: Map<String, String> = emptyMap(),
@@ -126,10 +127,17 @@ fun AddTransactionScreen(
     var splitLines by remember(editing) { mutableStateOf(editing?.splits.orEmpty()) }
     var splitCalculatorIndex by remember { mutableStateOf<Int?>(null) }
     var splitAmountExpression by remember(editing) { mutableStateOf<String?>(null) }
+    val isOffBudget = account in offBudgetAccountOptions
+    LaunchedEffect(isOffBudget) {
+        if (isOffBudget) {
+            category = ""
+            splitLines = splitLines.map { it.copy(category = "") }
+        }
+    }
     val isSplit = splitLines.isNotEmpty()
     val splitTotal = splitLines.sumOf { if (it.isOpposite) -it.amountCents else it.amountCents }
     val splitIsValid = !isSplit || (splitLines.size >= 2 && splitLines.all {
-        it.category.isNotBlank() && it.amountCents > 0
+        (isOffBudget || it.category.isNotBlank()) && it.amountCents > 0
     } && splitTotal == amountCents)
     val canSave = amountCents > 0 && account.isNotBlank() &&
         (transactionType != Type.TRANSFER.displayName || transferAccount.isNotBlank()) && splitIsValid
@@ -149,7 +157,8 @@ fun AddTransactionScreen(
                     id = editing?.id.orEmpty(),
                     date = storageDate(date),
                     payee = payee,
-                    category = if (transactionType == "Transfer") "" else category.ifBlank { "Uncategorized" },
+                    category = if (transactionType == "Transfer" || isOffBudget) ""
+                    else category.ifBlank { "Uncategorized" },
                     account = account,
                     amount = (amountCents / 100L).toInt() * if (transactionType == "Income") 1 else -1,
                     cleared = cleared,
@@ -157,7 +166,7 @@ fun AddTransactionScreen(
                     type = Type.entries.first { it.displayName == transactionType },
                     transferAccount = transferAccount.takeIf { transactionType == "Transfer" },
                     notes = notes,
-                    splits = splitLines,
+                    splits = if (isOffBudget) splitLines.map { it.copy(category = "") } else splitLines,
                 ),
             )
         }
@@ -248,7 +257,7 @@ fun AddTransactionScreen(
                             return@PickerTextField
                         }
                         payee = value
-                        onResolveRuleCategory(
+                        if (!isOffBudget) onResolveRuleCategory(
                             Transaction(
                                 id = "",
                                 account = account,
@@ -265,7 +274,7 @@ fun AddTransactionScreen(
                     }, allowCustom = true,
                 )
             }
-            if (transactionType != Type.TRANSFER.displayName && !isSplit) {
+            if (transactionType != Type.TRANSFER.displayName && !isSplit && !isOffBudget) {
                 PickerTextField(
                     label = "Category", value = category, options = categoryOptions,
                     onValueChange = { category = it },
@@ -277,6 +286,10 @@ fun AddTransactionScreen(
                 supportingValues = accountBalanceLabels,
                 onValueChange = {
                     account = it
+                    if (it in offBudgetAccountOptions) {
+                        category = ""
+                        splitLines = splitLines.map { line -> line.copy(category = "") }
+                    }
                     if (transferAccount == it) transferAccount = ""
                 },
             )
@@ -298,7 +311,7 @@ fun AddTransactionScreen(
                         },
                         modifier = Modifier.fillMaxWidth().height(54.dp),
                         shape = RoundedCornerShape(16.dp),
-                    ) { Text("Split into multiple categories") }
+                    ) { Text(if (isOffBudget) "Split transaction" else "Split into multiple categories") }
                 } else {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -309,20 +322,20 @@ fun AddTransactionScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                "Split categories",
+                                if (isOffBudget) "Split transaction" else "Split categories",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.weight(1f),
                             )
                             TextButton(onClick = {
-                                category = splitLines.firstOrNull()?.category.orEmpty()
+                                category = if (isOffBudget) "" else splitLines.firstOrNull()?.category.orEmpty()
                                 splitLines = emptyList()
                             }) { Text("Remove split") }
                         }
                         splitLines.forEachIndexed { index, line ->
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text("Split ${index + 1}", style = MaterialTheme.typography.labelLarge)
-                                PickerTextField(
+                                if (!isOffBudget) PickerTextField(
                                     label = "Category",
                                     value = line.category,
                                     options = categoryOptions,

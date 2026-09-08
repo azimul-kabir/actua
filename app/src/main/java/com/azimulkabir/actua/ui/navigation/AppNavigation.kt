@@ -458,6 +458,8 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
                     accountOptions = accounts.filter { !it.closed }.map { it.name },
+                    offBudgetAccountOptions = accounts.filter { !it.closed && it.offBudget }
+                        .mapTo(mutableSetOf()) { it.name },
                     accountBalanceLabels = if (hideBalances) emptyMap() else accounts
                         .filterNot { it.closed }
                         .associate { it.name to formatMoneyCents(it.balanceCents, hideDecimalPlaces) },

@@ -96,6 +96,8 @@ Android backlog items and will never be ported.
   payees, notes, imported descriptions and categories; stable database paging
 - Add/edit split transaction UI with per-line category, amount, direction, payee,
   notes, remaining allocation, and Actual-compatible child-row persistence
+- Off-budget transaction category enforcement for standard and split create/edit
+  flows, including clearing stale categories when an account changes
 
 ## Remaining version 1 work
 

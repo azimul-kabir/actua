@@ -64,6 +64,10 @@ class ActualTransactionFormService(
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) {
     fun plan(form: ActualTransactionForm): ActualTransactionFormPlan {
+        return planNormalized(enforceOffBudgetCategoryPolicy(form, offBudgetAccountIds()))
+    }
+
+    private fun planNormalized(form: ActualTransactionForm): ActualTransactionFormPlan {
         val unsigned = cents(form.amount) ?: throw ActualTransactionFormException.InvalidAmount
         if (unsigned <= 0) throw ActualTransactionFormException.InvalidAmount
         return when (form.type) {
@@ -79,48 +83,53 @@ class ActualTransactionFormService(
     /** Returns the newly-created ordinary transaction id; edits/transfers/splits return null. */
     fun save(form: ActualTransactionForm, original: ActualTransaction? = null): String? {
         require(form.accountId.isNotBlank())
-        val notes = form.notes.takeIf(String::isNotEmpty)
-        return when (val plan = plan(form)) {
+        val normalizedForm = enforceOffBudgetCategoryPolicy(form, offBudgetAccountIds())
+        val notes = normalizedForm.notes.takeIf(String::isNotEmpty)
+        return when (val plan = planNormalized(normalizedForm)) {
             is ActualTransactionFormPlan.Transfer -> {
-                if (original == null) createTransfer(form, plan, notes)
-                else if (original.transferId == null) convertToTransfer(original, form, plan, notes)
-                else updateTransfer(original, form, plan, notes)
+                if (original == null) createTransfer(normalizedForm, plan, notes)
+                else if (original.transferId == null) convertToTransfer(original, normalizedForm, plan, notes)
+                else updateTransfer(original, normalizedForm, plan, notes)
                 null
             }
             is ActualTransactionFormPlan.Split -> {
-                if (original == null) createSplit(form, plan, notes)
-                else if (original.isParent) updateSplit(original, form, plan, notes)
-                else convertToSplit(original, form, plan, notes)
+                if (original == null) createSplit(normalizedForm, plan, notes)
+                else if (original.isParent) updateSplit(original, normalizedForm, plan, notes)
+                else convertToSplit(original, normalizedForm, plan, notes)
                 null
             }
             is ActualTransactionFormPlan.Standard -> {
-                if (original?.isParent == true && form.collapseSplit) {
-                    collapseSplit(original, form, plan.amountCents, notes)
+                if (original?.isParent == true && normalizedForm.collapseSplit) {
+                    collapseSplit(original, normalizedForm, plan.amountCents, notes)
                     null
                 } else if (original != null) {
-                    val payee = resolvePayee(form.payeeName, original)
+                    val payee = resolvePayee(normalizedForm.payeeName, original)
                     writer.mutate(updates = listOf(original to original.copy(
-                        accountId = form.accountId,
-                        date = form.date,
+                        accountId = normalizedForm.accountId,
+                        date = normalizedForm.date,
                         amountCents = if (original.isParent) original.amountCents else plan.amountCents,
                         payeeId = payee?.id,
-                        categoryId = if (original.isParent) null else form.categoryId,
+                        categoryId = if (original.isParent) null else normalizedForm.categoryId,
                         notes = notes,
-                        cleared = form.cleared,
+                        cleared = normalizedForm.cleared,
                     )))
                     null
                 } else {
-                    val payee = resolvePayee(form.payeeName, null)
+                    val payee = resolvePayee(normalizedForm.payeeName, null)
                     val id = idFactory()
                     writer.createTransaction(baseTransaction(
-                        id, form.accountId, form.date, plan.amountCents, payee?.id,
-                        form.categoryId, notes, form.cleared, importedPayee = payee?.name,
+                        id, normalizedForm.accountId, normalizedForm.date, plan.amountCents, payee?.id,
+                        normalizedForm.categoryId, notes, normalizedForm.cleared, importedPayee = payee?.name,
                     ), applyRules = true)
                     id
                 }
             }
         }
     }
+
+    private fun offBudgetAccountIds(): Set<String> = database.fetchAccounts()
+        .filter { it.offBudget }
+        .mapTo(mutableSetOf()) { it.id }
 
     private fun standardOrSplit(form: ActualTransactionForm, amount: Long, sign: Int): ActualTransactionFormPlan {
         if (form.splits.isEmpty()) return ActualTransactionFormPlan.Standard(amount)
@@ -316,6 +325,18 @@ class ActualTransactionFormService(
     )
 
     companion object {
+        internal fun enforceOffBudgetCategoryPolicy(
+            form: ActualTransactionForm,
+            offBudgetAccountIds: Set<String>,
+        ): ActualTransactionForm = if (
+            form.type != ActualTransactionType.TRANSFER && form.accountId in offBudgetAccountIds
+        ) {
+            form.copy(
+                categoryId = null,
+                splits = form.splits.map { it.copy(categoryId = null) },
+            )
+        } else form
+
         fun cents(text: String): Long? = runCatching {
             BigDecimal(text.trim()).multiply(BigDecimal(100)).setScale(0, RoundingMode.HALF_UP).longValueExact()
         }.getOrNull()

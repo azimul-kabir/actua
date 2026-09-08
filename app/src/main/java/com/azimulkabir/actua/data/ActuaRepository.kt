@@ -307,9 +307,10 @@ class ActuaRepository(context: Context) {
         actualDatabase?.let { db ->
             val account = db.fetchAccounts().firstOrNull { it.name == transaction.account && !it.closed }
                 ?: error("Select an account")
+            val categoriesAllowed = !account.offBudget && transaction.type != Type.TRANSFER
             val categories = db.fetchCategoryGroups().flatMap { it.categories }
             val category = categories.firstOrNull { it.name == transaction.category && !it.hidden }
-            if (transaction.splits.isEmpty() && transaction.category.isNotBlank() &&
+            if (categoriesAllowed && transaction.splits.isEmpty() && transaction.category.isNotBlank() &&
                 transaction.category != "Uncategorized" && category == null) {
                 error("Select a category from the list")
             }
@@ -334,12 +335,13 @@ class ActuaRepository(context: Context) {
                     date = parseDate(transaction.date),
                     cleared = transaction.cleared,
                     splits = transaction.splits.map { line ->
-                        val lineCategory = categories
-                            .firstOrNull { it.name == line.category }
-                            ?: error("Select a category for every split")
+                        val lineCategory = if (categoriesAllowed) {
+                            categories.firstOrNull { it.name == line.category }
+                                ?: error("Select a category for every split")
+                        } else null
                         ActualSplitLineForm(
                             childId = line.childId,
-                            categoryId = lineCategory.id,
+                            categoryId = lineCategory?.id,
                             amount = com.azimulkabir.actua.ui.components.centsToInput(line.amountCents),
                             isOpposite = line.isOpposite,
                             notes = line.notes,
@@ -359,6 +361,7 @@ class ActuaRepository(context: Context) {
         val db = actualDatabase ?: return null
         if (transaction.type == Type.TRANSFER) return null
         val account = db.fetchAccounts().firstOrNull { it.name == transaction.account && !it.closed } ?: return null
+        if (account.offBudget) return null
         val payee = db.fetchPayees().firstOrNull {
             it.transferAccountId == null && it.name.equals(transaction.payee.trim(), ignoreCase = true)
         }
