@@ -51,13 +51,13 @@ fun CalculatorAmountSheet(
         onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true),
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 3.dp,
-        ) {
-            Column {
-                topContent?.invoke()
+        Column(modifier = Modifier.fillMaxWidth()) {
+            topContent?.invoke()
+            Surface(
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 3.dp,
+            ) {
                 CompactCalculatorPad(
                     calculator = calculator,
                     conventionalAmountEntry = conventionalAmountEntry,

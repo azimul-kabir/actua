@@ -443,7 +443,7 @@ fun AddTransactionScreen(
         if (!calculatorOpen) TransactionSaveButton(
             canSave = canSave,
             onClick = saveTransaction,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+            modifier = Modifier.align(Alignment.BottomEnd).imePadding().padding(20.dp),
         )
     }
     if (showCalculator) CalculatorAmountSheet(
@@ -457,7 +457,7 @@ fun AddTransactionScreen(
         onApply = { amountCents = it },
         onExpressionChange = { amountExpression = it },
         topContent = {
-            Box(Modifier.fillMaxWidth().padding(top = 6.dp, end = 16.dp)) {
+            Box(Modifier.fillMaxWidth().padding(top = 4.dp, end = 16.dp, bottom = 4.dp)) {
                 TransactionSaveButton(
                     canSave = canSave,
                     onClick = saveTransaction,
@@ -481,7 +481,7 @@ fun AddTransactionScreen(
             },
             onExpressionChange = { splitAmountExpression = it },
             topContent = {
-                Box(Modifier.fillMaxWidth().padding(top = 6.dp, end = 16.dp)) {
+                Box(Modifier.fillMaxWidth().padding(top = 4.dp, end = 16.dp, bottom = 4.dp)) {
                     TransactionSaveButton(
                         canSave = canSave,
                         onClick = saveTransaction,
