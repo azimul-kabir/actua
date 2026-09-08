@@ -23,6 +23,15 @@ data class CreditCardStatus(
     val cycle: CreditCardCycle get() = CreditCardCycle(config.statementDay, config.paymentDue)
 }
 
+/** Unpaid cards first by nearest due date, then paid cards, with a stable name tie-break. */
+fun Iterable<CreditCardStatus>.sortedForPaymentPriority(today: DayDate = DayDate.today()) =
+    sortedWith(compareBy<CreditCardStatus>(
+        { if (it.balanceCents < 0) 0 else 1 },
+        { it.cycle.daysUntilDue(today) },
+        { it.accountName.lowercase(Locale.ROOT) },
+        { it.accountId },
+    ))
+
 /** Billing-cycle calculations matching Actuali iOS CreditCardCycle. */
 data class CreditCardCycle(
     val statementDay: Int,

@@ -18,6 +18,7 @@ import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.network.ActualServerClient
+import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 import com.azimulkabir.actua.data.schedules.ActualScheduleWriter
 import com.azimulkabir.actua.data.schedules.SchedulePoster
 import com.azimulkabir.actua.data.security.BudgetEncryptionKeyStore
@@ -71,7 +72,11 @@ class ActualSyncWorker(context: Context, parameters: WorkerParameters) : Corouti
         val status = SyncStatusStore(applicationContext); status.started()
         return try {
             when (val run = ActualSyncRunner.run(applicationContext, inputData.getBoolean(BACKUP_KEY, false))) {
-                is SyncRunResult.Success -> { status.succeeded(run.outcome); Result.success() }
+                is SyncRunResult.Success -> {
+                    status.succeeded(run.outcome)
+                    CreditCardDueNotificationScheduler.refresh(applicationContext)
+                    Result.success()
+                }
                 SyncRunResult.NotConfigured -> { status.stoppedWithoutSync(); Result.success() }
                 SyncRunResult.EncryptionKeyUnavailable -> {
                     status.failed(IllegalStateException("Unlock this encrypted budget before syncing")); Result.failure()

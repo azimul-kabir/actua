@@ -15,6 +15,7 @@ import com.azimulkabir.actua.ui.navigation.AppNavigation
 import com.azimulkabir.actua.ui.theme.ActuaTheme
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 
 class MainActivity : ComponentActivity() {
     private var foregroundGeneration by mutableIntStateOf(0)
@@ -22,6 +23,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ActualSyncScheduler.schedulePeriodic(this)
+        CreditCardDueNotificationScheduler.refresh(this)
         enableEdgeToEdge()
         setContent {
             var appearance by remember { mutableStateOf(DisplayPreferences(this).appearance) }

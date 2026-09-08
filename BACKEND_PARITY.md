@@ -96,6 +96,9 @@ Android backlog items and will never be ported.
 - Credit-card account details with limit, available credit, current billing cycle,
   cycle spending, and calculated payment due date using either a fixed due day or
   a legacy days-after-statement offset
+- Opt-in Android credit-card payment reminders at 7, 5, 3, and 1 days before
+  due, with permission handling, stale-work cancellation, delivery-time balance
+  validation, and unpaid-first stable due-date sorting
 - Database-backed complete-history transaction search, including live split-child
   payees, notes, imported descriptions and categories; stable database paging
 - Add/edit split transaction UI with per-line category, amount, direction, payee,

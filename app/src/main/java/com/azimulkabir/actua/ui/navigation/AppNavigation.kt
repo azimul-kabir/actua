@@ -1,5 +1,10 @@
 package com.azimulkabir.actua.ui.navigation
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
@@ -47,6 +52,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +72,8 @@ import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
+import com.azimulkabir.actua.data.notifications.CreditCardNotificationSettings
 import com.azimulkabir.actua.ui.components.BalanceVisibility
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -101,6 +109,17 @@ fun AppNavigation(
 ) {
     val context = LocalContext.current
     val displayPreferences = remember { DisplayPreferences(context) }
+    val creditCardNotificationSettings = remember { CreditCardNotificationSettings(context) }
+    var creditCardNotificationsEnabled by remember {
+        mutableStateOf(creditCardNotificationSettings.isEnabled)
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        creditCardNotificationSettings.isEnabled = granted
+        creditCardNotificationsEnabled = granted
+        CreditCardDueNotificationScheduler.refresh(context)
+    }
     var repositoryVersion by remember { mutableStateOf(0) }
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
@@ -224,7 +243,10 @@ fun AppNavigation(
         val result = runCatching { withContext(Dispatchers.IO) { ActualSyncRunner.run(context) } }
             .onFailure { errorMessage = it.message ?: "Automatic sync failed." }
             .getOrNull()
-        if (result is SyncRunResult.Success) dataVersion += 1
+        if (result is SyncRunResult.Success) {
+            dataVersion += 1
+            CreditCardDueNotificationScheduler.refresh(context)
+        }
     }
 
     BackHandler(enabled = detail != DetailDestination.Main || destination != MainDestination.Budget) {
@@ -523,6 +545,7 @@ fun AppNavigation(
                 onBudgetInstalled = {
                     repositoryVersion += 1
                     dataVersion += 1
+                    CreditCardDueNotificationScheduler.refresh(context)
                 },
                 modifier = contentModifier,
             )
@@ -532,10 +555,25 @@ fun AppNavigation(
                 hideDecimalPlaces = hideDecimalPlaces,
                 onBack = { detail = DetailDestination.Main },
                 onSave = { accountId, day, paymentDue, limit ->
-                    mutate("Saving credit card") { repository.setCreditCard(accountId, day, paymentDue, limit) }
+                    if (mutate("Saving credit card") { repository.setCreditCard(accountId, day, paymentDue, limit) }) {
+                        CreditCardDueNotificationScheduler.refresh(context)
+                    }
                 },
                 onRemove = { accountId ->
-                    mutate("Removing credit card") { repository.setCreditCard(accountId, null) }
+                    if (mutate("Removing credit card") { repository.setCreditCard(accountId, null) }) {
+                        CreditCardDueNotificationScheduler.refresh(context)
+                    }
+                },
+                notificationsEnabled = creditCardNotificationsEnabled,
+                onNotificationsEnabledChange = { enabled ->
+                    if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        creditCardNotificationSettings.isEnabled = enabled
+                        creditCardNotificationsEnabled = enabled
+                        CreditCardDueNotificationScheduler.refresh(context)
+                    }
                 },
                 modifier = contentModifier,
             )

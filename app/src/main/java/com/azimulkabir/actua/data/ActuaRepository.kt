@@ -26,6 +26,7 @@ import com.azimulkabir.actua.model.CreditCardConfig
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.paymentDue
 import com.azimulkabir.actua.model.CreditCardStatus
+import com.azimulkabir.actua.model.sortedForPaymentPriority
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import org.json.JSONObject
 import com.azimulkabir.actua.data.rules.Rule
@@ -217,7 +218,7 @@ class ActuaRepository(context: Context) {
                 db.fetchAccountSpend(account.id, range.first.yyyymmdd, range.second.yyyymmdd),
                 config.limitCents?.plus(account.balanceCents), account.closed,
             )
-        }.sortedWith(compareBy({ it.cycle.daysUntilDue() }, { it.accountName.lowercase() }))
+        }.sortedForPaymentPriority()
     }
 
     fun setCreditCard(accountId: String, statementDay: Int?,

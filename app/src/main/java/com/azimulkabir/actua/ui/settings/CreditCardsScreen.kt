@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -51,6 +52,8 @@ fun CreditCardsScreen(
     onBack: () -> Unit,
     onSave: (String, Int, CreditCardCycle.PaymentDue, Long?) -> Unit,
     onRemove: (String) -> Unit,
+    notificationsEnabled: Boolean = false,
+    onNotificationsEnabledChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var editing by remember { mutableStateOf<CreditCardStatus?>(null) }
@@ -68,6 +71,20 @@ fun CreditCardsScreen(
             }
         }
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Payment reminders", fontWeight = FontWeight.SemiBold)
+                        Text("Notify 7, 5, 3 and 1 days before an unpaid card is due.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = notificationsEnabled, onCheckedChange = onNotificationsEnabledChange)
+                }
+            }
             if (cards.isEmpty()) item {
                 Text("Mark an account as a credit card to track its billing cycle, cycle spend, payment due date and available credit.",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
