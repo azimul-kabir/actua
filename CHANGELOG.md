@@ -6,6 +6,19 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [0.1.0-alpha.12] - 2026-09-08
+
+Twelfth public testing release.
+
+### Changed
+
+- Added clearly visible inset separators between Plan categories and between accounts while preserving clean group boundaries
+- Kept the transaction Save button visible above both the built-in amount keypad and the Android system keyboard
+
+### Fixed
+
+- Removed the blocked focus overlay shown after tapping the Amount field in Add or Edit Transaction
+
 ## [0.1.0-alpha.11] - 2026-09-08
 
 Eleventh public testing release.
@@ -248,3 +261,5 @@ Initial public testing release.
 [0.1.0-alpha.9]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.9
 [0.1.0-alpha.10]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.10
 [0.1.0-alpha.11]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.11
+
+[0.1.0-alpha.12]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.12
