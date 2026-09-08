@@ -756,8 +756,8 @@ private fun PlanBudgetCategoryRow(
     onLongClick: () -> Unit,
 ) {
     if (showTopDivider) HorizontalDivider(
-        modifier = Modifier.padding(start = 16.dp),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+        modifier = Modifier.padding(start = 16.dp, end = 6.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
     )
     Column(
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
