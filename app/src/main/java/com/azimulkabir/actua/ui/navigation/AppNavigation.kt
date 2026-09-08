@@ -35,7 +35,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -81,6 +83,16 @@ private enum class MainDestination(
 
 private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules }
 
+private data class TabSnapshot(
+    val detail: DetailDestination = DetailDestination.Main,
+    val transactionAccount: String? = null,
+    val transactionCategory: String? = null,
+    val transactionMonth: String? = null,
+    val transactionSearch: String = "",
+    val activeBudgetCategory: String? = null,
+    val transactionsReturnCategory: String? = null,
+)
+
 @Composable
 fun AppNavigation(
     modifier: Modifier = Modifier,
@@ -122,6 +134,9 @@ fun AppNavigation(
     var activeBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var reopenBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionsReturnCategory by rememberSaveable { mutableStateOf<String?>(null) }
+    val tabSnapshots = remember { mutableStateMapOf<MainDestination, TabSnapshot>() }
+    val rootRequests = remember { mutableStateMapOf<MainDestination, Int>() }
+    val tabStateHolder = rememberSaveableStateHolder()
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
@@ -262,21 +277,51 @@ fun AppNavigation(
             }
         },
         bottomBar = {
-            NavigationBar {
+            if (detail != DetailDestination.EditTransaction) NavigationBar {
                 MainDestination.entries.forEach { item ->
                     NavigationBarItem(
-                        selected = destination == item && detail == DetailDestination.Main,
+                        selected = destination == item,
                         onClick = {
                             if (item != MainDestination.More && !repository.isUsingActualBudget) {
                                 destination = MainDestination.More
                                 detail = DetailDestination.Connection
                                 return@NavigationBarItem
                             }
-                            destination = item
-                            detail = DetailDestination.Main
-                            activeBudgetCategory = null
-                            reopenBudgetCategory = null
-                            transactionsReturnCategory = null
+                            if (item == destination) {
+                                if (detail != DetailDestination.Main) {
+                                    detail = DetailDestination.Main
+                                    editingTransaction = null
+                                    transactionAccount = null
+                                    transactionCategory = null
+                                    transactionMonth = null
+                                    transactionSearch = ""
+                                    transactionsReturnCategory = null
+                                } else {
+                                    rootRequests[item] = (rootRequests[item] ?: 0) + 1
+                                }
+                            } else {
+                                tabSnapshots[destination] = TabSnapshot(
+                                    detail = detail.takeUnless {
+                                        it == DetailDestination.Search || it == DetailDestination.EditTransaction
+                                    } ?: DetailDestination.Main,
+                                    transactionAccount = transactionAccount,
+                                    transactionCategory = transactionCategory,
+                                    transactionMonth = transactionMonth,
+                                    transactionSearch = transactionSearch,
+                                    activeBudgetCategory = activeBudgetCategory,
+                                    transactionsReturnCategory = transactionsReturnCategory,
+                                )
+                                val restored = tabSnapshots[item] ?: TabSnapshot()
+                                destination = item
+                                detail = restored.detail
+                                transactionAccount = restored.transactionAccount
+                                transactionCategory = restored.transactionCategory
+                                transactionMonth = restored.transactionMonth
+                                transactionSearch = restored.transactionSearch
+                                activeBudgetCategory = restored.activeBudgetCategory
+                                reopenBudgetCategory = restored.activeBudgetCategory
+                                transactionsReturnCategory = restored.transactionsReturnCategory
+                            }
                             transactionFabExpanded = true
                         },
                         icon = { Icon(item.icon, contentDescription = item.label) },
@@ -305,6 +350,7 @@ fun AppNavigation(
             },
             label = "Main navigation motion",
         ) { (shownDetail, shownDestination) ->
+        tabStateHolder.SaveableStateProvider("${shownDestination.name}:${shownDetail.name}") {
         when (shownDetail) {
             DetailDestination.Transactions -> TransactionsScreen(
                 accountName = transactionAccount,
@@ -608,6 +654,7 @@ fun AppNavigation(
                         activeBudgetCategory = category
                         if (category == reopenBudgetCategory) reopenBudgetCategory = null
                     },
+                    returnToRootRequest = rootRequests[MainDestination.Budget] ?: 0,
                 )
                 MainDestination.Accounts -> AccountsScreen(
                     modifier = contentModifier,
@@ -640,6 +687,7 @@ fun AppNavigation(
                         mutate("Creating account") { repository.createAccount(name, offBudget, balance) }
                     },
                     onSearch = { detail = DetailDestination.Search },
+                    scrollToTopRequest = rootRequests[MainDestination.Accounts] ?: 0,
                 )
                 MainDestination.Transactions -> TransactionsScreen(
                     accountName = null,
@@ -667,9 +715,11 @@ fun AppNavigation(
                         mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
                     },
                     showBackButton = false,
+                    returnToRootRequest = rootRequests[MainDestination.Transactions] ?: 0,
                 )
                 MainDestination.Reports -> ReportsScreen(reportSnapshot, hideDecimalPlaces, contentModifier,
-                    onSearch = { detail = DetailDestination.Search })
+                    onSearch = { detail = DetailDestination.Search },
+                    scrollToTopRequest = rootRequests[MainDestination.Reports] ?: 0)
                 MainDestination.More -> SettingsScreen(
                     modifier = contentModifier,
                     onConnectionClick = { detail = DetailDestination.Connection },
@@ -737,8 +787,10 @@ fun AppNavigation(
                         displayPreferences.showCurrentBalanceSummary = it
                         showCurrentBalanceSummary = it
                     },
+                    returnToRootRequest = rootRequests[MainDestination.More] ?: 0,
                 )
             }
+        }
         }
         }
     }
