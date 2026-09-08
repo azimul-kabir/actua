@@ -94,6 +94,8 @@ fun TransactionsScreen(
     hideDecimalPlaces: Boolean = false,
     groupTransactionsByDate: Boolean = true,
     onGroupTransactionsByDateChange: (Boolean) -> Unit = {},
+    hideReconciledTransactions: Boolean = false,
+    onHideReconciledTransactionsChange: (Boolean) -> Unit = {},
     onSetCleared: (Transaction, Boolean) -> Unit = { _, _ -> },
     onDelete: (Transaction) -> Unit = {},
     account: Account? = null,
@@ -163,6 +165,7 @@ fun TransactionsScreen(
             (categoryName == null || it.category == categoryName) &&
             (month == null || it.date.filter(Char::isDigit).startsWith(month.replace("-", ""))) &&
             (!hideCleared || !it.cleared) &&
+            (!hideReconciledTransactions || !it.reconciled) &&
             (searchingDatabase || search.isBlank() ||
                 (listOf(it.payee, it.category, it.account, it.notes, it.transferAccount.orEmpty()) +
                     it.splits.flatMap { split -> listOf(split.payee, split.notes, split.category) })
@@ -191,6 +194,8 @@ fun TransactionsScreen(
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     ToggleItem("Group by date", groupTransactionsByDate, onGroupTransactionsByDateChange)
                     ToggleItem("Hide cleared transactions", hideCleared) { hideCleared = it }
+                    ToggleItem("Hide reconciled transactions", hideReconciledTransactions,
+                        onHideReconciledTransactionsChange)
                     account?.let { selectedAccount ->
                         ToggleItem(
                             "Show current balance summary",
@@ -246,6 +251,18 @@ fun TransactionsScreen(
                     Spacer(Modifier.weight(1f))
                     Amount(total, FontWeight.Bold, hideDecimalPlaces)
                 }
+            }
+            if (visible.isEmpty()) item("empty-transactions") {
+                Text(
+                    when {
+                        search.isNotBlank() -> "No matching transactions"
+                        hideCleared -> "No uncleared transactions"
+                        hideReconciledTransactions -> "No unreconciled transactions"
+                        else -> "No transactions"
+                    },
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(20.dp),
+                )
             }
             if (groupTransactionsByDate) {
                 visible.groupBy { it.date }.forEach { (date, transactions) ->

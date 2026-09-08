@@ -32,6 +32,13 @@ import org.json.JSONObject
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.rules.RuleChoice
 import com.azimulkabir.actua.data.rules.RuleEditorData
+import com.azimulkabir.actua.data.schedules.ActualScheduleWriter
+import com.azimulkabir.actua.data.schedules.DayDate
+import com.azimulkabir.actua.data.schedules.ScheduleListItem
+import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
+import com.azimulkabir.actua.data.schedules.ScheduleStatusCalculator
+import com.azimulkabir.actua.data.schedules.ScheduleWriteBuilder
+import com.azimulkabir.actua.data.schedules.sortedForDisplay
 
 class ActuaRepository(context: Context) {
     private val appContext = context.applicationContext
@@ -47,6 +54,7 @@ class ActuaRepository(context: Context) {
     private val actualWriter = actualDatabase?.let { ActualTransactionWriter(it, onWrite = scheduleSync) }
     private val actualEntities = actualDatabase?.let { ActualEntityWriter(it, onWrite = scheduleSync) }
     private val actualBudgets = actualDatabase?.let { ActualBudgetWriter(it, onWrite = scheduleSync) }
+    private val actualSchedules = actualDatabase?.let { ActualScheduleWriter(it, onWrite = scheduleSync) }
     private val actualForms = actualDatabase?.let { db ->
         ActualTransactionFormService(db, requireNotNull(actualWriter))
     }
@@ -73,6 +81,58 @@ class ActuaRepository(context: Context) {
     fun rulesSupported(): Boolean = actualDatabase?.rulesSupported() == true
 
     fun scheduleOwnedRuleIds(): Set<String> = actualDatabase?.scheduleOwnedRuleIds().orEmpty()
+
+    fun schedules(today: DayDate = DayDate.today()): List<ScheduleListItem> {
+        val db = actualDatabase ?: return emptyList()
+        val schedules = db.fetchScheduleSummaries()
+        val paid = db.fetchPaidScheduleIds(schedules)
+        val accounts = db.fetchAccounts().associate { it.id to it.name }
+        val payees = db.fetchPayees().associate { it.id to it.name }
+        return schedules.map { schedule ->
+            ScheduleListItem(
+                schedule,
+                ScheduleStatusCalculator.status(
+                    schedule.nextDate, schedule.completed, schedule.id in paid,
+                    schedule.customUpcomingLength, today,
+                ),
+                schedule.accountId?.let(accounts::get),
+                schedule.payeeId?.let(payees::get),
+            )
+        }.sortedForDisplay()
+    }
+
+    fun setScheduleCompleted(scheduleId: String, completed: Boolean): Boolean {
+        val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
+            ?: return false
+        if (schedule.completed == completed) return true
+        actualSchedules!!.apply(ScheduleWriteBuilder.columns(
+            schedule.id, "completed" to if (completed) 1 else 0,
+        ))
+        return true
+    }
+
+    fun deleteSchedule(scheduleId: String): Boolean {
+        val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
+            ?: return false
+        actualSchedules!!.apply(ScheduleWriteBuilder.delete(schedule))
+        return true
+    }
+
+    fun skipScheduleNextDate(scheduleId: String): Boolean {
+        val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
+            ?: return false
+        val current = schedule.nextDate ?: return false
+        val recurring = schedule.dateCondition as? com.azimulkabir.actua.data.schedules.ScheduleDateCondition.Recurring
+            ?: return false
+        val next = ScheduleRecurrence.nextOccurrence(
+            recurring.config, ScheduleRecurrence.skipSearchStart(current, recurring.config),
+        ) ?: return false
+        if (next == current) return false
+        val plan = ScheduleWriteBuilder.nextDate(schedule, next, reset = false,
+            now = System.currentTimeMillis()) ?: return false
+        actualSchedules!!.apply(plan)
+        return true
+    }
 
     fun ruleEditorData(): RuleEditorData {
         val db = actualDatabase ?: return RuleEditorData()
@@ -245,13 +305,15 @@ class ActuaRepository(context: Context) {
         return true
     }
 
-    fun transactions(query: String? = null, limit: Int = Int.MAX_VALUE, offset: Int = 0): List<Transaction> {
+    fun transactions(query: String? = null, limit: Int = Int.MAX_VALUE, offset: Int = 0,
+        unclearedOnly: Boolean = false, hideReconciled: Boolean = false): List<Transaction> {
         actualDatabase?.let { db ->
             val accountNames = db.fetchAccounts().associate { it.id to it.name }
             // The database API defaults to a 500-row page. This repository currently backs
             // an in-memory Compose list, so explicitly load the complete history; otherwise
             // older synced transactions exist locally but silently disappear from Accounts.
-            return db.fetchTransactions(limit = limit, offset = offset, query = query).map {
+            return db.fetchTransactions(limit = limit, offset = offset, query = query,
+                unclearedOnly = unclearedOnly, hideReconciled = hideReconciled).map {
                 val isTransfer = it.transferId != null
                 Transaction(
                     id = it.id,
@@ -265,6 +327,7 @@ class ActuaRepository(context: Context) {
                     account = accountNames[it.accountId] ?: "Unknown",
                     amount = centsToDisplayUnits(it.amountCents),
                     cleared = it.cleared,
+                    reconciled = it.reconciled,
                     amountCents = it.amountCents,
                     type = when {
                         isTransfer -> Type.TRANSFER

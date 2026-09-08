@@ -51,6 +51,19 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun transactionStateFiltersApplyBeforePagingAndSearch() = withDatabase { database ->
+        val ordinary = requireNotNull(database.fetchTransaction("ordinary"))
+        ActualTransactionWriter(database).updateTransaction(
+            ordinary.copy(reconciled = true, cleared = true), setOf("reconciled", "cleared"),
+        )
+
+        assertTrue(database.fetchTransactions(hideReconciled = true).none { it.id == "ordinary" })
+        assertTrue(database.fetchTransactions(query = "Store").any { it.id == "ordinary" })
+        assertTrue(database.fetchTransactions(query = "Store", hideReconciled = true).none { it.id == "ordinary" })
+        assertTrue(database.fetchTransactions(unclearedOnly = true).none { it.id == "ordinary" })
+    }
+
+    @Test
     fun writesPayeesTransactionsTransfersSplitsUpdatesAndDeletesWithMessages() = withDatabase { database ->
         var nextId = 0
         val writer = ActualTransactionWriter(database, idFactory = { "new-${++nextId}" })

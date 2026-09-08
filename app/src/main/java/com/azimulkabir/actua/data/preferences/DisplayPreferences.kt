@@ -67,6 +67,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(GROUP_TRANSACTIONS_BY_DATE, true)
         set(value) { preferences.edit().putBoolean(GROUP_TRANSACTIONS_BY_DATE, value).apply() }
 
+    var hideReconciledTransactions: Boolean
+        get() = preferences.getBoolean(HIDE_RECONCILED_TRANSACTIONS, false)
+        set(value) { preferences.edit().putBoolean(HIDE_RECONCILED_TRANSACTIONS, value).apply() }
+
     var showAccountsMonthlySummary: Boolean
         get() = preferences.getBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, true)
         set(value) { preferences.edit().putBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, value).apply() }
@@ -99,6 +103,7 @@ class DisplayPreferences(context: Context) {
         const val START_PAGE = "start_page"
         const val DEFAULT_ACCOUNT = "default_account"
         const val GROUP_TRANSACTIONS_BY_DATE = "group_transactions_by_date"
+        const val HIDE_RECONCILED_TRANSACTIONS = "hide_reconciled_transactions"
         const val SHOW_ACCOUNTS_MONTHLY_SUMMARY = "show_accounts_monthly_summary"
         const val CONVENTIONAL_AMOUNT_ENTRY = "conventional_amount_entry"
         const val SHOW_BOTTOM_NAVIGATION_LABELS = "show_bottom_navigation_labels"

@@ -63,6 +63,7 @@ fun SettingsScreen(
     onShowAccountsMonthlySummaryChange: (Boolean) -> Unit = {},
     onCreditCardsClick: () -> Unit = {},
     onRulesClick: () -> Unit = {},
+    onSchedulesClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = false,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
     showBottomNavigationLabels: Boolean = true,
@@ -84,7 +85,7 @@ fun SettingsScreen(
         when (page) {
             SettingsPage.Main -> {
                 SettingsRow("Connection & Data", "Actual server, budgets, local data and backups", true, onConnectionClick)
-                SettingsRow("Transactions & Automation", "Entry defaults, account summaries, cards and rules", true) { page = SettingsPage.Transactions }
+                SettingsRow("Transactions & Automation", "Entry defaults, account summaries, cards, rules and schedules", true) { page = SettingsPage.Transactions }
                 SettingsRow("Display", "Currency, appearance, start page and decimals", true) { page = SettingsPage.Display }
                 SettingsRow("Privacy", "Control sensitive information on screen", true) { page = SettingsPage.Privacy }
                 SettingsRow("Information", "About Actua and project credits", true) { page = SettingsPage.Information }
@@ -106,6 +107,7 @@ fun SettingsScreen(
                 )
                 SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, onCreditCardsClick)
                 SettingsRow("Rules", "Automatically categorize and transform transactions", true, onRulesClick)
+                SettingsRow("Scheduled Transactions", "Review recurring bills, income and upcoming dates", true, onSchedulesClick)
             }
             SettingsPage.Display -> {
                 SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->

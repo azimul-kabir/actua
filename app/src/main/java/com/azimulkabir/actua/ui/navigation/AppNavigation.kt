@@ -63,6 +63,7 @@ import com.azimulkabir.actua.ui.settings.SettingsScreen
 import com.azimulkabir.actua.ui.settings.ConnectionScreen
 import com.azimulkabir.actua.ui.settings.CreditCardsScreen
 import com.azimulkabir.actua.ui.settings.RulesScreen
+import com.azimulkabir.actua.ui.settings.SchedulesScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
@@ -89,7 +90,7 @@ private enum class MainDestination(
     More("More", Icons.Outlined.MoreHoriz),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -129,9 +130,17 @@ fun AppNavigation(
     val budgetGroups = remember(dataVersion, budgetMonth) { repository.budgetGroups(budgetMonth) }
     val budgetOverview = remember(dataVersion, budgetMonth) { repository.budgetOverview(budgetMonth) }
     val accounts = remember(dataVersion) { repository.accounts() }
+    var hideReconciledTransactions by remember {
+        mutableStateOf(displayPreferences.hideReconciledTransactions)
+    }
     val transactions = remember(dataVersion) { repository.transactions() }
-    val searchTransactions: suspend (String) -> List<Transaction> = remember(repository) {
-        { query -> withContext(Dispatchers.IO) { repository.transactions(query) } }
+    val filteredTransactions = remember(dataVersion, hideReconciledTransactions) {
+        if (hideReconciledTransactions) repository.transactions(hideReconciled = true) else transactions
+    }
+    val searchTransactions: suspend (String) -> List<Transaction> = remember(repository, hideReconciledTransactions) {
+        { query -> withContext(Dispatchers.IO) {
+            repository.transactions(query, hideReconciled = hideReconciledTransactions)
+        } }
     }
     val categoryNames = remember(dataVersion) { repository.categoryNames() }
     val payeeNames = remember(dataVersion) { repository.payeeNames() }
@@ -141,6 +150,7 @@ fun AppNavigation(
     val rulesSupported = remember(dataVersion) { repository.rulesSupported() }
     val scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() }
     val ruleEditorData = remember(dataVersion) { repository.ruleEditorData() }
+    val schedules = remember(dataVersion) { repository.schedules() }
     var destination by rememberSaveable {
         mutableStateOf(MainDestination.entries.firstOrNull { it.label == displayPreferences.startPage }
             ?: MainDestination.Accounts)
@@ -395,13 +405,18 @@ fun AppNavigation(
                     detail = DetailDestination.EditTransaction
                 },
                 modifier = contentModifier,
-                transactions = transactions,
+                transactions = filteredTransactions,
                 searchTransactions = searchTransactions,
                 hideDecimalPlaces = hideDecimalPlaces,
                 groupTransactionsByDate = groupTransactionsByDate,
                 onGroupTransactionsByDateChange = {
                     displayPreferences.groupTransactionsByDate = it
                     groupTransactionsByDate = it
+                },
+                hideReconciledTransactions = hideReconciledTransactions,
+                onHideReconciledTransactionsChange = {
+                    displayPreferences.hideReconciledTransactions = it
+                    hideReconciledTransactions = it
                 },
                 onSetCleared = { transaction, cleared ->
                     mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
@@ -502,10 +517,13 @@ fun AppNavigation(
                     onResolveRuleCategory = repository::ruleCategoryFor,
             )
             DetailDestination.Search -> GlobalSearchScreen(
-                transactions = transactions,
-                searchTransactions = remember(repository) {
+                transactions = filteredTransactions,
+                searchTransactions = remember(repository, hideReconciledTransactions) {
                     { query, limit, offset ->
-                        withContext(Dispatchers.IO) { repository.transactions(query, limit, offset) }
+                        withContext(Dispatchers.IO) {
+                            repository.transactions(query, limit, offset,
+                                hideReconciled = hideReconciledTransactions)
+                        }
                     }
                 },
                 accounts = accounts,
@@ -585,6 +603,19 @@ fun AppNavigation(
                 onBack = { detail = DetailDestination.Main },
                 onSave = { rule -> mutate("Saving rule") { repository.saveRule(rule) } },
                 onDelete = { ruleId -> mutate("Deleting rule") { repository.deleteRule(ruleId) } },
+                modifier = contentModifier,
+            )
+            DetailDestination.Schedules -> SchedulesScreen(
+                schedules = schedules,
+                hideDecimalPlaces = hideDecimalPlaces,
+                onBack = { detail = DetailDestination.Main },
+                onSetCompleted = { id, completed ->
+                    mutate(if (completed) "Completing schedule" else "Restarting schedule") {
+                        repository.setScheduleCompleted(id, completed)
+                    }
+                },
+                onSkip = { id -> mutate("Skipping schedule") { repository.skipScheduleNextDate(id) } },
+                onDelete = { id -> mutate("Deleting schedule") { repository.deleteSchedule(id) } },
                 modifier = contentModifier,
             )
             DetailDestination.Main -> if (!repository.isUsingActualBudget && destination != MainDestination.More) {
@@ -681,7 +712,7 @@ fun AppNavigation(
                         mutate("Updating rollover") { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
                     },
                     onSearch = { detail = DetailDestination.Search },
-                    transactions = transactions,
+                    transactions = filteredTransactions,
                     onDeleteCategory = { group, category ->
                         mutate("Deleting category") { repository.deleteCategory(group, category) }
                     },
@@ -750,12 +781,17 @@ fun AppNavigation(
                         detail = DetailDestination.EditTransaction
                     },
                     modifier = contentModifier,
-                    transactions = transactions,
+                    transactions = filteredTransactions,
                     hideDecimalPlaces = hideDecimalPlaces,
                     groupTransactionsByDate = groupTransactionsByDate,
                     onGroupTransactionsByDateChange = {
                         displayPreferences.groupTransactionsByDate = it
                         groupTransactionsByDate = it
+                    },
+                    hideReconciledTransactions = hideReconciledTransactions,
+                    onHideReconciledTransactionsChange = {
+                        displayPreferences.hideReconciledTransactions = it
+                        hideReconciledTransactions = it
                     },
                     onSetCleared = { transaction, cleared ->
                         mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
@@ -821,6 +857,7 @@ fun AppNavigation(
                     },
                     onCreditCardsClick = { detail = DetailDestination.CreditCards },
                     onRulesClick = { detail = DetailDestination.Rules },
+                    onSchedulesClick = { detail = DetailDestination.Schedules },
                     conventionalAmountEntry = conventionalAmountEntry,
                     onConventionalAmountEntryChange = {
                         displayPreferences.conventionalAmountEntry = it

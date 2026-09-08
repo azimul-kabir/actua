@@ -524,6 +524,8 @@ class ActualBudgetDatabase private constructor(
         limit: Int = 500,
         offset: Int = 0,
         query: String? = null,
+        unclearedOnly: Boolean = false,
+        hideReconciled: Boolean = false,
     ): List<ActualTransaction> {
         require(limit >= 0 && offset >= 0)
         val args = mutableListOf<String>()
@@ -531,6 +533,10 @@ class ActualBudgetDatabase private constructor(
         if (accountId != null) {
             accountClause = " AND t.acct = ?"
             args += accountId
+        }
+        val stateClause = buildString {
+            if (unclearedOnly) append(" AND COALESCE(t.cleared, 0) = 0")
+            if (hideReconciled) append(" AND COALESCE(t.reconciled, 0) = 0")
         }
         val searchClause = if (query.isNullOrBlank()) "" else {
             // Bind a literal substring: %, _ and backslash are user text, not wildcards.
@@ -541,7 +547,7 @@ class ActualBudgetDatabase private constructor(
         args += limit.toString()
         args += offset.toString()
         val rows = mutableListOf<ActualTransaction>()
-        database.rawQuery(transactionSelect + accountClause + searchClause + " ORDER BY t.date DESC, t.sort_order DESC, t.id LIMIT ? OFFSET ?", args.toTypedArray()).use { cursor ->
+        database.rawQuery(transactionSelect + accountClause + stateClause + searchClause + " ORDER BY t.date DESC, t.sort_order DESC, t.id LIMIT ? OFFSET ?", args.toTypedArray()).use { cursor ->
             while (cursor.moveToNext()) rows += cursor.toActualTransaction()
         }
         val parentIds = rows.filter(ActualTransaction::isParent).map(ActualTransaction::id)

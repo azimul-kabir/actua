@@ -39,6 +39,8 @@ by either the Actuali project or the Actual Budget team.
 - Local backup, restore, retention, and pre-restore revert
 - Actual-compatible rule listing, editing, CRDT mutations, and transaction
   processing for supported standard conditions and actions
+- Scheduled transaction review with lifecycle status and recurring schedule actions
+- Persistent hide-reconciled filtering across transaction lists and searches
 - Balance-focused category details with shared Budget, Move Money and Auto-Assign keypads, notes, rollover overspending, recent activity and category-preselected transaction entry
 - Credit-card limits, billing-cycle metadata, fixed or offset due dates, cycle spending,
   urgency sorting, and opt-in Android payment reminders

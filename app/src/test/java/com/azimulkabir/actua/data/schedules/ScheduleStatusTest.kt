@@ -33,4 +33,23 @@ class ScheduleStatusTest {
         assertEquals(today, ScheduleStatusCalculator.occurrenceMatchStartDate(today, "isapprox", true))
         assertEquals(today.addingDays(-2), ScheduleStatusCalculator.occurrenceMatchStartDate(today, "isapprox", false))
     }
+
+    @Test fun scheduleDisplayOrderUsesManualOrderThenDateThenStableTitle() {
+        fun item(id: String, name: String, date: DayDate?, order: Double?) = ScheduleListItem(
+            ActualScheduleSummary(id, name, null, date, null, null, null, null, null,
+                ScheduleAmountOp.APPROXIMATE, null, null, false, false, null, order,
+                false, null, null, null),
+            ScheduleStatus.SCHEDULED, null, null,
+        )
+        val values = listOf(
+            item("no-date", "Zeta", null, null),
+            item("later", "Later", today.addingDays(2), null),
+            item("manual", "Manual", today.addingDays(20), 1.0),
+            item("alpha-b", "Alpha", today, null),
+            item("alpha-a", "Alpha", today, null),
+        )
+
+        assertEquals(listOf("manual", "alpha-a", "alpha-b", "later", "no-date"),
+            values.sortedForDisplay().map { it.schedule.id })
+    }
 }

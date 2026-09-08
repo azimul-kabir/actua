@@ -48,6 +48,9 @@ Android backlog items and will never be ported.
   for schedule-owned rules
 - Timezone-free schedule day math, upcoming windows, lifecycle status, and
   transaction occurrence matching
+- Searchable Scheduled Transactions UI with paid/due/upcoming/missed/completed
+  status, completed-history visibility, recurrence skipping, restart/completion,
+  and deletion through the existing CRDT write path
 - Daily/weekly/monthly/yearly schedule recurrence, monthly day/nth-weekday
   patterns, bounded endings, weekend solving, skipping, and previews
 - Schedule-owned condition extraction/build/merge with custom-rule preservation,
@@ -101,6 +104,8 @@ Android backlog items and will never be ported.
   validation, and unpaid-first stable due-date sorting
 - Database-backed complete-history transaction search, including live split-child
   payees, notes, imported descriptions and categories; stable database paging
+- Persisted app-wide reconciled-transaction filtering applied before database
+  paging and search, shared by account and all-transaction lists
 - Add/edit split transaction UI with per-line category, amount, direction, payee,
   notes, remaining allocation, and Actual-compatible child-row persistence
 - Off-budget transaction category enforcement for standard and split create/edit

@@ -17,3 +17,24 @@ data class ActualScheduleSummary(
     val isRecurring get() = dateCondition is ScheduleDateCondition.Recurring
     val postAmount get() = amount?.postAmount ?: 0
 }
+
+data class ScheduleListItem(
+    val schedule: ActualScheduleSummary,
+    val status: ScheduleStatus,
+    val accountName: String?,
+    val payeeName: String?,
+) {
+    val title: String get() = schedule.name?.takeIf(String::isNotBlank)
+        ?: payeeName?.takeIf(String::isNotBlank)
+        ?: accountName?.takeIf(String::isNotBlank)
+        ?: "Schedule"
+}
+
+fun Iterable<ScheduleListItem>.sortedForDisplay() = sortedWith(
+    compareBy<ScheduleListItem> { it.schedule.sortOrder == null }
+        .thenBy { it.schedule.sortOrder ?: Double.MAX_VALUE }
+        .thenBy { it.schedule.nextDate == null }
+        .thenBy { it.schedule.nextDate }
+        .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+        .thenBy { it.schedule.id },
+)
