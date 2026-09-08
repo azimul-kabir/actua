@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -36,6 +37,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -99,13 +101,24 @@ fun TransactionsScreen(
     showBackButton: Boolean = true,
     showCurrentBalanceSummary: Boolean = true,
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
+    returnToRootRequest: Int = 0,
 ) {
+    val listState = rememberLazyListState()
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
     var showSearch by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var hideCleared by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Transaction?>(null) }
     var viewed by remember { mutableStateOf<Transaction?>(null) }
+    LaunchedEffect(returnToRootRequest) {
+        if (returnToRootRequest > 0) {
+            when {
+                viewed != null -> viewed = null
+                showSearch -> showSearch = false
+                else -> listState.animateScrollToItem(0)
+            }
+        }
+    }
     var accountNote by remember(account) { mutableStateOf(account?.note.orEmpty()) }
     val context = LocalContext.current
     val accountDetailPreferences = remember(context) {
@@ -179,6 +192,7 @@ fun TransactionsScreen(
             )
         }
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
         ) {
