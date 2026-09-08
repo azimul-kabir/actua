@@ -49,7 +49,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -143,11 +142,26 @@ fun AddTransactionScreen(
     )
     val blinkingCursor = if (cursorAlpha > 0.5f) " │" else ""
     val calculatorOpen = showCalculator || splitCalculatorIndex != null
-    val saveBottomPadding by animateDpAsState(
-        targetValue = if (calculatorOpen) 212.dp else 20.dp,
-        animationSpec = tween(220),
-        label = "Save button keyboard offset",
-    )
+    val saveTransaction = {
+        if (canSave) {
+            onSave(
+                Transaction(
+                    id = editing?.id.orEmpty(),
+                    date = storageDate(date),
+                    payee = payee,
+                    category = if (transactionType == "Transfer") "" else category.ifBlank { "Uncategorized" },
+                    account = account,
+                    amount = (amountCents / 100L).toInt() * if (transactionType == "Income") 1 else -1,
+                    cleared = cleared,
+                    amountCents = amountCents * if (transactionType == "Income") 1 else -1,
+                    type = Type.entries.first { it.displayName == transactionType },
+                    transferAccount = transferAccount.takeIf { transactionType == "Transfer" },
+                    notes = notes,
+                    splits = splitLines,
+                ),
+            )
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -426,33 +440,10 @@ fun AddTransactionScreen(
             }
         }
         }
-        ExtendedFloatingActionButton(
-            onClick = {
-                if (canSave) {
-                    onSave(
-                        Transaction(
-                            id = editing?.id.orEmpty(),
-                            date = storageDate(date),
-                            payee = payee,
-                            category = if (transactionType == "Transfer") "" else category.ifBlank { "Uncategorized" },
-                            account = account,
-                            amount = (amountCents / 100L).toInt() * if (transactionType == "Income") 1 else -1,
-                            cleared = cleared,
-                            amountCents = amountCents * if (transactionType == "Income") 1 else -1,
-                            type = Type.entries.first { it.displayName == transactionType },
-                            transferAccount = transferAccount.takeIf { transactionType == "Transfer" },
-                            notes = notes,
-                            splits = splitLines,
-                        ),
-                    )
-                }
-            },
-            modifier = Modifier.align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = saveBottomPadding),
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            icon = { Icon(Icons.Outlined.Check, contentDescription = null) },
-            text = { Text("Save") },
+        if (!calculatorOpen) TransactionSaveButton(
+            canSave = canSave,
+            onClick = saveTransaction,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
         )
     }
     if (showCalculator) CalculatorAmountSheet(
@@ -465,6 +456,15 @@ fun AddTransactionScreen(
         },
         onApply = { amountCents = it },
         onExpressionChange = { amountExpression = it },
+        topContent = {
+            Box(Modifier.fillMaxWidth().padding(top = 6.dp, end = 16.dp)) {
+                TransactionSaveButton(
+                    canSave = canSave,
+                    onClick = saveTransaction,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                )
+            }
+        },
     )
     splitCalculatorIndex?.let { index ->
         val line = splitLines.getOrNull(index)
@@ -480,6 +480,15 @@ fun AddTransactionScreen(
                 splitLines = splitLines.toMutableList().also { it[index] = line.copy(amountCents = value) }
             },
             onExpressionChange = { splitAmountExpression = it },
+            topContent = {
+                Box(Modifier.fillMaxWidth().padding(top = 6.dp, end = 16.dp)) {
+                    TransactionSaveButton(
+                        canSave = canSave,
+                        onClick = saveTransaction,
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                    )
+                }
+            },
         ) else splitCalculatorIndex = null
     }
     if (confirmDelete && editing != null) {
@@ -520,6 +529,22 @@ fun AddTransactionScreen(
 private val Type.displayName: String get() = name.lowercase().replaceFirstChar(Char::uppercase)
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TransactionSaveButton(
+    canSave: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = if (canSave) 1f else 0.62f),
+        icon = { Icon(Icons.Outlined.Check, contentDescription = null) },
+        text = { Text("Save") },
+    )
+}
+
 @Composable
 private fun PickerTextField(
     label: String,
