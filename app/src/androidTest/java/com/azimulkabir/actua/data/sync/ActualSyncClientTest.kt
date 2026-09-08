@@ -57,6 +57,95 @@ class ActualSyncClientTest {
         }
     }
 
+    @Test
+    fun blankLegacyClockRecoversFromMessageLog() = assertClockRecovery(" ")
+
+    @Test
+    fun epochClockRecoversFromMessageLog() = assertClockRecovery(HlcTimestamp.ZERO.toString())
+
+    @Test
+    fun nonzeroLegacy1970ClockRecoversFromMessageLog() =
+        assertClockRecovery("1970-06-01T00:00:00.000Z-0000-aaaaaaaaaaaaaaaa")
+
+    @Test
+    fun malformedClockRecoversFromMessageLog() = assertClockRecovery("not-a-timestamp")
+
+    private fun assertClockRecovery(timestamp: String) {
+        withDatabase { database ->
+            val snapshot = message("2024-01-01T00:00:00.000Z", "aaaaaaaaaaaaaaaa", "acct-1", "S:Checking")
+            database.insertMessages(listOf(snapshot))
+            database.saveClock(ActualBudgetDatabase.ClockRecord(timestamp, MerkleTree().root))
+            val server = FakeSyncServer(listOf(snapshot))
+
+            val outcome = client(database, server.client).sync()
+
+            assertEquals(snapshot.timestamp.toString(), server.requests.single().since)
+            assertEquals(0, outcome.sentMessages)
+            assertTrue(HlcTimestamp.parse(database.loadClock()!!.timestamp)!!.millis >= snapshot.timestamp.millis)
+            assertEquals(server.merkle(), database.deriveMerkleFromMessageLog())
+        }
+    }
+
+    @Test
+    fun invalidClockWithEmptyLogRequestsFullHistory() {
+        withDatabase { database ->
+            database.saveClock(ActualBudgetDatabase.ClockRecord("invalid", MerkleTree().root))
+            val remote = message("2024-01-01T00:00:00.000Z", "aaaaaaaaaaaaaaaa", "acct-1", "S:Checking")
+            val server = FakeSyncServer(listOf(remote))
+            client(database, server.client).sync()
+            assertEquals(HlcTimestamp.ZERO.toString(), server.requests.first().since)
+            assertEquals(server.merkle(), database.deriveMerkleFromMessageLog())
+        }
+    }
+
+    @Test
+    fun validClockBehindLogPreservesUnsentWrites() {
+        withDatabase { database ->
+            val snapshot = message("2024-01-01T00:00:00.000Z", "aaaaaaaaaaaaaaaa", "acct-1", "S:Checking")
+            val local = message("2024-01-02T00:00:00.000Z", "aaaaaaaaaaaaaaaa", "acct-2", "S:Savings")
+            database.insertMessages(listOf(snapshot))
+            database.saveClock(ActualBudgetDatabase.ClockRecord(snapshot.timestamp.toString(), database.deriveMerkleFromMessageLog().root))
+            // Durable write followed by client recreation, without saving a new clock.
+            database.applyLocalMessages(listOf(local))
+            val server = FakeSyncServer(listOf(snapshot))
+            client(database, server.client).sync()
+            assertEquals(snapshot.timestamp.toString(), server.requests.first().since)
+            assertEquals(listOf(local.timestamp.toString()), server.requests.first().messages.map { it.timestamp })
+            assertEquals(server.merkle(), database.deriveMerkleFromMessageLog())
+        }
+    }
+
+    @Test
+    fun localWriteAfterRecoveryBeforeFirstSyncIsSent() {
+        withDatabase { database ->
+            val snapshot = message("2024-01-01T00:00:00.000Z", "aaaaaaaaaaaaaaaa", "acct-1", "S:Checking")
+            database.insertMessages(listOf(snapshot))
+            database.saveClock(ActualBudgetDatabase.ClockRecord("", MerkleTree().root))
+            val server = FakeSyncServer(listOf(snapshot))
+            val client = client(database, server.client)
+            val local = message("2024-01-02T00:00:00.000Z", "aaaaaaaaaaaaaaaa", "acct-2", "S:Savings")
+            database.applyLocalMessages(listOf(local))
+            client.sync()
+            assertEquals(listOf(local.timestamp.toString()), server.requests.first().messages.map { it.timestamp })
+            assertEquals(server.merkle(), database.deriveMerkleFromMessageLog())
+        }
+    }
+
+    @Test
+    fun missingClockAfterCommittedWriteRecoversThroughMerkleDifference() {
+        withDatabase { database ->
+            val local = message("2024-01-02T00:00:00.000Z", "aaaaaaaaaaaaaaaa", "acct-1", "S:Checking")
+            // Simulate restart after committing rows/messages but before clock persistence.
+            database.applyLocalMessages(listOf(local))
+            val server = FakeSyncServer(emptyList())
+            val outcome = client(database, server.client).sync()
+            assertEquals(local.timestamp.toString(), server.requests.first().since)
+            assertTrue(outcome.attempts > 1)
+            assertTrue(server.requests.flatMap { it.messages }.any { it.timestamp == local.timestamp.toString() })
+            assertEquals(server.merkle(), database.deriveMerkleFromMessageLog())
+        }
+    }
+
     private fun client(database: ActualBudgetDatabase, server: ActualServerClient) = ActualSyncClient(
         serverUrl = "https://actual.test",
         token = "token",

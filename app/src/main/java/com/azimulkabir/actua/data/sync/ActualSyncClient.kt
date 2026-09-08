@@ -35,12 +35,17 @@ class ActualSyncClient(
 
     init {
         val storedClock = database.loadClock()
+        val messageHighWater = recoverableTimestamp(database.maxMessageTimestamp())
+        val persistedTimestamp = recoverableTimestamp(storedClock?.timestamp)
         clock = HybridLogicalClock(node = nodeId)
-        database.maxMessageTimestamp()?.let(HlcTimestamp::parse)?.let(clock::advance)
-        storedClock?.timestamp?.takeIf(String::isNotBlank)?.let(HlcTimestamp::parse)?.let(clock::advance)
+        messageHighWater?.let(HlcTimestamp::parse)?.let(clock::advance)
+        persistedTimestamp?.let(HlcTimestamp::parse)?.let(clock::advance)
         merkle = database.deriveMerkleFromMessageLog()
-        lastSyncedTimestamp = storedClock?.timestamp?.takeIf(String::isNotBlank)
-        downloadBaselineTimestamp = database.maxMessageTimestamp()
+        // Keep a valid older sync boundary: newer log entries may be unsent edits.
+        // Invalid legacy state falls back to the log; Merkle reconciliation will
+        // recover any differences, including writes committed before a restart.
+        lastSyncedTimestamp = persistedTimestamp ?: messageHighWater
+        downloadBaselineTimestamp = messageHighWater
     }
 
     @Synchronized
@@ -93,5 +98,9 @@ class ActualSyncClient(
 
     companion object {
         private const val MAX_ATTEMPTS = 10
+
+        private fun recoverableTimestamp(value: String?): String? = value?.takeIf {
+            !it.startsWith("1970-") && HlcTimestamp.parse(it) != null
+        }
     }
 }
