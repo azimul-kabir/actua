@@ -149,7 +149,7 @@ fun BudgetScreen(
     onRenameGroup: (String, String) -> Unit = { _, _ -> },
     onCreateCategory: (String, String) -> Unit = { _, _ -> },
     onCreateGroup: (String) -> Unit = {},
-    onShowCategoryTransactions: (String, Boolean) -> Unit = { _, _ -> },
+    onShowCategoryTransactions: (String, Boolean, Boolean) -> Unit = { _, _, _ -> },
     onTransferBudget: (String?, String?, String?, String?, Long) -> Unit = { _, _, _, _, _ -> },
     onSetBudgetAmount: (String, String, Long) -> Unit = { _, _, _ -> },
     onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
@@ -308,7 +308,7 @@ fun BudgetScreen(
                                 category = category,
                                 showTopDivider = index > 0,
                                 hideDecimalPlaces = hideDecimalPlaces,
-                                onClick = { onShowCategoryTransactions(category.name, true) },
+                                onClick = { onShowCategoryTransactions(category.name, true, false) },
                                 onLongClick = { selectedCategory = category },
                             )
                         } else if (budgetView == "Plan") {
@@ -347,8 +347,8 @@ fun BudgetScreen(
             onRename = { selectedCategory = null; renamingCategory = parent to category },
             onEditBudget = { selectedCategory = null; editingBudget = parent to category },
             onDetails = { selectedCategory = null; categoryDetails = parent to category },
-            onTransactionsThisMonth = { selectedCategory = null; onShowCategoryTransactions(category.name, true) },
-            onAllTransactions = { selectedCategory = null; onShowCategoryTransactions(category.name, false) },
+            onTransactionsThisMonth = { selectedCategory = null; onShowCategoryTransactions(category.name, true, false) },
+            onAllTransactions = { selectedCategory = null; onShowCategoryTransactions(category.name, false, false) },
             onMoveMoney = { selectedCategory = null; movingBudget = parent to category },
             hidden = category.hidden,
             onSetHidden = { hidden ->
@@ -450,10 +450,10 @@ fun BudgetScreen(
                 .sortedByDescending { it.date }.take(3),
             onRename = { categoryDetails = null; renamingCategory = group to category },
             onTransactionsThisMonth = {
-                categoryDetails = null; onShowCategoryTransactions(category.name, true)
+                categoryDetails = null; onShowCategoryTransactions(category.name, true, true)
             },
             onAllTransactions = {
-                categoryDetails = null; onShowCategoryTransactions(category.name, false)
+                categoryDetails = null; onShowCategoryTransactions(category.name, false, true)
             },
             hidden = category.hidden,
             onSetHidden = { hidden ->
