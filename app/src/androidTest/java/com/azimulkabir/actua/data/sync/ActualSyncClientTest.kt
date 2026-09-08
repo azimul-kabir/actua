@@ -10,6 +10,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.io.IOException
 import java.util.UUID
 
 class ActualSyncClientTest {
@@ -146,6 +147,29 @@ class ActualSyncClientTest {
         }
     }
 
+    @Test
+    fun retryAfterResponseInterruptionResendsAcceptedLocalWriteAndConverges() {
+        withDatabase { database ->
+            val snapshot = message("2024-01-01T00:00:00.000Z", "aaaaaaaaaaaaaaaa", "acct-1", "S:Checking")
+            val local = message("2024-01-02T00:00:00.000Z", "aaaaaaaaaaaaaaaa", "acct-2", "S:Savings")
+            database.insertMessages(listOf(snapshot))
+            database.saveClock(ActualBudgetDatabase.ClockRecord(
+                snapshot.timestamp.toString(), database.deriveMerkleFromMessageLog().root,
+            ))
+            database.applyLocalMessages(listOf(local))
+            val server = FakeSyncServer(listOf(snapshot), failAfterAcceptOnce = true)
+
+            assertThrows(IOException::class.java) { client(database, server.client).sync() }
+            val outcome = client(database, server.client).sync()
+
+            assertEquals(2, server.requests.size)
+            assertEquals(listOf(local.timestamp.toString()), server.requests[0].messages.map { it.timestamp })
+            assertEquals(listOf(local.timestamp.toString()), server.requests[1].messages.map { it.timestamp })
+            assertEquals(1, outcome.sentMessages)
+            assertEquals(server.merkle(), database.deriveMerkleFromMessageLog())
+        }
+    }
+
     private fun client(database: ActualBudgetDatabase, server: ActualServerClient) = ActualSyncClient(
         serverUrl = "https://actual.test",
         token = "token",
@@ -181,8 +205,9 @@ class ActualSyncClientTest {
         }
     }
 
-    private class FakeSyncServer(initial: List<CrdtMessage>) {
+    private class FakeSyncServer(initial: List<CrdtMessage>, failAfterAcceptOnce: Boolean = false) {
         private val log = initial.associateByTo(mutableMapOf()) { it.timestamp.toString() }
+        private var interruptNextResponse = failAfterAcceptOnce
         val requests = mutableListOf<SyncRequestPayload>()
         val client = ActualServerClient { request ->
             val decoded = SyncProtocol.decodeRequest(request.body ?: byteArrayOf())
@@ -196,6 +221,10 @@ class ActualSyncClientTest {
                     inner.column,
                     inner.value,
                 )
+            }
+            if (interruptNextResponse) {
+                interruptNextResponse = false
+                throw IOException("simulated response interruption")
             }
             val outgoing = log.values
                 .filter { it.timestamp.toString() > decoded.since }

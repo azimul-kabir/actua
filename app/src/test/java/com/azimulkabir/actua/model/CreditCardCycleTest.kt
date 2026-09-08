@@ -70,6 +70,22 @@ class CreditCardCycleTest {
             .dueDate(DayDate(2026, 2, 15)))
     }
 
+    @Test fun fixedDueDayUsesLeapDayWhenAvailable() {
+        val cycle = CreditCardCycle(
+            statementDay = 31,
+            paymentDue = CreditCardCycle.PaymentDue.DayOfMonth(29),
+        )
+
+        assertEquals(DayDate(2028, 2, 29), cycle.dueDate(DayDate(2028, 1, 31)))
+        assertEquals(DayDate(2027, 2, 28), cycle.dueDate(DayDate(2027, 1, 31)))
+    }
+
+    @Test fun widestOffsetFindsEarliestStillPendingStatement() {
+        val cycle = CreditCardCycle(statementDay = 15, dueOffsetDays = CreditCardCycle.MAX_DUE_OFFSET_DAYS)
+
+        assertEquals(DayDate(2026, 3, 16), cycle.upcomingDueDate(DayDate(2026, 2, 20)))
+    }
+
     @Test fun availableCreditUsesActualNegativeDebtConvention() {
         val limit = 100_000L
         val balance = -23_450L

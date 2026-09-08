@@ -102,6 +102,9 @@ Android backlog items and will never be ported.
   notes, remaining allocation, and Actual-compatible child-row persistence
 - Off-budget transaction category enforcement for standard and split create/edit
   flows, including clearing stale categories when an account changes
+- Regression coverage for interrupted sync retries, transfer-pair symmetry,
+  standard/split conversion, off-budget splits, rule JSON round trips, and
+  credit-card due-date boundaries
 
 ## Remaining version 1 work
 

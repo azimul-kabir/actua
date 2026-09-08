@@ -143,6 +143,107 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun transferUpdatesAndConversionsKeepBothLegsSymmetric() = withDatabase { database ->
+        var next = 0
+        val ids = { "symmetry-${++next}" }
+        val service = ActualTransactionFormService(
+            database, ActualTransactionWriter(database, idFactory = ids), idFactory = ids,
+        )
+
+        val originalTransfer = requireNotNull(database.fetchTransaction("transfer-out"))
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "12.34", transferToAccountId = "savings", date = 20260908,
+            notes = "updated pair", cleared = true,
+        ), originalTransfer)
+        val updatedSource = requireNotNull(database.fetchTransaction("transfer-out"))
+        val updatedTarget = requireNotNull(database.fetchTransaction("transfer-in"))
+        assertTransferPair(updatedSource, updatedTarget, -1_234L, 20260908)
+        assertEquals("updated pair", updatedSource.notes)
+        assertEquals("updated pair", updatedTarget.notes)
+
+        val ordinary = requireNotNull(database.fetchTransaction("ordinary"))
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "7.89", transferToAccountId = "savings", date = 20260909,
+        ), ordinary)
+        val converted = requireNotNull(database.fetchTransaction("ordinary"))
+        val partner = requireNotNull(converted.transferId?.let(database::fetchTransaction))
+        assertTransferPair(converted, partner, -789L, 20260909)
+    }
+
+    @Test
+    fun standardTransactionConvertsToSplitWithoutLeavingParentCategory() = withDatabase { database ->
+        var next = 0
+        val ids = { "conversion-${++next}" }
+        val service = ActualTransactionFormService(
+            database, ActualTransactionWriter(database, idFactory = ids), idFactory = ids,
+        )
+        val original = requireNotNull(database.fetchTransaction("ordinary"))
+
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", date = 20260908,
+            splits = listOf(
+                ActualSplitLineForm(categoryId = "grocery", amount = "6"),
+                ActualSplitLineForm(categoryId = "rent", amount = "4"),
+            ),
+        ), original)
+
+        val parent = requireNotNull(database.fetchTransaction(original.id))
+        val children = database.fetchChildTransactions(parent.id)
+        assertTrue(parent.isParent)
+        assertNull(parent.categoryId)
+        assertEquals(parent.amountCents, children.sumOf { it.amountCents })
+        assertEquals(listOf("grocery", "rent"), children.map { it.categoryId })
+        assertTrue(children.all { it.parentId == parent.id && it.accountId == parent.accountId })
+    }
+
+    @Test
+    fun offBudgetStandardAndSplitPersistenceAlwaysClearsCategories() = withDatabase { database ->
+        var entityId = 0
+        val accountId = ActualEntityWriter(
+            database, idFactory = { "off-budget-${++entityId}" },
+        ).createAccount("Off Budget", offBudget = true, startingBalanceCents = 0)
+        var transactionId = 0
+        val ids = { "off-transaction-${++transactionId}" }
+        val service = ActualTransactionFormService(
+            database, ActualTransactionWriter(database, idFactory = ids), idFactory = ids,
+        )
+
+        val standardId = service.save(ActualTransactionForm(
+            accountId = accountId, type = ActualTransactionType.EXPENSE,
+            amount = "5", payeeName = "Coffee", categoryId = "grocery", date = 20260908,
+        ))
+        assertNull(database.fetchTransaction(requireNotNull(standardId))?.categoryId)
+
+        service.save(ActualTransactionForm(
+            accountId = accountId, type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", categoryId = "grocery", date = 20260908,
+            splits = listOf(
+                ActualSplitLineForm(categoryId = "grocery", amount = "6"),
+                ActualSplitLineForm(categoryId = "rent", amount = "4"),
+            ),
+        ))
+        val parent = database.fetchTransactions(accountId).single { it.isParent }
+        assertNull(parent.categoryId)
+        assertTrue(database.fetchChildTransactions(parent.id).all { it.categoryId == null })
+
+        val existingParent = requireNotNull(database.fetchTransaction("split-parent"))
+        val existingChildren = database.fetchChildTransactions(existingParent.id)
+        service.save(ActualTransactionForm(
+            accountId = accountId, type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", date = 20260909,
+            splits = listOf(
+                ActualSplitLineForm(existingChildren[0].id, "grocery", "6"),
+                ActualSplitLineForm(existingChildren[1].id, "rent", "4"),
+            ),
+        ), existingParent)
+        val movedChildren = database.fetchChildTransactions(existingParent.id)
+        assertTrue(movedChildren.all { it.accountId == accountId && it.categoryId == null })
+    }
+
+    @Test
     fun entityMenuMutationsUpdateRowsAndCrdtLog() = withDatabase { database ->
         val writer = ActualEntityWriter(database, nodeId = "bbbbbbbbbbbbbbbb")
         writer.renameAccount("checking", "Daily")
@@ -488,4 +589,24 @@ class ActualBudgetReadModelTest {
         sortOrder = date.toDouble(), importedPayee = null, scheduleId = null,
         transferAccountId = null,
     )
+
+    private fun assertTransferPair(
+        source: ActualTransaction,
+        target: ActualTransaction,
+        sourceAmount: Long,
+        date: Int,
+    ) {
+        assertEquals(target.id, source.transferId)
+        assertEquals(source.id, target.transferId)
+        assertEquals(sourceAmount, source.amountCents)
+        assertEquals(-sourceAmount, target.amountCents)
+        assertEquals(date, source.date)
+        assertEquals(date, target.date)
+        assertEquals("checking", source.accountId)
+        assertEquals("savings", target.accountId)
+        assertEquals(target.accountId, source.transferAccountId)
+        assertEquals(source.accountId, target.transferAccountId)
+        assertNull(source.categoryId)
+        assertNull(target.categoryId)
+    }
 }
