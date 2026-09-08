@@ -260,8 +260,11 @@ private fun AccountRow(
     hideDecimalPlaces: Boolean,
 ) {
     if (showTopDivider) {
-        HorizontalDivider(modifier = Modifier.padding(start = 24.dp),
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+        HorizontalDivider(
+            modifier = Modifier.padding(start = 24.dp, end = 12.dp),
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.32f),
+        )
     }
     Row(
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
