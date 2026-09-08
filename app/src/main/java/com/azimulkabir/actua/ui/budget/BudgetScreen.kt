@@ -181,7 +181,6 @@ fun BudgetScreen(
     var movingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var fundingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
-    var autoAssignCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var assignFromBudgetOpen by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -363,7 +362,6 @@ fun BudgetScreen(
             hideDecimalPlaces = hideDecimalPlaces,
             startInMoveMode = false,
             onDismiss = { editingBudget = null },
-            onAutoAssign = { editingBudget = null; autoAssignCategory = group to category },
             onDetails = { editingBudget = null; categoryDetails = group to category },
             onSave = { amount ->
                 onSetBudgetAmount(group.name, category.name, amount)
@@ -449,17 +447,6 @@ fun BudgetScreen(
             onDeleteTransaction = onDeleteTransaction,
         )
     }
-    autoAssignCategory?.let { (group, category) ->
-        CategoryAutoAssignSheet(
-            category = category,
-            hideDecimalPlaces = hideDecimalPlaces,
-            onDismiss = { autoAssignCategory = null },
-            onAssign = { amount ->
-                onSetBudgetAmount(group.name, category.name, amount)
-                autoAssignCategory = null
-            },
-        )
-    }
     movingBudget?.let { (group, category) ->
         EditBudgetAmountSheet(
             sourceGroup = group,
@@ -469,7 +456,6 @@ fun BudgetScreen(
             hideDecimalPlaces = hideDecimalPlaces,
             startInMoveMode = true,
             onDismiss = { movingBudget = null },
-            onAutoAssign = { movingBudget = null; autoAssignCategory = group to category },
             onDetails = { movingBudget = null; categoryDetails = group to category },
             onSave = { amount ->
                 onSetBudgetAmount(group.name, category.name, amount)
@@ -1104,12 +1090,13 @@ private fun EditBudgetAmountSheet(
     hideDecimalPlaces: Boolean,
     startInMoveMode: Boolean,
     onDismiss: () -> Unit,
-    onAutoAssign: () -> Unit,
     onDetails: () -> Unit,
     onSave: (Long) -> Unit,
     onMove: (String?, String?, String?, String?, Long) -> Unit,
 ) {
     var moveMode by remember(category, startInMoveMode) { mutableStateOf(startInMoveMode) }
+    var autoAssignMode by remember(category, startInMoveMode) { mutableStateOf(false) }
+    val autoAssignChoices = remember(category) { buildAutoAssignChoices(category) }
     val options = remember(groups, toBudgetCents) {
         listOf(MoveEndpoint(null, null, toBudgetCents)) + groups.filterNot { it.isIncome }.flatMap { group ->
             group.categories.filterNot { it.hidden }.map { item ->
@@ -1138,15 +1125,67 @@ private fun EditBudgetAmountSheet(
         Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                BudgetEntryAction(Icons.Outlined.Bolt, "Auto-Assign", Modifier.weight(1f), onAutoAssign)
+                BudgetEntryAction(
+                    Icons.Outlined.Bolt,
+                    "Auto-Assign",
+                    Modifier.weight(1f),
+                    onClick = {
+                        val expand = !autoAssignMode
+                        moveMode = false
+                        autoAssignMode = expand
+                    },
+                    selected = autoAssignMode,
+                )
                 BudgetEntryAction(
                     Icons.Outlined.SwapHoriz,
                     "Move Money",
                     Modifier.weight(1f),
-                    onClick = { moveMode = true },
+                    onClick = {
+                        val expand = !moveMode
+                        autoAssignMode = false
+                        moveMode = expand
+                    },
                     selected = moveMode,
                 )
                 BudgetEntryAction(Icons.Outlined.MoreHoriz, "Details", Modifier.weight(1f), onDetails)
+            }
+            AnimatedVisibility(
+                visible = autoAssignMode,
+                enter = slideInVertically(tween(220)) { it / 2 } + fadeIn(tween(160)),
+                exit = slideOutVertically(tween(160)) { it / 2 } + fadeOut(tween(100)),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (autoAssignChoices.isEmpty()) {
+                        Text(
+                            "No suggestions available",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 12.dp),
+                        )
+                    }
+                    autoAssignChoices.forEach { (label, amount) ->
+                        Surface(
+                            onClick = { onSave(amount) },
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                Text(
+                                    formatMoneyCents(amount, hideDecimalPlaces),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                    }
+                }
             }
             AnimatedVisibility(
                 visible = moveMode,
@@ -1652,50 +1691,22 @@ private fun DetailSummary(label: String, amount: Long, hideDecimals: Boolean, mo
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CategoryAutoAssignSheet(
-    category: BudgetCategory,
-    hideDecimalPlaces: Boolean,
-    onDismiss: () -> Unit,
-    onAssign: (Long) -> Unit,
-) {
-    val choices = remember(category) {
-        buildList {
-            category.history.firstOrNull()?.let { last ->
-                val spent = kotlin.math.abs(minOf(last.spentCents, 0L))
-                if (spent > 0) add("Spent last month" to spent)
-                if (last.assignedCents != 0L) add("Budgeted last month" to last.assignedCents)
-            }
-            val spending = category.history.map { kotlin.math.abs(minOf(it.spentCents, 0L)) }
-            if (spending.size >= 2) {
-                val average = (spending.sum().toDouble() / spending.size).toLong()
-                if (average > 0) add("Average spent (${spending.size} months)" to average)
-            }
-            if (category.balanceCents != 0L) add("Reset balance to zero" to
-                (category.assignedCents - category.balanceCents))
-            if (category.assignedCents != 0L) add("Set budgeted to zero" to 0L)
-        }.distinctBy { it.first }
+private fun buildAutoAssignChoices(category: BudgetCategory): List<Pair<String, Long>> = buildList {
+    category.history.firstOrNull()?.let { last ->
+        val spent = kotlin.math.abs(minOf(last.spentCents, 0L))
+        if (spent > 0) add("Spent last month" to spent)
+        if (last.assignedCents != 0L) add("Budgeted last month" to last.assignedCents)
     }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Auto-Assign", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(category.name, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (choices.isEmpty()) Text("No suggestions available", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            choices.forEach { (label, amount) ->
-                Surface(onClick = { onAssign(amount) }, color = MaterialTheme.colorScheme.surfaceContainer,
-                    shape = RoundedCornerShape(14.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(16.dp)) {
-                        Text(label, modifier = Modifier.weight(1f))
-                        Text(formatMoneyCents(amount, hideDecimalPlaces), fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-            Spacer(Modifier.height(18.dp))
-        }
+    val spending = category.history.map { kotlin.math.abs(minOf(it.spentCents, 0L)) }
+    if (spending.size >= 2) {
+        val average = (spending.sum().toDouble() / spending.size).toLong()
+        if (average > 0) add("Average spent (${spending.size} months)" to average)
     }
-}
+    if (category.balanceCents != 0L) {
+        add("Reset balance to zero" to (category.assignedCents - category.balanceCents))
+    }
+    if (category.assignedCents != 0L) add("Set budgeted to zero" to 0L)
+}.distinctBy { it.first }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
