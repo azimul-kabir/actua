@@ -147,6 +147,9 @@ private fun notificationsAllowed(context: Context) = Build.VERSION.SDK_INT < Bui
     ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
 private fun postNotification(context: Context, card: CreditCardStatus, dueDate: DayDate, offset: Int) {
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+        PackageManager.PERMISSION_GRANTED) return
+
     val manager = context.getSystemService(NotificationManager::class.java)
     manager.createNotificationChannel(NotificationChannel(
         CHANNEL_ID, "Credit card due dates", NotificationManager.IMPORTANCE_DEFAULT
