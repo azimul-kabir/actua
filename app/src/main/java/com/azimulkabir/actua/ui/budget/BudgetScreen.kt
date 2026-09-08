@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -161,6 +162,7 @@ fun BudgetScreen(
     onDeleteTransaction: (Transaction) -> Unit = {},
     requestedCategoryDetails: String? = null,
     onCategoryDetailsChange: (String?) -> Unit = {},
+    returnToRootRequest: Int = 0,
 ) {
     val context = LocalContext.current
     val budgetUiPreferences = remember(context) {
@@ -187,6 +189,14 @@ fun BudgetScreen(
     var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var autoAssignBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var assignFromBudgetOpen by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(returnToRootRequest) {
+        if (returnToRootRequest > 0) {
+            if (categoryDetails != null) categoryDetails = null
+            else listState.animateScrollToItem(0)
+        }
+    }
 
     LaunchedEffect(requestedCategoryDetails, groups) {
         requestedCategoryDetails?.let { requested ->
@@ -248,6 +258,7 @@ fun BudgetScreen(
         }
 
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
         ) {
