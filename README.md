@@ -37,7 +37,8 @@ by either the Actuali project or the Actual Budget team.
 - Inline transaction calculator expressions that remain visible until confirmation
 - Account, category, and group creation plus working contextual actions
 - Local backup, restore, retention, and pre-restore revert
-- Actual-compatible rules management, editing, CRDT sync, and transaction processing
+- Actual-compatible rule listing, editing, CRDT mutations, and transaction
+  processing for supported standard conditions and actions
 - Balance-focused category details with shared Budget, Move Money and Auto-Assign keypads, notes, rollover overspending, recent activity and category-preselected transaction entry
 - Credit-card limits, billing-cycle metadata, fixed or offset due dates, and cycle spending stored through Actual preferences
 - Reports, display currency, decimal, appearance, start-page, and privacy preferences

@@ -43,6 +43,9 @@ Android backlog items and will never be ported.
 - Local backup snapshots, CRDT stripping, retention, restore, and one-shot revert
 - Rule JSON parsing, schema translation, ranking, condition/action evaluation,
   named-payee resolution, and rule application for incoming transactions
+- Rule list/search/editor UI and Actual-compatible CRDT create, update, and
+  delete mutations for supported condition and action schemas, with protection
+  for schedule-owned rules
 - Timezone-free schedule day math, upcoming windows, lifecycle status, and
   transaction occurrence matching
 - Daily/weekly/monthly/yearly schedule recurrence, monthly day/nth-weekday
@@ -108,7 +111,7 @@ Android backlog items and will never be ported.
 
 ## Post-v1 portable features
 
-- Rule editor/list UI, CRDT rule mutations, split/formula/template rule actions
+- Advanced split, formula, and template rule actions
 - Schedule discovery UI wiring
 - Goal templates, cleanup templates, and budget automations
 - Reports/dashboard models and calculation engines
