@@ -118,6 +118,9 @@ fun AppNavigation(
     var transactionSearch by rememberSaveable { mutableStateOf("") }
     var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
     var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
+    var editorReturnsToCategory by rememberSaveable { mutableStateOf(false) }
+    var activeBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
+    var reopenBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
@@ -160,12 +163,23 @@ fun AppNavigation(
         addOrigin = destination
         editingTransaction = null
         editorReturnsToTransactions = false
+        editorReturnsToCategory = false
         detail = DetailDestination.EditTransaction
     }
 
     fun openAddTransactionForAccount() {
         editingTransaction = null
         editorReturnsToTransactions = true
+        editorReturnsToCategory = false
+        transactionFabExpanded = true
+        detail = DetailDestination.EditTransaction
+    }
+
+    fun openAddTransactionForCategory() {
+        transactionCategory = activeBudgetCategory
+        editingTransaction = null
+        editorReturnsToTransactions = false
+        editorReturnsToCategory = true
         transactionFabExpanded = true
         detail = DetailDestination.EditTransaction
     }
@@ -196,6 +210,13 @@ fun AppNavigation(
 
     BackHandler(enabled = detail != DetailDestination.Main || destination != MainDestination.Budget) {
         when {
+            detail == DetailDestination.EditTransaction && editorReturnsToCategory -> {
+                reopenBudgetCategory = transactionCategory
+                detail = DetailDestination.Main
+                destination = MainDestination.Budget
+                editingTransaction = null
+                editorReturnsToCategory = false
+            }
             detail == DetailDestination.EditTransaction && editorReturnsToTransactions -> {
                 detail = DetailDestination.Transactions
                 editingTransaction = null
@@ -219,9 +240,15 @@ fun AppNavigation(
                 MainDestination.Reports,
             )
             val inAccount = detail == DetailDestination.Transactions && transactionAccount != null
+            val inBudgetCategory = detail == DetailDestination.Main &&
+                destination == MainDestination.Budget && activeBudgetCategory != null
             if (repository.isUsingActualBudget && (onMainTab || inAccount)) {
                 ExtendedFloatingActionButton(
-                    onClick = if (inAccount) ::openAddTransactionForAccount else ::openAddTransaction,
+                    onClick = when {
+                        inBudgetCategory -> ::openAddTransactionForCategory
+                        inAccount -> ::openAddTransactionForAccount
+                        else -> ::openAddTransaction
+                    },
                     expanded = transactionFabExpanded,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
                     text = { Text("Transaction") },
@@ -241,6 +268,8 @@ fun AppNavigation(
                             }
                             destination = item
                             detail = DetailDestination.Main
+                            activeBudgetCategory = null
+                            reopenBudgetCategory = null
                             transactionFabExpanded = true
                         },
                         icon = { Icon(item.icon, contentDescription = item.label) },
@@ -313,9 +342,14 @@ fun AppNavigation(
             DetailDestination.EditTransaction -> AddTransactionScreen(
                 editing = editingTransaction,
                 onBack = {
+                    if (editorReturnsToCategory) {
+                        reopenBudgetCategory = transactionCategory
+                        destination = MainDestination.Budget
+                    }
                     detail = if (editorReturnsToTransactions) DetailDestination.Transactions else DetailDestination.Main
                     editingTransaction = null
-                    if (!editorReturnsToTransactions) destination = addOrigin
+                    if (!editorReturnsToTransactions && !editorReturnsToCategory) destination = addOrigin
+                    editorReturnsToCategory = false
                 },
                 onSave = {
                     val wasEditing = editingTransaction != null
@@ -328,7 +362,12 @@ fun AppNavigation(
                         )) {
                         dataVersion += 1
                         editingTransaction = null
-                        if (editorReturnsToTransactions) {
+                        if (editorReturnsToCategory) {
+                            reopenBudgetCategory = transactionCategory
+                            destination = MainDestination.Budget
+                            detail = DetailDestination.Main
+                            editorReturnsToCategory = false
+                        } else if (editorReturnsToTransactions) {
                             detail = DetailDestination.Transactions
                         } else if (wasEditing) {
                             detail = DetailDestination.Main
@@ -364,6 +403,11 @@ fun AppNavigation(
                         transactionAccount ?: defaultAccount
                     } else {
                         defaultAccount
+                    },
+                    defaultCategory = if (editingTransaction == null && editorReturnsToCategory) {
+                        transactionCategory
+                    } else {
+                        null
                     },
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,
@@ -499,6 +543,7 @@ fun AppNavigation(
                         mutate("Renaming group") { repository.renameCategoryGroup(group, name) }
                     },
                     onShowCategoryTransactions = { category, thisMonth ->
+                        activeBudgetCategory = null
                         transactionAccount = null
                         transactionCategory = category
                         transactionMonth = if (thisMonth) budgetMonth else null
@@ -531,6 +576,7 @@ fun AppNavigation(
                         mutate("Deleting category") { repository.deleteCategory(group, category) }
                     },
                     onEditTransaction = { transaction ->
+                        activeBudgetCategory = null
                         editingTransaction = transaction
                         editorReturnsToTransactions = true
                         transactionAccount = null
@@ -541,6 +587,11 @@ fun AppNavigation(
                     },
                     onDeleteTransaction = { transaction ->
                         mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
+                    },
+                    requestedCategoryDetails = reopenBudgetCategory,
+                    onCategoryDetailsChange = { category ->
+                        activeBudgetCategory = category
+                        if (category == reopenBudgetCategory) reopenBudgetCategory = null
                     },
                 )
                 MainDestination.Accounts -> AccountsScreen(

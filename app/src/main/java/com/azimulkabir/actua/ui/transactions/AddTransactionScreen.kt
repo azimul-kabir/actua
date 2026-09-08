@@ -87,6 +87,7 @@ fun AddTransactionScreen(
     payeeOptions: List<String> = emptyList(),
     accountBalanceLabels: Map<String, String> = emptyMap(),
     defaultAccount: String? = null,
+    defaultCategory: String? = null,
     hideDecimalPlaces: Boolean = false,
     conventionalAmountEntry: Boolean = false,
     onResolveRuleCategory: (Transaction) -> String? = { null },
@@ -96,7 +97,9 @@ fun AddTransactionScreen(
     var amountExpression by remember(editing) { mutableStateOf<String?>(null) }
     var confirmDelete by remember(editing) { mutableStateOf(false) }
     var payee by remember(editing) { mutableStateOf(editing?.payee ?: "") }
-    var category by remember(editing) { mutableStateOf(editing?.category ?: "") }
+    var category by remember(editing, defaultCategory) {
+        mutableStateOf(editing?.category ?: defaultCategory?.takeIf(categoryOptions::contains).orEmpty())
+    }
     var account by remember(editing, accountOptions) {
         mutableStateOf(
             if (editing?.type == Type.TRANSFER && editing.amountCents >= 0) {
