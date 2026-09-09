@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MoreVert
@@ -184,28 +185,36 @@ fun TransactionsScreen(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1,
                 overflow = TextOverflow.Ellipsis)
-            IconButton(onClick = { showSearch = !showSearch }) {
-                Icon(Icons.Outlined.Search, contentDescription = "Search transactions")
-            }
-            androidx.compose.foundation.layout.Box {
-                IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Outlined.MoreVert, contentDescription = "Transaction options")
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    ToggleItem("Group by date", groupTransactionsByDate, onGroupTransactionsByDateChange)
-                    ToggleItem("Hide cleared transactions", hideCleared) { hideCleared = it }
-                    ToggleItem("Hide reconciled transactions", hideReconciledTransactions,
-                        onHideReconciledTransactionsChange)
-                    account?.let { selectedAccount ->
-                        ToggleItem(
-                            "Show current balance summary",
-                            showCurrentBalanceSummary,
-                            onShowCurrentBalanceSummaryChange,
-                        )
-                        ToggleItem("Show notes", showAccountNotes) { show ->
-                            showAccountNotes = show
-                            accountDetailPreferences.edit()
-                                .putBoolean("show_notes_${selectedAccount.id}", show).apply()
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 2.dp,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { showSearch = !showSearch }) {
+                        Icon(Icons.Outlined.Search, contentDescription = "Search transactions")
+                    }
+                    androidx.compose.foundation.layout.Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = "Transaction options")
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            ToggleItem("Group by date", groupTransactionsByDate, onGroupTransactionsByDateChange)
+                            ToggleItem("Hide cleared transactions", hideCleared) { hideCleared = it }
+                            ToggleItem("Hide reconciled transactions", hideReconciledTransactions,
+                                onHideReconciledTransactionsChange)
+                            account?.let { selectedAccount ->
+                                ToggleItem(
+                                    "Show current balance summary",
+                                    showCurrentBalanceSummary,
+                                    onShowCurrentBalanceSummaryChange,
+                                )
+                                ToggleItem("Show notes", showAccountNotes) { show ->
+                                    showAccountNotes = show
+                                    accountDetailPreferences.edit()
+                                        .putBoolean("show_notes_${selectedAccount.id}", show).apply()
+                                }
+                            }
                         }
                     }
                 }

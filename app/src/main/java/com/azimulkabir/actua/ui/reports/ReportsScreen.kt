@@ -27,6 +27,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -78,7 +79,15 @@ fun ReportsScreen(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Reports", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f))
-                IconButton(onClick = onSearch) { Icon(Icons.Outlined.Search, contentDescription = "Search Actua") }
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 2.dp,
+                ) {
+                    IconButton(onClick = onSearch) {
+                        Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
+                    }
+                }
             }
         }
         if (selected == null) {
