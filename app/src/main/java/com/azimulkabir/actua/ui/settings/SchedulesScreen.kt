@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +21,13 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.CheckCircleOutline
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.EventAvailable
+import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -25,6 +35,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,18 +62,25 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SchedulesScreen(
     schedules: List<ScheduleListItem>,
     hideDecimalPlaces: Boolean,
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
+    onPost: (String, Boolean) -> Unit,
+    onSkip: (String) -> Unit,
+    onSetCompleted: (String, Boolean) -> Unit,
+    onDelete: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var search by remember { mutableStateOf("") }
     var showSearch by remember { mutableStateOf(false) }
     var showCompleted by remember { mutableStateOf(false) }
     var optionsOpen by remember { mutableStateOf(false) }
+    var actionItem by remember { mutableStateOf<ScheduleListItem?>(null) }
+    var deleteItem by remember { mutableStateOf<ScheduleListItem?>(null) }
     val completedCount = schedules.count { it.schedule.completed }
     val visible = remember(schedules, search, showCompleted) {
         schedules.filter { showCompleted || !it.schedule.completed }.filter { item ->
@@ -112,8 +132,16 @@ fun SchedulesScreen(
             )
             else -> LazyColumn(Modifier.fillMaxSize()) {
                 items(visible, key = { it.schedule.id }) { item ->
-                    ScheduleRow(item, hideDecimalPlaces, onEdit)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+                    ScheduleRow(
+                        item = item,
+                        hideDecimals = hideDecimalPlaces,
+                        onClick = { onEdit(item.schedule.id) },
+                        onLongClick = { actionItem = item },
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 20.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+                    )
                 }
                 if (!showCompleted && completedCount > 0) item("completed-footer") {
                     Text("$completedCount completed ${if (completedCount == 1) "schedule" else "schedules"} hidden.",
@@ -125,17 +153,59 @@ fun SchedulesScreen(
         }
     }
 
+    actionItem?.let { item ->
+        ScheduleActionsSheet(
+            item = item,
+            onDismiss = { actionItem = null },
+            onPost = { today ->
+                actionItem = null
+                onPost(item.schedule.id, today)
+            },
+            onSkip = {
+                actionItem = null
+                onSkip(item.schedule.id)
+            },
+            onSetCompleted = {
+                actionItem = null
+                onSetCompleted(item.schedule.id, !item.schedule.completed)
+            },
+            onDelete = {
+                actionItem = null
+                deleteItem = item
+            },
+        )
+    }
+    deleteItem?.let { item ->
+        AlertDialog(
+            onDismissRequest = { deleteItem = null },
+            title = { Text("Delete this schedule?") },
+            text = { Text("Transactions this schedule already created will be kept.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    deleteItem = null
+                    onDelete(item.schedule.id)
+                }) {
+                    Text("Delete schedule", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteItem = null }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ScheduleRow(
     item: ScheduleListItem,
     hideDecimals: Boolean,
-    onEdit: (String) -> Unit,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
     val schedule = item.schedule
     Row(
-        Modifier.fillMaxWidth().clickable { onEdit(schedule.id) }
+        Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(start = 20.dp, top = 14.dp, end = 12.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -188,6 +258,69 @@ private fun ScheduleRow(
             modifier = Modifier.padding(start = 8.dp),
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScheduleActionsSheet(
+    item: ScheduleListItem,
+    onDismiss: () -> Unit,
+    onPost: (Boolean) -> Unit,
+    onSkip: () -> Unit,
+    onSetCompleted: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Text(
+            item.title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+        )
+        if (!item.schedule.completed) {
+            ScheduleAction("Post Transaction", Icons.Outlined.AddCircleOutline) {
+                onPost(false)
+            }
+            ScheduleAction("Post Transaction Today", Icons.Outlined.EventAvailable) {
+                onPost(true)
+            }
+            if (item.schedule.isRecurring) {
+                ScheduleAction("Skip Next Date", Icons.Outlined.SkipNext, onClick = onSkip)
+            }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+        }
+        ScheduleAction(
+            if (item.schedule.completed) "Restart" else "Mark Completed",
+            if (item.schedule.completed) Icons.Outlined.RestartAlt
+            else Icons.Outlined.CheckCircleOutline,
+            onClick = onSetCompleted,
+        )
+        ScheduleAction(
+            "Delete",
+            Icons.Outlined.DeleteOutline,
+            destructive = true,
+            onClick = onDelete,
+        )
+        Spacer(Modifier.height(20.dp))
+    }
+}
+
+@Composable
+private fun ScheduleAction(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    destructive: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val color = if (destructive) MaterialTheme.colorScheme.error
+        else MaterialTheme.colorScheme.onSurface
+    ListItem(
+        headlineContent = { Text(label, color = color) },
+        leadingContent = { Icon(icon, contentDescription = null, tint = color) },
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+    )
 }
 
 @Composable

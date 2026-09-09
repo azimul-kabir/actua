@@ -614,6 +614,22 @@ fun AppNavigation(
                     editingScheduleId = id
                     detail = DetailDestination.EditSchedule
                 },
+                onPost = { id, today ->
+                    mutate(if (today) "Posting schedule today" else "Posting schedule") {
+                        repository.postScheduleTransaction(id, today)
+                    }
+                },
+                onSkip = { id ->
+                    mutate("Skipping next date") { repository.skipScheduleNextDate(id) }
+                },
+                onSetCompleted = { id, completed ->
+                    mutate(if (completed) "Completing schedule" else "Restarting schedule") {
+                        repository.setScheduleCompleted(id, completed)
+                    }
+                },
+                onDelete = { id ->
+                    mutate("Deleting schedule") { repository.deleteSchedule(id) }
+                },
                 modifier = contentModifier,
             )
             DetailDestination.EditSchedule -> schedules.firstOrNull {
@@ -621,10 +637,15 @@ fun AppNavigation(
             }?.let { item ->
                 com.azimulkabir.actua.ui.settings.EditScheduleScreen(
                     item = item,
+                    accounts = accounts,
+                    payeeOptions = payeeNames,
                     hideDecimalPlaces = hideDecimalPlaces,
+                    conventionalAmountEntry = conventionalAmountEntry,
                     onBack = { detail = DetailDestination.Schedules },
-                    onSave = { fields ->
-                        if (mutate("Saving schedule") { repository.updateSchedule(item.schedule.id, fields) }) {
+                    onSave = { fields, payeeName ->
+                        if (mutate("Saving schedule") {
+                            repository.updateSchedule(item.schedule.id, fields, payeeName)
+                        }) {
                             detail = DetailDestination.Schedules
                         }
                     },

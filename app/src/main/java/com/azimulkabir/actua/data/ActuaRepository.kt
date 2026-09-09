@@ -10,6 +10,7 @@ import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.ActualSplitLineForm
 import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
+import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
@@ -109,21 +110,67 @@ class ActuaRepository(context: Context) {
         actualSchedules!!.apply(ScheduleWriteBuilder.columns(
             schedule.id, "completed" to if (completed) 1 else 0,
         ))
+        if (!completed) {
+            val date = schedule.dateCondition ?: return true
+            val next = com.azimulkabir.actua.data.schedules.ScheduleConditions.nextDate(
+                date, DayDate.today(),
+            ) ?: return true
+            ScheduleWriteBuilder.nextDate(
+                schedule, next, reset = true, now = System.currentTimeMillis(),
+            )?.let(actualSchedules::apply)
+        }
         return true
     }
 
-    fun updateSchedule(scheduleId: String, fields: ScheduleFormFields): Boolean {
+    fun updateSchedule(scheduleId: String, fields: ScheduleFormFields, payeeName: String): Boolean {
         val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
             ?: return false
+        val payeeId = payeeName.trim().takeIf(String::isNotEmpty)?.let {
+            actualWriter!!.resolveOrCreatePayee(it).id
+        }
         val plan = ScheduleWriteBuilder.update(
             schedule = schedule,
-            fields = fields,
+            fields = fields.copy(payeeId = payeeId),
             now = System.currentTimeMillis(),
             today = DayDate.today(),
             newNextDateRowId = { java.util.UUID.randomUUID().toString() },
             newRuleId = { java.util.UUID.randomUUID().toString() },
         )
         actualSchedules!!.apply(plan)
+        return true
+    }
+
+    /** Post one linked transaction without advancing the schedule, matching Actual/Actuali. */
+    fun postScheduleTransaction(scheduleId: String, today: Boolean): Boolean {
+        val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
+            ?: return false
+        require(!schedule.completed) { "Restart this schedule before posting a transaction" }
+        val accountId = requireNotNull(schedule.accountId) { "This schedule has no account" }
+        val date = if (today) DayDate.today() else schedule.nextDate ?: DayDate.today()
+        actualWriter!!.createTransaction(
+            ActualTransaction(
+                id = java.util.UUID.randomUUID().toString().lowercase(),
+                accountId = accountId,
+                date = date.yyyymmdd,
+                amountCents = schedule.postAmount,
+                payeeId = schedule.payeeId,
+                payeeName = null,
+                categoryId = schedule.categoryId,
+                categoryName = null,
+                notes = null,
+                cleared = false,
+                reconciled = false,
+                transferId = null,
+                isParent = false,
+                parentId = null,
+                tombstone = false,
+                sortOrder = null,
+                importedPayee = null,
+                scheduleId = schedule.id,
+                transferAccountId = null,
+            ),
+            applyRules = true,
+        )
         return true
     }
 
