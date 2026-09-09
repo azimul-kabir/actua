@@ -47,6 +47,13 @@ class ScheduleWriteBuilderTest {
         assertEquals(20261101, plan.writes.single().fields["local_next_date"])
         assertEquals(100L, plan.writes.single().fields["local_next_date_ts"])
         assertNull(plan.writes.single().fields["base_next_date"])
+
+        val restarted = requireNotNull(
+            ScheduleWriteBuilder.nextDate(summary(), DayDate(2026,12,1), true, 999),
+        )
+        assertEquals(20261201, restarted.writes.single().fields["base_next_date"])
+        assertEquals(999L, restarted.writes.single().fields["base_next_date_ts"])
+        assertFalse(restarted.writes.single().fields.containsKey("local_next_date"))
     }
 
     private fun summary() = ActualScheduleSummary("s1","Rent","r1",DayDate(2026,9,1),"nd1",100,

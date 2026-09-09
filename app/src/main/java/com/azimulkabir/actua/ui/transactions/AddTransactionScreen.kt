@@ -541,7 +541,7 @@ private fun TransactionSaveButton(
 }
 
 @Composable
-private fun PickerTextField(
+internal fun PickerTextField(
     label: String,
     value: String,
     options: List<String>,
