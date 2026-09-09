@@ -742,6 +742,10 @@ fun AppNavigation(
                     transactions = transactions,
                     hideDecimalPlaces = hideDecimalPlaces,
                     showMonthlySummary = showAccountsMonthlySummary,
+                    onShowMonthlySummaryChange = {
+                        displayPreferences.showAccountsMonthlySummary = it
+                        showAccountsMonthlySummary = it
+                    },
                     creditCards = creditCards,
                     onAccountClick = {
                         transactionAccount = it

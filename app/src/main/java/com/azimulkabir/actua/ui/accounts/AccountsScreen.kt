@@ -28,7 +28,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -37,6 +39,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -86,6 +89,7 @@ fun AccountsScreen(
     transactions: List<Transaction> = emptyList(),
     hideDecimalPlaces: Boolean = false,
     showMonthlySummary: Boolean = true,
+    onShowMonthlySummaryChange: (Boolean) -> Unit = {},
     creditCards: List<CreditCardStatus> = emptyList(),
     onAccountClick: (String) -> Unit = {},
     onAllAccountsClick: () -> Unit = {},
@@ -102,6 +106,7 @@ fun AccountsScreen(
     var collapsedSections by remember { mutableStateOf(setOf("Closed accounts")) }
     var selectedAccount by remember { mutableStateOf<Account?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
+    var accountMenuExpanded by remember { mutableStateOf(false) }
     var renamingAccount by remember { mutableStateOf<Account?>(null) }
     val accountSections = listOf(
         AccountSection("On budget", accounts.filter { !it.offBudget && !it.closed }),
@@ -116,11 +121,55 @@ fun AccountsScreen(
         ) {
             Text("Accounts", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f))
-            IconButton(onClick = onSearch) { Icon(Icons.Outlined.Search, contentDescription = "Search Actua") }
-            Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 2.dp) {
-                IconButton(onClick = { showAddSheet = true }) {
-                    Icon(Icons.Outlined.Add, contentDescription = "Add account")
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 2.dp,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onSearch) {
+                        Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
+                    }
+                    IconButton(onClick = { showAddSheet = true }) {
+                        Icon(Icons.Outlined.Add, contentDescription = "Add account")
+                    }
+                    Box {
+                        IconButton(onClick = { accountMenuExpanded = true }) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = "Account display options")
+                        }
+                        DropdownMenu(
+                            expanded = accountMenuExpanded,
+                            onDismissRequest = { accountMenuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Monthly summary") },
+                                trailingIcon = {
+                                    Switch(
+                                        checked = showMonthlySummary,
+                                        onCheckedChange = null,
+                                    )
+                                },
+                                onClick = {
+                                    onShowMonthlySummaryChange(!showMonthlySummary)
+                                },
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Expand all") },
+                                onClick = {
+                                    collapsedSections = emptySet()
+                                    accountMenuExpanded = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Collapse all") },
+                                onClick = {
+                                    collapsedSections = accountSections.mapTo(mutableSetOf()) { it.title }
+                                    accountMenuExpanded = false
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
