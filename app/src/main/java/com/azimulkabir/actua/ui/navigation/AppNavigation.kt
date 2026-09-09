@@ -90,7 +90,7 @@ private enum class MainDestination(
     More("More", Icons.Outlined.MoreHoriz),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, EditSchedule }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -151,6 +151,7 @@ fun AppNavigation(
     val scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() }
     val ruleEditorData = remember(dataVersion) { repository.ruleEditorData() }
     val schedules = remember(dataVersion) { repository.schedules() }
+    var editingScheduleId by rememberSaveable { mutableStateOf<String?>(null) }
     var destination by rememberSaveable {
         mutableStateOf(MainDestination.entries.firstOrNull { it.label == displayPreferences.startPage }
             ?: MainDestination.Accounts)
@@ -609,15 +610,32 @@ fun AppNavigation(
                 schedules = schedules,
                 hideDecimalPlaces = hideDecimalPlaces,
                 onBack = { detail = DetailDestination.Main },
-                onSetCompleted = { id, completed ->
-                    mutate(if (completed) "Completing schedule" else "Restarting schedule") {
-                        repository.setScheduleCompleted(id, completed)
-                    }
+                onEdit = { id ->
+                    editingScheduleId = id
+                    detail = DetailDestination.EditSchedule
                 },
-                onSkip = { id -> mutate("Skipping schedule") { repository.skipScheduleNextDate(id) } },
-                onDelete = { id -> mutate("Deleting schedule") { repository.deleteSchedule(id) } },
                 modifier = contentModifier,
             )
+            DetailDestination.EditSchedule -> schedules.firstOrNull {
+                it.schedule.id == editingScheduleId
+            }?.let { item ->
+                com.azimulkabir.actua.ui.settings.EditScheduleScreen(
+                    item = item,
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    onBack = { detail = DetailDestination.Schedules },
+                    onSave = { fields ->
+                        if (mutate("Saving schedule") { repository.updateSchedule(item.schedule.id, fields) }) {
+                            detail = DetailDestination.Schedules
+                        }
+                    },
+                    onDelete = {
+                        if (mutate("Deleting schedule") { repository.deleteSchedule(item.schedule.id) }) {
+                            detail = DetailDestination.Schedules
+                        }
+                    },
+                    modifier = contentModifier,
+                )
+            } ?: run { detail = DetailDestination.Schedules }
             DetailDestination.Main -> if (!repository.isUsingActualBudget && destination != MainDestination.More) {
                 NoBudgetScreen(contentModifier) {
                     destination = MainDestination.More

@@ -15,9 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -27,7 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,16 +54,13 @@ fun SchedulesScreen(
     schedules: List<ScheduleListItem>,
     hideDecimalPlaces: Boolean,
     onBack: () -> Unit,
-    onSetCompleted: (String, Boolean) -> Unit,
-    onSkip: (String) -> Unit,
-    onDelete: (String) -> Unit,
+    onEdit: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var search by remember { mutableStateOf("") }
     var showSearch by remember { mutableStateOf(false) }
     var showCompleted by remember { mutableStateOf(false) }
     var optionsOpen by remember { mutableStateOf(false) }
-    var pendingDelete by remember { mutableStateOf<ScheduleListItem?>(null) }
     val completedCount = schedules.count { it.schedule.completed }
     val visible = remember(schedules, search, showCompleted) {
         schedules.filter { showCompleted || !it.schedule.completed }.filter { item ->
@@ -116,9 +112,7 @@ fun SchedulesScreen(
             )
             else -> LazyColumn(Modifier.fillMaxSize()) {
                 items(visible, key = { it.schedule.id }) { item ->
-                    ScheduleRow(item, hideDecimalPlaces, onSetCompleted, onSkip) {
-                        pendingDelete = item
-                    }
+                    ScheduleRow(item, hideDecimalPlaces, onEdit)
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
                 }
                 if (!showCompleted && completedCount > 0) item("completed-footer") {
@@ -131,97 +125,68 @@ fun SchedulesScreen(
         }
     }
 
-    pendingDelete?.let { item ->
-        AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete this schedule?") },
-            text = { Text("Transactions already created by this schedule will be kept.") },
-            confirmButton = { TextButton(onClick = {
-                onDelete(item.schedule.id); pendingDelete = null
-            }) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancel") } },
-        )
-    }
 }
 
 @Composable
 private fun ScheduleRow(
     item: ScheduleListItem,
     hideDecimals: Boolean,
-    onSetCompleted: (String, Boolean) -> Unit,
-    onSkip: (String) -> Unit,
-    onDelete: () -> Unit,
+    onEdit: (String) -> Unit,
 ) {
-    var menuOpen by remember { mutableStateOf(false) }
     val schedule = item.schedule
-    Column(
-        Modifier.fillMaxWidth().clickable { menuOpen = true }
-            .padding(start = 20.dp, top = 14.dp, end = 8.dp, bottom = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    Row(
+        Modifier.fillMaxWidth().clickable { onEdit(schedule.id) }
+            .padding(start = 20.dp, top = 14.dp, end = 12.dp, bottom = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        item.title,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    StatusChip(item.status)
+                }
                 Text(
-                    item.title,
+                    formatScheduleAmount(item, hideDecimals),
                     fontWeight = FontWeight.SemiBold,
+                    color = if (schedule.postAmount > 0) Color(0xFF2E7D32)
+                        else MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    item.accountName.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                StatusChip(item.status)
-            }
-            Text(
-                formatScheduleAmount(item, hideDecimals),
-                fontWeight = FontWeight.SemiBold,
-                color = if (schedule.postAmount > 0) Color(0xFF2E7D32)
-                    else MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                item.accountName.orEmpty(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(12.dp))
-            val recurring = schedule.dateCondition is ScheduleDateCondition.Recurring
-            Text(
-                (if (recurring) "Repeats · " else "") + formatDate(schedule.nextDate),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-            Box {
-                IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Outlined.MoreVert, "Schedule actions")
-                }
-                DropdownMenu(menuOpen, { menuOpen = false }) {
-                    if (!schedule.completed && schedule.isRecurring) DropdownMenuItem(
-                        text = { Text("Skip next date") }, onClick = {
-                            menuOpen = false; onSkip(schedule.id)
-                        })
-                    DropdownMenuItem(
-                        text = { Text(if (schedule.completed) "Restart" else "Mark completed") },
-                        onClick = { menuOpen = false; onSetCompleted(schedule.id, !schedule.completed) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                        onClick = { menuOpen = false; onDelete() },
-                    )
-                }
+                Spacer(Modifier.width(12.dp))
+                val recurring = schedule.dateCondition is ScheduleDateCondition.Recurring
+                Text(
+                    (if (recurring) "Repeats · " else "") + formatDate(schedule.nextDate),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
             }
         }
+        Icon(
+            Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            contentDescription = "Edit schedule",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp),
+        )
     }
 }
 

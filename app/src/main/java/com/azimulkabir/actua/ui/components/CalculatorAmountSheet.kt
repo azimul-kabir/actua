@@ -1,6 +1,5 @@
 package com.azimulkabir.actua.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -180,11 +179,10 @@ private fun CompactCalculatorKey(
         enabled = enabled,
         modifier = modifier.height(40.dp),
         shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         color = when {
             confirm -> MaterialTheme.colorScheme.primaryContainer
             operator -> MaterialTheme.colorScheme.secondaryContainer
-            else -> MaterialTheme.colorScheme.surfaceContainer
+            else -> MaterialTheme.colorScheme.surfaceContainerHigh
         },
     ) {
         Box(contentAlignment = Alignment.Center) {

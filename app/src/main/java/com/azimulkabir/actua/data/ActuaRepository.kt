@@ -38,6 +38,7 @@ import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
 import com.azimulkabir.actua.data.schedules.ScheduleStatusCalculator
 import com.azimulkabir.actua.data.schedules.ScheduleWriteBuilder
+import com.azimulkabir.actua.data.schedules.ScheduleFormFields
 import com.azimulkabir.actua.data.schedules.sortedForDisplay
 
 class ActuaRepository(context: Context) {
@@ -108,6 +109,21 @@ class ActuaRepository(context: Context) {
         actualSchedules!!.apply(ScheduleWriteBuilder.columns(
             schedule.id, "completed" to if (completed) 1 else 0,
         ))
+        return true
+    }
+
+    fun updateSchedule(scheduleId: String, fields: ScheduleFormFields): Boolean {
+        val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
+            ?: return false
+        val plan = ScheduleWriteBuilder.update(
+            schedule = schedule,
+            fields = fields,
+            now = System.currentTimeMillis(),
+            today = DayDate.today(),
+            newNextDateRowId = { java.util.UUID.randomUUID().toString() },
+            newRuleId = { java.util.UUID.randomUUID().toString() },
+        )
+        actualSchedules!!.apply(plan)
         return true
     }
 
