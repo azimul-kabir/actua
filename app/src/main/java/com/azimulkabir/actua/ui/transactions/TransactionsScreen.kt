@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.transactions
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -22,8 +23,12 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -68,6 +73,8 @@ import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
+import com.azimulkabir.actua.ui.components.CalculatorAmountState
+import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
@@ -93,11 +100,14 @@ fun TransactionsScreen(
     modifier: Modifier = Modifier,
     transactions: List<Transaction> = sampleTransactions,
     hideDecimalPlaces: Boolean = false,
+    conventionalAmountEntry: Boolean = true,
     groupTransactionsByDate: Boolean = true,
     onGroupTransactionsByDateChange: (Boolean) -> Unit = {},
     hideReconciledTransactions: Boolean = false,
     onHideReconciledTransactionsChange: (Boolean) -> Unit = {},
     onSetCleared: (Transaction, Boolean) -> Unit = { _, _ -> },
+    onReconcileAccount: (Account) -> Boolean = { false },
+    onCreateReconciliationAdjustment: (Account, Long) -> Boolean = { _, _ -> false },
     onDelete: (Transaction) -> Unit = {},
     account: Account? = null,
     creditCard: CreditCardStatus? = null,
@@ -116,6 +126,7 @@ fun TransactionsScreen(
     var hideCleared by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Transaction?>(null) }
     var viewed by remember { mutableStateOf<Transaction?>(null) }
+    var reconcileOpen by remember(account?.id) { mutableStateOf(false) }
     LaunchedEffect(returnToRootRequest) {
         if (returnToRootRequest > 0) {
             when {
@@ -173,6 +184,22 @@ fun TransactionsScreen(
                     .any { text -> text.contains(search, ignoreCase = true) })
     }
 
+    if (reconcileOpen && account != null) {
+        ReconcileAccountScreen(
+            modifier = modifier,
+            account = account,
+            transactions = transactions.filter { it.account == account.name },
+            // Reconciliation always shows exact cents, even when normal lists hide decimals.
+            hideDecimalPlaces = false,
+            conventionalAmountEntry = conventionalAmountEntry,
+            onBack = { reconcileOpen = false },
+            onSetCleared = onSetCleared,
+            onReconcile = { if (onReconcileAccount(account)) reconcileOpen = false },
+            onCreateAdjustment = { difference -> onCreateReconciliationAdjustment(account, difference) },
+        )
+        return
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
@@ -204,6 +231,14 @@ fun TransactionsScreen(
                             ToggleItem("Hide reconciled transactions", hideReconciledTransactions,
                                 onHideReconciledTransactionsChange)
                             account?.let { selectedAccount ->
+                                if (!selectedAccount.closed) {
+                                    DropdownMenuItem(
+                                        text = { Text("Reconcile") },
+                                        leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
+                                        onClick = { menuOpen = false; reconcileOpen = true },
+                                    )
+                                    HorizontalDivider()
+                                }
                                 ToggleItem(
                                     "Show current balance summary",
                                     showCurrentBalanceSummary,
@@ -323,6 +358,193 @@ fun TransactionsScreen(
         }
     }
 }
+
+@Composable
+private fun ReconcileAccountScreen(
+    modifier: Modifier = Modifier,
+    account: Account,
+    transactions: List<Transaction>,
+    hideDecimalPlaces: Boolean,
+    conventionalAmountEntry: Boolean,
+    onBack: () -> Unit,
+    onSetCleared: (Transaction, Boolean) -> Unit,
+    onReconcile: () -> Unit,
+    onCreateAdjustment: (Long) -> Boolean,
+) {
+    var bankBalance by remember(account.id) { mutableStateOf<Long?>(null) }
+    var calculatorKey by remember(account.id) { mutableStateOf(0) }
+    val calculator = remember(account.id, calculatorKey) {
+        CalculatorAmountState(bankBalance ?: 0L, allowsNegative = true,
+            conventionalAmountEntry = conventionalAmountEntry)
+    }
+    var reviewExpanded by remember(account.id) { mutableStateOf(false) }
+    var adjustmentConfirmation by remember { mutableStateOf<Long?>(null) }
+    val uncleared = transactions.filter { !it.cleared && !it.reconciled }
+    val difference = bankBalance?.minus(account.clearedCents)
+    BackHandler(onBack = onBack)
+
+    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
+            }
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Reconcile", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(account.name, style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.size(48.dp))
+        }
+
+        LazyColumn(Modifier.weight(1f),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item("balances") {
+                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(20.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("Cleared balance", style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(formatReconciliationMoney(account.clearedCents, hideDecimalPlaces),
+                                style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        }
+                        HorizontalDivider()
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("What balance does your bank show?", style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                bankBalance?.let { formatReconciliationMoney(it, hideDecimalPlaces) } ?: "Enter bank balance",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (bankBalance == null) MaterialTheme.colorScheme.onSurfaceVariant
+                                    else MaterialTheme.colorScheme.onSurface,
+                            )
+                            TextButton(onClick = {
+                                bankBalance = account.clearedCents
+                                calculatorKey++
+                            }) { Text("Use cleared balance") }
+                        }
+                    }
+                }
+            }
+
+            difference?.let { amount ->
+                if (amount == 0L) {
+                    item("match") {
+                        Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(20.dp)) {
+                            Column(Modifier.fillMaxWidth().padding(18.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Icon(Icons.Outlined.CheckCircle, contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(34.dp))
+                                Text("Reconciled", style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text("The cleared balance matches your bank.",
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                                    textAlign = TextAlign.Center)
+                                Button(onClick = onReconcile, modifier = Modifier.fillMaxWidth()) {
+                                    Icon(Icons.Outlined.Lock, contentDescription = null,
+                                        modifier = Modifier.padding(end = 8.dp))
+                                    Text("Lock cleared transactions")
+                                }
+                                Text("This marks cleared transactions as reconciled so they cannot be changed accidentally.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                                    textAlign = TextAlign.Center)
+                            }
+                        }
+                    }
+                } else {
+                    item("difference") {
+                        Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = RoundedCornerShape(20.dp)) {
+                            Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Difference", style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                                    Text((if (amount > 0L) "+" else "") + formatReconciliationMoney(amount, hideDecimalPlaces),
+                                        style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                }
+                                FilledTonalButton(onClick = { reviewExpanded = !reviewExpanded },
+                                    modifier = Modifier.fillMaxWidth()) {
+                                    Text(if (uncleared.isEmpty()) "No uncleared transactions to review"
+                                        else "Review ${uncleared.size} uncleared ${if (uncleared.size == 1) "transaction" else "transactions"}")
+                                }
+                                TextButton(onClick = { adjustmentConfirmation = amount }, modifier = Modifier.align(Alignment.End)) {
+                                    Text("Create adjustment transaction")
+                                }
+                            }
+                        }
+                    }
+                    if (reviewExpanded) {
+                        if (uncleared.isEmpty()) item("no-uncleared") {
+                            Text("The difference is not caused by an uncleared transaction. You can create an adjustment after checking your bank statement.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(8.dp))
+                        } else items(uncleared, key = { "reconcile-${it.id}" }) { transaction ->
+                            ReconciliationTransactionRow(transaction, hideDecimalPlaces) {
+                                onSetCleared(transaction, true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Surface(color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 3.dp) {
+            CompactCalculatorPad(
+                calculator = calculator,
+                conventionalAmountEntry = conventionalAmountEntry,
+                allowSign = true,
+                showDisplay = false,
+                onValueChange = { bankBalance = it },
+                onDone = { bankBalance = calculator.finish() },
+            )
+        }
+    }
+
+    adjustmentConfirmation?.let { amount ->
+        AlertDialog(
+            onDismissRequest = { adjustmentConfirmation = null },
+            title = { Text("Create adjustment transaction?") },
+            text = { Text("Actua will add a cleared, uncategorized transaction for ${formatReconciliationMoney(amount, hideDecimalPlaces)} so the balances match.") },
+            confirmButton = { TextButton(onClick = {
+                if (onCreateAdjustment(amount)) adjustmentConfirmation = null
+            }) { Text("Create adjustment") } },
+            dismissButton = { TextButton(onClick = { adjustmentConfirmation = null }) { Text("Cancel") } },
+        )
+    }
+}
+
+@Composable
+private fun ReconciliationTransactionRow(
+    transaction: Transaction,
+    hideDecimalPlaces: Boolean,
+    onMarkCleared: () -> Unit,
+) {
+    Surface(onClick = onMarkCleared, color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(16.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(transaction.payee.ifBlank { "Unknown payee" }, fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(listOf(formatStoredDate(transaction.date), transaction.category)
+                    .filter(String::isNotBlank).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(formatReconciliationMoney(transaction.amountCents, hideDecimalPlaces),
+                fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 8.dp))
+            Checkbox(checked = false, onCheckedChange = { onMarkCleared() })
+        }
+    }
+}
+
+private fun formatReconciliationMoney(cents: Long, hideDecimalPlaces: Boolean): String =
+    formatMoneyCents(cents, hideDecimalPlaces, respectBalanceVisibility = false)
 
 @Composable
 private fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,

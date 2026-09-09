@@ -88,6 +88,30 @@ class ActualTransactionWriter(
         saveClock()
     }
 
+    /** Change cleared state while keeping split children aligned with their parent. */
+    @Synchronized
+    fun setCleared(transaction: ActualTransaction, cleared: Boolean) {
+        require(!transaction.reconciled || transaction.cleared == cleared) {
+            "Reconciled transactions are locked"
+        }
+        val originals = if (transaction.isParent) {
+            listOf(transaction) + database.fetchChildTransactions(transaction.id)
+        } else listOf(transaction)
+        val updates = originals
+            .filter { !it.reconciled && it.cleared != cleared }
+            .map { it to it.copy(cleared = cleared) }
+        if (updates.isNotEmpty()) mutate(updates = updates)
+    }
+
+    /** Lock all cleared rows for one account in a single CRDT/database transaction. */
+    @Synchronized
+    fun reconcileClearedTransactions(accountId: String): Int {
+        val originals = database.fetchClearedUnreconciledTransactions(accountId)
+        if (originals.isEmpty()) return 0
+        mutate(updates = originals.map { it to it.copy(reconciled = true) })
+        return originals.size
+    }
+
     fun deleteTransaction(transaction: ActualTransaction) {
         val ids = if (transaction.isParent) {
             database.fetchChildTransactions(transaction.id).map(ActualTransaction::id) + transaction.id

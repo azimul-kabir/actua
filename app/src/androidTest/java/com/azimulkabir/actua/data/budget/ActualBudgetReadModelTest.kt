@@ -72,6 +72,37 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun reconciliationLocksEveryClearedStoredRowAtomically() = withDatabase { database ->
+        val writer = ActualTransactionWriter(database, nodeId = "abababababababab")
+        val ordinary = requireNotNull(database.fetchTransaction("ordinary"))
+        val parent = requireNotNull(database.fetchTransaction("split-parent"))
+        val children = database.fetchChildTransactions(parent.id)
+        val transfer = requireNotNull(database.fetchTransaction("transfer-out"))
+        writer.mutate(updates = (listOf(ordinary, parent, transfer) + children).map {
+            it to it.copy(cleared = true)
+        })
+
+        assertEquals(5, database.fetchClearedUnreconciledTransactions("checking").size)
+        assertEquals(5, writer.reconcileClearedTransactions("checking"))
+        assertTrue(database.fetchClearedUnreconciledTransactions("checking").isEmpty())
+        assertTrue(requireNotNull(database.fetchTransaction("ordinary")).reconciled)
+        assertTrue(requireNotNull(database.fetchTransaction("split-parent")).reconciled)
+        assertTrue(database.fetchChildTransactions("split-parent").all { it.reconciled })
+        assertTrue(requireNotNull(database.fetchTransaction("transfer-out")).reconciled)
+        assertTrue(requireNotNull(database.fetchTransaction("transfer-in")).reconciled.not())
+    }
+
+    @Test
+    fun clearingASplitKeepsItsStoredChildrenAligned() = withDatabase { database ->
+        val writer = ActualTransactionWriter(database, nodeId = "cdcdcdcdcdcdcdcd")
+        val parent = requireNotNull(database.fetchTransaction("split-parent"))
+        writer.setCleared(parent, true)
+
+        assertTrue(requireNotNull(database.fetchTransaction(parent.id)).cleared)
+        assertTrue(database.fetchChildTransactions(parent.id).all { it.cleared })
+    }
+
+    @Test
     fun writesPayeesTransactionsTransfersSplitsUpdatesAndDeletesWithMessages() = withDatabase { database ->
         var nextId = 0
         val writer = ActualTransactionWriter(database, idFactory = { "new-${++nextId}" })

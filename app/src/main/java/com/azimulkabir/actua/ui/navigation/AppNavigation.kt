@@ -409,6 +409,7 @@ fun AppNavigation(
                 transactions = filteredTransactions,
                 searchTransactions = searchTransactions,
                 hideDecimalPlaces = hideDecimalPlaces,
+                conventionalAmountEntry = conventionalAmountEntry,
                 groupTransactionsByDate = groupTransactionsByDate,
                 onGroupTransactionsByDateChange = {
                     displayPreferences.groupTransactionsByDate = it
@@ -421,6 +422,14 @@ fun AppNavigation(
                 },
                 onSetCleared = { transaction, cleared ->
                     mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
+                },
+                onReconcileAccount = { account ->
+                    mutate("Reconciling account") { repository.reconcileAccount(account.id) }
+                },
+                onCreateReconciliationAdjustment = { account, difference ->
+                    mutate("Creating reconciliation adjustment") {
+                        repository.createReconciliationAdjustment(account.id, difference)
+                    }
                 },
                 onDelete = { transaction ->
                     mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
@@ -831,6 +840,7 @@ fun AppNavigation(
                     modifier = contentModifier,
                     transactions = filteredTransactions,
                     hideDecimalPlaces = hideDecimalPlaces,
+                    conventionalAmountEntry = conventionalAmountEntry,
                     groupTransactionsByDate = groupTransactionsByDate,
                     onGroupTransactionsByDateChange = {
                         displayPreferences.groupTransactionsByDate = it
@@ -843,6 +853,14 @@ fun AppNavigation(
                     },
                     onSetCleared = { transaction, cleared ->
                         mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
+                    },
+                    onReconcileAccount = { account ->
+                        mutate("Reconciling account") { repository.reconcileAccount(account.id) }
+                    },
+                    onCreateReconciliationAdjustment = { account, difference ->
+                        mutate("Creating reconciliation adjustment") {
+                            repository.createReconciliationAdjustment(account.id, difference)
+                        }
                     },
                     onDelete = { transaction ->
                         mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }

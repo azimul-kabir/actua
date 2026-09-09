@@ -672,7 +672,45 @@ class ActuaRepository(context: Context) {
 
     fun setTransactionCleared(id: String, cleared: Boolean): Boolean {
         val transaction = actualDatabase?.fetchTransaction(id) ?: return false
-        actualWriter!!.updateTransaction(transaction.copy(cleared = cleared), setOf("cleared"))
+        actualWriter!!.setCleared(transaction, cleared)
+        return true
+    }
+
+    fun reconcileAccount(accountId: String): Boolean {
+        val writer = actualWriter ?: return false
+        writer.reconcileClearedTransactions(accountId)
+        return true
+    }
+
+    fun createReconciliationAdjustment(accountId: String, amountCents: Long): Boolean {
+        require(amountCents != 0L) { "The balances already match" }
+        val db = actualDatabase ?: return false
+        val writer = actualWriter ?: return false
+        require(db.fetchAccounts().any { it.id == accountId && !it.closed }) { "That account is unavailable" }
+        writer.createTransaction(
+            ActualTransaction(
+                id = java.util.UUID.randomUUID().toString().lowercase(),
+                accountId = accountId,
+                date = DayDate.today().yyyymmdd,
+                amountCents = amountCents,
+                payeeId = null,
+                payeeName = null,
+                categoryId = null,
+                categoryName = null,
+                notes = "Reconciliation balance adjustment",
+                cleared = true,
+                reconciled = false,
+                transferId = null,
+                isParent = false,
+                parentId = null,
+                tombstone = false,
+                sortOrder = System.currentTimeMillis().toDouble(),
+                importedPayee = null,
+                scheduleId = null,
+                transferAccountId = null,
+            ),
+            applyRules = false,
+        )
         return true
     }
 

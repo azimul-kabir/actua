@@ -18,8 +18,9 @@ fun formatMoneyCents(
     cents: Long,
     hideDecimalPlaces: Boolean,
     showPositiveSign: Boolean = false,
+    respectBalanceVisibility: Boolean = true,
 ): String {
-    if (BalanceVisibility.hidden) return "••••"
+    if (respectBalanceVisibility && BalanceVisibility.hidden) return "••••"
     val sign = when {
         cents < 0 -> "−"
         cents > 0 && showPositiveSign -> "+"

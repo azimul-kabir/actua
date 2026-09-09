@@ -57,6 +57,7 @@ with contributions welcomed from the community.
 - Unified Material You category budgeting with synced targets, target-aware auto-assign, money movement, details, and recent activity
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
 - Account-specific transaction entry, collapsible account summaries and notes, and configurable bottom navigation labels
+- Mobile account reconciliation with bank-balance comparison, uncleared review, adjustments, and cleared-transaction locking
 - Material You motion for tab changes, detail navigation, searches, and expandable sections
 - Android-style per-tab navigation state, root reselect behavior, scroll-to-top actions, and contextual Back restoration
 

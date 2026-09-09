@@ -603,6 +603,28 @@ class ActualBudgetDatabase private constructor(
         return rows
     }
 
+    /** Every live cleared row that has not yet been locked by reconciliation. */
+    @Synchronized
+    fun fetchClearedUnreconciledTransactions(accountId: String): List<ActualTransaction> {
+        val rows = mutableListOf<ActualTransaction>()
+        database.rawQuery(
+            transactionChildSelect + """
+              AND t.acct = ?
+              AND t.cleared = 1
+              AND t.date IS NOT NULL
+              AND COALESCE(t.reconciled, 0) = 0
+              AND (t.isChild = 0 OR t.isChild IS NULL OR EXISTS (
+                    SELECT 1 FROM transactions parent
+                    WHERE parent.id = t.parent_id
+                      AND (parent.tombstone = 0 OR parent.tombstone IS NULL)
+                  ))
+              ORDER BY t.date DESC, t.sort_order DESC, t.id
+            """.trimIndent(),
+            arrayOf(accountId),
+        ).use { cursor -> while (cursor.moveToNext()) rows += cursor.toActualTransaction() }
+        return rows
+    }
+
     /** Report rows matching iOS fetchTransactionsForReports: no split parents or orphan children. */
     @Synchronized
     fun fetchTransactionsForReports(): List<ActualTransaction> {
