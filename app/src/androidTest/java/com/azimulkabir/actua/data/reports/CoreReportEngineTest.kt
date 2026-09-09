@@ -8,6 +8,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
 
+/** JSON-backed report metadata requires Android's real org.json implementation. */
 class CoreReportEngineTest {
     private val today = LocalDate.of(2026, 5, 20)
 
