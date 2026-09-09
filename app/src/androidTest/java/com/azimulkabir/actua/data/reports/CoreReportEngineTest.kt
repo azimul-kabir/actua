@@ -74,6 +74,30 @@ class CoreReportEngineTest {
         assertEquals("future-card", widget.sourceType)
     }
 
+    @Test fun allActualiWidgetTypesHaveNativeKinds() {
+        val expected = mapOf(
+            "age-of-money-card" to ReportWidgetKind.AGE_OF_MONEY,
+            "formula-card" to ReportWidgetKind.FORMULA,
+            "custom-report" to ReportWidgetKind.CUSTOM_REPORT,
+            "calendar-card" to ReportWidgetKind.CALENDAR,
+            "crossover-card" to ReportWidgetKind.CROSSOVER,
+            "budget-analysis-card" to ReportWidgetKind.BUDGET_ANALYSIS,
+            "sankey-card" to ReportWidgetKind.SANKEY,
+            "balance-forecast-card" to ReportWidgetKind.BALANCE_FORECAST,
+            "monte-carlo-card" to ReportWidgetKind.MONTE_CARLO,
+        )
+        expected.forEach { (type, kind) ->
+            val meta = if (type == "formula-card") """{"formula":"=1+2*3"}""" else null
+            assertEquals(kind, CoreReportEngine.compute(
+                DashboardWidgetRow(type, type, meta), emptyList(), today = today,
+            ).kind)
+        }
+        assertEquals(700L, CoreReportEngine.compute(
+            DashboardWidgetRow("formula", "formula-card", """{"formula":"=1+2*3"}"""),
+            emptyList(), today = today,
+        ).valueCents)
+    }
+
     private fun transaction(
         id: String,
         amount: Long,

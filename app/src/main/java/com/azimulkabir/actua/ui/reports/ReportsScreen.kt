@@ -47,6 +47,9 @@ import com.azimulkabir.actua.model.ReportSnapshot
 import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import java.time.LocalDate
+import java.time.YearMonth
+import kotlin.math.absoluteValue
 import kotlin.math.max
 
 @Composable
@@ -162,6 +165,26 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean) {
                 ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals)
                 ReportWidgetKind.SPENDING -> Spending(widget, hideDecimals)
                 ReportWidgetKind.MARKDOWN -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
+                ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
+                ReportWidgetKind.CUSTOM_REPORT -> CategoryBars(widget, hideDecimals)
+                ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals)
+                ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
+                ReportWidgetKind.BUDGET_ANALYSIS -> ComparisonSeries(widget.points, "Budgeted", "Spent", hideDecimals)
+                ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals)
+                ReportWidgetKind.BALANCE_FORECAST -> {
+                    Text(formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
+                        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    TrendChart(widget.points)
+                    PointLabels(widget.points, hideDecimals)
+                }
+                ReportWidgetKind.MONTE_CARLO -> {
+                    Text("Projected ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
+                        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    ComparativeTrendChart(widget.points)
+                    Text("Median and conservative projection", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 ReportWidgetKind.UNSUPPORTED -> Unit
             }
         }
@@ -229,6 +252,161 @@ private fun Spending(widget: ReportWidget, hideDecimals: Boolean) {
     Text("Comparison ${formatMoneyCents(comparison, hideDecimals)}", color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.fillMaxWidth((current.toFloat() / maximum).coerceIn(0f, 1f)).height(9.dp)
         .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)))
+}
+
+@Composable
+private fun AgeOfMoney(widget: ReportWidget) {
+    val days = widget.valueCents
+    Text(if (days == null) "No age available" else "$days days",
+        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary)
+    TrendChart(widget.points)
+    if (widget.points.isNotEmpty()) Row(Modifier.fillMaxWidth()) {
+        Text(widget.points.first().period.take(7), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(widget.points.last().period.take(7), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun Formula(widget: ReportWidget, hideDecimals: Boolean) {
+    widget.valueCents?.let {
+        Text(formatMoneyCents(it, hideDecimals), style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold)
+    } ?: Text(widget.markdown ?: "Formula unavailable", color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean) {
+    if (widget.categories.isEmpty()) {
+        Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    val maximum = widget.categories.maxOf { it.spentCents.absoluteValue }.coerceAtLeast(1)
+    widget.categories.take(10).forEach { category ->
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(Modifier.fillMaxWidth()) {
+                Text(category.name, maxLines = 1, modifier = Modifier.weight(1f))
+                Text(formatMoneyCents(category.spentCents, hideDecimals), fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.fillMaxWidth((category.spentCents.absoluteValue.toFloat() / maximum).coerceIn(0f, 1f))
+                .height(7.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)))
+        }
+    }
+}
+
+@Composable
+private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean) {
+    val dated = widget.points.mapNotNull { point ->
+        runCatching { LocalDate.parse(point.period) }.getOrNull()?.let { it to point }
+    }
+    if (dated.isEmpty()) {
+        Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    val month = YearMonth.from(dated.last().first)
+    Row(Modifier.fillMaxWidth()) {
+        Text(month.month.name.lowercase().replaceFirstChar(Char::uppercase) + " ${month.year}",
+            fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Text("▲ ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}", color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.width(8.dp))
+        Text("▼ ${formatMoneyCents(widget.comparisonCents ?: 0, hideDecimals)}", color = MaterialTheme.colorScheme.error)
+    }
+    val values = dated.filter { YearMonth.from(it.first) == month }.associate { it.first.dayOfMonth to it.second }
+    Row(Modifier.fillMaxWidth()) {
+        listOf("S", "M", "T", "W", "T", "F", "S").forEach { day ->
+            Text(day, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        }
+    }
+    val leading = month.atDay(1).dayOfWeek.value % 7
+    val cells = List(leading) { null } + (1..month.lengthOfMonth()).map { it }
+    cells.chunked(7).forEach { week ->
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            (week + List(7 - week.size) { null }).forEach { day ->
+                val point = day?.let(values::get)
+                Column(
+                    Modifier.weight(1f).height(38.dp)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(7.dp))
+                        .padding(4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(day?.toString().orEmpty(), style = MaterialTheme.typography.labelSmall)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        if ((point?.primaryCents ?: 0) > 0) Spacer(Modifier.weight(1f).height(3.dp)
+                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)))
+                        if ((point?.secondaryCents ?: 0) > 0) Spacer(Modifier.weight(1f).height(3.dp)
+                            .background(MaterialTheme.colorScheme.error, RoundedCornerShape(50)))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Crossover(widget: ReportWidget, hideDecimals: Boolean) {
+    val months = widget.valueCents
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+        Text(if (months == null) "Not reached" else "${"%.1f".format(months / 12.0)} years",
+            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        Text("Years to retire", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    ComparativeTrendChart(widget.points)
+    Text("Investment income vs ${formatMoneyCents(widget.comparisonCents ?: 0, hideDecimals)} monthly expenses",
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun ComparisonSeries(points: List<ReportPoint>, primary: String, secondary: String, hideDecimals: Boolean) {
+    if (points.isEmpty()) { Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant); return }
+    ComparativeTrendChart(points)
+    Row(Modifier.fillMaxWidth()) {
+        Text("● $primary", color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+        Text("● $secondary", color = MaterialTheme.colorScheme.tertiary)
+    }
+    val last = points.last()
+    Text("${last.period.take(7)} · ${formatMoneyCents(last.primaryCents, hideDecimals)} / ${formatMoneyCents(last.secondaryCents, hideDecimals)}",
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun Sankey(widget: ReportWidget, hideDecimals: Boolean) {
+    Row(Modifier.fillMaxWidth()) {
+        Column(Modifier.weight(0.8f)) {
+            Text("Income", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatMoneyCents(widget.valueCents ?: 0, hideDecimals), fontWeight = FontWeight.Bold)
+        }
+        Column(Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            widget.categories.take(8).forEach { category ->
+                Row(Modifier.fillMaxWidth()) {
+                    Text(category.name, maxLines = 1, modifier = Modifier.weight(1f))
+                    Text(formatMoneyCents(category.spentCents, hideDecimals), fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ComparativeTrendChart(points: List<ReportPoint>) {
+    if (points.isEmpty()) return
+    val primary = MaterialTheme.colorScheme.primary
+    val secondary = MaterialTheme.colorScheme.tertiary
+    val minimum = points.minOf { minOf(it.primaryCents, it.secondaryCents) }
+    val maximum = points.maxOf { maxOf(it.primaryCents, it.secondaryCents) }
+    val span = (maximum - minimum).coerceAtLeast(1)
+    Canvas(Modifier.fillMaxWidth().height(140.dp)) {
+        val step = if (points.size <= 1) 0f else size.width / (points.size - 1)
+        fun y(value: Long) = size.height - ((value - minimum).toFloat() / span * size.height)
+        points.zipWithNext().forEachIndexed { index, pair ->
+            drawLine(primary, Offset(step * index, y(pair.first.primaryCents)),
+                Offset(step * (index + 1), y(pair.second.primaryCents)), strokeWidth = 5f, cap = StrokeCap.Round)
+            drawLine(secondary, Offset(step * index, y(pair.first.secondaryCents)),
+                Offset(step * (index + 1), y(pair.second.secondaryCents)), strokeWidth = 5f, cap = StrokeCap.Round)
+        }
+    }
 }
 
 @Composable

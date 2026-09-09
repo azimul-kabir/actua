@@ -4,7 +4,13 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
-No user-facing changes yet.
+### Added
+
+- Ported every dashboard widget currently rendered by Actuali: Age of Money,
+  Formula, Custom Report, Calendar, Crossover, Budget Analysis, Sankey, Balance
+  Forecast, and Monte Carlo
+- Added native Material cards, charts, calendar grids, category bars, comparison
+  series, and forecast displays for the newly supported report widgets
 
 ## [0.1.0-beta.3] - 2026-09-09
 

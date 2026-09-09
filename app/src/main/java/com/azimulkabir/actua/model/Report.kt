@@ -16,7 +16,11 @@ data class ReportDashboardPage(
     val widgets: List<ReportWidget>,
 )
 
-enum class ReportWidgetKind { SUMMARY, NET_WORTH, CASH_FLOW, SPENDING, MARKDOWN, UNSUPPORTED }
+enum class ReportWidgetKind {
+    SUMMARY, NET_WORTH, CASH_FLOW, SPENDING, MARKDOWN,
+    AGE_OF_MONEY, FORMULA, CUSTOM_REPORT, CALENDAR, CROSSOVER,
+    BUDGET_ANALYSIS, SANKEY, BALANCE_FORECAST, MONTE_CARLO, UNSUPPORTED,
+}
 
 data class ReportWidget(
     val id: String,

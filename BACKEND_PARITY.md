@@ -119,7 +119,9 @@ Android backlog items and will never be ported.
   credit-card due-date boundaries
 - Synced Actual dashboard pages and ordered widget rows, Actuali-compatible
   widget time frames and shared rule conditions, and native Summary, Net Worth,
-  Cash Flow, Spending, and Markdown cards with unsupported-type disclosure
+  Cash Flow, Spending, Markdown, Age of Money, Formula, Custom Report, Calendar,
+  Crossover, Budget Analysis, Sankey, Balance Forecast, and Monte Carlo cards
+  with unknown future widget-type disclosure
 
 ## Remaining version 1 work
 
@@ -129,12 +131,9 @@ Android backlog items and will never be ported.
 
 ## Post-v1 portable features
 
-- Remaining dashboard widgets: Age of Money, Formula, Custom Report, Calendar,
-  Crossover, Budget Analysis, Sankey, Balance Forecast, and Monte Carlo
 - Advanced split, formula, and template rule actions
 - Schedule discovery UI wiring
 - Goal templates, cleanup templates, and budget automations
-- Remaining dashboard calculation engines listed above
 - SimpleFIN linking, download, reconciliation, and pending-import approval
 - Android transaction notifications and new-transaction detection
 - Location-backed payee suggestions
