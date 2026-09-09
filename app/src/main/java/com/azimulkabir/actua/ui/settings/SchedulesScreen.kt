@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -153,32 +154,58 @@ private fun ScheduleRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val schedule = item.schedule
-    Row(
-        Modifier.fillMaxWidth().clickable { menuOpen = true }.padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        Modifier.fillMaxWidth().clickable { menuOpen = true }
+            .padding(start = 20.dp, top = 14.dp, end = 8.dp, bottom = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(item.title, fontWeight = FontWeight.SemiBold, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                Spacer(Modifier.padding(horizontal = 3.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    item.title,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
                 StatusChip(item.status)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(item.accountName.orEmpty(), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                val recurring = schedule.dateCondition is ScheduleDateCondition.Recurring
-                Text((if (recurring) "Repeats · " else "") + formatDate(schedule.nextDate),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            Text(
+                formatScheduleAmount(item, hideDecimals),
+                fontWeight = FontWeight.SemiBold,
+                color = if (schedule.postAmount > 0) Color(0xFF2E7D32)
+                    else MaterialTheme.colorScheme.onSurface,
+            )
         }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(formatScheduleAmount(item, hideDecimals), fontWeight = FontWeight.SemiBold,
-                color = if (schedule.postAmount > 0) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                item.accountName.orEmpty(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(12.dp))
+            val recurring = schedule.dateCondition is ScheduleDateCondition.Recurring
+            Text(
+                (if (recurring) "Repeats · " else "") + formatDate(schedule.nextDate),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
             Box {
-                IconButton(onClick = { menuOpen = true }) { Icon(Icons.Outlined.MoreVert, "Schedule actions") }
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Outlined.MoreVert, "Schedule actions")
+                }
                 DropdownMenu(menuOpen, { menuOpen = false }) {
                     if (!schedule.completed && schedule.isRecurring) DropdownMenuItem(
                         text = { Text("Skip next date") }, onClick = {
@@ -210,7 +237,6 @@ private fun StatusChip(status: ScheduleStatus) {
     androidx.compose.material3.Surface(
         color = color.copy(alpha = 0.14f),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
-        modifier = Modifier.padding(start = 6.dp),
     ) {
         Text(status.name.lowercase().replaceFirstChar(Char::uppercase), color = color,
             style = MaterialTheme.typography.labelSmall,
