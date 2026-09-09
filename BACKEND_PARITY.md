@@ -98,6 +98,9 @@ Android backlog items and will never be ported.
   and decimal-place presentation
 - Category Spent amounts open the matching category transactions for the selected month
 - Category details with notes, rollover overspending, and six-month history-based quick assign
+- Actual-compatible UI-managed category targets for monthly spending, fixed monthly saving,
+  save-by-date, refill-to-cap, weekly spending, and recent-spending averages; target-aware
+  Auto Assign; and safe read-only handling of advanced or notes-managed templates
 - Account details with notes and working, cleared, uncleared, and reconciled balances
 - Collapsible account balance details with compact Budget-tab typography
 - Credit-card account details with limit, available credit, current billing cycle,
@@ -126,7 +129,7 @@ Android backlog items and will never be ported.
 ## Remaining version 1 work
 
 - Remaining entity deletion/merge/reorder mutations and Android action wiring
-- Budget templates, goals, and broader automation UI
+- Full multi-automation editing, cleanup goals, and whole-budget template application
 - Local backup import picker
 
 ## Post-v1 portable features

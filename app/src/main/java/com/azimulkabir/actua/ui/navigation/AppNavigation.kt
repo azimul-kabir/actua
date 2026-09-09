@@ -750,6 +750,11 @@ fun AppNavigation(
                     onSetCategoryCarryover = { categoryId, enabled ->
                         mutate("Updating rollover") { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
                     },
+                    onSetCategoryTarget = { categoryId, target ->
+                        mutate(if (target == null) "Removing target" else "Saving target") {
+                            repository.setCategoryTarget(categoryId, target)
+                        }
+                    },
                     onSearch = { detail = DetailDestination.Search },
                     transactions = filteredTransactions,
                     onDeleteCategory = { group, category ->

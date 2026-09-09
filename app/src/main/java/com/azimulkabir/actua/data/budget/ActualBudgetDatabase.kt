@@ -733,11 +733,13 @@ class ActualBudgetDatabase private constructor(
             if (m % 100 in 1..12 && m <= target) buffered[m] = cursor.longOrZero(1)
         } }
 
-        data class Cat(val id: String, val name: String, val group: String, val income: Boolean, val hidden: Boolean, val sort: Double)
+        data class Cat(val id: String, val name: String, val group: String, val income: Boolean, val hidden: Boolean, val sort: Double,
+            val goalDef: String?, val templateSource: String?)
         data class Group(val id: String, val name: String, val hidden: Boolean, val sort: Double)
         val categories = mutableListOf<Cat>()
-        database.rawQuery("SELECT id,name,cat_group,is_income,hidden,sort_order FROM categories WHERE tombstone = 0 OR tombstone IS NULL", null).use { c ->
-            while (c.moveToNext()) categories += Cat(c.getString(0), c.stringOrNull(1) ?: "Unknown", c.stringOrNull(2) ?: "", c.intOrZero(3) == 1, c.intOrZero(4) == 1, c.doubleOrZero(5))
+        database.rawQuery("SELECT id,name,cat_group,is_income,hidden,sort_order,goal_def,template_settings FROM categories WHERE tombstone = 0 OR tombstone IS NULL", null).use { c ->
+            while (c.moveToNext()) categories += Cat(c.getString(0), c.stringOrNull(1) ?: "Unknown", c.stringOrNull(2) ?: "", c.intOrZero(3) == 1, c.intOrZero(4) == 1, c.doubleOrZero(5),
+                c.stringOrNull(6), c.stringOrNull(7)?.let { raw -> runCatching { JSONObject(raw).optString("source") }.getOrNull() })
         }
         val groups = mutableMapOf<String, Group>()
         database.rawQuery("SELECT id,name,hidden,sort_order FROM category_groups WHERE tombstone = 0 OR tombstone IS NULL", null).use { c ->
@@ -791,7 +793,8 @@ class ActualBudgetDatabase private constructor(
             val available = leftovers[target]?.get(cat.id) ?: (budgeted + activity)
             ActualCategoryBudget(month, cat.id, cat.name, cat.group, group.name, group.sort, cat.sort,
                 budgeted, activity, available, available - budgeted - activity, cat.hidden, group.hidden,
-                targetBudgets[cat.id]?.goal, targetBudgets[cat.id]?.longGoal == true, targetBudgets[cat.id]?.flag == true)
+                targetBudgets[cat.id]?.goal, targetBudgets[cat.id]?.longGoal == true, targetBudgets[cat.id]?.flag == true,
+                cat.goalDef, cat.templateSource)
         }.sortedWith(compareBy(ActualCategoryBudget::groupSortOrder, ActualCategoryBudget::categorySortOrder))
         val incomes = categories.filter(Cat::income).mapNotNull { cat ->
             val group = groups[cat.group] ?: return@mapNotNull null

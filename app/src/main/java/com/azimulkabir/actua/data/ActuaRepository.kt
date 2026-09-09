@@ -17,6 +17,7 @@ import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetHistory
+import com.azimulkabir.actua.model.BudgetTarget
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.model.SplitLine
@@ -262,6 +263,8 @@ class ActuaRepository(context: Context) {
                                     .firstOrNull { row -> row.categoryId == it.categoryId }
                                     ?.let { row -> BudgetHistory(historyMonth.month, row.budgetedCents, row.spentCents) }
                             },
+                            target = BudgetTarget.fromGoalDef(it.goalDef, it.templateSource),
+                            hasUnsupportedTarget = !it.goalDef.isNullOrBlank() && BudgetTarget.fromGoalDef(it.goalDef, it.templateSource) == null,
                         )
                     }, hidden = rows.first().groupHidden)
                 }
@@ -646,6 +649,12 @@ class ActuaRepository(context: Context) {
         val months = generateSequence(start) { current -> current.plusMonths(1).takeIf { it <= end } }.toList()
             .ifEmpty { listOf(start) }.map(java.time.YearMonth::toString)
         actualBudgets?.setCarryover(months, categoryId, enabled) ?: return false
+        return true
+    }
+
+    fun setCategoryTarget(categoryId: String, target: BudgetTarget?): Boolean {
+        if (categoryId.isBlank()) return false
+        actualEntities?.setCategoryTarget(categoryId, target?.toGoalDef()) ?: return false
         return true
     }
 

@@ -54,7 +54,7 @@ with contributions welcomed from the community.
 - Configurable display currency, decimals, appearance, start page, account summaries,
   transaction grouping, and Material bottom-navigation labels
 - Global search across transactions, accounts, payees, categories, notes, and transfers
-- Unified Material You category budgeting with auto-assign, money movement, details, and recent activity
+- Unified Material You category budgeting with synced targets, target-aware auto-assign, money movement, details, and recent activity
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
 - Account-specific transaction entry, collapsible account summaries and notes, and configurable bottom navigation labels
 - Material You motion for tab changes, detail navigation, searches, and expandable sections

@@ -17,6 +17,8 @@ data class ActualCategoryBudget(
     val goalCents: Long?,
     val longGoal: Boolean,
     val carryoverEnabled: Boolean,
+    val goalDef: String?,
+    val templateSource: String?,
 )
 
 data class ActualIncomeBudget(

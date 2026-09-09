@@ -14,10 +14,13 @@ data class BudgetCategory(
     val note: String = "",
     val history: List<BudgetHistory> = emptyList(),
     val isIncome: Boolean = false,
+    val target: BudgetTarget? = null,
+    val hasUnsupportedTarget: Boolean = false,
 ) {
     val available: Int get() = actualAvailable ?: assigned - spent
     val assignedCents: Long get() = actualAssignedCents ?: assigned.toLong() * 100
     val balanceCents: Long get() = availableCents ?: available.toLong() * 100
+    val carryoverCents: Long get() = balanceCents - assignedCents + spentCents
 }
 
 data class BudgetHistory(val month: String, val assignedCents: Long, val spentCents: Long)

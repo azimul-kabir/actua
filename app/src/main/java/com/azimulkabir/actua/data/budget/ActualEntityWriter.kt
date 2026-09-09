@@ -41,6 +41,10 @@ class ActualEntityWriter(
     fun setAccountClosed(id: String, closed: Boolean) = update("accounts", id, mapOf("closed" to flag(closed)))
     fun renameCategory(id: String, name: String) = update("categories", id, mapOf("name" to requiredName(name)))
     fun setCategoryHidden(id: String, hidden: Boolean) = update("categories", id, mapOf("hidden" to flag(hidden)))
+    fun setCategoryTarget(id: String, goalDef: String?) = update("categories", id, mapOf(
+        "goal_def" to goalDef,
+        "template_settings" to "{\"source\":\"ui\"}",
+    ))
     fun deleteCategory(id: String) = update("categories", id, mapOf("tombstone" to 1))
     fun renameCategoryGroup(id: String, name: String) = update("category_groups", id, mapOf("name" to requiredName(name)))
     fun setCategoryGroupHidden(id: String, hidden: Boolean) = update("category_groups", id, mapOf("hidden" to flag(hidden)))
@@ -129,7 +133,7 @@ class ActualEntityWriter(
     companion object {
         private val allowedFields = mapOf(
             "accounts" to setOf("name", "closed", "offbudget", "tombstone", "sort_order"),
-            "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order"),
+            "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order", "goal_def", "template_settings"),
             "category_groups" to setOf("name", "hidden", "tombstone", "sort_order"),
             "payees" to setOf("name", "tombstone"),
             "preferences" to setOf("value"),

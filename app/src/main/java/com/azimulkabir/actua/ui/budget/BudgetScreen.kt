@@ -80,11 +80,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
+import com.azimulkabir.actua.model.BudgetTarget
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
@@ -155,6 +158,7 @@ fun BudgetScreen(
     onSetBudgetAmount: (String, String, Long) -> Unit = { _, _, _ -> },
     onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
+    onSetCategoryTarget: (String, BudgetTarget?) -> Unit = { _, _ -> },
     onSearch: () -> Unit = {},
     transactions: List<Transaction> = emptyList(),
     onDeleteCategory: (String, String) -> Boolean = { _, _ -> false },
@@ -188,6 +192,7 @@ fun BudgetScreen(
     var fundingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var autoAssignBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
+    var settingTarget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var assignFromBudgetOpen by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
@@ -357,6 +362,7 @@ fun BudgetScreen(
             onDismiss = { selectedCategory = null },
             onRename = { selectedCategory = null; renamingCategory = parent to category },
             onEditBudget = { selectedCategory = null; editingBudget = parent to category },
+            onSetTarget = { selectedCategory = null; settingTarget = parent to category },
             onDetails = { selectedCategory = null; categoryDetails = parent to category },
             onTransactionsThisMonth = { selectedCategory = null; onShowCategoryTransactions(category.name, true, false) },
             onAllTransactions = { selectedCategory = null; onShowCategoryTransactions(category.name, false, false) },
@@ -387,6 +393,7 @@ fun BudgetScreen(
         EditBudgetAmountSheet(
             sourceGroup = group,
             category = category,
+            month = month,
             groups = groups,
             toBudgetCents = overview.toBudgetCents ?: 0L,
             hideDecimalPlaces = hideDecimalPlaces,
@@ -457,6 +464,7 @@ fun BudgetScreen(
             onEditBudget = { categoryDetails = null; editingBudget = group to category },
             onMoveMoney = { categoryDetails = null; movingBudget = group to category },
             onAutoAssign = { categoryDetails = null; autoAssignBudget = group to category },
+            onEditTarget = { settingTarget = group to category },
             transactions = transactions.filter { it.category == category.name }
                 .sortedByDescending { it.date }.take(3),
             onRename = { categoryDetails = null; renamingCategory = group to category },
@@ -481,6 +489,7 @@ fun BudgetScreen(
         EditBudgetAmountSheet(
             sourceGroup = group,
             category = category,
+            month = month,
             groups = groups,
             toBudgetCents = overview.toBudgetCents ?: 0L,
             hideDecimalPlaces = hideDecimalPlaces,
@@ -502,6 +511,7 @@ fun BudgetScreen(
         EditBudgetAmountSheet(
             sourceGroup = group,
             category = category,
+            month = month,
             groups = groups,
             toBudgetCents = overview.toBudgetCents ?: 0L,
             hideDecimalPlaces = hideDecimalPlaces,
@@ -516,6 +526,21 @@ fun BudgetScreen(
             onMove = { fromGroup, fromCategory, toGroup, toCategory, amount ->
                 onTransferBudget(fromGroup, fromCategory, toGroup, toCategory, amount)
                 autoAssignBudget = null
+            },
+        )
+    }
+    settingTarget?.let { (_, category) ->
+        TargetEditorSheet(
+            category = category,
+            month = month,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { settingTarget = null },
+            onSave = { target ->
+                onSetCategoryTarget(category.id.orEmpty(), target)
+                categoryDetails = categoryDetails?.let { (detailsGroup, detailsCategory) ->
+                    detailsGroup to detailsCategory.copy(target = target, hasUnsupportedTarget = false)
+                }
+                settingTarget = null
             },
         )
     }
@@ -815,13 +840,19 @@ private fun PlanBudgetCategoryRow(
                 .padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (category.hidden) "${category.name} · Hidden" else category.name,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (category.hidden) "${category.name} · Hidden" else category.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                category.target?.let {
+                    Text(it.type.label, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis)
+                }
+            }
             BalancePill(
                 category.balanceCents,
                 hideDecimalPlaces,
@@ -1164,6 +1195,7 @@ private fun CategoryRow(
 private fun EditBudgetAmountSheet(
     sourceGroup: BudgetGroup,
     category: BudgetCategory,
+    month: String,
     groups: List<BudgetGroup>,
     toBudgetCents: Long,
     hideDecimalPlaces: Boolean,
@@ -1178,7 +1210,7 @@ private fun EditBudgetAmountSheet(
     var autoAssignMode by remember(category, startInMoveMode, startInAutoAssignMode) {
         mutableStateOf(startInAutoAssignMode)
     }
-    val autoAssignChoices = remember(category) { buildAutoAssignChoices(category) }
+    val autoAssignChoices = remember(category, month) { buildAutoAssignChoices(category, month) }
     val options = remember(groups, toBudgetCents) {
         listOf(MoveEndpoint(null, null, toBudgetCents)) + groups.filterNot { it.isIncome }.flatMap { group ->
             group.categories.filterNot { it.hidden }.map { item ->
@@ -1586,6 +1618,7 @@ private fun CategoryDetailsScreen(
     onEditBudget: () -> Unit,
     onMoveMoney: () -> Unit,
     onAutoAssign: () -> Unit,
+    onEditTarget: () -> Unit,
     transactions: List<Transaction>,
     onRename: () -> Unit,
     onTransactionsThisMonth: () -> Unit,
@@ -1673,6 +1706,12 @@ private fun CategoryDetailsScreen(
                     BudgetEntryAction(Icons.Outlined.SwapHoriz, "Move Money", Modifier.weight(1f), onMoveMoney)
                     BudgetEntryAction(Icons.Outlined.Bolt, "Auto-Assign", Modifier.weight(1f), onAutoAssign)
                 }
+                TargetDetailsCard(
+                    category = category,
+                    month = month,
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    onClick = onEditTarget,
+                )
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(18.dp)) {
                     Column {
                         Row(
@@ -1786,6 +1825,65 @@ private fun CategoryDetailsScreen(
 }
 
 @Composable
+private fun TargetDetailsCard(
+    category: BudgetCategory,
+    month: String,
+    hideDecimalPlaces: Boolean,
+    onClick: () -> Unit,
+) {
+    val target = category.target
+    val title: String
+    val detail: String
+    val supporting: String
+    when {
+        category.hasUnsupportedTarget -> {
+            title = "Advanced target"
+            detail = "Managed in Actual Budget"
+            supporting = "View target information"
+        }
+        target == null -> {
+            title = "Set a target"
+            detail = "Plan how much to budget"
+            supporting = "Auto-Assign can use your target"
+        }
+        else -> {
+            title = target.type.label
+            detail = when (target.type) {
+                BudgetTarget.Type.AVERAGE -> "Average of ${target.averageMonths} recent months"
+                else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)
+            }
+            val timing = when (target.type) {
+                BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS,
+                BudgetTarget.Type.REFILL -> "Resets every month"
+                BudgetTarget.Type.WEEKLY_SPENDING -> "Resets every week"
+                BudgetTarget.Type.BY_DATE -> target.targetMonth?.let { "Target month ${formatMonth(it)}" }
+                    ?: "Target date"
+                BudgetTarget.Type.AVERAGE -> "Recalculates every month"
+            }
+            supporting = "$timing · Auto-Assign ${formatMoneyCents(target.suggestedBudget(category, month), hideDecimalPlaces)}"
+        }
+    }
+    Surface(onClick = onClick, color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(18.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Target", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(detail, style = MaterialTheme.typography.bodyMedium)
+                Text(supporting, style = MaterialTheme.typography.bodySmall,
+                    color = if (target == null && !category.hasUnsupportedTarget) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Edit target",
+                modifier = Modifier.rotate(-90f), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
 private fun SummaryValue(label: String, amount: Long, hideDecimals: Boolean, modifier: Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, style = MaterialTheme.typography.labelSmall,
@@ -1796,7 +1894,10 @@ private fun SummaryValue(label: String, amount: Long, hideDecimals: Boolean, mod
     }
 }
 
-private fun buildAutoAssignChoices(category: BudgetCategory): List<Pair<String, Long>> = buildList {
+private fun buildAutoAssignChoices(category: BudgetCategory, month: String): List<Pair<String, Long>> = buildList {
+    category.target?.let { target ->
+        add("Target · ${target.type.label}" to target.suggestedBudget(category, month))
+    }
     category.history.firstOrNull()?.let { last ->
         val spent = kotlin.math.abs(minOf(last.spentCents, 0L))
         if (spent > 0) add("Spent last month" to spent)
@@ -1815,11 +1916,137 @@ private fun buildAutoAssignChoices(category: BudgetCategory): List<Pair<String, 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun TargetEditorSheet(
+    category: BudgetCategory,
+    month: String,
+    hideDecimalPlaces: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (BudgetTarget?) -> Unit,
+) {
+    if (category.hasUnsupportedTarget) {
+        ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Advanced target", style = MaterialTheme.typography.titleMedium)
+                Text("This category uses advanced target settings that Actua cannot safely edit yet. You can continue to manage it in Actual Budget.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Close") }
+            }
+        }
+        return
+    }
+    var type by remember(category) { mutableStateOf(category.target?.type ?: BudgetTarget.Type.MONTHLY_SPENDING) }
+    var amount by remember(category) {
+        mutableStateOf(category.target?.amountCents?.let { java.math.BigDecimal.valueOf(it, 2).stripTrailingZeros().toPlainString() } ?: "")
+    }
+    var date by remember(category, month) {
+        mutableStateOf(category.target?.targetMonth ?: category.target?.startingDate ?: "$month-01")
+    }
+    var averageMonths by remember(category) { mutableStateOf(category.target?.averageMonths?.toString() ?: "3") }
+    var typeMenu by remember { mutableStateOf(false) }
+    val amountCents = runCatching { java.math.BigDecimal(amount).movePointRight(2).longValueExact() }.getOrNull()
+    val validDate = when (type) {
+        BudgetTarget.Type.BY_DATE -> runCatching { java.time.YearMonth.parse(date.take(7)) }.isSuccess
+        BudgetTarget.Type.WEEKLY_SPENDING -> runCatching { java.time.LocalDate.parse(date) }.isSuccess
+        else -> true
+    }
+    val canSave = (type == BudgetTarget.Type.AVERAGE || amountCents != null && amountCents > 0L) && validDate
+    ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Box {
+                Surface(onClick = { typeMenu = true }, color = MaterialTheme.colorScheme.surfaceContainer,
+                    shape = RoundedCornerShape(14.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Target type", style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(type.label, fontWeight = FontWeight.SemiBold)
+                        }
+                        Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Choose target type")
+                    }
+                }
+                DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
+                    BudgetTarget.Type.entries.forEach { option ->
+                        DropdownMenuItem(text = {
+                            Column {
+                                Text(option.label)
+                                Text(option.explanation, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }, onClick = { type = option; typeMenu = false })
+                    }
+                }
+            }
+            if (type != BudgetTarget.Type.AVERAGE) {
+                OutlinedTextField(value = amount, onValueChange = { amount = it }, modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Amount") }, prefix = { Text(formatMoneyCents(0, hideDecimalPlaces).filterNot { it.isDigit() || it in ".,−-" }) },
+                    singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+            }
+            when (type) {
+                BudgetTarget.Type.BY_DATE -> OutlinedTextField(value = date.take(7), onValueChange = { date = it },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Target month") }, placeholder = { Text("YYYY-MM") }, singleLine = true)
+                BudgetTarget.Type.WEEKLY_SPENDING -> OutlinedTextField(value = date, onValueChange = { date = it },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("First week starts") }, placeholder = { Text("YYYY-MM-DD") }, singleLine = true)
+                BudgetTarget.Type.AVERAGE -> OutlinedTextField(value = averageMonths, onValueChange = { averageMonths = it.filter(Char::isDigit) },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Months to average") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                else -> Unit
+            }
+            Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(14.dp)) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Text("Reset", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(when (type) {
+                        BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS, BudgetTarget.Type.REFILL -> "Every month"
+                        BudgetTarget.Type.WEEKLY_SPENDING -> "Every week"
+                        BudgetTarget.Type.BY_DATE -> "On target date"
+                        BudgetTarget.Type.AVERAGE -> "Recalculate monthly"
+                    }, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Text(type.explanation, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                if (category.target != null) TextButton(onClick = { onSave(null) }) {
+                    Text("Remove target", color = MaterialTheme.colorScheme.error)
+                }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+                Button(onClick = {
+                    onSave(BudgetTarget(
+                        type = type,
+                        amountCents = amountCents ?: 0L,
+                        targetMonth = when (type) {
+                            BudgetTarget.Type.MONTHLY_SPENDING -> month
+                            BudgetTarget.Type.BY_DATE -> date.take(7)
+                            else -> null
+                        },
+                        startingDate = when (type) {
+                            BudgetTarget.Type.MONTHLY_SAVINGS -> "$month-01"
+                            BudgetTarget.Type.WEEKLY_SPENDING -> date
+                            else -> null
+                        },
+                        averageMonths = averageMonths.toIntOrNull()?.coerceIn(1, 24) ?: 3,
+                    ))
+                }, enabled = canSave) { Text("Save") }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun CategoryActionsSheet(
     category: BudgetCategory,
     onDismiss: () -> Unit,
     onRename: () -> Unit,
     onEditBudget: () -> Unit,
+    onSetTarget: () -> Unit,
     onDetails: () -> Unit,
     onTransactionsThisMonth: () -> Unit,
     onAllTransactions: () -> Unit,
@@ -1833,6 +2060,11 @@ private fun CategoryActionsSheet(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
             SheetAction("Rename category", onRename)
             if (!category.isIncome) {
+                SheetAction(when {
+                    category.hasUnsupportedTarget -> "View target"
+                    category.target == null -> "Set target"
+                    else -> "Edit target"
+                }, onSetTarget)
                 SheetAction("Budget details", onDetails)
                 SheetAction("Edit budgeted amount", onEditBudget)
             }
