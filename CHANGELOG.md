@@ -2,6 +2,21 @@
 
 All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
 
+## [1.0.0-beta.2] - 2026-09-09
+
+### Changed
+
+- Placed the full-width transaction Save button directly after the Cleared toggle
+  so it scrolls naturally as part of the add and edit transaction form
+- Replaced scheduled-row overflow actions with a single navigation chevron and
+  aligned the amount and recurrence date to the same trailing edge
+- Changed calculator keys from outlined buttons to filled Material surfaces
+
+### Added
+
+- Added a dedicated scheduled transaction editor with synchronized Save and Delete actions
+- Added a tappable Actua GitHub repository link to the About page
+
 ## [1.0.0-beta.1] - 2026-09-09
 
 First beta of the 1.0 release line.
@@ -396,3 +411,4 @@ Initial public testing release.
 [0.1.0-alpha.12]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.12
 [0.1.0-alpha.13]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.13
 [1.0.0-beta.1]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.1
+[1.0.0-beta.2]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.2

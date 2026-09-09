@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
@@ -73,6 +74,7 @@ fun SettingsScreen(
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
     returnToRootRequest: Int = 0,
 ) {
+    val uriHandler = LocalUriHandler.current
     var page by rememberSaveable { mutableStateOf(SettingsPage.Main) }
     val scrollState = rememberScrollState()
     LaunchedEffect(returnToRootRequest) {
@@ -161,6 +163,14 @@ fun SettingsScreen(
                     },
                 )
                 SettingsSection("Project")
+                ListItem(
+                    headlineContent = { Text("Actua on GitHub") },
+                    supportingContent = { Text("github.com/azimul-kabir/actua") },
+                    trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                    modifier = Modifier.clickable {
+                        uriHandler.openUri("https://github.com/azimul-kabir/actua")
+                    },
+                )
                 ListItem(
                     headlineContent = { Text("Developer & Maintainer") },
                     supportingContent = {

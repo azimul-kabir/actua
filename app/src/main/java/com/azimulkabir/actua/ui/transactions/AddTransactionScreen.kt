@@ -193,7 +193,7 @@ fun AddTransactionScreen(
         }
         Column(
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).imePadding()
-                .padding(start = 20.dp, end = 20.dp, bottom = 104.dp),
+                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -450,14 +450,13 @@ fun AddTransactionScreen(
                 Text("Cleared", modifier = Modifier.weight(1f))
                 Switch(checked = cleared, onCheckedChange = { cleared = it })
             }
+            TransactionSaveButton(
+                canSave = canSave,
+                onClick = saveTransaction,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         }
-        TransactionSaveButton(
-            canSave = canSave,
-            onClick = saveTransaction,
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-        )
     }
     if (showCalculator) CalculatorAmountSheet(
         title = if (editing == null) "Transaction amount" else "Edit amount",
