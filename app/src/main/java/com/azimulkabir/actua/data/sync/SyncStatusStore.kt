@@ -9,6 +9,7 @@ data class SyncStatus(
     val sentMessages: Int,
     val receivedMessages: Int,
     val error: String?,
+    val lastBackgroundRefreshMillis: Long,
 )
 
 /** Device-local operational state; no credentials or budget contents are stored here. */
@@ -19,6 +20,7 @@ class SyncStatusStore(context: Context) {
         preferences.getBoolean("running", false), preferences.getLong("lastAttempt", 0),
         preferences.getLong("lastSuccess", 0), preferences.getInt("sent", 0),
         preferences.getInt("received", 0), preferences.getString("error", null),
+        preferences.getLong("lastBackgroundRefresh", 0),
     )
 
     fun started(now: Long = System.currentTimeMillis()) {
@@ -36,4 +38,8 @@ class SyncStatusStore(context: Context) {
     }
 
     fun stoppedWithoutSync() { preferences.edit().putBoolean("running", false).apply() }
+
+    fun backgroundRefreshFinished(now: Long = System.currentTimeMillis()) {
+        preferences.edit().putLong("lastBackgroundRefresh", now).apply()
+    }
 }

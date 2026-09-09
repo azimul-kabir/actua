@@ -18,18 +18,23 @@ sealed class BackupItem {
 
 /** Android port of iOS BackupService, including retention and one-shot revert. */
 class BackupService(context: Context, private val files: BudgetFileManager = BudgetFileManager(context)) {
+    private val destinations = BackupDestinationManager(context)
+
     @Synchronized
-    fun makeBackup(budgetId: String, now: Instant = Instant.now()) {
+    fun makeBackup(budgetId: String, now: Instant = Instant.now()): File {
         val directory = files.backupsDirectory(budgetId)
         directory.listFiles().orEmpty().filter { it.name.endsWith(".tmp") }.forEach(File::delete)
         val snapshot = File(directory, "db.${now.toEpochMilli()}.sqlite.tmp")
         try {
             snapshot(files.databaseFile(budgetId), snapshot)
             cleanSnapshot(snapshot)
-            files.writeArchive(snapshot, files.metadataFile(budgetId), File(directory, archiveName(now)))
+            val archive = File(directory, archiveName(now))
+            files.writeArchive(snapshot, files.metadataFile(budgetId), archive)
             files.latestDatabaseFile(budgetId).delete()
             files.latestMetadataFile(budgetId).delete()
             prune(budgetId, now)
+            runCatching { destinations.mirror(budgetId, archive) }
+            return archive
         } finally {
             snapshot.delete()
         }
@@ -41,6 +46,17 @@ class BackupService(context: Context, private val files: BudgetFileManager = Bud
         }
         addAll(archives(budgetId).map { BackupItem.Archive(it.id, it.modifiedAt) })
     }
+
+    fun archiveFile(budgetId: String, backupId: String): File {
+        require('/' !in backupId && '\\' !in backupId && backupId.endsWith(".zip")) { "Invalid backup id" }
+        return File(files.backupsDirectory(budgetId), backupId).also {
+            require(it.isFile) { "Backup $backupId no longer exists" }
+        }
+    }
+
+    fun mirrorExisting(budgetId: String) = destinations.mirrorExisting(
+        budgetId, archives(budgetId).map { File(files.backupsDirectory(budgetId), it.id) },
+    )
 
     @Synchronized
     fun restore(budgetId: String, backupId: String) {
@@ -131,7 +147,10 @@ class BackupService(context: Context, private val files: BudgetFileManager = Bud
     private fun prune(budgetId: String, today: Instant) {
         val archives = archives(budgetId)
         backupsToRemove(archives.map { DatedBackup(it.id, it.modifiedAt) }, today)
-            .forEach { File(files.backupsDirectory(budgetId), it).delete() }
+            .forEach {
+                File(files.backupsDirectory(budgetId), it).delete()
+                destinations.removeMirror(budgetId, it)
+            }
     }
 
     companion object {

@@ -4,6 +4,7 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ActualServerClientTest {
@@ -76,6 +77,36 @@ class ActualServerClientTest {
         val missing = ActualServerClient(RecordingTransport { ActualHttpResponse(404, byteArrayOf()) })
         assertThrows(ActualServerException.FileNotFound::class.java) {
             missing.downloadFile("https://actual.test", "token", "missing")
+        }
+    }
+
+    @Test
+    fun uploadAndDeleteUseActualBudgetFileProtocol() {
+        val transport = RecordingTransport { request ->
+            if (request.url.path.endsWith("upload-user-file")) {
+                ActualHttpResponse(200, """{"status":"ok","groupId":"group-1"}""".encodeToByteArray())
+            } else {
+                ActualHttpResponse(200, byteArrayOf())
+            }
+        }
+        val client = ActualServerClient(transport)
+        val archive = byteArrayOf(1, 2, 3)
+        assertEquals("group-1", client.uploadFile("https://actual.test", "token", "file-1", "Travel & Fun", archive))
+        assertEquals("/sync/upload-user-file", transport.last.url.path)
+        assertEquals("Travel%20%26%20Fun", transport.last.headers["X-ACTUAL-NAME"])
+        assertEquals("2", transport.last.headers["X-ACTUAL-FORMAT"])
+        assertArrayEquals(archive, transport.last.body)
+
+        client.deleteFile("https://actual.test", "token", "file-1")
+        assertEquals("/sync/delete-user-file", transport.last.url.path)
+        assertTrue(transport.last.body!!.decodeToString().contains("\"fileId\":\"file-1\""))
+    }
+
+    @Test
+    fun deleteOnlyTreatsActualMissingFileResponseAsAlreadyDeleted() {
+        val client = ActualServerClient(RecordingTransport { ActualHttpResponse(400, "file-not-found".encodeToByteArray()) })
+        assertThrows(ActualServerException.FileNotFound::class.java) {
+            client.deleteFile("https://actual.test", "token", "missing")
         }
     }
 

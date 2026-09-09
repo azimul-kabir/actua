@@ -25,7 +25,8 @@ Android backlog items and will never be ported.
 ## Ported and tested
 
 - Budget archive validation, import, download, active selection, and export
-- Password login and server file lifecycle endpoints
+- Password login and server file lifecycle endpoints, including Actual-compatible
+  blank-budget creation/upload and exact-name confirmed server deletion with local cleanup
 - Editable primary/fallback server addresses with explicitly scoped private-LAN HTTP support and automatic failover without replacing local budgets
 - HLC, CRDT values/messages, protobuf sync protocol, Merkle tree, encryption
 - Sync convergence loop and Android Keystore-backed credentials/keys
@@ -79,8 +80,10 @@ Android backlog items and will never be ported.
 - Android WorkManager replacement for iOS lifecycle sync: network-constrained
   foreground, post-mutation, and periodic jobs; encrypted budgets; bounded retry;
   post-sync schedule posting/re-push; periodic local backup
-- Manual Sync Now and persisted last-success/error operational status in Connection & Data
-- Connection & Data backup creation, archive restore, and one-shot pre-restore revert UI
+- Manual Sync Now plus live idle/running/error, last-success, and last-background-refresh status in Connection & Data
+- Dedicated backup manager with private archives, independent app-background creation,
+  retention, archive export, optional Storage Access Framework folder mirroring,
+  restore, and one-shot pre-restore revert
 - Foreground sync refresh and visible mutation failure reporting through Android snackbars
 - Persistent app-wide decimal-place display preference
 - Reversible category/group hiding with explicit unhide actions while hidden rows are shown
@@ -119,7 +122,7 @@ Android backlog items and will never be ported.
 
 - Remaining entity deletion/merge/reorder mutations and Android action wiring
 - Budget templates, goals, and broader automation UI
-- Local-backup export/share and import picker
+- Local backup import picker
 
 ## Post-v1 portable features
 

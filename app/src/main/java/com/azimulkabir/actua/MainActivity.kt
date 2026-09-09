@@ -41,4 +41,9 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         foregroundGeneration += 1
     }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) ActualSyncScheduler.scheduleLocalBackup(this)
+    }
 }

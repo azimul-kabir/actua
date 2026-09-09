@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.network.ActualServerClient
+import com.azimulkabir.actua.data.network.ActualServerException
 import com.azimulkabir.actua.data.network.RemoteBudgetFile
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetDownloadException
@@ -58,8 +59,10 @@ import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 @Composable
 fun ConnectionScreen(
@@ -93,7 +96,12 @@ fun ConnectionScreen(
     var syncing by remember { mutableStateOf(false) }
     var backups by remember { mutableStateOf<List<BackupItem>>(emptyList()) }
     var backupBusy by remember { mutableStateOf(false) }
-    var pendingRestore by remember { mutableStateOf<BackupItem?>(null) }
+    var showBackups by remember { mutableStateOf(false) }
+    var showCreateBudget by remember { mutableStateOf(false) }
+    var newBudgetName by remember { mutableStateOf("") }
+    var pendingDelete by remember { mutableStateOf<RemoteBudgetFile?>(null) }
+    var deleteConfirmation by remember { mutableStateOf("") }
+    var confirmQuickBackup by remember { mutableStateOf(false) }
 
     fun refreshBackups() {
         val budgetId = activeBudget.budgetId
@@ -158,49 +166,132 @@ fun ConnectionScreen(
         if (connected && remoteBudgets.isEmpty()) loadBudgets()
         refreshBackups()
     }
+    LaunchedEffect(Unit) {
+        while (true) {
+            syncStatus = syncStatusStore.read()
+            delay(1_000)
+        }
+    }
 
-    pendingRestore?.let { backup ->
-        AlertDialog(
-            onDismissRequest = { if (!backupBusy) pendingRestore = null },
-            title = { Text(if (backup is BackupItem.Latest) "Revert budget?" else "Restore backup?") },
-            text = {
-                Text(
-                    if (backup is BackupItem.Latest) {
-                        "Replace the restored budget with the version that was active immediately before the restore?"
-                    } else if (connected) {
-                        "Your current budget will be saved first. Restoring disconnects this budget from server sync; download it again later to resume syncing."
-                    } else {
-                        "Your current budget will be saved first, then replaced by this backup."
-                    },
-                )
+    if (showBackups && activeBudget.budgetId != null) {
+        BackupsScreen(
+            budgetId = activeBudget.budgetId!!,
+            onBack = { showBackups = false; refreshBackups() },
+            onBeforeRestore = onBeforeBudgetReplacement,
+            onRestored = onBudgetInstalled,
+            modifier = modifier,
+        )
+        return
+    }
+
+    if (showCreateBudget) AlertDialog(
+        onDismissRequest = { if (!loading) showCreateBudget = false },
+        title = { Text("Create new budget") },
+        text = { OutlinedTextField(
+            value = newBudgetName,
+            onValueChange = { if (it.length <= 100) newBudgetName = it },
+            label = { Text("Budget name") },
+            supportingText = { Text("Creates an empty budget on the server and opens it here.") },
+            singleLine = true,
+        ) },
+        confirmButton = { TextButton(
+            enabled = !loading && newBudgetName.trim().isNotEmpty(),
+            onClick = {
+                val name = newBudgetName.trim()
+                val existingNames = remoteBudgets.map { it.name } + files.listLocalBudgets().mapNotNull { it.budgetName }
+                if (name in existingNames) { message = "“$name” already exists."; return@TextButton }
+                loading = true; message = null
+                scope.launch {
+                    var localId: String? = null
+                    runCatching { withContext(Dispatchers.IO) {
+                        val token = credentials.token() ?: throw ActualServerException.Unauthorized
+                        val local = files.createBudget(name); localId = local.id
+                        val cloudFileId = UUID.randomUUID().toString().lowercase()
+                        val archive = files.uploadArchive(local.id)
+                        val groupId = runCatching {
+                            client.uploadFile(activeServerUrl, token, cloudFileId, name, archive)
+                        }.getOrElse { uploadError ->
+                            val remote = runCatching { client.listFiles(activeServerUrl, token) }.getOrNull()
+                                ?.firstOrNull { it.fileId == cloudFileId }
+                            remote?.groupId ?: throw uploadError
+                        }
+                        files.saveCloudRegistration(local.id, cloudFileId, groupId)
+                        local.id
+                    } }.onSuccess { id ->
+                        onBeforeBudgetReplacement(); activeBudget.budgetId = id
+                        showCreateBudget = false; newBudgetName = ""
+                        message = "$name created and opened."; onBudgetInstalled(); loadBudgets(); refreshBackups()
+                    }.onFailure { error ->
+                        localId?.let { runCatching { files.deleteBudget(it) } }
+                        message = error.message ?: "Could not create budget."
+                    }
+                    loading = false
+                }
             },
-            confirmButton = {
-                TextButton(enabled = !backupBusy, onClick = {
-                    val budgetId = activeBudget.budgetId ?: return@TextButton
-                    backupBusy = true
-                    onBeforeBudgetReplacement()
+        ) { Text("Create") } },
+        dismissButton = { TextButton(enabled = !loading, onClick = { showCreateBudget = false }) { Text("Cancel") } },
+    )
+
+    pendingDelete?.let { remote ->
+        AlertDialog(
+            onDismissRequest = { if (!loading) pendingDelete = null },
+            title = { Text("Delete ${remote.name}?") },
+            text = { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("This permanently deletes the budget from the server and every client. Unsynced local changes may be lost.")
+                OutlinedTextField(
+                    value = deleteConfirmation,
+                    onValueChange = { deleteConfirmation = it },
+                    label = { Text("Type ${remote.name} to confirm") },
+                    singleLine = true,
+                )
+            } },
+            confirmButton = { TextButton(
+                enabled = !loading && deleteConfirmation == remote.name,
+                onClick = {
+                    loading = true; message = null; onBeforeBudgetReplacement()
                     scope.launch {
                         runCatching { withContext(Dispatchers.IO) {
-                            backupService.restore(
-                                budgetId,
-                                when (backup) {
-                                    BackupItem.Latest -> BackupService.LATEST_ID
-                                    is BackupItem.Archive -> backup.id
-                                },
-                            )
+                            val token = credentials.token() ?: throw ActualServerException.Unauthorized
+                            val local = files.listLocalBudgets().firstOrNull { it.cloudFileId == remote.fileId }
+                            if (local?.id == activeBudget.budgetId) runCatching { ActualSyncRunner.run(context) }
+                            try { client.deleteFile(activeServerUrl, token, remote.fileId) }
+                            catch (_: ActualServerException.FileNotFound) { }
+                            BudgetEncryptionKeyStore(context).remove(remote.fileId)
+                            local?.let { files.deleteBudget(it.id) }
                         } }.onSuccess {
-                            message = if (backup is BackupItem.Latest) "Original budget restored." else "Backup restored. Server sync is disconnected."
-                        }.onFailure { message = it.message ?: "Could not restore this backup." }
-                        pendingRestore = null
-                        backupBusy = false
-                        refreshBackups()
-                        onBudgetInstalled()
+                            val remaining = files.listLocalBudgets()
+                            if (remaining.none { it.id == activeBudget.budgetId }) {
+                                activeBudget.budgetId = remaining.firstOrNull()?.id
+                            }
+                            pendingDelete = null; deleteConfirmation = ""
+                            message = "${remote.name} deleted."; loadBudgets(); refreshBackups(); onBudgetInstalled()
+                        }.onFailure { error ->
+                            message = error.message ?: "Could not delete budget."; onBudgetInstalled()
+                        }
+                        loading = false
                     }
-                }) { Text(if (backup is BackupItem.Latest) "Revert" else "Restore") }
-            },
-            dismissButton = { TextButton(enabled = !backupBusy, onClick = { pendingRestore = null }) { Text("Cancel") } },
+                },
+            ) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(enabled = !loading, onClick = { pendingDelete = null }) { Text("Cancel") } },
         )
     }
+    if (confirmQuickBackup) AlertDialog(
+        onDismissRequest = { confirmQuickBackup = false },
+        title = { Text("Create a new backup?") },
+        text = { Text("This replaces the one-tap pre-restore version. The restored budget remains in the normal backup list.") },
+        confirmButton = { TextButton(onClick = {
+            confirmQuickBackup = false
+            val budgetId = activeBudget.budgetId ?: return@TextButton
+            backupBusy = true
+            scope.launch {
+                runCatching { withContext(Dispatchers.IO) { backupService.makeBackup(budgetId) } }
+                    .onSuccess { message = "Backup created." }
+                    .onFailure { message = it.message ?: "Could not create a backup." }
+                backupBusy = false; refreshBackups()
+            }
+        }) { Text("Back up") } },
+        dismissButton = { TextButton(onClick = { confirmQuickBackup = false }) { Text("Cancel") } },
+    )
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
@@ -300,11 +391,21 @@ fun ConnectionScreen(
 
             if (connected) {
                 Text("Sync", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                val last = syncStatus.lastSuccessMillis.takeIf { it > 0 }?.let {
-                    java.text.DateFormat.getDateTimeInstance().format(java.util.Date(it))
-                } ?: "Never"
-                Text("Last successful sync: $last", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.fillMaxWidth()) {
+                    Text("Status", Modifier.weight(1f))
+                    Text(if (syncStatus.running || syncing) "Syncing" else if (syncStatus.error != null) "Error" else "Idle",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Row(Modifier.fillMaxWidth()) {
+                    Text("Last sync", Modifier.weight(1f))
+                    Text(syncStatus.lastSuccessMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Row(Modifier.fillMaxWidth()) {
+                    Text("Last background refresh", Modifier.weight(1f))
+                    Text(syncStatus.lastBackgroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 syncStatus.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 OutlinedButton(enabled = !syncing && !loading && downloadingId == null,
                     modifier = Modifier.fillMaxWidth(), onClick = {
@@ -335,6 +436,11 @@ fun ConnectionScreen(
                     Text(if (syncing) "Syncing…" else "Sync now")
                 }
                 Text("Budgets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                OutlinedButton(
+                    onClick = { showCreateBudget = true; newBudgetName = "" },
+                    enabled = !loading && downloadingId == null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Create new budget") }
                 if (remoteBudgets.any { it.encryptedKeyId != null }) {
                     OutlinedTextField(
                         value = encryptionPassword,
@@ -399,6 +505,10 @@ fun ConnectionScreen(
                             if (downloadingId == remote.fileId) CircularProgressIndicator(Modifier.padding(end = 8.dp))
                             Text(if (local == null) "Download" else if (activeBudget.budgetId == local.id) "Refresh" else "Use")
                         }
+                        TextButton(
+                            enabled = downloadingId == null && !loading,
+                            onClick = { pendingDelete = remote; deleteConfirmation = "" },
+                        ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
                     }
                 }
                 OutlinedButton(onClick = { loadBudgets() }, enabled = !loading && downloadingId == null,
@@ -406,16 +516,25 @@ fun ConnectionScreen(
             }
 
             activeBudget.budgetId?.let { budgetId ->
-                Text("Local backups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Backups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Backups stay on this device. Restoring a server budget intentionally disconnects that restored copy from sync.",
+                    "Private backups are created when you leave the app and can be mirrored to a folder you choose.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedButton(
                     modifier = Modifier.fillMaxWidth(),
+                    enabled = !backupBusy,
+                    onClick = { showBackups = true },
+                ) { Text("Backups  ${backups.count { it is BackupItem.Archive }}") }
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !backupBusy && downloadingId == null && !syncing,
                     onClick = {
+                        if (backups.any { it is BackupItem.Latest }) {
+                            confirmQuickBackup = true
+                            return@OutlinedButton
+                        }
                         backupBusy = true; message = null
                         scope.launch {
                             runCatching { withContext(Dispatchers.IO) { backupService.makeBackup(budgetId) } }
@@ -428,18 +547,6 @@ fun ConnectionScreen(
                     if (backupBusy) CircularProgressIndicator(Modifier.padding(end = 8.dp))
                     Text(if (backupBusy) "Working…" else "Create backup now")
                 }
-                backups.forEach { backup ->
-                    OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(), enabled = !backupBusy,
-                        onClick = { pendingRestore = backup },
-                    ) {
-                        Text(when (backup) {
-                            BackupItem.Latest -> "Revert to pre-restore version"
-                            is BackupItem.Archive -> "Restore ${java.text.DateFormat.getDateTimeInstance().format(java.util.Date.from(backup.modifiedAt))}"
-                        })
-                    }
-                }
-                if (backups.isEmpty()) Text("No local backups yet.", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

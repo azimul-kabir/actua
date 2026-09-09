@@ -85,10 +85,27 @@ class ActualSyncWorker(context: Context, parameters: WorkerParameters) : Corouti
         } catch (error: Exception) {
             status.failed(error)
             if (runAttemptCount < 5) Result.retry() else Result.failure()
+        } finally {
+            if (inputData.getBoolean(BACKGROUND_KEY, false)) status.backgroundRefreshFinished()
         }
     }
 
-    companion object { const val BACKUP_KEY = "makeBackup" }
+    companion object {
+        const val BACKUP_KEY = "makeBackup"
+        const val BACKGROUND_KEY = "backgroundRefresh"
+    }
+}
+
+class LocalBackupWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
+    override suspend fun doWork(): Result {
+        return try {
+            val budgetId = ActiveBudgetStore(applicationContext).budgetId ?: return Result.success()
+            BackupService(applicationContext).makeBackup(budgetId)
+            Result.success()
+        } catch (_: Exception) {
+            if (runAttemptCount < 2) Result.retry() else Result.failure()
+        }
+    }
 }
 
 object ActualSyncScheduler {
@@ -96,7 +113,10 @@ object ActualSyncScheduler {
 
     fun schedulePeriodic(context: Context) {
         val request = PeriodicWorkRequestBuilder<ActualSyncWorker>(15, TimeUnit.MINUTES)
-            .setInputData(workDataOf(ActualSyncWorker.BACKUP_KEY to true))
+            .setInputData(workDataOf(
+                ActualSyncWorker.BACKUP_KEY to true,
+                ActualSyncWorker.BACKGROUND_KEY to true,
+            ))
             .setConstraints(network).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS).build()
         WorkManager.getInstance(context.applicationContext).enqueueUniquePeriodicWork(
             PERIODIC, ExistingPeriodicWorkPolicy.UPDATE, request)
@@ -114,6 +134,13 @@ object ActualSyncScheduler {
         WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(IMMEDIATE, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
     }
 
+    fun scheduleLocalBackup(context: Context) {
+        val request = OneTimeWorkRequestBuilder<LocalBackupWorker>().build()
+        WorkManager.getInstance(context.applicationContext)
+            .enqueueUniqueWork(LOCAL_BACKUP, ExistingWorkPolicy.REPLACE, request)
+    }
+
     private const val PERIODIC = "actua-periodic-sync"
     private const val IMMEDIATE = "actua-immediate-sync"
+    private const val LOCAL_BACKUP = "actua-local-backup"
 }

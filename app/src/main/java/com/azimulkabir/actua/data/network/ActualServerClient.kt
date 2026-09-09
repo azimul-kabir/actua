@@ -133,6 +133,39 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         return response.body
     }
 
+    fun uploadFile(serverUrl: String, token: String, fileId: String, name: String, archive: ByteArray): String {
+        val encodedName = encodeURIComponent(name)
+        val response = request(
+            serverUrl, "/sync/upload-user-file", "POST",
+            actualHeaders(token) + mapOf(
+                "X-ACTUAL-FILE-ID" to fileId,
+                "X-ACTUAL-NAME" to encodedName,
+                "X-ACTUAL-FORMAT" to "2",
+                "Content-Type" to "application/encrypted-file",
+            ),
+            archive,
+        )
+        checkAuthorization(response)
+        requireSuccess(response)
+        val json = response.json()
+        if (json.optString("status") != "ok") throw ActualServerException.InvalidResponse
+        return json.optString("groupId").takeIf(String::isNotBlank)
+            ?: throw ActualServerException.InvalidResponse
+    }
+
+    fun deleteFile(serverUrl: String, token: String, fileId: String) {
+        val body = JSONObject().put("token", token).put("fileId", fileId).toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/sync/delete-user-file", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        if (response.status == 400 && response.body.decodeToString() == "file-not-found") {
+            throw ActualServerException.FileNotFound
+        }
+        requireSuccess(response)
+    }
+
     fun getFileInfo(serverUrl: String, token: String, fileId: String): ActualFileInfo {
         val response = request(serverUrl, "/sync/get-user-file-info", "GET", actualHeaders(token) + ("X-ACTUAL-FILE-ID" to fileId))
         checkAuthorization(response)
@@ -195,6 +228,15 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         JSONObject(body.decodeToString())
     } catch (_: Exception) {
         throw ActualServerException.InvalidResponse
+    }
+}
+
+private fun encodeURIComponent(value: String): String = buildString {
+    val unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()"
+    value.encodeToByteArray().forEach { byte ->
+        val code = byte.toInt() and 0xff
+        val character = code.toChar()
+        if (character in unreserved) append(character) else append("%%%02X".format(code))
     }
 }
 

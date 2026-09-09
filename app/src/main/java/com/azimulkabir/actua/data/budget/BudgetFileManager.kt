@@ -4,6 +4,7 @@ import android.content.Context
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -41,6 +42,56 @@ class BudgetFileManager(context: Context) {
     }
     fun latestDatabaseFile(budgetId: String): File = File(budgetDirectory(budgetId), "db.latest.sqlite")
     fun latestMetadataFile(budgetId: String): File = File(budgetDirectory(budgetId), "metadata.latest.json")
+
+    fun createBudget(name: String): BudgetMetadata {
+        val sanitized = name.map { if (it.isLetterOrDigit() && it.code < 128) it else '-' }.joinToString("")
+        val base = "$sanitized-${UUID.randomUUID().toString().take(7)}"
+        var id = base
+        var suffix = 0
+        while (budgetDirectory(id).exists()) id = "$base${++suffix}"
+        val directory = budgetDirectory(id)
+        try {
+            check(directory.mkdirs()) { "Unable to create budget directory" }
+            BlankBudgetFactory.create(databaseFile(id))
+            metadataFile(id).writeText(JSONObject().put("id", id).put("budgetName", name).toString())
+            return BudgetMetadata.fromJson(JSONObject(metadataFile(id).readText()))
+        } catch (error: Exception) {
+            directory.deleteRecursively()
+            throw error
+        }
+    }
+
+    fun uploadArchive(budgetId: String): ByteArray {
+        val original = JSONObject(metadataFile(budgetId).readText())
+        val temporary = File.createTempFile("actua-upload-", ".json", root)
+        return try {
+            temporary.writeText(original.put("resetClock", true).toString())
+            ByteArrayOutputStream().use { output ->
+                ZipOutputStream(BufferedOutputStream(output)).use { zip ->
+                    zip.writeFile(DATABASE_NAME, databaseFile(budgetId))
+                    zip.writeFile(METADATA_NAME, temporary)
+                }
+                output.toByteArray()
+            }
+        } finally {
+            temporary.delete()
+        }
+    }
+
+    fun saveCloudRegistration(budgetId: String, cloudFileId: String, groupId: String) {
+        val file = metadataFile(budgetId)
+        val json = JSONObject(file.readText())
+            .put("cloudFileId", cloudFileId)
+            .put("groupId", groupId)
+            .put("lastUploaded", java.time.LocalDate.now().toString())
+        file.writeText(json.toString())
+    }
+
+    fun deleteBudget(budgetId: String) {
+        val directory = budgetDirectory(budgetId)
+        require(directory.isDirectory) { "Budget no longer exists on this device" }
+        check(directory.deleteRecursively()) { "Unable to remove budget from this device" }
+    }
 
     fun listLocalBudgets(): List<BudgetMetadata> = root.listFiles()
         .orEmpty()

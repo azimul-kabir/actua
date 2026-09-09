@@ -25,7 +25,7 @@ by either the Actuali project or the Actual Budget team.
 
 ## Current functionality
 
-- Password connection to an Actual server and budget download/selection
+- Password connection to an Actual server plus budget creation, download, selection, and confirmed server deletion
 - Offline local budget storage and encrypted CRDT synchronization
 - Automatic, foreground, post-mutation, and manual sync
 - Budget table and availability-focused Plan views, category groups, Source of Fund/Income, monthly amounts, progress bars, and hide/show management
@@ -36,7 +36,8 @@ by either the Actuali project or the Actual Budget team.
 - Calculator-style and conventional amount entry
 - Inline transaction calculator expressions with predictable backspace editing that remain visible until confirmation
 - Account, category, and group creation plus working contextual actions
-- Local backup, restore, retention, and pre-restore revert
+- Automatic local backup, restore, retention, pre-restore revert, per-archive export, and optional folder mirroring
+- Live sync status with last successful sync and last scheduled background refresh
 - Actual-compatible rule listing, editing, CRDT mutations, and transaction
   processing for supported standard conditions and actions
 - Scheduled transaction review with lifecycle status and recurring schedule actions
@@ -93,7 +94,7 @@ for normal in-place upgrades afterward.
 ./gradlew installDebug
 ```
 
-The app can then connect from **More → Connection & Data**. Use the complete server URL and password, choose a remote budget, and download it to the device.
+The app can then connect from **More → Connection & Data**. Use the complete server URL and password, then create a budget or choose an existing remote budget. The Backups manager can export individual archives and mirror retained backups to a persistent folder selected through Android's system picker.
 
 ## Architecture
 
