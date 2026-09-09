@@ -6,11 +6,11 @@ class DisplayPreferences(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
 
     var hideDecimalPlaces: Boolean
-        get() = preferences.getBoolean(HIDE_DECIMAL_PLACES, false)
+        get() = preferences.getBoolean(HIDE_DECIMAL_PLACES, true)
         set(value) { preferences.edit().putBoolean(HIDE_DECIMAL_PLACES, value).apply() }
 
     var currencyCode: String
-        get() = preferences.getString(CURRENCY_CODE, "BDT") ?: "BDT"
+        get() = preferences.getString(CURRENCY_CODE, "") ?: ""
         set(value) { preferences.edit().putString(CURRENCY_CODE, value).apply() }
 
     var currencySymbolOnly: Boolean
@@ -22,15 +22,15 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putBoolean(SHOW_HIDDEN_CATEGORIES, value).apply() }
 
     var showSpentColumn: Boolean
-        get() = preferences.getBoolean(SHOW_SPENT_COLUMN, true)
+        get() = preferences.getBoolean(SHOW_SPENT_COLUMN, false)
         set(value) { preferences.edit().putBoolean(SHOW_SPENT_COLUMN, value).apply() }
 
     var showBudgetProgressBars: Boolean
-        get() = preferences.getBoolean(SHOW_BUDGET_PROGRESS_BARS, false)
+        get() = preferences.getBoolean(SHOW_BUDGET_PROGRESS_BARS, true)
         set(value) { preferences.edit().putBoolean(SHOW_BUDGET_PROGRESS_BARS, value).apply() }
 
     var budgetView: String
-        get() = preferences.getString(BUDGET_VIEW, "Table") ?: "Table"
+        get() = preferences.getString(BUDGET_VIEW, "Plan") ?: "Plan"
         set(value) { preferences.edit().putString(BUDGET_VIEW, value).apply() }
 
     var showBudgetOverview: Boolean
@@ -38,7 +38,7 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putBoolean(SHOW_BUDGET_OVERVIEW, value).apply() }
 
     var showGroupTotals: Boolean
-        get() = preferences.getBoolean(SHOW_GROUP_TOTALS, true)
+        get() = preferences.getBoolean(SHOW_GROUP_TOTALS, false)
         set(value) { preferences.edit().putBoolean(SHOW_GROUP_TOTALS, value).apply() }
 
     var hideFullySpentCategories: Boolean
@@ -54,7 +54,7 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putString(APPEARANCE, value).apply() }
 
     var startPage: String
-        get() = preferences.getString(START_PAGE, "Accounts") ?: "Accounts"
+        get() = preferences.getString(START_PAGE, "Budget") ?: "Budget"
         set(value) { preferences.edit().putString(START_PAGE, value).apply() }
 
     var defaultAccount: String?
@@ -76,7 +76,7 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, value).apply() }
 
     var conventionalAmountEntry: Boolean
-        get() = preferences.getBoolean(CONVENTIONAL_AMOUNT_ENTRY, false)
+        get() = preferences.getBoolean(CONVENTIONAL_AMOUNT_ENTRY, true)
         set(value) { preferences.edit().putBoolean(CONVENTIONAL_AMOUNT_ENTRY, value).apply() }
 
     var showBottomNavigationLabels: Boolean

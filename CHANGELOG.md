@@ -12,6 +12,12 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added native Material cards, charts, calendar grids, category bars, comparison
   series, and forecast displays for the newly supported report widgets
 
+### Changed
+
+- Updated fresh-install defaults to use Plan view with overview and progress bars,
+  enable transaction and account options, start on Budget, use no currency
+  override, and hide decimal places
+
 ## [0.1.0-beta.3] - 2026-09-09
 
 ### Added
