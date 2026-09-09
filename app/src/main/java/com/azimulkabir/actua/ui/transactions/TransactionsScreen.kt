@@ -43,16 +43,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -117,6 +123,7 @@ fun TransactionsScreen(
     showBackButton: Boolean = true,
     showCurrentBalanceSummary: Boolean = true,
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
+    onReconcileVisibilityChange: (Boolean) -> Unit = {},
     returnToRootRequest: Int = 0,
 ) {
     val listState = rememberLazyListState()
@@ -127,6 +134,10 @@ fun TransactionsScreen(
     var selected by remember { mutableStateOf<Transaction?>(null) }
     var viewed by remember { mutableStateOf<Transaction?>(null) }
     var reconcileOpen by remember(account?.id) { mutableStateOf(false) }
+    LaunchedEffect(reconcileOpen) { onReconcileVisibilityChange(reconcileOpen) }
+    DisposableEffect(Unit) {
+        onDispose { onReconcileVisibilityChange(false) }
+    }
     LaunchedEffect(returnToRootRequest) {
         if (returnToRootRequest > 0) {
             when {
@@ -184,7 +195,20 @@ fun TransactionsScreen(
                     .any { text -> text.contains(search, ignoreCase = true) })
     }
 
-    if (reconcileOpen && account != null) {
+    AnimatedContent(
+        targetState = reconcileOpen && account != null,
+        transitionSpec = {
+            if (targetState) {
+                (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { it / 5 }) togetherWith
+                    (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { -it / 10 })
+            } else {
+                (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { -it / 5 }) togetherWith
+                    (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { it / 10 })
+            }.using(SizeTransform(clip = false))
+        },
+        label = "Reconcile navigation motion",
+    ) { showingReconcile ->
+    if (showingReconcile && account != null) {
         ReconcileAccountScreen(
             modifier = modifier,
             account = account,
@@ -197,10 +221,7 @@ fun TransactionsScreen(
             onReconcile = { if (onReconcileAccount(account)) reconcileOpen = false },
             onCreateAdjustment = { difference -> onCreateReconciliationAdjustment(account, difference) },
         )
-        return
-    }
-
-    Column(modifier = modifier.fillMaxSize()) {
+    } else Column(modifier = modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
             if (showBackButton) {
@@ -330,6 +351,7 @@ fun TransactionsScreen(
                 }
             }
         }
+    }
     }
     viewed?.let { transaction ->
         TransactionDetailsSheet(

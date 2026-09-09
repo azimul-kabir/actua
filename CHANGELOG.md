@@ -2,6 +2,18 @@
 
 All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
 
+## [1.0.0-beta.4] - 2026-09-09
+
+### Changed
+
+- Added consistent forward and back transitions to Reconcile and every nested
+  Preferences page under More
+
+### Fixed
+
+- Removed the global Transaction button from the Reconcile workflow so it no
+  longer covers the reconciliation keypad
+
 ## [1.0.0-beta.3] - 2026-09-09
 
 ### Added

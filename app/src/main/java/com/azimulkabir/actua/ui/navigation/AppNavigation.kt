@@ -172,6 +172,7 @@ fun AppNavigation(
     val tabStateHolder = rememberSaveableStateHolder()
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
+    var reconcileOpen by remember { mutableStateOf(false) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
     var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
@@ -299,7 +300,7 @@ fun AppNavigation(
             val inAccount = detail == DetailDestination.Transactions && transactionAccount != null
             val inBudgetCategory = detail == DetailDestination.Main &&
                 destination == MainDestination.Budget && activeBudgetCategory != null
-            if (repository.isUsingActualBudget && (onMainTab || inAccount)) {
+            if (repository.isUsingActualBudget && !reconcileOpen && (onMainTab || inAccount)) {
                 ExtendedFloatingActionButton(
                     onClick = when {
                         inBudgetCategory -> ::openAddTransactionForCategory
@@ -449,6 +450,7 @@ fun AppNavigation(
                     displayPreferences.showCurrentBalanceSummary = it
                     showCurrentBalanceSummary = it
                 },
+                onReconcileVisibilityChange = { reconcileOpen = it },
             )
             DetailDestination.EditTransaction -> AddTransactionScreen(
                 editing = editingTransaction,

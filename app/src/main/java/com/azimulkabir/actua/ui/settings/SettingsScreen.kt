@@ -21,6 +21,14 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -87,9 +95,24 @@ fun SettingsScreen(
         page = SettingsPage.Main
         action()
     }
-    Column(modifier = modifier.fillMaxSize().verticalScroll(scrollState)) {
-        SettingsHeader(page.title, page != SettingsPage.Main) { page = SettingsPage.Main }
-        when (page) {
+    AnimatedContent(
+        targetState = page,
+        modifier = modifier.fillMaxSize(),
+        transitionSpec = {
+            val opening = initialState == SettingsPage.Main && targetState != SettingsPage.Main
+            if (opening) {
+                (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { it / 5 }) togetherWith
+                    (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { -it / 10 })
+            } else {
+                (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { -it / 5 }) togetherWith
+                    (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { it / 10 })
+            }.using(SizeTransform(clip = false))
+        },
+        label = "Settings navigation motion",
+    ) { shownPage ->
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+        SettingsHeader(shownPage.title, shownPage != SettingsPage.Main) { page = SettingsPage.Main }
+        when (shownPage) {
             SettingsPage.Main -> {
                 SettingsRow("Connection & Data", "Actual server, budgets, local data and backups", true) {
                     openFullScreen(onConnectionClick)
@@ -210,6 +233,7 @@ fun SettingsScreen(
                 )
             }
         }
+    }
     }
 }
 
