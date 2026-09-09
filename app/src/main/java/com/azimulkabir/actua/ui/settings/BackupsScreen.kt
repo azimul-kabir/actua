@@ -119,7 +119,10 @@ fun BackupsScreen(
                 busy = true; onBeforeRestore()
                 scope.launch {
                     runCatching { withContext(Dispatchers.IO) {
-                        service.restore(budgetId, if (backup is BackupItem.Latest) BackupService.LATEST_ID else backup.id)
+                        service.restore(budgetId, when (backup) {
+                            BackupItem.Latest -> BackupService.LATEST_ID
+                            is BackupItem.Archive -> backup.id
+                        })
                     } }.onSuccess { message = "Backup restored." }
                         .onFailure { message = it.message ?: "Could not restore backup." }
                     pendingRestore = null; busy = false; refresh(); onRestored()
@@ -188,7 +191,10 @@ fun BackupsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(if (backup is BackupItem.Latest) "Pre-restore version" else DateFormat.getDateTimeInstance().format(Date.from(backup.modifiedAt)))
+                        Text(when (backup) {
+                            BackupItem.Latest -> "Pre-restore version"
+                            is BackupItem.Archive -> DateFormat.getDateTimeInstance().format(Date.from(backup.modifiedAt))
+                        })
                         Text("Tap to ${if (backup is BackupItem.Latest) "revert" else "restore"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (backup is BackupItem.Archive) OutlinedButton(enabled = !busy, onClick = {
