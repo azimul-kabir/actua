@@ -2,6 +2,33 @@
 
 All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
 
+## [1.0.0-beta.3] - 2026-09-09
+
+### Added
+
+- Added a complete scheduled transaction editor with recurrence, weekend handling,
+  end conditions, upcoming dates, automatic posting, and lifecycle actions
+- Added synced category targets for monthly spending, monthly saving, save-by-date,
+  refill-to-cap, weekly spending, and recent-spending averages
+- Added target-aware Auto-Assign and target summaries to category details
+- Added mobile account reconciliation with exact bank-balance comparison, inline
+  uncleared-transaction review, optional adjustments, and cleared-transaction locking
+
+### Changed
+
+- Made payee search update with every typed character and show ordinary payees and
+  matching transfer accounts together in one alphabetical result list
+- Kept transfer accounts in their own alphabetical section when the search is blank
+
+### Fixed
+
+- Kept split parents and children aligned when their cleared status changes and
+  preserved reconciled transactions as locked records
+
+## Unreleased
+
+No user-facing changes yet.
+
 ## [1.0.0-beta.2] - 2026-09-09
 
 ### Changed
@@ -50,10 +77,6 @@ First beta of the 1.0 release line.
   accounts, and overflow actions into consistent responsive rows
 - Corrected nested Settings navigation so Android Back returns directly to More
   instead of requiring an extra gesture
-
-## Unreleased
-
-No user-facing changes yet.
 
 ## [0.1.0-beta.3] - 2026-09-09
 
@@ -412,3 +435,4 @@ Initial public testing release.
 [0.1.0-alpha.13]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.13
 [1.0.0-beta.1]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.1
 [1.0.0-beta.2]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.2
+[1.0.0-beta.3]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.3

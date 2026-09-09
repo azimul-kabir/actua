@@ -114,6 +114,8 @@ Android backlog items and will never be ported.
   validation, and unpaid-first stable due-date sorting
 - Database-backed complete-history transaction search, including live split-child
   payees, notes, imported descriptions and categories; stable database paging
+- Character-by-character payee-picker filtering with one alphabetical result list
+  across ordinary payees and matching transfer accounts
 - Persisted app-wide reconciled-transaction filtering applied before database
   paging and search, shared by account and all-transaction lists
 - Add/edit split transaction UI with per-line category, amount, direction, payee,
