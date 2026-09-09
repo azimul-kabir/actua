@@ -45,7 +45,9 @@ by either the Actuali project or the Actual Budget team.
 - Balance-focused category details with shared Budget, Move Money and Auto-Assign keypads, notes, rollover overspending, recent activity and category-preselected transaction entry
 - Credit-card limits, billing-cycle metadata, fixed or offset due dates, cycle spending,
   urgency sorting, and opt-in Android payment reminders
-- Reports, display currency, decimal, appearance, start-page, and privacy preferences
+- Actual-synced report dashboard pages and widget order, with Summary, Net Worth,
+  Cash Flow, Spending, and Markdown widgets, plus display currency, decimal,
+  appearance, start-page, and privacy preferences
 - Global search across transactions, accounts, payees, categories, notes, and transfers
 - Unified Material You category budgeting with auto-assign, money movement, details, and recent activity
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad

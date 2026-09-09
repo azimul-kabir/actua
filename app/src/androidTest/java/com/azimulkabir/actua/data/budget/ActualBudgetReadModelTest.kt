@@ -12,6 +12,14 @@ import java.io.File
 import java.util.UUID
 
 class ActualBudgetReadModelTest {
+    @Test fun readsSyncedDashboardPagesAndWidgetOrder() = withDatabase { database ->
+        val pages = database.fetchDashboardPages()
+        assertEquals(listOf("Main"), pages.map { it.name })
+        val widgets = database.fetchDashboardWidgets(pages.single().id)
+        assertEquals(listOf("summary", "cash"), widgets.map { it.id })
+        assertEquals("summary-card", widgets.first().type)
+    }
+
     @Test
     fun readsActualRelationshipsAndSplitAwareBalances() = withDatabase { database ->
         val accounts = database.fetchAccounts()
@@ -540,6 +548,8 @@ class ActualBudgetReadModelTest {
             db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
             db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, `column` TEXT NOT NULL, value BLOB NOT NULL)")
             db.execSQL("CREATE TABLE preferences (id TEXT PRIMARY KEY, value TEXT)")
+            db.execSQL("CREATE TABLE dashboard_pages (id TEXT PRIMARY KEY, name TEXT, tombstone INTEGER DEFAULT 0)")
+            db.execSQL("CREATE TABLE dashboard (id TEXT PRIMARY KEY, type TEXT, x INTEGER, y INTEGER, meta TEXT, tombstone INTEGER DEFAULT 0, dashboard_page_id TEXT)")
             db.execSQL("CREATE TABLE rules (id TEXT PRIMARY KEY, stage TEXT, conditions_op TEXT, conditions TEXT, actions TEXT, tombstone INTEGER)")
             db.execSQL("CREATE TABLE schedules (id TEXT PRIMARY KEY, rule TEXT, name TEXT, posts_transaction INTEGER, completed INTEGER, custom_upcoming_length TEXT, tombstone INTEGER, sort_order REAL)")
             db.execSQL("CREATE TABLE schedules_next_date (id TEXT PRIMARY KEY, schedule_id TEXT, local_next_date INTEGER, local_next_date_ts INTEGER, base_next_date INTEGER, base_next_date_ts INTEGER)")
@@ -548,6 +558,8 @@ class ActualBudgetReadModelTest {
             db.execSQL("INSERT INTO category_groups VALUES ('essential','Essentials',0,0,0,1)")
             db.execSQL("INSERT INTO categories VALUES ('grocery','Groceries','essential',0,0,0,1), ('rent','Rent','essential',0,0,0,2), ('budgetcat','Budget Test','essential',0,0,0,3)")
             db.execSQL("INSERT INTO category_mapping VALUES ('grocery','grocery'), ('rent','rent'), ('budgetcat','budgetcat')")
+            db.execSQL("INSERT INTO dashboard_pages VALUES ('main','Main',0)")
+            db.execSQL("INSERT INTO dashboard VALUES ('cash','cash-flow-card',0,1,NULL,0,'main'), ('summary','summary-card',1,0,'{\"name\":\"Total\"}',0,'main')")
             db.execSQL("INSERT INTO payees VALUES ('store','Store',NULL,0), ('transfer-savings',NULL,'savings',0), ('transfer-checking',NULL,'checking',0)")
             db.execSQL("INSERT INTO payee_mapping VALUES ('store','store'), ('transfer-savings','transfer-savings'), ('transfer-checking','transfer-checking')")
 

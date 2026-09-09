@@ -121,6 +121,7 @@ object RuleSchema {
         "imported_payee" to RuleFieldType.STRING, "payee" to RuleFieldType.ID,
         "payee_name" to RuleFieldType.STRING, "date" to RuleFieldType.DATE,
         "notes" to RuleFieldType.STRING, "amount" to RuleFieldType.NUMBER,
+        "amount-inflow" to RuleFieldType.NUMBER, "amount-outflow" to RuleFieldType.NUMBER,
         "category" to RuleFieldType.ID, "category_group" to RuleFieldType.ID,
         "account" to RuleFieldType.ID, "cleared" to RuleFieldType.BOOLEAN,
         "reconciled" to RuleFieldType.BOOLEAN, "transfer" to RuleFieldType.BOOLEAN,

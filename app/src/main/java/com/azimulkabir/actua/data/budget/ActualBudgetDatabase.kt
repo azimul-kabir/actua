@@ -16,6 +16,8 @@ import com.azimulkabir.actua.data.sync.CrdtMessage
 import com.azimulkabir.actua.data.sync.CrdtValue
 import com.azimulkabir.actua.data.sync.HlcTimestamp
 import com.azimulkabir.actua.data.rules.Rule
+import com.azimulkabir.actua.data.reports.DashboardPageRow
+import com.azimulkabir.actua.data.reports.DashboardWidgetRow
 import com.azimulkabir.actua.data.rules.RuleContext
 import com.azimulkabir.actua.data.schedules.ActualSchedule
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
@@ -209,7 +211,10 @@ class ActualBudgetDatabase private constructor(
         val groups = fetchCategoryGroups()
         return RuleContext(
             offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id },
+            accountNames = accounts.associate { it.id to it.name },
+            categoryNames = groups.flatMap { it.categories }.associate { it.id to it.name },
             categoryGroupIds = groups.flatMap { group -> group.categories.map { it.id to group.id } }.toMap(),
+            categoryGroupNames = groups.associate { it.id to it.name },
             payeeNames = fetchPayees().associate { it.id to it.name },
         )
     }
@@ -617,6 +622,42 @@ class ActualBudgetDatabase private constructor(
             """.trimIndent(),
             null,
         ).use { cursor -> while (cursor.moveToNext()) rows += cursor.toActualTransaction() }
+        return rows
+    }
+
+    @Synchronized
+    fun fetchDashboardPages(): List<DashboardPageRow> {
+        if (!hasTable("dashboard_pages")) return emptyList()
+        val rows = mutableListOf<DashboardPageRow>()
+        database.rawQuery(
+            "SELECT id, COALESCE(name, '') FROM dashboard_pages WHERE tombstone = 0 OR tombstone IS NULL ORDER BY rowid",
+            null,
+        ).use { cursor -> while (cursor.moveToNext()) rows += DashboardPageRow(cursor.getString(0), cursor.getString(1)) }
+        return rows
+    }
+
+    @Synchronized
+    fun fetchDashboardWidgets(pageId: String?): List<DashboardWidgetRow> {
+        if (!hasTable("dashboard")) return emptyList()
+        val columns = database.rawQuery("PRAGMA table_info(dashboard)", null).use { cursor ->
+            val name = cursor.getColumnIndexOrThrow("name")
+            buildSet { while (cursor.moveToNext()) add(cursor.getString(name)) }
+        }
+        val hasPage = "dashboard_page_id" in columns
+        val where = if (!hasPage) "" else if (pageId == null) {
+            " AND dashboard_page_id IS NULL"
+        } else {
+            " AND dashboard_page_id = ?"
+        }
+        val args = if (hasPage && pageId != null) arrayOf(pageId) else null
+        val order = listOf("y", "x").filter(columns::contains).plus("rowid").joinToString()
+        val rows = mutableListOf<DashboardWidgetRow>()
+        database.rawQuery(
+            "SELECT id, COALESCE(type, ''), meta FROM dashboard WHERE (tombstone = 0 OR tombstone IS NULL)$where ORDER BY $order",
+            args,
+        ).use { cursor -> while (cursor.moveToNext()) rows += DashboardWidgetRow(
+            cursor.getString(0), cursor.getString(1), cursor.stringOrNull(2),
+        ) }
         return rows
     }
 

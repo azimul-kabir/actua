@@ -355,8 +355,10 @@ class ActuaRepository(context: Context) {
     fun reports(): ReportSnapshot {
         val db = actualDatabase ?: return ReportSnapshot(emptyList(), emptyList(), 0)
         val accounts = db.fetchAccounts()
+        val groups = db.fetchCategoryGroups()
         val onBudgetIds = accounts.filter { !it.offBudget && !it.closed }.mapTo(mutableSetOf()) { it.id }
-        val rows = db.fetchTransactionsForReports().filter { it.accountId in onBudgetIds }
+        val allRows = db.fetchTransactionsForReports()
+        val rows = allRows.filter { it.accountId in onBudgetIds }
         val currentMonth = currentMonth()
         val monthRows = rows.filter { it.transferId == null }.groupBy { dateMonth(it.date) }
         val end = java.time.YearMonth.parse(currentMonth)
@@ -374,7 +376,29 @@ class ActuaRepository(context: Context) {
             .groupBy { it.categoryName ?: "Uncategorized" }
             .map { (name, transactions) -> ReportCategory(name, transactions.sumOf { -it.amountCents }) }
             .sortedByDescending { it.spentCents }
-        return ReportSnapshot(months, categories, accounts.filterNot { it.closed }.sumOf { it.balanceCents })
+        val dashboardPages = db.fetchDashboardPages()
+        val reportBudgets = mutableMapOf<java.time.YearMonth, Map<String, Long>>()
+        val dashboards = com.azimulkabir.actua.data.reports.CoreReportEngine.dashboards(
+            dashboardPages,
+            widgets = db::fetchDashboardWidgets,
+            transactions = allRows,
+            accounts = accounts,
+            groups = groups,
+            budgetedByCategory = { month ->
+                reportBudgets.getOrPut(month) {
+                    runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull()
+                        ?.let { it.categories + it.hiddenCategories }
+                        ?.associate { it.categoryId to it.budgetedCents }
+                        .orEmpty()
+                }
+            },
+        )
+        return ReportSnapshot(
+            months,
+            categories,
+            accounts.filterNot { it.closed }.sumOf { it.balanceCents },
+            dashboards,
+        )
     }
 
     fun saveTransaction(transaction: Transaction) {

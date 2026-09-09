@@ -8,7 +8,10 @@ import kotlin.math.roundToLong
 
 data class RuleContext(
     val offBudgetAccountIds: Set<String> = emptySet(),
+    val accountNames: Map<String, String> = emptyMap(),
+    val categoryNames: Map<String, String> = emptyMap(),
     val categoryGroupIds: Map<String, String> = emptyMap(),
+    val categoryGroupNames: Map<String, String> = emptyMap(),
     val payeeNames: Map<String, String> = emptyMap(),
 )
 data class RuleRunResult(
@@ -17,6 +20,18 @@ data class RuleRunResult(
 )
 
 object RulesEngine {
+    fun matches(
+        transaction: ActualTransaction,
+        conditions: List<Rule.Condition>,
+        conditionsOp: Rule.ConditionsOp = Rule.ConditionsOp.AND,
+        context: RuleContext = RuleContext(),
+    ): Boolean {
+        if (conditions.isEmpty()) return true
+        val bag = Bag(transaction, context)
+        return if (conditionsOp == Rule.ConditionsOp.AND) conditions.all { evaluate(it, bag) }
+        else conditions.any { evaluate(it, bag) }
+    }
+
     fun apply(transaction: ActualTransaction, rules: List<Rule>, context: RuleContext = RuleContext()): RuleRunResult {
         val bag = Bag(transaction, context)
         val before = bag.snapshot()
@@ -40,8 +55,10 @@ object RulesEngine {
 
     private fun evaluateNumber(condition: Rule.Condition, bag: Bag): Boolean {
         var amount = bag.number(condition.field)?.toDouble() ?: return false
-        if (condition.options["outflow"]?.flag == true) { if (amount > 0) return false; amount = -amount }
-        else if (condition.options["inflow"]?.flag == true && amount < 0) return false
+        val outflow = condition.field == "amount-outflow" || condition.options["outflow"]?.flag == true
+        val inflow = condition.field == "amount-inflow" || condition.options["inflow"]?.flag == true
+        if (outflow) { if (amount > 0) return false; amount = -amount }
+        else if (inflow && amount < 0) return false
         if (condition.op == "isbetween") {
             val values = (condition.value as? RuleValue.ObjectValue)?.value ?: return false
             val a = values["num1"]?.number ?: return false; val b = values["num2"]?.number ?: return false
@@ -57,10 +74,13 @@ object RulesEngine {
     }
 
     private fun evaluateText(condition: Rule.Condition, bag: Bag): Boolean {
-        val actual = bag.text(condition.field) ?: if (RuleSchema.type(condition.field) == RuleFieldType.STRING) "" else null
+        val actual = bag.text(condition.field, condition.op) ?:
+            if (RuleSchema.type(condition.field) == RuleFieldType.STRING) "" else null
         val target = condition.value.text
         return when (condition.op) {
-            "is" -> if (target == null) actual == null else actual.equals(target, true)
+            "is" -> if (target.isNullOrEmpty()) {
+                actual.isNullOrEmpty() && (condition.field != "category" || (!bag.isTransfer && !bag.isParent))
+            } else actual.equals(target, true)
             "isNot" -> if (target == null) actual != null else !actual.equals(target, true)
             "contains" -> actual != null && target != null && actual.contains(target, true)
             "doesNotContain" -> actual != null && target != null && !actual.contains(target, true)
@@ -84,7 +104,7 @@ object RulesEngine {
         }
     }
 
-    private class Bag(private val base: ActualTransaction, context: RuleContext) {
+    private class Bag(private val base: ActualTransaction, private val context: RuleContext) {
         private val strings = mutableMapOf<String, String?>(
             "account" to base.accountId, "payee" to base.payeeId,
             "payee_name" to (base.payeeId?.let(context.payeeNames::get) ?: base.payeeName),
@@ -93,12 +113,29 @@ object RulesEngine {
             "transfer_id" to base.transferId, "parent_id" to base.parentId, "schedule" to base.scheduleId,
         )
         private val numbers = mutableMapOf("date" to base.date.toLong(), "amount" to base.amountCents)
-        private val flags = mutableMapOf("cleared" to base.cleared, "reconciled" to base.reconciled)
+        private val flags = mutableMapOf(
+            "cleared" to base.cleared,
+            "reconciled" to base.reconciled,
+            "transfer" to (base.transferAccountId != null || base.transferId != null),
+            "parent" to base.isParent,
+            "is_parent" to base.isParent,
+            "is_child" to (base.parentId != null),
+        )
         val onBudget = if (base.accountId.isBlank()) null else base.accountId !in context.offBudgetAccountIds
+        val isTransfer get() = base.transferAccountId != null || base.transferId != null
+        val isParent get() = base.isParent
         var pendingPayeeName: String? = null
         var deleted = false
-        fun text(field: String) = strings[field]
-        fun number(field: String) = numbers[field]
+        fun text(field: String, op: String? = null): String? = if (op in setOf("contains", "doesNotContain", "matches")) {
+            when (field) {
+                "category" -> base.categoryName ?: base.categoryId?.let(context.categoryNames::get)
+                "category_group" -> base.categoryId?.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
+                "account" -> context.accountNames[base.accountId]
+                "payee" -> base.payeeName
+                else -> strings[field]
+            }
+        } else strings[field]
+        fun number(field: String) = if (field == "amount-inflow" || field == "amount-outflow") numbers["amount"] else numbers[field]
         fun flag(field: String) = flags[field]
         fun set(field: String, value: RuleValue) { when (RuleSchema.type(field)) {
             RuleFieldType.NUMBER -> value.number?.takeIf(Double::isFinite)?.roundToLong()?.let { numbers[field] = it }
