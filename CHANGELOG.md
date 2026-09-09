@@ -6,6 +6,33 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [0.1.0-beta.3] - 2026-09-09
+
+### Added
+
+- Added an Actuali-style backup manager with automatic app-background backups,
+  retention, restore, one-tap pre-restore revert, per-backup export, and optional
+  mirroring to a user-selected device folder
+- Added live sync status, last successful sync, last scheduled background refresh,
+  and a manual Sync Now action to Connection & Data
+- Added Actual-compatible blank-budget creation plus confirmed server-budget deletion
+- Added synced Actual dashboard pages and widget ordering with native Summary,
+  Net Worth, Cash Flow, Spending, and Markdown cards
+
+### Changed
+
+- Replaced the previous fixed Reports overview with the dashboard configured in
+  Actual Budget, including synced names, ordering, timeframes, filters, spending
+  comparisons, and budget-based comparison values
+- Kept unsupported synced dashboard widget types visible with a clear availability
+  notice instead of silently dropping them
+
+### Fixed
+
+- Kept report aggregation split-aware and excluded transfers, off-budget accounts,
+  and income categories where required by Actual's report calculations
+- Corrected backup restore and archive display handling for all backup item types
+
 ## [0.1.0-beta.2] - 2026-09-08
 
 ### Added

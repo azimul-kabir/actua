@@ -134,7 +134,7 @@ Android backlog items and will never be ported.
 - Advanced split, formula, and template rule actions
 - Schedule discovery UI wiring
 - Goal templates, cleanup templates, and budget automations
-- Reports/dashboard models and calculation engines
+- Remaining dashboard calculation engines listed above
 - SimpleFIN linking, download, reconciliation, and pending-import approval
 - Android transaction notifications and new-transaction detection
 - Location-backed payee suggestions
