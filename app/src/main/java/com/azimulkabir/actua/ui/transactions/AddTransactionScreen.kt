@@ -589,11 +589,11 @@ private fun SearchableTransactionPicker(
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val uniqueOptions = remember(options) { options.distinct() }
-    val filtered = remember(query, uniqueOptions) {
-        uniqueOptions.filter { query.isBlank() || it.contains(query, ignoreCase = true) }
-    }
-    val transferOptions = filtered.filter { it.startsWith("Transfer: ") }
-    val regularOptions = filtered.filterNot { it.startsWith("Transfer: ") }
+    val searchResults = remember(query, uniqueOptions) { filterPickerOptions(uniqueOptions, query) }
+    val transferOptions = alphabetizePickerOptions(
+        uniqueOptions.filter { it.startsWith("Transfer: ") },
+    )
+    val regularOptions = uniqueOptions.filterNot { it.startsWith("Transfer: ") }
     val grouped = regularOptions
         .sortedWith(String.CASE_INSENSITIVE_ORDER)
         .groupBy { it.firstOrNull()?.uppercaseChar()?.takeIf(Char::isLetterOrDigit)?.toString() ?: "#" }
@@ -650,7 +650,19 @@ private fun SearchableTransactionPicker(
                             )
                         }
                     }
-                    if (transferOptions.isNotEmpty()) {
+                    if (query.isNotBlank() && searchResults.isNotEmpty()) {
+                        item { PickerSectionLabel("Search results") }
+                        item {
+                            PickerGroup(
+                                options = searchResults,
+                                selected = selected,
+                                displayText = { it.removePrefix("Transfer: ") },
+                                supportingValues = supportingValues,
+                                onSelect = onSelect,
+                            )
+                        }
+                    }
+                    if (query.isBlank() && transferOptions.isNotEmpty()) {
                         item { PickerSectionLabel("Payments and transfers") }
                         item {
                             PickerGroup(
@@ -676,16 +688,18 @@ private fun SearchableTransactionPicker(
                             )
                         }
                     }
-                    grouped.forEach { (letter, entries) ->
-                        item(key = "heading-$letter") { PickerSectionLabel(letter) }
-                        item(key = "group-$letter") {
-                            PickerGroup(
-                                entries, selected, supportingValues = supportingValues,
-                                onSelect = onSelect,
-                            )
+                    if (query.isBlank()) {
+                        grouped.forEach { (letter, entries) ->
+                            item(key = "heading-$letter") { PickerSectionLabel(letter) }
+                            item(key = "group-$letter") {
+                                PickerGroup(
+                                    entries, selected, supportingValues = supportingValues,
+                                    onSelect = onSelect,
+                                )
+                            }
                         }
                     }
-                    if (filtered.isEmpty() && !(allowCustom && query.isNotBlank())) {
+                    if (query.isNotBlank() && searchResults.isEmpty() && !allowCustom) {
                         item {
                             Text(
                                 "No matches",
@@ -699,6 +713,17 @@ private fun SearchableTransactionPicker(
         }
     }
 }
+
+internal fun filterPickerOptions(options: List<String>, query: String): List<String> {
+    val term = query.trim()
+    if (term.isEmpty()) return alphabetizePickerOptions(options)
+    return alphabetizePickerOptions(
+        options.filter { it.removePrefix("Transfer: ").contains(term, ignoreCase = true) },
+    )
+}
+
+internal fun alphabetizePickerOptions(options: List<String>): List<String> = options.distinct()
+    .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.removePrefix("Transfer: ") })
 
 @Composable
 private fun PickerSectionLabel(text: String) {
