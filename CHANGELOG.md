@@ -2,7 +2,9 @@
 
 All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
 
-## Unreleased
+## [1.0.0-beta.1] - 2026-09-09
+
+First beta of the 1.0 release line.
 
 ### Added
 
@@ -17,6 +19,26 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Updated fresh-install defaults to use Plan view with overview and progress bars,
   enable transaction and account options, start on Budget, use no currency
   override, and hide decimal places
+- Replaced the floating transaction Save action with a full-width bottom button
+  and matched transaction keypad borders to the Budget keypad
+- Grouped Accounts, Transactions, and Reports toolbar actions inside Material
+  pill-shaped surfaces and added Accounts controls for monthly summary, expanding
+  all groups, and collapsing all groups
+- Promoted Rules and Scheduled Transactions to separate visible sections on More
+- Expanded More with an About Actua page containing version, project purpose,
+  developer information, compatibility, upstream credits, independence notice,
+  and license information
+
+### Fixed
+
+- Aligned Scheduled Transaction names, status chips, amounts, recurrence details,
+  accounts, and overflow actions into consistent responsive rows
+- Corrected nested Settings navigation so Android Back returns directly to More
+  instead of requiring an extra gesture
+
+## Unreleased
+
+No user-facing changes yet.
 
 ## [0.1.0-beta.3] - 2026-09-09
 
@@ -373,3 +395,4 @@ Initial public testing release.
 
 [0.1.0-alpha.12]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.12
 [0.1.0-alpha.13]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.13
+[1.0.0-beta.1]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.1

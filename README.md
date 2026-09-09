@@ -23,6 +23,9 @@ by this app.
 Actua is not an official release of, affiliated with, endorsed by, or supported
 by either the Actuali project or the Actual Budget team.
 
+Actua is developed and maintained by **[Azimul Kabir Apu](https://github.com/azimul-kabir)**
+with contributions welcomed from the community.
+
 ## Current functionality
 
 - Password connection to an Actual server plus budget creation, download, selection, and confirmed server deletion
@@ -46,8 +49,10 @@ by either the Actuali project or the Actual Budget team.
 - Credit-card limits, billing-cycle metadata, fixed or offset due dates, cycle spending,
   urgency sorting, and opt-in Android payment reminders
 - Actual-synced report dashboard pages and widget order, with Summary, Net Worth,
-  Cash Flow, Spending, and Markdown widgets, plus display currency, decimal,
-  appearance, start-page, and privacy preferences
+  Cash Flow, Spending, Markdown, Age of Money, Formula, Custom Report, Calendar,
+  Crossover, Budget Analysis, Sankey, Balance Forecast, and Monte Carlo widgets
+- Configurable display currency, decimals, appearance, start page, account summaries,
+  transaction grouping, and Material bottom-navigation labels
 - Global search across transactions, accounts, payees, categories, notes, and transfers
 - Unified Material You category budgeting with auto-assign, money movement, details, and recent activity
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
@@ -75,7 +80,7 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 0.1.0-beta.3](https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-beta.3). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 1.0.0-beta.1](https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.1). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
 
 Actua uses the application ID `com.azimulkabir.actua`. Android therefore treats
 it as a separate app from the earlier Actuali for Android alpha builds. Confirm

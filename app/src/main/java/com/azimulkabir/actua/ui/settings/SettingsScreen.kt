@@ -32,10 +32,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.BuildConfig
 
 private enum class SettingsPage(val title: String) {
     Main("More"), Transactions("Transactions & Accounts"),
-    Display("Display"), Privacy("Privacy"), Information("Information"),
+    Display("Display"), Privacy("Privacy"), About("About"),
 }
 
 @Composable
@@ -105,7 +106,9 @@ fun SettingsScreen(
                 SettingsRow("Display", "Currency, appearance, start page and decimals", true) { page = SettingsPage.Display }
                 SettingsRow("Privacy", "Control sensitive information on screen", true) { page = SettingsPage.Privacy }
                 SettingsSection("About")
-                SettingsRow("Information", "About Actua and project credits", true) { page = SettingsPage.Information }
+                SettingsRow("About Actua", "Version, project information, credits and license", true) {
+                    page = SettingsPage.About
+                }
             }
             SettingsPage.Transactions -> {
                 SettingsChoice("Default account", defaultAccount ?: "None", listOf("None") + accountOptions) {
@@ -150,10 +153,52 @@ fun SettingsScreen(
             }
             SettingsPage.Privacy -> SettingsToggle("Hide balances", "Mask budget, account and transaction amounts",
                 hideBalances, onHideBalancesChange)
-            SettingsPage.Information -> ListItem(
-                headlineContent = { Text("Actua") },
-                supportingContent = { Text("Actual-compatible local budget and sync client") },
-            )
+            SettingsPage.About -> {
+                ListItem(
+                    headlineContent = { Text("Actua") },
+                    supportingContent = {
+                        Text("Native Android client for Actual Budget\nVersion ${BuildConfig.VERSION_NAME}")
+                    },
+                )
+                SettingsSection("Project")
+                ListItem(
+                    headlineContent = { Text("Developer & Maintainer") },
+                    supportingContent = {
+                        Text("Azimul Kabir Apu\nGitHub: azimul-kabir")
+                    },
+                )
+                ListItem(
+                    headlineContent = { Text("Independent community project") },
+                    supportingContent = {
+                        Text("Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.")
+                    },
+                )
+                SettingsSection("Credits")
+                ListItem(
+                    headlineContent = { Text("Actuali for iOS") },
+                    supportingContent = {
+                        Text("Actua was originally based on and continues to reference Matt Farrell’s open-source Actuali project for tested behavior and design guidance.")
+                    },
+                )
+                ListItem(
+                    headlineContent = { Text("Actual Budget") },
+                    supportingContent = {
+                        Text("Synchronization behavior is compatible with the open-source Actual Budget project.")
+                    },
+                )
+                SettingsSection("Compatibility")
+                ListItem(
+                    headlineContent = { Text("Android 9 or later") },
+                    supportingContent = { Text("Requires a reachable self-hosted Actual Budget server.") },
+                )
+                SettingsSection("License")
+                ListItem(
+                    headlineContent = { Text("MIT License") },
+                    supportingContent = {
+                        Text("Open-source notices and complete attribution are available in the repository’s LICENSE and NOTICE files.")
+                    },
+                )
+            }
         }
     }
 }
