@@ -20,7 +20,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
@@ -455,7 +455,8 @@ fun AddTransactionScreen(
         TransactionSaveButton(
             canSave = canSave,
             onClick = saveTransaction,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
         )
     }
     if (showCalculator) CalculatorAmountSheet(
@@ -529,14 +530,15 @@ private fun TransactionSaveButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ExtendedFloatingActionButton(
+    Button(
         onClick = onClick,
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = if (canSave) 1f else 0.62f),
-        icon = { Icon(Icons.Outlined.Check, contentDescription = null) },
-        text = { Text("Save") },
-    )
+        enabled = canSave,
+        modifier = modifier.height(56.dp),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Icon(Icons.Outlined.Check, contentDescription = null)
+        Text("Save", modifier = Modifier.padding(start = 8.dp))
+    }
 }
 
 @Composable
