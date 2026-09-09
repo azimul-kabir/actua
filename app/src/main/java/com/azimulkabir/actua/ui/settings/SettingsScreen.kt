@@ -34,7 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 private enum class SettingsPage(val title: String) {
-    Main("More"), Transactions("Transactions & Automation"),
+    Main("More"), Transactions("Transactions & Accounts"),
     Display("Display"), Privacy("Privacy"), Information("Information"),
 }
 
@@ -80,14 +80,31 @@ fun SettingsScreen(
         }
     }
     BackHandler(enabled = page != SettingsPage.Main) { page = SettingsPage.Main }
+    fun openFullScreen(action: () -> Unit) {
+        page = SettingsPage.Main
+        action()
+    }
     Column(modifier = modifier.fillMaxSize().verticalScroll(scrollState)) {
         SettingsHeader(page.title, page != SettingsPage.Main) { page = SettingsPage.Main }
         when (page) {
             SettingsPage.Main -> {
-                SettingsRow("Connection & Data", "Actual server, budgets, local data and backups", true, onConnectionClick)
-                SettingsRow("Transactions & Automation", "Entry defaults, account summaries, cards, rules and schedules", true) { page = SettingsPage.Transactions }
+                SettingsRow("Connection & Data", "Actual server, budgets, local data and backups", true) {
+                    openFullScreen(onConnectionClick)
+                }
+                SettingsSection("Automation")
+                SettingsRow("Rules", "Automatically categorize and transform transactions", true) {
+                    openFullScreen(onRulesClick)
+                }
+                SettingsRow("Scheduled Transactions", "Review recurring bills, income and upcoming dates", true) {
+                    openFullScreen(onSchedulesClick)
+                }
+                SettingsSection("Preferences")
+                SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists, account summaries and cards", true) {
+                    page = SettingsPage.Transactions
+                }
                 SettingsRow("Display", "Currency, appearance, start page and decimals", true) { page = SettingsPage.Display }
                 SettingsRow("Privacy", "Control sensitive information on screen", true) { page = SettingsPage.Privacy }
+                SettingsSection("About")
                 SettingsRow("Information", "About Actua and project credits", true) { page = SettingsPage.Information }
             }
             SettingsPage.Transactions -> {
@@ -105,9 +122,9 @@ fun SettingsScreen(
                     showCurrentBalanceSummary,
                     onShowCurrentBalanceSummaryChange,
                 )
-                SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, onCreditCardsClick)
-                SettingsRow("Rules", "Automatically categorize and transform transactions", true, onRulesClick)
-                SettingsRow("Scheduled Transactions", "Review recurring bills, income and upcoming dates", true, onSchedulesClick)
+                SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true) {
+                    openFullScreen(onCreditCardsClick)
+                }
             }
             SettingsPage.Display -> {
                 SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->
