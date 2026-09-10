@@ -10,9 +10,22 @@ import com.azimulkabir.actua.data.budget.DemoBudgetManager
 /**
  * Applies Actua's local reset policy after a deliberate server disconnect.
  *
- * Server-backed budgets and their retained local backups are removed. Device-level
- * preferences (display, appearance, backup destination and the user's notification
- * opt-in) are preserved. The local-only demo budget is retained but deselected.
+ * Preserved device state:
+ * - display/appearance/start-page preferences
+ * - backup destination permission/selection
+ * - credit-card notification opt-in
+ * - local-only demo budget files
+ *
+ * Cleared budget/session state:
+ * - downloaded server budget directories and their retained local backups
+ * - server credentials and active-budget selection
+ * - per-budget encryption keys
+ * - sync status, automatic-schedule run gates and account/category UI expansion state
+ * - scheduled credit-card reminder jobs derived from removed budgets
+ *
+ * Credit-card configuration itself lives in the budget preferences table and is
+ * CRDT-synced, so the protected disconnect flow syncs every downloaded budget
+ * before this reset runs.
  */
 class DisconnectResetManager(context: Context) {
     private val app = context.applicationContext
@@ -30,22 +43,17 @@ class DisconnectResetManager(context: Context) {
 
         ActiveBudgetStore(app).budgetId = null
 
-        // Operational state belongs to the old local installation, not the server.
         app.getSharedPreferences("actua-sync-status", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("actua-schedule-poster", Context.MODE_PRIVATE).edit().clear().commit()
-
-        // Budget/account UI expansion state contains IDs from the deleted budget.
         app.getSharedPreferences("budget_ui_preferences", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("account_detail_preferences", Context.MODE_PRIVATE).edit().clear().commit()
 
-        // Preserve the user's reminder opt-in but cancel jobs derived from deleted cards.
         val notificationPrefs = app.getSharedPreferences("credit_card_notifications", Context.MODE_PRIVATE)
         val workNames = notificationPrefs.getStringSet("scheduled_work", emptySet()).orEmpty().toSet()
         val workManager = WorkManager.getInstance(app)
         workNames.forEach(workManager::cancelUniqueWork)
         notificationPrefs.edit().remove("scheduled_work").commit()
 
-        // Credentials are cleared last so an incomplete reset can still be retried.
         CredentialStore(app).clearCredentialsNow()
     }
 
