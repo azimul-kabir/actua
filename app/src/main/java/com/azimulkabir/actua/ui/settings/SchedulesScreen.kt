@@ -72,6 +72,7 @@ fun SchedulesScreen(
     canAdd: Boolean,
     onBack: () -> Unit,
     onAdd: () -> Unit,
+    onFind: () -> Unit,
     onEdit: (String) -> Unit,
     onPost: (String, Boolean) -> Unit,
     onSkip: (String) -> Unit,
@@ -120,6 +121,10 @@ fun SchedulesScreen(
                         text = { Text("Show completed") },
                         trailingIcon = { Checkbox(showCompleted, onCheckedChange = null) },
                         onClick = { showCompleted = !showCompleted; optionsOpen = false },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Find Schedules") },
+                        onClick = { optionsOpen = false; onFind() },
                     )
                 }
             }

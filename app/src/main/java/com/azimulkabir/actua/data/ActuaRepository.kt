@@ -42,6 +42,7 @@ import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
 import com.azimulkabir.actua.data.schedules.ScheduleStatusCalculator
 import com.azimulkabir.actua.data.schedules.ScheduleWriteBuilder
 import com.azimulkabir.actua.data.schedules.ScheduleFormFields
+import com.azimulkabir.actua.data.schedules.ScheduleDiscovery
 import com.azimulkabir.actua.data.schedules.sortedForDisplay
 
 class ActuaRepository(context: Context) {
@@ -117,6 +118,35 @@ class ActuaRepository(context: Context) {
                 amountCents = transaction.amountCents,
             )
         }
+    }
+
+    fun discoverSchedules(): List<ScheduleDiscovery.DisplayProposal> {
+        val database = actualDatabase ?: return emptyList()
+        val accounts = database.fetchAccounts().associate { it.id to it.name }
+        val payees = database.fetchPayees().associate { it.id to it.name }
+        return database.discoverSchedules().map { proposal ->
+            ScheduleDiscovery.DisplayProposal(
+                proposal = proposal,
+                payeeName = payees[proposal.payeeId] ?: "Unknown payee",
+                accountName = accounts[proposal.accountId] ?: "Unknown account",
+            )
+        }
+    }
+
+    fun createDiscoveredSchedules(proposals: List<ScheduleDiscovery.Proposal>): Boolean {
+        if (proposals.isEmpty()) return false
+        val writer = actualSchedules ?: return false
+        proposals.forEach { proposal ->
+            writer.apply(ScheduleWriteBuilder.create(
+                fields = proposal.formFields,
+                scheduleId = java.util.UUID.randomUUID().toString().lowercase(),
+                ruleId = java.util.UUID.randomUUID().toString().lowercase(),
+                nextDateRowId = java.util.UUID.randomUUID().toString().lowercase(),
+                now = System.currentTimeMillis(),
+                today = DayDate.today(),
+            ))
+        }
+        return true
     }
 
     fun unlinkScheduleTransaction(scheduleId: String, transactionId: String): Boolean {
