@@ -29,12 +29,16 @@ fun formatMoneyCents(
     val magnitude = cents.absoluteValue
     val whole = NumberFormat.getIntegerInstance(Locale.forLanguageTag("en-BD")).format(magnitude / 100)
     val decimals = if (hideDecimalPlaces) "" else ".${(magnitude % 100).toString().padStart(2, '0')}"
+    return "$sign${currencyInputPrefix()}$whole$decimals"
+}
+
+/** Currency prefix used by editable amount fields so they match the selected display currency. */
+fun currencyInputPrefix(): String {
     val currency = CurrencyDisplay.code
-    if (currency.isBlank()) return "$sign$whole$decimals"
-    val symbol = if (CurrencyDisplay.symbolOnly) narrowCurrencySymbol(currency)
+    if (currency.isBlank()) return ""
+    return if (CurrencyDisplay.symbolOnly) narrowCurrencySymbol(currency)
     else if (currency == "BDT") "৳"
     else runCatching { Currency.getInstance(currency).getSymbol(Locale.getDefault()) }.getOrDefault(currency)
-    return "$sign$symbol$whole$decimals"
 }
 
 private fun narrowCurrencySymbol(code: String): String = when (code) {
