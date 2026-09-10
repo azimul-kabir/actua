@@ -33,6 +33,12 @@ android {
         }
     }
 
+    // F-Droid rejects the opaque dependency metadata in APK signing blocks.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     buildTypes {
         debug { }
         create("instrumented") {
