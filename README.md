@@ -23,6 +23,12 @@ by this app.
 Actua is not an official release of, affiliated with, endorsed by, or supported
 by either the Actuali project or the Actual Budget team.
 
+The Android interface is independently implemented with Jetpack Compose. Some
+mobile interaction and layout decisions are inspired by familiar budgeting
+apps, including [YNAB](https://www.ynab.com/), while being adapted to Material
+You and Actua's Actual Budget workflow. Actua does not contain YNAB code or
+artwork and is not affiliated with, endorsed by, or supported by YNAB.
+
 Actua is developed and maintained by **[Azimul Kabir Apu](https://github.com/azimul-kabir)**
 with contributions welcomed from the community.
 
@@ -136,6 +142,13 @@ Actuali itself builds on **[Actual Budget](https://github.com/actualbudget/actua
 The original Actuali icon was designed by
 **[u/bdownz](https://www.reddit.com/user/bdownz/)**. Actua uses a new,
 independently created adaptive icon and does not reuse that artwork.
+
+Some interaction patterns and visual ideas were informed by
+**[YNAB](https://www.ynab.com/)**, particularly its mobile-first approach to
+transaction entry and budgeting controls. These ideas were independently
+implemented for Android using Material You; no YNAB source code, artwork, or
+branding is included. YNAB is a separate product and does not endorse or
+support Actua.
 
 See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE) for complete attribution and license terms.
 
