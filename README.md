@@ -42,9 +42,6 @@ apps, including [YNAB](https://www.ynab.com/), while being adapted to Material
 You and Actua's Actual Budget workflow. Actua does not contain YNAB code or
 artwork and is not affiliated with, endorsed by, or supported by YNAB.
 
-Actua is developed and maintained by **[Azimul Kabir Apu](https://github.com/azimul-kabir)**
-with contributions welcomed from the community.
-
 ## Screenshots
 
 Explore a native Material You budgeting experience. All screenshots use
