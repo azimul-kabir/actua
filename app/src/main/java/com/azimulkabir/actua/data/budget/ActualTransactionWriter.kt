@@ -88,6 +88,11 @@ class ActualTransactionWriter(
         saveClock()
     }
 
+    fun setScheduleLink(transaction: ActualTransaction, scheduleId: String?) {
+        if (transaction.scheduleId == scheduleId) return
+        updateTransaction(transaction.copy(scheduleId = scheduleId), setOf("schedule"))
+    }
+
     /** Change cleared state while keeping split children aligned with their parent. */
     @Synchronized
     fun setCleared(transaction: ActualTransaction, cleared: Boolean) {
@@ -180,7 +185,7 @@ class ActualTransactionWriter(
     companion object {
         private val mutableTransactionFields = setOf(
             "acct", "date", "description", "category", "amount", "notes", "cleared",
-            "reconciled", "transferred_id", "isParent", "parent_id", "tombstone",
+            "reconciled", "transferred_id", "isParent", "parent_id", "tombstone", "schedule",
         )
 
         fun changedFields(original: ActualTransaction, updated: ActualTransaction): Set<String> = buildSet {
@@ -193,6 +198,7 @@ class ActualTransactionWriter(
             if (original.cleared != updated.cleared) add("cleared")
             if (original.reconciled != updated.reconciled) add("reconciled")
             if (original.transferId != updated.transferId) add("transferred_id")
+            if (original.scheduleId != updated.scheduleId) add("schedule")
             if (original.isParent != updated.isParent) add("isParent")
             if (original.parentId != updated.parentId) add("parent_id")
             if (original.tombstone != updated.tombstone) add("tombstone")

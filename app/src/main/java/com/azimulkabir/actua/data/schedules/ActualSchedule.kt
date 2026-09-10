@@ -30,6 +30,14 @@ data class ScheduleListItem(
         ?: "Schedule"
 }
 
+data class ScheduleLinkedTransaction(
+    val id: String,
+    val date: DayDate?,
+    val payeeName: String,
+    val accountName: String,
+    val amountCents: Long,
+)
+
 fun Iterable<ScheduleListItem>.sortedForDisplay() = sortedWith(
     compareBy<ScheduleListItem> { it.schedule.sortOrder == null }
         .thenBy { it.schedule.sortOrder ?: Double.MAX_VALUE }

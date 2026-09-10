@@ -59,6 +59,21 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun scheduleTransactionsCanBeFetchedAndUnlinkedThroughCrdt() = withDatabase { database ->
+        val linked = database.fetchScheduleTransactions("schedule-new")
+        assertEquals(listOf("ordinary"), linked.map { it.id })
+
+        ActualTransactionWriter(database, "1212121212121212")
+            .setScheduleLink(linked.single(), null)
+
+        assertTrue(database.fetchScheduleTransactions("schedule-new").isEmpty())
+        assertNull(database.fetchTransaction("ordinary")?.scheduleId)
+        assertTrue(database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString()).any {
+            it.dataset == "transactions" && it.row == "ordinary" && it.column == "schedule"
+        })
+    }
+
+    @Test
     fun transactionStateFiltersApplyBeforePagingAndSearch() = withDatabase { database ->
         val ordinary = requireNotNull(database.fetchTransaction("ordinary"))
         ActualTransactionWriter(database).updateTransaction(
