@@ -1,9 +1,11 @@
 package com.azimulkabir.actua.data.security
 
 import android.content.Context
+import android.content.Intent
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import com.azimulkabir.actua.DisconnectResetActivity
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -11,7 +13,8 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 class CredentialStore(context: Context) {
-    private val preferences = context.applicationContext.getSharedPreferences("connection", Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val preferences = appContext.getSharedPreferences("connection", Context.MODE_PRIVATE)
 
     var serverUrl: String
         get() = preferences.getString("server_url", "").orEmpty()
@@ -46,8 +49,15 @@ class CredentialStore(context: Context) {
         cipher.doFinal(encrypted).toString(Charsets.UTF_8)
     }.getOrNull()
 
+    /** Manual disconnect is protected by a final-sync/reset confirmation flow. */
     fun clear() {
-        preferences.edit().clear().apply()
+        appContext.startActivity(Intent(appContext, DisconnectResetActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
+    }
+
+    internal fun clearCredentialsNow() {
+        preferences.edit().clear().commit()
     }
 
     private fun secretKey(): SecretKey {
