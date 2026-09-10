@@ -67,6 +67,13 @@ jobs:
             found && $0 ~ "^## \\[" { exit }
             found { print }
           ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            awk '
+              $0 == "## Unreleased" { found = 1; next }
+              found && $0 ~ "^## \\[" { exit }
+              found { print }
+            ' CHANGELOG.md > release-notes.md
+          fi
           test -s release-notes.md
       - name: Prepare testing APK
         run: cp app/build/outputs/apk/release/app-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
