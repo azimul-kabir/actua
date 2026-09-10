@@ -25,7 +25,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
       - name: Install Android 17 compile SDK
         run: |
           curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
