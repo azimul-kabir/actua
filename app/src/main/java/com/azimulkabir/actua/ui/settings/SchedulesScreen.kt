@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -68,7 +69,9 @@ import java.time.format.FormatStyle
 fun SchedulesScreen(
     schedules: List<ScheduleListItem>,
     hideDecimalPlaces: Boolean,
+    canAdd: Boolean,
     onBack: () -> Unit,
+    onAdd: () -> Unit,
     onEdit: (String) -> Unit,
     onPost: (String, Boolean) -> Unit,
     onSkip: (String) -> Unit,
@@ -105,6 +108,9 @@ fun SchedulesScreen(
             IconButton(onClick = { showSearch = !showSearch }) {
                 Icon(Icons.Outlined.Search, "Search schedules")
             }
+            IconButton(onClick = onAdd, enabled = canAdd) {
+                Icon(Icons.Outlined.Add, "Add schedule")
+            }
             Box {
                 IconButton(onClick = { optionsOpen = true }) {
                     Icon(Icons.Outlined.MoreVert, "Schedule options")
@@ -124,13 +130,25 @@ fun SchedulesScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
         )
         when {
-            visible.isEmpty() -> Text(
-                if (search.isNotBlank()) "No matching schedules"
-                else if (!showCompleted && completedCount > 0) "No active schedules"
-                else "No scheduled transactions",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(24.dp),
-            )
+            visible.isEmpty() -> Column(
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    if (search.isNotBlank()) "No matching schedules"
+                    else if (!showCompleted && completedCount > 0) "No active schedules"
+                    else "No scheduled transactions",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                if (search.isBlank() && completedCount == 0) {
+                    Text(
+                        "Create a schedule to track a recurring bill or paycheck.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onAdd, enabled = canAdd) { Text("New Schedule") }
+                }
+            }
             else -> LazyColumn(Modifier.fillMaxSize()) {
                 items(visible, key = { it.schedule.id }) { item ->
                     ScheduleRow(

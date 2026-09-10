@@ -50,9 +50,10 @@ Android backlog items and will never be ported.
   for schedule-owned rules
 - Timezone-free schedule day math, upcoming windows, lifecycle status, and
   transaction occurrence matching
-- Searchable Scheduled Transactions UI with paid/due/upcoming/missed/completed
-  status, completed-history visibility, recurrence skipping, restart/completion,
-  and deletion through the existing CRDT write path
+- Searchable Scheduled Transactions UI with new-schedule creation,
+  paid/due/upcoming/missed/completed status, completed-history visibility,
+  recurrence skipping, restart/completion, and deletion through the existing
+  CRDT write path
 - Daily/weekly/monthly/yearly schedule recurrence, monthly day/nth-weekday
   patterns, bounded endings, weekend solving, skipping, and previews
 - Schedule-owned condition extraction/build/merge with custom-rule preservation,

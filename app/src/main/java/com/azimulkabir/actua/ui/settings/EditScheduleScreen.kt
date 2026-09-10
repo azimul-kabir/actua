@@ -29,53 +29,56 @@ import kotlin.math.abs
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditScheduleScreen(
-    item: ScheduleListItem,
+    item: ScheduleListItem?,
     accounts: List<Account>,
     payeeOptions: List<String>,
     hideDecimalPlaces: Boolean,
     conventionalAmountEntry: Boolean,
     onBack: () -> Unit,
     onSave: (ScheduleFormFields, String) -> Unit,
-    onDelete: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    val schedule = item.schedule
-    val originalRecurrence = (schedule.dateCondition as? ScheduleDateCondition.Recurring)?.config
-    val originalDate = (schedule.dateCondition as? ScheduleDateCondition.Fixed)?.day
-        ?: schedule.nextDate ?: DayDate.today()
-    var name by remember(schedule.id) { mutableStateOf(schedule.name.orEmpty()) }
-    var payeeName by remember(schedule.id) { mutableStateOf(item.payeeName.orEmpty()) }
-    var accountName by remember(schedule.id) { mutableStateOf(item.accountName.orEmpty()) }
-    var income by remember(schedule.id) { mutableStateOf(schedule.postAmount > 0) }
-    var amountOp by remember(schedule.id) { mutableStateOf(schedule.amountOp) }
-    val originalRange = schedule.amount as? ScheduledAmount.Range
-    var amountLow by remember(schedule.id) {
-        mutableStateOf(minOf(abs(originalRange?.first ?: schedule.postAmount), abs(originalRange?.second ?: schedule.postAmount)))
+    val schedule = item?.schedule
+    val originalRecurrence = (schedule?.dateCondition as? ScheduleDateCondition.Recurring)?.config
+    val originalDate = (schedule?.dateCondition as? ScheduleDateCondition.Fixed)?.day
+        ?: schedule?.nextDate ?: DayDate.today()
+    val editorKey = schedule?.id ?: "new"
+    var name by remember(editorKey) { mutableStateOf(schedule?.name.orEmpty()) }
+    var payeeName by remember(editorKey) { mutableStateOf(item?.payeeName.orEmpty()) }
+    var accountName by remember(editorKey) {
+        mutableStateOf(item?.accountName ?: accounts.firstOrNull { !it.closed }?.name.orEmpty())
     }
-    var amountHigh by remember(schedule.id) {
-        mutableStateOf(maxOf(abs(originalRange?.first ?: schedule.postAmount), abs(originalRange?.second ?: schedule.postAmount)))
+    var income by remember(editorKey) { mutableStateOf((schedule?.postAmount ?: -1L) > 0) }
+    var amountOp by remember(editorKey) { mutableStateOf(schedule?.amountOp ?: ScheduleAmountOp.APPROXIMATE) }
+    val originalRange = schedule?.amount as? ScheduledAmount.Range
+    var amountLow by remember(editorKey) {
+        mutableStateOf(minOf(abs(originalRange?.first ?: schedule?.postAmount ?: 0L), abs(originalRange?.second ?: schedule?.postAmount ?: 0L)))
+    }
+    var amountHigh by remember(editorKey) {
+        mutableStateOf(maxOf(abs(originalRange?.first ?: schedule?.postAmount ?: 0L), abs(originalRange?.second ?: schedule?.postAmount ?: 0L)))
     }
     var calculatorTarget by remember { mutableStateOf<Int?>(null) }
-    var repeats by remember(schedule.id) { mutableStateOf(originalRecurrence != null) }
-    var oneOffDate by remember(schedule.id) { mutableStateOf(originalDate) }
-    var recurrence by remember(schedule.id) {
+    var repeats by remember(editorKey) { mutableStateOf(originalRecurrence != null) }
+    var oneOffDate by remember(editorKey) { mutableStateOf(originalDate) }
+    var recurrence by remember(editorKey) {
         mutableStateOf(
             originalRecurrence ?: RecurConfig(
                 frequency = RecurConfig.Frequency.MONTHLY,
                 interval = 1,
-                start = schedule.nextDate ?: DayDate.today(),
+                start = schedule?.nextDate ?: DayDate.today(),
             ),
         )
     }
     var datePickerTarget by remember { mutableStateOf<DateTarget?>(null) }
-    var automaticallyAdd by remember(schedule.id) { mutableStateOf(schedule.postsTransaction) }
-    var upcomingLabel by remember(schedule.id) {
+    var automaticallyAdd by remember(editorKey) { mutableStateOf(schedule?.postsTransaction ?: false) }
+    var upcomingLabel by remember(editorKey) {
         mutableStateOf(upcomingOptions.entries.firstOrNull {
-            it.value == schedule.customUpcomingLength
+            it.value == schedule?.customUpcomingLength
         }?.key ?: "Budget default")
     }
     var showDelete by remember { mutableStateOf(false) }
-    val unreadableDate = schedule.dateCondition == ScheduleDateCondition.Unsupported && schedule.dateOp != null
+    val unreadableDate = schedule?.dateCondition == ScheduleDateCondition.Unsupported && schedule.dateOp != null
     val accountId = accounts.firstOrNull { it.name == accountName && !it.closed }?.id
     val amountValid = amountLow > 0 && (amountOp != ScheduleAmountOp.BETWEEN || amountHigh > 0)
     val canSave = accountId != null && amountValid && !unreadableDate
@@ -111,7 +114,7 @@ fun EditScheduleScreen(
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
             }
             Text(
-                "Edit Schedule",
+                if (schedule == null) "New Schedule" else "Edit Schedule",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 modifier = Modifier.weight(1f),
@@ -134,7 +137,7 @@ fun EditScheduleScreen(
                         modifier = Modifier.padding(16.dp),
                     )
                 }
-            } else if (schedule.isCustom) {
+            } else if (schedule?.isCustom == true) {
                 Text(
                     "Extra rule conditions created in Actual will be preserved.",
                     style = MaterialTheme.typography.bodySmall,
@@ -258,11 +261,13 @@ fun EditScheduleScreen(
                 Icon(Icons.Outlined.Check, null)
                 Text("Save", Modifier.padding(start = 8.dp))
             }
-            TextButton(
-                onClick = { showDelete = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Delete Schedule", color = MaterialTheme.colorScheme.error)
+            if (onDelete != null) {
+                TextButton(
+                    onClick = { showDelete = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Delete Schedule", color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
@@ -320,7 +325,7 @@ fun EditScheduleScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showDelete = false
-                    onDelete()
+                    onDelete?.invoke()
                 }) { Text("Delete schedule", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {

@@ -90,7 +90,7 @@ private enum class MainDestination(
     More("More", Icons.Outlined.MoreHoriz),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, EditSchedule }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, NewSchedule, EditSchedule }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -620,7 +620,9 @@ fun AppNavigation(
             DetailDestination.Schedules -> SchedulesScreen(
                 schedules = schedules,
                 hideDecimalPlaces = hideDecimalPlaces,
+                canAdd = accounts.any { !it.closed },
                 onBack = { detail = DetailDestination.Main },
+                onAdd = { detail = DetailDestination.NewSchedule },
                 onEdit = { id ->
                     editingScheduleId = id
                     detail = DetailDestination.EditSchedule
@@ -640,6 +642,22 @@ fun AppNavigation(
                 },
                 onDelete = { id ->
                     mutate("Deleting schedule") { repository.deleteSchedule(id) }
+                },
+                modifier = contentModifier,
+            )
+            DetailDestination.NewSchedule -> com.azimulkabir.actua.ui.settings.EditScheduleScreen(
+                item = null,
+                accounts = accounts,
+                payeeOptions = payeeNames,
+                hideDecimalPlaces = hideDecimalPlaces,
+                conventionalAmountEntry = conventionalAmountEntry,
+                onBack = { detail = DetailDestination.Schedules },
+                onSave = { fields, payeeName ->
+                    if (mutate("Creating schedule") {
+                        repository.createSchedule(fields, payeeName)
+                    }) {
+                        detail = DetailDestination.Schedules
+                    }
                 },
                 modifier = contentModifier,
             )
