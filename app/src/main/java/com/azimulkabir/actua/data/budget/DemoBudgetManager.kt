@@ -28,7 +28,7 @@ object DemoBudgetManager {
                 files.databaseFile(BUDGET_ID).path,
                 null,
                 SQLiteDatabase.OPEN_READWRITE,
-            ).use(DemoBudgetSeeder::seed)
+            ).use { database -> DemoBudgetSeeder.seed(database) }
 
             val metadataJson = JSONObject()
                 .put("id", BUDGET_ID)
