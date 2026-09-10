@@ -1,0 +1,1 @@
+Actua 1.0.0-beta.9 prepares GitHub release APKs for F-Droid-compatible distribution by removing opaque dependency metadata from APK and app bundle signing blocks. No budgeting, transaction, synchronization, or local-data behavior changes.
