@@ -13,7 +13,7 @@
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-48506A?style=for-the-badge" alt="MIT License"></a>
 <a href="https://github.com/azimul-kabir/actua/issues/new/choose"><img src="https://img.shields.io/badge/Report-an_issue-48506A?style=for-the-badge&logo=github&logoColor=white" alt="Report an issue"></a>
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua"><img src="https://img.shields.io/badge/Get_it_on-Obtainium-5969A6?style=for-the-badge" alt="Get it on Obtainium"></a>
-<a href="https://discord.gg/FyGxRjmhw"><img src="https://img.shields.io/discord/1547670476455813162?style=for-the-badge&logo=discord&logoColor=white&label=Discord" alt="Join Actua on Discord"></a>
+<a href="https://discord.gg/FyGxRjmhw"><img src="https://img.shields.io/badge/Join-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Actua on Discord"></a>
 
 <br><br>
 
