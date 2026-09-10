@@ -92,3 +92,69 @@ jobs:
           target_commitish: ${{ github.sha }}
           body_path: release-notes.md
           files: Actua-v${{ steps.version.outputs.name }}.apk
+      - name: Notify Discord about prerelease
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_BETA_WEBHOOK }}
+          RELEASE_VERSION: ${{ steps.version.outputs.name }}
+          REPOSITORY: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          webhook = os.environ.get("DISCORD_WEBHOOK", "")
+          if not webhook:
+              raise SystemExit("DISCORD_BETA_WEBHOOK is not configured")
+
+          version = os.environ["RELEASE_VERSION"]
+          repo = os.environ["REPOSITORY"]
+          server = os.environ["SERVER_URL"]
+          tag = f"v{version}"
+          release_url = f"{server}/{repo}/releases/tag/{tag}"
+          apk_url = f"{server}/{repo}/releases/download/{tag}/Actua-v{version}.apk"
+
+          with open("release-notes.md", encoding="utf-8") as f:
+              body = f.read().strip()
+          if not body:
+              body = "No release notes provided."
+
+          # Leave room for the safety notice and release/download links.
+          max_body = 3500
+          if len(body) > max_body:
+              body = body[:max_body].rstrip() + "\n\n… Full changelog on GitHub."
+
+          description = (
+              f"{body}\n\n"
+              "⚠️ **Beta software:** Back up your Actual Budget data before testing an important budget.\n\n"
+              f"[View release]({release_url}) • [Download APK]({apk_url})"
+          )
+          payload = {
+              "username": "Actua Releases",
+              "allowed_mentions": {"parse": []},
+              "embeds": [{
+                  "title": f"Actua beta released: {tag}"[:256],
+                  "url": release_url,
+                  "description": description[:4096],
+                  "color": 0xD29922,
+                  "footer": {"text": "Actua • Native Android client for Actual Budget"}
+              }]
+          }
+          req = urllib.request.Request(
+              webhook,
+              data=json.dumps(payload).encode(),
+              headers={"Content-Type": "application/json", "User-Agent": "Actua-GitHub-Actions"},
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  if response.status not in (200, 204):
+                      raise SystemExit(f"Discord returned HTTP {response.status}")
+          except urllib.error.HTTPError as error:
+              raise SystemExit(f"Discord returned HTTP {error.code}") from None
+          except (urllib.error.URLError, TimeoutError):
+              raise SystemExit("Could not reach Discord beta webhook") from None
+          print(f"Discord prerelease notification sent for {tag}")
+          PY
