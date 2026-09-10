@@ -1,0 +1,7 @@
+# Default owner for all changes.
+* @azimul-kabir
+
+# Review-sensitive areas remain explicitly owned by the maintainer.
+/app/src/main/java/com/azimulkabir/actua/data/ @azimul-kabir
+/.github/workflows/ @azimul-kabir
+/AGENTS.md @azimul-kabir
