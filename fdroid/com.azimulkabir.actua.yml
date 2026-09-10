@@ -1,6 +1,5 @@
 # Submission template for fdroiddata/metadata/com.azimulkabir.actua.yml.
-# Replace __BETA9_COMMIT_SHA__ with the full commit SHA used to build
-# Actua 1.0.0-beta.9 before submitting to fdroiddata.
+# Actua 1.0.0-beta.9 was built from the exact commit pinned below.
 
 Categories:
   - Money
@@ -20,7 +19,7 @@ AllowedAPKSigningKeys: 2a37719a0770ce4e03f3c080bd9d780c22300e28db678823b5595c9ad
 Builds:
   - versionName: 1.0.0-beta.9
     versionCode: 26
-    commit: __BETA9_COMMIT_SHA__
+    commit: bdd92875ea07c3ff2759b708c80076a402d3f0a0
     subdir: app
     prebuild:
       - sed -i '/^plugins {$/,/^}$/d' ../settings.gradle.kts
