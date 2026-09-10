@@ -46,7 +46,8 @@ with contributions welcomed from the community.
   processing for supported standard conditions and actions
 - Scheduled transaction creation and review with lifecycle status, recurring
   schedule actions, a dedicated repeat-pattern editor, and linked transaction
-  history with unlinking, plus recurring-transaction discovery
+  history with unlinking, recurring-transaction discovery, and a monthly Bills
+  calendar for recurring schedules and configured credit-card due dates
 - Persistent hide-reconciled filtering across transaction lists and searches
 - Balance-focused category details with shared Budget, Move Money and Auto-Assign keypads, notes, rollover overspending, recent activity and category-preselected transaction entry
 - Credit-card limits, billing-cycle metadata, fixed or offset due dates, cycle spending,
