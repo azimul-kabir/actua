@@ -25,7 +25,7 @@ class DisconnectResetManager(context: Context) {
             .filter { it.id != DemoBudgetManager.BUDGET_ID }
             .forEach { budget ->
                 budget.cloudFileId?.let(encryptionKeys::remove)
-                runCatching { files.deleteBudget(budget.id) }.getOrThrow()
+                files.deleteBudget(budget.id)
             }
 
         ActiveBudgetStore(app).budgetId = null
@@ -45,7 +45,8 @@ class DisconnectResetManager(context: Context) {
         workNames.forEach(workManager::cancelUniqueWork)
         notificationPrefs.edit().remove("scheduled_work").commit()
 
-        CredentialStore(app).clear()
+        // Credentials are cleared last so an incomplete reset can still be retried.
+        CredentialStore(app).clearCredentialsNow()
     }
 
     fun restartIntoFreshConnectionState() {
