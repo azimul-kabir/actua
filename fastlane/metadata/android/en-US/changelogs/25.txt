@@ -1,0 +1,1 @@
+Beta release of Actua. Includes native budgeting, accounts and transactions, scheduled transactions, category targets, reconciliation, reports, backup/sync management, and Material 3 mobile workflows. Back up important Actual Budget data before testing.
