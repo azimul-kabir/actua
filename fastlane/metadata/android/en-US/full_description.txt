@@ -1,0 +1,17 @@
+Actua is a native Android companion for Actual Budget, designed for people who run their own Actual Budget server and want a mobile-first Android experience.
+
+Features include:
+• Budget planning and category management
+• Account and transaction management
+• Scheduled transactions and bills/calendar views
+• Category details and budget templates/targets
+• Mobile account reconciliation
+• Reports and synced dashboard data
+• Backup and sync status tools
+• Material 3 interface designed for Android
+
+Actua connects directly to your Actual Budget server. It is an independent community project and is not an official Actual Budget application.
+
+IMPORTANT: Actua is currently beta software. Back up your Actual Budget data before using Actua with an important budget. Please report bugs and unexpected synchronization behavior through the project's issue tracker.
+
+Actua builds on work from the Actuali iOS client and Actual Budget. See the repository's NOTICE and LICENSE files for detailed attribution and licensing information.
