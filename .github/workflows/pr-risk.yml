@@ -1,0 +1,98 @@
+name: PR Risk Classification
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: pr-risk-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    name: Classify change risk
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Classify touched paths
+        uses: actions/github-script@v8
+        with:
+          script: |
+            // pull_request_target is used only for GitHub API metadata. Never check out,
+            // execute, source, or otherwise trust PR-head content in this workflow.
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.payload.pull_request.number;
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner, repo, pull_number: issue_number, per_page: 100
+            });
+            const names = files.map(file => file.filename);
+
+            const highRisk = [
+              /^app\/src\/main\/java\/com\/azimulkabir\/actua\/data\/(sync|budget|security|network|rules|schedules)\//,
+              /^app\/src\/main\/java\/com\/azimulkabir\/actua\/data\/ActuaRepository\.kt$/,
+              /Migration/i,
+              /Writer\.kt$/,
+              /^\.github\/workflows\//
+            ];
+            const mediumRisk = [
+              /^app\/src\//,
+              /^build\.gradle/,
+              /^settings\.gradle/,
+              /^gradle\//,
+              /^gradle\.properties$/,
+              /^\.github\//
+            ];
+
+            let risk = 'low';
+            if (names.some(name => highRisk.some(pattern => pattern.test(name)))) {
+              risk = 'high';
+            } else if (names.some(name => mediumRisk.some(pattern => pattern.test(name)))) {
+              risk = 'medium';
+            }
+
+            const definitions = {
+              'risk:low': 'Documentation, assets, or other low-risk changes.',
+              'risk:medium': 'Application/UI/build changes that need normal regression review.',
+              'risk:high': 'Sync, database, financial logic, security, migration, writer, or workflow changes that need deep review.'
+            };
+
+            for (const [name, description] of Object.entries(definitions)) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                await github.rest.issues.createLabel({
+                  owner, repo, name, description,
+                  color: name.endsWith('high') ? 'B60205' : name.endsWith('medium') ? 'FBCA04' : '0E8A16'
+                });
+              }
+            }
+
+            const current = (context.payload.pull_request.labels || []).map(label => label.name);
+            for (const old of ['risk:low', 'risk:medium', 'risk:high']) {
+              if (old !== `risk:${risk}` && current.includes(old)) {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number, name: old });
+              }
+            }
+            if (!current.includes(`risk:${risk}`)) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [`risk:${risk}`] });
+            }
+
+            core.notice(`PR #${issue_number} classified as ${risk} risk from ${names.length} changed file(s).`);
+            await core.summary
+              .addHeading(`PR risk: ${risk.toUpperCase()}`)
+              .addRaw(`${names.length} changed file(s). `)
+              .addRaw(risk === 'high'
+                ? 'Deep review is recommended before merge, especially for data integrity, sync compatibility, migrations, financial calculations, or workflow security.'
+                : risk === 'medium'
+                  ? 'Run normal regression review and verify affected user flows.'
+                  : 'Standard CI and maintainer review are normally sufficient.')
+              .write();

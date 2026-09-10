@@ -4,6 +4,30 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+No user-facing changes yet.
+
+## [1.0.0-beta.8] - 2026-09-10
+
+### Changed
+
+- Made manual Disconnect & Reset perform a final synchronization before clearing
+  server-bound local data, with an explicit force-disconnect choice if sync fails
+- Preserved device preferences and the local demo budget during disconnect cleanup
+
+### Fixed
+
+- Made transaction and split amount fields consistently follow the selected
+  display currency, including Use Remaining and split remainder text
+- Added currency-formatting regression coverage for supported display modes
+
+## [1.0.0-beta.7] - 2026-09-10
+
+### Fixed
+
+- Fixed a startup crash when creating or opening the built-in demo budget
+
+## [1.0.0-beta.6] - 2026-09-10
+
 ### Added
 
 - Added a built-in local-only demo budget that can be opened without an Actual server and reset from Connection & Data
@@ -479,3 +503,8 @@ Initial public testing release.
 [1.0.0-beta.1]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.1
 [1.0.0-beta.2]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.2
 [1.0.0-beta.3]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.3
+[1.0.0-beta.4]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.4
+[1.0.0-beta.5]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.5
+[1.0.0-beta.6]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.6
+[1.0.0-beta.7]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.7
+[1.0.0-beta.8]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.8
