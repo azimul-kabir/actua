@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Classify touched paths
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             // pull_request_target is used only for GitHub API metadata. Never check out,
