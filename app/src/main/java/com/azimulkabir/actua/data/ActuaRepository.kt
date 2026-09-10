@@ -141,6 +141,26 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    fun createSchedule(fields: ScheduleFormFields, payeeName: String): Boolean {
+        val database = actualDatabase ?: return false
+        fields.normalizedName?.let { name ->
+            require(!database.scheduleNameExists(name)) { "A schedule named $name already exists." }
+        }
+        val payeeId = payeeName.trim().takeIf(String::isNotEmpty)?.let {
+            actualWriter!!.resolveOrCreatePayee(it).id
+        }
+        val plan = ScheduleWriteBuilder.create(
+            fields = fields.copy(payeeId = payeeId),
+            scheduleId = java.util.UUID.randomUUID().toString().lowercase(),
+            ruleId = java.util.UUID.randomUUID().toString().lowercase(),
+            nextDateRowId = java.util.UUID.randomUUID().toString().lowercase(),
+            now = System.currentTimeMillis(),
+            today = DayDate.today(),
+        )
+        actualSchedules!!.apply(plan)
+        return true
+    }
+
     /** Post one linked transaction without advancing the schedule, matching Actual/Actuali. */
     fun postScheduleTransaction(scheduleId: String, today: Boolean): Boolean {
         val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
