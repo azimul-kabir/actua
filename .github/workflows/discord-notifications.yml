@@ -1,0 +1,147 @@
+name: Discord Notifications
+
+on:
+  issues:
+    types: [opened, reopened]
+  pull_request:
+    types: [opened, reopened, ready_for_review, closed]
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  github-activity:
+    if: github.event_name == 'issues' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post GitHub activity to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_GITHUB_WEBHOOK }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          EVENT_JSON: ${{ toJSON(github.event) }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          webhook = os.environ.get("DISCORD_WEBHOOK", "")
+          if not webhook:
+              raise SystemExit("DISCORD_GITHUB_WEBHOOK is not configured")
+
+          event = json.loads(os.environ["EVENT_JSON"])
+          event_name = os.environ["EVENT_NAME"]
+          action = os.environ["EVENT_ACTION"]
+
+          if event_name == "issues":
+              item = event["issue"]
+              title = f"Issue #{item['number']} {action}: {item['title']}"
+              description = f"Opened by **{item['user']['login']}**"
+              labels = [label["name"] for label in item.get("labels", [])]
+              if labels:
+                  description += "\nLabels: " + ", ".join(f"`{x}`" for x in labels)
+              color = 0xD29922
+          else:
+              item = event["pull_request"]
+              merged = action == "closed" and bool(item.get("merged"))
+              if action == "closed" and not merged:
+                  # Do not announce ordinary closed/unmerged PRs.
+                  raise SystemExit(0)
+              state = "merged" if merged else action.replace("_", " ")
+              title = f"PR #{item['number']} {state}: {item['title']}"
+              description = (
+                  f"By **{item['user']['login']}**\n"
+                  f"`{item['head']['ref']}` → `{item['base']['ref']}`"
+              )
+              color = 0x8250DF if merged else 0x2F81F7
+
+          payload = {
+              "username": "Actua GitHub",
+              "allowed_mentions": {"parse": []},
+              "embeds": [{
+                  "title": title[:256],
+                  "url": item["html_url"],
+                  "description": description[:4096],
+                  "color": color,
+                  "footer": {"text": "azimul-kabir/actua"}
+              }]
+          }
+
+          req = urllib.request.Request(
+              webhook,
+              data=json.dumps(payload).encode(),
+              headers={"Content-Type": "application/json", "User-Agent": "Actua-GitHub-Actions"},
+              method="POST",
+          )
+          with urllib.request.urlopen(req) as response:
+              if response.status not in (200, 204):
+                  raise RuntimeError(f"Discord returned HTTP {response.status}")
+          PY
+
+  release-notification:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post release and changelog to Discord
+        env:
+          RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          BETA_WEBHOOK: ${{ secrets.DISCORD_BETA_WEBHOOK }}
+          EVENT_JSON: ${{ toJSON(github.event) }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          event = json.loads(os.environ["EVENT_JSON"])
+          release = event["release"]
+          prerelease = bool(release.get("prerelease"))
+          webhook = os.environ.get("BETA_WEBHOOK" if prerelease else "RELEASE_WEBHOOK", "")
+          if not webhook:
+              name = "DISCORD_BETA_WEBHOOK" if prerelease else "DISCORD_RELEASE_WEBHOOK"
+              raise SystemExit(f"{name} is not configured")
+
+          version = release.get("tag_name") or release.get("name") or "New release"
+          heading = "Actua beta released" if prerelease else "Actua released"
+          body = (release.get("body") or "No release notes provided.").strip()
+
+          # Discord embed descriptions are limited to 4096 characters. Preserve
+          # the beginning of the changelog and link to GitHub for the complete notes.
+          max_body = 3800
+          if len(body) > max_body:
+              body = body[:max_body].rstrip() + "\n\n… Full changelog on GitHub."
+
+          assets = release.get("assets", [])
+          apk = next((a for a in assets if a.get("name", "").lower().endswith(".apk")), None)
+          links = f"[View release]({release['html_url']})"
+          if apk:
+              links += f" • [Download APK]({apk['browser_download_url']})"
+
+          warning = "\n\n⚠️ **Beta software:** Back up your Actual Budget data before testing an important budget." if prerelease else ""
+          description = f"{body}{warning}\n\n{links}"
+
+          payload = {
+              "username": "Actua Releases",
+              "allowed_mentions": {"parse": []},
+              "embeds": [{
+                  "title": f"{heading}: {version}"[:256],
+                  "url": release["html_url"],
+                  "description": description[:4096],
+                  "color": 0xD29922 if prerelease else 0x238636,
+                  "footer": {"text": "Actua • Native Android client for Actual Budget"}
+              }]
+          }
+
+          req = urllib.request.Request(
+              webhook,
+              data=json.dumps(payload).encode(),
+              headers={"Content-Type": "application/json", "User-Agent": "Actua-GitHub-Actions"},
+              method="POST",
+          )
+          with urllib.request.urlopen(req) as response:
+              if response.status not in (200, 204):
+                  raise RuntimeError(f"Discord returned HTTP {response.status}")
+          PY
