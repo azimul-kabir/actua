@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -380,6 +381,7 @@ private fun BillCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BillActionsSheet(
     item: BillCalendarItem,
@@ -393,8 +395,8 @@ private fun BillActionsSheet(
         Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
         if (item.scheduleId != null && item.isCurrentOccurrence && item.status != ScheduleStatus.COMPLETED) {
-            ActionRow(Icons.Outlined.Add, "Post transaction") { onPost(false) }
-            ActionRow(Icons.Outlined.EventAvailable, "Post transaction today") { onPost(true) }
+            ActionRow(Icons.Outlined.Add, "Post transaction", onClick = { onPost(false) })
+            ActionRow(Icons.Outlined.EventAvailable, "Post transaction today", onClick = { onPost(true) })
             if (item.isRecurring) ActionRow(Icons.Outlined.SkipNext, "Skip next date", onSkip)
             HorizontalDivider(Modifier.padding(horizontal = 20.dp))
         }
