@@ -1,9 +1,9 @@
 # Community setup
 
 Issue forms, the PR template and AGENTS.md are adapted from
-[MattFaz/actuali](https://github.com/MattFaz/actuali) for Actua.
-Merge this branch into `main` to make the issue chooser and privileged review
-workflow available. Ensure the `bug` and `enhancement` labels exist.
+[MattFaz/actuali](https://github.com/MattFaz/actuali) for Actua. Ensure the
+`bug`, `enhancement`, and `dependencies` labels exist. The PR risk workflow
+creates and maintains its own `risk:low`, `risk:medium`, and `risk:high` labels.
 
 ## Android CI
 
@@ -49,7 +49,26 @@ Paste the clipboard value into `ACTUA_RELEASE_KEYSTORE_BASE64`. Save the two
 passwords and alias in a password manager, add the other three secrets, and keep
 an encrypted backup of the keystore somewhere other than the Mac.
 
-## Recommended: Codex GitHub review with ChatGPT Plus
+## Zero-cost pull-request review
+
+The default review path has no paid service dependency:
+
+- Android CI builds the debug APK, runs JVM regression tests, and runs lint.
+- PR Risk Classification applies a risk label from touched paths without
+  checking out or executing PR code.
+- Dependabot opens weekly Gradle and GitHub Actions update PRs.
+- CODEOWNERS requests maintainer review for sensitive project areas.
+
+Use branch protection or a main-branch ruleset to require the Android CI check
+and at least one approving review before merge. Treat `risk:high` as a prompt
+for deeper manual review of sync, database, financial, security, migration, or
+workflow behavior. Dependabot proposes updates but does not merge them.
+
+GitHub dependency review is not configured because its dependency-review action
+requires the repository dependency graph, which may not be available for this
+project. Dependabot and the Gradle build remain the free dependency safeguards.
+
+## Optional: Codex GitHub review with ChatGPT Plus
 
 Connect this repository in Codex cloud and enable Code review in Codex settings.
 Request a review with `@codex review` in a PR comment, or enable Automatic reviews.
@@ -58,39 +77,6 @@ allowance and does not require an OpenAI API key or Claude subscription/token.
 See [official setup instructions](https://learn.chatgpt.com/docs/third-party/github)
 and [current plan limits](https://learn.chatgpt.com/docs/pricing).
 Account connection and review settings must be configured separately; committing
-these files does not enable the hosted integration. Start with manual reviews
-to control usage. Leave the optional API workflow below disabled to avoid duplicate
-reviews and separate API billing.
-
-## Optional API alternative — disabled by default
-
-No Claude subscription or AI credentials are needed for the community templates
-or Android CI. Leave `AI_REVIEW_ENABLED` unset to skip AI review entirely.
-The supplied optional implementation uses Anthropic's Messages API, billed
-separately from a Claude subscription:
-
-1. Create an Anthropic API key with API billing enabled. Add it as the repository
-   Actions secret `ANTHROPIC_API_KEY` (Settings → Secrets and variables → Actions).
-2. Add the Actions variable `AI_REVIEW_MODEL` with a model ID available to that
-   API account. No model is hardcoded, so choose one before enabling reviews.
-3. Set the Actions variable `AI_REVIEW_ENABLED` to `true`.
-
-`CLAUDE_CODE_OAUTH_TOKEN` is **not used**. There is no Claude Code action,
-subscription dependency, GitHub App installation, plugin or OAuth setup.
-If choosing a different provider, adapt the request and secret before enabling.
-API review sends PR diffs and base AGENTS.md to Anthropic and incurs API costs.
-It runs on non-draft PR opening, new commits, reopening and ready-for-review,
-including forks. Disable the variable to stop automatic spending. AI review is
-advisory and should not be a required merge check.
-
-The `pull_request_target` job never checks out a branch or runs repository code.
-Its fixed workflow script downloads AGENTS.md from the base SHA and the PR diff
-as text, calls the model without tools, and posts a comment on that PR using a
-scoped GITHUB_TOKEN. Model output is never executed. Oversized diffs (>120 KB),
-missing configuration and incomplete responses fail visibly instead of posting
-a partial review; feedback for an outdated head is skipped. Prompts can still
-mislead the model, so maintainers must verify findings. No build artifacts or
-PR-provided configuration are loaded by this privileged job.
-
-See the [Anthropic Messages API documentation](https://platform.claude.com/docs/en/api/messages)
-for authentication and request details.
+repository files does not enable the hosted integration. Start with manual
+reviews to control plan usage. Actua has no repository-hosted paid AI review
+workflow and requires no OpenAI or Anthropic API key.
