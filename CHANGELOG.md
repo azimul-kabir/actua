@@ -4,7 +4,11 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
-No user-facing changes yet.
+### Added
+
+- Added a built-in local-only demo budget that can be opened without an Actual server and reset from Connection & Data
+- Added realistic demo data covering checking, savings, a credit card, an off-budget investment account, six months of transactions, paired card-payment transfers, cleared/uncleared/reconciled states, category targets, rules, scheduled transactions, notes, and report dashboard data
+- Added explicit sync protection for the reserved `demo` budget so it cannot be uploaded even when server credentials are configured
 
 ## [1.0.0-beta.5] - 2026-09-10
 
