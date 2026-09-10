@@ -2,6 +2,37 @@
 
 All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
 
+## Unreleased
+
+No user-facing changes yet.
+
+## [1.0.0-beta.5] - 2026-09-10
+
+### Added
+
+- Added schedule creation from Android with account, payee, amount, date,
+  recurrence, and automatic-posting controls
+- Added a dedicated repeat editor covering daily, weekly, monthly and yearly
+  patterns, weekend handling, bounded endings, and occurrence previews
+- Added linked transaction history to schedule details with safe unlinking
+- Added recurring-transaction discovery with ranked suggestions and selectable
+  schedule creation
+- Added a monthly Bills calendar with recurring and card-bill views, due-date
+  projection, status totals, date filters, and schedule actions
+
+### Changed
+
+- Refined Bills and schedule navigation so adding, editing, posting, skipping,
+  and deleting return to the correct screen and refresh immediately
+- Documented YNAB as a mobile UI design reference while clarifying that Actua
+  independently implements its interface and contains no YNAB code or assets
+
+### Fixed
+
+- Moved Bills calendar database loading off the UI thread
+- Added confirmation before deleting a schedule from the Bills calendar and
+  limited Skip Next Date to applicable recurring schedules
+
 ## [1.0.0-beta.4] - 2026-09-09
 
 ### Changed
@@ -36,10 +67,6 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Kept split parents and children aligned when their cleared status changes and
   preserved reconciled transactions as locked records
-
-## Unreleased
-
-No user-facing changes yet.
 
 ## [1.0.0-beta.2] - 2026-09-09
 
