@@ -195,12 +195,6 @@ fun SettingsScreen(
                     },
                 )
                 ListItem(
-                    headlineContent = { Text("Developer & Maintainer") },
-                    supportingContent = {
-                        Text("Azimul Kabir Apu\nGitHub: azimul-kabir")
-                    },
-                )
-                ListItem(
                     headlineContent = { Text("Independent community project") },
                     supportingContent = {
                         Text("Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.")
