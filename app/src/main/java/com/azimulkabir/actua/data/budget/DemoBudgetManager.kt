@@ -28,7 +28,25 @@ object DemoBudgetManager {
                 files.databaseFile(BUDGET_ID).path,
                 null,
                 SQLiteDatabase.OPEN_READWRITE,
-            ).use { database -> DemoBudgetSeeder.seed(database) }
+            ).use { database ->
+                DemoBudgetSeeder.seed(database)
+                // Actual resolves transaction/schedule payees through payee_mapping.
+                database.execSQL(
+                    "INSERT OR REPLACE INTO payee_mapping(id,targetId) SELECT id,id FROM payees WHERE tombstone=0",
+                )
+                // Keep the demo card preference in the same shape as normal Actua writes.
+                database.execSQL(
+                    "UPDATE preferences SET value=? WHERE id=?",
+                    arrayOf(
+                        JSONObject()
+                            .put("statementDay", 20)
+                            .put("dueOffsetDays", 15)
+                            .put("limit", 500000)
+                            .toString(),
+                        "actuali:credit_card:demo-account-credit",
+                    ),
+                )
+            }
 
             val metadataJson = JSONObject()
                 .put("id", BUDGET_ID)
