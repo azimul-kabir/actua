@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -14,10 +13,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
+import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.security.DisconnectResetManager
@@ -51,7 +50,7 @@ class DisconnectResetActivity : ComponentActivity() {
                         title = { Text("Disconnect & reset?") },
                         text = {
                             Text(
-                                "Actua will sync pending changes, then remove downloaded server budgets, local backups, encryption keys, and connection data from this device. Your budgets on the Actual server will not be deleted. Device display settings and the local demo budget will be kept."
+                                "Actua will sync every downloaded server budget, then remove downloaded server budgets, local backups, encryption keys, and connection data from this device. Your budgets on the Actual server will not be deleted. Device display settings and the local demo budget will be kept."
                             )
                         },
                         confirmButton = {
@@ -68,7 +67,7 @@ class DisconnectResetActivity : ComponentActivity() {
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 CircularProgressIndicator()
-                                Text("Saving your latest Actual and Actua budget changes to the server before local data is removed.")
+                                Text("Saving the latest Actual and Actua changes from every downloaded server budget before local data is removed.")
                             }
                         },
                         confirmButton = {},
@@ -104,28 +103,37 @@ class DisconnectResetActivity : ComponentActivity() {
         stage = Stage.Syncing
         syncFailure = null
         lifecycleScope.launch {
-            val activeId = ActiveBudgetStore(this@DisconnectResetActivity).budgetId
-            val needsServerSync = activeId != null && !DemoBudgetManager.isDemoBudget(activeId)
-
-            val result = if (!needsServerSync) {
-                Result.success(Unit)
-            } else {
-                runCatching {
-                    when (val sync = withContext(Dispatchers.IO) {
-                        ActualSyncRunner.run(this@DisconnectResetActivity)
-                    }) {
-                        is SyncRunResult.Success -> Unit
-                        SyncRunResult.NotConfigured -> error("The active budget is not configured for server sync.")
-                        SyncRunResult.EncryptionKeyUnavailable -> error("The active encrypted budget is locked. Unlock it before disconnecting, or disconnect anyway.")
-                    }
-                }
+            val result = runCatching {
+                withContext(Dispatchers.IO) { syncAllDownloadedBudgets() }
             }
-
             result.onSuccess { resetAndRestart() }
                 .onFailure { error ->
                     syncFailure = error.message ?: "Sync failed."
                     stage = Stage.SyncFailed
                 }
+        }
+    }
+
+    private fun syncAllDownloadedBudgets() {
+        val files = BudgetFileManager(this)
+        val activeStore = ActiveBudgetStore(this)
+        val originalActive = activeStore.budgetId
+        val budgets = files.listLocalBudgets().filter { it.id != DemoBudgetManager.BUDGET_ID }
+
+        try {
+            budgets.forEach { budget ->
+                if (budget.cloudFileId.isNullOrBlank()) {
+                    error("${budget.budgetName ?: budget.id} has no server identity and cannot be safely removed after sync.")
+                }
+                activeStore.budgetId = budget.id
+                when (ActualSyncRunner.run(this)) {
+                    is SyncRunResult.Success -> Unit
+                    SyncRunResult.NotConfigured -> error("${budget.budgetName ?: budget.id} is not configured for server sync.")
+                    SyncRunResult.EncryptionKeyUnavailable -> error("${budget.budgetName ?: budget.id} is encrypted and locked. Unlock it before disconnecting, or disconnect anyway.")
+                }
+            }
+        } finally {
+            activeStore.budgetId = originalActive
         }
     }
 
