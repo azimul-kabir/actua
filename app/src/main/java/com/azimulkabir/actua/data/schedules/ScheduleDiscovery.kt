@@ -7,6 +7,11 @@ import kotlin.math.roundToLong
 
 /** Detects recurring transactions using the same sweeps and ranking as Actuali iOS. */
 object ScheduleDiscovery {
+    data class DisplayProposal(
+        val proposal: Proposal,
+        val payeeName: String,
+        val accountName: String,
+    )
     data class Candidate(val id: String, val date: DayDate, val amount: Long, val payeeId: String, val accountId: String)
     data class Match(val rank: Double, val amount: Long, val accountId: String, val payeeId: String,
         val config: RecurConfig, val exactDate: Boolean, val exactAmount: Boolean)

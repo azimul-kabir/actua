@@ -42,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -64,6 +65,7 @@ import com.azimulkabir.actua.ui.settings.ConnectionScreen
 import com.azimulkabir.actua.ui.settings.CreditCardsScreen
 import com.azimulkabir.actua.ui.settings.RulesScreen
 import com.azimulkabir.actua.ui.settings.SchedulesScreen
+import com.azimulkabir.actua.ui.settings.FindSchedulesScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
@@ -90,7 +92,7 @@ private enum class MainDestination(
     More("More", Icons.Outlined.MoreHoriz),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, NewSchedule, EditSchedule }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, FindSchedules, NewSchedule, EditSchedule }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -623,6 +625,7 @@ fun AppNavigation(
                 canAdd = accounts.any { !it.closed },
                 onBack = { detail = DetailDestination.Main },
                 onAdd = { detail = DetailDestination.NewSchedule },
+                onFind = { detail = DetailDestination.FindSchedules },
                 onEdit = { id ->
                     editingScheduleId = id
                     detail = DetailDestination.EditSchedule
@@ -645,6 +648,27 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
             )
+            DetailDestination.FindSchedules -> {
+                val proposals by produceState<List<com.azimulkabir.actua.data.schedules.ScheduleDiscovery.DisplayProposal>?>(
+                    initialValue = null,
+                    key1 = dataVersion,
+                ) {
+                    value = withContext(Dispatchers.IO) { repository.discoverSchedules() }
+                }
+                FindSchedulesScreen(
+                    proposals = proposals,
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    onBack = { detail = DetailDestination.Schedules },
+                    onCreate = { selected ->
+                        if (mutate("Creating schedules") {
+                            repository.createDiscoveredSchedules(selected)
+                        }) {
+                            detail = DetailDestination.Schedules
+                        }
+                    },
+                    modifier = contentModifier,
+                )
+            }
             DetailDestination.NewSchedule -> com.azimulkabir.actua.ui.settings.EditScheduleScreen(
                 item = null,
                 accounts = accounts,

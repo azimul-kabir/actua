@@ -68,7 +68,7 @@ Android backlog items and will never be ported.
 - Schedule create/update/delete/next-date/complete write planning and generic
   CRDT persistence, including repair of missing rule and next-date rows and local JSON paths
 - Schedule discovery transaction filtering, recurrence sweeps, matching, ranking,
-  payee deduplication, and create-form projection
+  payee deduplication, create-form projection, and selectable Find Schedules UI
 - Account, category, and category-group rename/close/hide long-press actions
   wired through CRDT mutations and immediate UI refresh
 - Category deletion through Actual-compatible tombstone mutations, with existing
@@ -142,7 +142,6 @@ Android backlog items and will never be ported.
 ## Post-v1 portable features
 
 - Advanced split, formula, and template rule actions
-- Schedule discovery UI wiring
 - Goal templates, cleanup templates, and budget automations
 - SimpleFIN linking, download, reconciliation, and pending-import approval
 - Android transaction notifications and new-transaction detection
