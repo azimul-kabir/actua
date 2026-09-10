@@ -66,6 +66,7 @@ import com.azimulkabir.actua.ui.settings.CreditCardsScreen
 import com.azimulkabir.actua.ui.settings.RulesScreen
 import com.azimulkabir.actua.ui.settings.SchedulesScreen
 import com.azimulkabir.actua.ui.settings.FindSchedulesScreen
+import com.azimulkabir.actua.ui.settings.BillsCalendarScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
@@ -92,7 +93,7 @@ private enum class MainDestination(
     More("More", Icons.Outlined.MoreHoriz),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, FindSchedules, NewSchedule, EditSchedule }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, BillsCalendar, FindSchedules, NewSchedule, EditSchedule }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -175,6 +176,8 @@ fun AppNavigation(
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var reconcileOpen by remember { mutableStateOf(false) }
+    var scheduleReturnsToBills by rememberSaveable { mutableStateOf(false) }
+    var creditCardsReturnToBills by rememberSaveable { mutableStateOf(false) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
     var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
@@ -585,7 +588,10 @@ fun AppNavigation(
                 cards = creditCards,
                 accounts = accounts,
                 hideDecimalPlaces = hideDecimalPlaces,
-                onBack = { detail = DetailDestination.Main },
+                onBack = {
+                    detail = if (creditCardsReturnToBills) DetailDestination.BillsCalendar else DetailDestination.Main
+                    creditCardsReturnToBills = false
+                },
                 onSave = { accountId, day, paymentDue, limit ->
                     if (mutate("Saving credit card") { repository.setCreditCard(accountId, day, paymentDue, limit) }) {
                         CreditCardDueNotificationScheduler.refresh(context)
@@ -624,10 +630,15 @@ fun AppNavigation(
                 hideDecimalPlaces = hideDecimalPlaces,
                 canAdd = accounts.any { !it.closed },
                 onBack = { detail = DetailDestination.Main },
-                onAdd = { detail = DetailDestination.NewSchedule },
+                onAdd = {
+                    scheduleReturnsToBills = false
+                    detail = DetailDestination.NewSchedule
+                },
                 onFind = { detail = DetailDestination.FindSchedules },
+                onCalendar = { detail = DetailDestination.BillsCalendar },
                 onEdit = { id ->
                     editingScheduleId = id
+                    scheduleReturnsToBills = false
                     detail = DetailDestination.EditSchedule
                 },
                 onPost = { id, today ->
@@ -646,6 +657,35 @@ fun AppNavigation(
                 onDelete = { id ->
                     mutate("Deleting schedule") { repository.deleteSchedule(id) }
                 },
+                modifier = contentModifier,
+            )
+            DetailDestination.BillsCalendar -> BillsCalendarScreen(
+                loadItems = { year, month, cardBills ->
+                    repository.billCalendarItems(year, month, cardBills)
+                },
+                refreshKey = dataVersion,
+                hideDecimalPlaces = hideDecimalPlaces,
+                onBack = { detail = DetailDestination.Schedules },
+                onAddSchedule = {
+                    scheduleReturnsToBills = true
+                    detail = DetailDestination.NewSchedule
+                },
+                onConfigureCards = {
+                    creditCardsReturnToBills = true
+                    detail = DetailDestination.CreditCards
+                },
+                onEditSchedule = { id ->
+                    editingScheduleId = id
+                    scheduleReturnsToBills = true
+                    detail = DetailDestination.EditSchedule
+                },
+                onPost = { id, today ->
+                    mutate(if (today) "Posting schedule today" else "Posting schedule") {
+                        repository.postScheduleTransaction(id, today)
+                    }
+                },
+                onSkip = { id -> mutate("Skipping occurrence") { repository.skipScheduleNextDate(id) } },
+                onDelete = { id -> mutate("Deleting schedule") { repository.deleteSchedule(id) } },
                 modifier = contentModifier,
             )
             DetailDestination.FindSchedules -> {
@@ -675,12 +715,16 @@ fun AppNavigation(
                 payeeOptions = payeeNames,
                 hideDecimalPlaces = hideDecimalPlaces,
                 conventionalAmountEntry = conventionalAmountEntry,
-                onBack = { detail = DetailDestination.Schedules },
+                onBack = {
+                    detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
+                    scheduleReturnsToBills = false
+                },
                 onSave = { fields, payeeName ->
                     if (mutate("Creating schedule") {
                         repository.createSchedule(fields, payeeName)
                     }) {
-                        detail = DetailDestination.Schedules
+                        detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
+                        scheduleReturnsToBills = false
                     }
                 },
                 modifier = contentModifier,
@@ -697,17 +741,22 @@ fun AppNavigation(
                     linkedTransactions = remember(dataVersion, item.schedule.id) {
                         repository.scheduleTransactions(item.schedule.id)
                     },
-                    onBack = { detail = DetailDestination.Schedules },
+                    onBack = {
+                        detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
+                        scheduleReturnsToBills = false
+                    },
                     onSave = { fields, payeeName ->
                         if (mutate("Saving schedule") {
                             repository.updateSchedule(item.schedule.id, fields, payeeName)
                         }) {
-                            detail = DetailDestination.Schedules
+                            detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
+                            scheduleReturnsToBills = false
                         }
                     },
                     onDelete = {
                         if (mutate("Deleting schedule") { repository.deleteSchedule(item.schedule.id) }) {
-                            detail = DetailDestination.Schedules
+                            detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
+                            scheduleReturnsToBills = false
                         }
                     },
                     onUnlinkTransaction = { transactionId ->
@@ -973,7 +1022,10 @@ fun AppNavigation(
                         displayPreferences.showAccountsMonthlySummary = it
                         showAccountsMonthlySummary = it
                     },
-                    onCreditCardsClick = { detail = DetailDestination.CreditCards },
+                    onCreditCardsClick = {
+                        creditCardsReturnToBills = false
+                        detail = DetailDestination.CreditCards
+                    },
                     onRulesClick = { detail = DetailDestination.Rules },
                     onSchedulesClick = { detail = DetailDestination.Schedules },
                     conventionalAmountEntry = conventionalAmountEntry,

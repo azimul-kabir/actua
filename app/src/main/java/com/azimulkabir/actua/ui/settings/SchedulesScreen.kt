@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.EventAvailable
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material3.AlertDialog
@@ -73,6 +74,7 @@ fun SchedulesScreen(
     onBack: () -> Unit,
     onAdd: () -> Unit,
     onFind: () -> Unit,
+    onCalendar: () -> Unit,
     onEdit: (String) -> Unit,
     onPost: (String, Boolean) -> Unit,
     onSkip: (String) -> Unit,
@@ -108,6 +110,9 @@ fun SchedulesScreen(
                 fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             IconButton(onClick = { showSearch = !showSearch }) {
                 Icon(Icons.Outlined.Search, "Search schedules")
+            }
+            IconButton(onClick = onCalendar) {
+                Icon(Icons.Outlined.CalendarMonth, "Bills calendar")
             }
             IconButton(onClick = onAdd, enabled = canAdd) {
                 Icon(Icons.Outlined.Add, "Add schedule")

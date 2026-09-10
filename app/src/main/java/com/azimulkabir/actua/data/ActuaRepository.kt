@@ -43,6 +43,8 @@ import com.azimulkabir.actua.data.schedules.ScheduleStatusCalculator
 import com.azimulkabir.actua.data.schedules.ScheduleWriteBuilder
 import com.azimulkabir.actua.data.schedules.ScheduleFormFields
 import com.azimulkabir.actua.data.schedules.ScheduleDiscovery
+import com.azimulkabir.actua.data.schedules.BillCalendarItem
+import com.azimulkabir.actua.data.schedules.BillsCalendarEngine
 import com.azimulkabir.actua.data.schedules.sortedForDisplay
 
 class ActuaRepository(context: Context) {
@@ -131,6 +133,20 @@ class ActuaRepository(context: Context) {
                 accountName = accounts[proposal.accountId] ?: "Unknown account",
             )
         }
+    }
+
+    fun billCalendarItems(year: Int, month: Int, cardBills: Boolean): List<BillCalendarItem> {
+        if (cardBills) return BillsCalendarEngine.itemsForCreditCards(creditCards(), year, month)
+        val database = actualDatabase ?: return emptyList()
+        val schedules = schedules()
+        val categoryNames = database.fetchCategoryGroups().flatMap { it.categories }.associate { it.id to it.name }
+        return BillsCalendarEngine.itemsForSchedules(
+            schedules = schedules,
+            paymentDates = database.fetchSchedulePaymentDates(schedules.map { it.schedule.id }),
+            categoryNames = categoryNames,
+            year = year,
+            month = month,
+        )
     }
 
     fun createDiscoveredSchedules(proposals: List<ScheduleDiscovery.Proposal>): Boolean {

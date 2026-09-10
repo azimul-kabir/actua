@@ -390,6 +390,25 @@ class ActualBudgetDatabase private constructor(
     }
 
     @Synchronized
+    fun fetchSchedulePaymentDates(scheduleIds: List<String>): Map<String, Set<DayDate>> {
+        if (scheduleIds.isEmpty()) return emptyMap()
+        val result = mutableMapOf<String, MutableSet<DayDate>>()
+        scheduleIds.chunked(500).forEach { ids ->
+            val placeholders = ids.joinToString { "?" }
+            database.rawQuery(
+                "SELECT schedule,date FROM transactions WHERE schedule IN ($placeholders) " +
+                    "AND (tombstone=0 OR tombstone IS NULL)",
+                ids.toTypedArray(),
+            ).use { cursor -> while (cursor.moveToNext()) {
+                val scheduleId = cursor.stringOrNull(0) ?: continue
+                val date = DayDate.fromYyyymmdd(cursor.intOrZero(1)) ?: continue
+                result.getOrPut(scheduleId) { mutableSetOf() } += date
+            } }
+        }
+        return result
+    }
+
+    @Synchronized
     fun scheduleNameExists(name: String, excludingId: String? = null): Boolean {
         val clause = if (excludingId == null) "" else " AND id<>?"
         val args = if (excludingId == null) arrayOf(name) else arrayOf(name, excludingId)
