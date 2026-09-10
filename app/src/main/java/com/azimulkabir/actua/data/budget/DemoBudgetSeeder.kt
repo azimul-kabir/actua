@@ -16,6 +16,12 @@ internal object DemoBudgetSeeder {
     fun seed(database: SQLiteDatabase, now: LocalDate = LocalDate.now()) {
         database.beginTransaction()
         try {
+            // BlankBudgetFactory intentionally ships starter categories for newly-created budgets.
+            // The demo is curated, so replace only those starter rows while preserving schema/migrations.
+            database.execSQL("DELETE FROM category_mapping")
+            database.execSQL("DELETE FROM categories")
+            database.execSQL("DELETE FROM category_groups")
+
             val checking = "demo-account-checking"
             val savings = "demo-account-savings"
             val credit = "demo-account-credit"
@@ -57,7 +63,7 @@ internal object DemoBudgetSeeder {
             val restaurant = payee(database, "Neighborhood Cafe")
             val streaming = payee(database, "StreamBox")
             val cardPayment = payee(database, "Credit Card Payment")
-            listOf(checking, savings, credit, investment).forEach { transferPayee(database, it) }
+            val transferPayees = listOf(checking, savings, credit, investment).associateWith { transferPayee(database, it) }
 
             opening(database, checking, starting, now.minusMonths(6).withDayOfMonth(1), 450000)
             opening(database, savings, starting, now.minusMonths(6).withDayOfMonth(1), 150000)
@@ -73,7 +79,16 @@ internal object DemoBudgetSeeder {
                 txn(database, credit, entertainment, streaming, safeDay(base, 12), -1200, true, monthsAgo > 0)
                 txn(database, checking, utilities, utilityCo, safeDay(base, 15), -9000 - monthsAgo * 250L, true, monthsAgo > 0)
                 txn(database, credit, transport, fuel, safeDay(base, 18), -7500 - monthsAgo * 200L, true, monthsAgo > 0)
-                if (monthsAgo > 0) txn(database, checking, null, cardPayment, safeDay(base, 25), -25000, true, true)
+                if (monthsAgo > 0) transfer(
+                    database,
+                    fromAccount = checking,
+                    toAccount = credit,
+                    fromPayee = requireNotNull(transferPayees[credit]),
+                    toPayee = requireNotNull(transferPayees[checking]),
+                    date = safeDay(base, 25),
+                    amount = 25000,
+                    reconciled = true,
+                )
             }
 
             // Current-month examples for uncleared/reconciliation states.
@@ -132,8 +147,8 @@ internal object DemoBudgetSeeder {
         db.execSQL("INSERT INTO payees(id,name,tombstone) VALUES(?,?,0)", arrayOf(it, name))
     }
 
-    private fun transferPayee(db: SQLiteDatabase, accountId: String) {
-        db.execSQL("INSERT INTO payees(id,name,tombstone,transfer_acct) VALUES(?,NULL,0,?)", arrayOf(id(), accountId))
+    private fun transferPayee(db: SQLiteDatabase, accountId: String): String = id().also {
+        db.execSQL("INSERT INTO payees(id,name,tombstone,transfer_acct) VALUES(?,NULL,0,?)", arrayOf(it, accountId))
     }
 
     private fun opening(db: SQLiteDatabase, account: String, category: String, date: LocalDate, amount: Long) =
@@ -144,6 +159,30 @@ internal object DemoBudgetSeeder {
         db.execSQL(
             "INSERT INTO transactions(id,acct,category,amount,description,date,starting_balance_flag,tombstone,cleared,reconciled,sort_order) VALUES(?,?,?,?,?,?,?,0,?,?,?)",
             arrayOf(id(), account, category, amount, payee, date.format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE).toInt(), if (starting) 1 else 0, if (cleared) 1 else 0, if (reconciled) 1 else 0, System.nanoTime().toDouble()),
+        )
+    }
+
+    private fun transfer(
+        db: SQLiteDatabase,
+        fromAccount: String,
+        toAccount: String,
+        fromPayee: String,
+        toPayee: String,
+        date: LocalDate,
+        amount: Long,
+        reconciled: Boolean,
+    ) {
+        val sourceId = id()
+        val targetId = id()
+        val ymd = date.format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE).toInt()
+        val sortOrder = System.nanoTime().toDouble()
+        db.execSQL(
+            "INSERT INTO transactions(id,acct,category,amount,description,date,transferred_id,tombstone,cleared,reconciled,sort_order) VALUES(?,?,?,?,?,?,?,0,1,?,?)",
+            arrayOf(sourceId, fromAccount, null, -amount, fromPayee, ymd, targetId, if (reconciled) 1 else 0, sortOrder),
+        )
+        db.execSQL(
+            "INSERT INTO transactions(id,acct,category,amount,description,date,transferred_id,tombstone,cleared,reconciled,sort_order) VALUES(?,?,?,?,?,?,?,0,1,?,?)",
+            arrayOf(targetId, toAccount, null, amount, toPayee, ymd, sourceId, if (reconciled) 1 else 0, sortOrder + 1),
         )
     }
 
