@@ -6,6 +6,19 @@
 
 **A native Android client for [Actual Budget](https://actualbudget.org/), built with Kotlin and Jetpack Compose.**
 
+<br>
+
+<a href="https://github.com/azimul-kabir/actua/releases/download/v1.0.0-beta.8/Actua-v1.0.0-beta.8.apk"><img src="https://img.shields.io/badge/Download-APK-5969A6?style=for-the-badge&logo=android&logoColor=white" alt="Download Actua APK"></a>
+<a href="https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.8"><img src="https://img.shields.io/badge/Release-v1.0.0--beta.8-6F7DB7?style=for-the-badge" alt="Actua 1.0.0 beta 8 release"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-48506A?style=for-the-badge" alt="MIT License"></a>
+<a href="https://github.com/azimul-kabir/actua/issues/new/choose"><img src="https://img.shields.io/badge/Report-an_issue-48506A?style=for-the-badge&logo=github&logoColor=white" alt="Report an issue"></a>
+
+<br><br>
+
+![Android 9+](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack_Compose-7F52FF?logo=kotlin&logoColor=white)
+![Beta](https://img.shields.io/badge/status-beta-F0A44B)
+
 </div>
 
 ## About this project
@@ -31,6 +44,25 @@ artwork and is not affiliated with, endorsed by, or supported by YNAB.
 
 Actua is developed and maintained by **[Azimul Kabir Apu](https://github.com/azimul-kabir)**
 with contributions welcomed from the community.
+
+## Screenshots
+
+Explore a native Material You budgeting experience. All screenshots use
+synthetic data from Actua's built-in demo budget. Select any image to view it
+at full resolution.
+
+<table>
+  <tr>
+    <td align="center"><a href="artwork/screenshots/budget-plan.jpg"><img src="artwork/screenshots/budget-plan.jpg" width="220" alt="Actua budget plan view"></a><br><strong>Budget Plan</strong><br><sub>Targets, progress and balances</sub></td>
+    <td align="center"><a href="artwork/screenshots/category-details.jpg"><img src="artwork/screenshots/category-details.jpg" width="220" alt="Actua category details"></a><br><strong>Category Details</strong><br><sub>Budget, move money and auto-assign</sub></td>
+    <td align="center"><a href="artwork/screenshots/accounts.jpg"><img src="artwork/screenshots/accounts.jpg" width="220" alt="Actua accounts overview"></a><br><strong>Accounts</strong><br><sub>On-budget, off-budget and cards</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="artwork/screenshots/transactions.jpg"><img src="artwork/screenshots/transactions.jpg" width="220" alt="Actua transaction list"></a><br><strong>Transactions</strong><br><sub>Searchable, grouped activity</sub></td>
+    <td align="center"><a href="artwork/screenshots/reconciliation.jpg"><img src="artwork/screenshots/reconciliation.jpg" width="220" alt="Actua account reconciliation"></a><br><strong>Reconciliation</strong><br><sub>Match Actua with your bank</sub></td>
+    <td align="center"><a href="artwork/screenshots/bills-calendar.jpg"><img src="artwork/screenshots/bills-calendar.jpg" width="220" alt="Actua bills calendar"></a><br><strong>Bills Calendar</strong><br><sub>Recurring schedules and card bills</sub></td>
+  </tr>
+</table>
 
 ## Current functionality
 
@@ -87,7 +119,7 @@ The demo uses the reserved local budget ID `demo`. It has no `cloudFileId`, `gro
 The goal is behavioral compatibility with Actual Budget and with portable
 budgeting behavior proven by Actuali, while retaining a native Android UI built
 with Jetpack Compose. Changes in the iOS project can be reviewed and ported over
-time, but this is a source-level reimplementation—not shared Swift code or a
+time, but this is a source-level reimplementation, not shared Swift code or a
 byte-for-byte conversion.
 
 Apple-platform integrations are deliberately excluded, including FinanceKit, Apple Wallet, Siri, App Intents, Shortcuts, iCloud, Keychain, and Apple background-task APIs. Android equivalents are used only where they serve the core budgeting workflow, such as Android Keystore and WorkManager.
@@ -97,6 +129,17 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 - Android 9 (API 28) or later
 - A reachable self-hosted Actual Budget server for synchronized real budgets; the built-in demo budget works without a server
 - Android Studio with JDK 11 or later for local builds
+
+## Before testing with a real budget
+
+> [!CAUTION]
+> **Actua is beta/testing software and can write changes back to a synchronized Actual budget. Create an independent backup of your Actual budget before connecting or opening that budget in Actua.** Keep the backup outside Actua, using Actual's own backup/export process or another trusted backup method, so it remains available even if the phone, local database, app installation, or sync state is damaged.
+
+For the safest first look, use **More → Connection & Data → Try demo budget**. The demo is local-only, has no cloud registration, and is blocked from the server sync path.
+
+Actua also includes automatic local backups, retained backup history, restore, a one-tap pre-restore revert, per-archive export, optional folder mirroring, and live sync status. These are useful recovery layers, but **they are not a substitute for an independent backup created before testing Actua with an important budget**.
+
+While Actua remains in beta, confirm important edits have synchronized before deleting a budget, disconnecting/resetting the app, uninstalling it, or moving between builds. Keep a known-good Actual client and your independent backup available until you are satisfied with the result.
 
 ## Testing releases
 
