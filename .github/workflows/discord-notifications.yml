@@ -1,6 +1,22 @@
 name: Discord Notifications
 
 on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Discord webhook to test
+        type: choice
+        required: true
+        default: github-activity
+        options:
+          - github-activity
+          - beta-release
+          - stable-release
+      send_test:
+        description: Send a TEST message to the selected Discord channel
+        type: boolean
+        required: true
+        default: false
   issues:
     types: [opened, reopened]
   pull_request:
@@ -144,4 +160,75 @@ jobs:
           with urllib.request.urlopen(req) as response:
               if response.status not in (200, 204):
                   raise RuntimeError(f"Discord returned HTTP {response.status}")
+          PY
+
+  manual-test:
+    name: Test Discord webhook
+    if: github.event_name == 'workflow_dispatch' && inputs.send_test
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Send labeled TEST message
+        env:
+          TEST_TARGET: ${{ inputs.target }}
+          DISCORD_WEBHOOK: ${{ inputs.target == 'github-activity' && secrets.DISCORD_GITHUB_WEBHOOK || inputs.target == 'beta-release' && secrets.DISCORD_BETA_WEBHOOK || inputs.target == 'stable-release' && secrets.DISCORD_RELEASE_WEBHOOK || '' }}
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          targets = {
+              "github-activity": ("DISCORD_GITHUB_WEBHOOK", "Actua GitHub", 0x2F81F7),
+              "beta-release": ("DISCORD_BETA_WEBHOOK", "Actua Releases", 0xD29922),
+              "stable-release": ("DISCORD_RELEASE_WEBHOOK", "Actua Releases", 0x238636),
+          }
+          target = os.environ["TEST_TARGET"]
+          if target not in targets:
+              raise SystemExit("Invalid test target; no message sent")
+          secret_name, username, color = targets[target]
+          webhook = os.environ.get("DISCORD_WEBHOOK", "")
+          if not webhook:
+              raise SystemExit(f"{secret_name} is not configured; no message sent")
+
+          run_url = (
+              f"{os.environ['SERVER_URL']}/{os.environ['REPOSITORY']}"
+              f"/actions/runs/{os.environ['RUN_ID']}"
+          )
+          payload = {
+              "username": username,
+              "allowed_mentions": {"parse": []},
+              "embeds": [{
+                  "title": f"TEST — Actua {target} webhook",
+                  "description": (
+                      "**TEST ONLY — manual webhook connectivity check.**\n"
+                      "This is not an issue, pull request, merge, or release announcement. "
+                      "No GitHub issue, pull request, or release was created.\n\n"
+                      f"[View test run]({run_url})"
+                  ),
+                  "url": run_url,
+                  "color": color,
+                  "footer": {"text": "Actua • TEST notification"}
+              }]
+          }
+          req = urllib.request.Request(
+              webhook,
+              data=json.dumps(payload).encode(),
+              headers={"Content-Type": "application/json", "User-Agent": "Actua-GitHub-Actions"},
+              method="POST",
+          )
+          # Do not print the webhook URL or Discord response body on failure.
+          try:
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  if response.status not in (200, 204):
+                      raise SystemExit(f"Discord returned HTTP {response.status}")
+          except urllib.error.HTTPError as error:
+              raise SystemExit(f"Discord returned HTTP {error.code}") from None
+          except (urllib.error.URLError, TimeoutError):
+              raise SystemExit("Could not reach Discord; check the selected webhook and retry") from None
+          print(f"TEST message sent successfully to {target}")
           PY
