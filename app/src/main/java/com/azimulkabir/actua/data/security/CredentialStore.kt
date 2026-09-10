@@ -1,13 +1,9 @@
 package com.azimulkabir.actua.data.security
 
 import android.content.Context
-import android.content.Intent
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import com.azimulkabir.actua.data.budget.ActiveBudgetStore
-import com.azimulkabir.actua.data.budget.BudgetFileManager
-import com.azimulkabir.actua.data.budget.DemoBudgetManager
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -15,8 +11,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 class CredentialStore(context: Context) {
-    private val appContext = context.applicationContext
-    private val preferences = appContext.getSharedPreferences("connection", Context.MODE_PRIVATE)
+    private val preferences = context.applicationContext.getSharedPreferences("connection", Context.MODE_PRIVATE)
 
     var serverUrl: String
         get() = preferences.getString("server_url", "").orEmpty()
@@ -51,36 +46,8 @@ class CredentialStore(context: Context) {
         cipher.doFinal(encrypted).toString(Charsets.UTF_8)
     }.getOrNull()
 
-    /**
-     * A deliberate manual disconnect is also a local server-data reset.
-     *
-     * Server-backed budget directories include their retained backups, so deleting
-     * those directories removes the downloaded data as well. The standalone demo
-     * is intentionally kept because it has no server identity, but it is deselected
-     * so Actua returns to the fresh connection experience.
-     */
     fun clear() {
-        val files = BudgetFileManager(appContext)
-        val encryptionKeys = BudgetEncryptionKeyStore(appContext)
-
-        files.listLocalBudgets()
-            .filter { it.id != DemoBudgetManager.BUDGET_ID }
-            .forEach { budget ->
-                budget.cloudFileId?.let(encryptionKeys::remove)
-                runCatching { files.deleteBudget(budget.id) }
-            }
-
-        ActiveBudgetStore(appContext).budgetId = null
-        appContext.getSharedPreferences("actua-sync-status", Context.MODE_PRIVATE).edit().clear().commit()
         preferences.edit().clear().commit()
-
-        // ConnectionScreen's repository can still hold an open handle to the old
-        // SQLite file. Recreate the task after the reset so no stale budget state
-        // remains visible and the app lands on the clean connection flow.
-        appContext.packageManager.getLaunchIntentForPackage(appContext.packageName)?.let { launch ->
-            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            appContext.startActivity(launch)
-        }
     }
 
     private fun secretKey(): SecretKey {
