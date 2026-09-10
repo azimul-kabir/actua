@@ -31,12 +31,27 @@ class MoneyFormatterTest {
 
     @Test fun supportsNoCurrency() {
         CurrencyDisplay.code = ""
+        assertEquals("", currencyInputPrefix())
         assertEquals("1,234.56", formatMoneyCents(123456, false))
     }
 
     @Test fun supportsSymbolOnlyCurrency() {
         CurrencyDisplay.code = "USD"
         CurrencyDisplay.symbolOnly = true
+        assertEquals("${'$'}", currencyInputPrefix())
         assertEquals("${'$'}1,234.56", formatMoneyCents(123456, false))
+    }
+
+    @Test fun amountEntryPrefixFollowsSelectedCurrency() {
+        CurrencyDisplay.code = "EUR"
+        CurrencyDisplay.symbolOnly = true
+        assertEquals("€", currencyInputPrefix())
+
+        CurrencyDisplay.code = "GBP"
+        assertEquals("£", currencyInputPrefix())
+
+        CurrencyDisplay.code = "BDT"
+        CurrencyDisplay.symbolOnly = false
+        assertEquals("৳", currencyInputPrefix())
     }
 }
