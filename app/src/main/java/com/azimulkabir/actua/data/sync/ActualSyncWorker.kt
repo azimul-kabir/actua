@@ -17,6 +17,7 @@ import com.azimulkabir.actua.data.budget.ActualBudgetDatabase
 import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
+import com.azimulkabir.actua.data.budget.DemoBudgetManager
 import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 import com.azimulkabir.actua.data.schedules.ActualScheduleWriter
@@ -42,6 +43,7 @@ object ActualSyncRunner {
         val fallbackUrl = credentials.fallbackServerUrl.takeIf { it.isNotBlank() && it != serverUrl }
         val files = BudgetFileManager(app)
         val budgetId = ActiveBudgetStore(app).budgetId ?: return SyncRunResult.NotConfigured
+        if (DemoBudgetManager.isDemoBudget(budgetId)) return SyncRunResult.NotConfigured
         val metadata = files.listLocalBudgets().firstOrNull { it.id == budgetId } ?: return SyncRunResult.NotConfigured
         val fileId = metadata.cloudFileId ?: return SyncRunResult.NotConfigured
         val groupId = metadata.groupId ?: return SyncRunResult.NotConfigured
