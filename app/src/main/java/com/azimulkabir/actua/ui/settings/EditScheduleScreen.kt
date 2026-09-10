@@ -8,9 +8,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,6 +74,7 @@ fun EditScheduleScreen(
         )
     }
     var datePickerTarget by remember { mutableStateOf<DateTarget?>(null) }
+    var showRepeatEditor by remember(editorKey) { mutableStateOf(false) }
     var automaticallyAdd by remember(editorKey) { mutableStateOf(schedule?.postsTransaction ?: false) }
     var upcomingLabel by remember(editorKey) {
         mutableStateOf(upcomingOptions.entries.firstOrNull {
@@ -104,6 +108,16 @@ fun EditScheduleScreen(
         )
     }
 
+    if (showRepeatEditor) {
+        RepeatEditorScreen(
+            recurrence = recurrence,
+            onChange = { recurrence = it },
+            onBack = { showRepeatEditor = false },
+            modifier = modifier,
+        )
+        return
+    }
+
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize()) {
         Row(
@@ -119,6 +133,10 @@ fun EditScheduleScreen(
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 modifier = Modifier.weight(1f),
             )
+            TextButton(
+                enabled = canSave,
+                onClick = { onSave(fields(), payeeName) },
+            ) { Text("Save") }
         }
 
         Column(
@@ -220,11 +238,26 @@ fun EditScheduleScreen(
                 Switch(repeats, { repeats = it })
             }
             if (repeats) {
-                RecurrenceFields(
-                    recurrence = recurrence,
-                    onChange = { recurrence = it },
-                    onPickStart = { datePickerTarget = DateTarget.START },
-                    onPickEnd = { datePickerTarget = DateTarget.END },
+                Row(
+                    Modifier.fillMaxWidth().clickable { showRepeatEditor = true }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Repeat", modifier = Modifier.weight(1f))
+                    Text(
+                        recurrenceSummary(recurrence),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Icon(
+                        Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                        contentDescription = "Edit repeat pattern",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    nextDateSummary(recurrence),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
                 DateField("Date", oneOffDate) { datePickerTarget = DateTarget.ONE_OFF }
@@ -252,15 +285,6 @@ fun EditScheduleScreen(
                 onValueChange = { upcomingLabel = it },
             )
 
-            Button(
-                enabled = canSave,
-                onClick = { onSave(fields(), payeeName) },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Icon(Icons.Outlined.Check, null)
-                Text("Save", Modifier.padding(start = 8.dp))
-            }
             if (onDelete != null) {
                 TextButton(
                     onClick = { showDelete = true },
@@ -287,8 +311,6 @@ fun EditScheduleScreen(
     datePickerTarget?.let { target ->
         val selected = when (target) {
             DateTarget.ONE_OFF -> oneOffDate
-            DateTarget.START -> recurrence.start
-            DateTarget.END -> recurrence.endDate ?: recurrence.start
         }
         val picker = rememberDatePickerState(
             initialSelectedDateMillis = selected.toLocalDate()
@@ -304,8 +326,6 @@ fun EditScheduleScreen(
                         )
                         when (target) {
                             DateTarget.ONE_OFF -> oneOffDate = day
-                            DateTarget.START -> recurrence = recurrence.copy(start = day)
-                            DateTarget.END -> recurrence = recurrence.copy(endDate = day)
                         }
                     }
                     datePickerTarget = null
@@ -335,80 +355,95 @@ fun EditScheduleScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RecurrenceFields(
+private fun RepeatEditorScreen(
     recurrence: RecurConfig,
     onChange: (RecurConfig) -> Unit,
-    onPickStart: () -> Unit,
-    onPickEnd: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Text("Frequency", style = MaterialTheme.typography.labelLarge)
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        RecurConfig.Frequency.entries.forEach { frequency ->
-            FilterChip(
-                selected = recurrence.frequency == frequency,
-                onClick = {
-                    onChange(
-                        recurrence.copy(
-                            frequency = frequency,
-                            patterns = if (frequency == RecurConfig.Frequency.MONTHLY) {
-                                recurrence.patterns
-                            } else emptyList(),
-                        ),
-                    )
-                },
-                label = { Text(frequency.name.lowercase().replaceFirstChar(Char::uppercase)) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-    OutlinedTextField(
-        value = recurrence.interval.toString(),
-        onValueChange = { value ->
-            value.toIntOrNull()?.takeIf { it in 1..365 }?.let {
-                onChange(recurrence.copy(interval = it))
+    var dateTarget by remember { mutableStateOf<RepeatDateTarget?>(null) }
+    BackHandler(onBack = onBack)
+    Column(modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
             }
-        },
-        label = { Text("Every") },
-        supportingText = {
-            Text(recurrence.frequency.name.lowercase().removeSuffix("ly") + "(s)")
-        },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    DateField("Starting", recurrence.start, onPickStart)
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("Skip weekends", modifier = Modifier.weight(1f))
-        Switch(
-            recurrence.skipWeekend,
-            { onChange(recurrence.copy(skipWeekend = it)) },
-        )
-    }
-    if (recurrence.skipWeekend) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = recurrence.weekendSolveMode == "before",
-                onClick = { onChange(recurrence.copy(weekendSolveMode = "before")) },
-                label = { Text("Friday before") },
-                modifier = Modifier.weight(1f),
-            )
-            FilterChip(
-                selected = recurrence.weekendSolveMode == "after",
-                onClick = { onChange(recurrence.copy(weekendSolveMode = "after")) },
-                label = { Text("Monday after") },
-                modifier = Modifier.weight(1f),
+            Text(
+                "Repeat",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
             )
         }
-    }
-    Text("Ends", style = MaterialTheme.typography.labelLarge)
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        listOf("never" to "Never", "after_n_occurrences" to "After", "on_date" to "On date")
-            .forEach { option ->
-                FilterChip(
-                    selected = recurrence.endMode == option.first,
-                    onClick = {
-                        onChange(
-                            recurrence.copy(
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            SectionTitle("Repeats")
+            ChoiceField(
+                label = "Frequency",
+                value = recurrence.frequency.name.lowercase().replaceFirstChar(Char::uppercase),
+                choices = RecurConfig.Frequency.entries.map {
+                    it.name.lowercase().replaceFirstChar(Char::uppercase) to it
+                },
+            ) { frequency ->
+                onChange(recurrence.copy(
+                    frequency = frequency,
+                    patterns = if (frequency == RecurConfig.Frequency.MONTHLY) {
+                        recurrence.patterns
+                    } else emptyList(),
+                ))
+            }
+            NumberStepper(
+                label = "Every",
+                value = recurrence.interval,
+                valueLabel = intervalLabel(recurrence),
+                range = 1..365,
+            ) { onChange(recurrence.copy(interval = it)) }
+            DateField("Starting", recurrence.start) { dateTarget = RepeatDateTarget.START }
+
+            if (recurrence.frequency == RecurConfig.Frequency.MONTHLY) {
+                SectionTitle("On These Days")
+                recurrence.patterns.forEachIndexed { index, pattern ->
+                    MonthlyPatternRow(
+                        pattern = pattern,
+                        onChange = { replacement ->
+                            onChange(recurrence.copy(patterns = recurrence.patterns.toMutableList().also {
+                                it[index] = replacement
+                            }))
+                        },
+                        onDelete = {
+                            onChange(recurrence.copy(patterns = recurrence.patterns.filterIndexed { i, _ -> i != index }))
+                        },
+                    )
+                }
+                TextButton(onClick = {
+                    onChange(recurrence.copy(
+                        patterns = recurrence.patterns + RecurConfig.Pattern("day", recurrence.start.day),
+                    ))
+                }) {
+                    Icon(Icons.Outlined.AddCircleOutline, null)
+                    Text("Add day", Modifier.padding(start = 8.dp))
+                }
+                Text(
+                    monthlyPatternSummary(recurrence),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            SectionTitle("Ends")
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                repeatEndOptions.forEachIndexed { index, option ->
+                    SegmentedButton(
+                        selected = recurrence.endMode == option.first,
+                        onClick = {
+                            onChange(recurrence.copy(
                                 endMode = option.first,
                                 endOccurrences = if (option.first == "after_n_occurrences") {
                                     recurrence.endOccurrences ?: 1
@@ -416,38 +451,169 @@ private fun RecurrenceFields(
                                 endDate = if (option.first == "on_date") {
                                     recurrence.endDate ?: recurrence.start
                                 } else null,
-                            ),
+                            ))
+                        },
+                        shape = SegmentedButtonDefaults.itemShape(index, repeatEndOptions.size),
+                    ) { Text(option.second) }
+                }
+            }
+            if (recurrence.endMode == "after_n_occurrences") {
+                NumberStepper(
+                    label = "Occurrences",
+                    value = recurrence.endOccurrences ?: 1,
+                    valueLabel = (recurrence.endOccurrences ?: 1).toString(),
+                    range = 1..999,
+                ) { onChange(recurrence.copy(endOccurrences = it)) }
+            }
+            if (recurrence.endMode == "on_date") {
+                DateField("End date", recurrence.endDate ?: recurrence.start) {
+                    dateTarget = RepeatDateTarget.END
+                }
+            }
+
+            SectionTitle("Weekend Handling")
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Skip weekends")
+                    Text(
+                        "Move weekend occurrences to a weekday.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(recurrence.skipWeekend, {
+                    onChange(recurrence.copy(skipWeekend = it))
+                })
+            }
+            if (recurrence.skipWeekend) {
+                ChoiceField(
+                    label = "Move to",
+                    value = if (recurrence.weekendSolveMode == "before") "Friday before" else "Monday after",
+                    choices = listOf("Friday before" to "before", "Monday after" to "after"),
+                ) { onChange(recurrence.copy(weekendSolveMode = it)) }
+            }
+
+            SectionTitle("Next Dates")
+            val preview = ScheduleRecurrence.upcomingDates(recurrence, 4, DayDate.today())
+            if (preview.isEmpty()) {
+                Text("This pattern has no upcoming dates.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else preview.forEach { day ->
+                Row(Modifier.fillMaxWidth()) {
+                    Text(day.iso, modifier = Modifier.weight(1f))
+                    Text(weekdayNames[day.weekday].orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+
+    dateTarget?.let { target ->
+        val selected = if (target == RepeatDateTarget.START) recurrence.start
+            else recurrence.endDate ?: recurrence.start
+        val picker = rememberDatePickerState(
+            initialSelectedDateMillis = selected.toLocalDate()
+                .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+        )
+        DatePickerDialog(
+            onDismissRequest = { dateTarget = null },
+            confirmButton = {
+                TextButton(onClick = {
+                    picker.selectedDateMillis?.let { millis ->
+                        val day = DayDate.from(
+                            Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate(),
                         )
-                    },
-                    label = { Text(option.second) },
-                    modifier = Modifier.weight(1f),
+                        onChange(if (target == RepeatDateTarget.START) recurrence.copy(start = day)
+                            else recurrence.copy(endDate = day))
+                    }
+                    dateTarget = null
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { dateTarget = null }) { Text("Cancel") } },
+        ) { DatePicker(picker) }
+    }
+}
+
+@Composable
+private fun MonthlyPatternRow(
+    pattern: RecurConfig.Pattern,
+    onChange: (RecurConfig.Pattern) -> Unit,
+    onDelete: () -> Unit,
+) {
+    val max = if (pattern.type == "day") 31 else 5
+    val boundedValue = if (pattern.value == -1) -1 else pattern.value.coerceIn(1, max)
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ChoiceField(
+            label = "Which",
+            value = ordinal(boundedValue),
+            choices = listOf("Last" to -1) + (1..max).map { ordinal(it) to it },
+            modifier = Modifier.weight(1f),
+        ) { onChange(pattern.copy(value = it)) }
+        ChoiceField(
+            label = "Day",
+            value = patternTypeLabel(pattern.type),
+            choices = patternTypes,
+            modifier = Modifier.weight(1.35f),
+        ) { type ->
+            onChange(pattern.copy(type = type, value = if (type != "day" && pattern.value > 5) 5 else pattern.value))
+        }
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Outlined.DeleteOutline, "Remove pattern")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> ChoiceField(
+    label: String,
+    value: String,
+    choices: List<Pair<String, T>>,
+    modifier: Modifier = Modifier,
+    onSelect: (T) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            choices.forEach { (text, choice) ->
+                DropdownMenuItem(
+                    text = { Text(text) },
+                    onClick = { expanded = false; onSelect(choice) },
                 )
             }
+        }
     }
-    if (recurrence.endMode == "after_n_occurrences") {
-        OutlinedTextField(
-            value = (recurrence.endOccurrences ?: 1).toString(),
-            onValueChange = { value ->
-                value.toIntOrNull()?.takeIf { it in 1..999 }?.let {
-                    onChange(recurrence.copy(endOccurrences = it))
-                }
-            },
-            label = { Text("Occurrences") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
+}
+
+@Composable
+private fun NumberStepper(
+    label: String,
+    value: Int,
+    valueLabel: String,
+    range: IntRange,
+    onChange: (Int) -> Unit,
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(label)
+            Text(valueLabel, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        FilledTonalIconButton(onClick = { onChange(value - 1) }, enabled = value > range.first) { Text("−") }
+        Text(value.toString(), modifier = Modifier.padding(horizontal = 14.dp))
+        FilledTonalIconButton(onClick = { onChange(value + 1) }, enabled = value < range.last) { Text("+") }
     }
-    if (recurrence.endMode == "on_date") {
-        DateField("End date", recurrence.endDate ?: recurrence.start, onPickEnd)
-    }
-    val preview = ScheduleRecurrence.upcomingDates(recurrence, 4, DayDate.today())
-    Text("Next dates", style = MaterialTheme.typography.labelLarge)
-    Text(
-        if (preview.isEmpty()) "This pattern has no upcoming dates."
-        else preview.joinToString("  •  ") { it.iso },
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        style = MaterialTheme.typography.bodySmall,
-    )
 }
 
 @Composable
@@ -491,7 +657,73 @@ private fun SectionTitle(value: String) {
     )
 }
 
-private enum class DateTarget { ONE_OFF, START, END }
+private enum class DateTarget { ONE_OFF }
+private enum class RepeatDateTarget { START, END }
+
+private val repeatEndOptions = listOf(
+    "never" to "Never",
+    "after_n_occurrences" to "After",
+    "on_date" to "On date",
+)
+
+private val patternTypes = listOf(
+    "Day" to "day",
+    "Sunday" to "SU",
+    "Monday" to "MO",
+    "Tuesday" to "TU",
+    "Wednesday" to "WE",
+    "Thursday" to "TH",
+    "Friday" to "FR",
+    "Saturday" to "SA",
+)
+
+private val weekdayNames = mapOf(
+    1 to "Sunday", 2 to "Monday", 3 to "Tuesday", 4 to "Wednesday",
+    5 to "Thursday", 6 to "Friday", 7 to "Saturday",
+)
+
+private fun patternTypeLabel(type: String) = patternTypes.firstOrNull { it.second == type }?.first ?: "Day"
+
+private fun ordinal(value: Int): String {
+    if (value == -1) return "Last"
+    val suffix = if (value % 100 in 11..13) "th" else when (value % 10) {
+        1 -> "st"
+        2 -> "nd"
+        3 -> "rd"
+        else -> "th"
+    }
+    return "$value$suffix"
+}
+
+private fun intervalLabel(config: RecurConfig): String {
+    val unit = when (config.frequency) {
+        RecurConfig.Frequency.DAILY -> "day"
+        RecurConfig.Frequency.WEEKLY -> "week"
+        RecurConfig.Frequency.MONTHLY -> "month"
+        RecurConfig.Frequency.YEARLY -> "year"
+    }
+    return "${config.interval} $unit${if (config.interval == 1) "" else "s"}"
+}
+
+private fun recurrenceSummary(config: RecurConfig): String = when {
+    config.interval == 1 -> config.frequency.name.lowercase().replaceFirstChar(Char::uppercase)
+    else -> "Every ${intervalLabel(config)}"
+}
+
+private fun monthlyPatternSummary(config: RecurConfig): String {
+    if (config.patterns.isEmpty()) {
+        return "Repeats on day ${config.start.day} of the month. Add specific days to repeat more than once."
+    }
+    return "Repeats on " + config.patterns.joinToString(", ") { pattern ->
+        if (pattern.type == "day") "the ${ordinal(pattern.value)} day"
+        else "the ${ordinal(pattern.value)} ${patternTypeLabel(pattern.type)}"
+    } + "."
+}
+
+private fun nextDateSummary(config: RecurConfig): String {
+    val next = ScheduleRecurrence.upcomingDates(config, 1, DayDate.today()).firstOrNull()
+    return if (next == null) "No upcoming dates" else "Next: ${next.iso}"
+}
 
 private val upcomingOptions = linkedMapOf(
     "Budget default" to null,

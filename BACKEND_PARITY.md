@@ -55,7 +55,8 @@ Android backlog items and will never be ported.
   recurrence skipping, restart/completion, and deletion through the existing
   CRDT write path
 - Daily/weekly/monthly/yearly schedule recurrence, monthly day/nth-weekday
-  patterns, bounded endings, weekend solving, skipping, and previews
+  patterns, bounded endings, weekend solving, skipping, and previews, with a
+  dedicated Android repeat editor for all supported options
 - Schedule-owned condition extraction/build/merge with custom-rule preservation,
   amount-action synchronization, JSON paths, and value conversion
 - Postable/forecast schedule database projection, effective next-date selection,
