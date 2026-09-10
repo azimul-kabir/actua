@@ -45,7 +45,7 @@ internal object BlankBudgetFactory {
         "CREATE TABLE preferences (id TEXT PRIMARY KEY, value TEXT)",
         "CREATE TABLE reflect_budgets (id TEXT PRIMARY KEY, month INTEGER, category TEXT, amount INTEGER DEFAULT 0, carryover INTEGER DEFAULT 0, goal INTEGER DEFAULT NULL, long_goal INTEGER DEFAULT NULL)",
         "CREATE TABLE rules (id TEXT PRIMARY KEY, stage TEXT, conditions TEXT, actions TEXT, tombstone INTEGER DEFAULT 0, conditions_op TEXT DEFAULT 'and')",
-        "CREATE TABLE schedules (id TEXT PRIMARY KEY, rule TEXT, active INTEGER DEFAULT 0, completed INTEGER DEFAULT 0, posts_transaction INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0, name TEXT DEFAULT NULL, custom_upcoming_length TEXT DEFAULT NULL)",
+        "CREATE TABLE schedules (id TEXT PRIMARY KEY, rule TEXT, active INTEGER DEFAULT 0, completed INTEGER DEFAULT 0, posts_transaction INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0, name TEXT DEFAULT NULL, custom_upcoming_length TEXT DEFAULT NULL, sort_order REAL)",
         "CREATE TABLE schedules_json_paths (schedule_id TEXT PRIMARY KEY, payee TEXT, account TEXT, amount TEXT, date TEXT)",
         "CREATE TABLE schedules_next_date (id TEXT PRIMARY KEY, schedule_id TEXT, local_next_date INTEGER, local_next_date_ts INTEGER, base_next_date INTEGER, base_next_date_ts INTEGER, tombstone INTEGER DEFAULT 0)",
         "CREATE TABLE tags (id TEXT PRIMARY KEY, tag TEXT UNIQUE, color TEXT, description TEXT, tombstone INTEGER DEFAULT 0, hidden BOOLEAN DEFAULT 0)",

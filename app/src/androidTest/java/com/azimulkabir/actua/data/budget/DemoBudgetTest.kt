@@ -2,17 +2,21 @@ package com.azimulkabir.actua.data.budget
 
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.data.ActuaRepository
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.YearMonth
 
 class DemoBudgetTest {
     @Test fun demoBudgetIsLocalFeatureRichAndResettable() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val files = BudgetFileManager(context)
+        val activeBudget = ActiveBudgetStore(context)
+        val previousBudgetId = activeBudget.budgetId
         runCatching { if (files.budgetDirectory(DemoBudgetManager.BUDGET_ID).exists()) files.deleteBudget(DemoBudgetManager.BUDGET_ID) }
 
         try {
@@ -35,7 +39,38 @@ class DemoBudgetTest {
                 assertTrue(count(db, "SELECT COUNT(*) FROM rules WHERE tombstone=0") >= 7)
                 assertEquals(1, count(db, "SELECT COUNT(*) FROM preferences WHERE id='actuali:credit_card:demo-account-credit'"))
                 assertTrue(count(db, "SELECT COUNT(*) FROM dashboard WHERE tombstone=0") >= 3)
+                assertEquals(
+                    count(db, "SELECT COUNT(*) FROM payees WHERE tombstone=0"),
+                    count(db, "SELECT COUNT(*) FROM payee_mapping"),
+                )
+            }
 
+            // Mirror AppNavigation's eager reads. This specifically guards against
+            // a demo DB that validates structurally but crashes on first render.
+            activeBudget.budgetId = DemoBudgetManager.BUDGET_ID
+            ActuaRepository(context).let { repository ->
+                try {
+                    val month = YearMonth.now().toString()
+                    assertTrue(repository.isUsingActualBudget)
+                    repository.budgetGroups(month)
+                    repository.budgetOverview(month)
+                    repository.accounts()
+                    repository.transactions()
+                    repository.categoryNames()
+                    repository.payeeNames()
+                    repository.reports()
+                    repository.creditCards()
+                    repository.rules()
+                    repository.rulesSupported()
+                    repository.scheduleOwnedRuleIds()
+                    repository.ruleEditorData()
+                    assertEquals(4, repository.schedules().size)
+                } finally {
+                    repository.close()
+                }
+            }
+
+            SQLiteDatabase.openDatabase(files.databaseFile(metadata.id).path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
                 db.execSQL("DELETE FROM transactions")
                 assertEquals(0, count(db, "SELECT COUNT(*) FROM transactions"))
             }
@@ -48,6 +83,7 @@ class DemoBudgetTest {
                 assertFalse(cloudIdentity.has("groupId"))
             }
         } finally {
+            activeBudget.budgetId = previousBudgetId
             runCatching { files.deleteBudget(DemoBudgetManager.BUDGET_ID) }
         }
     }
