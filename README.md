@@ -45,7 +45,8 @@ with contributions welcomed from the community.
 - Actual-compatible rule listing, editing, CRDT mutations, and transaction
   processing for supported standard conditions and actions
 - Scheduled transaction creation and review with lifecycle status, recurring
-  schedule actions, and a dedicated repeat-pattern editor
+  schedule actions, a dedicated repeat-pattern editor, and linked transaction
+  history with unlinking
 - Persistent hide-reconciled filtering across transaction lists and searches
 - Balance-focused category details with shared Budget, Move Money and Auto-Assign keypads, notes, rollover overspending, recent activity and category-preselected transaction entry
 - Credit-card limits, billing-cycle metadata, fixed or offset due dates, cycle spending,

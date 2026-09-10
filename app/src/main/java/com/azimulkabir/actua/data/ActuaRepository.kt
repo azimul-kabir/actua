@@ -37,6 +37,7 @@ import com.azimulkabir.actua.data.rules.RuleEditorData
 import com.azimulkabir.actua.data.schedules.ActualScheduleWriter
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
+import com.azimulkabir.actua.data.schedules.ScheduleLinkedTransaction
 import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
 import com.azimulkabir.actua.data.schedules.ScheduleStatusCalculator
 import com.azimulkabir.actua.data.schedules.ScheduleWriteBuilder
@@ -102,6 +103,27 @@ class ActuaRepository(context: Context) {
                 schedule.payeeId?.let(payees::get),
             )
         }.sortedForDisplay()
+    }
+
+    fun scheduleTransactions(scheduleId: String): List<ScheduleLinkedTransaction> {
+        val database = actualDatabase ?: return emptyList()
+        val accounts = database.fetchAccounts().associate { it.id to it.name }
+        return database.fetchScheduleTransactions(scheduleId).map { transaction ->
+            ScheduleLinkedTransaction(
+                id = transaction.id,
+                date = DayDate.fromYyyymmdd(transaction.date),
+                payeeName = transaction.payeeName ?: if (transaction.isParent) "Split" else "No payee",
+                accountName = accounts[transaction.accountId] ?: "Unknown account",
+                amountCents = transaction.amountCents,
+            )
+        }
+    }
+
+    fun unlinkScheduleTransaction(scheduleId: String, transactionId: String): Boolean {
+        val transaction = actualDatabase?.fetchTransaction(transactionId) ?: return false
+        require(transaction.scheduleId == scheduleId) { "This transaction is not linked to the schedule." }
+        actualWriter!!.setScheduleLink(transaction, null)
+        return true
     }
 
     fun setScheduleCompleted(scheduleId: String, completed: Boolean): Boolean {

@@ -23,6 +23,7 @@ import com.azimulkabir.actua.data.schedules.*
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
 import com.azimulkabir.actua.ui.components.centsToInput
+import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.transactions.PickerTextField
 import java.time.Instant
 import java.time.LocalDate
@@ -37,9 +38,11 @@ fun EditScheduleScreen(
     payeeOptions: List<String>,
     hideDecimalPlaces: Boolean,
     conventionalAmountEntry: Boolean,
+    linkedTransactions: List<ScheduleLinkedTransaction> = emptyList(),
     onBack: () -> Unit,
     onSave: (ScheduleFormFields, String) -> Unit,
     onDelete: (() -> Unit)? = null,
+    onUnlinkTransaction: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val schedule = item?.schedule
@@ -285,6 +288,34 @@ fun EditScheduleScreen(
                 onValueChange = { upcomingLabel = it },
             )
 
+            if (schedule != null) {
+                SectionTitle("Linked Transactions")
+                if (linkedTransactions.isEmpty()) {
+                    Text(
+                        "No transactions linked yet.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                    ) {
+                        Column {
+                            linkedTransactions.forEachIndexed { index, transaction ->
+                                LinkedTransactionRow(
+                                    transaction = transaction,
+                                    hideDecimalPlaces = hideDecimalPlaces,
+                                    onUnlink = onUnlinkTransaction?.let { unlink ->
+                                        { unlink(transaction.id) }
+                                    },
+                                )
+                                if (index != linkedTransactions.lastIndex) HorizontalDivider()
+                            }
+                        }
+                    }
+                }
+            }
+
             if (onDelete != null) {
                 TextButton(
                     onClick = { showDelete = true },
@@ -352,6 +383,36 @@ fun EditScheduleScreen(
                 TextButton(onClick = { showDelete = false }) { Text("Cancel") }
             },
         )
+    }
+}
+
+@Composable
+private fun LinkedTransactionRow(
+    transaction: ScheduleLinkedTransaction,
+    hideDecimalPlaces: Boolean,
+    onUnlink: (() -> Unit)?,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(transaction.payeeName, maxLines = 1)
+            Text(
+                listOfNotNull(transaction.date?.iso, transaction.accountName).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
+        Text(
+            formatMoneyCents(transaction.amountCents, hideDecimalPlaces),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 8.dp),
+        )
+        if (onUnlink != null) {
+            TextButton(onClick = onUnlink) { Text("Unlink") }
+        }
     }
 }
 

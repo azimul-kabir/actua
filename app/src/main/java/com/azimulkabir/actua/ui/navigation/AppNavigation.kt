@@ -670,6 +670,9 @@ fun AppNavigation(
                     payeeOptions = payeeNames,
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,
+                    linkedTransactions = remember(dataVersion, item.schedule.id) {
+                        repository.scheduleTransactions(item.schedule.id)
+                    },
                     onBack = { detail = DetailDestination.Schedules },
                     onSave = { fields, payeeName ->
                         if (mutate("Saving schedule") {
@@ -681,6 +684,11 @@ fun AppNavigation(
                     onDelete = {
                         if (mutate("Deleting schedule") { repository.deleteSchedule(item.schedule.id) }) {
                             detail = DetailDestination.Schedules
+                        }
+                    },
+                    onUnlinkTransaction = { transactionId ->
+                        mutate("Unlinking transaction") {
+                            repository.unlinkScheduleTransaction(item.schedule.id, transactionId)
                         }
                     },
                     modifier = contentModifier,

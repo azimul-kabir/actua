@@ -52,8 +52,8 @@ Android backlog items and will never be ported.
   transaction occurrence matching
 - Searchable Scheduled Transactions UI with new-schedule creation,
   paid/due/upcoming/missed/completed status, completed-history visibility,
-  recurrence skipping, restart/completion, and deletion through the existing
-  CRDT write path
+  recurrence skipping, restart/completion, deletion, and linked transaction
+  history/unlinking through the existing CRDT write path
 - Daily/weekly/monthly/yearly schedule recurrence, monthly day/nth-weekday
   patterns, bounded endings, weekend solving, skipping, and previews, with a
   dedicated Android repeat editor for all supported options
