@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   build-test-lint:
+    name: Build, tests and lint
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -35,8 +36,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
-      - name: Build, JVM regression tests and lint
-        run: ./gradlew --no-daemon assembleDebug testInstrumentedUnitTest lintDebug
+      - name: Build debug APK, run JVM regression tests and lint
+        run: ./gradlew --no-daemon --stacktrace assembleDebug testInstrumentedUnitTest lintDebug
       - name: Upload test and lint reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
