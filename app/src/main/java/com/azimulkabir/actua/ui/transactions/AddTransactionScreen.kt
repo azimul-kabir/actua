@@ -67,6 +67,7 @@ import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.SplitLine
 import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.ui.components.centsToInput
+import com.azimulkabir.actua.ui.components.currencyInputPrefix
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
 import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.parseStoredDate
@@ -149,6 +150,7 @@ fun AddTransactionScreen(
         label = "Amount cursor alpha",
     )
     val blinkingCursor = if (cursorAlpha > 0.5f) " │" else ""
+    val currencyPrefix = currencyInputPrefix()
     val saveTransaction = {
         if (canSave) {
             onSave(
@@ -217,7 +219,7 @@ fun AddTransactionScreen(
             }
             Box(Modifier.fillMaxWidth()) {
                 OutlinedTextField(
-                    value = "৳${when {
+                    value = "$currencyPrefix${when {
                         showCalculator && amountExpression != null -> amountExpression.orEmpty()
                         showCalculator && amountCents == 0L -> ""
                         else -> centsToInput(amountCents)
@@ -346,7 +348,7 @@ fun AddTransactionScreen(
                                 )
                                 Box(Modifier.fillMaxWidth()) {
                                     OutlinedTextField(
-                                        value = "৳${when {
+                                        value = "$currencyPrefix${when {
                                             splitCalculatorIndex == index && splitAmountExpression != null ->
                                                 splitAmountExpression.orEmpty()
                                             splitCalculatorIndex == index && line.amountCents == 0L -> ""
@@ -387,7 +389,7 @@ fun AddTransactionScreen(
                                         splitLines = splitLines.toMutableList().also {
                                             it[index] = line.copy(amountCents = amountCents - splitTotal)
                                         }
-                                    }) { Text("Use remaining ৳${centsToInput(amountCents - splitTotal)}") }
+                                    }) { Text("Use remaining $currencyPrefix${centsToInput(amountCents - splitTotal)}") }
                                 }
                                 PickerTextField(
                                     label = "Payee (optional)",
@@ -427,7 +429,7 @@ fun AddTransactionScreen(
                         ) { Text("Add another split") }
                         Text(
                             if (splitTotal == amountCents) "Split total matches the transaction amount"
-                            else "Remaining: ৳${centsToInput(amountCents - splitTotal)}",
+                            else "Remaining: $currencyPrefix${centsToInput(amountCents - splitTotal)}",
                             color = if (splitTotal == amountCents) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
