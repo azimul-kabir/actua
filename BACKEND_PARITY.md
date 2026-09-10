@@ -27,6 +27,11 @@ Android backlog items and will never be ported.
 - Budget archive validation, import, download, active selection, and export
 - Password login and server file lifecycle endpoints, including Actual-compatible
   blank-budget creation/upload and exact-name confirmed server deletion with local cleanup
+- Local-only demo-budget lifecycle with fixed `demo` identity, current-schema recreation,
+  no cloud registration, explicit sync rejection, and Connection & Data launch/reset flow
+- Demo seed coverage for checking, savings, credit-card and off-budget investment accounts;
+  six months of transactions; paired card-payment transfers; cleared/uncleared/reconciled
+  states; category targets; rules; scheduled transactions; notes; and dashboard report data
 - Editable primary/fallback server addresses with explicitly scoped private-LAN HTTP support and automatic failover without replacing local budgets
 - HLC, CRDT values/messages, protobuf sync protocol, Merkle tree, encryption
 - Sync convergence loop and Android Keystore-backed credentials/keys

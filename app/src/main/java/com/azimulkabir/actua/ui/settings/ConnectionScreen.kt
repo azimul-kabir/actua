@@ -53,6 +53,7 @@ import com.azimulkabir.actua.data.budget.BudgetDownloadService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BackupItem
 import com.azimulkabir.actua.data.budget.BackupService
+import com.azimulkabir.actua.data.budget.DemoBudgetManager
 import com.azimulkabir.actua.data.security.BudgetEncryptionKeyStore
 import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
@@ -102,6 +103,7 @@ fun ConnectionScreen(
     var pendingDelete by remember { mutableStateOf<RemoteBudgetFile?>(null) }
     var deleteConfirmation by remember { mutableStateOf("") }
     var confirmQuickBackup by remember { mutableStateOf(false) }
+    val demoActive = DemoBudgetManager.isDemoBudget(activeBudget.budgetId)
 
     fun refreshBackups() {
         val budgetId = activeBudget.budgetId
@@ -151,6 +153,34 @@ fun ConnectionScreen(
                 message = "Connected"
                 loadBudgets()
             }.onFailure { message = it.message ?: "Could not connect to the server." }
+            loading = false
+        }
+    }
+
+    fun openDemoBudget() {
+        val previousBudgetId = activeBudget.budgetId
+        loading = true
+        message = null
+        onBeforeBudgetReplacement()
+        scope.launch {
+            runCatching { withContext(Dispatchers.IO) { DemoBudgetManager.recreate(files) } }
+                .onSuccess { metadata ->
+                    activeBudget.budgetId = metadata.id
+                    message = if (previousBudgetId == metadata.id) {
+                        "Demo budget reset to its original sample data."
+                    } else {
+                        "Demo budget opened. Nothing in it is uploaded or synced."
+                    }
+                    onBudgetInstalled()
+                    refreshBackups()
+                }
+                .onFailure { error ->
+                    if (previousBudgetId == DemoBudgetManager.BUDGET_ID && !files.databaseFile(DemoBudgetManager.BUDGET_ID).isFile) {
+                        activeBudget.budgetId = files.listLocalBudgets().firstOrNull { it.id != DemoBudgetManager.BUDGET_ID }?.id
+                    }
+                    message = error.message ?: "Could not create the demo budget."
+                    onBudgetInstalled()
+                }
             loading = false
         }
     }
@@ -303,6 +333,30 @@ fun ConnectionScreen(
         }
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("Try Actua", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                if (demoActive) {
+                    "You are using the local demo budget. Reset it any time to restore the original sample accounts, transactions, targets, rules and schedules."
+                } else {
+                    "Explore Actua with realistic sample accounts, transactions, credit-card activity, targets, rules, schedules and reports. No server or account is required."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(
+                onClick = ::openDemoBudget,
+                enabled = !loading && downloadingId == null && !syncing,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (loading) CircularProgressIndicator(Modifier.padding(end = 8.dp))
+                Text(if (demoActive) "Reset demo budget" else "Try demo budget")
+            }
+            Text(
+                "The demo stays on this device and has no cloud file ID, encryption key or sync registration. It cannot change a server budget.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Connection", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f))
@@ -384,13 +438,20 @@ fun ConnectionScreen(
                 }, modifier = Modifier.fillMaxWidth()) { Text("Disconnect") }
             }
             message?.let {
-                Text(it, color = if (connected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                Text(it, color = if (connected || demoActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
             }
             Text("Your token is encrypted with Android Keystore and remains on this device.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             if (connected) {
                 Text("Sync", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                if (demoActive) {
+                    Text(
+                        "Demo budget is local only. Select a downloaded server budget to sync.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Row(Modifier.fillMaxWidth()) {
                     Text("Status", Modifier.weight(1f))
                     Text(if (syncStatus.running || syncing) "Syncing" else if (syncStatus.error != null) "Error" else "Idle",
@@ -407,7 +468,7 @@ fun ConnectionScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 syncStatus.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                OutlinedButton(enabled = !syncing && !loading && downloadingId == null,
+                OutlinedButton(enabled = !demoActive && !syncing && !loading && downloadingId == null,
                     modifier = Modifier.fillMaxWidth(), onClick = {
                         syncing = true; message = null
                         scope.launch {
@@ -433,7 +494,7 @@ fun ConnectionScreen(
                         }
                     }) {
                     if (syncing) CircularProgressIndicator(Modifier.padding(end = 8.dp))
-                    Text(if (syncing) "Syncing…" else "Sync now")
+                    Text(if (demoActive) "Demo is local only" else if (syncing) "Syncing…" else "Sync now")
                 }
                 Text("Budgets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 OutlinedButton(

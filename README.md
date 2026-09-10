@@ -36,6 +36,7 @@ with contributions welcomed from the community.
 
 - Password connection to an Actual server plus budget creation, download, selection, and confirmed server deletion
 - Offline local budget storage and encrypted CRDT synchronization
+- Local-only demo budget that can be opened without a server and reset at any time, with realistic accounts, six months of transactions, credit-card activity, transfer payments, reconciliation states, category targets, rules, scheduled transactions, notes, and report dashboard data
 - Automatic, foreground, post-mutation, and manual sync
 - Budget table and availability-focused Plan views, category groups, Source of Fund/Income, monthly amounts, progress bars, and hide/show management
 - Account lists, current/cleared/uncleared/reconciled balances, notes, monthly summaries, and full transaction history
@@ -73,6 +74,14 @@ with contributions welcomed from the community.
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for the implementation boundary and detailed port status.
 
+## Demo budget
+
+Actua includes a built-in **Actua Demo Budget** for evaluating the app without connecting to an Actual server. Open **More → Connection & Data** and tap **Try demo budget**. When the demo is active, the same control becomes **Reset demo budget**, which recreates the sample data from the current Actua schema.
+
+The demo is a real local Actual-compatible SQLite budget, not a mocked UI. It includes checking, savings, credit-card and off-budget investment accounts; realistic transaction history; paired credit-card payment transfers; cleared, uncleared and reconciled states; several category target types; payee categorization rules; recurring scheduled transactions; notes; and dashboard report data. Normal Actua screens and write paths operate on it, so it can be edited and explored like any other downloaded budget.
+
+The demo uses the reserved local budget ID `demo`. It has no `cloudFileId`, `groupId`, or encryption registration, and Actua explicitly prevents the demo budget from entering the server sync path. Creating or resetting it does not upload, modify, or delete any server budget.
+
 ## Scope
 
 The goal is behavioral compatibility with Actual Budget and with portable
@@ -86,7 +95,7 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 ## Requirements
 
 - Android 9 (API 28) or later
-- A reachable self-hosted Actual Budget server
+- A reachable self-hosted Actual Budget server for synchronized real budgets; the built-in demo budget works without a server
 - Android Studio with JDK 11 or later for local builds
 
 ## Testing releases
@@ -112,7 +121,7 @@ for normal in-place upgrades afterward.
 ./gradlew installDebug
 ```
 
-The app can then connect from **More → Connection & Data**. Use the complete server URL and password, then create a budget or choose an existing remote budget. The Backups manager can export individual archives and mirror retained backups to a persistent folder selected through Android's system picker.
+The app can then connect from **More → Connection & Data**. Use the complete server URL and password, then create a budget or choose an existing remote budget. To explore Actua without a server, use **Try demo budget** on the same screen. The Backups manager can export individual archives and mirror retained backups to a persistent folder selected through Android's system picker.
 
 ## Architecture
 
@@ -126,7 +135,7 @@ Local SQLite database ← CRDT mutation writers
 Actual sync client ← encrypted protobuf sync → Actual server
 ```
 
-Writes are applied locally and represented as Actual-compatible CRDT messages. WorkManager provides Android-native periodic synchronization and backup scheduling.
+Writes are applied locally and represented as Actual-compatible CRDT messages. WorkManager provides Android-native periodic synchronization and backup scheduling. The built-in demo follows the same local database model but is intentionally detached from cloud identity and blocked from synchronization.
 
 ## Upstream relationship and credits
 
