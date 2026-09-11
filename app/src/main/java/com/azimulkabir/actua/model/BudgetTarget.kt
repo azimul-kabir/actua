@@ -109,3 +109,49 @@ data class BudgetTarget(
         private fun units(cents: Long): Any = if (cents % 100L == 0L) cents / 100L else cents / 100.0
     }
 }
+
+data class BudgetTemplateChange(
+    val groupName: String,
+    val categoryId: String,
+    val categoryName: String,
+    val currentCents: Long,
+    val proposedCents: Long,
+)
+
+data class BudgetTemplatePreview(
+    val month: String,
+    val changes: List<BudgetTemplateChange>,
+    val unchangedCount: Int,
+    val unsupportedCategories: List<String>,
+) {
+    val netBudgetChangeCents: Long = changes.sumOf { it.proposedCents - it.currentCents }
+}
+
+/** Preview-first planner for the UI-managed target types Actua can evaluate exactly. */
+object BudgetTemplatePlanner {
+    fun preview(groups: List<BudgetGroup>, month: String): BudgetTemplatePreview {
+        val changes = mutableListOf<BudgetTemplateChange>()
+        val unsupported = mutableListOf<String>()
+        var unchanged = 0
+        for (group in groups.filterNot(BudgetGroup::isIncome)) {
+            for (category in group.categories.filterNot(BudgetCategory::isIncome)) {
+                if (category.hasUnsupportedTarget) {
+                    unsupported += "${group.name} · ${category.name}"
+                    continue
+                }
+                val target = category.target ?: continue
+                val proposed = target.suggestedBudget(category, month)
+                if (proposed == category.assignedCents) {
+                    unchanged++
+                } else {
+                    val id = category.id
+                    if (id == null) unsupported += "${group.name} · ${category.name}"
+                    else changes += BudgetTemplateChange(
+                        group.name, id, category.name, category.assignedCents, proposed,
+                    )
+                }
+            }
+        }
+        return BudgetTemplatePreview(month, changes, unchanged, unsupported)
+    }
+}

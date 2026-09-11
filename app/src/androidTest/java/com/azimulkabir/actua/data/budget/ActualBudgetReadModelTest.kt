@@ -418,6 +418,35 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun templateBatchWritesOnceAndRejectsAStalePreview() = withDatabase { database ->
+        var scheduledPushes = 0
+        val writer = ActualBudgetWriter(database, "bcbcbcbcbcbcbcbc", onWrite = { scheduledPushes++ })
+        writer.setAmounts(
+            "2026-09",
+            mapOf("budgetcat" to 2_500L, "grocery" to 400L),
+            mapOf("budgetcat" to 2_000L, "grocery" to 0L),
+        )
+
+        val applied = database.fetchBudgetMonth("2026-09").categories.associateBy { it.categoryId }
+        assertEquals(2_500L, applied.getValue("budgetcat").budgetedCents)
+        assertEquals(400L, applied.getValue("grocery").budgetedCents)
+        assertEquals(1, scheduledPushes)
+
+        val failure = runCatching {
+            writer.setAmounts(
+                "2026-09",
+                mapOf("budgetcat" to 3_000L, "grocery" to 500L),
+                mapOf("budgetcat" to 2_000L, "grocery" to 400L),
+            )
+        }.exceptionOrNull()
+        assertTrue(failure is IllegalArgumentException)
+        val unchanged = database.fetchBudgetMonth("2026-09").categories.associateBy { it.categoryId }
+        assertEquals(2_500L, unchanged.getValue("budgetcat").budgetedCents)
+        assertEquals(400L, unchanged.getValue("grocery").budgetedCents)
+        assertEquals(1, scheduledPushes)
+    }
+
+    @Test
     fun incomingTransactionRunsStoredRulesAndCreatesNamedPayee() = withDatabase { database ->
         val writer = ActualTransactionWriter(database, nodeId = "dddddddddddddddd", idFactory = { "rule-payee" })
         val incoming = transaction("ruled", "checking", -450, 20260904, null, null)

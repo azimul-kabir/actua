@@ -925,6 +925,9 @@ fun AppNavigation(
                             repository.setCategoryTarget(categoryId, target)
                         }
                     },
+                    onApplyBudgetTemplate = { preview ->
+                        mutate("Applying budget template") { repository.applyBudgetTemplate(preview) }
+                    },
                     onSearch = { detail = DetailDestination.Search },
                     transactions = filteredTransactions,
                     onDeleteCategory = { group, category ->

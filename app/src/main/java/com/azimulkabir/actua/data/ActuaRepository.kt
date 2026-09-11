@@ -18,6 +18,7 @@ import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetHistory
 import com.azimulkabir.actua.model.BudgetTarget
+import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.model.SplitLine
@@ -747,6 +748,16 @@ class ActuaRepository(context: Context) {
     fun setCategoryTarget(categoryId: String, target: BudgetTarget?): Boolean {
         if (categoryId.isBlank()) return false
         actualEntities?.setCategoryTarget(categoryId, target?.toGoalDef()) ?: return false
+        return true
+    }
+
+    fun applyBudgetTemplate(preview: BudgetTemplatePreview): Boolean {
+        if (preview.changes.isEmpty()) return true
+        actualBudgets?.setAmounts(
+            preview.month,
+            preview.changes.associate { it.categoryId to it.proposedCents },
+            preview.changes.associate { it.categoryId to it.currentCents },
+        ) ?: return false
         return true
     }
 

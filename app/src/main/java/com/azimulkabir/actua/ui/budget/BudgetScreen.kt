@@ -88,6 +88,8 @@ import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetTarget
+import com.azimulkabir.actua.model.BudgetTemplatePlanner
+import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
@@ -159,6 +161,7 @@ fun BudgetScreen(
     onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
     onSetCategoryTarget: (String, BudgetTarget?) -> Unit = { _, _ -> },
+    onApplyBudgetTemplate: (BudgetTemplatePreview) -> Unit = {},
     onSearch: () -> Unit = {},
     transactions: List<Transaction> = emptyList(),
     onDeleteCategory: (String, String) -> Boolean = { _, _ -> false },
@@ -194,6 +197,7 @@ fun BudgetScreen(
     var autoAssignBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var settingTarget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var assignFromBudgetOpen by remember { mutableStateOf(false) }
+    var templatePreviewOpen by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(returnToRootRequest) {
@@ -387,7 +391,16 @@ fun BudgetScreen(
     if (showAddSheet) {
         AddBudgetSheet(onDismiss = { showAddSheet = false },
             onNewCategory = { showAddSheet = false; creatingCategory = true },
-            onNewGroup = { showAddSheet = false; creatingGroup = true })
+            onNewGroup = { showAddSheet = false; creatingGroup = true },
+            onApplyTemplate = { showAddSheet = false; templatePreviewOpen = true })
+    }
+    if (templatePreviewOpen) {
+        BudgetTemplatePreviewSheet(
+            preview = remember(groups, month) { BudgetTemplatePlanner.preview(groups, month) },
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { templatePreviewOpen = false },
+            onApply = { preview -> onApplyBudgetTemplate(preview); templatePreviewOpen = false },
+        )
     }
     editingBudget?.let { (group, category) ->
         EditBudgetAmountSheet(
@@ -2121,14 +2134,77 @@ private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRenam
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddBudgetSheet(onDismiss: () -> Unit, onNewCategory: () -> Unit, onNewGroup: () -> Unit) {
+private fun AddBudgetSheet(onDismiss: () -> Unit, onNewCategory: () -> Unit, onNewGroup: () -> Unit,
+    onApplyTemplate: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 28.dp)) {
             Text("Add to budget", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
             SheetAction("New category", onNewCategory)
             SheetAction("New category group", onNewGroup)
-            SheetAction("Apply budget template", onDismiss)
+            SheetAction("Apply budget template", onApplyTemplate)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BudgetTemplatePreviewSheet(
+    preview: BudgetTemplatePreview,
+    hideDecimalPlaces: Boolean,
+    onDismiss: () -> Unit,
+    onApply: (BudgetTemplatePreview) -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Review budget template", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                "Nothing changes until you apply this preview. Supported targets will set the budgeted amount for ${formatMonth(preview.month)}.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (preview.changes.isEmpty()) {
+                Text("All supported targets are already up to date.")
+            } else {
+                preview.changes.forEach { change ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(change.categoryName, fontWeight = FontWeight.Medium)
+                            Text(change.groupName, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(
+                            "${formatMoneyCents(change.currentCents, hideDecimalPlaces)} → ${formatMoneyCents(change.proposedCents, hideDecimalPlaces)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+                HorizontalDivider()
+                Row(Modifier.fillMaxWidth()) {
+                    Text("Net change", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    Text(formatMoneyCents(preview.netBudgetChangeCents, hideDecimalPlaces), fontWeight = FontWeight.SemiBold)
+                }
+            }
+            if (preview.unchangedCount > 0) Text(
+                "${preview.unchangedCount} supported ${if (preview.unchangedCount == 1) "target is" else "targets are"} already current.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (preview.unsupportedCategories.isNotEmpty()) {
+                Text(
+                    "Not applied because these categories use automation types Actua cannot safely evaluate yet: ${preview.unsupportedCategories.joinToString()}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+                Button(enabled = preview.changes.isNotEmpty(), onClick = { onApply(preview) }) { Text("Apply changes") }
+            }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

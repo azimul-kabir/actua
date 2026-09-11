@@ -21,6 +21,26 @@ class ActualBudgetWriter(
         write(listOf(cell to amountCents))
     }
 
+    /** Applies a template preview as one CRDT/database batch. Reapplying an unchanged plan is a no-op. */
+    @Synchronized
+    fun setAmounts(month: String, amounts: Map<String, Long>, expectedCurrent: Map<String, Long> = emptyMap()) {
+        require(amounts.keys.none(String::isBlank)) { "Category ids cannot be blank" }
+        require(expectedCurrent.keys == amounts.keys || expectedCurrent.isEmpty()) { "Expected amounts must cover every category" }
+        val cells = amounts.keys.associateWith { categoryId ->
+            val cell = database.budgetCell(month, categoryId) ?: error("Budget table is missing")
+            val expected = expectedCurrent[categoryId]
+            require(expected == null || expected == cell.amountCents) {
+                "The budget changed after this preview. Review the template again."
+            }
+            cell
+        }
+        val writes = amounts.entries.mapNotNull { (categoryId, amount) ->
+            val cell = cells.getValue(categoryId)
+            (cell to amount).takeIf { !cell.exists || cell.amountCents != amount }
+        }
+        if (writes.isNotEmpty()) write(writes)
+    }
+
     @Synchronized
     fun setCarryover(months: List<String>, categoryId: String, enabled: Boolean) {
         val messages = months.flatMap { month ->
