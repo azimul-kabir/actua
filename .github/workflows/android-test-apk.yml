@@ -1,0 +1,140 @@
+name: Build Test APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to build (leave blank to build the selected workflow branch)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-apk-${{ github.actor }}-${{ inputs.ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-apk:
+    name: Build signed test APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out requested ref
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android 17 compile SDK
+        run: |
+          curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+          export PATH="$HOME/.local/bin:$PATH"
+          android --sdk="$ANDROID_SDK_ROOT" sdk install --canary platforms/android-37
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare isolated test app identity
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          gradle = Path("app/build.gradle.kts")
+          text = gradle.read_text(encoding="utf-8")
+          old = 'applicationId = "com.azimulkabir.actua"'
+          new = 'applicationId = "com.azimulkabir.actua.test"'
+          if old not in text:
+              raise SystemExit("Expected production applicationId was not found")
+          text = text.replace(old, new, 1)
+          gradle.write_text(text, encoding="utf-8")
+
+          strings = Path("app/src/main/res/values/strings.xml")
+          text = strings.read_text(encoding="utf-8")
+          old = '<string name="app_name">Actua</string>'
+          new = '<string name="app_name">Actua Test</string>'
+          if old not in text:
+              raise SystemExit("Expected production app_name was not found")
+          text = text.replace(old, new, 1)
+          text = text.replace("Open Actua to", "Open Actua Test to")
+          strings.write_text(text, encoding="utf-8")
+
+          shortcuts = Path("app/src/main/res/xml/shortcuts.xml")
+          if shortcuts.exists():
+              text = shortcuts.read_text(encoding="utf-8")
+              old = 'android:targetPackage="com.azimulkabir.actua"'
+              new = 'android:targetPackage="com.azimulkabir.actua.test"'
+              if old not in text:
+                  raise SystemExit("Expected production launcher shortcut targetPackage was not found")
+              text = text.replace(old, new)
+              shortcuts.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Build test APK without signing secrets
+        run: ./gradlew --no-daemon --stacktrace assembleDebug
+
+      - name: Prepare persistent Actua signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ACTUA_RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ACTUA_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/actua-test.jks"
+          chmod 600 "$RUNNER_TEMP/actua-test.jks"
+
+      - name: Name test artifact
+        id: artifact
+        shell: bash
+        run: |
+          TARGET_REF='${{ inputs.ref }}'
+          if [ -z "$TARGET_REF" ]; then
+            TARGET_REF="$GITHUB_REF_NAME"
+          fi
+          SAFE_REF="$(printf '%s' "$TARGET_REF" | tr '/:@ ' '----' | tr -cd '[:alnum:]._-')"
+          SHORT_SHA="$(git rev-parse --short=8 HEAD)"
+          ARTIFACT="Actua-Test-${SAFE_REF}-${SHORT_SHA}-run${GITHUB_RUN_NUMBER}"
+          echo "name=$ARTIFACT" >> "$GITHUB_OUTPUT"
+          cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/$ARTIFACT.apk"
+
+      - name: Re-sign test APK with persistent Actua key
+        env:
+          STORE_PASSWORD: ${{ secrets.ACTUA_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
+          ARTIFACT_NAME: ${{ steps.artifact.outputs.name }}
+        run: |
+          BUILD_TOOLS_VERSION="$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)"
+          APKSIGNER="$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner"
+          "$APKSIGNER" sign \
+            --ks "$RUNNER_TEMP/actua-test.jks" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass env:STORE_PASSWORD \
+            --key-pass env:KEY_PASSWORD \
+            --out "$ARTIFACT_NAME.apk" \
+            "$RUNNER_TEMP/$ARTIFACT_NAME.apk"
+          "$APKSIGNER" verify --verbose --print-certs "$ARTIFACT_NAME.apk"
+
+      - name: Remove signing material
+        if: ${{ always() }}
+        run: rm -f "$RUNNER_TEMP/actua-test.jks"
+
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ steps.artifact.outputs.name }}.apk
+          if-no-files-found: error
+          retention-days: 7
