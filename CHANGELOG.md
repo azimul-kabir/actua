@@ -6,6 +6,27 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.12] - 2026-09-11
+
+### Added
+
+- Added an Android document picker for importing exported Actua backup archives into the managed Backups list
+- Added preview-first whole-budget application for supported category targets, including per-category changes, net budget impact, unchanged-target counts, and explicit unsupported-automation disclosure
+- Added safe category and category-group deletion, ordinary-payee deletion and merge, and category/group reordering through Actual-compatible CRDT mutations
+
+### Changed
+
+- Imported backups now pass the existing archive, metadata, database, size, and unsafe-entry validation before they become available to restore
+- Whole-budget target application writes confirmed changes as one synchronized CRDT batch, rejects stale previews, and performs no writes when reapplied without changes
+- Expanded backend parity documentation with pinned Actual and Actuali automation references and clear boundaries for advanced automation and cleanup work
+- Added representative Android 9 and Android 17 compatibility checks and broader financial data-integrity regression coverage
+
+### Safety
+
+- Importing a backup never replaces the active budget; restore remains a separate confirmed action with the existing one-tap pre-restore revert
+- Backups belonging to another budget are rejected rather than silently installed
+- Unsupported schedule, percentage, remainder, long-term-goal, notes-managed, and cleanup automations remain untouched rather than being approximated
+
 ## [1.0.0-beta.11] - 2026-09-11
 
 ### Added
