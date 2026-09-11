@@ -16,11 +16,16 @@ and [LICENSE](LICENSE) for project scope and attribution.
 Version 1 is a solid, usable Android budgeting client: budget download/local
 storage, automatic and manual sync, backup/restore, accounts/categories/payees,
 budget amounts and transfers, transactions/transfers/splits, imported rules,
-and scheduled transactions. Every action displayed in the release UI must work.
+scheduled transactions, category targets, mobile reconciliation, synced report
+dashboards, Android credit-card payment reminders, home-screen widgets, and
+launcher actions. Every action displayed in the release UI must work.
 
-Advanced reports, goal/cleanup automations, bank-feed setup, notifications,
-location suggestions, and widgets are post-v1. Apple-only integrations are not
-Android backlog items and will never be ported.
+Features that still require substantial new financial semantics or external
+integrations remain outside the current version boundary, including full
+budget/cleanup automation authoring, bank-feed setup, general transaction
+notifications/new-transaction detection, and location-backed payee suggestions.
+Apple-only integrations are not Android backlog items and will never be ported;
+where an Android equivalent exists, Actua uses the native Android integration.
 
 ## Ported and tested
 
@@ -153,15 +158,18 @@ Android backlog items and will never be ported.
 ## Post-v1 portable features
 
 - Advanced split, formula, and template rule actions
-- Goal templates, cleanup templates, and budget automations
+- Goal/cleanup templates and broader budget automation authoring beyond the
+  category targets and target-aware Auto Assign already shipped
 - SimpleFIN linking, download, reconciliation, and pending-import approval
-- Android transaction notifications and new-transaction detection
+- General Android transaction notifications and new-transaction detection beyond
+  the credit-card payment reminders already shipped
 - Location-backed payee suggestions
 
 ## Permanently excluded or replaced
 
 - FinanceKit / Apple Wallet: excluded
-- App Intents / Shortcuts: excluded
+- App Intents / Shortcuts: excluded; Android launcher actions provide the
+  platform-native quick-entry/search equivalent where appropriate
 - iCloud/Keychain/background-task APIs: replaced with Android storage, Keystore,
   and WorkManager equivalents
 
