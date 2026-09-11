@@ -2,24 +2,26 @@ name: F-Droid Verify
 
 on:
   workflow_dispatch:
-  push:
+  workflow_run:
+    workflows:
+      - Android Release
+    types:
+      - completed
     branches:
       - main
-      - ci/fdroid-verify
-    paths:
-      - fdroid/**
-      - app/build.gradle.kts
-      - .github/workflows/fdroid-verify.yml
 
 permissions:
   contents: read
 
 jobs:
   verify-fdroid-release:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-python@v6
         with:
