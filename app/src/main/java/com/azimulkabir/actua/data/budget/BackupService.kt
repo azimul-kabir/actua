@@ -5,6 +5,8 @@ import android.database.sqlite.SQLiteDatabase
 import android.os.Build
 import org.json.JSONObject
 import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -58,6 +60,40 @@ class BackupService(context: Context, private val files: BudgetFileManager = Bud
     fun mirrorExisting(budgetId: String) = destinations.mirrorExisting(
         budgetId, archives(budgetId).map { File(files.backupsDirectory(budgetId), it.id) },
     )
+
+    /** Validates an external archive before adding it to this budget's managed backup list. */
+    @Synchronized
+    fun importArchive(budgetId: String, input: InputStream, now: Instant = Instant.now()): File {
+        val directory = files.backupsDirectory(budgetId)
+        val temporary = File(directory, ".import-${now.toEpochMilli()}.zip.tmp")
+        try {
+            FileOutputStream(temporary).use { output ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                var total = 0L
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    if (total > BudgetArchivePolicy.MAX_ARCHIVE_BYTES) {
+                        throw BudgetFileException.UnsafeArchive("file exceeds 500 MB")
+                    }
+                    output.write(buffer, 0, count)
+                }
+            }
+
+            val (validatedDatabase, metadata) = files.extractBackup(temporary)
+            validatedDatabase.delete()
+            if (metadata.id != budgetId) throw BudgetFileException.IncompatibleBudget
+
+            val destination = uniqueArchiveFile(directory, now)
+            check(temporary.renameTo(destination)) { "Unable to add the imported backup" }
+            prune(budgetId, now)
+            runCatching { destinations.mirror(budgetId, destination) }
+            return destination
+        } finally {
+            temporary.delete()
+        }
+    }
 
     @Synchronized
     fun restore(budgetId: String, backupId: String) {
@@ -168,6 +204,16 @@ class BackupService(context: Context, private val files: BudgetFileManager = Bud
                 File(files.backupsDirectory(budgetId), it).delete()
                 destinations.removeMirror(budgetId, it)
             }
+    }
+
+    private fun uniqueArchiveFile(directory: File, instant: Instant): File {
+        val name = archiveName(instant)
+        var candidate = File(directory, name)
+        var suffix = 1
+        while (candidate.exists()) {
+            candidate = File(directory, "${name.removeSuffix(".zip")}-import-${suffix++}.zip")
+        }
+        return candidate
     }
 
     companion object {

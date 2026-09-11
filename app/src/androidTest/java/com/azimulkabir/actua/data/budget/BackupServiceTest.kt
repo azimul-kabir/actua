@@ -5,6 +5,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
@@ -41,6 +42,64 @@ class BackupServiceTest {
             assertEquals("group", JSONObject(files.metadataFile(id).readText()).getString("groupId"))
         } finally {
             directory.deleteRecursively()
+        }
+    }
+
+    @Test fun importedBackupIsValidatedAndDoesNotChangeTheActiveBudget() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val id = "backup-import-${UUID.randomUUID()}"
+        val files = BudgetFileManager(context)
+        val directory = files.budgetDirectory(id).also { it.mkdirs() }
+        try {
+            seed(files, id, "imported-state")
+            val service = BackupService(context, files)
+            val exported = service.makeBackup(id, Instant.parse("2026-09-05T01:02:03Z"))
+            val bytes = exported.readBytes()
+            assertTrue(exported.delete())
+            SQLiteDatabase.openDatabase(files.databaseFile(id).path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                it.execSQL("UPDATE notes SET value='active-state'")
+            }
+
+            val imported = service.importArchive(
+                id,
+                bytes.inputStream(),
+                Instant.parse("2026-09-06T01:02:03Z"),
+            )
+
+            assertTrue(imported.isFile)
+            assertEquals("active-state", note(files, id))
+            assertEquals(imported.name, service.availableBackups(id).filterIsInstance<BackupItem.Archive>().single().id)
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
+    @Test fun invalidAndDifferentBudgetImportsFailWithoutAddingABackup() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val id = "backup-target-${UUID.randomUUID()}"
+        val otherId = "backup-other-${UUID.randomUUID()}"
+        val files = BudgetFileManager(context)
+        val directory = files.budgetDirectory(id).also { it.mkdirs() }
+        val otherDirectory = files.budgetDirectory(otherId).also { it.mkdirs() }
+        try {
+            seed(files, id, "active-state")
+            seed(files, otherId, "other-state")
+            val service = BackupService(context, files)
+
+            assertThrows(BudgetFileException::class.java) {
+                service.importArchive(id, "not a zip".byteInputStream())
+            }
+
+            val otherArchive = service.makeBackup(otherId, Instant.parse("2026-09-05T01:02:03Z"))
+            assertThrows(BudgetFileException.IncompatibleBudget::class.java) {
+                otherArchive.inputStream().use { service.importArchive(id, it) }
+            }
+
+            assertTrue(service.availableBackups(id).isEmpty())
+            assertEquals("active-state", note(files, id))
+        } finally {
+            directory.deleteRecursively()
+            otherDirectory.deleteRecursively()
         }
     }
 

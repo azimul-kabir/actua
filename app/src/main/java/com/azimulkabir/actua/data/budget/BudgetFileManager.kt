@@ -20,6 +20,7 @@ sealed class BudgetFileException(message: String) : Exception(message) {
     data object MissingDatabase : BudgetFileException("The budget archive is missing db.sqlite")
     data object MissingMetadata : BudgetFileException("The budget archive is missing metadata.json")
     data object InvalidMetadata : BudgetFileException("The budget metadata is invalid")
+    data object IncompatibleBudget : BudgetFileException("This backup belongs to a different budget")
     class UnsafeArchive(reason: String) : BudgetFileException("Unsafe budget archive: $reason")
 }
 

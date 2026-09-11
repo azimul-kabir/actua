@@ -78,7 +78,8 @@ at full resolution.
 - Calculator-style and conventional amount entry
 - Inline transaction calculator expressions with predictable backspace editing that remain visible until confirmation
 - Account, category, and group creation plus working contextual actions
-- Automatic local backup, restore, retention, pre-restore revert, per-archive export, and optional folder mirroring
+- Automatic local backup, validated archive import, restore, retention, pre-restore revert,
+  per-archive export, and optional folder mirroring
 - Live sync status with last successful sync and last scheduled background refresh
 - Actual-compatible rule listing, editing, CRDT mutations, and transaction
   processing for supported standard conditions and actions
@@ -173,7 +174,7 @@ for normal in-place upgrades afterward.
 ./gradlew installDebug
 ```
 
-The app can then connect from **More → Connection & Data**. Use the complete server URL and password, then create a budget or choose an existing remote budget. To explore Actua without a server, use **Try demo budget** on the same screen. The Backups manager can export individual archives and mirror retained backups to a persistent folder selected through Android's system picker.
+The app can then connect from **More → Connection & Data**. Use the complete server URL and password, then create a budget or choose an existing remote budget. To explore Actua without a server, use **Try demo budget** on the same screen. The Backups manager can import and validate an exported archive without changing the active budget, export individual archives, and mirror retained backups to a persistent folder selected through Android's system picker. An imported backup is restored only after a separate confirmation, with the current budget preserved for one-tap revert.
 
 ## Architecture
 
