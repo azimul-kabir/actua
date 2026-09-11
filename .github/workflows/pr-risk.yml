@@ -61,7 +61,7 @@ jobs:
             const definitions = {
               'risk:low': 'Documentation, assets, or other low-risk changes.',
               'risk:medium': 'Application/UI/build changes that need normal regression review.',
-              'risk:high': 'Sync, database, financial logic, security, migration, writer, or workflow changes that need deep review.'
+              'risk:high': 'Sync, database, security, migration, financial, or workflow changes requiring deep review.'
             };
 
             for (const [name, description] of Object.entries(definitions)) {
