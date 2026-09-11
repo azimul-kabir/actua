@@ -303,6 +303,10 @@ fun AppNavigation(
                 transactionSearch = ""
                 detail = if (request.target == null) DetailDestination.Main else DetailDestination.Transactions
             }
+            WidgetActions.SEARCH -> {
+                destination = MainDestination.Transactions
+                detail = DetailDestination.Search
+            }
             WidgetActions.ADD_EXPENSE, WidgetActions.ADD_INCOME, WidgetActions.ADD_TRANSFER -> {
                 destination = MainDestination.Transactions
                 addOrigin = MainDestination.Transactions

@@ -27,6 +27,7 @@ object WidgetActions {
     const val ADD_EXPENSE = "com.azimulkabir.actua.widget.ADD_EXPENSE"
     const val ADD_INCOME = "com.azimulkabir.actua.widget.ADD_INCOME"
     const val ADD_TRANSFER = "com.azimulkabir.actua.widget.ADD_TRANSFER"
+    const val SEARCH = "com.azimulkabir.actua.widget.SEARCH"
     const val EXTRA_TARGET = "widget_target"
 }
 
@@ -108,7 +109,7 @@ object WidgetUpdater {
             val ids = manager.getAppWidgetIds(component)
             if (ids.isNotEmpty()) {
                 app.sendBroadcast(Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).apply {
-                    component = ComponentName(app, provider)
+                    this.component = component
                     putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
                 })
             }

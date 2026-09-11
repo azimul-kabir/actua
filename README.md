@@ -105,6 +105,7 @@ at full resolution.
 - Material You home-screen widgets for a monthly budget snapshot, up to four chosen categories,
   quick expense/income/transfer entry, and up to four chosen account balances, with privacy-aware
   amounts, offline local data, and direct navigation into the matching Actua screen
+- Launcher long-press shortcuts for adding an expense, income, or transfer and opening global search
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for the implementation boundary and detailed port status.
 

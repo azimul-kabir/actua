@@ -13,4 +13,9 @@
     <string name="widget_no_budget">Open Actua to select a budget</string>
     <string name="widget_no_categories">No categories available</string>
     <string name="widget_no_accounts">No accounts available</string>
+    <string name="shortcut_add_expense">Add expense</string>
+    <string name="shortcut_add_income">Add income</string>
+    <string name="shortcut_add_transfer">Add transfer</string>
+    <string name="shortcut_search">Search</string>
+    <string name="shortcut_unavailable">Open Actua to use this action</string>
 </resources>

@@ -92,6 +92,7 @@ Android backlog items and will never be ported.
 - Android home-screen widget snapshot generation from the selected local budget, including
   budget overview, configurable category and account rows, privacy-aware amount formatting,
   post-write/post-sync refresh, and transaction-entry deep links
+- Android launcher long-press actions for preselected expense, income, and transfer entry plus search
 - Manual Sync Now plus live idle/running/error, last-success, and last-background-refresh status in Connection & Data
 - Dedicated backup manager with private archives, independent app-background creation,
   retention, archive export, optional Storage Access Framework folder mirroring,
