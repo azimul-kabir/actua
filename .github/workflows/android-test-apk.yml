@@ -42,6 +42,42 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Prepare isolated test app identity
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          gradle = Path("app/build.gradle.kts")
+          text = gradle.read_text(encoding="utf-8")
+          old = 'applicationId = "com.azimulkabir.actua"'
+          new = 'applicationId = "com.azimulkabir.actua.test"'
+          if old not in text:
+              raise SystemExit("Expected production applicationId was not found")
+          text = text.replace(old, new, 1)
+          gradle.write_text(text, encoding="utf-8")
+
+          strings = Path("app/src/main/res/values/strings.xml")
+          text = strings.read_text(encoding="utf-8")
+          old = '<string name="app_name">Actua</string>'
+          new = '<string name="app_name">Actua Test</string>'
+          if old not in text:
+              raise SystemExit("Expected production app_name was not found")
+          text = text.replace(old, new, 1)
+          text = text.replace("Open Actua to", "Open Actua Test to")
+          strings.write_text(text, encoding="utf-8")
+
+          shortcuts = Path("app/src/main/res/xml/shortcuts.xml")
+          if shortcuts.exists():
+              text = shortcuts.read_text(encoding="utf-8")
+              old = 'android:targetPackage="com.azimulkabir.actua"'
+              new = 'android:targetPackage="com.azimulkabir.actua.test"'
+              if old not in text:
+                  raise SystemExit("Expected production launcher shortcut targetPackage was not found")
+              text = text.replace(old, new)
+              shortcuts.write_text(text, encoding="utf-8")
+          PY
+
       - name: Build test APK without signing secrets
         run: ./gradlew --no-daemon --stacktrace assembleDebug
 
@@ -69,7 +105,7 @@ jobs:
           fi
           SAFE_REF="$(printf '%s' "$TARGET_REF" | tr '/:@ ' '----' | tr -cd '[:alnum:]._-')"
           SHORT_SHA="$(git rev-parse --short=8 HEAD)"
-          ARTIFACT="Actua-test-${SAFE_REF}-${SHORT_SHA}-run${GITHUB_RUN_NUMBER}"
+          ARTIFACT="Actua-Test-${SAFE_REF}-${SHORT_SHA}-run${GITHUB_RUN_NUMBER}"
           echo "name=$ARTIFACT" >> "$GITHUB_OUTPUT"
           cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/$ARTIFACT.apk"
 
