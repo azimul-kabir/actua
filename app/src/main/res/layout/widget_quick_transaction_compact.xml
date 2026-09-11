@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="8dp">
+
+    <TextView
+        android:id="@+id/widget_expense"
+        style="@style/WidgetAction"
+        android:text="@string/widget_expense" />
+
+    <TextView
+        android:id="@+id/widget_income"
+        style="@style/WidgetAction"
+        android:layout_marginHorizontal="6dp"
+        android:text="@string/widget_income" />
+
+    <TextView
+        android:id="@+id/widget_transfer"
+        style="@style/WidgetAction"
+        android:text="@string/widget_transfer" />
+</LinearLayout>
