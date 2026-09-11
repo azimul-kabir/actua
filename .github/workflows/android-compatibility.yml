@@ -45,6 +45,14 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
+      - name: Install API 37 canary SDK packages
+        if: ${{ matrix.api-level == 37 }}
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --channel=3 \
+            "platforms;android-37" \
+            "system-images;android-37;google_apis;x86_64"
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
