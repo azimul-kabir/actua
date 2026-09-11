@@ -103,6 +103,17 @@ fun BackupsScreen(
             busy = false
         }
     }
+    val importBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) scope.launch {
+            busy = true
+            runCatching { withContext(Dispatchers.IO) {
+                context.contentResolver.openInputStream(uri)?.use { service.importArchive(budgetId, it) }
+                    ?: error("Could not read the selected file")
+            } }.onSuccess { message = "Backup imported. Tap it below when you are ready to restore." }
+                .onFailure { message = it.message ?: "Could not import this backup." }
+            busy = false; refresh()
+        }
+    }
 
     LaunchedEffect(budgetId) { refresh() }
 
@@ -183,6 +194,9 @@ fun BackupsScreen(
                 if (busy) CircularProgressIndicator(Modifier.padding(end = 8.dp))
                 Text("Back up now")
             }
+            OutlinedButton(enabled = !busy, modifier = Modifier.fillMaxWidth(), onClick = {
+                importBackup.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
+            }) { Text("Import backup") }
             message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             Text("Available backups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             backups.forEachIndexed { index, backup ->

@@ -52,7 +52,8 @@ where an Android equivalent exists, Actua uses the native Android integration.
   balances, and category rollover-overspending preferences
 - Shared compact calculator-style amount entry for budget and transaction writes,
   including complete expression display and predictable operator backspace editing
-- Local backup snapshots, CRDT stripping, retention, restore, and one-shot revert
+- Local backup snapshots, CRDT stripping, retention, validated document-picker import,
+  restore, and one-shot revert
 - Rule JSON parsing, schema translation, ranking, condition/action evaluation,
   named-payee resolution, and rule application for incoming transactions
 - Rule list/search/editor UI and Actual-compatible CRDT create, update, and
@@ -160,7 +161,6 @@ where an Android equivalent exists, Actua uses the native Android integration.
 ## Remaining version 1 work
 
 - Full multi-automation editing, cleanup goals, and whole-budget template application
-- Local backup import picker
 
 ## Post-v1 portable features
 
