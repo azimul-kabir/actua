@@ -10,11 +10,18 @@ creates and maintains its own `risk:low`, `risk:medium`, and `risk:high` labels.
 `Android CI / build-test-lint` runs on PRs to main and pushes to main. It installs
 JDK 25 and SDK 37 and runs `assembleDebug`, `testInstrumentedUnitTest` and
 `lintDebug`. It uploads diagnostic reports, not signed releases. There are no
-repository secrets or write permissions in this workflow. Instrumentation tests
-still require a connected device/emulator and are not part of this CI job;
-run `./gradlew connectedInstrumentedAndroidTest` locally when relevant.
-After a successful GitHub run, select the build-test-lint check in the main
-branch ruleset if it should be required for merging.
+repository secrets or write permissions in this workflow.
+
+`Android Compatibility` runs the connected instrumentation suite on representative
+emulators for API 28 / Android 9, API 35 / Android 15, and API 37 / Android 17.
+This makes the advertised Android 9+ floor repeatable in CI while also exercising
+a middle platform and the current target environment. The matrix is parallel,
+fail-fast is disabled, and each API uploads its instrumentation reports for
+troubleshooting. Run the same suite locally with an emulator/device using
+`./gradlew connectedInstrumentedAndroidTest`.
+
+After successful GitHub runs, select the build-test-lint and compatibility checks
+in the main branch ruleset if they should be required for merging.
 
 Release metadata changes on `main` run the Android Release workflow. It
 builds and validates the persistently signed release APK, creates the version tag and
@@ -54,6 +61,7 @@ an encrypted backup of the keystore somewhere other than the Mac.
 The default review path has no paid service dependency:
 
 - Android CI builds the debug APK, runs JVM regression tests, and runs lint.
+- Android Compatibility runs connected instrumentation across API 28, 35, and 37.
 - PR Risk Classification applies a risk label from touched paths without
   checking out or executing PR code.
 - Dependabot opens weekly Gradle and GitHub Actions update PRs.
