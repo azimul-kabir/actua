@@ -31,11 +31,12 @@
         android:layout_weight="1"
         android:gravity="center_vertical"
         android:orientation="horizontal">
-        <TextView android:text="@string/widget_ready" style="@style/WidgetLabel" />
         <TextView
-            android:id="@+id/widget_ready_value"
-            style="@style/WidgetValue"
-            android:layout_marginStart="auto" />
+            style="@style/WidgetLabel"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/widget_ready" />
+        <TextView android:id="@+id/widget_ready_value" style="@style/WidgetValue" />
     </LinearLayout>
 
     <LinearLayout
@@ -44,11 +45,12 @@
         android:layout_weight="1"
         android:gravity="center_vertical"
         android:orientation="horizontal">
-        <TextView android:text="@string/widget_budgeted" style="@style/WidgetLabel" />
         <TextView
-            android:id="@+id/widget_budgeted_value"
-            style="@style/WidgetValue"
-            android:layout_marginStart="auto" />
+            style="@style/WidgetLabel"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/widget_budgeted" />
+        <TextView android:id="@+id/widget_budgeted_value" style="@style/WidgetValue" />
     </LinearLayout>
 
     <LinearLayout
@@ -57,10 +59,11 @@
         android:layout_weight="1"
         android:gravity="center_vertical"
         android:orientation="horizontal">
-        <TextView android:text="@string/widget_balance" style="@style/WidgetLabel" />
         <TextView
-            android:id="@+id/widget_balance_value"
-            style="@style/WidgetValue"
-            android:layout_marginStart="auto" />
+            style="@style/WidgetLabel"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/widget_balance" />
+        <TextView android:id="@+id/widget_balance_value" style="@style/WidgetValue" />
     </LinearLayout>
 </LinearLayout>
