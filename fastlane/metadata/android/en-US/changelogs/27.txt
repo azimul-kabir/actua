@@ -1,0 +1,1 @@
+Adds four Android home-screen widgets: Budget Snapshot, Favourite Categories, Quick Transaction, and Account Balances. Also adds app-icon long-press shortcuts for Expense, Income, Transfer, and Search. Widgets support offline local data, direct navigation, privacy hiding, light/dark themes, and Material You colors.

@@ -1,5 +1,5 @@
 # Submission template for fdroiddata/metadata/com.azimulkabir.actua.yml.
-# Actua 1.0.0-beta.9 was built from the exact commit pinned below.
+# Actua 1.0.0-beta.10 is built from the release tag pinned below.
 
 Categories:
   - Money
@@ -17,9 +17,9 @@ Binaries: https://github.com/azimul-kabir/actua/releases/download/v%v/Actua-v%v.
 AllowedAPKSigningKeys: 2a37719a0770ce4e03f3c080bd9d780c22300e28db678823b5595c9ad55753cc
 
 Builds:
-  - versionName: 1.0.0-beta.9
-    versionCode: 26
-    commit: bdd92875ea07c3ff2759b708c80076a402d3f0a0
+  - versionName: 1.0.0-beta.10
+    versionCode: 27
+    commit: v1.0.0-beta.10
     subdir: app
     prebuild:
       - sed -i '/^plugins {$/,/^}$/d' ../settings.gradle.kts
@@ -29,5 +29,5 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.0.0-beta.9
-CurrentVersionCode: 26
+CurrentVersion: 1.0.0-beta.10
+CurrentVersionCode: 27

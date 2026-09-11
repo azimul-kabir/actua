@@ -6,6 +6,33 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.10] - 2026-09-11
+
+### Added
+
+- Added Material You home-screen widgets for the monthly budget snapshot,
+  configurable favourite categories, quick transaction entry, and configurable
+  account balances
+- Added app-icon long-press shortcuts for Expense, Income, Transfer, and Search
+- Added direct widget navigation to the matching budget, category, account,
+  transaction-entry, and search screens
+
+### Changed
+
+- Widgets refresh after local changes, successful synchronization, relevant
+  display-preference changes, app foregrounding, and Android periodic updates
+- Widget amounts respect Actua's balance privacy, currency, decimal, light/dark,
+  and supported Material You dynamic-color settings
+- Documented the required issue-first, linked-pull-request development workflow
+
+## [1.0.0-beta.9] - 2026-09-11
+
+### Changed
+
+- Removed opaque dependency metadata from APK and app bundle signing blocks for
+  F-Droid-compatible source and binary verification
+- Added version 26 store metadata and F-Droid submission documentation
+
 ## [1.0.0-beta.8] - 2026-09-10
 
 ### Changed

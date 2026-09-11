@@ -8,8 +8,8 @@
 
 <br>
 
-<a href="https://github.com/azimul-kabir/actua/releases/download/v1.0.0-beta.8/Actua-v1.0.0-beta.8.apk"><img src="https://img.shields.io/badge/Download-APK-5969A6?style=for-the-badge&logo=android&logoColor=white" alt="Download Actua APK"></a>
-<a href="https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.8"><img src="https://img.shields.io/badge/Release-v1.0.0--beta.8-6F7DB7?style=for-the-badge" alt="Actua 1.0.0 beta 8 release"></a>
+<a href="https://github.com/azimul-kabir/actua/releases/download/v1.0.0-beta.10/Actua-v1.0.0-beta.10.apk"><img src="https://img.shields.io/badge/Download-APK-5969A6?style=for-the-badge&logo=android&logoColor=white" alt="Download Actua APK"></a>
+<a href="https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.10"><img src="https://img.shields.io/badge/Release-v1.0.0--beta.10-6F7DB7?style=for-the-badge" alt="Actua 1.0.0 beta 10 release"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-48506A?style=for-the-badge" alt="MIT License"></a>
 <a href="https://github.com/azimul-kabir/actua/issues/new/choose"><img src="https://img.shields.io/badge/Report-an_issue-48506A?style=for-the-badge&logo=github&logoColor=white" alt="Report an issue"></a>
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua"><img src="https://img.shields.io/badge/Get_it_on-Obtainium-5969A6?style=for-the-badge" alt="Get it on Obtainium"></a>
@@ -146,7 +146,7 @@ While Actua remains in beta, confirm important edits have synchronized before de
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 1.0.0-beta.8](https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.8). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 1.0.0-beta.10](https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.10). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
 
 Actua can also be added directly to [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) for update notifications and in-place APK upgrades from GitHub Releases. While Actua releases are marked as beta/prerelease, enable **Include prereleases** for the Actua source in Obtainium.
 
