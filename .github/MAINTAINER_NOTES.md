@@ -13,9 +13,11 @@ JDK 25 and SDK 37 and runs `assembleDebug`, `testInstrumentedUnitTest` and
 repository secrets or write permissions in this workflow.
 
 `Android Compatibility` runs the connected instrumentation suite on representative
-emulators for API 28 / Android 9, API 35 / Android 15, and API 37 / Android 17.
+emulators for API 28 / Android 9, API 35 / Android 15, and API 36 / Android 16.
 This makes the advertised Android 9+ floor repeatable in CI while also exercising
-a middle platform and the current target environment. The matrix is parallel,
+a middle platform and the newest emulator image available on GitHub-hosted runners.
+SDK 37 compilation remains covered by Android CI; API 37 emulator coverage can be
+added when Google publishes an installable system image. The matrix is parallel,
 fail-fast is disabled, and each API uploads its instrumentation reports for
 troubleshooting. Run the same suite locally with an emulator/device using
 `./gradlew connectedInstrumentedAndroidTest`.
@@ -61,7 +63,7 @@ an encrypted backup of the keystore somewhere other than the Mac.
 The default review path has no paid service dependency:
 
 - Android CI builds the debug APK, runs JVM regression tests, and runs lint.
-- Android Compatibility runs connected instrumentation across API 28, 35, and 37.
+- Android Compatibility runs connected instrumentation across API 28, 35, and 36.
 - PR Risk Classification applies a risk label from touched paths without
   checking out or executing PR code.
 - Dependabot opens weekly Gradle and GitHub Actions update PRs.
