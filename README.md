@@ -210,6 +210,11 @@ See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE) for complete attribution and l
 
 ## Contributing
 
+Every development change starts with a GitHub issue describing its scope and
+acceptance criteria. Create the implementation branch only after that issue exists,
+then open a pull request linked to the issue. Please do not develop directly on
+`main` or submit an unlinked development PR.
+
 Android bug reports and port-specific contributions belong in this repository. When implementing parity behavior, link the relevant upstream Actuali source, test, issue, or commit where possible. Do not report Android-port problems in the original iOS repository unless the same issue is reproducible in the iOS app.
 
 ## License

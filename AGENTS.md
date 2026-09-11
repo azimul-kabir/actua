@@ -89,9 +89,13 @@ not a full device suite.
 
 ## Contribution and workflow safety
 
-Use one concern per branch/PR, concise titles and the PR template. Report Android
-issues here and link upstream evidence for shared behavior. Do not include
-sensitive data in issues, review output or screenshots.
+Every development change must start with a GitHub issue that defines the problem,
+scope, and acceptance criteria. Only after the issue exists, create a focused
+feature or fix branch and open a pull request linked to that issue. Do not develop
+directly on `main` or open an unlinked development PR. Use one concern per issue,
+branch, and PR, concise titles, and the PR template. Report Android issues here and
+link upstream evidence for shared behavior. Do not include sensitive data in issues,
+review output or screenshots.
 
 Normal Android CI executes PR code under `pull_request` on hosted runners with
 read-only repository permissions and no privileged secrets. Any workflow using
