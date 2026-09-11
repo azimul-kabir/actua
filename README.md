@@ -8,8 +8,8 @@
 
 <br>
 
-<a href="https://github.com/azimul-kabir/actua/releases/download/v1.0.0-beta.8/Actua-v1.0.0-beta.8.apk"><img src="https://img.shields.io/badge/Download-APK-5969A6?style=for-the-badge&logo=android&logoColor=white" alt="Download Actua APK"></a>
-<a href="https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.8"><img src="https://img.shields.io/badge/Release-v1.0.0--beta.8-6F7DB7?style=for-the-badge" alt="Actua 1.0.0 beta 8 release"></a>
+<a href="https://github.com/azimul-kabir/actua/releases/download/v1.0.0-beta.10/Actua-v1.0.0-beta.10.apk"><img src="https://img.shields.io/badge/Download-APK-5969A6?style=for-the-badge&logo=android&logoColor=white" alt="Download Actua APK"></a>
+<a href="https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.10"><img src="https://img.shields.io/badge/Release-v1.0.0--beta.10-6F7DB7?style=for-the-badge" alt="Actua 1.0.0 beta 10 release"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-48506A?style=for-the-badge" alt="MIT License"></a>
 <a href="https://github.com/azimul-kabir/actua/issues/new/choose"><img src="https://img.shields.io/badge/Report-an_issue-48506A?style=for-the-badge&logo=github&logoColor=white" alt="Report an issue"></a>
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua"><img src="https://img.shields.io/badge/Get_it_on-Obtainium-5969A6?style=for-the-badge" alt="Get it on Obtainium"></a>
@@ -102,6 +102,10 @@ at full resolution.
 - Mobile account reconciliation with bank-balance comparison, uncleared review, adjustments, and cleared-transaction locking
 - Material You motion for tab changes, detail navigation, searches, and expandable sections
 - Android-style per-tab navigation state, root reselect behavior, scroll-to-top actions, and contextual Back restoration
+- Material You home-screen widgets for a monthly budget snapshot, up to four chosen categories,
+  quick expense/income/transfer entry, and up to four chosen account balances, with privacy-aware
+  amounts, offline local data, and direct navigation into the matching Actua screen
+- Launcher long-press shortcuts for adding an expense, income, or transfer and opening global search
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for the implementation boundary and detailed port status.
 
@@ -142,7 +146,7 @@ While Actua remains in beta, confirm important edits have synchronized before de
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 1.0.0-beta.8](https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.8). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 1.0.0-beta.10](https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.10). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
 
 Actua can also be added directly to [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) for update notifications and in-place APK upgrades from GitHub Releases. While Actua releases are marked as beta/prerelease, enable **Include prereleases** for the Actua source in Obtainium.
 
@@ -206,6 +210,11 @@ support Actua.
 See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE) for complete attribution and license terms.
 
 ## Contributing
+
+Every development change starts with a GitHub issue describing its scope and
+acceptance criteria. Create the implementation branch only after that issue exists,
+then open a pull request linked to the issue. Please do not develop directly on
+`main` or submit an unlinked development PR.
 
 Android bug reports and port-specific contributions belong in this repository. When implementing parity behavior, link the relevant upstream Actuali source, test, issue, or commit where possible. Do not report Android-port problems in the original iOS repository unless the same issue is reproducible in the iOS app.
 

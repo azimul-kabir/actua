@@ -1,0 +1,269 @@
+package com.azimulkabir.actua.widget
+
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.view.View
+import android.widget.RemoteViews
+import com.azimulkabir.actua.MainActivity
+import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.ActuaRepository
+import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import java.text.NumberFormat
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.util.Currency
+import java.util.Locale
+import java.util.concurrent.Executors
+import kotlin.math.absoluteValue
+
+object WidgetActions {
+    const val BUDGET = "com.azimulkabir.actua.widget.BUDGET"
+    const val ACCOUNTS = "com.azimulkabir.actua.widget.ACCOUNTS"
+    const val CATEGORY = "com.azimulkabir.actua.widget.CATEGORY"
+    const val ADD_EXPENSE = "com.azimulkabir.actua.widget.ADD_EXPENSE"
+    const val ADD_INCOME = "com.azimulkabir.actua.widget.ADD_INCOME"
+    const val ADD_TRANSFER = "com.azimulkabir.actua.widget.ADD_TRANSFER"
+    const val SEARCH = "com.azimulkabir.actua.widget.SEARCH"
+    const val EXTRA_TARGET = "widget_target"
+}
+
+enum class WidgetKind { Categories, Accounts }
+
+internal class WidgetPreferences(context: Context) {
+    private val values = context.applicationContext.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+
+    fun selected(kind: WidgetKind, widgetId: Int): Set<String> =
+        values.getStringSet(key(kind, widgetId), emptySet()).orEmpty()
+
+    fun save(kind: WidgetKind, widgetId: Int, ids: Set<String>) {
+        values.edit().putStringSet(key(kind, widgetId), ids).apply()
+    }
+
+    fun remove(kind: WidgetKind, widgetIds: IntArray) {
+        values.edit().apply {
+            widgetIds.forEach { remove(key(kind, it)) }
+        }.apply()
+    }
+
+    private fun key(kind: WidgetKind, widgetId: Int) = "${kind.name.lowercase()}_$widgetId"
+
+    private companion object { const val NAME = "home_widget_preferences" }
+}
+
+abstract class ActuaWidgetProvider : AppWidgetProvider() {
+    abstract val kind: WidgetKind?
+
+    override fun onUpdate(context: Context, manager: AppWidgetManager, widgetIds: IntArray) {
+        val pending = goAsync()
+        EXECUTOR.execute {
+            try {
+                widgetIds.forEach { WidgetUpdater.update(context, manager, it, this) }
+            } finally {
+                pending.finish()
+            }
+        }
+    }
+
+    override fun onDeleted(context: Context, widgetIds: IntArray) {
+        kind?.let { WidgetPreferences(context).remove(it, widgetIds) }
+    }
+
+    private companion object {
+        val EXECUTOR = Executors.newSingleThreadExecutor()
+    }
+}
+
+class BudgetSnapshotWidgetProvider : ActuaWidgetProvider() {
+    override val kind: WidgetKind? = null
+}
+
+class FavouriteCategoriesWidgetProvider : ActuaWidgetProvider() {
+    override val kind = WidgetKind.Categories
+}
+
+class QuickTransactionWidgetProvider : ActuaWidgetProvider() {
+    override val kind: WidgetKind? = null
+}
+
+class AccountBalancesWidgetProvider : ActuaWidgetProvider() {
+    override val kind = WidgetKind.Accounts
+}
+
+object WidgetUpdater {
+    private val providers = listOf(
+        BudgetSnapshotWidgetProvider::class.java,
+        FavouriteCategoriesWidgetProvider::class.java,
+        QuickTransactionWidgetProvider::class.java,
+        AccountBalancesWidgetProvider::class.java,
+    )
+
+    fun requestAll(context: Context) {
+        val app = context.applicationContext
+        val manager = AppWidgetManager.getInstance(app)
+        providers.forEach { provider ->
+            val component = ComponentName(app, provider)
+            val ids = manager.getAppWidgetIds(component)
+            if (ids.isNotEmpty()) {
+                app.sendBroadcast(Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).apply {
+                    this.component = component
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+                })
+            }
+        }
+    }
+
+    internal fun update(
+        context: Context,
+        manager: AppWidgetManager,
+        widgetId: Int,
+        provider: ActuaWidgetProvider,
+    ) {
+        when (provider) {
+            is BudgetSnapshotWidgetProvider -> updateBudget(context, manager, widgetId)
+            is FavouriteCategoriesWidgetProvider -> updateCategories(context, manager, widgetId)
+            is QuickTransactionWidgetProvider -> updateQuickTransaction(context, manager, widgetId)
+            is AccountBalancesWidgetProvider -> updateAccounts(context, manager, widgetId)
+            else -> Unit
+        }
+    }
+
+    private fun updateBudget(context: Context, manager: AppWidgetManager, widgetId: Int) {
+        val views = RemoteViews(context.packageName, R.layout.widget_budget_snapshot)
+        val repository = ActuaRepository(context)
+        try {
+            if (!repository.isUsingActualBudget) {
+                views.setTextViewText(R.id.widget_month, context.getString(R.string.widget_no_budget))
+                views.setTextViewText(R.id.widget_ready_value, "—")
+                views.setTextViewText(R.id.widget_budgeted_value, "—")
+                views.setTextViewText(R.id.widget_balance_value, "—")
+            } else {
+                val overview = repository.budgetOverview()
+                val month = YearMonth.now().format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+                views.setTextViewText(R.id.widget_month, month)
+                views.setTextViewText(
+                    R.id.widget_ready_value,
+                    overview.toBudgetCents?.let { money(context, it) } ?: "—",
+                )
+                views.setTextViewText(R.id.widget_budgeted_value, money(context, overview.budgetedCents))
+                views.setTextViewText(R.id.widget_balance_value, money(context, overview.availableCents))
+            }
+            views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
+            manager.updateAppWidget(widgetId, views)
+        } finally {
+            repository.close()
+        }
+    }
+
+    private fun updateCategories(context: Context, manager: AppWidgetManager, widgetId: Int) {
+        val views = RemoteViews(context.packageName, R.layout.widget_favourite_categories)
+        val repository = ActuaRepository(context)
+        try {
+            val all = repository.budgetGroups().asSequence()
+                .filterNot { it.hidden || it.isIncome }
+                .flatMap { it.categories.asSequence() }
+                .filterNot { it.hidden }
+                .toList()
+            val selected = WidgetPreferences(context).selected(WidgetKind.Categories, widgetId)
+            val rows = if (selected.isEmpty()) all.take(4) else all.filter { it.id in selected }.take(4)
+            bindRows(
+                context, views, rows.map { row ->
+                    val spent = row.spentCents.coerceAtLeast(0)
+                    val denominator = row.assignedCents.coerceAtLeast(1)
+                    WidgetRow(row.name, money(context, row.balanceCents),
+                        ((spent * 100 / denominator).coerceIn(0, 100)).toInt(), row.name)
+                }, widgetId, WidgetActions.CATEGORY, showProgress = true,
+            )
+            views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.BUDGET, widgetId))
+            manager.updateAppWidget(widgetId, views)
+        } finally {
+            repository.close()
+        }
+    }
+
+    private fun updateQuickTransaction(context: Context, manager: AppWidgetManager, widgetId: Int) {
+        val views = RemoteViews(context.packageName, R.layout.widget_quick_transaction)
+        views.setOnClickPendingIntent(R.id.widget_expense, open(context, WidgetActions.ADD_EXPENSE, widgetId))
+        views.setOnClickPendingIntent(R.id.widget_income, open(context, WidgetActions.ADD_INCOME, widgetId))
+        views.setOnClickPendingIntent(R.id.widget_transfer, open(context, WidgetActions.ADD_TRANSFER, widgetId))
+        manager.updateAppWidget(widgetId, views)
+    }
+
+    private fun updateAccounts(context: Context, manager: AppWidgetManager, widgetId: Int) {
+        val views = RemoteViews(context.packageName, R.layout.widget_account_balances)
+        val repository = ActuaRepository(context)
+        try {
+            val all = repository.accounts().filterNot { it.closed }
+            val selected = WidgetPreferences(context).selected(WidgetKind.Accounts, widgetId)
+            val rows = if (selected.isEmpty()) all.take(4) else all.filter { it.id in selected }.take(4)
+            bindRows(
+                context, views, rows.map { WidgetRow(it.name, money(context, it.balanceCents), 0, it.name) },
+                widgetId, WidgetActions.ACCOUNTS, showProgress = false,
+            )
+            views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.ACCOUNTS, widgetId))
+            manager.updateAppWidget(widgetId, views)
+        } finally {
+            repository.close()
+        }
+    }
+
+    private data class WidgetRow(val name: String, val amount: String, val progress: Int, val target: String)
+
+    private fun bindRows(
+        context: Context,
+        views: RemoteViews,
+        rows: List<WidgetRow>,
+        widgetId: Int,
+        action: String,
+        showProgress: Boolean,
+    ) {
+        val containers = intArrayOf(R.id.widget_row_1, R.id.widget_row_2, R.id.widget_row_3, R.id.widget_row_4)
+        val names = intArrayOf(R.id.widget_name_1, R.id.widget_name_2, R.id.widget_name_3, R.id.widget_name_4)
+        val amounts = intArrayOf(R.id.widget_amount_1, R.id.widget_amount_2, R.id.widget_amount_3, R.id.widget_amount_4)
+        val progress = intArrayOf(R.id.widget_progress_1, R.id.widget_progress_2, R.id.widget_progress_3, R.id.widget_progress_4)
+        containers.indices.forEach { index ->
+            val row = rows.getOrNull(index)
+            views.setViewVisibility(containers[index], if (row == null) View.GONE else View.VISIBLE)
+            if (row != null) {
+                views.setTextViewText(names[index], row.name)
+                views.setTextViewText(amounts[index], row.amount)
+                views.setViewVisibility(progress[index], if (showProgress) View.VISIBLE else View.GONE)
+                if (showProgress) views.setProgressBar(progress[index], 100, row.progress, false)
+                views.setOnClickPendingIntent(
+                    containers[index], open(context, action, widgetId * 10 + index + 1, row.target),
+                )
+            }
+        }
+        views.setViewVisibility(R.id.widget_empty, if (rows.isEmpty()) View.VISIBLE else View.GONE)
+    }
+
+    private fun open(context: Context, action: String, requestCode: Int, target: String? = null): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            this.action = action
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            target?.let { putExtra(WidgetActions.EXTRA_TARGET, it) }
+        }
+        return PendingIntent.getActivity(
+            context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun money(context: Context, cents: Long): String {
+        val preferences = DisplayPreferences(context)
+        if (preferences.hideBalances) return "••••"
+        val sign = if (cents < 0) "−" else ""
+        val magnitude = cents.absoluteValue
+        val whole = NumberFormat.getIntegerInstance(Locale.forLanguageTag("en-BD")).format(magnitude / 100)
+        val decimals = if (preferences.hideDecimalPlaces) "" else ".${(magnitude % 100).toString().padStart(2, '0')}"
+        val code = preferences.currencyCode
+        val prefix = when {
+            code.isBlank() -> ""
+            code == "BDT" -> "৳"
+            else -> runCatching { Currency.getInstance(code).getSymbol(Locale.getDefault()) }.getOrDefault(code)
+        }
+        return "$sign$prefix$whole$decimals"
+    }
+}

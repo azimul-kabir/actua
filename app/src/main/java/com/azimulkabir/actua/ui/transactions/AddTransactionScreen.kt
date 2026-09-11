@@ -92,6 +92,7 @@ fun AddTransactionScreen(
     accountBalanceLabels: Map<String, String> = emptyMap(),
     defaultAccount: String? = null,
     defaultCategory: String? = null,
+    defaultType: Type = Type.EXPENSE,
     hideDecimalPlaces: Boolean = false,
     conventionalAmountEntry: Boolean = false,
     onResolveRuleCategory: (Transaction) -> String? = { null },
@@ -122,8 +123,8 @@ fun AddTransactionScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var notes by remember(editing) { mutableStateOf(editing?.notes ?: "") }
     var cleared by remember(editing) { mutableStateOf(editing?.cleared ?: false) }
-    var transactionType by remember(editing) {
-        mutableStateOf((editing?.type ?: Type.EXPENSE).displayName)
+    var transactionType by remember(editing, defaultType) {
+        mutableStateOf((editing?.type ?: defaultType).displayName)
     }
     var splitLines by remember(editing) { mutableStateOf(editing?.splits.orEmpty()) }
     var splitCalculatorIndex by remember { mutableStateOf<Int?>(null) }

@@ -46,10 +46,14 @@ import com.azimulkabir.actua.data.schedules.ScheduleDiscovery
 import com.azimulkabir.actua.data.schedules.BillCalendarItem
 import com.azimulkabir.actua.data.schedules.BillsCalendarEngine
 import com.azimulkabir.actua.data.schedules.sortedForDisplay
+import com.azimulkabir.actua.widget.WidgetUpdater
 
 class ActuaRepository(context: Context) {
     private val appContext = context.applicationContext
-    private val scheduleSync = { ActualSyncScheduler.scheduleMutation(appContext) }
+    private val scheduleSync = {
+        ActualSyncScheduler.scheduleMutation(appContext)
+        WidgetUpdater.requestAll(appContext)
+    }
     private val actualDatabase: ActualBudgetDatabase? = BudgetFileManager(context).let { files ->
         val budgets = files.listLocalBudgets()
         val selectedId = ActiveBudgetStore(context).budgetId

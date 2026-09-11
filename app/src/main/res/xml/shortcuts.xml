@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="add_expense" android:enabled="true"
+        android:icon="@drawable/ic_shortcut_expense" android:shortcutShortLabel="@string/shortcut_add_expense"
+        android:shortcutLongLabel="@string/shortcut_add_expense" android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent android:action="com.azimulkabir.actua.widget.ADD_EXPENSE"
+            android:targetPackage="com.azimulkabir.actua" android:targetClass="com.azimulkabir.actua.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="add_income" android:enabled="true"
+        android:icon="@drawable/ic_shortcut_income" android:shortcutShortLabel="@string/shortcut_add_income"
+        android:shortcutLongLabel="@string/shortcut_add_income" android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent android:action="com.azimulkabir.actua.widget.ADD_INCOME"
+            android:targetPackage="com.azimulkabir.actua" android:targetClass="com.azimulkabir.actua.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="add_transfer" android:enabled="true"
+        android:icon="@drawable/ic_shortcut_transfer" android:shortcutShortLabel="@string/shortcut_add_transfer"
+        android:shortcutLongLabel="@string/shortcut_add_transfer" android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent android:action="com.azimulkabir.actua.widget.ADD_TRANSFER"
+            android:targetPackage="com.azimulkabir.actua" android:targetClass="com.azimulkabir.actua.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="search" android:enabled="true"
+        android:icon="@drawable/ic_shortcut_search" android:shortcutShortLabel="@string/shortcut_search"
+        android:shortcutLongLabel="@string/shortcut_search" android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent android:action="com.azimulkabir.actua.widget.SEARCH"
+            android:targetPackage="com.azimulkabir.actua" android:targetClass="com.azimulkabir.actua.MainActivity" />
+    </shortcut>
+</shortcuts>
