@@ -6,21 +6,14 @@ import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.sync.HlcTimestamp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.util.UUID
 
-/**
- * High-risk mutation regression tests.
- *
- * These tests deliberately snapshot unrelated rows before each mutation so a writer that
- * accidentally broadens an UPDATE/DELETE will fail even when the requested row looks correct.
- */
+/** High-risk mutation tests that also prove unrelated transaction rows stay byte-for-byte equivalent. */
 class ActualDataIntegrityRegressionTest {
-    @Test
-    fun ordinaryUpdateChangesOnlyRequestedRowAndColumns() = withDatabase { database, file ->
+    @Test fun ordinaryUpdateChangesOnlyRequestedRowAndColumns() = withDatabase { database, file ->
         val writer = writer(database)
         val edited = transaction("edited", "checking", -1_250, category = "groceries", payee = "shop")
         val untouched = transaction("untouched", "checking", -2_000, category = "rent", payee = "landlord")
@@ -38,8 +31,7 @@ class ActualDataIntegrityRegressionTest {
         assertTrue(newMessages.all { it.dataset == "transactions" && it.row == edited.id })
     }
 
-    @Test
-    fun transferRoundTripPreservesPairAndUnrelatedRows() = withDatabase { database, file ->
+    @Test fun transferRoundTripPreservesPairAndUnrelatedRows() = withDatabase { database, file ->
         val writer = writer(database)
         val untouched = transaction("untouched", "checking", -300, category = "groceries")
         writer.createTransaction(untouched, applyRules = false)
@@ -57,8 +49,7 @@ class ActualDataIntegrityRegressionTest {
         assertEquals(untouchedBefore, rowSnapshot(file, untouched.id))
     }
 
-    @Test
-    fun splitCreateAndDeleteTouchesOnlySplitFamily() = withDatabase { database, file ->
+    @Test fun splitCreateAndDeleteTouchesOnlySplitFamily() = withDatabase { database, file ->
         val writer = writer(database)
         val untouched = transaction("untouched", "checking", -450, category = "groceries")
         writer.createTransaction(untouched, applyRules = false)
@@ -81,8 +72,7 @@ class ActualDataIntegrityRegressionTest {
         assertFalse(tombstones.contains(untouched.id))
     }
 
-    @Test
-    fun reconciliationLocksOnlyClearedRowsInRequestedAccount() = withDatabase { database, file ->
+    @Test fun reconciliationLocksOnlyClearedRowsInRequestedAccount() = withDatabase { database, file ->
         val writer = writer(database)
         val cleared = transaction("cleared", "checking", -100).copy(cleared = true)
         val uncleared = transaction("uncleared", "checking", -200)
@@ -101,8 +91,7 @@ class ActualDataIntegrityRegressionTest {
         assertFalse(requireNotNull(database.fetchTransaction(otherAccount.id)).reconciled)
     }
 
-    @Test
-    fun scheduleLinkMutationIsIdempotentAndScoped() = withDatabase { database, file ->
+    @Test fun scheduleLinkMutationIsIdempotentAndScoped() = withDatabase { database, file ->
         val writer = writer(database)
         val linked = transaction("linked", "checking", -100)
         val untouched = transaction("untouched", "checking", -200)
@@ -112,8 +101,7 @@ class ActualDataIntegrityRegressionTest {
 
         writer.setScheduleLink(linked, "schedule-1")
         val afterFirst = database.getMessagesSince(HlcTimestamp.ZERO.toString()).size
-        val stored = requireNotNull(database.fetchTransaction(linked.id))
-        writer.setScheduleLink(stored, "schedule-1")
+        writer.setScheduleLink(requireNotNull(database.fetchTransaction(linked.id)), "schedule-1")
         val afterSecond = database.getMessagesSince(HlcTimestamp.ZERO.toString()).size
 
         assertEquals("schedule-1", database.fetchTransaction(linked.id)?.scheduleId)
@@ -122,47 +110,23 @@ class ActualDataIntegrityRegressionTest {
     }
 
     private fun writer(database: ActualBudgetDatabase) = ActualTransactionWriter(
-        database = database,
-        nodeId = "5252525252525252",
-        nowMillis = { 1_800_000_000_000L },
+        database = database, nodeId = "5252525252525252", nowMillis = { 1_800_000_000_000L },
     )
 
     private fun transaction(
-        id: String,
-        account: String,
-        amount: Long,
-        category: String? = null,
-        payee: String? = null,
-        transfer: String? = null,
-        parentFlag: Boolean = false,
-        parent: String? = null,
+        id: String, account: String, amount: Long, category: String? = null, payee: String? = null,
+        transfer: String? = null, parentFlag: Boolean = false, parent: String? = null,
     ) = ActualTransaction(
-        id = id,
-        accountId = account,
-        date = 20260912,
-        payeeId = payee,
-        categoryId = category,
-        amountCents = amount,
-        notes = null,
-        cleared = false,
-        reconciled = false,
-        transferId = transfer,
-        isParent = parentFlag,
-        parentId = parent,
-        tombstone = false,
-        sortOrder = 1.0,
-        importedPayee = null,
-        scheduleId = null,
-        startingBalance = false,
+        id = id, accountId = account, date = 20260912, amountCents = amount,
+        payeeId = payee, payeeName = null, categoryId = category, categoryName = null,
+        notes = null, cleared = false, reconciled = false, transferId = transfer,
+        isParent = parentFlag, parentId = parent, tombstone = false, sortOrder = 1.0,
+        importedPayee = null, scheduleId = null, transferAccountId = null, startingBalance = false,
     )
 
     private fun withDatabase(block: (ActualBudgetDatabase, File) -> Unit) {
         val file = createDatabaseFile()
-        try {
-            ActualBudgetDatabase.open(file).use { block(it, file) }
-        } finally {
-            file.delete()
-        }
+        try { ActualBudgetDatabase.open(file).use { block(it, file) } } finally { file.delete() }
     }
 
     private fun createDatabaseFile(): File {
