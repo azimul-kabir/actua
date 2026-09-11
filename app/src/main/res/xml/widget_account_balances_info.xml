@@ -3,10 +3,10 @@
     android:configure="com.azimulkabir.actua.widget.WidgetConfigurationActivity"
     android:description="@string/widget_account_balances"
     android:initialLayout="@layout/widget_account_balances"
-    android:minWidth="250dp" android:minHeight="170dp"
+    android:minWidth="250dp" android:minHeight="138dp"
     android:previewLayout="@layout/widget_account_balances"
     android:resizeMode="horizontal|vertical"
-    android:targetCellWidth="4" android:targetCellHeight="3"
+    android:targetCellWidth="4" android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:widgetFeatures="reconfigurable"
     android:widgetCategory="home_screen" />
