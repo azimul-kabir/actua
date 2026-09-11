@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
 import com.azimulkabir.actua.MainActivity
@@ -58,6 +59,24 @@ abstract class ActuaWidgetProvider : AppWidgetProvider() {
     abstract val kind: WidgetKind?
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, widgetIds: IntArray) {
+        scheduleUpdate(context, manager, widgetIds)
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        manager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle,
+    ) {
+        super.onAppWidgetOptionsChanged(context, manager, appWidgetId, newOptions)
+        scheduleUpdate(context, manager, intArrayOf(appWidgetId))
+    }
+
+    override fun onDeleted(context: Context, widgetIds: IntArray) {
+        kind?.let { WidgetPreferences(context).remove(it, widgetIds) }
+    }
+
+    private fun scheduleUpdate(context: Context, manager: AppWidgetManager, widgetIds: IntArray) {
         val pending = goAsync()
         EXECUTOR.execute {
             try {
@@ -66,10 +85,6 @@ abstract class ActuaWidgetProvider : AppWidgetProvider() {
                 pending.finish()
             }
         }
-    }
-
-    override fun onDeleted(context: Context, widgetIds: IntArray) {
-        kind?.let { WidgetPreferences(context).remove(it, widgetIds) }
     }
 
     private companion object {
@@ -94,6 +109,8 @@ class AccountBalancesWidgetProvider : ActuaWidgetProvider() {
 }
 
 object WidgetUpdater {
+    private const val COMPACT_HEIGHT_DP = 100
+
     private val providers = listOf(
         BudgetSnapshotWidgetProvider::class.java,
         FavouriteCategoriesWidgetProvider::class.java,
@@ -131,8 +148,19 @@ object WidgetUpdater {
         }
     }
 
+    private fun isCompact(manager: AppWidgetManager, widgetId: Int): Boolean {
+        val options = manager.getAppWidgetOptions(widgetId)
+        val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, Int.MAX_VALUE)
+        return minHeight <= COMPACT_HEIGHT_DP
+    }
+
     private fun updateBudget(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val views = RemoteViews(context.packageName, R.layout.widget_budget_snapshot)
+        val layout = if (isCompact(manager, widgetId)) {
+            R.layout.widget_budget_snapshot_compact
+        } else {
+            R.layout.widget_budget_snapshot
+        }
+        val views = RemoteViews(context.packageName, layout)
         val repository = ActuaRepository(context)
         try {
             if (!repository.isUsingActualBudget) {
@@ -185,7 +213,12 @@ object WidgetUpdater {
     }
 
     private fun updateQuickTransaction(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val views = RemoteViews(context.packageName, R.layout.widget_quick_transaction)
+        val layout = if (isCompact(manager, widgetId)) {
+            R.layout.widget_quick_transaction_compact
+        } else {
+            R.layout.widget_quick_transaction
+        }
+        val views = RemoteViews(context.packageName, layout)
         views.setOnClickPendingIntent(R.id.widget_expense, open(context, WidgetActions.ADD_EXPENSE, widgetId))
         views.setOnClickPendingIntent(R.id.widget_income, open(context, WidgetActions.ADD_INCOME, widgetId))
         views.setOnClickPendingIntent(R.id.widget_transfer, open(context, WidgetActions.ADD_TRANSFER, widgetId))
