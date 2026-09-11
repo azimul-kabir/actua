@@ -25,13 +25,13 @@ jobs:
         include:
           - android: '9'
             api-level: 28
-            channel: 0
+            channel: stable
           - android: '15'
             api-level: 35
-            channel: 0
+            channel: stable
           - android: '17'
             api-level: 37
-            channel: 3
+            channel: canary
 
     steps:
       - uses: actions/checkout@v6
