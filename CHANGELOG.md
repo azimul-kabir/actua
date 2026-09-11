@@ -6,6 +6,24 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.11] - 2026-09-11
+
+### Added
+
+- Added a manual **Build Test APK** GitHub Actions workflow for device testing without publishing a GitHub release
+- Test APKs install as a separate **Actua Test** app using `com.azimulkabir.actua.test`, with separate Android app data from normal Actua
+
+### Changed
+
+- Redesigned Budget Snapshot and Quick Transaction widgets with responsive **2x2** layouts and compact **3x1/4x1** resize variants
+- Reduced Account Balances and Favourite Categories to practical **2x2** layouts with tighter Material You spacing
+- Improved Favourite Categories progress bars and shared widget spacing while preserving dynamic color, dark mode, privacy formatting, and deep links
+- Added immediate widget layout refresh when Budget Snapshot or Quick Transaction is resized on the launcher
+
+### Fixed
+
+- Replaced the Add expense launcher shortcut artwork with an unambiguous minus icon so it no longer appears like Add income on Pixel Launcher
+
 ## [1.0.0-beta.10] - 2026-09-11
 
 ### Added
@@ -518,20 +536,3 @@ Initial public testing release.
 [0.1.0-alpha.3]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.3
 [0.1.0-alpha.4]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.4
 [0.1.0-alpha.5]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.5
-[0.1.0-alpha.6]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.6
-[0.1.0-alpha.7]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.7
-[0.1.0-alpha.8]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.8
-[0.1.0-alpha.9]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.9
-[0.1.0-alpha.10]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.10
-[0.1.0-alpha.11]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.11
-
-[0.1.0-alpha.12]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.12
-[0.1.0-alpha.13]: https://github.com/azimul-kabir/actua/releases/tag/v0.1.0-alpha.13
-[1.0.0-beta.1]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.1
-[1.0.0-beta.2]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.2
-[1.0.0-beta.3]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.3
-[1.0.0-beta.4]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.4
-[1.0.0-beta.5]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.5
-[1.0.0-beta.6]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.6
-[1.0.0-beta.7]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.7
-[1.0.0-beta.8]: https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.8
