@@ -20,7 +20,7 @@ class CoreReportEngineTest {
             today = today,
         )
         assertEquals(ReportWidgetKind.SUMMARY, widget.kind)
-        assertEquals(1_000, widget.valueCents)
+        assertEquals(1_000L, widget.valueCents)
     }
 
     @Test fun cashFlowDropsTransfersAndOffBudgetAccounts() {
@@ -34,8 +34,8 @@ class CoreReportEngineTest {
             context = RuleContext(offBudgetAccountIds = setOf("off")),
             today = today,
         )
-        assertEquals(2_000, widget.points.single().primaryCents)
-        assertEquals(700, widget.points.single().secondaryCents)
+        assertEquals(2_000L, widget.points.single().primaryCents)
+        assertEquals(700L, widget.points.single().secondaryCents)
     }
 
     @Test fun summaryCurrentMonthStopsAtToday() {

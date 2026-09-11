@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.budget
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import android.os.Build
 import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
@@ -99,13 +100,29 @@ class BackupService(context: Context, private val files: BudgetFileManager = Bud
 
     private fun snapshot(source: File, destination: File) {
         destination.delete()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val database = SQLiteDatabase.openDatabase(source.path, null, SQLiteDatabase.OPEN_READWRITE)
+            try {
+                val escaped = destination.path.replace("'", "''")
+                database.execSQL("VACUUM INTO '$escaped'")
+            } finally {
+                database.close()
+            }
+            return
+        }
+
+        // Android 9 ships SQLite 3.22, before VACUUM INTO was introduced. Close any
+        // connection opened here and copy the database plus committed WAL contents
+        // after forcing a full checkpoint so the snapshot remains self-contained.
         val database = SQLiteDatabase.openDatabase(source.path, null, SQLiteDatabase.OPEN_READWRITE)
         try {
-            val escaped = destination.path.replace("'", "''")
-            database.execSQL("VACUUM INTO '$escaped'")
+            database.rawQuery("PRAGMA wal_checkpoint(FULL)", null).use { cursor ->
+                if (cursor.moveToFirst()) Unit
+            }
         } finally {
             database.close()
         }
+        source.copyTo(destination, overwrite = true)
     }
 
     private fun cleanSnapshot(file: File) {
