@@ -81,6 +81,9 @@ import com.azimulkabir.actua.data.notifications.CreditCardNotificationSettings
 import com.azimulkabir.actua.ui.components.BalanceVisibility
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.AppLaunchRequest
+import com.azimulkabir.actua.widget.WidgetActions
+import com.azimulkabir.actua.widget.WidgetUpdater
 
 private enum class MainDestination(
     val label: String,
@@ -109,6 +112,8 @@ private data class TabSnapshot(
 fun AppNavigation(
     modifier: Modifier = Modifier,
     foregroundGeneration: Int = 0,
+    launchRequest: AppLaunchRequest? = null,
+    onLaunchRequestConsumed: () -> Unit = {},
     onAppearanceChange: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -165,6 +170,7 @@ fun AppNavigation(
     var transactionMonth by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionSearch by rememberSaveable { mutableStateOf("") }
     var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
+    var newTransactionType by remember { mutableStateOf(com.azimulkabir.actua.model.Type.EXPENSE) }
     var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
     var editorReturnsToCategory by rememberSaveable { mutableStateOf(false) }
     var activeBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
@@ -217,6 +223,7 @@ fun AppNavigation(
     fun openAddTransaction() {
         addOrigin = destination
         editingTransaction = null
+        newTransactionType = com.azimulkabir.actua.model.Type.EXPENSE
         editorReturnsToTransactions = false
         editorReturnsToCategory = false
         detail = DetailDestination.EditTransaction
@@ -224,6 +231,7 @@ fun AppNavigation(
 
     fun openAddTransactionForAccount() {
         editingTransaction = null
+        newTransactionType = com.azimulkabir.actua.model.Type.EXPENSE
         editorReturnsToTransactions = true
         editorReturnsToCategory = false
         transactionFabExpanded = true
@@ -233,6 +241,7 @@ fun AppNavigation(
     fun openAddTransactionForCategory() {
         transactionCategory = activeBudgetCategory
         editingTransaction = null
+        newTransactionType = com.azimulkabir.actua.model.Type.EXPENSE
         editorReturnsToTransactions = false
         editorReturnsToCategory = true
         transactionFabExpanded = true
@@ -263,7 +272,52 @@ fun AppNavigation(
         if (result is SyncRunResult.Success) {
             dataVersion += 1
             CreditCardDueNotificationScheduler.refresh(context)
+            WidgetUpdater.requestAll(context)
         }
+    }
+
+    LaunchedEffect(launchRequest?.nonce) {
+        val request = launchRequest ?: return@LaunchedEffect
+        if (!repository.isUsingActualBudget) {
+            destination = MainDestination.More
+            detail = DetailDestination.Connection
+            onLaunchRequestConsumed()
+            return@LaunchedEffect
+        }
+        when (request.action) {
+            WidgetActions.BUDGET -> {
+                destination = MainDestination.Budget
+                detail = DetailDestination.Main
+            }
+            WidgetActions.CATEGORY -> {
+                destination = MainDestination.Budget
+                activeBudgetCategory = null
+                reopenBudgetCategory = request.target
+                detail = DetailDestination.Main
+            }
+            WidgetActions.ACCOUNTS -> {
+                destination = MainDestination.Accounts
+                transactionAccount = request.target
+                transactionCategory = null
+                transactionMonth = null
+                transactionSearch = ""
+                detail = if (request.target == null) DetailDestination.Main else DetailDestination.Transactions
+            }
+            WidgetActions.ADD_EXPENSE, WidgetActions.ADD_INCOME, WidgetActions.ADD_TRANSFER -> {
+                destination = MainDestination.Transactions
+                addOrigin = MainDestination.Transactions
+                editingTransaction = null
+                editorReturnsToTransactions = false
+                editorReturnsToCategory = false
+                newTransactionType = when (request.action) {
+                    WidgetActions.ADD_INCOME -> com.azimulkabir.actua.model.Type.INCOME
+                    WidgetActions.ADD_TRANSFER -> com.azimulkabir.actua.model.Type.TRANSFER
+                    else -> com.azimulkabir.actua.model.Type.EXPENSE
+                }
+                detail = DetailDestination.EditTransaction
+            }
+        }
+        onLaunchRequestConsumed()
     }
 
     BackHandler(enabled = detail != DetailDestination.Main || destination != MainDestination.Budget) {
@@ -459,6 +513,7 @@ fun AppNavigation(
             )
             DetailDestination.EditTransaction -> AddTransactionScreen(
                 editing = editingTransaction,
+                defaultType = newTransactionType,
                 onBack = {
                     if (editorReturnsToCategory) {
                         reopenBudgetCategory = transactionCategory
@@ -479,6 +534,7 @@ fun AppNavigation(
                             },
                         )) {
                         dataVersion += 1
+                        WidgetUpdater.requestAll(context)
                         editingTransaction = null
                         if (editorReturnsToCategory) {
                             reopenBudgetCategory = transactionCategory
@@ -979,21 +1035,25 @@ fun AppNavigation(
                     onHideDecimalPlacesChange = {
                         displayPreferences.hideDecimalPlaces = it
                         hideDecimalPlaces = it
+                        WidgetUpdater.requestAll(context)
                     },
                     currencyCode = currencyCode,
                     onCurrencyCodeChange = {
                         displayPreferences.currencyCode = it
                         currencyCode = it
+                        WidgetUpdater.requestAll(context)
                     },
                     currencySymbolOnly = currencySymbolOnly,
                     onCurrencySymbolOnlyChange = {
                         displayPreferences.currencySymbolOnly = it
                         currencySymbolOnly = it
+                        WidgetUpdater.requestAll(context)
                     },
                     hideBalances = hideBalances,
                     onHideBalancesChange = {
                         displayPreferences.hideBalances = it
                         hideBalances = it
+                        WidgetUpdater.requestAll(context)
                     },
                     appearance = appearance,
                     onAppearanceChange = {

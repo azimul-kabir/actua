@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">Actua</string>
+    <string name="widget_budget_snapshot">Budget snapshot</string>
+    <string name="widget_favourite_categories">Favourite categories</string>
+    <string name="widget_quick_transaction">Quick transaction</string>
+    <string name="widget_account_balances">Account balances</string>
+    <string name="widget_ready">Ready to budget</string>
+    <string name="widget_budgeted">Budgeted</string>
+    <string name="widget_balance">Balance</string>
+    <string name="widget_expense">− Expense</string>
+    <string name="widget_income">+ Income</string>
+    <string name="widget_transfer">⇄ Transfer</string>
+    <string name="widget_no_budget">Open Actua to select a budget</string>
+    <string name="widget_no_categories">No categories available</string>
+    <string name="widget_no_accounts">No accounts available</string>
 </resources>

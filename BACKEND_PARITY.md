@@ -89,6 +89,9 @@ Android backlog items and will never be ported.
 - Android WorkManager replacement for iOS lifecycle sync: network-constrained
   foreground, post-mutation, and periodic jobs; encrypted budgets; bounded retry;
   post-sync schedule posting/re-push; periodic local backup
+- Android home-screen widget snapshot generation from the selected local budget, including
+  budget overview, configurable category and account rows, privacy-aware amount formatting,
+  post-write/post-sync refresh, and transaction-entry deep links
 - Manual Sync Now plus live idle/running/error, last-success, and last-background-refresh status in Connection & Data
 - Dedicated backup manager with private archives, independent app-background creation,
   retention, archive export, optional Storage Access Framework folder mirroring,
@@ -153,7 +156,6 @@ Android backlog items and will never be ported.
 - SimpleFIN linking, download, reconciliation, and pending-import approval
 - Android transaction notifications and new-transaction detection
 - Location-backed payee suggestions
-- Widget snapshot generation
 
 ## Permanently excluded or replaced
 

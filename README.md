@@ -102,6 +102,9 @@ at full resolution.
 - Mobile account reconciliation with bank-balance comparison, uncleared review, adjustments, and cleared-transaction locking
 - Material You motion for tab changes, detail navigation, searches, and expandable sections
 - Android-style per-tab navigation state, root reselect behavior, scroll-to-top actions, and contextual Back restoration
+- Material You home-screen widgets for a monthly budget snapshot, up to four chosen categories,
+  quick expense/income/transfer entry, and up to four chosen account balances, with privacy-aware
+  amounts, offline local data, and direct navigation into the matching Actua screen
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for the implementation boundary and detailed port status.
 

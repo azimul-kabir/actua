@@ -25,6 +25,7 @@ import com.azimulkabir.actua.data.schedules.SchedulePoster
 import com.azimulkabir.actua.data.security.BudgetEncryptionKeyStore
 import com.azimulkabir.actua.data.security.CredentialStore
 import java.util.concurrent.TimeUnit
+import com.azimulkabir.actua.widget.WidgetUpdater
 
 sealed interface SyncRunResult {
     data class Success(val outcome: SyncOutcome, val postedSchedules: Int) : SyncRunResult
@@ -77,6 +78,7 @@ class ActualSyncWorker(context: Context, parameters: WorkerParameters) : Corouti
                 is SyncRunResult.Success -> {
                     status.succeeded(run.outcome)
                     CreditCardDueNotificationScheduler.refresh(applicationContext)
+                    WidgetUpdater.requestAll(applicationContext)
                     Result.success()
                 }
                 SyncRunResult.NotConfigured -> { status.stoppedWithoutSync(); Result.success() }
