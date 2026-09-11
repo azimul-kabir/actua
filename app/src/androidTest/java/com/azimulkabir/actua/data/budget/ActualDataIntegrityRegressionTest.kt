@@ -133,7 +133,7 @@ class ActualDataIntegrityRegressionTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "integrity-${UUID.randomUUID()}.sqlite")
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
-            db.execSQL("CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT, offbudget INTEGER DEFAULT 0, closed INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0, type TEXT)")
+            db.execSQL("CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT, offbudget INTEGER DEFAULT 0, closed INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0, type TEXT, sort_order REAL)")
             db.execSQL("INSERT INTO accounts(id,name,type) VALUES ('checking','Checking','checking'),('savings','Savings','savings')")
             db.execSQL("CREATE TABLE categories (id TEXT PRIMARY KEY)")
             db.execSQL("CREATE TABLE category_groups (id TEXT PRIMARY KEY)")
