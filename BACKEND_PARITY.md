@@ -87,6 +87,14 @@ where an Android equivalent exists, Actua uses the native Android integration.
   transactions safely falling back to uncategorized
 - Account/category/group creation with Actual transfer-payee, opening-balance,
   mapping, duplicate-name, and sort-order behavior
+- Entity mutation core completed for account deletion, category-group deletion,
+  ordinary-payee deletion/merge, category reorder, and category-group reorder. All
+  writes use synced CRDT messages; payee merges redirect `payee_mapping` before
+  tombstoning source payees; account deletion tombstones its owned transfer payee;
+  transfer payees cannot be independently deleted or merged; group deletion
+  tombstones its categories before the group; and reorder uses Actual-compatible
+  shove sort orders. Destructive UI remains opt-in only where a safe confirmation
+  flow is present.
 - Category context actions for budget editing, month/all transaction lists,
   paired budget transfers/overspending coverage, and reversible hide/show
 - Android system-back integration for detail screens and bottom-tab history;
@@ -151,7 +159,6 @@ where an Android equivalent exists, Actua uses the native Android integration.
 
 ## Remaining version 1 work
 
-- Remaining entity deletion/merge/reorder mutations and Android action wiring
 - Full multi-automation editing, cleanup goals, and whole-budget template application
 - Local backup import picker
 
