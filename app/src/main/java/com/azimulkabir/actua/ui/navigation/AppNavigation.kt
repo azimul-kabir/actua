@@ -49,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -66,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
 import com.azimulkabir.actua.ui.budget.BudgetScreen
 import com.azimulkabir.actua.ui.settings.SettingsScreen
@@ -76,6 +78,7 @@ import com.azimulkabir.actua.ui.settings.SchedulesScreen
 import com.azimulkabir.actua.ui.settings.FindSchedulesScreen
 import com.azimulkabir.actua.ui.settings.BillsCalendarScreen
 import com.azimulkabir.actua.ui.settings.ImportTransactionsScreen
+import com.azimulkabir.actua.ui.settings.PayeeLocationsScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeSearchResult
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
@@ -88,6 +91,7 @@ import com.azimulkabir.actua.data.location.CurrentLocationResult
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 import com.azimulkabir.actua.data.notifications.CreditCardNotificationSettings
 import com.azimulkabir.actua.ui.components.BalanceVisibility
@@ -110,7 +114,7 @@ private enum class MainDestination(
     More("More", Icons.Outlined.MoreHoriz),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, BillsCalendar, FindSchedules, NewSchedule, EditSchedule }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -131,6 +135,8 @@ fun AppNavigation(
     onAppearanceChange: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val locationPreferences = remember { LocationPreferences(context) }
     val displayPreferences = remember { DisplayPreferences(context) }
     val creditCardNotificationSettings = remember { CreditCardNotificationSettings(context) }
     var creditCardNotificationsEnabled by remember {
@@ -584,6 +590,21 @@ fun AppNavigation(
                         )) {
                         dataVersion += 1
                         WidgetUpdater.requestAll(context)
+                        if (!wasEditing &&
+                            it.type != com.azimulkabir.actua.model.Type.TRANSFER &&
+                            it.payee.isNotBlank() &&
+                            locationPreferences.recordPayeeLocations &&
+                            repository.payeeLocationWritesSupported()
+                        ) {
+                            coroutineScope.launch {
+                                val location = AndroidLocationProvider(context).currentCoordinates()
+                                if (location is CurrentLocationResult.Success) {
+                                    withContext(Dispatchers.IO) {
+                                        repository.recordPayeeLocation(it.payee, location.coordinates)
+                                    }
+                                }
+                            }
+                        }
                         editingTransaction = null
                         if (editorReturnsToCategory) {
                             reopenBudgetCategory = transactionCategory
@@ -793,6 +814,24 @@ fun AppNavigation(
                 },
                 onDelete = { id ->
                     mutate("Deleting schedule") { repository.deleteSchedule(id) }
+                },
+                modifier = contentModifier,
+            )
+            DetailDestination.PayeeLocations -> PayeeLocationsScreen(
+                locations = remember(dataVersion) { repository.payeeLocations() },
+                writesSupported = repository.payeeLocationWritesSupported(),
+                onBack = { detail = DetailDestination.Main },
+                onDelete = { id ->
+                    if (mutate("Deleting payee location") { repository.deletePayeeLocation(id) }) {
+                        dataVersion += 1
+                    }
+                },
+                onClearPayee = { payeeId ->
+                    if (mutate("Clearing payee locations") {
+                            repository.clearPayeeLocations(payeeId) > 0
+                        }) {
+                        dataVersion += 1
+                    }
                 },
                 modifier = contentModifier,
             )
@@ -1193,6 +1232,7 @@ fun AppNavigation(
                     onRulesClick = { detail = DetailDestination.Rules },
                     onSchedulesClick = { detail = DetailDestination.Schedules },
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
+                    onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },
                     conventionalAmountEntry = conventionalAmountEntry,
                     onConventionalAmountEntryChange = {
                         displayPreferences.conventionalAmountEntry = it
