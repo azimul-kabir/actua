@@ -1,7 +1,7 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,8 +22,8 @@ class SettingsLocationPrivacyTest {
         }
 
         composeRule.onNodeWithText("Privacy").performClick()
-        composeRule.onNodeWithText("Location-aware payees").assertExists()
-        composeRule.onNodeWithText("Record payee locations").assertExists()
-        composeRule.onNodeWithText("Location permission: not granted").assertExists()
+        composeRule.onNodeWithText("Location-aware payees").assertIsDisplayed()
+        composeRule.onNodeWithText("Record payee locations").assertIsDisplayed()
+        composeRule.onNodeWithText("Location permission: not granted").assertIsDisplayed()
     }
 }
