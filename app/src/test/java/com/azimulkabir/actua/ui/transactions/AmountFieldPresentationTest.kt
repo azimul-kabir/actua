@@ -5,14 +5,25 @@ import org.junit.Test
 
 class AmountFieldPresentationTest {
     @Test
-    fun blankAmountRemainsEmptyAcrossCursorBlink() {
+    fun activeBlankAmountKeepsCaretSeparateFromPlaceholder() {
         val visibleCursor = amountFieldPresentation("৳", "", active = true, cursor = " │")
         val hiddenCursor = amountFieldPresentation("৳", "", active = true, cursor = "")
 
         assertEquals("", visibleCursor.value)
         assertEquals("", hiddenCursor.value)
-        assertEquals("Amount │", visibleCursor.placeholder)
-        assertEquals("Amount", hiddenCursor.placeholder)
+        assertEquals("", visibleCursor.placeholder)
+        assertEquals("", hiddenCursor.placeholder)
+        assertEquals(true, visibleCursor.showEmptyCaret)
+        assertEquals(true, hiddenCursor.showEmptyCaret)
+    }
+
+    @Test
+    fun inactiveBlankAmountUsesAPlainPlaceholder() {
+        val presentation = amountFieldPresentation("৳", "", active = false, cursor = "")
+
+        assertEquals("", presentation.value)
+        assertEquals("Amount", presentation.placeholder)
+        assertEquals(false, presentation.showEmptyCaret)
     }
 
     @Test
@@ -21,5 +32,6 @@ class AmountFieldPresentationTest {
 
         assertEquals("৳12.34 │", presentation.value)
         assertEquals("Amount", presentation.placeholder)
+        assertEquals(false, presentation.showEmptyCaret)
     }
 }
