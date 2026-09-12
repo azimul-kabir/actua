@@ -18,6 +18,7 @@ import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetHistory
 import com.azimulkabir.actua.model.BudgetTarget
+import com.azimulkabir.actua.model.BudgetAutomationDocument
 import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
@@ -339,6 +340,7 @@ class ActuaRepository(context: Context) {
                 .sortedBy { it.first().groupSortOrder }
                 .map { rows ->
                     BudgetGroup(rows.first().groupName, rows.sortedBy { it.categorySortOrder }.map {
+                        val automationDocument = BudgetAutomationDocument.decode(it.goalDef, it.templateSource)
                         BudgetCategory(
                             it.categoryName,
                             centsToDisplayUnits(it.budgetedCents),
@@ -356,8 +358,10 @@ class ActuaRepository(context: Context) {
                                     .firstOrNull { row -> row.categoryId == it.categoryId }
                                     ?.let { row -> BudgetHistory(historyMonth.month, row.budgetedCents, row.spentCents) }
                             },
-                            target = BudgetTarget.fromGoalDef(it.goalDef, it.templateSource),
-                            hasUnsupportedTarget = !it.goalDef.isNullOrBlank() && BudgetTarget.fromGoalDef(it.goalDef, it.templateSource) == null,
+                            target = automationDocument.supported.singleOrNull(),
+                            hasUnsupportedTarget = automationDocument.hasUnsupported,
+                            automations = automationDocument.supported,
+                            unsupportedAutomationTypes = automationDocument.unsupportedTypes,
                         )
                     }, hidden = rows.first().groupHidden)
                 }
@@ -748,6 +752,12 @@ class ActuaRepository(context: Context) {
     fun setCategoryTarget(categoryId: String, target: BudgetTarget?): Boolean {
         if (categoryId.isBlank()) return false
         actualEntities?.setCategoryTarget(categoryId, target?.toGoalDef()) ?: return false
+        return true
+    }
+
+    fun setCategoryAutomations(categoryId: String, targets: List<BudgetTarget>): Boolean {
+        if (categoryId.isBlank()) return false
+        actualEntities?.setCategoryTarget(categoryId, BudgetAutomationDocument.encode(targets)) ?: return false
         return true
     }
 

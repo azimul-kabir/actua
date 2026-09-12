@@ -139,8 +139,13 @@ object BudgetTemplatePlanner {
                     unsupported += "${group.name} · ${category.name}"
                     continue
                 }
-                val target = category.target ?: continue
-                val proposed = target.suggestedBudget(category, month)
+                val targets = category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
+                if (targets.isEmpty()) continue
+                if (targets.size > 1) {
+                    unsupported += "${group.name} · ${category.name}"
+                    continue
+                }
+                val proposed = targets.single().suggestedBudget(category, month)
                 if (proposed == category.assignedCents) {
                     unchanged++
                 } else {

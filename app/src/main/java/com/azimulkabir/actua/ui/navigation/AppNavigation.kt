@@ -920,10 +920,8 @@ fun AppNavigation(
                     onSetCategoryCarryover = { categoryId, enabled ->
                         mutate("Updating rollover") { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
                     },
-                    onSetCategoryTarget = { categoryId, target ->
-                        mutate(if (target == null) "Removing target" else "Saving target") {
-                            repository.setCategoryTarget(categoryId, target)
-                        }
+                    onSetCategoryAutomations = { categoryId, targets ->
+                        mutate("Saving automations") { repository.setCategoryAutomations(categoryId, targets) }
                     },
                     onApplyBudgetTemplate = { preview ->
                         mutate("Applying budget template") { repository.applyBudgetTemplate(preview) }

@@ -128,7 +128,8 @@ where an Android equivalent exists, Actua uses the native Android integration.
 - Actual-compatible UI-managed category targets for monthly spending, fixed monthly saving,
   save-by-date, refill-to-cap, weekly spending, and recent-spending averages; target-aware
   Auto Assign; preview-first whole-budget application of supported targets as one CRDT batch;
-  and safe read-only disclosure of advanced or notes-managed templates
+  multi-automation list editing and atomic `goal_def` replacement for fully supported UI-managed
+  definitions; and safe read-only disclosure of advanced or notes-managed templates
 - Account details with notes and working, cleared, uncleared, and reconciled balances
 - Full mobile account reconciliation with bank-balance comparison, difference display,
   uncleared-transaction review, optional cleared adjustment, and atomic CRDT locking
