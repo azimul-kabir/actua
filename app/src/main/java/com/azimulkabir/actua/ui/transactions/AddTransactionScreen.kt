@@ -219,15 +219,22 @@ fun AddTransactionScreen(
                 }
             }
             Box(Modifier.fillMaxWidth()) {
+                val amountInput = when {
+                    showCalculator && amountExpression != null -> amountExpression.orEmpty()
+                    amountCents == 0L -> ""
+                    else -> centsToInput(amountCents)
+                }
+                val amountPresentation = amountFieldPresentation(
+                    currencyPrefix = currencyPrefix,
+                    input = amountInput,
+                    active = showCalculator,
+                    cursor = blinkingCursor,
+                )
                 OutlinedTextField(
-                    value = "$currencyPrefix${when {
-                        showCalculator && amountExpression != null -> amountExpression.orEmpty()
-                        showCalculator && amountCents == 0L -> ""
-                        else -> centsToInput(amountCents)
-                    }}" +
-                        if (showCalculator) blinkingCursor else "",
+                    value = amountPresentation.value,
                     onValueChange = {}, readOnly = true,
-                    label = { Text("Amount") }, singleLine = true,
+                    placeholder = { Text(amountPresentation.placeholder) },
+                    singleLine = true,
                     trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
                     supportingText = { if (hideDecimalPlaces) Text("Decimal places are hidden in lists") },
                     modifier = Modifier.fillMaxWidth(),
@@ -348,17 +355,23 @@ fun AddTransactionScreen(
                                     },
                                 )
                                 Box(Modifier.fillMaxWidth()) {
+                                    val splitAmountInput = when {
+                                        splitCalculatorIndex == index && splitAmountExpression != null ->
+                                            splitAmountExpression.orEmpty()
+                                        line.amountCents == 0L -> ""
+                                        else -> centsToInput(line.amountCents)
+                                    }
+                                    val splitAmountPresentation = amountFieldPresentation(
+                                        currencyPrefix = currencyPrefix,
+                                        input = splitAmountInput,
+                                        active = splitCalculatorIndex == index,
+                                        cursor = blinkingCursor,
+                                    )
                                     OutlinedTextField(
-                                        value = "$currencyPrefix${when {
-                                            splitCalculatorIndex == index && splitAmountExpression != null ->
-                                                splitAmountExpression.orEmpty()
-                                            splitCalculatorIndex == index && line.amountCents == 0L -> ""
-                                            else -> centsToInput(line.amountCents)
-                                        }}" +
-                                            if (splitCalculatorIndex == index) blinkingCursor else "",
+                                        value = splitAmountPresentation.value,
                                         onValueChange = {},
                                         readOnly = true,
-                                        label = { Text("Amount") },
+                                        placeholder = { Text(splitAmountPresentation.placeholder) },
                                         singleLine = true,
                                         trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
                                         modifier = Modifier.fillMaxWidth(),
@@ -715,6 +728,28 @@ private fun SearchableTransactionPicker(
             }
         }
     }
+}
+
+internal data class AmountFieldPresentation(
+    val value: String,
+    val placeholder: String,
+)
+
+internal fun amountFieldPresentation(
+    currencyPrefix: String,
+    input: String,
+    active: Boolean,
+    cursor: String,
+): AmountFieldPresentation = if (input.isEmpty()) {
+    AmountFieldPresentation(
+        value = "",
+        placeholder = "Amount" + if (active) cursor else "",
+    )
+} else {
+    AmountFieldPresentation(
+        value = currencyPrefix + input + if (active) cursor else "",
+        placeholder = "Amount",
+    )
 }
 
 internal fun filterPickerOptions(options: List<String>, query: String): List<String> {
