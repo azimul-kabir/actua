@@ -46,10 +46,25 @@ object ForegroundLocationPermission {
 object LocationSamplePolicy {
     const val DEFAULT_MAX_ACCURACY_METERS = 500f
 
+    fun isUsable(
+        latitude: Double,
+        longitude: Double,
+        hasAccuracy: Boolean,
+        accuracyMeters: Float,
+        maxAccuracyMeters: Float = DEFAULT_MAX_ACCURACY_METERS,
+    ): Boolean =
+        hasAccuracy && accuracyMeters.isFinite() &&
+            accuracyMeters in 0f..maxAccuracyMeters &&
+            LocationUtils.isValid(latitude, longitude)
+
     fun isUsable(location: Location, maxAccuracyMeters: Float = DEFAULT_MAX_ACCURACY_METERS): Boolean =
-        location.hasAccuracy() && location.accuracy.isFinite() &&
-            location.accuracy in 0f..maxAccuracyMeters &&
-            LocationUtils.isValid(location.latitude, location.longitude)
+        isUsable(
+            latitude = location.latitude,
+            longitude = location.longitude,
+            hasAccuracy = location.hasAccuracy(),
+            accuracyMeters = location.accuracy,
+            maxAccuracyMeters = maxAccuracyMeters,
+        )
 }
 
 /**
