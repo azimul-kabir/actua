@@ -55,7 +55,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Scheduled Transactions list opens and status/date/amount alignment is correct.
 - [ ] Create/edit a recurring schedule and verify recurrence preview.
 - [ ] Exercise Post, Post today, Skip next date and linked-history/unlink flows on test data.
-- [ ] Bills calendar loads scheduled/card-bill entries and filters/actions work.
+- [ ] More → Automation exposes separate Bills & Calendar and Scheduled Transactions entries.
+- [ ] Bills & Calendar loads scheduled/card-bill entries and filters/actions work; Back returns to the correct origin.
 - [ ] Reports dashboard loads its saved ordering and representative report cards render without crashes.
 - [ ] Check Summary, Net Worth, Cash Flow, Spending and at least one advanced report card against known data.
 

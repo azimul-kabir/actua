@@ -81,6 +81,7 @@ fun SettingsScreen(
     showAccountsMonthlySummary: Boolean = true,
     onShowAccountsMonthlySummaryChange: (Boolean) -> Unit = {},
     onCreditCardsClick: () -> Unit = {},
+    onBillsCalendarClick: () -> Unit = {},
     onRulesClick: () -> Unit = {},
     onSchedulesClick: () -> Unit = {},
     onImportTransactionsClick: () -> Unit = {},
@@ -171,6 +172,9 @@ fun SettingsScreen(
                     openFullScreen(onConnectionClick)
                 }
                 SettingsSection("Automation")
+                SettingsRow("Bills & Calendar", "Upcoming schedules and credit-card due dates", true) {
+                    openFullScreen(onBillsCalendarClick)
+                }
                 SettingsRow("Rules", "Automatically categorize and transform transactions", true) {
                     openFullScreen(onRulesClick)
                 }

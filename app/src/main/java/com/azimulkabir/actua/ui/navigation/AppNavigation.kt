@@ -203,6 +203,7 @@ fun AppNavigation(
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var reconcileOpen by remember { mutableStateOf(false) }
     var scheduleReturnsToBills by rememberSaveable { mutableStateOf(false) }
+    var billsCalendarReturnsToSchedules by rememberSaveable { mutableStateOf(false) }
     var creditCardsReturnToBills by rememberSaveable { mutableStateOf(false) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
@@ -356,6 +357,10 @@ fun AppNavigation(
                 destination = MainDestination.Budget
                 editingTransaction = null
                 editorReturnsToCategory = false
+            }
+            detail == DetailDestination.BillsCalendar && billsCalendarReturnsToSchedules -> {
+                billsCalendarReturnsToSchedules = false
+                detail = DetailDestination.Schedules
             }
             detail == DetailDestination.EditTransaction && editorReturnsToTransactions -> {
                 detail = DetailDestination.Transactions
@@ -793,7 +798,10 @@ fun AppNavigation(
                     detail = DetailDestination.NewSchedule
                 },
                 onFind = { detail = DetailDestination.FindSchedules },
-                onCalendar = { detail = DetailDestination.BillsCalendar },
+                onCalendar = {
+                    billsCalendarReturnsToSchedules = true
+                    detail = DetailDestination.BillsCalendar
+                },
                 onEdit = { id ->
                     editingScheduleId = id
                     scheduleReturnsToBills = false
@@ -852,7 +860,14 @@ fun AppNavigation(
                 },
                 refreshKey = dataVersion,
                 hideDecimalPlaces = hideDecimalPlaces,
-                onBack = { detail = DetailDestination.Schedules },
+                onBack = {
+                    detail = if (billsCalendarReturnsToSchedules) {
+                        billsCalendarReturnsToSchedules = false
+                        DetailDestination.Schedules
+                    } else {
+                        DetailDestination.Main
+                    }
+                },
                 onAddSchedule = {
                     scheduleReturnsToBills = true
                     detail = DetailDestination.NewSchedule
@@ -1224,6 +1239,10 @@ fun AppNavigation(
                     onShowAccountsMonthlySummaryChange = {
                         displayPreferences.showAccountsMonthlySummary = it
                         showAccountsMonthlySummary = it
+                    },
+                    onBillsCalendarClick = {
+                        billsCalendarReturnsToSchedules = false
+                        detail = DetailDestination.BillsCalendar
                     },
                     onCreditCardsClick = {
                         creditCardsReturnToBills = false
