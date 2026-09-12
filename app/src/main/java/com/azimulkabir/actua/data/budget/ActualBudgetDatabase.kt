@@ -719,6 +719,8 @@ class ActualBudgetDatabase private constructor(
         val categoryId: String,
         val exists: Boolean,
         val amountCents: Long,
+        val goalCents: Long?,
+        val longGoal: Boolean,
     )
 
     @Synchronized
@@ -726,11 +728,13 @@ class ActualBudgetDatabase private constructor(
         val monthInt = parseMonth(month) ?: return null
         val table = budgetTable() ?: return null
         return database.rawQuery(
-            "SELECT id, amount FROM $table WHERE month = ? AND category = ?",
+            "SELECT id, amount, goal, long_goal FROM $table WHERE month = ? AND category = ?",
             arrayOf(monthInt.toString(), categoryId),
         ).use { cursor ->
-            if (cursor.moveToFirst()) BudgetCell(table, cursor.getString(0), monthInt, categoryId, true, cursor.longOrZero(1))
-            else BudgetCell(table, "$monthInt-$categoryId", monthInt, categoryId, false, 0)
+            if (cursor.moveToFirst()) BudgetCell(
+                table, cursor.getString(0), monthInt, categoryId, true, cursor.longOrZero(1),
+                if (cursor.isNull(2)) null else cursor.getLong(2), cursor.intOrZero(3) == 1,
+            ) else BudgetCell(table, "$monthInt-$categoryId", monthInt, categoryId, false, 0, null, false)
         }
     }
 

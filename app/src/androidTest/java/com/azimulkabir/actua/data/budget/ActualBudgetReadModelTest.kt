@@ -447,6 +447,30 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun templateBudgetAndGoalAreWrittenInOneMutationBatch() = withDatabase { database ->
+        var scheduledPushes = 0
+        val writer = ActualBudgetWriter(database, "acacacacacacacac", onWrite = { scheduledPushes++ })
+        writer.applyTemplate(
+            "2026-09",
+            mapOf("budgetcat" to 2_500L),
+            mapOf("budgetcat" to 2_000L),
+            mapOf("budgetcat" to 10_000L),
+            mapOf("budgetcat" to null),
+        )
+
+        val category = database.fetchBudgetMonth("2026-09").categories.single { it.categoryId == "budgetcat" }
+        assertEquals(2_500L, category.budgetedCents)
+        assertEquals(10_000L, category.goalCents)
+        assertTrue(category.longGoal)
+        assertEquals(1, scheduledPushes)
+        val messages = database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString())
+            .filter { it.dataset == "zero_budgets" && it.row == "custom-september-row" }
+        assertTrue(messages.any { it.column == "amount" })
+        assertTrue(messages.any { it.column == "goal" })
+        assertTrue(messages.any { it.column == "long_goal" })
+    }
+
+    @Test
     fun multiAutomationDefinitionAndSourceAreSavedInOneMutationBatch() = withDatabase { database ->
         var scheduledPushes = 0
         val goalDef = "[{\"type\":\"periodic\",\"directive\":\"template\",\"priority\":1,\"amount\":100,\"period\":{\"period\":\"month\",\"amount\":1}}]"

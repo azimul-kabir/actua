@@ -36,7 +36,9 @@ and its editor model is in
 ## Actua implementation boundary
 
 Actua currently reads and edits these exact UI-managed projections: monthly spending, fixed monthly
-saving, save-by-date, refill-to-cap, weekly spending, and recent-month average. The whole-budget
+saving, save-by-date, refill-to-cap, weekly spending, recent-month average, and goal-only balance
+targets. Goal-only rows update Actual's monthly `goal` and `long_goal` values without requesting
+budget funds. The whole-budget
 action now provides a read-only preview for these supported targets, identifies unchanged rows,
 shows the net budget change, and discloses categories with unsupported definitions. Confirming the
 preview writes all changed budget cells in one CRDT/database batch. A stale preview is rejected if
@@ -52,10 +54,12 @@ goals, applies refill caps, and clamps positive-priority contributions to availa
 priorities are preserved when an automation is edited and saved. The preview identifies categories
 whose requested contribution was limited before the user confirms the atomic write. Normal Apply
 leaves non-zero budget cells unchanged; the separately labelled Overwrite action returns their funds
-to the available pool and recalculates them, matching the upstream distinction.
+to the available pool and recalculates them, matching the upstream distinction. Budget amounts and
+goal values from one confirmation are stale-checked and committed in one synchronized CRDT batch;
+orphaned monthly goals are cleared after their definition is removed.
 
 The following upstream constructs are deliberately not executed yet: schedule funding, percentage
-sources, copy/history variants beyond recent average, remainder weighting, long-term goal-only rows,
-note parsing, and cleanup source/sink groups. Their
+sources, copy/history variants beyond recent average, remainder weighting, note parsing, and cleanup
+source/sink groups. Their
 stored definitions remain untouched and the preview names affected categories. Later #56 work must
 port their evaluation and validation fixtures before enabling writes or full multi-automation editing.

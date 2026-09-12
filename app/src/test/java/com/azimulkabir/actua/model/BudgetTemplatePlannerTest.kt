@@ -119,6 +119,37 @@ class BudgetTemplatePlannerTest {
         assertEquals(true, preview.overwriteExisting)
     }
 
+    @Test fun goalOnlyAutomationChangesGoalWithoutBudgetingFunds() {
+        val category = category("home", "Home", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.GOAL, 5_000_000),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category))), "2026-09")
+
+        assertEquals(emptyList<BudgetTemplateChange>(), preview.changes)
+        assertEquals(5_000_000L, preview.goalChanges.single().proposedCents)
+    }
+
+    @Test fun clearsAnOrphanedGoalAfterItsDefinitionIsRemoved() {
+        val category = category("home", "Home", assigned = 0, goal = 5_000_000, longGoal = true)
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category))), "2026-09")
+
+        assertEquals(null, preview.goalChanges.single().proposedCents)
+    }
+
+    @Test fun repeatedGoalApplicationIsANoOp() {
+        val category = category(
+            "home", "Home", assigned = 0,
+            automations = listOf(BudgetTarget(BudgetTarget.Type.GOAL, 5_000_000)),
+            goal = 5_000_000, longGoal = true,
+        )
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category))), "2026-09")
+
+        assertEquals(emptyList<BudgetGoalChange>(), preview.goalChanges)
+    }
+
     private fun category(
         id: String,
         name: String,
@@ -127,6 +158,8 @@ class BudgetTemplatePlannerTest {
         unsupported: Boolean = false,
         automations: List<BudgetTarget> = target?.let(::listOf).orEmpty(),
         carryover: Long = 0,
+        goal: Long? = null,
+        longGoal: Boolean = false,
     ) = BudgetCategory(
         name = name,
         assigned = (assigned / 100).toInt(),
@@ -137,5 +170,7 @@ class BudgetTemplatePlannerTest {
         hasUnsupportedTarget = unsupported,
         automations = automations,
         availableCents = carryover,
+        goalCents = goal,
+        longGoal = longGoal,
     )
 }
