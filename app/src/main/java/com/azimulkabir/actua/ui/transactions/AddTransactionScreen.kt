@@ -233,11 +233,16 @@ fun AddTransactionScreen(
                 OutlinedTextField(
                     value = amountPresentation.value,
                     onValueChange = {}, readOnly = true,
-                    placeholder = { Text(amountPresentation.placeholder) },
+                    placeholder = { if (amountPresentation.placeholder.isNotEmpty()) Text(amountPresentation.placeholder) },
                     singleLine = true,
                     trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
                     supportingText = { if (hideDecimalPlaces) Text("Decimal places are hidden in lists") },
                     modifier = Modifier.fillMaxWidth(),
+                )
+                EmptyAmountCaret(
+                    visible = amountPresentation.showEmptyCaret,
+                    alpha = cursorAlpha,
+                    modifier = Modifier.align(Alignment.TopStart).fillMaxWidth(),
                 )
                 Box(
                     Modifier.matchParentSize().pointerInput(Unit) {
@@ -371,10 +376,19 @@ fun AddTransactionScreen(
                                         value = splitAmountPresentation.value,
                                         onValueChange = {},
                                         readOnly = true,
-                                        placeholder = { Text(splitAmountPresentation.placeholder) },
+                                        placeholder = {
+                                            if (splitAmountPresentation.placeholder.isNotEmpty()) {
+                                                Text(splitAmountPresentation.placeholder)
+                                            }
+                                        },
                                         singleLine = true,
                                         trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
                                         modifier = Modifier.fillMaxWidth(),
+                                    )
+                                    EmptyAmountCaret(
+                                        visible = splitAmountPresentation.showEmptyCaret,
+                                        alpha = cursorAlpha,
+                                        modifier = Modifier.align(Alignment.TopStart).fillMaxWidth(),
                                     )
                                     Box(Modifier.matchParentSize().clickable {
                                         splitAmountExpression = null
@@ -733,6 +747,7 @@ private fun SearchableTransactionPicker(
 internal data class AmountFieldPresentation(
     val value: String,
     val placeholder: String,
+    val showEmptyCaret: Boolean,
 )
 
 internal fun amountFieldPresentation(
@@ -743,13 +758,30 @@ internal fun amountFieldPresentation(
 ): AmountFieldPresentation = if (input.isEmpty()) {
     AmountFieldPresentation(
         value = "",
-        placeholder = "Amount" + if (active) cursor else "",
+        placeholder = if (active) "" else "Amount",
+        showEmptyCaret = active,
     )
 } else {
     AmountFieldPresentation(
         value = currencyPrefix + input + if (active) cursor else "",
         placeholder = "Amount",
+        showEmptyCaret = false,
     )
+}
+
+@Composable
+private fun EmptyAmountCaret(
+    visible: Boolean,
+    alpha: Float,
+    modifier: Modifier = Modifier,
+) {
+    if (!visible) return
+    Box(
+        modifier = modifier.height(56.dp).padding(start = 16.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Text("│", color = MaterialTheme.colorScheme.primary.copy(alpha = alpha))
+    }
 }
 
 internal fun filterPickerOptions(options: List<String>, query: String): List<String> {
