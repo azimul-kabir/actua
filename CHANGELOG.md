@@ -6,6 +6,32 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.13] - 2026-09-12
+
+### Added
+
+- Added multi-automation category editing with explicit priority ordering for
+  supported UI-managed target definitions
+- Added goal-only balance targets that track a desired balance without
+  automatically assigning money
+- Added configurable date and number formatting under **More → Display**
+
+### Changed
+
+- Category automation evaluation now preserves priority order when several
+  supported definitions apply to the same category
+- Bottom navigation labels now remain on one line and automatically resize when
+  horizontal space or display scaling is constrained
+- Hiding bottom-navigation labels now switches to a compact 64 dp icon-only
+  content area while preserving the system bottom inset and accessible controls
+
+### Safety
+
+- Unknown and notes-managed automation definitions remain read-only and are not
+  overwritten by the category automation editor
+- Goal-only targets do not assign money during Auto-Assign or whole-budget
+  template application
+
 ## [1.0.0-beta.12] - 2026-09-11
 
 ### Added

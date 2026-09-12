@@ -8,8 +8,8 @@
 
 <br>
 
-<a href="https://github.com/azimul-kabir/actua/releases/download/v1.0.0-beta.12/Actua-v1.0.0-beta.12.apk"><img src="https://img.shields.io/badge/Download-APK-5969A6?style=for-the-badge&logo=android&logoColor=white" alt="Download Actua APK"></a>
-<a href="https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.12"><img src="https://img.shields.io/badge/Release-v1.0.0--beta.12-6F7DB7?style=for-the-badge" alt="Actua 1.0.0 beta 12 release"></a>
+<a href="https://github.com/azimul-kabir/actua/releases/download/v1.0.0-beta.13/Actua-v1.0.0-beta.13.apk"><img src="https://img.shields.io/badge/Download-APK-5969A6?style=for-the-badge&logo=android&logoColor=white" alt="Download Actua APK"></a>
+<a href="https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.13"><img src="https://img.shields.io/badge/Release-v1.0.0--beta.12-6F7DB7?style=for-the-badge" alt="Actua 1.0.0 beta 13 release"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-48506A?style=for-the-badge" alt="MIT License"></a>
 <a href="https://github.com/azimul-kabir/actua/issues/new/choose"><img src="https://img.shields.io/badge/Report-an_issue-48506A?style=for-the-badge&logo=github&logoColor=white" alt="Report an issue"></a>
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua"><img src="https://img.shields.io/badge/Get_it_on-Obtainium-5969A6?style=for-the-badge" alt="Get it on Obtainium"></a>
@@ -94,17 +94,18 @@ at full resolution.
 - Actual-synced report dashboard pages and widget order, with Summary, Net Worth,
   Cash Flow, Spending, Markdown, Age of Money, Formula, Custom Report, Calendar,
   Crossover, Budget Analysis, Sankey, Balance Forecast, and Monte Carlo widgets
-- Configurable display currency, decimals, appearance, start page, account summaries,
-  transaction grouping, and Material bottom-navigation labels
+- Configurable display currency, decimals, date and number formats, appearance, start page,
+  account summaries, transaction grouping, and responsive Material bottom-navigation labels
+  with a compact icon-only mode
 - Global search across transactions, accounts, payees, categories, notes, and transfers
 - Unified Material You category budgeting with synced targets, target-aware auto-assign, money movement, details, and recent activity
 - Preview-first whole-budget application for supported category targets, including multiple
   contributions, upstream priority order, refill caps and available-funds clamping, with atomic
   CRDT writes, separate safe Apply and explicit Overwrite actions, and disclosure of unsupported
   advanced automations
-- Multi-automation category editing for fully supported UI-managed targets, including goal-only
-  balance targets that do not automatically budget money, while unknown and notes-managed
-  definitions remain safely read-only
+- Multi-automation category editing with explicit priority ordering for fully supported
+  UI-managed targets, including goal-only balance targets that do not automatically budget
+  money, while unknown and notes-managed definitions remain safely read-only
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
 - Account-specific transaction entry, collapsible account summaries and notes, and configurable bottom navigation labels
 - Mobile account reconciliation with bank-balance comparison, uncleared review, adjustments, and cleared-transaction locking
@@ -156,7 +157,7 @@ While Actua remains in beta, confirm important edits have synchronized before de
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 1.0.0-beta.12](https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.12). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 1.0.0-beta.13](https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.13). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
 
 For unreleased branches and PRs, use **Actions → Build Test APK**. The resulting **Actua Test** APK uses `com.azimulkabir.actua.test`, installs beside normal Actua, and has separate Android local app data. It does not create a GitHub release, tag, Obtainium update, or Discord release notification. See [docs/TEST_APK.md](docs/TEST_APK.md).
 
