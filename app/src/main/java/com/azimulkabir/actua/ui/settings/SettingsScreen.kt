@@ -95,8 +95,22 @@ fun SettingsScreen(
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val locationPreferences = remember { LocationPreferences(context) }
-    var recordPayeeLocations by remember { mutableStateOf(locationPreferences.recordPayeeLocations) }
-    var locationPermissionGranted by remember { mutableStateOf(ForegroundLocationPermission.isGranted(context)) }
+    val initialLocationPermissionGranted = remember {
+        ForegroundLocationPermission.isGranted(context)
+    }
+    var locationPermissionGranted by remember {
+        mutableStateOf(initialLocationPermissionGranted)
+    }
+    var recordPayeeLocations by remember {
+        mutableStateOf(
+            locationPreferences.recordPayeeLocations && initialLocationPermissionGranted,
+        )
+    }
+    LaunchedEffect(initialLocationPermissionGranted) {
+        if (!initialLocationPermissionGranted && locationPreferences.recordPayeeLocations) {
+            locationPreferences.recordPayeeLocations = false
+        }
+    }
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
