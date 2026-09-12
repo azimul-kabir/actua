@@ -112,6 +112,7 @@ at full resolution.
   definitions remain safely read-only
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
 - Account-specific transaction entry, collapsible account summaries and notes, and configurable bottom navigation labels
+- A dedicated **Manage** bottom-tab hub for operational tools, with general preferences separated behind its Settings gear and legacy **More** start-page preferences migrated automatically
 - Mobile account reconciliation with bank-balance comparison, uncleared review, adjustments, and cleared-transaction locking
 - Material You motion for tab changes, detail navigation, searches, and expandable sections
 - Android-style per-tab navigation state, root reselect behavior, scroll-to-top actions, and contextual Back restoration
@@ -126,7 +127,7 @@ See [BACKEND_PARITY.md](BACKEND_PARITY.md) for the implementation boundary and d
 
 ## Demo budget
 
-Actua includes a built-in **Actua Demo Budget** for evaluating the app without connecting to an Actual server. Open **More → Connection & Data** and tap **Try demo budget**. When the demo is active, the same control becomes **Reset demo budget**, which recreates the sample data from the current Actua schema.
+Actua includes a built-in **Actua Demo Budget** for evaluating the app without connecting to an Actual server. Open **Manage → Connection & Data** and tap **Try demo budget**. When the demo is active, the same control becomes **Reset demo budget**, which recreates the sample data from the current Actua schema.
 
 The demo is a real local Actual-compatible SQLite budget, not a mocked UI. It includes checking, savings, credit-card and off-budget investment accounts; realistic transaction history; paired credit-card payment transfers; cleared, uncleared and reconciled states; several category target types; payee categorization rules; recurring scheduled transactions; notes; and dashboard report data. Normal Actua screens and write paths operate on it, so it can be edited and explored like any other downloaded budget.
 
@@ -153,7 +154,7 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 > [!CAUTION]
 > **Actua is beta/testing software and can write changes back to a synchronized Actual budget. Create an independent backup of your Actual budget before connecting or opening that budget in Actua.** Keep the backup outside Actua, using Actual's own backup/export process or another trusted backup method, so it remains available even if the phone, local database, app installation, or sync state is damaged.
 
-For the safest first look, use **More → Connection & Data → Try demo budget**. The demo is local-only, has no cloud registration, and is blocked from the server sync path.
+For the safest first look, use **Manage → Connection & Data → Try demo budget**. The demo is local-only, has no cloud registration, and is blocked from the server sync path.
 
 Actua also includes automatic local backups, retained backup history, restore, a one-tap pre-restore revert, per-archive export, optional folder mirroring, and live sync status. These are useful recovery layers, but **they are not a substitute for an independent backup created before testing Actua with an important budget**.
 
@@ -186,12 +187,12 @@ for normal in-place upgrades afterward.
 ./gradlew installDebug
 ```
 
-The app can then connect from **More → Connection & Data**. Enter the complete server URL and either use the server password or choose **Sign in with OpenID** when the Actual server has OpenID/OIDC enabled, then create a budget or choose an existing remote budget. OpenID authentication is completed in the browser and returns an Actual session token to Actua; identity-provider client secrets remain configured on the Actual server, not in the app. To explore Actua without a server, use **Try demo budget** on the same screen. The Backups manager can import and validate an exported archive without changing the active budget, export individual archives, and mirror retained backups to a persistent folder selected through Android's system picker. An imported backup is restored only after a separate confirmation, with the current budget preserved for one-tap revert.
+The app can then connect from **Manage → Connection & Data**. Enter the complete server URL and either use the server password or choose **Sign in with OpenID** when the Actual server has OpenID/OIDC enabled, then create a budget or choose an existing remote budget. OpenID authentication is completed in the browser and returns an Actual session token to Actua; identity-provider client secrets remain configured on the Actual server, not in the app. To explore Actua without a server, use **Try demo budget** on the same screen. The Backups manager can import and validate an exported archive without changing the active budget, export individual archives, and mirror retained backups to a persistent folder selected through Android's system picker. An imported backup is restored only after a separate confirmation, with the current budget preserved for one-tap revert.
 
 ## Location-aware payees
 
 Location-aware payees are optional and disabled by default. Enable recording under
-**More → Privacy → Record payee locations**, or use **Find nearby payees** from the
+**Manage → Settings → Privacy → Record payee locations**, or use **Find nearby payees** from the
 transaction payee picker for a one-time foreground lookup. Actua requests only
 while-in-use permission, rejects unavailable or inaccurate samples, uses a
 500-metre radius, and never performs background tracking or sends coordinates to
@@ -201,7 +202,7 @@ Coordinates are stored inside the active Actual budget as synchronized
 `payee_locations` rows. New normal transactions can record an eligible payee
 location when opt-in is enabled; transfers and blank payees are excluded, and
 locations within 500 metres of an existing location for the same payee are
-deduplicated. **More → Privacy → Payee Locations** lists saved coordinates and
+deduplicated. **Manage → Settings → Privacy → Payee Locations** lists saved coordinates and
 supports synchronized deletion of one location or all locations for a payee.
 Writes remain disabled if the required local Actual/CRDT schema cannot be verified.
 
