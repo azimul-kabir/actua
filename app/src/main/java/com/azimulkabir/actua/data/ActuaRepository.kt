@@ -362,6 +362,8 @@ class ActuaRepository(context: Context) {
                             hasUnsupportedTarget = automationDocument.hasUnsupported,
                             automations = automationDocument.supported,
                             unsupportedAutomationTypes = automationDocument.unsupportedTypes,
+                            goalCents = it.goalCents,
+                            longGoal = it.longGoal,
                         )
                     }, hidden = rows.first().groupHidden)
                 }
@@ -762,11 +764,13 @@ class ActuaRepository(context: Context) {
     }
 
     fun applyBudgetTemplate(preview: BudgetTemplatePreview): Boolean {
-        if (preview.changes.isEmpty()) return true
-        actualBudgets?.setAmounts(
+        if (preview.changes.isEmpty() && preview.goalChanges.isEmpty()) return true
+        actualBudgets?.applyTemplate(
             preview.month,
             preview.changes.associate { it.categoryId to it.proposedCents },
             preview.changes.associate { it.categoryId to it.currentCents },
+            preview.goalChanges.associate { it.categoryId to it.proposedCents },
+            preview.goalChanges.associate { it.categoryId to it.currentCents },
         ) ?: return false
         return true
     }

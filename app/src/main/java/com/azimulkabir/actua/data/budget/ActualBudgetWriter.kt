@@ -41,6 +41,52 @@ class ActualBudgetWriter(
         if (writes.isNotEmpty()) write(writes)
     }
 
+    /** Atomically writes the budget and goal parts of a confirmed automation preview. */
+    @Synchronized
+    fun applyTemplate(
+        month: String,
+        amounts: Map<String, Long>,
+        expectedAmounts: Map<String, Long>,
+        goals: Map<String, Long?>,
+        expectedGoals: Map<String, Long?>,
+    ) {
+        require(expectedAmounts.keys == amounts.keys)
+        require(expectedGoals.keys == goals.keys)
+        require((amounts.keys + goals.keys).none(String::isBlank))
+        val cells = (amounts.keys + goals.keys).associateWith { categoryId ->
+            database.budgetCell(month, categoryId) ?: error("Budget table is missing")
+        }
+        amounts.forEach { (id, _) -> require(cells.getValue(id).amountCents == expectedAmounts[id]) {
+            "The budget changed after this preview. Review the template again."
+        } }
+        goals.forEach { (id, _) -> require(cells.getValue(id).goalCents == expectedGoals[id]) {
+            "The goal changed after this preview. Review the template again."
+        } }
+        val messages = buildList {
+            cells.values.filterNot(ActualBudgetDatabase.BudgetCell::exists).forEach { cell ->
+                add(message(cell.table, cell.rowId, "month", cell.month))
+                add(message(cell.table, cell.rowId, "category", cell.categoryId))
+            }
+            amounts.forEach { (id, amount) ->
+                val cell = cells.getValue(id)
+                if (!cell.exists || cell.amountCents != amount) add(message(cell.table, cell.rowId, "amount", amount))
+            }
+            goals.forEach { (id, goal) ->
+                val cell = cells.getValue(id)
+                if (!cell.exists || cell.goalCents != goal || !cell.longGoal) {
+                    add(message(cell.table, cell.rowId, "goal", goal))
+                    add(message(cell.table, cell.rowId, "long_goal", goal?.let { 1 }))
+                }
+            }
+        }
+        if (messages.isEmpty()) return
+        database.applyLocalMessages(messages)
+        database.saveClock(ActualBudgetDatabase.ClockRecord(
+            clock.current().toString(), database.deriveMerkleFromMessageLog().root,
+        ))
+        onWrite()
+    }
+
     @Synchronized
     fun setCarryover(months: List<String>, categoryId: String, enabled: Boolean) {
         val messages = months.flatMap { month ->

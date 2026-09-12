@@ -18,6 +18,8 @@ data class BudgetCategory(
     val hasUnsupportedTarget: Boolean = false,
     val automations: List<BudgetTarget> = target?.let(::listOf).orEmpty(),
     val unsupportedAutomationTypes: List<String> = emptyList(),
+    val goalCents: Long? = null,
+    val longGoal: Boolean = false,
 ) {
     val available: Int get() = actualAvailable ?: assigned - spent
     val assignedCents: Long get() = actualAssignedCents ?: assigned.toLong() * 100

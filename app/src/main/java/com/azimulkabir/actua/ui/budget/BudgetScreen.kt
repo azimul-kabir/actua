@@ -1892,8 +1892,11 @@ private fun TargetDetailsCard(
                 BudgetTarget.Type.BY_DATE -> target.targetMonth?.let { "Target month ${formatMonth(it)}" }
                     ?: "Target date"
                 BudgetTarget.Type.AVERAGE -> "Recalculates every month"
+                BudgetTarget.Type.GOAL -> "Target only"
             }
-            supporting = "$timing · Auto-Assign ${formatMoneyCents(target.suggestedBudget(category, month), hideDecimalPlaces)}"
+            supporting = if (target.type == BudgetTarget.Type.GOAL) {
+                "$timing · Does not budget funds automatically"
+            } else "$timing · Auto-Assign ${formatMoneyCents(target.suggestedBudget(category, month), hideDecimalPlaces)}"
         }
     }
     Surface(onClick = onClick, color = MaterialTheme.colorScheme.surfaceContainer,
@@ -2038,6 +2041,7 @@ private fun TargetEditorSheet(
                         BudgetTarget.Type.WEEKLY_SPENDING -> "Every week"
                         BudgetTarget.Type.BY_DATE -> "On target date"
                         BudgetTarget.Type.AVERAGE -> "Recalculate monthly"
+                        BudgetTarget.Type.GOAL -> "Does not auto-budget"
                     }, fontWeight = FontWeight.SemiBold)
                 }
             }
@@ -2285,7 +2289,7 @@ private fun BudgetTemplatePreviewSheet(
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (preview.changes.isEmpty()) {
+            if (preview.changes.isEmpty() && preview.goalChanges.isEmpty()) {
                 Text(
                     if (preview.skippedExistingCount > 0) "No unbudgeted categories need changes."
                     else "All supported targets are already up to date.",
@@ -2308,6 +2312,20 @@ private fun BudgetTemplatePreviewSheet(
                 Row(Modifier.fillMaxWidth()) {
                     Text("Net change", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                     Text(formatMoneyCents(preview.netBudgetChangeCents, hideDecimalPlaces), fontWeight = FontWeight.SemiBold)
+                }
+            }
+            preview.goalChanges.forEach { change ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(change.categoryName, fontWeight = FontWeight.Medium)
+                        Text("${change.groupName} · Goal", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(
+                        "${change.currentCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "None"} → " +
+                            (change.proposedCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "None"),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             }
             if (preview.unchangedCount > 0) Text(
@@ -2336,7 +2354,8 @@ private fun BudgetTemplatePreviewSheet(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss) { Text("Cancel") }
-                Button(enabled = preview.changes.isNotEmpty(), onClick = { onApply(preview) }) { Text("Apply changes") }
+                Button(enabled = preview.changes.isNotEmpty() || preview.goalChanges.isNotEmpty(),
+                    onClick = { onApply(preview) }) { Text("Apply changes") }
             }
             Spacer(Modifier.height(16.dp))
         }

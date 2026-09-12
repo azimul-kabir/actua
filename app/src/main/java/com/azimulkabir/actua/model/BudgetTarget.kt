@@ -24,6 +24,7 @@ data class BudgetTarget(
         REFILL("Refill up to amount", "Top the category back up to a balance cap"),
         WEEKLY_SPENDING("Spend every week", "Budget this amount for each week in the month"),
         AVERAGE("Average recent spending", "Use the average of recent months"),
+        GOAL("Goal only", "Show a target balance without automatically budgeting money"),
     }
 
     fun suggestedBudget(category: BudgetCategory, month: String): Long {
@@ -50,6 +51,7 @@ data class BudgetTarget(
                 .map { kotlin.math.abs(minOf(it.spentCents, 0L)) }
             if (values.isEmpty()) 0L else (values.sum().toDouble() / values.size).toLong()
         }
+        Type.GOAL -> 0L
         }
     }
 
@@ -75,6 +77,9 @@ data class BudgetTarget(
                 .put("period", JSONObject().put("period", "week").put("amount", 1))
                 .put("starting", startingDate)
             Type.AVERAGE -> row.put("type", "average").put("numMonths", averageMonths.coerceIn(1, 24))
+            Type.GOAL -> return JSONArray().put(
+                JSONObject().put("directive", "goal").put("type", "goal").put("amount", units(amountCents)),
+            ).toString()
         }
         return JSONArray().put(row).toString()
     }
@@ -109,6 +114,8 @@ data class BudgetTarget(
                 "by" -> BudgetTarget(Type.BY_DATE, cents(), row.optString("month").ifBlank { null }, priority = priority)
                 "limit" -> BudgetTarget(Type.REFILL, cents(), priority = priority)
                 "average" -> BudgetTarget(Type.AVERAGE, averageMonths = row.optInt("numMonths", 3), priority = priority)
+                "goal" -> row.takeIf { it.optString("directive") == "goal" }
+                    ?.let { BudgetTarget(Type.GOAL, cents()) }
                 else -> null
             }
         }
@@ -125,6 +132,14 @@ data class BudgetTemplateChange(
     val proposedCents: Long,
 )
 
+data class BudgetGoalChange(
+    val groupName: String,
+    val categoryId: String,
+    val categoryName: String,
+    val currentCents: Long?,
+    val proposedCents: Long?,
+)
+
 data class BudgetTemplatePreview(
     val month: String,
     val changes: List<BudgetTemplateChange>,
@@ -133,6 +148,7 @@ data class BudgetTemplatePreview(
     val limitedCategories: List<String> = emptyList(),
     val skippedExistingCount: Int = 0,
     val overwriteExisting: Boolean = false,
+    val goalChanges: List<BudgetGoalChange> = emptyList(),
 ) {
     val netBudgetChangeCents: Long = changes.sumOf { it.proposedCents - it.currentCents }
 }
@@ -148,6 +164,7 @@ object BudgetTemplatePlanner {
         val changes = mutableListOf<BudgetTemplateChange>()
         val unsupported = mutableListOf<String>()
         val limited = mutableListOf<String>()
+        val goalChanges = mutableListOf<BudgetGoalChange>()
         var unchanged = 0
         var skippedExisting = 0
         val supported = groups.filterNot { it.isIncome || it.hidden }.flatMap { group ->
@@ -189,6 +206,13 @@ object BudgetTemplatePlanner {
                 continue
             }
             val targets = category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
+            val goal = targets.firstOrNull { it.type == BudgetTarget.Type.GOAL }?.amountCents
+            val goalChanged = goal != category.goalCents || goal != null && !category.longGoal
+            if (goalChanged && (targets.isEmpty() || overwriteExisting || category.assignedCents == 0L)) {
+                val id = category.id
+                if (id == null) unsupported += "${group.name} · ${category.name}"
+                else goalChanges += BudgetGoalChange(group.name, id, category.name, category.goalCents, goal)
+            }
             if (targets.isEmpty()) continue
             if (!overwriteExisting && category.assignedCents != 0L) continue
             val amount = proposed[category] ?: 0L
@@ -204,13 +228,15 @@ object BudgetTemplatePlanner {
         }
         return BudgetTemplatePreview(
             month, changes, unchanged, unsupported.distinct(), limited.distinct(),
-            skippedExisting, overwriteExisting,
+            skippedExisting, overwriteExisting, goalChanges,
         )
     }
 
     private fun requestedAtPriority(targets: List<BudgetTarget>, category: BudgetCategory, month: String): Long {
         val by = targets.filter { it.type == BudgetTarget.Type.BY_DATE }
-        val ordinary = targets.filterNot { it.type == BudgetTarget.Type.BY_DATE || it.type == BudgetTarget.Type.REFILL }
+        val ordinary = targets.filterNot {
+            it.type == BudgetTarget.Type.BY_DATE || it.type == BudgetTarget.Type.REFILL || it.type == BudgetTarget.Type.GOAL
+        }
             .sumOf { it.suggestedBudget(category, month) }
         val byAmount = if (by.isEmpty()) 0L else combinedByDate(by, category, month)
         val refill = targets.firstOrNull { it.type == BudgetTarget.Type.REFILL }

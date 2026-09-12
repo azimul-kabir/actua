@@ -72,6 +72,7 @@ data class BudgetAutomationDocument(
         fun validate(targets: List<BudgetTarget>): List<String> = buildList {
             if (targets.size > 20) add("A category can have at most 20 automations")
             if (targets.count { it.type == BudgetTarget.Type.REFILL } > 1) add("Only one refill automation is allowed")
+            if (targets.count { it.type == BudgetTarget.Type.GOAL } > 1) add("Only one goal-only automation is allowed")
             if (targets.any { it.priority < 0 }) add("Automation priority cannot be negative")
             if (targets.filter { it.type == BudgetTarget.Type.BY_DATE }.map(BudgetTarget::priority).distinct().size > 1) {
                 add("Date targets must use the same priority")

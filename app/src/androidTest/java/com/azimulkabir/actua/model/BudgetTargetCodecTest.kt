@@ -17,6 +17,7 @@ class BudgetTargetCodecTest {
             BudgetTarget(BudgetTarget.Type.REFILL, 50_000),
             BudgetTarget(BudgetTarget.Type.WEEKLY_SPENDING, 5_000, startingDate = "2026-09-01"),
             BudgetTarget(BudgetTarget.Type.AVERAGE, averageMonths = 6),
+            BudgetTarget(BudgetTarget.Type.GOAL, 5_000_000),
         )
         targets.forEach { target ->
             val encoded = target.toGoalDef()
