@@ -23,13 +23,14 @@ import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.CreditCardStatus
-import java.text.NumberFormat
+import com.azimulkabir.actua.ui.components.CurrencyDisplay
+import com.azimulkabir.actua.ui.components.DateDisplay
+import com.azimulkabir.actua.ui.components.NumberDisplay
+import com.azimulkabir.actua.ui.components.formatDate
+import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import java.util.Currency
 import java.util.concurrent.TimeUnit
 
 class CreditCardNotificationSettings(context: Context) {
@@ -159,12 +160,13 @@ private fun postNotification(context: Context, card: CreditCardStatus, dueDate: 
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
     val display = DisplayPreferences(context)
-    val amount = NumberFormat.getCurrencyInstance().apply {
-        runCatching { currency = Currency.getInstance(display.currencyCode) }
-        maximumFractionDigits = if (display.hideDecimalPlaces) 0 else currency.defaultFractionDigits
-    }.format(kotlin.math.abs(card.balanceCents) / 100.0)
-    val date = LocalDate.of(dueDate.year, dueDate.month, dueDate.day)
-        .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+    CurrencyDisplay.code = display.currencyCode
+    CurrencyDisplay.symbolOnly = display.currencySymbolOnly
+    NumberDisplay.format = display.numberFormat
+    DateDisplay.format = display.dateFormat
+    val amount = formatMoneyCents(kotlin.math.abs(card.balanceCents), display.hideDecimalPlaces,
+        respectBalanceVisibility = false)
+    val date = formatDate(LocalDate.of(dueDate.year, dueDate.month, dueDate.day))
     val whenText = if (offset == 1) "tomorrow" else "in $offset days"
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(R.drawable.actua_launcher_monochrome)

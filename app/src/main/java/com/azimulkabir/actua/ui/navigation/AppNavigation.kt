@@ -80,6 +80,8 @@ import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationSchedul
 import com.azimulkabir.actua.data.notifications.CreditCardNotificationSettings
 import com.azimulkabir.actua.ui.components.BalanceVisibility
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
+import com.azimulkabir.actua.ui.components.DateDisplay
+import com.azimulkabir.actua.ui.components.NumberDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.AppLaunchRequest
 import com.azimulkabir.actua.widget.WidgetActions
@@ -187,6 +189,8 @@ fun AppNavigation(
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
     var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
+    var dateFormat by remember { mutableStateOf(displayPreferences.dateFormat) }
+    var numberFormat by remember { mutableStateOf(displayPreferences.numberFormat) }
     var showHiddenCategories by remember { mutableStateOf(displayPreferences.showHiddenCategories) }
     var showSpentColumn by remember { mutableStateOf(displayPreferences.showSpentColumn) }
     var showBudgetProgressBars by remember { mutableStateOf(displayPreferences.showBudgetProgressBars) }
@@ -206,6 +210,8 @@ fun AppNavigation(
     BalanceVisibility.hidden = hideBalances
     CurrencyDisplay.code = currencyCode
     CurrencyDisplay.symbolOnly = currencySymbolOnly
+    DateDisplay.format = dateFormat
+    NumberDisplay.format = numberFormat
     val snackbarHostState = remember { SnackbarHostState() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -1052,6 +1058,17 @@ fun AppNavigation(
                     onCurrencySymbolOnlyChange = {
                         displayPreferences.currencySymbolOnly = it
                         currencySymbolOnly = it
+                        WidgetUpdater.requestAll(context)
+                    },
+                    dateFormat = dateFormat,
+                    onDateFormatChange = {
+                        displayPreferences.dateFormat = it
+                        dateFormat = it
+                    },
+                    numberFormat = numberFormat,
+                    onNumberFormatChange = {
+                        displayPreferences.numberFormat = it
+                        numberFormat = it
                         WidgetUpdater.requestAll(context)
                     },
                     hideBalances = hideBalances,

@@ -61,9 +61,8 @@ import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
 import com.azimulkabir.actua.data.schedules.ScheduledAmount
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.components.formatDate as formatDisplayDate
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -385,5 +384,5 @@ private fun formatScheduleAmount(item: ScheduleListItem, hideDecimals: Boolean):
 }
 
 private fun formatDate(day: DayDate?): String = day?.let {
-    LocalDate.of(it.year, it.month, it.day).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+    formatDisplayDate(LocalDate.of(it.year, it.month, it.day))
 } ?: "No next date"

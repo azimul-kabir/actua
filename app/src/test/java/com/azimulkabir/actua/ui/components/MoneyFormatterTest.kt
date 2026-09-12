@@ -9,6 +9,21 @@ class MoneyFormatterTest {
     @Before fun resetCurrency() {
         CurrencyDisplay.code = "BDT"
         CurrencyDisplay.symbolOnly = false
+        NumberDisplay.format = "1,234.56"
+    }
+
+    @Test fun supportsEuropeanAndSouthAsianGrouping() {
+        NumberDisplay.format = "1.234,56"
+        assertEquals("৳123.456,78", formatMoneyCents(12345678, false))
+        NumberDisplay.format = "1,23,456.78"
+        assertEquals("৳1,23,456.78", formatMoneyCents(12345678, false))
+    }
+
+    @Test fun supportsSpacesAndNoGrouping() {
+        NumberDisplay.format = "1 234,56"
+        assertEquals("৳123 456,78", formatMoneyCents(12345678, false))
+        NumberDisplay.format = "1234.56"
+        assertEquals("৳123456.78", formatMoneyCents(12345678, false))
     }
 
     @Test fun formatsExactCents() {
@@ -54,4 +69,5 @@ class MoneyFormatterTest {
         CurrencyDisplay.symbolOnly = false
         assertEquals("৳", currencyInputPrefix())
     }
+
 }

@@ -13,13 +13,12 @@ import com.azimulkabir.actua.MainActivity
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
-import java.text.NumberFormat
+import com.azimulkabir.actua.ui.components.CurrencyDisplay
+import com.azimulkabir.actua.ui.components.NumberDisplay
+import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Currency
-import java.util.Locale
 import java.util.concurrent.Executors
-import kotlin.math.absoluteValue
 
 object WidgetActions {
     const val BUDGET = "com.azimulkabir.actua.widget.BUDGET"
@@ -286,17 +285,10 @@ object WidgetUpdater {
 
     private fun money(context: Context, cents: Long): String {
         val preferences = DisplayPreferences(context)
-        if (preferences.hideBalances) return "••••"
-        val sign = if (cents < 0) "−" else ""
-        val magnitude = cents.absoluteValue
-        val whole = NumberFormat.getIntegerInstance(Locale.forLanguageTag("en-BD")).format(magnitude / 100)
-        val decimals = if (preferences.hideDecimalPlaces) "" else ".${(magnitude % 100).toString().padStart(2, '0')}"
-        val code = preferences.currencyCode
-        val prefix = when {
-            code.isBlank() -> ""
-            code == "BDT" -> "৳"
-            else -> runCatching { Currency.getInstance(code).getSymbol(Locale.getDefault()) }.getOrDefault(code)
-        }
-        return "$sign$prefix$whole$decimals"
+        CurrencyDisplay.code = preferences.currencyCode
+        CurrencyDisplay.symbolOnly = preferences.currencySymbolOnly
+        NumberDisplay.format = preferences.numberFormat
+        return formatMoneyCents(cents, preferences.hideDecimalPlaces,
+            respectBalanceVisibility = false).let { if (preferences.hideBalances) "••••" else it }
     }
 }
