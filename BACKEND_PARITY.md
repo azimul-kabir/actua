@@ -174,6 +174,10 @@ where an Android equivalent exists, Actua uses the native Android integration.
   Crossover, Budget Analysis, Sankey, Balance Forecast, and Monte Carlo cards
   with unknown future widget-type disclosure
 
+- Opt-in foreground-only location-aware payees: explicit picker lookup, 500-metre
+  ranking/deduplication, eligible new-transaction recording, Actual-compatible CRDT
+  storage, schema-gated writes, and synchronized individual/bulk management deletion
+
 ## Remaining version 1 work
 
 - Cleanup automation and remaining advanced whole-budget template evaluation;
@@ -189,7 +193,8 @@ where an Android equivalent exists, Actua uses the native Android integration.
   pipeline currently accepts local CSV statements)
 - General Android transaction notifications and new-transaction detection beyond
   the credit-card payment reminders already shipped
-- Location-backed payee suggestions
+- Broader place metadata or background geofencing beyond the shipped foreground-only,
+  opt-in 500-metre payee suggestions and synchronized location management
 
 ## Permanently excluded or replaced
 

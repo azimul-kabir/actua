@@ -181,6 +181,23 @@ class ActualBudgetDatabase private constructor(
 
     /** Complete, non-tombstoned rows only; partial CRDT rows remain safely invisible. */
     @Synchronized
+    fun payeeLocationWritesSupported(): Boolean {
+        val required = setOf("id", "payee_id", "latitude", "longitude", "created_at", "tombstone")
+        if (!hasTable("payee_locations") || !hasTable("messages_crdt")) return false
+        val locationColumns = mutableSetOf<String>()
+        database.rawQuery("PRAGMA table_info(payee_locations)", null).use { cursor ->
+            val name = cursor.getColumnIndexOrThrow("name")
+            while (cursor.moveToNext()) locationColumns += cursor.getString(name)
+        }
+        val messageColumns = mutableSetOf<String>()
+        database.rawQuery("PRAGMA table_info(messages_crdt)", null).use { cursor ->
+            val name = cursor.getColumnIndexOrThrow("name")
+            while (cursor.moveToNext()) messageColumns += cursor.getString(name)
+        }
+        return required.all(locationColumns::contains) &&
+            setOf("timestamp", "dataset", "row", "column", "value").all(messageColumns::contains)
+    }
+
     fun fetchPayeeLocations(payeeId: String? = null): List<PayeeLocation> {
         if (!hasTable("payee_locations")) return emptyList()
         val where = if (payeeId == null) "" else " AND payee_id = ?"

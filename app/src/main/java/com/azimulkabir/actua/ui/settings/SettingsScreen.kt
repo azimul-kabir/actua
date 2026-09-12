@@ -84,6 +84,7 @@ fun SettingsScreen(
     onRulesClick: () -> Unit = {},
     onSchedulesClick: () -> Unit = {},
     onImportTransactionsClick: () -> Unit = {},
+    onPayeeLocationsClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = true,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
     showBottomNavigationLabels: Boolean = true,
@@ -269,6 +270,11 @@ fun SettingsScreen(
                     recordPayeeLocations,
                     ::setRecordPayeeLocations,
                 )
+                SettingsRow(
+                    "Payee Locations",
+                    "Inspect or delete coordinates saved in this budget",
+                    true,
+                ) { openFullScreen(onPayeeLocationsClick) }
                 Text(
                     if (locationPermissionGranted) {
                         "Location permission: allowed while using the app"

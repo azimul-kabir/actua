@@ -14,6 +14,7 @@ import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.location.Coordinates
+import com.azimulkabir.actua.data.location.PayeeLocationWriter
 import com.azimulkabir.actua.data.importing.ImportDuplicateDetector
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
@@ -53,6 +54,15 @@ import com.azimulkabir.actua.data.schedules.BillsCalendarEngine
 import com.azimulkabir.actua.data.schedules.sortedForDisplay
 import com.azimulkabir.actua.widget.WidgetUpdater
 
+data class PayeeLocationSummary(
+    val id: String,
+    val payeeId: String,
+    val payeeName: String,
+    val latitude: Double,
+    val longitude: Double,
+    val createdAt: Long,
+)
+
 class ActuaRepository(context: Context) {
     private val appContext = context.applicationContext
     private val scheduleSync = {
@@ -71,6 +81,9 @@ class ActuaRepository(context: Context) {
     private val actualEntities = actualDatabase?.let { ActualEntityWriter(it, onWrite = scheduleSync) }
     private val actualBudgets = actualDatabase?.let { ActualBudgetWriter(it, onWrite = scheduleSync) }
     private val actualSchedules = actualDatabase?.let { ActualScheduleWriter(it, onWrite = scheduleSync) }
+    private val payeeLocationWriter = actualDatabase?.let {
+        PayeeLocationWriter(it, onWrite = scheduleSync)
+    }
     private val actualForms = actualDatabase?.let { db ->
         ActualTransactionFormService(db, requireNotNull(actualWriter))
     }
@@ -91,6 +104,42 @@ class ActuaRepository(context: Context) {
         ?.filter { it.transferAccountId == null && it.name != "Unknown" }
         ?.map { it.name }
         ?: emptyList()
+
+    fun payeeLocationWritesSupported(): Boolean =
+        actualDatabase?.payeeLocationWritesSupported() == true
+
+    fun payeeLocations(): List<PayeeLocationSummary> {
+        val database = actualDatabase ?: return emptyList()
+        val names = database.fetchPayees().associate { it.id to it.name }
+        return database.fetchPayeeLocations().mapNotNull { location ->
+            val name = names[location.payeeId]?.takeIf { it.isNotBlank() && it != "Unknown" }
+                ?: return@mapNotNull null
+            PayeeLocationSummary(
+                id = location.id,
+                payeeId = location.payeeId,
+                payeeName = name,
+                latitude = location.latitude,
+                longitude = location.longitude,
+                createdAt = location.createdAt,
+            )
+        }
+    }
+
+    fun recordPayeeLocation(payeeName: String, coordinates: Coordinates): Boolean {
+        val database = actualDatabase ?: return false
+        if (!database.payeeLocationWritesSupported()) return false
+        val payee = database.fetchPayees().firstOrNull {
+            it.transferAccountId == null && it.name == payeeName
+        } ?: return false
+        payeeLocationWriter?.record(payee.id, coordinates)
+        return true
+    }
+
+    fun deletePayeeLocation(locationId: String): Boolean =
+        payeeLocationWriter?.delete(locationId) == true
+
+    fun clearPayeeLocations(payeeId: String): Int =
+        payeeLocationWriter?.deleteAllForPayee(payeeId) ?: 0
 
     fun nearbyPayeeNames(coordinates: Coordinates): List<String> =
         actualDatabase?.fetchNearbyPayees(coordinates)
