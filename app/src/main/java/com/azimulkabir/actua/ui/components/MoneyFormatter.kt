@@ -14,6 +14,10 @@ object CurrencyDisplay {
     @Volatile var symbolOnly: Boolean = false
 }
 
+object NumberDisplay {
+    @Volatile var format: String = "System default"
+}
+
 fun formatMoneyCents(
     cents: Long,
     hideDecimalPlaces: Boolean,
@@ -27,9 +31,37 @@ fun formatMoneyCents(
         else -> ""
     }
     val magnitude = cents.absoluteValue
-    val whole = NumberFormat.getIntegerInstance(Locale.forLanguageTag("en-BD")).format(magnitude / 100)
-    val decimals = if (hideDecimalPlaces) "" else ".${(magnitude % 100).toString().padStart(2, '0')}"
+    val whole = formatWholeNumber(magnitude / 100, NumberDisplay.format)
+    val decimalSeparator = when (NumberDisplay.format) {
+        "1.234,56", "1 234,56" -> ","
+        else -> "."
+    }
+    val decimals = if (hideDecimalPlaces) "" else "$decimalSeparator${(magnitude % 100).toString().padStart(2, '0')}"
     return "$sign${currencyInputPrefix()}$whole$decimals"
+}
+
+internal fun formatWholeNumber(value: Long, format: String, locale: Locale = Locale.getDefault()): String = when (format) {
+    "1,234.56" -> grouped(value, 3, ",")
+    "1.234,56" -> grouped(value, 3, ".")
+    "1 234,56" -> grouped(value, 3, " ")
+    "1234.56" -> value.toString()
+    "1,23,456.78" -> grouped(value, 3, ",", secondarySize = 2)
+    else -> NumberFormat.getIntegerInstance(locale).format(value)
+}
+
+private fun grouped(value: Long, primarySize: Int, separator: String, secondarySize: Int = primarySize): String {
+    val digits = value.toString()
+    if (digits.length <= primarySize) return digits
+    val tail = digits.takeLast(primarySize)
+    val head = digits.dropLast(primarySize)
+    val groups = mutableListOf<String>()
+    var end = head.length
+    while (end > 0) {
+        val start = (end - secondarySize).coerceAtLeast(0)
+        groups += head.substring(start, end)
+        end = start
+    }
+    return groups.asReversed().plus(tail).joinToString(separator)
 }
 
 /** Currency prefix used by editable amount fields so they match the selected display currency. */

@@ -17,6 +17,14 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(CURRENCY_SYMBOL_ONLY, false)
         set(value) { preferences.edit().putBoolean(CURRENCY_SYMBOL_ONLY, value).apply() }
 
+    var dateFormat: String
+        get() = preferences.getString(DATE_FORMAT, "System default") ?: "System default"
+        set(value) { preferences.edit().putString(DATE_FORMAT, value).apply() }
+
+    var numberFormat: String
+        get() = preferences.getString(NUMBER_FORMAT, "System default") ?: "System default"
+        set(value) { preferences.edit().putString(NUMBER_FORMAT, value).apply() }
+
     var showHiddenCategories: Boolean
         get() = preferences.getBoolean(SHOW_HIDDEN_CATEGORIES, false)
         set(value) { preferences.edit().putBoolean(SHOW_HIDDEN_CATEGORIES, value).apply() }
@@ -91,6 +99,8 @@ class DisplayPreferences(context: Context) {
         const val HIDE_DECIMAL_PLACES = "hide_decimal_places"
         const val CURRENCY_CODE = "currency_code"
         const val CURRENCY_SYMBOL_ONLY = "currency_symbol_only"
+        const val DATE_FORMAT = "date_format"
+        const val NUMBER_FORMAT = "number_format"
         const val SHOW_HIDDEN_CATEGORIES = "show_hidden_categories"
         const val SHOW_SPENT_COLUMN = "show_spent_column"
         const val SHOW_BUDGET_PROGRESS_BARS = "show_budget_progress_bars"

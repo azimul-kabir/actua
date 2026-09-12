@@ -58,6 +58,10 @@ fun SettingsScreen(
     onCurrencyCodeChange: (String) -> Unit = {},
     currencySymbolOnly: Boolean = false,
     onCurrencySymbolOnlyChange: (Boolean) -> Unit = {},
+    dateFormat: String = "System default",
+    onDateFormatChange: (String) -> Unit = {},
+    numberFormat: String = "System default",
+    onNumberFormatChange: (String) -> Unit = {},
     hideBalances: Boolean = false,
     onHideBalancesChange: (Boolean) -> Unit = {},
     appearance: String = "System",
@@ -128,7 +132,7 @@ fun SettingsScreen(
                 SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists, account summaries and cards", true) {
                     page = SettingsPage.Transactions
                 }
-                SettingsRow("Display", "Currency, appearance, start page and decimals", true) { page = SettingsPage.Display }
+                SettingsRow("Display", "Currency, date, numbers, appearance and start page", true) { page = SettingsPage.Display }
                 SettingsRow("Privacy", "Control sensitive information on screen", true) { page = SettingsPage.Privacy }
                 SettingsSection("About")
                 SettingsRow("About Actua", "Version, project information, credits and license", true) {
@@ -161,6 +165,30 @@ fun SettingsScreen(
                 if (currencyCode.isNotBlank()) SettingsToggle("Symbol only",
                     "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
                     currencySymbolOnly, onCurrencySymbolOnlyChange)
+                SettingsChoice(
+                    "Date format",
+                    dateFormat,
+                    listOf("System default", "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"),
+                    onDateFormatChange,
+                )
+                Text(
+                    "Preview: ${datePreview(dateFormat)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+                SettingsChoice(
+                    "Number format",
+                    numberFormat,
+                    listOf("System default", "1,234.56", "1.234,56", "1 234,56", "1234.56", "1,23,456.78"),
+                    onNumberFormatChange,
+                )
+                Text(
+                    "Preview: ${numberPreview(numberFormat)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
                 SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
                 SettingsChoice(
                     "Start page",
@@ -229,6 +257,23 @@ fun SettingsScreen(
         }
     }
     }
+}
+
+private fun datePreview(format: String): String = when (format) {
+    "DD/MM/YYYY" -> "31/12/2026"
+    "MM/DD/YYYY" -> "12/31/2026"
+    "YYYY-MM-DD" -> "2026-12-31"
+    else -> java.time.LocalDate.of(2026, 12, 31)
+        .format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
+}
+
+private fun numberPreview(format: String): String = when (format) {
+    "1,234.56" -> "1,234.56"
+    "1.234,56" -> "1.234,56"
+    "1 234,56" -> "1 234,56"
+    "1234.56" -> "1234.56"
+    "1,23,456.78" -> "1,23,456.78"
+    else -> java.text.NumberFormat.getNumberInstance().format(1234.56)
 }
 
 @Composable
