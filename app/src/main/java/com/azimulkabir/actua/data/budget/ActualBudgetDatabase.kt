@@ -16,6 +16,10 @@ import com.azimulkabir.actua.data.sync.CrdtMessage
 import com.azimulkabir.actua.data.sync.CrdtValue
 import com.azimulkabir.actua.data.sync.HlcTimestamp
 import com.azimulkabir.actua.data.rules.Rule
+import com.azimulkabir.actua.data.location.Coordinates
+import com.azimulkabir.actua.data.location.LocationUtils
+import com.azimulkabir.actua.data.location.NearbyPayee
+import com.azimulkabir.actua.data.location.PayeeLocation
 import com.azimulkabir.actua.data.reports.DashboardPageRow
 import com.azimulkabir.actua.data.reports.DashboardWidgetRow
 import com.azimulkabir.actua.data.rules.RuleContext
@@ -173,6 +177,50 @@ class ActualBudgetDatabase private constructor(
         if (!cursor.moveToFirst()) null else ActualPayee(
             cursor.getString(0), cursor.stringOrNull(1) ?: "Unknown", cursor.stringOrNull(2),
         )
+    }
+
+    /** Complete, non-tombstoned rows only; partial CRDT rows remain safely invisible. */
+    @Synchronized
+    fun fetchPayeeLocations(payeeId: String? = null): List<PayeeLocation> {
+        if (!hasTable("payee_locations")) return emptyList()
+        val where = if (payeeId == null) "" else " AND payee_id = ?"
+        return database.rawQuery(
+            """SELECT id, payee_id, latitude, longitude, created_at, tombstone
+                FROM payee_locations
+                WHERE (tombstone = 0 OR tombstone IS NULL)
+                  AND payee_id IS NOT NULL AND latitude IS NOT NULL
+                  AND longitude IS NOT NULL AND created_at IS NOT NULL$where
+                ORDER BY created_at DESC""",
+            payeeId?.let { arrayOf(it) },
+        ).use { cursor -> buildList {
+            while (cursor.moveToNext()) {
+                val latitude = cursor.getDouble(2)
+                val longitude = cursor.getDouble(3)
+                if (!LocationUtils.isValid(latitude, longitude)) continue
+                add(PayeeLocation(cursor.getString(0), cursor.getString(1), latitude, longitude,
+                    cursor.getLong(4), cursor.intOrZero(5) == 1))
+            }
+        } }
+    }
+
+    /** Closest saved location per ordinary payee, ranked within Actual's default radius. */
+    @Synchronized
+    fun fetchNearbyPayees(
+        coordinates: Coordinates,
+        maxDistanceMeters: Double = LocationUtils.DEFAULT_MAX_DISTANCE_METERS,
+    ): List<NearbyPayee> {
+        require(maxDistanceMeters.isFinite() && maxDistanceMeters > 0) { "Maximum distance must be positive" }
+        val payees = fetchPayees().filter { it.transferAccountId == null }.associateBy(ActualPayee::id)
+        return fetchPayeeLocations().mapNotNull { location ->
+            val payee = payees[location.payeeId] ?: return@mapNotNull null
+            val distance = LocationUtils.distanceMeters(
+                coordinates, Coordinates(location.latitude, location.longitude),
+            )
+            if (distance <= maxDistanceMeters) NearbyPayee(payee, location, distance) else null
+        }.groupBy { it.payee.id }
+            .mapNotNull { (_, matches) -> matches.minByOrNull(NearbyPayee::distanceMeters) }
+            .sortedBy(NearbyPayee::distanceMeters)
+            .take(10)
     }
 
     @Synchronized
@@ -1262,6 +1310,18 @@ class ActualBudgetDatabase private constructor(
                 val applied = mutableSetOf<Long>()
                 database.rawQuery("SELECT id FROM __migrations__", null).use { cursor ->
                     while (cursor.moveToNext()) applied += cursor.getLong(0)
+                }
+                if (database.hasTable("payees")) {
+                    database.execSQL(
+                        """CREATE TABLE IF NOT EXISTS payee_locations (
+                            id TEXT PRIMARY KEY, payee_id TEXT, latitude REAL, longitude REAL,
+                            created_at INTEGER, tombstone INTEGER DEFAULT 0
+                        )""".trimIndent(),
+                    )
+                    database.execSQL("CREATE INDEX IF NOT EXISTS idx_payee_locations_payee_id ON payee_locations(payee_id)")
+                    database.execSQL("CREATE INDEX IF NOT EXISTS idx_payee_locations_tombstone_payee_created ON payee_locations(tombstone, payee_id, created_at)")
+                    database.execSQL("CREATE INDEX IF NOT EXISTS idx_payee_locations_geo_tombstone ON payee_locations(tombstone, latitude, longitude)")
+                    database.execSQL("INSERT OR IGNORE INTO __migrations__ (id) VALUES (1768872504000)")
                 }
                 val added = mutableListOf<Pair<String, String>>()
                 columnMigrations.filterNot { it.id in applied }.forEach { migration ->

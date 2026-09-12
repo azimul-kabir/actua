@@ -48,6 +48,9 @@ where an Android equivalent exists, Actua uses the native Android integration.
   high-water mark, preserving pending edits and Merkle-guided restart recovery
 - Actual schema migrations required by current Android reads
 - Accounts, payees, category groups/categories, transactions, transfers, splits
+- Actual-compatible payee-location schema migration, complete-row reads, nearby ranking,
+  500-metre deduplication, and CRDT create/delete mutation foundation; Android permission,
+  picker, transaction-recording, and management UI remain staged under issue #90
 - Source-independent transaction-import candidates with a local CSV statement source,
   review/edit/reject/bulk approval, normalized payee matching, malformed-row exclusion,
   same-account duplicate warnings, and batched Actual-compatible transaction writes
