@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
@@ -31,6 +34,7 @@ import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -57,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
@@ -384,7 +389,20 @@ fun AppNavigation(
             }
         },
         bottomBar = {
-            if (detail != DetailDestination.EditTransaction) NavigationBar {
+            if (detail != DetailDestination.EditTransaction) NavigationBar(
+                modifier = if (showBottomNavigationLabels) {
+                    Modifier
+                } else {
+                    Modifier
+                        .windowInsetsPadding(NavigationBarDefaults.windowInsets)
+                        .height(64.dp)
+                },
+                windowInsets = if (showBottomNavigationLabels) {
+                    NavigationBarDefaults.windowInsets
+                } else {
+                    WindowInsets(0, 0, 0, 0)
+                },
+            ) {
                 MainDestination.entries.forEach { item ->
                     NavigationBarItem(
                         selected = destination == item,
