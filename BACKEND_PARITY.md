@@ -13,12 +13,13 @@ and [LICENSE](LICENSE) for project scope and attribution.
 
 ## Version 1 boundary
 
-Version 1 is a solid, usable Android budgeting client: budget download/local
-storage, automatic and manual sync, backup/restore, accounts/categories/payees,
-budget amounts and transfers, transactions/transfers/splits, imported rules,
-scheduled transactions, category targets, mobile reconciliation, synced report
-dashboards, Android credit-card payment reminders, home-screen widgets, and
-launcher actions. Every action displayed in the release UI must work.
+Version 1 is a solid, usable Android budgeting client: password and OpenID/OIDC
+server authentication, budget download/local storage, automatic and manual sync,
+backup/restore, accounts/categories/payees, budget amounts and transfers,
+transactions/transfers/splits, imported rules, scheduled transactions, category
+targets, mobile reconciliation, synced report dashboards, Android credit-card
+payment reminders, home-screen widgets, and launcher actions. Every action
+displayed in the release UI must work.
 
 Features that still require substantial new financial semantics or external
 integrations remain outside the current version boundary, including full
@@ -30,8 +31,11 @@ where an Android equivalent exists, Actua uses the native Android integration.
 ## Ported and tested
 
 - Budget archive validation, import, download, active selection, and export
-- Password login and server file lifecycle endpoints, including Actual-compatible
-  blank-budget creation/upload and exact-name confirmed server deletion with local cleanup
+- Password and OpenID/OIDC login through Actual's `/account/login` flow, including explicit
+  login-method selection, browser authorization, a localhost-only callback listener,
+  Actual session-token capture, and preservation of password login on mixed-mode servers
+- Server file lifecycle endpoints, including Actual-compatible blank-budget creation/upload
+  and exact-name confirmed server deletion with local cleanup
 - Local-only demo-budget lifecycle with fixed `demo` identity, current-schema recreation,
   no cloud registration, explicit sync rejection, and Connection & Data launch/reset flow
 - Demo seed coverage for checking, savings, credit-card and off-budget investment accounts;
