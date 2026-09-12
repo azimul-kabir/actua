@@ -1,26 +1,8 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.TextButton
-import androidx.compose.foundation.layout.Box
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.tween
@@ -29,7 +11,27 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,10 +40,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
+import com.azimulkabir.actua.data.location.ForegroundLocationPermission
+import com.azimulkabir.actua.data.preferences.LocationPreferences
 
 private enum class SettingsPage(val title: String) {
     Main("More"), Transactions("Transactions & Accounts"),
@@ -87,7 +92,35 @@ fun SettingsScreen(
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
     returnToRootRequest: Int = 0,
 ) {
+    val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val locationPreferences = remember { LocationPreferences(context) }
+    var recordPayeeLocations by remember { mutableStateOf(locationPreferences.recordPayeeLocations) }
+    var locationPermissionGranted by remember { mutableStateOf(ForegroundLocationPermission.isGranted(context)) }
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        val granted = grants.values.any { it } || ForegroundLocationPermission.isGranted(context)
+        locationPermissionGranted = granted
+        locationPreferences.recordPayeeLocations = granted
+        recordPayeeLocations = granted
+    }
+
+    fun setRecordPayeeLocations(enabled: Boolean) {
+        if (!enabled) {
+            locationPreferences.recordPayeeLocations = false
+            recordPayeeLocations = false
+            return
+        }
+        if (ForegroundLocationPermission.isGranted(context)) {
+            locationPermissionGranted = true
+            locationPreferences.recordPayeeLocations = true
+            recordPayeeLocations = true
+        } else {
+            locationPermissionLauncher.launch(ForegroundLocationPermission.permissions)
+        }
+    }
+
     var page by rememberSaveable { mutableStateOf(SettingsPage.Main) }
     val scrollState = rememberScrollState()
     LaunchedEffect(returnToRootRequest) {
@@ -137,7 +170,7 @@ fun SettingsScreen(
                     page = SettingsPage.Transactions
                 }
                 SettingsRow("Display", "Currency, date, numbers, appearance and start page", true) { page = SettingsPage.Display }
-                SettingsRow("Privacy", "Control sensitive information on screen", true) { page = SettingsPage.Privacy }
+                SettingsRow("Privacy", "Balances and optional location-aware payee controls", true) { page = SettingsPage.Privacy }
                 SettingsSection("About")
                 SettingsRow("About Actua", "Version, project information, credits and license", true) {
                     page = SettingsPage.About
@@ -208,8 +241,31 @@ fun SettingsScreen(
                 SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
                     hideDecimalPlaces, onHideDecimalPlacesChange)
             }
-            SettingsPage.Privacy -> SettingsToggle("Hide balances", "Mask budget, account and transaction amounts",
-                hideBalances, onHideBalancesChange)
+            SettingsPage.Privacy -> {
+                SettingsToggle("Hide balances", "Mask budget, account and transaction amounts",
+                    hideBalances, onHideBalancesChange)
+                SettingsSection("Location-aware payees")
+                SettingsToggle(
+                    "Record payee locations",
+                    if (recordPayeeLocations && locationPermissionGranted) {
+                        "Use your location only while Actua is open to remember eligible payees nearby. Coordinates stay in your Actual budget and sync with it."
+                    } else {
+                        "Optional and off by default. Enabling asks for foreground location permission. No background tracking or third-party location service is used."
+                    },
+                    recordPayeeLocations,
+                    ::setRecordPayeeLocations,
+                )
+                Text(
+                    if (locationPermissionGranted) {
+                        "Location permission: allowed while using the app"
+                    } else {
+                        "Location permission: not granted"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
             SettingsPage.About -> {
                 ListItem(
                     headlineContent = { Text("Actua") },
