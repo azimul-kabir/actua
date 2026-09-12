@@ -111,7 +111,7 @@ private enum class MainDestination(
     Accounts("Accounts", Icons.Outlined.AccountBalanceWallet),
     Transactions("Transactions", Icons.Outlined.ReceiptLong),
     Reports("Reports", Icons.Outlined.BarChart),
-    More("More", Icons.Outlined.MoreHoriz),
+    Manage("Manage", Icons.Outlined.MoreHoriz),
 }
 
 private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule }
@@ -304,7 +304,7 @@ fun AppNavigation(
     LaunchedEffect(launchRequest?.nonce) {
         val request = launchRequest ?: return@LaunchedEffect
         if (!repository.isUsingActualBudget) {
-            destination = MainDestination.More
+            destination = MainDestination.Manage
             detail = DetailDestination.Connection
             onLaunchRequestConsumed()
             return@LaunchedEffect
@@ -426,8 +426,8 @@ fun AppNavigation(
                     NavigationBarItem(
                         selected = destination == item,
                         onClick = {
-                            if (item != MainDestination.More && !repository.isUsingActualBudget) {
-                                destination = MainDestination.More
+                            if (item != MainDestination.Manage && !repository.isUsingActualBudget) {
+                                destination = MainDestination.Manage
                                 detail = DetailDestination.Connection
                                 return@NavigationBarItem
                             }
@@ -969,9 +969,9 @@ fun AppNavigation(
                     modifier = contentModifier,
                 )
             } ?: run { detail = DetailDestination.Schedules }
-            DetailDestination.Main -> if (!repository.isUsingActualBudget && destination != MainDestination.More) {
+            DetailDestination.Main -> if (!repository.isUsingActualBudget && destination != MainDestination.Manage) {
                 NoBudgetScreen(contentModifier) {
-                    destination = MainDestination.More
+                    destination = MainDestination.Manage
                     detail = DetailDestination.Connection
                 }
             } else when (shownDestination) {
@@ -1175,7 +1175,7 @@ fun AppNavigation(
                 MainDestination.Reports -> ReportsScreen(reportSnapshot, hideDecimalPlaces, contentModifier,
                     onSearch = { detail = DetailDestination.Search },
                     scrollToTopRequest = rootRequests[MainDestination.Reports] ?: 0)
-                MainDestination.More -> SettingsScreen(
+                MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,
                     onConnectionClick = { detail = DetailDestination.Connection },
                     hideDecimalPlaces = hideDecimalPlaces,
@@ -1267,7 +1267,7 @@ fun AppNavigation(
                         displayPreferences.showCurrentBalanceSummary = it
                         showCurrentBalanceSummary = it
                     },
-                    returnToRootRequest = rootRequests[MainDestination.More] ?: 0,
+                    returnToRootRequest = rootRequests[MainDestination.Manage] ?: 0,
                 )
             }
         }
