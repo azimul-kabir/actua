@@ -12,6 +12,8 @@ import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.BudgetFileManager
+import com.azimulkabir.actua.data.importing.ImportCandidate
+import com.azimulkabir.actua.data.importing.ImportDuplicateDetector
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
@@ -515,6 +517,50 @@ class ActuaRepository(context: Context) {
             }
         }
         return emptyList()
+    }
+
+    fun importDuplicateKeys(accountId: String): Set<String> {
+        val db = actualDatabase ?: return emptySet()
+        return db.fetchTransactions(limit = Int.MAX_VALUE)
+            .asSequence()
+            .filter { it.accountId == accountId && !it.tombstone && !it.isParent }
+            .map { ImportDuplicateDetector.key(it.date, it.amountCents, it.payeeName ?: it.importedPayee.orEmpty()) }
+            .toSet()
+    }
+
+    /** Commits reviewed candidates together through the normal CRDT transaction writer. */
+    fun importTransactions(accountId: String, candidates: List<ImportCandidate>): Int {
+        if (candidates.isEmpty()) return 0
+        val db = actualDatabase ?: return 0
+        val writer = actualWriter ?: return 0
+        require(db.fetchAccounts().any { it.id == accountId && !it.closed }) { "That account is unavailable" }
+        val rows = candidates.map { candidate ->
+            val payeeId = writer.resolveOrCreatePayee(candidate.payee).id
+            ActualTransaction(
+                id = java.util.UUID.randomUUID().toString().lowercase(),
+                accountId = accountId,
+                date = candidate.date,
+                amountCents = candidate.amountCents,
+                payeeId = payeeId,
+                payeeName = null,
+                categoryId = null,
+                categoryName = null,
+                notes = listOfNotNull(candidate.notes.takeIf(String::isNotBlank), candidate.reference?.let { "Reference: $it" })
+                    .joinToString(" · ").takeIf(String::isNotBlank),
+                cleared = false,
+                reconciled = false,
+                transferId = null,
+                isParent = false,
+                parentId = null,
+                tombstone = false,
+                sortOrder = null,
+                importedPayee = candidate.payee,
+                scheduleId = null,
+                transferAccountId = null,
+            )
+        }
+        writer.mutate(inserts = rows)
+        return rows.size
     }
 
     fun reports(): ReportSnapshot {
