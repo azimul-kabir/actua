@@ -39,7 +39,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Add and edit a split transaction.
 - [ ] Payee search filters character-by-character across normal payees and transfer accounts.
 - [ ] Find nearby payees requests foreground permission only after explicit use and normal search remains available on denial/failure.
-- [ ] With recording enabled, save an ordinary transaction and verify its location appears under More → Privacy → Payee Locations.
+- [ ] With recording enabled, save an ordinary transaction and verify its location appears under Manage → Settings → Privacy → Payee Locations.
 - [ ] Verify transfer and blank payees never record a location and same-payee samples within 500 metres are deduplicated.
 - [ ] Delete one saved location, then clear all for a payee, sync, and verify the tombstones are reflected in Actual.
 - [ ] Global search finds transactions, accounts, payees, categories, notes and transfers.
@@ -55,7 +55,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Scheduled Transactions list opens and status/date/amount alignment is correct.
 - [ ] Create/edit a recurring schedule and verify recurrence preview.
 - [ ] Exercise Post, Post today, Skip next date and linked-history/unlink flows on test data.
-- [ ] More → Automation exposes separate Bills & Calendar and Scheduled Transactions entries.
+- [ ] Manage → Automation exposes separate Bills & Calendar and Scheduled Transactions entries.
 - [ ] Bills & Calendar loads scheduled/card-bill entries and filters/actions work; Back returns to the correct origin.
 - [ ] Reports dashboard loads its saved ordering and representative report cards render without crashes.
 - [ ] Check Summary, Net Worth, Cash Flow, Spending and at least one advanced report card against known data.
@@ -74,6 +74,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 
 ## UI and navigation
 
+- [ ] Bottom navigation labels the operational hub **Manage**; its Settings gear opens general preferences and Back returns to Manage.
+- [ ] An upgrade with **More** stored as the start page opens **Manage** and persists the migrated value.
 - [ ] Bottom navigation preserves per-tab state and root reselect/scroll-to-top behavior.
 - [ ] Android Back behaves correctly from details, search, preferences and transaction flows.
 - [ ] Add/edit transaction Save button, keypad and selectors remain usable with the software keyboard open.
