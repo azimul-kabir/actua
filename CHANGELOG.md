@@ -6,6 +6,27 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.14] - 2026-09-12
+
+### Added
+
+- Added OpenID Connect (OIDC) sign-in for Actual servers that use OpenID authentication
+- Added browser-based provider authorization with a temporary localhost callback that captures the resulting Actual session token
+
+### Changed
+
+- Password login now explicitly requests Actual's password login method so password and OpenID configurations remain compatible where the server permits both
+- Compact icon-only bottom navigation now uses one consistent background through the Android system bottom inset
+
+### Fixed
+
+- Blank transaction and split amount fields no longer shift layout when focused or when the custom cursor starts blinking
+
+### Safety
+
+- Identity-provider client IDs and secrets remain configured on the Actual server; Actua only receives the resulting Actual session token
+- OpenID callback listening is limited to localhost rather than being exposed to the LAN
+
 ## [1.0.0-beta.13] - 2026-09-12
 
 ### Added
