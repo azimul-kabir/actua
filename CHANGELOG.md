@@ -6,6 +6,17 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.15] - 2026-09-12
+
+### Fixed
+
+- Successful OpenID Connect sign-in now returns directly from the browser to Actua instead of leaving the user on a stale or expired OIDC interaction page
+
+### Safety
+
+- The Actual session token remains confined to the temporary localhost callback and is never included in the Actua deep link
+- Browsers that do not follow the automatic app redirect still receive a safe fallback page with a manual **Return to Actua** link
+
 ## [1.0.0-beta.14] - 2026-09-12
 
 ### Added
