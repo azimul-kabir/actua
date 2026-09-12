@@ -16,6 +16,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.outlined.PieChartOutline
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
@@ -394,9 +396,11 @@ fun AppNavigation(
                     Modifier
                 } else {
                     Modifier
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
                         .windowInsetsPadding(NavigationBarDefaults.windowInsets)
                         .height(64.dp)
                 },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 windowInsets = if (showBottomNavigationLabels) {
                     NavigationBarDefaults.windowInsets
                 } else {
