@@ -8,8 +8,8 @@
 
 <br>
 
-<a href="https://github.com/azimul-kabir/actua/releases/download/v1.0.0-beta.13/Actua-v1.0.0-beta.13.apk"><img src="https://img.shields.io/badge/Download-APK-5969A6?style=for-the-badge&logo=android&logoColor=white" alt="Download Actua APK"></a>
-<a href="https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.13"><img src="https://img.shields.io/badge/Release-v1.0.0--beta.12-6F7DB7?style=for-the-badge" alt="Actua 1.0.0 beta 13 release"></a>
+<a href="https://github.com/azimul-kabir/actua/releases/download/v1.0.0-beta.14/Actua-v1.0.0-beta.14.apk"><img src="https://img.shields.io/badge/Download-APK-5969A6?style=for-the-badge&logo=android&logoColor=white" alt="Download Actua APK"></a>
+<a href="https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.14"><img src="https://img.shields.io/badge/Release-v1.0.0--beta.14-6F7DB7?style=for-the-badge" alt="Actua 1.0.0 beta 14 release"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-48506A?style=for-the-badge" alt="MIT License"></a>
 <a href="https://github.com/azimul-kabir/actua/issues/new/choose"><img src="https://img.shields.io/badge/Report-an_issue-48506A?style=for-the-badge&logo=github&logoColor=white" alt="Report an issue"></a>
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua"><img src="https://img.shields.io/badge/Get_it_on-Obtainium-5969A6?style=for-the-badge" alt="Get it on Obtainium"></a>
@@ -65,7 +65,8 @@ at full resolution.
 
 ## Current functionality
 
-- Password connection to an Actual server plus budget creation, download, selection, and confirmed server deletion
+- Password and OpenID Connect (OIDC) connection to an Actual server, plus budget creation, download, selection, and confirmed server deletion
+- Browser-based OpenID sign-in through the Actual server, with a loopback callback that captures the resulting Actual session token without storing identity-provider client secrets in Actua
 - Offline local budget storage and encrypted CRDT synchronization
 - Local-only demo budget that can be opened without a server and reset at any time, with realistic accounts, six months of transactions, credit-card activity, transfer payments, reconciliation states, category targets, rules, scheduled transactions, notes, and report dashboard data
 - Automatic, foreground, post-mutation, and manual sync
@@ -141,7 +142,7 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 ## Requirements
 
 - Android 9 (API 28) or later
-- A reachable self-hosted Actual Budget server for synchronized real budgets; the built-in demo budget works without a server
+- A reachable self-hosted Actual Budget server for synchronized real budgets; password and Actual-managed OpenID/OIDC authentication are supported, while the built-in demo budget works without a server
 - Android Studio with JDK 11 or later for local builds
 
 ## Before testing with a real budget
@@ -157,7 +158,7 @@ While Actua remains in beta, confirm important edits have synchronized before de
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 1.0.0-beta.13](https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.13). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actua/releases). The current testing release is [Actua 1.0.0-beta.14](https://github.com/azimul-kabir/actua/releases/tag/v1.0.0-beta.14). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
 
 For unreleased branches and PRs, use **Actions → Build Test APK**. The resulting **Actua Test** APK uses `com.azimulkabir.actua.test`, installs beside normal Actua, and has separate Android local app data. It does not create a GitHub release, tag, Obtainium update, or Discord release notification. See [docs/TEST_APK.md](docs/TEST_APK.md).
 
@@ -182,7 +183,7 @@ for normal in-place upgrades afterward.
 ./gradlew installDebug
 ```
 
-The app can then connect from **More → Connection & Data**. Use the complete server URL and password, then create a budget or choose an existing remote budget. To explore Actua without a server, use **Try demo budget** on the same screen. The Backups manager can import and validate an exported archive without changing the active budget, export individual archives, and mirror retained backups to a persistent folder selected through Android's system picker. An imported backup is restored only after a separate confirmation, with the current budget preserved for one-tap revert.
+The app can then connect from **More → Connection & Data**. Enter the complete server URL and either use the server password or choose **Sign in with OpenID** when the Actual server has OpenID/OIDC enabled, then create a budget or choose an existing remote budget. OpenID authentication is completed in the browser and returns an Actual session token to Actua; identity-provider client secrets remain configured on the Actual server, not in the app. To explore Actua without a server, use **Try demo budget** on the same screen. The Backups manager can import and validate an exported archive without changing the active budget, export individual archives, and mirror retained backups to a persistent folder selected through Android's system picker. An imported backup is restored only after a separate confirmation, with the current budget preserved for one-tap revert.
 
 ## Architecture
 
