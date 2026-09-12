@@ -2256,8 +2256,8 @@ private fun AddBudgetSheet(onDismiss: () -> Unit, onNewCategory: () -> Unit, onN
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
             SheetAction("New category", onNewCategory)
             SheetAction("New category group", onNewGroup)
-            SheetAction("Apply budget templates") { onApplyTemplate(false) }
-            SheetAction("Overwrite budget templates") { onApplyTemplate(true) }
+            SheetAction("Apply budget templates", onClick = { onApplyTemplate(false) })
+            SheetAction("Overwrite budget templates", onClick = { onApplyTemplate(true) })
         }
     }
 }
