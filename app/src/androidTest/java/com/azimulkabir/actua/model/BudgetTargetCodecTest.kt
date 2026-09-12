@@ -18,12 +18,24 @@ class BudgetTargetCodecTest {
             BudgetTarget(BudgetTarget.Type.WEEKLY_SPENDING, 5_000, startingDate = "2026-09-01"),
             BudgetTarget(BudgetTarget.Type.AVERAGE, averageMonths = 6),
             BudgetTarget(BudgetTarget.Type.GOAL, 5_000_000),
+            BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 3),
         )
         targets.forEach { target ->
             val encoded = target.toGoalDef()
             assertNotNull(JSONArray(encoded))
             assertEquals(target, BudgetTarget.fromGoalDef(encoded, "ui"))
         }
+    }
+
+    @Test fun remainderWithAnEmbeddedLimitStaysReadOnly() {
+        val document = BudgetAutomationDocument.decode(
+            "[{\"directive\":\"template\",\"type\":\"remainder\",\"priority\":null,\"weight\":2,\"limit\":{\"amount\":100,\"period\":\"monthly\",\"hold\":true}}]",
+            "ui",
+        )
+
+        assertEquals(emptyList<BudgetTarget>(), document.supported)
+        assertEquals(listOf("remainder"), document.unsupportedTypes)
+        assertEquals(true, document.hasUnsupported)
     }
 
     @Test fun notesAndUnknownVisualTemplatesAreNotClaimedByEditor() {
