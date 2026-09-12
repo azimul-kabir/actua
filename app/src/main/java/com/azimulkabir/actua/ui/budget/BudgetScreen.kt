@@ -199,6 +199,7 @@ fun BudgetScreen(
     var settingTarget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var assignFromBudgetOpen by remember { mutableStateOf(false) }
     var templatePreviewOpen by remember { mutableStateOf(false) }
+    var overwriteTemplates by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(returnToRootRequest) {
@@ -393,11 +394,19 @@ fun BudgetScreen(
         AddBudgetSheet(onDismiss = { showAddSheet = false },
             onNewCategory = { showAddSheet = false; creatingCategory = true },
             onNewGroup = { showAddSheet = false; creatingGroup = true },
-            onApplyTemplate = { showAddSheet = false; templatePreviewOpen = true })
+            onApplyTemplate = { overwrite ->
+                showAddSheet = false
+                overwriteTemplates = overwrite
+                templatePreviewOpen = true
+            })
     }
     if (templatePreviewOpen) {
         BudgetTemplatePreviewSheet(
-            preview = remember(groups, month) { BudgetTemplatePlanner.preview(groups, month) },
+            preview = remember(groups, month, overview.toBudgetCents, overwriteTemplates) {
+                BudgetTemplatePlanner.preview(
+                    groups, month, overview.toBudgetCents ?: Long.MAX_VALUE, overwriteTemplates,
+                )
+            },
             hideDecimalPlaces = hideDecimalPlaces,
             onDismiss = { templatePreviewOpen = false },
             onApply = { preview -> onApplyBudgetTemplate(preview); templatePreviewOpen = false },
@@ -2055,6 +2064,7 @@ private fun TargetEditorSheet(
                             else -> null
                         },
                         averageMonths = averageMonths.toIntOrNull()?.coerceIn(1, 24) ?: 3,
+                        priority = category.target?.priority ?: 1,
                     ))
                 }, enabled = canSave) { Text("Save") }
             }
@@ -2239,14 +2249,15 @@ private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRenam
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddBudgetSheet(onDismiss: () -> Unit, onNewCategory: () -> Unit, onNewGroup: () -> Unit,
-    onApplyTemplate: () -> Unit) {
+    onApplyTemplate: (Boolean) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 28.dp)) {
             Text("Add to budget", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
             SheetAction("New category", onNewCategory)
             SheetAction("New category group", onNewGroup)
-            SheetAction("Apply budget template", onApplyTemplate)
+            SheetAction("Apply budget templates", onClick = { onApplyTemplate(false) })
+            SheetAction("Overwrite budget templates", onClick = { onApplyTemplate(true) })
         }
     }
 }
@@ -2267,11 +2278,18 @@ private fun BudgetTemplatePreviewSheet(
         ) {
             Text("Review budget template", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
-                "Nothing changes until you apply this preview. Supported targets will set the budgeted amount for ${formatMonth(preview.month)}.",
+                if (preview.overwriteExisting) {
+                    "Nothing changes until you confirm. Supported automations will recalculate existing budgeted amounts for ${formatMonth(preview.month)}."
+                } else {
+                    "Nothing changes until you apply this preview. Categories that already have a budgeted amount will stay unchanged."
+                },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (preview.changes.isEmpty()) {
-                Text("All supported targets are already up to date.")
+                Text(
+                    if (preview.skippedExistingCount > 0) "No unbudgeted categories need changes."
+                    else "All supported targets are already up to date.",
+                )
             } else {
                 preview.changes.forEach { change ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -2297,11 +2315,23 @@ private fun BudgetTemplatePreviewSheet(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (preview.skippedExistingCount > 0) Text(
+                "${preview.skippedExistingCount} already-budgeted ${if (preview.skippedExistingCount == 1) "category was" else "categories were"} left unchanged.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             if (preview.unsupportedCategories.isNotEmpty()) {
                 Text(
                     "Not applied because these categories use automation types Actua cannot safely evaluate yet: ${preview.unsupportedCategories.joinToString()}.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (preview.limitedCategories.isNotEmpty()) {
+                Text(
+                    "Available funds limited: ${preview.limitedCategories.joinToString()}. Higher-priority automations were funded first.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
                 )
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {

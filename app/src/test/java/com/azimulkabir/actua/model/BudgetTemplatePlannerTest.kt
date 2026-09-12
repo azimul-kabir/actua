@@ -15,7 +15,7 @@ class BudgetTemplatePlannerTest {
             category("advanced", "Advanced", assigned = 0, unsupported = true),
         )))
 
-        val preview = BudgetTemplatePlanner.preview(groups, "2026-09")
+        val preview = BudgetTemplatePlanner.preview(groups, "2026-09", overwriteExisting = true)
 
         assertEquals(1, preview.changes.size)
         assertEquals("rent", preview.changes.single().categoryId)
@@ -28,17 +28,95 @@ class BudgetTemplatePlannerTest {
         val original = category("rent", "Rent", assigned = 80_000, target = BudgetTarget(
             BudgetTarget.Type.MONTHLY_SAVINGS, 100_000,
         ))
-        val first = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Living", listOf(original))), "2026-09")
+        val first = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Living", listOf(original))), "2026-09", overwriteExisting = true,
+        )
         val applied = category(
             "rent", "Rent", first.changes.single().proposedCents,
             BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 100_000),
         )
 
-        val second = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Living", listOf(applied))), "2026-09")
+        val second = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Living", listOf(applied))), "2026-09", overwriteExisting = true,
+        )
 
         assertEquals(emptyList<BudgetTemplateChange>(), second.changes)
         assertEquals(1, second.unchangedCount)
         assertEquals(0, second.netBudgetChangeCents)
+    }
+
+    @Test fun combinesSupportedAutomationsAndDeductsCarryoverOnceForByDateTargets() {
+        val targets = listOf(
+            BudgetTarget(BudgetTarget.Type.BY_DATE, 60_000, targetMonth = "2026-10"),
+            BudgetTarget(BudgetTarget.Type.BY_DATE, 90_000, targetMonth = "2026-11"),
+        )
+        val category = category("trip", "Trip", assigned = 0, automations = targets, carryover = 30_000)
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category))), "2026-09")
+
+        // Actual batches sibling `by` rows. The shorter window is two months:
+        // (60,000 + 60,000 interpolated - 30,000 carryover) / 2 = 45,000.
+        assertEquals(45_000, preview.changes.single().proposedCents)
+        assertEquals(emptyList<String>(), preview.unsupportedCategories)
+    }
+
+    @Test fun refillCapsOtherContributionsInTheSameCategory() {
+        val targets = listOf(
+            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 80_000),
+            BudgetTarget(BudgetTarget.Type.REFILL, 100_000),
+        )
+        val category = category("buffer", "Buffer", assigned = 0, automations = targets, carryover = 25_000)
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category))), "2026-09")
+
+        assertEquals(75_000, preview.changes.single().proposedCents)
+    }
+
+    @Test fun fundsHigherPrioritiesFirstAndReportsAvailableFundsClamp() {
+        val first = category("rent", "Rent", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 80_000, priority = 1),
+        ))
+        val second = category("fun", "Fun", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 50_000, priority = 2),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Living", listOf(first, second))),
+            "2026-09",
+            availableBudgetCents = 100_000,
+        )
+
+        assertEquals(listOf(80_000L, 20_000L), preview.changes.map { it.proposedCents })
+        assertEquals(listOf("Living · Fun"), preview.limitedCategories)
+    }
+
+    @Test fun normalApplyLeavesExistingBudgetAmountsUntouched() {
+        val category = category("rent", "Rent", assigned = 80_000, target = BudgetTarget(
+            BudgetTarget.Type.MONTHLY_SAVINGS, 100_000,
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Living", listOf(category))), "2026-09")
+
+        assertEquals(emptyList<BudgetTemplateChange>(), preview.changes)
+        assertEquals(1, preview.skippedExistingCount)
+        assertEquals(false, preview.overwriteExisting)
+    }
+
+    @Test fun overwriteReturnsExistingTemplateFundsBeforeRecalculation() {
+        val category = category("rent", "Rent", assigned = 80_000, target = BudgetTarget(
+            BudgetTarget.Type.MONTHLY_SAVINGS, 100_000,
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Living", listOf(category))),
+            "2026-09",
+            availableBudgetCents = 20_000,
+            overwriteExisting = true,
+        )
+
+        assertEquals(100_000, preview.changes.single().proposedCents)
+        assertEquals(emptyList<String>(), preview.limitedCategories)
+        assertEquals(true, preview.overwriteExisting)
     }
 
     private fun category(
@@ -47,6 +125,8 @@ class BudgetTemplatePlannerTest {
         assigned: Long,
         target: BudgetTarget? = null,
         unsupported: Boolean = false,
+        automations: List<BudgetTarget> = target?.let(::listOf).orEmpty(),
+        carryover: Long = 0,
     ) = BudgetCategory(
         name = name,
         assigned = (assigned / 100).toInt(),
@@ -55,5 +135,7 @@ class BudgetTemplatePlannerTest {
         id = id,
         target = target,
         hasUnsupportedTarget = unsupported,
+        automations = automations,
+        availableCents = carryover,
     )
 }
