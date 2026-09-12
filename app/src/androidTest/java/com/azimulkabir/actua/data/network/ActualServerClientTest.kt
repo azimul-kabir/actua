@@ -9,6 +9,44 @@ import org.junit.Test
 
 class ActualServerClientTest {
     @Test
+    fun passwordLoginExplicitlyRequestsPasswordMethod() {
+        val transport = RecordingTransport {
+            ActualHttpResponse(200, """{"status":"ok","data":{"token":"token-1"}}""".encodeToByteArray())
+        }
+
+        val token = ActualServerClient(transport).login("https://actual.test", "secret")
+
+        assertEquals("token-1", token)
+        assertEquals("/account/login", transport.last.url.path)
+        assertEquals("POST", transport.last.method)
+        val body = transport.last.body!!.decodeToString()
+        assertTrue(body.contains("\"loginMethod\":\"password\""))
+        assertTrue(body.contains("\"password\":\"secret\""))
+    }
+
+    @Test
+    fun openIdLoginRequestsOpenIdAndReturnsAuthorizationUrl() {
+        val transport = RecordingTransport {
+            ActualHttpResponse(
+                200,
+                """{"status":"ok","data":{"returnUrl":"https://idp.test/authorize?state=abc"}}""".encodeToByteArray(),
+            )
+        }
+
+        val authorizationUrl = ActualServerClient(transport).startOpenIdLogin(
+            "https://actual.test",
+            "http://localhost:43210",
+            "server-password",
+        )
+
+        assertEquals("https://idp.test/authorize?state=abc", authorizationUrl)
+        val body = transport.last.body!!.decodeToString()
+        assertTrue(body.contains("\"loginMethod\":\"openid\""))
+        assertTrue(body.contains("\"returnUrl\":\"http://localhost:43210\""))
+        assertTrue(body.contains("\"password\":\"server-password\""))
+    }
+
+    @Test
     fun listFilesFiltersDeletedBudgetsAndReadsEncryption() {
         val transport = RecordingTransport {
             ActualHttpResponse(
