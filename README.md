@@ -188,6 +188,23 @@ for normal in-place upgrades afterward.
 
 The app can then connect from **More → Connection & Data**. Enter the complete server URL and either use the server password or choose **Sign in with OpenID** when the Actual server has OpenID/OIDC enabled, then create a budget or choose an existing remote budget. OpenID authentication is completed in the browser and returns an Actual session token to Actua; identity-provider client secrets remain configured on the Actual server, not in the app. To explore Actua without a server, use **Try demo budget** on the same screen. The Backups manager can import and validate an exported archive without changing the active budget, export individual archives, and mirror retained backups to a persistent folder selected through Android's system picker. An imported backup is restored only after a separate confirmation, with the current budget preserved for one-tap revert.
 
+## Location-aware payees
+
+Location-aware payees are optional and disabled by default. Enable recording under
+**More → Privacy → Record payee locations**, or use **Find nearby payees** from the
+transaction payee picker for a one-time foreground lookup. Actua requests only
+while-in-use permission, rejects unavailable or inaccurate samples, uses a
+500-metre radius, and never performs background tracking or sends coordinates to
+a third-party location service.
+
+Coordinates are stored inside the active Actual budget as synchronized
+`payee_locations` rows. New normal transactions can record an eligible payee
+location when opt-in is enabled; transfers and blank payees are excluded, and
+locations within 500 metres of an existing location for the same payee are
+deduplicated. **More → Privacy → Payee Locations** lists saved coordinates and
+supports synchronized deletion of one location or all locations for a payee.
+Writes remain disabled if the required local Actual/CRDT schema cannot be verified.
+
 ## Architecture
 
 ```text
