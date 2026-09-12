@@ -135,8 +135,9 @@ where an Android equivalent exists, Actua uses the native Android integration.
   order with multi-contribution, refill-cap and available-funds handling, safe Apply versus
   explicit Overwrite behavior, and one CRDT mutation batch;
   multi-automation list editing and atomic `goal_def` replacement for fully supported UI-managed
-  definitions; goal-only balance targets with atomic budget/goal writes; and safe read-only
-  disclosure of advanced or notes-managed templates
+  definitions; goal-only balance targets with atomic budget/goal writes; weighted remainder
+  distribution after ordinary priorities; and safe read-only disclosure of advanced or
+  notes-managed templates
 - Account details with notes and working, cleared, uncleared, and reconciled balances
 - Full mobile account reconciliation with bank-balance comparison, difference display,
   uncleared-transaction review, optional cleared adjustment, and atomic CRDT locking
@@ -169,7 +170,7 @@ where an Android equivalent exists, Actua uses the native Android integration.
 
 ## Remaining version 1 work
 
-- Cleanup automation and advanced whole-budget template evaluation;
+- Cleanup automation and remaining advanced whole-budget template evaluation;
   see [the audited behavior and staged boundary](docs/BUDGET_AUTOMATION_PARITY.md)
 
 ## Post-v1 portable features
