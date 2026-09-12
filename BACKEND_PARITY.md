@@ -92,6 +92,8 @@ where an Android equivalent exists, Actua uses the native Android integration.
   payee deduplication, create-form projection, and selectable Find Schedules UI
 - Dedicated **Bills & Calendar** Automation destination, reusing the monthly recurring/card-bill
   calendar, due-date projection, paid-transaction matching, status totals, filters and safe schedule actions
+- **Manage** bottom-tab hub for Automation, transaction/data tools and financial setup, with
+  general preferences behind a Settings gear and automatic migration of legacy More start-page values
 - Account, category, and category-group rename/close/hide long-press actions
   wired through CRDT mutations and immediate UI refresh
 - Category deletion through Actual-compatible tombstone mutations, with existing
