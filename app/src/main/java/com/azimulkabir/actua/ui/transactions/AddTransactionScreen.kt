@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.transactions
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +21,10 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
@@ -46,6 +50,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -56,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +69,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.SplitLine
 import com.azimulkabir.actua.model.Type
@@ -75,6 +82,7 @@ import com.azimulkabir.actua.ui.components.storageDate
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,6 +104,7 @@ fun AddTransactionScreen(
     hideDecimalPlaces: Boolean = false,
     conventionalAmountEntry: Boolean = false,
     onResolveRuleCategory: (Transaction) -> String? = { null },
+    onFindNearbyPayees: (suspend () -> NearbyPayeeSearchResult)? = null,
 ) {
     var amountCents by remember(editing) { mutableStateOf(abs(editing?.amountCents ?: 0L)) }
     var showCalculator by remember { mutableStateOf(false) }
@@ -285,7 +294,9 @@ fun AddTransactionScreen(
                                 cleared = cleared,
                             ),
                         )?.let { category = it }
-                    }, allowCustom = true,
+                    },
+                    allowCustom = true,
+                    onFindNearby = onFindNearbyPayees,
                 )
             }
             if (transactionType != Type.TRANSFER.displayName && !isSplit && !isOffBudget) {
@@ -578,6 +589,7 @@ internal fun PickerTextField(
     onValueChange: (String) -> Unit,
     allowCustom: Boolean = false,
     supportingValues: Map<String, String> = emptyMap(),
+    onFindNearby: (suspend () -> NearbyPayeeSearchResult)? = null,
 ) {
     var showPicker by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxWidth()) {
@@ -597,6 +609,7 @@ internal fun PickerTextField(
         options = options,
         allowCustom = allowCustom,
         supportingValues = supportingValues,
+        onFindNearby = onFindNearby,
         onDismiss = { showPicker = false },
         onSelect = {
             onValueChange(it)
@@ -612,12 +625,45 @@ private fun SearchableTransactionPicker(
     options: List<String>,
     allowCustom: Boolean,
     supportingValues: Map<String, String>,
+    onFindNearby: (suspend () -> NearbyPayeeSearchResult)?,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var nearbyLoading by remember { mutableStateOf(false) }
+    var nearbyOptions by remember { mutableStateOf(emptyList<String>()) }
+    var nearbyMessage by remember { mutableStateOf<String?>(null) }
+    val loadNearby = {
+        onFindNearby?.let { findNearby ->
+            coroutineScope.launch {
+                nearbyLoading = true
+                nearbyMessage = null
+                val result = runCatching { findNearby() }.getOrElse {
+                    NearbyPayeeSearchResult(
+                        message = "Could not determine nearby payees. You can still search normally.",
+                    )
+                }
+                nearbyOptions = result.payees
+                nearbyMessage = result.message
+                nearbyLoading = false
+            }
+        }
+        Unit
+    }
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        if (grants.values.any { it } || ForegroundLocationPermission.isGranted(context)) {
+            loadNearby()
+        } else {
+            nearbyOptions = emptyList()
+            nearbyMessage = "Location permission was not granted. You can still search normally."
+        }
+    }
     val uniqueOptions = remember(options) { options.distinct() }
     val searchResults = remember(query, uniqueOptions) { filterPickerOptions(uniqueOptions, query) }
     val transferOptions = alphabetizePickerOptions(
@@ -678,6 +724,55 @@ private fun SearchableTransactionPicker(
                                 listOf(selected), selected, supportingValues = supportingValues,
                                 onSelect = onSelect,
                             )
+                        }
+                    }
+                    if (query.isBlank() && onFindNearby != null) {
+                        item { PickerSectionLabel("Nearby") }
+                        item {
+                            FilledTonalButton(
+                                onClick = {
+                                    keyboard?.hide()
+                                    if (ForegroundLocationPermission.isGranted(context)) {
+                                        loadNearby()
+                                    } else {
+                                        locationPermissionLauncher.launch(
+                                            ForegroundLocationPermission.permissions,
+                                        )
+                                    }
+                                },
+                                enabled = !nearbyLoading,
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(16.dp),
+                            ) {
+                                if (nearbyLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.height(22.dp),
+                                        strokeWidth = 2.dp,
+                                    )
+                                } else {
+                                    Icon(Icons.Outlined.LocationOn, contentDescription = null)
+                                    Text("Find nearby payees", modifier = Modifier.padding(start = 8.dp))
+                                }
+                            }
+                        }
+                        if (nearbyOptions.isNotEmpty()) {
+                            item {
+                                PickerGroup(
+                                    options = nearbyOptions,
+                                    selected = selected,
+                                    onSelect = onSelect,
+                                )
+                            }
+                        }
+                        nearbyMessage?.let { message ->
+                            item {
+                                Text(
+                                    message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
+                                )
+                            }
                         }
                     }
                     if (query.isNotBlank() && searchResults.isNotEmpty()) {
@@ -743,6 +838,11 @@ private fun SearchableTransactionPicker(
         }
     }
 }
+
+data class NearbyPayeeSearchResult(
+    val payees: List<String> = emptyList(),
+    val message: String? = null,
+)
 
 internal data class AmountFieldPresentation(
     val value: String,

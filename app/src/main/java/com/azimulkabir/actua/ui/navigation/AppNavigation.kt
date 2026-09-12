@@ -77,11 +77,14 @@ import com.azimulkabir.actua.ui.settings.FindSchedulesScreen
 import com.azimulkabir.actua.ui.settings.BillsCalendarScreen
 import com.azimulkabir.actua.ui.settings.ImportTransactionsScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
+import com.azimulkabir.actua.ui.transactions.NearbyPayeeSearchResult
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.data.ActuaRepository
+import com.azimulkabir.actua.data.location.AndroidLocationProvider
+import com.azimulkabir.actua.data.location.CurrentLocationResult
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
@@ -634,6 +637,38 @@ fun AppNavigation(
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,
                     onResolveRuleCategory = repository::ruleCategoryFor,
+                    onFindNearbyPayees = {
+                        when (val location = AndroidLocationProvider(context).currentCoordinates()) {
+                            is CurrentLocationResult.Success -> {
+                                val nearby = withContext(Dispatchers.IO) {
+                                    repository.nearbyPayeeNames(location.coordinates)
+                                }
+                                NearbyPayeeSearchResult(
+                                    payees = nearby,
+                                    message = if (nearby.isEmpty()) {
+                                        "No saved payee locations were found within 500 metres."
+                                    } else {
+                                        null
+                                    },
+                                )
+                            }
+                            CurrentLocationResult.PermissionDenied -> NearbyPayeeSearchResult(
+                                message = "Location permission was not granted. You can still search normally.",
+                            )
+                            CurrentLocationResult.ServicesDisabled -> NearbyPayeeSearchResult(
+                                message = "Turn on device location to find nearby payees.",
+                            )
+                            CurrentLocationResult.Timeout -> NearbyPayeeSearchResult(
+                                message = "Location timed out. Try again or search normally.",
+                            )
+                            CurrentLocationResult.Unavailable -> NearbyPayeeSearchResult(
+                                message = "Your current location is unavailable. You can still search normally.",
+                            )
+                            is CurrentLocationResult.Inaccurate -> NearbyPayeeSearchResult(
+                                message = "Location accuracy is too low. Try again or search normally.",
+                            )
+                        }
+                    },
             )
             DetailDestination.Search -> GlobalSearchScreen(
                 transactions = filteredTransactions,
