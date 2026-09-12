@@ -6,6 +6,29 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.16] - 2026-09-12
+
+### Added
+
+- Added review-first CSV bank-statement import with editable candidates, malformed-row exclusion, duplicate warnings, and batched transaction creation
+- Added opt-in foreground-only location-aware payee suggestions, eligible transaction recording, 500-metre deduplication, and synchronized location management
+- Added a dedicated **Bills & Calendar** destination for scheduled transactions and configured credit-card due dates
+- Added weighted remainder category automations that distribute Ready to Budget after higher-priority targets
+
+### Changed
+
+- Replaced the **More** bottom tab with a task-focused **Manage** hub for Automation, transaction/data tools, and financial setup
+- Moved general preferences behind the Settings gear in Manage and automatically migrate an existing **More** start-page preference to **Manage**
+
+### Fixed
+
+- Blank transaction amount fields no longer shift when focused or while their caret blinks
+
+### Safety
+
+- Location recording is disabled by default, requests foreground permission only after explicit use, never tracks in the background, and stores coordinates in the synchronized Actual budget
+- CSV imports require review and approval before writing transactions and warn about likely same-account duplicates
+
 ## [1.0.0-beta.15] - 2026-09-12
 
 ### Fixed
