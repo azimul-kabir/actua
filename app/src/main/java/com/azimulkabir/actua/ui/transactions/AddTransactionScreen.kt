@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.transactions
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -66,6 +69,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.SplitLine
 import com.azimulkabir.actua.model.Type
@@ -628,10 +632,38 @@ private fun SearchableTransactionPicker(
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var nearbyLoading by remember { mutableStateOf(false) }
     var nearbyOptions by remember { mutableStateOf(emptyList<String>()) }
     var nearbyMessage by remember { mutableStateOf<String?>(null) }
+    val loadNearby = {
+        onFindNearby?.let { findNearby ->
+            coroutineScope.launch {
+                nearbyLoading = true
+                nearbyMessage = null
+                val result = runCatching { findNearby() }.getOrElse {
+                    NearbyPayeeSearchResult(
+                        message = "Could not determine nearby payees. You can still search normally.",
+                    )
+                }
+                nearbyOptions = result.payees
+                nearbyMessage = result.message
+                nearbyLoading = false
+            }
+        }
+        Unit
+    }
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        if (grants.values.any { it } || ForegroundLocationPermission.isGranted(context)) {
+            loadNearby()
+        } else {
+            nearbyOptions = emptyList()
+            nearbyMessage = "Location permission was not granted. You can still search normally."
+        }
+    }
     val uniqueOptions = remember(options) { options.distinct() }
     val searchResults = remember(query, uniqueOptions) { filterPickerOptions(uniqueOptions, query) }
     val transferOptions = alphabetizePickerOptions(
@@ -699,17 +731,13 @@ private fun SearchableTransactionPicker(
                         item {
                             FilledTonalButton(
                                 onClick = {
-                                    coroutineScope.launch {
-                                        nearbyLoading = true
-                                        nearbyMessage = null
-                                        val result = runCatching { onFindNearby() }.getOrElse {
-                                            NearbyPayeeSearchResult(
-                                                message = "Could not determine nearby payees. You can still search normally.",
-                                            )
-                                        }
-                                        nearbyOptions = result.payees
-                                        nearbyMessage = result.message
-                                        nearbyLoading = false
+                                    keyboard?.hide()
+                                    if (ForegroundLocationPermission.isGranted(context)) {
+                                        loadNearby()
+                                    } else {
+                                        locationPermissionLauncher.launch(
+                                            ForegroundLocationPermission.permissions,
+                                        )
                                     }
                                 },
                                 enabled = !nearbyLoading,
