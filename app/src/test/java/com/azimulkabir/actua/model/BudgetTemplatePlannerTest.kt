@@ -150,6 +150,56 @@ class BudgetTemplatePlannerTest {
         assertEquals(emptyList<BudgetGoalChange>(), preview.goalChanges)
     }
 
+    @Test fun distributesRemainingFundsByWeightAfterPriorities() {
+        val fixed = category("rent", "Rent", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 60_000),
+        ))
+        val first = category("fun", "Fun", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1),
+        ))
+        val second = category("saving", "Saving", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 3),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(fixed, first, second))),
+            "2026-09",
+            availableBudgetCents = 100_000,
+        )
+
+        assertEquals(listOf(60_000L, 10_000L, 30_000L), preview.changes.map { it.proposedCents })
+        assertEquals(100_000L, preview.changes.sumOf { it.proposedCents })
+    }
+
+    @Test fun remainderRoundingAllocatesEveryAvailableCent() {
+        val categories = (1..3).map { index ->
+            category("c$index", "Category $index", assigned = 0, automations = listOf(
+                BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1),
+            ))
+        }
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", categories)), "2026-09", availableBudgetCents = 100,
+        )
+
+        assertEquals(listOf(33L, 33L, 34L), preview.changes.map { it.proposedCents })
+        assertEquals(100L, preview.netBudgetChangeCents)
+    }
+
+    @Test fun repeatedRemainderOverwriteIsANoOp() {
+        val category = category("saving", "Saving", assigned = 100_000, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(category))), "2026-09",
+            availableBudgetCents = 0, overwriteExisting = true,
+        )
+
+        assertEquals(emptyList<BudgetTemplateChange>(), preview.changes)
+        assertEquals(1, preview.unchangedCount)
+    }
+
     private fun category(
         id: String,
         name: String,
