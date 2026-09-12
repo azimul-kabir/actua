@@ -20,6 +20,7 @@ class PayeeLocationWriter(
 
     @Synchronized
     fun record(payeeId: String, coordinates: Coordinates): PayeeLocation? {
+        if (!database.payeeLocationWritesSupported()) return null
         require(payeeId.isNotBlank())
         require(database.fetchPayees().any { it.id == payeeId && it.transferAccountId == null }) {
             "Location requires an ordinary payee"
@@ -38,9 +39,19 @@ class PayeeLocationWriter(
 
     @Synchronized
     fun delete(locationId: String): Boolean {
+        if (!database.payeeLocationWritesSupported()) return false
         if (database.fetchPayeeLocations().none { it.id == locationId }) return false
         persist(listOf(message(locationId, "tombstone", 1)))
         return true
+    }
+
+    @Synchronized
+    fun deleteAllForPayee(payeeId: String): Int {
+        if (!database.payeeLocationWritesSupported()) return 0
+        val locations = database.fetchPayeeLocations(payeeId)
+        if (locations.isEmpty()) return 0
+        persist(locations.map { message(it.id, "tombstone", 1) })
+        return locations.size
     }
 
     private fun message(row: String, column: String, value: Any?) =
