@@ -42,12 +42,7 @@ class OidcCallbackServer : Closeable {
                 val target = requestLine.split(' ').getOrNull(1).orEmpty()
                 val token = tokenFromTarget(target)
                 if (token != null) {
-                    writeResponse(
-                        client,
-                        200,
-                        "Sign-in complete",
-                        "You are signed in to Actua. You can close this tab and return to the app.",
-                    )
+                    writeAppRedirect(client)
                     return token
                 }
 
@@ -116,7 +111,37 @@ class OidcCallbackServer : Closeable {
         }
     }
 
+    private fun writeAppRedirect(socket: java.net.Socket) {
+        val body = """
+            <!doctype html>
+            <html lang="en">
+              <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Sign-in complete</title>
+              </head>
+              <body style="font-family:sans-serif;max-width:36rem;margin:4rem auto;padding:0 1.25rem;line-height:1.5">
+                <h2>Sign-in complete</h2>
+                <p>You are signed in to Actua.</p>
+                <p><a href="$APP_RETURN_URL">Return to Actua</a></p>
+              </body>
+            </html>
+        """.trimIndent()
+        val bytes = body.toByteArray(StandardCharsets.UTF_8)
+        socket.getOutputStream().use { output ->
+            output.write("HTTP/1.1 302 Found\r\n".toByteArray(StandardCharsets.US_ASCII))
+            output.write("Location: $APP_RETURN_URL\r\n".toByteArray(StandardCharsets.US_ASCII))
+            output.write("Content-Type: text/html; charset=utf-8\r\n".toByteArray(StandardCharsets.US_ASCII))
+            output.write("Content-Length: ${bytes.size}\r\n".toByteArray(StandardCharsets.US_ASCII))
+            output.write("Connection: close\r\n".toByteArray(StandardCharsets.US_ASCII))
+            output.write("Cache-Control: no-store\r\n\r\n".toByteArray(StandardCharsets.US_ASCII))
+            output.write(bytes)
+            output.flush()
+        }
+    }
+
     companion object {
+        private const val APP_RETURN_URL = "actua://oidc-complete"
         private const val DEFAULT_TIMEOUT_MILLIS = 5 * 60 * 1000
     }
 }
