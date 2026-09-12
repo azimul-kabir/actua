@@ -13,6 +13,7 @@ import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.importing.ImportCandidate
+import com.azimulkabir.actua.data.location.Coordinates
 import com.azimulkabir.actua.data.importing.ImportDuplicateDetector
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
@@ -90,6 +91,12 @@ class ActuaRepository(context: Context) {
         ?.filter { it.transferAccountId == null && it.name != "Unknown" }
         ?.map { it.name }
         ?: emptyList()
+
+    fun nearbyPayeeNames(coordinates: Coordinates): List<String> =
+        actualDatabase?.fetchNearbyPayees(coordinates)
+            ?.map { it.payee.name }
+            ?.filter { it.isNotBlank() && it != "Unknown" }
+            .orEmpty()
 
     fun rules(): List<Rule> = actualDatabase?.fetchRules().orEmpty()
 
