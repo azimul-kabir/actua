@@ -30,7 +30,7 @@ class PayeeLocationDatabaseTest {
     @Test fun nearbyFetchRanksAndDeduplicatesPayees() = withDatabase { database, _ ->
         val writer = PayeeLocationWriter(database, nodeId = "aaaaaaaaaaaaaaaa", idFactory = sequenceIds(), nowMillis = { 100L })
         assertNotNull(writer.record("near", Coordinates(0.001, 0.0)))
-        assertNotNull(writer.record("near", Coordinates(0.003, 0.0)))
+        assertNotNull(writer.record("near", Coordinates(-0.004, 0.0)))
         assertNotNull(writer.record("far", Coordinates(0.04, 0.0)))
 
         val nearby = database.fetchNearbyPayees(Coordinates(0.0, 0.0))
