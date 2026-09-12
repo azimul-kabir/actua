@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.network
 
+import org.json.JSONObject
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -8,6 +9,44 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ActualServerClientTest {
+    @Test
+    fun passwordLoginExplicitlyRequestsPasswordMethod() {
+        val transport = RecordingTransport {
+            ActualHttpResponse(200, """{"status":"ok","data":{"token":"token-1"}}""".encodeToByteArray())
+        }
+
+        val token = ActualServerClient(transport).login("https://actual.test", "secret")
+
+        assertEquals("token-1", token)
+        assertEquals("/account/login", transport.last.url.path)
+        assertEquals("POST", transport.last.method)
+        val body = JSONObject(transport.last.body!!.decodeToString())
+        assertEquals("password", body.getString("loginMethod"))
+        assertEquals("secret", body.getString("password"))
+    }
+
+    @Test
+    fun openIdLoginRequestsOpenIdAndReturnsAuthorizationUrl() {
+        val transport = RecordingTransport {
+            ActualHttpResponse(
+                200,
+                """{"status":"ok","data":{"returnUrl":"https://idp.test/authorize?state=abc"}}""".encodeToByteArray(),
+            )
+        }
+
+        val authorizationUrl = ActualServerClient(transport).startOpenIdLogin(
+            "https://actual.test",
+            "http://localhost:43210",
+            "server-password",
+        )
+
+        assertEquals("https://idp.test/authorize?state=abc", authorizationUrl)
+        val body = JSONObject(transport.last.body!!.decodeToString())
+        assertEquals("openid", body.getString("loginMethod"))
+        assertEquals("http://localhost:43210", body.getString("returnUrl"))
+        assertEquals("server-password", body.getString("password"))
+    }
+
     @Test
     fun listFilesFiltersDeletedBudgetsAndReadsEncryption() {
         val transport = RecordingTransport {

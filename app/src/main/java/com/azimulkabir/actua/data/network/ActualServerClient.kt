@@ -102,13 +102,46 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
     fun login(serverUrl: String, password: String): String {
         val response = request(
             serverUrl, "/account/login", "POST", mapOf("Content-Type" to "application/json"),
-            JSONObject().put("password", password).toString().encodeToByteArray(),
+            JSONObject()
+                .put("loginMethod", "password")
+                .put("password", password)
+                .toString()
+                .encodeToByteArray(),
         )
-        if (response.status == 400 || response.status == 401) error("Incorrect server password.")
+        if (response.status == 400 || response.status == 401) error(loginError(response, "Incorrect server password."))
         requireSuccess(response)
         val json = response.json()
         if (json.optString("status") != "ok") error(json.optString("reason", "Login failed."))
         return json.getJSONObject("data").getString("token")
+    }
+
+    /**
+     * Starts Actual's server-mediated OpenID Connect flow. The returned URL is the identity-provider
+     * authorization URL that should be opened in the user's browser. Actual will eventually redirect
+     * to [returnUrl]/openid-cb?token=... after completing the provider callback.
+     */
+    fun startOpenIdLogin(serverUrl: String, returnUrl: String, password: String = ""): String {
+        val body = JSONObject()
+            .put("loginMethod", "openid")
+            .put("returnUrl", returnUrl.trimEnd('/'))
+            .apply { if (password.isNotBlank()) put("password", password) }
+            .toString()
+            .encodeToByteArray()
+        val response = request(
+            serverUrl,
+            "/account/login",
+            "POST",
+            mapOf("Content-Type" to "application/json"),
+            body,
+        )
+        if (response.status == 400 || response.status == 401) {
+            error(loginError(response, "Could not start OpenID sign-in."))
+        }
+        requireSuccess(response)
+        val json = response.json()
+        if (json.optString("status") != "ok") error(json.optString("reason", "Could not start OpenID sign-in."))
+        return json.optJSONObject("data")?.optString("returnUrl")?.takeIf(String::isNotBlank)
+            ?: throw ActualServerException.InvalidResponse
     }
 
     fun listFiles(serverUrl: String, token: String): List<RemoteBudgetFile> {
@@ -224,6 +257,9 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
     private fun requireSuccess(response: ActualHttpResponse) {
         if (response.status != 200) throw ActualServerException.Http(response.status, response.body.decodeToString())
     }
+    private fun loginError(response: ActualHttpResponse, fallback: String): String = runCatching {
+        JSONObject(response.body.decodeToString()).optString("reason").takeIf(String::isNotBlank)
+    }.getOrNull() ?: fallback
     private fun ActualHttpResponse.json(): JSONObject = try {
         JSONObject(body.decodeToString())
     } catch (_: Exception) {

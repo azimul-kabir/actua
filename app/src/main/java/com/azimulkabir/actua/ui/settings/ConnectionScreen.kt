@@ -1,7 +1,9 @@
 package com.azimulkabir.actua.ui.settings
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,6 +48,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.network.ActualServerException
+import com.azimulkabir.actua.data.network.OidcCallbackServer
 import com.azimulkabir.actua.data.network.RemoteBudgetFile
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetDownloadException
@@ -64,6 +67,22 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+
+private data class PendingOpenIdLogin(
+    val primaryUrl: String,
+    val fallbackUrl: String,
+    val activeUrl: String,
+    val authorizationUrl: String,
+    val callbackServer: OidcCallbackServer,
+)
+
+private data class CompletedOpenIdLogin(
+    val primaryUrl: String,
+    val fallbackUrl: String,
+    val activeUrl: String,
+    val token: String,
+    val budgets: List<RemoteBudgetFile>,
+)
 
 @Composable
 fun ConnectionScreen(
@@ -157,6 +176,71 @@ fun ConnectionScreen(
         }
     }
 
+    fun connectWithOpenId() {
+        loading = true
+        message = "Preparing OpenID sign-in…"
+        scope.launch {
+            var callbackServer: OidcCallbackServer? = null
+            runCatching {
+                val pending = withContext(Dispatchers.IO) {
+                    val primary = client.normalizeServerUrl(serverUrl)
+                    val fallback = fallbackServerUrl.trim().takeIf(String::isNotEmpty)?.let(client::normalizeServerUrl).orEmpty()
+                    val candidates = listOf(primary, fallback)
+                        .filter(String::isNotBlank)
+                        .distinct()
+                    var lastError: Throwable? = null
+                    var activeUrl: String? = null
+                    for (candidate in candidates) {
+                        val methods = runCatching { client.loginMethods(candidate) }
+                            .onFailure { lastError = it }
+                            .getOrNull() ?: continue
+                        if (methods.any { it.method.equals("openid", ignoreCase = true) }) {
+                            activeUrl = candidate
+                            break
+                        }
+                        lastError = IllegalStateException("This Actual server does not offer OpenID sign-in.")
+                    }
+                    val selectedUrl = activeUrl ?: throw (lastError
+                        ?: IllegalStateException("Could not find an OpenID-enabled Actual server."))
+                    val callback = OidcCallbackServer()
+                    callbackServer = callback
+                    val authorizationUrl = client.startOpenIdLogin(selectedUrl, callback.returnUrl, password)
+                    PendingOpenIdLogin(primary, fallback, selectedUrl, authorizationUrl, callback)
+                }
+
+                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(pending.authorizationUrl))
+                context.startActivity(browserIntent)
+                message = "Complete sign-in in your browser, then return to Actua."
+
+                val token = withContext(Dispatchers.IO) { pending.callbackServer.awaitToken() }
+                val budgets = withContext(Dispatchers.IO) { client.listFiles(pending.activeUrl, token) }
+                CompletedOpenIdLogin(
+                    pending.primaryUrl,
+                    pending.fallbackUrl,
+                    pending.activeUrl,
+                    token,
+                    budgets,
+                )
+            }.onSuccess { result ->
+                credentials.saveConnection(result.primaryUrl, result.token, result.fallbackUrl)
+                serverUrl = result.primaryUrl
+                fallbackServerUrl = result.fallbackUrl
+                activeServerUrl = result.activeUrl
+                remoteBudgets = result.budgets
+                password = ""
+                connected = true
+                message = if (result.budgets.isEmpty()) "Connected with OpenID. No budgets found." else "Connected with OpenID"
+            }.onFailure { error ->
+                message = when (error.message) {
+                    "invalid-password" -> "Actual requires the current server password for this first OpenID sign-in. Enter it above and try again."
+                    else -> error.message ?: "Could not complete OpenID sign-in."
+                }
+            }
+            callbackServer?.close()
+            loading = false
+        }
+    }
+
     fun openDemoBudget() {
         val previousBudgetId = activeBudget.budgetId
         loading = true
@@ -189,6 +273,12 @@ fun ConnectionScreen(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) connectWithPassword()
+        else message = "Local network access is required because this server resolves to a private network address."
+    }
+    val localNetworkOpenIdPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) connectWithOpenId()
         else message = "Local network access is required because this server resolves to a private network address."
     }
 
@@ -336,7 +426,7 @@ fun ConnectionScreen(
             Text("Try Actua", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(
                 if (demoActive) {
-                    "You are using the local demo budget. Reset it any time to restore the original sample accounts, transactions, targets, rules and schedules."
+                    "You are using the local demo budget. Reset it any time to restore the original sample accounts, transactions, targets, rules, schedules and reports."
                 } else {
                     "Explore Actua with realistic sample accounts, transactions, credit-card activity, targets, rules, schedules and reports. No server or account is required."
                 },
@@ -377,7 +467,7 @@ fun ConnectionScreen(
             )
             if (!connected) {
                 OutlinedTextField(
-                    value = password, onValueChange = { password = it }, label = { Text("Password") },
+                    value = password, onValueChange = { password = it }, label = { Text("Server password") },
                     singleLine = true, enabled = !loading, modifier = Modifier.fillMaxWidth(),
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -403,8 +493,29 @@ fun ConnectionScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     if (loading) CircularProgressIndicator(modifier = Modifier.padding(end = 10.dp))
-                    Text(if (loading) "Connecting…" else "Connect")
+                    Text(if (loading) "Connecting…" else "Connect with password")
                 }
+                OutlinedButton(
+                    onClick = {
+                        if (Build.VERSION.SDK_INT >= 37 && ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.ACCESS_LOCAL_NETWORK,
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            localNetworkOpenIdPermission.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
+                        } else {
+                            connectWithOpenId()
+                        }
+                    },
+                    enabled = serverUrl.isNotBlank() && !loading,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Sign in with OpenID")
+                }
+                Text(
+                    "OpenID Connect sign-in opens your browser and returns the Actual session securely to this device. If Actual reports invalid-password on the first OpenID login, enter the current server password above and retry.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             } else {
                 Text("● Connected", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 if (editingConnection) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
