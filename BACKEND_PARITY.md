@@ -90,8 +90,8 @@ where an Android equivalent exists, Actua uses the native Android integration.
   CRDT persistence, including repair of missing rule and next-date rows and local JSON paths
 - Schedule discovery transaction filtering, recurrence sweeps, matching, ranking,
   payee deduplication, create-form projection, and selectable Find Schedules UI
-- Monthly Bills calendar with recurring and card-bill modes, due-date projection,
-  paid-transaction matching, status totals and filters, and safe schedule actions
+- Dedicated **Bills & Calendar** Automation destination, reusing the monthly recurring/card-bill
+  calendar, due-date projection, paid-transaction matching, status totals, filters and safe schedule actions
 - Account, category, and category-group rename/close/hide long-press actions
   wired through CRDT mutations and immediate UI refresh
 - Category deletion through Actual-compatible tombstone mutations, with existing
