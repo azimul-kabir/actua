@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Add
@@ -431,7 +432,19 @@ fun AppNavigation(
                             transactionFabExpanded = true
                         },
                         icon = { Icon(item.icon, contentDescription = item.label) },
-                        label = if (showBottomNavigationLabels) { { Text(item.label) } } else null,
+                        label = if (showBottomNavigationLabels) {
+                            {
+                                Text(
+                                    text = item.label,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    autoSize = TextAutoSize.StepBased(
+                                        minFontSize = 8.sp,
+                                        maxFontSize = 12.sp,
+                                    ),
+                                )
+                            }
+                        } else null,
                     )
                 }
             }
