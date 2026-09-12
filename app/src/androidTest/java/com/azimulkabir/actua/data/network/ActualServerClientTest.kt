@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.network
 
+import org.json.JSONObject
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -19,9 +20,9 @@ class ActualServerClientTest {
         assertEquals("token-1", token)
         assertEquals("/account/login", transport.last.url.path)
         assertEquals("POST", transport.last.method)
-        val body = transport.last.body!!.decodeToString()
-        assertTrue(body.contains("\"loginMethod\":\"password\""))
-        assertTrue(body.contains("\"password\":\"secret\""))
+        val body = JSONObject(transport.last.body!!.decodeToString())
+        assertEquals("password", body.getString("loginMethod"))
+        assertEquals("secret", body.getString("password"))
     }
 
     @Test
@@ -40,10 +41,10 @@ class ActualServerClientTest {
         )
 
         assertEquals("https://idp.test/authorize?state=abc", authorizationUrl)
-        val body = transport.last.body!!.decodeToString()
-        assertTrue(body.contains("\"loginMethod\":\"openid\""))
-        assertTrue(body.contains("\"returnUrl\":\"http://localhost:43210\""))
-        assertTrue(body.contains("\"password\":\"server-password\""))
+        val body = JSONObject(transport.last.body!!.decodeToString())
+        assertEquals("openid", body.getString("loginMethod"))
+        assertEquals("http://localhost:43210", body.getString("returnUrl"))
+        assertEquals("server-password", body.getString("password"))
     }
 
     @Test
