@@ -35,7 +35,7 @@ data class BudgetAutomationDocument(
                 consumed += limit
                 consumed += refill
                 (rows[limit].optDouble("amount", 0.0) * 100.0).toLong().takeIf { it > 0 }
-                    ?.let { BudgetTarget(BudgetTarget.Type.REFILL, it) }
+                    ?.let { BudgetTarget(BudgetTarget.Type.REFILL, it, priority = rows[refill].optInt("priority", 1)) }
                     ?: run { unsupported += "limit/refill"; null }
             } else null
             rows.forEachIndexed { index, row ->
@@ -51,6 +51,10 @@ data class BudgetAutomationDocument(
                     if (target == null) unsupported += type else supported += target
                 }
             }
+            if (supported.filter { it.type == BudgetTarget.Type.BY_DATE }.map(BudgetTarget::priority).distinct().size > 1) {
+                unsupported += "by priorities"
+            }
+            if (validate(supported).isNotEmpty()) unsupported += "invalid supported definition"
             return BudgetAutomationDocument(supported, unsupported.distinct())
         }
 
@@ -68,6 +72,10 @@ data class BudgetAutomationDocument(
         fun validate(targets: List<BudgetTarget>): List<String> = buildList {
             if (targets.size > 20) add("A category can have at most 20 automations")
             if (targets.count { it.type == BudgetTarget.Type.REFILL } > 1) add("Only one refill automation is allowed")
+            if (targets.any { it.priority < 0 }) add("Automation priority cannot be negative")
+            if (targets.filter { it.type == BudgetTarget.Type.BY_DATE }.map(BudgetTarget::priority).distinct().size > 1) {
+                add("Date targets must use the same priority")
+            }
             targets.forEachIndexed { index, target ->
                 if (target.type != BudgetTarget.Type.AVERAGE && target.amountCents <= 0) {
                     add("Automation ${index + 1} needs a positive amount")
@@ -75,6 +83,12 @@ data class BudgetAutomationDocument(
                 if (target.type == BudgetTarget.Type.AVERAGE && target.averageMonths !in 1..24) {
                     add("Automation ${index + 1} must average 1 to 24 months")
                 }
+                if (target.type == BudgetTarget.Type.BY_DATE &&
+                    runCatching { java.time.YearMonth.parse(target.targetMonth.orEmpty()) }.isFailure
+                ) add("Automation ${index + 1} needs a valid target month")
+                if (target.type == BudgetTarget.Type.WEEKLY_SPENDING && target.startingDate != null &&
+                    runCatching { java.time.LocalDate.parse(target.startingDate.orEmpty()) }.isFailure
+                ) add("Automation ${index + 1} needs a valid starting date")
             }
         }
     }

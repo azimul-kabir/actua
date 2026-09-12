@@ -98,8 +98,10 @@ at full resolution.
   transaction grouping, and Material bottom-navigation labels
 - Global search across transactions, accounts, payees, categories, notes, and transfers
 - Unified Material You category budgeting with synced targets, target-aware auto-assign, money movement, details, and recent activity
-- Preview-first whole-budget application for supported category targets, with atomic CRDT writes
-  and explicit disclosure of unsupported advanced automations
+- Preview-first whole-budget application for supported category targets, including multiple
+  contributions, upstream priority order, refill caps and available-funds clamping, with atomic
+  CRDT writes, separate safe Apply and explicit Overwrite actions, and disclosure of unsupported
+  advanced automations
 - Multi-automation category editing for fully supported UI-managed targets, while unknown and
   notes-managed definitions remain safely read-only
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad

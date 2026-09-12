@@ -45,12 +45,17 @@ any involved budget cell changed before confirmation. Reapplying the same plan i
 Categories containing only those supported UI-managed types can now hold and edit multiple
 automations in one list. Saving replaces `goal_def` and its UI source marker together through the
 existing CRDT mutation path. Categories containing any unknown type, or a notes-managed definition,
-remain read-only so Actua never drops or rewrites constructs it does not understand. Until the full
-priority-aware engine is ported, categories with multiple contributions are disclosed but excluded
-from whole-budget application.
+remain read-only so Actua never drops or rewrites constructs it does not understand. Whole-budget
+preview now evaluates supported contributions across categories in ascending upstream priority,
+returns existing template-managed budget amounts to the available pool, batches sibling save-by-date
+goals, applies refill caps, and clamps positive-priority contributions to available funds. Imported
+priorities are preserved when an automation is edited and saved. The preview identifies categories
+whose requested contribution was limited before the user confirms the atomic write. Normal Apply
+leaves non-zero budget cells unchanged; the separately labelled Overwrite action returns their funds
+to the available pool and recalculates them, matching the upstream distinction.
 
 The following upstream constructs are deliberately not executed yet: schedule funding, percentage
-sources, copy/history variants beyond recent average, priorities spanning multiple contributions,
-remainder weighting, long-term goal-only rows, note parsing, and cleanup source/sink groups. Their
+sources, copy/history variants beyond recent average, remainder weighting, long-term goal-only rows,
+note parsing, and cleanup source/sink groups. Their
 stored definitions remain untouched and the preview names affected categories. Later #56 work must
 port their evaluation and validation fixtures before enabling writes or full multi-automation editing.

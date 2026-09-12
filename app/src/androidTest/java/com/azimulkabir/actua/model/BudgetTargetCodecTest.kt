@@ -34,8 +34,8 @@ class BudgetTargetCodecTest {
 
     @Test fun multipleSupportedAutomationsRoundTripAsOneGoalDefinition() {
         val targets = listOf(
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 10_000, startingDate = "2026-09-01"),
-            BudgetTarget(BudgetTarget.Type.BY_DATE, 120_000, targetMonth = "2027-09"),
+            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 10_000, startingDate = "2026-09-01", priority = 2),
+            BudgetTarget(BudgetTarget.Type.BY_DATE, 120_000, targetMonth = "2027-09", priority = 3),
             BudgetTarget(BudgetTarget.Type.AVERAGE, averageMonths = 3),
         )
         val encoded = requireNotNull(BudgetAutomationDocument.encode(targets))
