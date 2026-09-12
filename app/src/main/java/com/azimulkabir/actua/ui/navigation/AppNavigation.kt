@@ -75,6 +75,7 @@ import com.azimulkabir.actua.ui.settings.RulesScreen
 import com.azimulkabir.actua.ui.settings.SchedulesScreen
 import com.azimulkabir.actua.ui.settings.FindSchedulesScreen
 import com.azimulkabir.actua.ui.settings.BillsCalendarScreen
+import com.azimulkabir.actua.ui.settings.ImportTransactionsScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
@@ -106,7 +107,7 @@ private enum class MainDestination(
     More("More", Icons.Outlined.MoreHoriz),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, BillsCalendar, FindSchedules, NewSchedule, EditSchedule }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, BillsCalendar, FindSchedules, NewSchedule, EditSchedule }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -760,6 +761,17 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
             )
+            DetailDestination.ImportTransactions -> ImportTransactionsScreen(
+                accounts = accounts.filterNot { it.closed },
+                duplicateKeys = repository::importDuplicateKeys,
+                onImport = { accountId, candidates ->
+                    mutate("Importing transactions") {
+                        repository.importTransactions(accountId, candidates) == candidates.size
+                    }
+                },
+                onBack = { detail = DetailDestination.Main },
+                modifier = contentModifier,
+            )
             DetailDestination.BillsCalendar -> BillsCalendarScreen(
                 loadItems = { year, month, cardBills ->
                     repository.billCalendarItems(year, month, cardBills)
@@ -1145,6 +1157,7 @@ fun AppNavigation(
                     },
                     onRulesClick = { detail = DetailDestination.Rules },
                     onSchedulesClick = { detail = DetailDestination.Schedules },
+                    onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
                     conventionalAmountEntry = conventionalAmountEntry,
                     onConventionalAmountEntryChange = {
                         displayPreferences.conventionalAmountEntry = it

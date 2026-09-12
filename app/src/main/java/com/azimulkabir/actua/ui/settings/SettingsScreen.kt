@@ -78,6 +78,7 @@ fun SettingsScreen(
     onCreditCardsClick: () -> Unit = {},
     onRulesClick: () -> Unit = {},
     onSchedulesClick: () -> Unit = {},
+    onImportTransactionsClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = true,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
     showBottomNavigationLabels: Boolean = true,
@@ -127,6 +128,9 @@ fun SettingsScreen(
                 }
                 SettingsRow("Scheduled Transactions", "Review recurring bills, income and upcoming dates", true) {
                     openFullScreen(onSchedulesClick)
+                }
+                SettingsRow("Import Transactions", "Review a CSV bank statement before importing", true) {
+                    openFullScreen(onImportTransactionsClick)
                 }
                 SettingsSection("Preferences")
                 SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists, account summaries and cards", true) {

@@ -48,6 +48,9 @@ where an Android equivalent exists, Actua uses the native Android integration.
   high-water mark, preserving pending edits and Merkle-guided restart recovery
 - Actual schema migrations required by current Android reads
 - Accounts, payees, category groups/categories, transactions, transfers, splits
+- Source-independent transaction-import candidates with a local CSV statement source,
+  review/edit/reject/bulk approval, normalized payee matching, malformed-row exclusion,
+  same-account duplicate warnings, and batched Actual-compatible transaction writes
 - Transaction form planning and atomic transaction mutations, including split
   creation, child-preserving edits, opposite-direction lines, and collapse to a
   standard transaction
@@ -178,7 +181,9 @@ where an Android equivalent exists, Actua uses the native Android integration.
 - Advanced split, formula, and template rule actions
 - Goal/cleanup templates and broader budget automation authoring beyond the
   category targets and target-aware Auto Assign already shipped
-- SimpleFIN linking, download, reconciliation, and pending-import approval
+- SimpleFIN linking, download, reconciliation, and bank-feed pending-import approval
+- SMS/email notification ingestion and PDF/XLSX statement extraction (the shared review
+  pipeline currently accepts local CSV statements)
 - General Android transaction notifications and new-transaction detection beyond
   the credit-card payment reminders already shipped
 - Location-backed payee suggestions
