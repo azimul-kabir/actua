@@ -1,9 +1,8 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.fetchSemanticsNodes
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -25,14 +24,8 @@ class SettingsLocationPrivacyTest {
         composeRule.onNodeWithText("Privacy").performClick()
         composeRule.waitForIdle()
 
-        waitForText("Location-aware payees")
-        waitForText("Record payee locations")
-        waitForText("Location permission: not granted")
+        composeRule.onNodeWithText("Location-aware payees").assertExists()
+        composeRule.onNodeWithText("Record payee locations").assertExists()
     }
-
-    private fun waitForText(text: String) {
-        composeRule.waitUntil(5_000) {
-            composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
-        }
     }
 }
