@@ -2,6 +2,7 @@ package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -30,5 +31,21 @@ class SettingsAutomationNavigationTest {
         composeRule.waitUntil(5_000) { opened }
         assertTrue(opened)
         composeRule.onNodeWithText("Scheduled Transactions").assertExists()
+    }
+    @Test
+    fun manageGearOpensGeneralSettingsAndBackReturnsToManage() {
+        composeRule.setContent {
+            SettingsScreen()
+        }
+
+        composeRule.onNodeWithContentDescription("Settings").performClick()
+
+        composeRule.onNodeWithText("Transactions & Accounts").assertExists()
+        composeRule.onNodeWithText("Bills & Calendar").assertDoesNotExist()
+
+        composeRule.onNodeWithContentDescription("Back").performClick()
+
+        composeRule.onNodeWithText("Bills & Calendar").assertExists()
+        composeRule.onNodeWithText("Transactions & Accounts").assertDoesNotExist()
     }
 }

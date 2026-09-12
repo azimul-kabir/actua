@@ -16,6 +16,23 @@ class DisplayPreferencesTest {
             .edit().clear().commit()
     }
 
+    @Test fun legacyMoreStartPageMigratesToManage() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        context.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
+            .edit().putString("start_page", "More").commit()
+
+        val preferences = DisplayPreferences(context)
+        assertEquals("Manage", preferences.startPage)
+        assertEquals(
+            "Manage",
+            context.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
+                .getString("start_page", null),
+        )
+
+        preferences.startPage = "More"
+        assertEquals("Manage", preferences.startPage)
+    }
+
     @Test fun formattingDefaultsAndSelectionsPersist() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals("System default", DisplayPreferences(context).dateFormat)

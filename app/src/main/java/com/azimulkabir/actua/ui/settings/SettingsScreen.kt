@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -49,7 +50,7 @@ import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 
 private enum class SettingsPage(val title: String) {
-    Main("More"), Transactions("Transactions & Accounts"),
+    Manage("Manage"), General("Settings"), Transactions("Transactions & Accounts"),
     Display("Display"), Privacy("Privacy"), About("About"),
 }
 
@@ -137,23 +138,32 @@ fun SettingsScreen(
         }
     }
 
-    var page by rememberSaveable { mutableStateOf(SettingsPage.Main) }
+    var page by rememberSaveable { mutableStateOf(SettingsPage.Manage) }
     val scrollState = rememberScrollState()
+    fun parentPage(current: SettingsPage): SettingsPage = when (current) {
+        SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.About ->
+            SettingsPage.General
+        SettingsPage.General -> SettingsPage.Manage
+        SettingsPage.Manage -> SettingsPage.Manage
+    }
+    fun navigateBack() {
+        page = parentPage(page)
+    }
     LaunchedEffect(returnToRootRequest) {
         if (returnToRootRequest > 0) {
-            if (page != SettingsPage.Main) page = SettingsPage.Main else scrollState.animateScrollTo(0)
+            if (page != SettingsPage.Manage) page = SettingsPage.Manage else scrollState.animateScrollTo(0)
         }
     }
-    BackHandler(enabled = page != SettingsPage.Main) { page = SettingsPage.Main }
+    BackHandler(enabled = page != SettingsPage.Manage, onBack = ::navigateBack)
     fun openFullScreen(action: () -> Unit) {
-        page = SettingsPage.Main
+        page = SettingsPage.Manage
         action()
     }
     AnimatedContent(
         targetState = page,
         modifier = modifier.fillMaxSize(),
         transitionSpec = {
-            val opening = initialState == SettingsPage.Main && targetState != SettingsPage.Main
+            val opening = initialState == SettingsPage.Manage && targetState != SettingsPage.Manage
             if (opening) {
                 (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { it / 5 }) togetherWith
                     (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { -it / 10 })
@@ -165,31 +175,48 @@ fun SettingsScreen(
         label = "Settings navigation motion",
     ) { shownPage ->
     Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
-        SettingsHeader(shownPage.title, shownPage != SettingsPage.Main) { page = SettingsPage.Main }
+        SettingsHeader(
+            title = shownPage.title,
+            showBack = shownPage != SettingsPage.Manage,
+            showSettings = shownPage == SettingsPage.Manage,
+            onBack = ::navigateBack,
+            onSettings = { page = SettingsPage.General },
+        )
         when (shownPage) {
-            SettingsPage.Main -> {
-                SettingsRow("Connection & Data", "Actual server, budgets, local data and backups", true) {
-                    openFullScreen(onConnectionClick)
-                }
+            SettingsPage.Manage -> {
                 SettingsSection("Automation")
                 SettingsRow("Bills & Calendar", "Upcoming schedules and credit-card due dates", true) {
                     openFullScreen(onBillsCalendarClick)
                 }
-                SettingsRow("Rules", "Automatically categorize and transform transactions", true) {
-                    openFullScreen(onRulesClick)
-                }
                 SettingsRow("Scheduled Transactions", "Review recurring bills, income and upcoming dates", true) {
                     openFullScreen(onSchedulesClick)
                 }
+                SettingsRow("Rules", "Automatically categorize and transform transactions", true) {
+                    openFullScreen(onRulesClick)
+                }
+                SettingsSection("Transactions & data")
                 SettingsRow("Import Transactions", "Review a CSV bank statement before importing", true) {
                     openFullScreen(onImportTransactionsClick)
                 }
+                SettingsRow("Connection & Data", "Actual server, budgets, sync, backups and restore", true) {
+                    openFullScreen(onConnectionClick)
+                }
+                SettingsSection("Financial setup")
+                SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true) {
+                    openFullScreen(onCreditCardsClick)
+                }
+            }
+            SettingsPage.General -> {
                 SettingsSection("Preferences")
-                SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists, account summaries and cards", true) {
+                SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists and account summaries", true) {
                     page = SettingsPage.Transactions
                 }
-                SettingsRow("Display", "Currency, date, numbers, appearance and start page", true) { page = SettingsPage.Display }
-                SettingsRow("Privacy", "Balances and optional location-aware payee controls", true) { page = SettingsPage.Privacy }
+                SettingsRow("Display", "Currency, date, numbers, appearance and start page", true) {
+                    page = SettingsPage.Display
+                }
+                SettingsRow("Privacy", "Balances and optional location-aware payee controls", true) {
+                    page = SettingsPage.Privacy
+                }
                 SettingsSection("About")
                 SettingsRow("About Actua", "Version, project information, credits and license", true) {
                     page = SettingsPage.About
@@ -249,7 +276,7 @@ fun SettingsScreen(
                 SettingsChoice(
                     "Start page",
                     startPage,
-                    listOf("Budget", "Accounts", "Transactions", "Reports", "More"),
+                    listOf("Budget", "Accounts", "Transactions", "Reports", "Manage"),
                     onStartPageChange,
                 )
                 SettingsChoice(
@@ -361,7 +388,13 @@ private fun numberPreview(format: String): String = when (format) {
 }
 
 @Composable
-private fun SettingsHeader(title: String, showBack: Boolean, onBack: () -> Unit) {
+private fun SettingsHeader(
+    title: String,
+    showBack: Boolean,
+    showSettings: Boolean,
+    onBack: () -> Unit,
+    onSettings: () -> Unit,
+) {
     androidx.compose.foundation.layout.Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
@@ -369,8 +402,18 @@ private fun SettingsHeader(title: String, showBack: Boolean, onBack: () -> Unit)
         if (showBack) IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
         }
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = if (showBack) 4.dp else 16.dp, vertical = 10.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+                .padding(horizontal = if (showBack) 4.dp else 16.dp, vertical = 10.dp),
+        )
+        if (showSettings) {
+            IconButton(onClick = onSettings) {
+                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+            }
+        }
     }
 }
 

@@ -62,8 +62,18 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putString(APPEARANCE, value).apply() }
 
     var startPage: String
-        get() = preferences.getString(START_PAGE, "Budget") ?: "Budget"
-        set(value) { preferences.edit().putString(START_PAGE, value).apply() }
+        get() {
+            val stored = preferences.getString(START_PAGE, "Budget") ?: "Budget"
+            if (stored != LEGACY_MORE_PAGE) return stored
+            preferences.edit().putString(START_PAGE, MANAGE_PAGE).apply()
+            return MANAGE_PAGE
+        }
+        set(value) {
+            preferences.edit().putString(
+                START_PAGE,
+                if (value == LEGACY_MORE_PAGE) MANAGE_PAGE else value,
+            ).apply()
+        }
 
     var defaultAccount: String?
         get() = preferences.getString(DEFAULT_ACCOUNT, null)
@@ -111,6 +121,8 @@ class DisplayPreferences(context: Context) {
         const val HIDE_BALANCES = "hide_balances"
         const val APPEARANCE = "appearance"
         const val START_PAGE = "start_page"
+        const val LEGACY_MORE_PAGE = "More"
+        const val MANAGE_PAGE = "Manage"
         const val DEFAULT_ACCOUNT = "default_account"
         const val GROUP_TRANSACTIONS_BY_DATE = "group_transactions_by_date"
         const val HIDE_RECONCILED_TRANSACTIONS = "hide_reconciled_transactions"
