@@ -16,6 +16,7 @@ data class BudgetTarget(
     val startingDate: String? = null,
     val averageMonths: Int = 3,
     val priority: Int = 1,
+    val weight: Int = 1,
 ) {
     enum class Type(val label: String, val explanation: String) {
         MONTHLY_SPENDING("Monthly spending", "Set aside enough for this month's spending"),
@@ -25,6 +26,7 @@ data class BudgetTarget(
         WEEKLY_SPENDING("Spend every week", "Budget this amount for each week in the month"),
         AVERAGE("Average recent spending", "Use the average of recent months"),
         GOAL("Goal only", "Show a target balance without automatically budgeting money"),
+        REMAINDER("Split remaining funds", "Receive a weighted share of Ready to Budget after other automations"),
     }
 
     fun suggestedBudget(category: BudgetCategory, month: String): Long {
@@ -52,6 +54,7 @@ data class BudgetTarget(
             if (values.isEmpty()) 0L else (values.sum().toDouble() / values.size).toLong()
         }
         Type.GOAL -> 0L
+        Type.REMAINDER -> 0L
         }
     }
 
@@ -79,6 +82,10 @@ data class BudgetTarget(
             Type.AVERAGE -> row.put("type", "average").put("numMonths", averageMonths.coerceIn(1, 24))
             Type.GOAL -> return JSONArray().put(
                 JSONObject().put("directive", "goal").put("type", "goal").put("amount", units(amountCents)),
+            ).toString()
+            Type.REMAINDER -> return JSONArray().put(
+                JSONObject().put("directive", "template").put("type", "remainder")
+                    .put("priority", JSONObject.NULL).put("weight", weight),
             ).toString()
         }
         return JSONArray().put(row).toString()
@@ -116,6 +123,10 @@ data class BudgetTarget(
                 "average" -> BudgetTarget(Type.AVERAGE, averageMonths = row.optInt("numMonths", 3), priority = priority)
                 "goal" -> row.takeIf { it.optString("directive") == "goal" }
                     ?.let { BudgetTarget(Type.GOAL, cents()) }
+                "remainder" -> row.takeIf {
+                    it.optString("directive") == "template" && it.has("priority") && it.isNull("priority") &&
+                        it.optInt("weight", 0) > 0 && !it.has("limit")
+                }?.let { BudgetTarget(Type.REMAINDER, weight = row.getInt("weight")) }
                 else -> null
             }
         }
@@ -181,7 +192,8 @@ object BudgetTemplatePlanner {
         val proposed = mutableMapOf<BudgetCategory, Long>()
         val priorities = eligible.flatMap {
             it.second.automations.ifEmpty { listOfNotNull(it.second.target) }
-        }.map(BudgetTarget::priority).distinct().sorted()
+        }.filterNot { it.type == BudgetTarget.Type.REMAINDER }
+            .map(BudgetTarget::priority).distinct().sorted()
 
         for (priority in priorities) {
             for ((group, category) in eligible) {
@@ -200,6 +212,7 @@ object BudgetTemplatePlanner {
                 if (available != Long.MAX_VALUE) available -= allocated
             }
         }
+        distributeRemainder(eligible, proposed, available)
         for ((group, category) in supported) {
             if (category.hasUnsupportedTarget) {
                 unsupported += "${group.name} · ${category.name}"
@@ -232,10 +245,47 @@ object BudgetTemplatePlanner {
         )
     }
 
+    private fun distributeRemainder(
+        eligible: List<Pair<BudgetGroup, BudgetCategory>>,
+        proposed: MutableMap<BudgetCategory, Long>,
+        startingAvailable: Long,
+    ): Long {
+        var available = startingAvailable
+        if (available == Long.MAX_VALUE || available <= 0L) return available
+        while (available > 0L) {
+            val active = eligible.mapNotNull { (_, category) ->
+                val targets = category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
+                val weight = targets.filter { it.type == BudgetTarget.Type.REMAINDER }.sumOf { it.weight.toLong() }
+                if (weight <= 0) return@mapNotNull null
+                val before = proposed[category] ?: 0L
+                val cap = targets.firstOrNull { it.type == BudgetTarget.Type.REFILL }?.amountCents
+                if (cap != null && cap - category.carryoverCents - before <= 0L) null
+                else Triple(category, weight, cap)
+            }
+            if (active.isEmpty()) break
+            val totalWeight = active.sumOf { it.second }
+            val perWeight = available.toDouble() / totalWeight
+            val beforePass = available
+            active.forEach { (category, weight, cap) ->
+                val before = proposed[category] ?: 0L
+                var allocated = kotlin.math.round(weight * perWeight).toLong()
+                if (allocated > available || available - allocated <= 1L) allocated = available
+                if (cap != null) allocated = minOf(allocated, max(0L, cap - category.carryoverCents - before))
+                if (allocated > 0L) {
+                    proposed[category] = before + allocated
+                    available -= allocated
+                }
+            }
+            if (available == beforePass) break
+        }
+        return available
+    }
+
     private fun requestedAtPriority(targets: List<BudgetTarget>, category: BudgetCategory, month: String): Long {
         val by = targets.filter { it.type == BudgetTarget.Type.BY_DATE }
         val ordinary = targets.filterNot {
-            it.type == BudgetTarget.Type.BY_DATE || it.type == BudgetTarget.Type.REFILL || it.type == BudgetTarget.Type.GOAL
+            it.type == BudgetTarget.Type.BY_DATE || it.type == BudgetTarget.Type.REFILL ||
+                it.type == BudgetTarget.Type.GOAL || it.type == BudgetTarget.Type.REMAINDER
         }
             .sumOf { it.suggestedBudget(category, month) }
         val byAmount = if (by.isEmpty()) 0L else combinedByDate(by, category, month)
