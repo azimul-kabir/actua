@@ -447,6 +447,23 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun multiAutomationDefinitionAndSourceAreSavedInOneMutationBatch() = withDatabase { database ->
+        var scheduledPushes = 0
+        val goalDef = "[{\"type\":\"periodic\",\"directive\":\"template\",\"priority\":1,\"amount\":100,\"period\":{\"period\":\"month\",\"amount\":1}}]"
+        ActualEntityWriter(database, "dededededededede", onWrite = { scheduledPushes++ })
+            .setCategoryTarget("budgetcat", goalDef)
+
+        val category = database.fetchBudgetMonth("2026-09").categories.single { it.categoryId == "budgetcat" }
+        assertEquals(goalDef, category.goalDef)
+        assertEquals("ui", category.templateSource)
+        assertEquals(1, scheduledPushes)
+        val messages = database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString())
+            .filter { it.dataset == "categories" && it.row == "budgetcat" }
+        assertTrue(messages.any { it.column == "goal_def" })
+        assertTrue(messages.any { it.column == "template_settings" })
+    }
+
+    @Test
     fun incomingTransactionRunsStoredRulesAndCreatesNamedPayee() = withDatabase { database ->
         val writer = ActualTransactionWriter(database, nodeId = "dddddddddddddddd", idFactory = { "rule-payee" })
         val incoming = transaction("ruled", "checking", -450, 20260904, null, null)

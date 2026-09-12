@@ -42,6 +42,13 @@ shows the net budget change, and discloses categories with unsupported definitio
 preview writes all changed budget cells in one CRDT/database batch. A stale preview is rejected if
 any involved budget cell changed before confirmation. Reapplying the same plan is a no-op.
 
+Categories containing only those supported UI-managed types can now hold and edit multiple
+automations in one list. Saving replaces `goal_def` and its UI source marker together through the
+existing CRDT mutation path. Categories containing any unknown type, or a notes-managed definition,
+remain read-only so Actua never drops or rewrites constructs it does not understand. Until the full
+priority-aware engine is ported, categories with multiple contributions are disclosed but excluded
+from whole-budget application.
+
 The following upstream constructs are deliberately not executed yet: schedule funding, percentage
 sources, copy/history variants beyond recent average, priorities spanning multiple contributions,
 remainder weighting, long-term goal-only rows, note parsing, and cleanup source/sink groups. Their

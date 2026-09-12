@@ -100,6 +100,8 @@ at full resolution.
 - Unified Material You category budgeting with synced targets, target-aware auto-assign, money movement, details, and recent activity
 - Preview-first whole-budget application for supported category targets, with atomic CRDT writes
   and explicit disclosure of unsupported advanced automations
+- Multi-automation category editing for fully supported UI-managed targets, while unknown and
+  notes-managed definitions remain safely read-only
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
 - Account-specific transaction entry, collapsible account summaries and notes, and configurable bottom navigation labels
 - Mobile account reconciliation with bank-balance comparison, uncleared review, adjustments, and cleared-transaction locking

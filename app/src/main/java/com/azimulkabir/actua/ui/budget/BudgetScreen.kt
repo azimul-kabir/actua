@@ -88,6 +88,7 @@ import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetTarget
+import com.azimulkabir.actua.model.BudgetAutomationDocument
 import com.azimulkabir.actua.model.BudgetTemplatePlanner
 import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.Transaction
@@ -160,7 +161,7 @@ fun BudgetScreen(
     onSetBudgetAmount: (String, String, Long) -> Unit = { _, _, _ -> },
     onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
-    onSetCategoryTarget: (String, BudgetTarget?) -> Unit = { _, _ -> },
+    onSetCategoryAutomations: (String, List<BudgetTarget>) -> Unit = { _, _ -> },
     onApplyBudgetTemplate: (BudgetTemplatePreview) -> Unit = {},
     onSearch: () -> Unit = {},
     transactions: List<Transaction> = emptyList(),
@@ -543,15 +544,20 @@ fun BudgetScreen(
         )
     }
     settingTarget?.let { (_, category) ->
-        TargetEditorSheet(
+        AutomationListEditorSheet(
             category = category,
             month = month,
             hideDecimalPlaces = hideDecimalPlaces,
             onDismiss = { settingTarget = null },
-            onSave = { target ->
-                onSetCategoryTarget(category.id.orEmpty(), target)
+            onSave = { automations ->
+                onSetCategoryAutomations(category.id.orEmpty(), automations)
                 categoryDetails = categoryDetails?.let { (detailsGroup, detailsCategory) ->
-                    detailsGroup to detailsCategory.copy(target = target, hasUnsupportedTarget = false)
+                    detailsGroup to detailsCategory.copy(
+                        target = automations.singleOrNull(),
+                        automations = automations,
+                        hasUnsupportedTarget = false,
+                        unsupportedAutomationTypes = emptyList(),
+                    )
                 }
                 settingTarget = null
             },
@@ -1854,6 +1860,11 @@ private fun TargetDetailsCard(
             detail = "Managed in Actual Budget"
             supporting = "View target information"
         }
+        category.automations.size > 1 -> {
+            title = "${category.automations.size} automations"
+            detail = category.automations.joinToString { it.type.label }
+            supporting = "Edit automation list · Apply after whole-budget preview"
+        }
         target == null -> {
             title = "Set a target"
             detail = "Plan how much to budget"
@@ -2054,6 +2065,99 @@ private fun TargetEditorSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun AutomationListEditorSheet(
+    category: BudgetCategory,
+    month: String,
+    hideDecimalPlaces: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (List<BudgetTarget>) -> Unit,
+) {
+    if (category.hasUnsupportedTarget) {
+        val types = category.unsupportedAutomationTypes.ifEmpty { listOf("advanced") }.joinToString()
+        ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Automations are read-only", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "This category contains $types automation settings that Actua cannot safely edit yet. Nothing has been changed. Continue managing this category in Actual Budget.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Close") }
+            }
+        }
+        return
+    }
+    var entries by remember(category) { mutableStateOf(category.automations) }
+    var editingIndex by remember { mutableStateOf<Int?>(null) }
+    var adding by remember { mutableStateOf(false) }
+    if (adding || editingIndex != null) {
+        val existing = editingIndex?.let(entries::get)
+        TargetEditorSheet(
+            category = category.copy(target = existing, automations = existing?.let(::listOf).orEmpty()),
+            month = month,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { adding = false; editingIndex = null },
+            onSave = { target ->
+                val index = editingIndex
+                entries = when {
+                    target != null && index == null -> entries + target
+                    target != null -> entries.toMutableList().also { it[requireNotNull(index)] = target }
+                    index != null -> entries.toMutableList().also { it.removeAt(index) }
+                    else -> entries
+                }
+                adding = false
+                editingIndex = null
+            },
+        )
+        return
+    }
+    val errors = BudgetAutomationDocument.validate(entries)
+    ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Budget automations", style = MaterialTheme.typography.titleMedium)
+            Text("Automations are saved together. Whole-budget Apply remains preview-first.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            entries.forEachIndexed { index, target ->
+                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(16.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(target.type.label, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                if (target.type == BudgetTarget.Type.AVERAGE) "${target.averageMonths} recent months"
+                                else formatMoneyCents(target.amountCents, hideDecimalPlaces),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        TextButton(onClick = { editingIndex = index }) { Text("Edit") }
+                        TextButton(onClick = { entries = entries.toMutableList().also { it.removeAt(index) } }) {
+                            Text("Remove", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            }
+            if (entries.isEmpty()) Text("No automations yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            TextButton(enabled = entries.size < 20, onClick = { adding = true }) { Text("Add automation") }
+            errors.forEach { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+                Button(enabled = errors.isEmpty(), onClick = { onSave(entries) }) { Text("Save automations") }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun CategoryActionsSheet(
     category: BudgetCategory,
     onDismiss: () -> Unit,
@@ -2075,8 +2179,8 @@ private fun CategoryActionsSheet(
             if (!category.isIncome) {
                 SheetAction(when {
                     category.hasUnsupportedTarget -> "View target"
-                    category.target == null -> "Set target"
-                    else -> "Edit target"
+                    category.automations.isEmpty() -> "Set automations"
+                    else -> "Edit automations"
                 }, onSetTarget)
                 SheetAction("Budget details", onDetails)
                 SheetAction("Edit budgeted amount", onEditBudget)
