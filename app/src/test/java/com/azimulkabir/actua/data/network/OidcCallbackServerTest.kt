@@ -18,12 +18,12 @@ class OidcCallbackServerTest {
                 val callback = URI(server.returnUrl)
 
                 Socket("localhost", callback.port).use { socket ->
-                    socket.getOutputStream().bufferedWriter().use { writer ->
-                        writer.write("GET /openid-cb?token=session-token-123 HTTP/1.1\r\n")
-                        writer.write("Host: localhost:${callback.port}\r\n")
-                        writer.write("Connection: close\r\n\r\n")
-                        writer.flush()
-                    }
+                    val writer = socket.getOutputStream().bufferedWriter()
+                    writer.write("GET /openid-cb?token=session-token-123 HTTP/1.1\r\n")
+                    writer.write("Host: localhost:${callback.port}\r\n")
+                    writer.write("Connection: close\r\n\r\n")
+                    writer.flush()
+
                     val response = socket.getInputStream().bufferedReader().readText()
                     assertTrue(response.startsWith("HTTP/1.1 200 OK"))
                     assertTrue(response.contains("Sign-in complete"))
