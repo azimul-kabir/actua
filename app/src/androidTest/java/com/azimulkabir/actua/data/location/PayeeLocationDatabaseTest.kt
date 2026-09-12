@@ -54,6 +54,22 @@ class PayeeLocationDatabaseTest {
         assertEquals(2, writes)
     }
 
+    @Test fun compatibilityGateAndBulkDeletionUseSynchronizedTombstones() = withDatabase { database, file ->
+        assertTrue(database.payeeLocationWritesSupported())
+        val writer = PayeeLocationWriter(
+            database,
+            "aaaaaaaaaaaaaaaa",
+            sequenceIds(),
+            { 1_751_760_000_000 },
+        )
+        assertNotNull(writer.record("near", Coordinates(0.0, 0.0)))
+        assertNotNull(writer.record("near", Coordinates(0.01, 0.0)))
+        assertEquals(2, writer.deleteAllForPayee("near"))
+        assertTrue(database.fetchPayeeLocations("near").isEmpty())
+        assertEquals(6, messageCount(file, "location-1"))
+        assertEquals(6, messageCount(file, "location-2"))
+    }
+
     @Test fun partialSyncedRowsAreSkipped() = withDatabase { database, file ->
         SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READWRITE).use { raw ->
             raw.execSQL("INSERT INTO payee_locations (id, payee_id) VALUES ('partial', 'near')")
