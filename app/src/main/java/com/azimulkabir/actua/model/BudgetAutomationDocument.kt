@@ -73,12 +73,17 @@ data class BudgetAutomationDocument(
             if (targets.size > 20) add("A category can have at most 20 automations")
             if (targets.count { it.type == BudgetTarget.Type.REFILL } > 1) add("Only one refill automation is allowed")
             if (targets.count { it.type == BudgetTarget.Type.GOAL } > 1) add("Only one goal-only automation is allowed")
+            if (targets.any { it.type == BudgetTarget.Type.REMAINDER && it.weight < 1 }) {
+                add("Remainder weights must be at least 1")
+            }
             if (targets.any { it.priority < 0 }) add("Automation priority cannot be negative")
             if (targets.filter { it.type == BudgetTarget.Type.BY_DATE }.map(BudgetTarget::priority).distinct().size > 1) {
                 add("Date targets must use the same priority")
             }
             targets.forEachIndexed { index, target ->
-                if (target.type != BudgetTarget.Type.AVERAGE && target.amountCents <= 0) {
+                if (target.type != BudgetTarget.Type.AVERAGE && target.type != BudgetTarget.Type.REMAINDER &&
+                    target.amountCents <= 0
+                ) {
                     add("Automation ${index + 1} needs a positive amount")
                 }
                 if (target.type == BudgetTarget.Type.AVERAGE && target.averageMonths !in 1..24) {
