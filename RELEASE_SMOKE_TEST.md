@@ -38,6 +38,10 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Add expense, income and transfer transactions.
 - [ ] Add and edit a split transaction.
 - [ ] Payee search filters character-by-character across normal payees and transfer accounts.
+- [ ] Find nearby payees requests foreground permission only after explicit use and normal search remains available on denial/failure.
+- [ ] With recording enabled, save an ordinary transaction and verify its location appears under More → Privacy → Payee Locations.
+- [ ] Verify transfer and blank payees never record a location and same-payee samples within 500 metres are deduplicated.
+- [ ] Delete one saved location, then clear all for a payee, sync, and verify the tombstones are reflected in Actual.
 - [ ] Global search finds transactions, accounts, payees, categories, notes and transfers.
 - [ ] Cleared/uncleared/reconciled balances agree with the source budget.
 - [ ] Reconcile an account using a known bank balance and verify the resulting locked/reconciled rows.
