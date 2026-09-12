@@ -25,7 +25,9 @@ class OidcCallbackServerTest {
                     writer.flush()
 
                     val response = socket.getInputStream().bufferedReader().readText()
-                    assertTrue(response.startsWith("HTTP/1.1 200 OK"))
+                    assertTrue(response.startsWith("HTTP/1.1 302 Found"))
+                    assertTrue(response.contains("Location: actua://oidc-complete"))
+                    assertTrue(!response.contains("session-token-123"))
                     assertTrue(response.contains("Sign-in complete"))
                 }
 
