@@ -1149,7 +1149,7 @@ private fun NearbyPickerGroup(
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
     ) {
         Column {
             options.forEachIndexed { index, option ->
