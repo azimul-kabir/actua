@@ -6,6 +6,18 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.17] - 2026-09-13
+
+### Changed
+
+- Nearby payee lookup now accepts a recent valid location and requests all suitable enabled Android providers concurrently, so a slow indoor GPS fix no longer blocks faster fused or network results
+- The **Manage** bottom tab now uses a dedicated Tune icon instead of the overflow-style three-dot icon
+- Forward and Back animations inside **Manage → Settings** now consistently follow the page hierarchy
+
+### Safety
+
+- Nearby location requests remain one-shot and foreground-only, retain the 500-metre accuracy and matching limits, and cancel every outstanding provider request after success or timeout
+
 ## [1.0.0-beta.16] - 2026-09-12
 
 ### Added
