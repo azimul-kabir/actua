@@ -44,8 +44,8 @@ jobs:
             ];
             const mediumRisk = [
               /^app\/src\//,
-              /^build\.gradle/,
-              /^settings\.gradle/,
+              /(^|\/)build\.gradle(?:\.kts)?$/,
+              /(^|\/)settings\.gradle(?:\.kts)?$/,
               /^gradle\//,
               /^gradle\.properties$/,
               /^\.github\//
@@ -76,14 +76,30 @@ jobs:
               }
             }
 
-            const current = (context.payload.pull_request.labels || []).map(label => label.name);
-            for (const old of ['risk:low', 'risk:medium', 'risk:high']) {
-              if (old !== `risk:${risk}` && current.includes(old)) {
-                await github.rest.issues.removeLabel({ owner, repo, issue_number, name: old });
-              }
+            // Read labels live instead of relying on the pull_request event payload,
+            // which can be stale after another workflow or maintainer updates labels.
+            const { data: issue } = await github.rest.issues.get({
+              owner, repo, issue_number
+            });
+            const current = issue.labels.map(label =>
+              typeof label === 'string' ? label : label.name
+            );
+            const desired = `risk:${risk}`;
+
+            if (!current.includes(desired)) {
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number, labels: [desired]
+              });
             }
-            if (!current.includes(`risk:${risk}`)) {
-              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [`risk:${risk}`] });
+
+            for (const old of ['risk:low', 'risk:medium', 'risk:high']) {
+              if (old === desired || !current.includes(old)) continue;
+              try {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number, name: old });
+              } catch (error) {
+                // A concurrent workflow or maintainer may already have removed it.
+                if (error.status !== 404) throw error;
+              }
             }
 
             core.notice(`PR #${issue_number} classified as ${risk} risk from ${names.length} changed file(s).`);
