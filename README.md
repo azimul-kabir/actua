@@ -69,7 +69,8 @@ at full resolution.
 - Browser-based OpenID sign-in through the Actual server, with a loopback callback that captures the resulting Actual session token without storing identity-provider client secrets in Actua
 - Offline local budget storage and encrypted CRDT synchronization
 - Local-only demo budget that can be opened without a server and reset at any time, with realistic accounts, six months of transactions, credit-card activity, transfer payments, reconciliation states, category targets, rules, scheduled transactions, notes, and report dashboard data
-- Automatic, foreground, post-mutation, and manual sync
+- Automatic, foreground, post-mutation, and manual sync, with immediate app-open refresh,
+  active-screen invalidation after headless sync, visible timing/status, and overlap coalescing
 - Budget table and availability-focused Plan views, category groups, Source of Fund/Income, monthly amounts, progress bars, and hide/show management
 - Account lists, current/cleared/uncleared/reconciled balances, notes, monthly summaries, and full transaction history
 - Expense, income, transfer, editable split, edit, clear, and delete transaction flows
@@ -225,6 +226,9 @@ Actual sync client ← encrypted protobuf sync → Actual server
 ```
 
 Writes are applied locally and represented as Actual-compatible CRDT messages. WorkManager provides Android-native periodic synchronization and backup scheduling. The built-in demo follows the same local database model but is intentionally detached from cloud identity and blocked from synchronization.
+
+See [Sync behavior and verification](docs/SYNC_BEHAVIOR.md) for foreground timing,
+background-work limitations, status fields, and the web-to-Actua smoke test.
 
 ## Upstream relationship and credits
 

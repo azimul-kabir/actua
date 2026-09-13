@@ -20,9 +20,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
@@ -43,7 +45,10 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +71,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
@@ -93,6 +99,8 @@ import com.azimulkabir.actua.data.location.CurrentLocationResult
 import com.azimulkabir.actua.data.location.LocationUtils
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.SyncRunResult
+import com.azimulkabir.actua.data.sync.SyncSignals
+import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
@@ -129,6 +137,9 @@ private data class TabSnapshot(
     val transactionsReturnCategory: String? = null,
 )
 
+internal fun shouldRequestForegroundSync(foregroundGeneration: Int): Boolean =
+    foregroundGeneration > 0
+
 @Composable
 fun AppNavigation(
     modifier: Modifier = Modifier,
@@ -155,6 +166,10 @@ fun AppNavigation(
     var repositoryVersion by remember { mutableStateOf(0) }
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
+    val syncStatusStore = remember { SyncStatusStore(context) }
+    val syncStatusGeneration by SyncSignals.statusGeneration.collectAsState()
+    val syncDataGeneration by SyncSignals.dataGeneration.collectAsState()
+    var syncStatus by remember { mutableStateOf(syncStatusStore.read()) }
     var budgetMonth by rememberSaveable {
         mutableStateOf(java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date()))
     }
@@ -293,14 +308,37 @@ fun AppNavigation(
         }
     }
 
+    LaunchedEffect(syncStatusGeneration) {
+        syncStatus = syncStatusStore.read()
+    }
+
+    LaunchedEffect(syncDataGeneration) {
+        if (syncDataGeneration > 0) dataVersion += 1
+    }
+
     LaunchedEffect(foregroundGeneration) {
-        val result = runCatching { withContext(Dispatchers.IO) { ActualSyncRunner.run(context) } }
-            .onFailure { errorMessage = it.message ?: "Automatic sync failed." }
-            .getOrNull()
-        if (result is SyncRunResult.Success) {
-            dataVersion += 1
-            CreditCardDueNotificationScheduler.refresh(context)
-            WidgetUpdater.requestAll(context)
+        if (!shouldRequestForegroundSync(foregroundGeneration)) return@LaunchedEffect
+        val result = try {
+            withContext(Dispatchers.IO) {
+                ActualSyncRunner.run(context, allowRecentSuccess = true, trigger = "App open")
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            errorMessage = error.message ?: "Automatic sync failed."
+            null
+        }
+        when (result) {
+            is SyncRunResult.Success -> {
+                CreditCardDueNotificationScheduler.refresh(context)
+                WidgetUpdater.requestAll(context)
+            }
+            SyncRunResult.NotConfigured -> Unit
+            SyncRunResult.EncryptionKeyUnavailable -> {
+                val error = IllegalStateException("Unlock this encrypted budget before syncing")
+                errorMessage = error.message
+            }
+            null -> Unit
         }
     }
 
@@ -385,6 +423,24 @@ fun AppNavigation(
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            if (syncStatus.running && repository.isUsingActualBudget) {
+                Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.height(18.dp))
+                        Text(
+                            "Syncing budget… Showing local data.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
+            }
+        },
         floatingActionButton = {
             val onMainTab = detail == DetailDestination.Main && destination in setOf(
                 MainDestination.Budget,

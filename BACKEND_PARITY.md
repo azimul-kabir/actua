@@ -115,12 +115,14 @@ where an Android equivalent exists, Actua uses the native Android integration.
   canonical iOS settings hub entries are visible with incomplete destinations disabled
 - Android WorkManager replacement for iOS lifecycle sync: network-constrained
   foreground, post-mutation, and periodic jobs; encrypted budgets; bounded retry;
-  post-sync schedule posting/re-push; periodic local backup
+  post-sync schedule posting/re-push; periodic local backup; five-second same-budget
+  foreground/background completion coalescing; and active-screen refresh signaling
 - Android home-screen widget snapshot generation from the selected local budget, including
   budget overview, configurable category and account rows, privacy-aware amount formatting,
   post-write/post-sync refresh, and transaction-entry deep links
 - Android launcher long-press actions for preselected expense, income, and transfer entry plus search
-- Manual Sync Now plus live idle/running/error, last-success, and last-background-refresh status in Connection & Data
+- Manual Sync Now plus live idle/running/error, trigger, duration, last-success,
+  last-app-open-refresh, and last-background-refresh status in Connection & Data
 - Dedicated backup manager with private archives, independent app-background creation,
   retention, archive export, optional Storage Access Framework folder mirroring,
   restore, and one-shot pre-restore revert
