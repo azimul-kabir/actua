@@ -8,6 +8,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Account monthly Income, Expenses, and Net now use Actual category classification, exclude transfers and uncategorized cash flow, and count categorized split portions without double-counting their parent
 - Ongoing synchronization status now stays below the Android system status bar, and nearby payee results have clear compact spacing below the refresh action
+- Matching Actual rules now populate supported account, category, cleared, notes, date, amount, and payee fields immediately in the new-transaction form
 
 ## [1.0.0-beta.18] - 2026-09-13
 

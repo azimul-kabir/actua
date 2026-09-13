@@ -70,7 +70,7 @@ where an Android equivalent exists, Actua uses the native Android integration.
 - Local backup snapshots, CRDT stripping, retention, validated document-picker import,
   restore, and one-shot revert
 - Rule JSON parsing, schema translation, ranking, condition/action evaluation,
-  named-payee resolution, and rule application for incoming transactions
+  named-payee resolution, live form previews, and rule application for incoming transactions
 - Rule list/search/editor UI and Actual-compatible CRDT create, update, and
   delete mutations for supported condition and action schemas, with protection
   for schedule-owned rules

@@ -40,6 +40,8 @@ import org.json.JSONObject
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.rules.RuleChoice
 import com.azimulkabir.actua.data.rules.RuleEditorData
+import com.azimulkabir.actua.data.rules.RulePreviewChoices
+import com.azimulkabir.actua.data.rules.TransactionRulePreview
 import com.azimulkabir.actua.data.schedules.ActualScheduleWriter
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
@@ -730,21 +732,23 @@ class ActuaRepository(context: Context) {
                     collapseSplit = original?.isParent == true && transaction.splits.isEmpty(),
                 ),
                 original = original,
+                applyRules = !transaction.rulesApplied,
             )
             return
         }
         error("Connect to Actual and download a budget before adding transactions")
     }
 
-    fun ruleCategoryFor(transaction: Transaction): String? {
-        val db = actualDatabase ?: return null
-        if (transaction.type == Type.TRANSFER) return null
-        val account = db.fetchAccounts().firstOrNull { it.name == transaction.account && !it.closed } ?: return null
-        if (account.offBudget) return null
+    fun previewRules(transaction: Transaction): Transaction {
+        val db = actualDatabase ?: return transaction
+        if (transaction.type == Type.TRANSFER || transaction.splits.isNotEmpty()) return transaction
+        val accounts = db.fetchAccounts().filterNot { it.closed }
+        val account = accounts.firstOrNull { it.name == transaction.account } ?: return transaction
         val payee = db.fetchPayees().firstOrNull {
             it.transferAccountId == null && it.name.equals(transaction.payee.trim(), ignoreCase = true)
         }
-        val categories = db.fetchCategoryGroups().flatMap { it.categories }
+        val categories = db.fetchCategoryGroups().filterNot { it.hidden }
+            .flatMap { group -> group.categories.filterNot { it.hidden } }
         val currentCategory = categories.firstOrNull { it.name == transaction.category }?.id
         val signedAmount = when (transaction.type) {
             Type.EXPENSE -> -kotlin.math.abs(transaction.amountCents)
@@ -775,8 +779,18 @@ class ActuaRepository(context: Context) {
             ),
             db.fetchRules(),
             db.ruleContext(),
-        ).transaction
-        return preview.categoryId?.let { id -> categories.firstOrNull { it.id == id }?.name }
+        )
+        return TransactionRulePreview.map(
+            transaction,
+            preview,
+            RulePreviewChoices(
+                accountNames = accounts.associate { it.id to it.name },
+                offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id },
+                categoryNames = categories.associate { it.id to it.name },
+                payeeNames = db.fetchPayees().filter { it.transferAccountId == null }
+                    .associate { it.id to it.name },
+            ),
+        )
     }
 
     fun setAccountClosed(name: String, closed: Boolean): Boolean {

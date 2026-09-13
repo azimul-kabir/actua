@@ -732,7 +732,7 @@ fun AppNavigation(
                     },
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,
-                    onResolveRuleCategory = repository::ruleCategoryFor,
+                    onPreviewRules = repository::previewRules,
                     onFindNearbyPayees = {
                         when (val location = AndroidLocationProvider(context).currentCoordinates()) {
                             is CurrentLocationResult.Success -> {
