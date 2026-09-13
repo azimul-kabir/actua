@@ -84,7 +84,7 @@ jobs:
       - name: Prepare testing APK
         run: cp app/build/outputs/apk/release/app-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
       - name: Publish GitHub prerelease
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           prerelease: true
           tag_name: v${{ steps.version.outputs.name }}
