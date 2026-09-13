@@ -29,7 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.PieChartOutline
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -111,7 +111,7 @@ private enum class MainDestination(
     Accounts("Accounts", Icons.Outlined.AccountBalanceWallet),
     Transactions("Transactions", Icons.Outlined.ReceiptLong),
     Reports("Reports", Icons.Outlined.BarChart),
-    Manage("Manage", Icons.Outlined.MoreHoriz),
+    Manage("Manage", Icons.Outlined.Tune),
 }
 
 private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule }
