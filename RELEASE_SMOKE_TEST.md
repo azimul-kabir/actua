@@ -39,6 +39,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Add and edit a split transaction.
 - [ ] Payee search filters character-by-character across normal payees and transfer accounts.
 - [ ] Find nearby payees requests foreground permission only after explicit use and normal search remains available on denial/failure.
+- [ ] Indoors, Find nearby payees succeeds from a recent valid fix or an enabled network/fused source when GPS alone cannot obtain a fix.
+- [ ] Payee locations created in Actual Budget sync into Actua and appear within 500 metres without being recorded again in Actua.
 - [ ] With recording enabled, save an ordinary transaction and verify its location appears under Manage → Settings → Privacy → Payee Locations.
 - [ ] Verify transfer and blank payees never record a location and same-payee samples within 500 metres are deduplicated.
 - [ ] Delete one saved location, then clear all for a payee, sync, and verify the tombstones are reflected in Actual.
