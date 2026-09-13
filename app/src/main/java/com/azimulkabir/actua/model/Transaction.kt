@@ -14,6 +14,7 @@ data class Transaction(
     val transferAccount: String? = null,
     val notes: String = "",
     val splits: List<SplitLine> = emptyList(),
+    val categoryIsIncome: Boolean? = null,
 )
 
 data class SplitLine(
@@ -23,6 +24,7 @@ data class SplitLine(
     val payee: String = "",
     val isOpposite: Boolean = false,
     val childId: String? = null,
+    val categoryIsIncome: Boolean? = null,
 )
 
 enum class Type { EXPENSE, INCOME, TRANSFER }

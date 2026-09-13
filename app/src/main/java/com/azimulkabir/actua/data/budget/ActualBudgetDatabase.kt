@@ -648,7 +648,7 @@ class ActualBudgetDatabase private constructor(
             database.rawQuery(
                 """
                     SELECT ct.parent_id, ct.id, ct.amount, c.name, ct.notes,
-                           COALESCE(p.name, ct.imported_description)
+                           COALESCE(p.name, ct.imported_description), c.is_income
                     FROM transactions ct
                     LEFT JOIN category_mapping cm ON cm.id = ct.category
                     LEFT JOIN categories c ON c.id = COALESCE(cm.transferId, ct.category)
@@ -666,6 +666,7 @@ class ActualBudgetDatabase private constructor(
                         categoryName = cursor.stringOrNull(3),
                         notes = cursor.stringOrNull(4),
                         payeeName = cursor.stringOrNull(5),
+                        categoryIsIncome = cursor.intOrNull(6)?.let { it == 1 },
                     )
             }
         }
@@ -975,6 +976,7 @@ class ActualBudgetDatabase private constructor(
         scheduleId = string("schedule"),
         transferAccountId = string("transfer_acct"),
         startingBalance = int("starting_balance_flag") == 1,
+        categoryIsIncome = intOrNull(getColumnIndexOrThrow("category_is_income"))?.let { it == 1 },
     )
 
     private fun android.database.Cursor.string(name: String) = stringOrNull(getColumnIndexOrThrow(name))
@@ -1231,7 +1233,7 @@ class ActualBudgetDatabase private constructor(
                    t.tombstone, t.parent_id,
                    COALESCE(pa.name, p.name, cpa.name, cp.name) AS payee_name,
                    c.name AS category_name, p.transfer_acct AS transfer_acct,
-                   t.starting_balance_flag
+                   t.starting_balance_flag, c.is_income AS category_is_income
             FROM transactions t
             LEFT JOIN payee_mapping pm ON pm.id = t.description
             LEFT JOIN payees p ON p.id = pm.targetId
@@ -1264,7 +1266,7 @@ class ActualBudgetDatabase private constructor(
                    t.transferred_id, t.cleared, t.reconciled, t.sort_order,
                    t.tombstone, t.parent_id, COALESCE(pa.name, p.name) AS payee_name,
                    c.name AS category_name, p.transfer_acct AS transfer_acct,
-                   t.starting_balance_flag
+                   t.starting_balance_flag, c.is_income AS category_is_income
             FROM transactions t
             LEFT JOIN payee_mapping pm ON pm.id = t.description
             LEFT JOIN payees p ON p.id = pm.targetId
