@@ -77,6 +77,8 @@ at full resolution.
 - Review-first local CSV, XLSX, and text-based PDF bank-statement import with configurable
   column/date/sign mapping, reusable profiles, import history, editable rows, malformed-row
   exclusion, account selection, and explained duplicate warnings
+- Review-first pasted/shared SMS and email alert import plus opt-in on-device financial
+  notification capture, configurable debit/credit words, confidence labels, and account hints
 - Full-screen searchable account, payee, and category selection with live alphabetical
   results, account balances, transfer grouping, and new-payee creation
 - Foreground-only location-aware payees with automatic nearby suggestions, distance-ranked

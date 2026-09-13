@@ -56,6 +56,9 @@ where an Android equivalent exists, Actua uses the native Android integration.
   configurable delimiter/column/date/sign mapping, reusable local profiles, bounded import
   history, review/edit/reject/bulk approval, normalized payee matching, malformed-row exclusion,
   explained existing/within-file duplicate warnings, and batched Actual-compatible writes
+- On-device financial-message parsing for explicitly pasted/shared text and opt-in future
+  notifications, with configurable debit/credit terms, amount/date/reference/payee extraction,
+  confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion
 - Transaction form planning and atomic transaction mutations, including split
   creation, child-preserving edits, opposite-direction lines, and collapse to a
   standard transaction
@@ -197,8 +200,7 @@ where an Android equivalent exists, Actua uses the native Android integration.
 - Goal/cleanup templates and broader budget automation authoring beyond the
   category targets and target-aware Auto Assign already shipped
 - SimpleFIN linking, download, reconciliation, and bank-feed pending-import approval
-- SMS/email notification ingestion (statement extraction already accepts CSV, XLSX, and
-  text-based PDF files through the shared review pipeline)
+- Broader country/bank parser templates beyond configurable financial-message keywords
 - General Android transaction notifications and new-transaction detection beyond
   the credit-card payment reminders already shipped
 - Broader place metadata or background geofencing beyond the shipped foreground-only,

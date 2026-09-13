@@ -111,6 +111,7 @@ import com.azimulkabir.actua.ui.components.DateDisplay
 import com.azimulkabir.actua.ui.components.NumberDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.AppLaunchRequest
+import com.azimulkabir.actua.SHARED_IMPORT_ACTION
 import com.azimulkabir.actua.widget.WidgetActions
 import com.azimulkabir.actua.widget.WidgetUpdater
 
@@ -166,6 +167,7 @@ fun AppNavigation(
     var repositoryVersion by remember { mutableStateOf(0) }
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
+    var sharedImportText by remember { mutableStateOf<String?>(null) }
     val syncStatusStore = remember { SyncStatusStore(context) }
     val syncStatusGeneration by SyncSignals.statusGeneration.collectAsState()
     val syncDataGeneration by SyncSignals.dataGeneration.collectAsState()
@@ -351,6 +353,11 @@ fun AppNavigation(
             return@LaunchedEffect
         }
         when (request.action) {
+            SHARED_IMPORT_ACTION -> {
+                sharedImportText = request.target
+                destination = MainDestination.Manage
+                detail = DetailDestination.ImportTransactions
+            }
             WidgetActions.BUDGET -> {
                 destination = MainDestination.Budget
                 detail = DetailDestination.Main
@@ -966,6 +973,8 @@ fun AppNavigation(
                 },
                 onBack = { detail = DetailDestination.Main },
                 modifier = contentModifier,
+                initialSharedText = sharedImportText,
+                onSharedTextConsumed = { sharedImportText = null },
             )
             DetailDestination.BillsCalendar -> BillsCalendarScreen(
                 loadItems = { year, month, cardBills ->
