@@ -241,8 +241,7 @@ private fun AccountsSummary(
     val total = accounts.sumOf { it.balanceCents }
     val monthKey = java.text.SimpleDateFormat("yyyyMM", java.util.Locale.US).format(java.util.Date())
     val monthTransactions = transactions.filter { it.date.filter(Char::isDigit).startsWith(monthKey) }
-    val income = monthTransactions.filter { it.amountCents > 0 }.sumOf { it.amountCents }
-    val expenses = monthTransactions.filter { it.amountCents < 0 }.sumOf { it.amountCents }
+    val summary = AccountMonthlySummaryCalculator.calculate(monthTransactions)
     Surface(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = {}),
         color = MaterialTheme.colorScheme.surface,
@@ -262,9 +261,9 @@ private fun AccountsSummary(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween) {
-                    SummaryStat("Income", income, hideDecimalPlaces = hideDecimalPlaces)
-                    SummaryStat("Expenses", expenses, Alignment.CenterHorizontally, hideDecimalPlaces)
-                    SummaryStat("Net", income + expenses, Alignment.End, hideDecimalPlaces,
+                    SummaryStat("Income", summary.incomeCents, hideDecimalPlaces = hideDecimalPlaces)
+                    SummaryStat("Expenses", summary.expenseCents, Alignment.CenterHorizontally, hideDecimalPlaces)
+                    SummaryStat("Net", summary.netCents, Alignment.End, hideDecimalPlaces,
                         Modifier.padding(end = 24.dp))
                 }
             }

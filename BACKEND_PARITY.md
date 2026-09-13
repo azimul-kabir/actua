@@ -135,7 +135,8 @@ where an Android equivalent exists, Actua uses the native Android integration.
 - Reversible category/group hiding with explicit unhide actions while hidden rows are shown
 - Exact-cent account, category, transaction, summary, and transaction-entry presentation;
   hiding decimals never changes stored values
-- Real database-backed Budget overview and Accounts monthly income/expense/net totals
+- Real database-backed Budget overview and category-aware Accounts monthly income/expense/net
+  totals that exclude transfers and uncategorized cash flow and classify split portions individually
 - Actual income/source-of-funds categories rendered as the final Budget section,
   with received totals and income-safe contextual actions
 - Persistent table and availability-focused Plan budget presentations

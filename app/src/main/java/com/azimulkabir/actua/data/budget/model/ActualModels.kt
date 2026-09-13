@@ -75,6 +75,7 @@ data class ActualTransaction(
     val transferAccountId: String?,
     val startingBalance: Boolean = false,
     val splitPortions: List<SplitPortion> = emptyList(),
+    val categoryIsIncome: Boolean? = null,
 ) {
     data class SplitPortion(
         val id: String,
@@ -82,5 +83,6 @@ data class ActualTransaction(
         val amountCents: Long,
         val notes: String?,
         val payeeName: String?,
+        val categoryIsIncome: Boolean? = null,
     )
 }

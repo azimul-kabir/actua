@@ -571,6 +571,7 @@ class ActuaRepository(context: Context) {
                     },
                     transferAccount = it.transferAccountId?.let(accountNames::get),
                     notes = it.notes.orEmpty(),
+                    categoryIsIncome = it.categoryIsIncome,
                     splits = it.splitPortions.map { part ->
                         SplitLine(
                             category = part.categoryName.orEmpty(),
@@ -579,6 +580,7 @@ class ActuaRepository(context: Context) {
                             payee = part.payeeName.takeUnless { name -> name == it.payeeName }.orEmpty(),
                             isOpposite = (part.amountCents < 0) != (it.amountCents < 0),
                             childId = part.id,
+                            categoryIsIncome = part.categoryIsIncome,
                         )
                     },
                 )
