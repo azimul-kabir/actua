@@ -27,5 +27,15 @@ After approval, Actua stores a bounded device-local history of the latest 20 imp
 name, format, target account name, imported/skipped counts, and time. Raw rows, messages, balances,
 and statement files are not retained. History can be cleared from the import screen.
 
-XLSX/PDF statements and opt-in notification/share ingestion are tracked as the next two slices of
-issue #65.
+## XLSX and PDF statements
+
+Actua reads the first XLSX worksheet directly from the local OOXML archive, including shared and
+inline strings, sparse columns, and Excel serial dates. It locates a likely header row within the
+first 25 rows so common statement preambles do not need to be removed manually.
+
+Text-based PDFs are extracted locally and accepted only when a recognizable multi-column table is
+present. Scanned/image-only PDFs and layouts whose text cannot be separated reliably are rejected
+with a CSV/XLSX recommendation. Actua does not use OCR or guess transaction boundaries. Files are
+limited to 25 MB, and expanded XLSX worksheet parts are bounded to reduce malformed-archive risk.
+
+Opt-in notification/share ingestion remains the final slice of issue #65.

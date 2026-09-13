@@ -40,6 +40,12 @@ Actua does not include YNAB source code, artwork, logos, or other assets. YNAB
 is a separate product and trademark of its respective owner and does not
 endorse, sponsor, or support Actua.
 
+## PDFBox Android
+
+Local text extraction from PDF statements uses
+[PdfBox-Android](https://github.com/TomRoush/PdfBox-Android), an Android port of Apache PDFBox.
+PdfBox-Android and Apache PDFBox are licensed under the Apache License 2.0.
+
 ## Trademarks and support
 
 Project names and logos remain the property of their respective owners. Issues
