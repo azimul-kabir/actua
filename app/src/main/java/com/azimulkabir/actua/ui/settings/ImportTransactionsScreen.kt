@@ -49,11 +49,14 @@ import com.azimulkabir.actua.data.importing.ImportPreferences
 import com.azimulkabir.actua.data.importing.ImportProblem
 import com.azimulkabir.actua.data.importing.ImportTable
 import com.azimulkabir.actua.data.importing.StatementFormat
+import com.azimulkabir.actua.data.importing.StatementDocumentReader
 import com.azimulkabir.actua.model.Account
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.time.LocalDate
 
 private data class ReviewRow(
@@ -86,6 +89,7 @@ fun ImportTransactionsScreen(
     var table by remember { mutableStateOf<ImportTable?>(null) }
     var mapping by remember { mutableStateOf<ImportColumnMapping?>(null) }
     var sourceName by remember { mutableStateOf("") }
+    var sourceFormat by remember { mutableStateOf(StatementFormat.CSV) }
     var profileName by remember { mutableStateOf("") }
     var history by remember { mutableStateOf(importPreferences.history()) }
     var mappingMenuIndex by remember { mutableStateOf<Int?>(null) }
@@ -115,15 +119,20 @@ fun ImportTransactionsScreen(
             runCatching { withContext(Dispatchers.IO) {
                 val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
                     ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: "statement.csv"
-                val content = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                val format = when (name.substringAfterLast('.', "").lowercase()) {
+                    "xlsx" -> StatementFormat.XLSX
+                    "pdf" -> StatementFormat.PDF
+                    else -> StatementFormat.CSV
+                }
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readLimitedStatement() }
                     ?: error("Could not read the selected file")
-                name to CsvTransactionCandidateSource.inspect(content)
-            } }.onSuccess { (name, parsedTable) ->
-                    sourceName = name; table = parsedTable
+                Triple(name, format, StatementDocumentReader.read(context, bytes, format))
+            } }.onSuccess { (name, format, parsedTable) ->
+                    sourceName = name; sourceFormat = format; table = parsedTable
                     val suggested = CsvTransactionCandidateSource.suggestedMapping(parsedTable.headers)
                     profileName = ""
                     review(parsedTable, suggested)
-                }.onFailure { message = it.message ?: "Could not parse this CSV file." }
+                }.onFailure { message = it.message ?: "Could not parse this statement." }
             busy = false
         }
     }
@@ -137,7 +146,7 @@ fun ImportTransactionsScreen(
             Text("Import transactions", style = MaterialTheme.typography.titleLarge)
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-            Text("CSV files stay on this device. Every valid row is shown for review before anything is saved.",
+            Text("CSV, XLSX, and text-based PDF files stay on this device. Every valid row is shown for review before anything is saved.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Box(Modifier.fillMaxWidth().padding(top = 16.dp)) {
                 OutlinedButton(onClick = { accountMenu = true }, enabled = accounts.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
@@ -149,9 +158,10 @@ fun ImportTransactionsScreen(
                     }) }
                 }
             }
-            Button(onClick = { picker.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain")) },
+            Button(onClick = { picker.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/pdf")) },
                 enabled = !busy && account != null, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-                Text(if (busy) "Reading…" else "Choose CSV file")
+                Text(if (busy) "Reading…" else "Choose statement file")
             }
             val activeTable = table
             val activeMapping = mapping
@@ -244,7 +254,7 @@ fun ImportTransactionsScreen(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = row.selected, onCheckedChange = { rows[index] = row.copy(selected = it) })
-                    Text("CSV row ${row.sourceRow}", style = MaterialTheme.typography.labelLarge)
+                    Text("${sourceFormat.name} row ${row.sourceRow}", style = MaterialTheme.typography.labelLarge)
                     if (duplicateReason != null) Text("  $duplicateReason", color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.labelMedium)
                 }
@@ -269,7 +279,7 @@ fun ImportTransactionsScreen(
                 val target = account ?: return@Button
                 if (onImport(target.id, ready)) {
                     message = "Imported ${ready.size} transaction${if (ready.size == 1) "" else "s"}."
-                    importPreferences.addHistory(ImportHistoryEntry(sourceName, StatementFormat.CSV, target.name,
+                    importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, target.name,
                         ready.size, rows.size - ready.size, System.currentTimeMillis()))
                     history = importPreferences.history()
                     rows.clear(); problems = emptyList()
@@ -296,3 +306,15 @@ private fun ReviewRow.toCandidateOrNull(): ImportCandidate? = runCatching {
 }.getOrNull()
 
 private fun formatDate(value: Int): String = "%04d-%02d-%02d".format(value / 10_000, value / 100 % 100, value % 100)
+
+private fun InputStream.readLimitedStatement(maxBytes: Int = 25 * 1024 * 1024): ByteArray {
+    val output = ByteArrayOutputStream()
+    val buffer = ByteArray(8 * 1024)
+    while (true) {
+        val count = read(buffer)
+        if (count < 0) break
+        require(output.size() + count <= maxBytes) { "Statements larger than 25 MB are not supported" }
+        output.write(buffer, 0, count)
+    }
+    return output.toByteArray()
+}

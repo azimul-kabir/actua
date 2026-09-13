@@ -52,7 +52,7 @@ where an Android equivalent exists, Actua uses the native Android integration.
   500-metre deduplication, CRDT create/delete mutations, Android foreground permission,
   automatic picker suggestions, inline Nearby/Save actions, transaction recording, and
   synchronized picker/management deletion
-- Source-independent transaction-import candidates with a local CSV statement source,
+- Source-independent transaction-import candidates with local CSV, XLSX, and text-based PDF sources,
   configurable delimiter/column/date/sign mapping, reusable local profiles, bounded import
   history, review/edit/reject/bulk approval, normalized payee matching, malformed-row exclusion,
   explained existing/within-file duplicate warnings, and batched Actual-compatible writes
@@ -197,8 +197,8 @@ where an Android equivalent exists, Actua uses the native Android integration.
 - Goal/cleanup templates and broader budget automation authoring beyond the
   category targets and target-aware Auto Assign already shipped
 - SimpleFIN linking, download, reconciliation, and bank-feed pending-import approval
-- SMS/email notification ingestion and PDF/XLSX statement extraction (the shared review
-  pipeline currently accepts local CSV statements)
+- SMS/email notification ingestion (statement extraction already accepts CSV, XLSX, and
+  text-based PDF files through the shared review pipeline)
 - General Android transaction notifications and new-transaction detection beyond
   the credit-card payment reminders already shipped
 - Broader place metadata or background geofencing beyond the shipped foreground-only,
