@@ -80,7 +80,9 @@ import com.azimulkabir.actua.ui.settings.BillsCalendarScreen
 import com.azimulkabir.actua.ui.settings.ImportTransactionsScreen
 import com.azimulkabir.actua.ui.settings.PayeeLocationsScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
+import com.azimulkabir.actua.ui.transactions.NearbyPayeeOption
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeSearchResult
+import com.azimulkabir.actua.ui.transactions.PayeeLocationSaveResult
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
@@ -88,6 +90,7 @@ import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.location.AndroidLocationProvider
 import com.azimulkabir.actua.data.location.CurrentLocationResult
+import com.azimulkabir.actua.data.location.LocationUtils
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
@@ -667,10 +670,16 @@ fun AppNavigation(
                         when (val location = AndroidLocationProvider(context).currentCoordinates()) {
                             is CurrentLocationResult.Success -> {
                                 val nearby = withContext(Dispatchers.IO) {
-                                    repository.nearbyPayeeNames(location.coordinates)
+                                    repository.nearbyPayees(location.coordinates)
                                 }
                                 NearbyPayeeSearchResult(
-                                    payees = nearby,
+                                    options = nearby.map {
+                                        NearbyPayeeOption(
+                                            payee = it.payeeName,
+                                            distance = LocationUtils.formatDistance(it.distanceMeters),
+                                            locationId = it.locationId,
+                                        )
+                                    },
                                     message = if (nearby.isEmpty()) {
                                         "No saved payee locations were found within 500 metres."
                                     } else {
@@ -694,6 +703,54 @@ fun AppNavigation(
                                 message = "Location accuracy is too low. Try again or search normally.",
                             )
                         }
+                    },
+                    onSavePayeeLocation = if (repository.payeeLocationWritesSupported()) {
+                        { payeeName ->
+                            when (val location = AndroidLocationProvider(context).currentCoordinates()) {
+                                is CurrentLocationResult.Success -> {
+                                    val recorded = withContext(Dispatchers.IO) {
+                                        repository.recordPayeeLocation(payeeName, location.coordinates)
+                                    }
+                                    if (recorded) dataVersion += 1
+                                    PayeeLocationSaveResult(
+                                        nowNearby = true,
+                                        message = if (recorded) {
+                                            "Location saved for $payeeName."
+                                        } else {
+                                            "$payeeName already has a saved location within 500 metres."
+                                        },
+                                    )
+                                }
+                                CurrentLocationResult.PermissionDenied -> PayeeLocationSaveResult(
+                                    false, "Location permission was not granted. Nothing was saved.",
+                                )
+                                CurrentLocationResult.ServicesDisabled -> PayeeLocationSaveResult(
+                                    false, "Turn on device location to save this payee location.",
+                                )
+                                CurrentLocationResult.Timeout -> PayeeLocationSaveResult(
+                                    false, "Location timed out. Try again.",
+                                )
+                                CurrentLocationResult.Unavailable -> PayeeLocationSaveResult(
+                                    false, "Your current location is unavailable. Nothing was saved.",
+                                )
+                                is CurrentLocationResult.Inaccurate -> PayeeLocationSaveResult(
+                                    false, "Location accuracy is too low. Try again.",
+                                )
+                            }
+                        }
+                    } else {
+                        null
+                    },
+                    onForgetPayeeLocation = if (repository.payeeLocationWritesSupported()) {
+                        { locationId ->
+                            withContext(Dispatchers.IO) {
+                                repository.deletePayeeLocation(locationId)
+                            }.also { deleted ->
+                                if (deleted) dataVersion += 1
+                            }
+                        }
+                    } else {
+                        null
                     },
             )
             DetailDestination.Search -> GlobalSearchScreen(

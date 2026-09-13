@@ -24,7 +24,7 @@ displayed in the release UI must work.
 Features that still require substantial new financial semantics or external
 integrations remain outside the current version boundary, including full
 budget/cleanup automation authoring, bank-feed setup, general transaction
-notifications/new-transaction detection, and location-backed payee suggestions.
+notifications/new-transaction detection, and background place monitoring.
 Apple-only integrations are not Android backlog items and will never be ported;
 where an Android equivalent exists, Actua uses the native Android integration.
 
@@ -49,8 +49,9 @@ where an Android equivalent exists, Actua uses the native Android integration.
 - Actual schema migrations required by current Android reads
 - Accounts, payees, category groups/categories, transactions, transfers, splits
 - Actual-compatible payee-location schema migration, complete-row reads, nearby ranking,
-  500-metre deduplication, and CRDT create/delete mutation foundation; Android permission,
-  picker, transaction-recording, and management UI remain staged under issue #90
+  500-metre deduplication, CRDT create/delete mutations, Android foreground permission,
+  automatic picker suggestions, inline Nearby/Save actions, transaction recording, and
+  synchronized picker/management deletion
 - Source-independent transaction-import candidates with a local CSV statement source,
   review/edit/reject/bulk approval, normalized payee matching, malformed-row exclusion,
   same-account duplicate warnings, and batched Actual-compatible transaction writes
@@ -176,10 +177,11 @@ where an Android equivalent exists, Actua uses the native Android integration.
   Crossover, Budget Analysis, Sankey, Balance Forecast, and Monte Carlo cards
   with unknown future widget-type disclosure
 
-- Opt-in foreground-only location-aware payees: explicit picker lookup using a recent
-  valid cached fix or concurrent enabled Android providers, 500-metre ranking/deduplication,
-  eligible new-transaction recording, Actual-compatible CRDT storage, schema-gated writes,
-  and synchronized individual/bulk management deletion
+- Opt-in foreground-only location-aware payees: automatic picker lookup after permission using
+  a recent valid cached fix or concurrent enabled Android providers; distance-labelled 500-metre
+  ranking; inline closest-payee selection and per-payee Save actions; eligible new-transaction
+  recording; Actual-compatible CRDT storage; schema-gated writes; and synchronized picker plus
+  management deletion
 
 ## Remaining version 1 work
 

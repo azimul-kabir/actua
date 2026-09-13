@@ -105,6 +105,8 @@ fun AddTransactionScreen(
     conventionalAmountEntry: Boolean = false,
     onResolveRuleCategory: (Transaction) -> String? = { null },
     onFindNearbyPayees: (suspend () -> NearbyPayeeSearchResult)? = null,
+    onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
+    onForgetPayeeLocation: (suspend (String) -> Boolean)? = null,
 ) {
     var amountCents by remember(editing) { mutableStateOf(abs(editing?.amountCents ?: 0L)) }
     var showCalculator by remember { mutableStateOf(false) }
@@ -297,6 +299,8 @@ fun AddTransactionScreen(
                     },
                     allowCustom = true,
                     onFindNearby = onFindNearbyPayees,
+                    onSavePayeeLocation = onSavePayeeLocation,
+                    onForgetPayeeLocation = onForgetPayeeLocation,
                 )
             }
             if (transactionType != Type.TRANSFER.displayName && !isSplit && !isOffBudget) {
@@ -590,8 +594,71 @@ internal fun PickerTextField(
     allowCustom: Boolean = false,
     supportingValues: Map<String, String> = emptyMap(),
     onFindNearby: (suspend () -> NearbyPayeeSearchResult)? = null,
+    onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
+    onForgetPayeeLocation: (suspend (String) -> Boolean)? = null,
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var knownNearbyPayees by remember { mutableStateOf<Set<String>?>(null) }
+    var locationActionLoading by remember { mutableStateOf(false) }
+    var locationActionMessage by remember { mutableStateOf<String?>(null) }
+    var pendingPermissionAction by remember { mutableStateOf<PayeeLocationInlineAction?>(null) }
+    var showPermissionExplanation by remember { mutableStateOf(false) }
+    val inlineAction = payeeLocationInlineAction(
+        payee = value,
+        ordinaryPayees = options.filterNot { it.startsWith("Transfer: ") }.toSet(),
+        knownNearbyPayees = knownNearbyPayees,
+        canFindNearby = onFindNearby != null,
+        canSaveLocation = onSavePayeeLocation != null,
+    )
+    val runLocationAction: (PayeeLocationInlineAction) -> Unit = { action ->
+        coroutineScope.launch {
+            locationActionLoading = true
+            locationActionMessage = null
+            when (action) {
+                PayeeLocationInlineAction.Nearby -> {
+                    val result = runCatching { onFindNearby?.invoke() }.getOrNull()
+                    if (result == null) {
+                        locationActionMessage = "Could not determine nearby payees. Try again or choose one normally."
+                    } else {
+                        knownNearbyPayees = result.options.mapTo(mutableSetOf()) { it.payee }
+                        val closest = result.options.firstOrNull()
+                        if (closest != null) {
+                            onValueChange(closest.payee)
+                            locationActionMessage = "Selected ${closest.payee}, ${closest.distance}."
+                        } else {
+                            locationActionMessage = result.message
+                                ?: "No saved payee locations were found within 500 metres."
+                        }
+                    }
+                }
+                PayeeLocationInlineAction.SaveLocation -> {
+                    val result = runCatching { onSavePayeeLocation?.invoke(value) }.getOrNull()
+                    if (result == null) {
+                        locationActionMessage = "Could not save this payee location. Try again."
+                    } else {
+                        locationActionMessage = result.message
+                        if (result.nowNearby) {
+                            knownNearbyPayees = knownNearbyPayees.orEmpty() + value
+                        }
+                    }
+                }
+            }
+            locationActionLoading = false
+        }
+    }
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        val action = pendingPermissionAction
+        pendingPermissionAction = null
+        if (grants.values.any { it } || ForegroundLocationPermission.isGranted(context)) {
+            action?.let(runLocationAction)
+        } else {
+            locationActionMessage = "Location permission was not granted. You can still choose a payee normally."
+        }
+    }
     Box(Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = value,
@@ -599,9 +666,39 @@ internal fun PickerTextField(
             label = { Text(label) },
             singleLine = true,
             readOnly = true,
+            trailingIcon = inlineAction?.let { action ->
+                {
+                    TextButton(
+                        onClick = {
+                            if (ForegroundLocationPermission.isGranted(context)) {
+                                runLocationAction(action)
+                            } else {
+                                pendingPermissionAction = action
+                                showPermissionExplanation = true
+                            }
+                        },
+                        enabled = !locationActionLoading,
+                    ) {
+                        if (locationActionLoading) {
+                            CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Outlined.LocationOn, contentDescription = null)
+                            Text(
+                                if (action == PayeeLocationInlineAction.Nearby) "Nearby" else "Save location",
+                                modifier = Modifier.padding(start = 4.dp),
+                            )
+                        }
+                    }
+                }
+            },
+            supportingText = locationActionMessage?.let { message -> { Text(message) } },
             modifier = Modifier.fillMaxWidth(),
         )
-        Box(Modifier.matchParentSize().clickable { showPicker = true })
+        Box(
+            Modifier.matchParentSize()
+                .padding(end = if (inlineAction == null) 0.dp else 126.dp)
+                .clickable { showPicker = true },
+        )
     }
     if (showPicker) SearchableTransactionPicker(
         title = label.removeSuffix(" (optional)"),
@@ -610,12 +707,42 @@ internal fun PickerTextField(
         allowCustom = allowCustom,
         supportingValues = supportingValues,
         onFindNearby = onFindNearby,
+        onForgetPayeeLocation = onForgetPayeeLocation,
+        onNearbyResult = { result ->
+            knownNearbyPayees = result.options.mapTo(mutableSetOf()) { it.payee }
+        },
         onDismiss = { showPicker = false },
         onSelect = {
             onValueChange(it)
             showPicker = false
         },
     )
+    if (showPermissionExplanation) {
+        AlertDialog(
+            onDismissRequest = {
+                showPermissionExplanation = false
+                pendingPermissionAction = null
+            },
+            title = { Text("Use your location?") },
+            text = {
+                Text(
+                    "Actua uses a one-time foreground location to find nearby saved payees or save this payee's location inside your Actual budget. It does not track location in the background or send it to another service.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPermissionExplanation = false
+                    locationPermissionLauncher.launch(ForegroundLocationPermission.permissions)
+                }) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showPermissionExplanation = false
+                    pendingPermissionAction = null
+                }) { Text("Not now") }
+            },
+        )
+    }
 }
 
 @Composable
@@ -626,6 +753,8 @@ private fun SearchableTransactionPicker(
     allowCustom: Boolean,
     supportingValues: Map<String, String>,
     onFindNearby: (suspend () -> NearbyPayeeSearchResult)?,
+    onForgetPayeeLocation: (suspend (String) -> Boolean)?,
+    onNearbyResult: (NearbyPayeeSearchResult) -> Unit,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
@@ -635,10 +764,12 @@ private fun SearchableTransactionPicker(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var nearbyLoading by remember { mutableStateOf(false) }
-    var nearbyOptions by remember { mutableStateOf(emptyList<String>()) }
+    var nearbyOptions by remember { mutableStateOf(emptyList<NearbyPayeeOption>()) }
     var nearbyMessage by remember { mutableStateOf<String?>(null) }
+    var showPermissionExplanation by remember { mutableStateOf(false) }
+    var forgettingLocationId by remember { mutableStateOf<String?>(null) }
     val loadNearby = {
-        onFindNearby?.let { findNearby ->
+        if (!nearbyLoading) onFindNearby?.let { findNearby ->
             coroutineScope.launch {
                 nearbyLoading = true
                 nearbyMessage = null
@@ -647,8 +778,9 @@ private fun SearchableTransactionPicker(
                         message = "Could not determine nearby payees. You can still search normally.",
                     )
                 }
-                nearbyOptions = result.payees
+                nearbyOptions = result.options
                 nearbyMessage = result.message
+                onNearbyResult(result)
                 nearbyLoading = false
             }
         }
@@ -662,6 +794,11 @@ private fun SearchableTransactionPicker(
         } else {
             nearbyOptions = emptyList()
             nearbyMessage = "Location permission was not granted. You can still search normally."
+        }
+    }
+    LaunchedEffect(Unit) {
+        if (onFindNearby != null && ForegroundLocationPermission.isGranted(context)) {
+            loadNearby()
         }
     }
     val uniqueOptions = remember(options) { options.distinct() }
@@ -735,9 +872,7 @@ private fun SearchableTransactionPicker(
                                     if (ForegroundLocationPermission.isGranted(context)) {
                                         loadNearby()
                                     } else {
-                                        locationPermissionLauncher.launch(
-                                            ForegroundLocationPermission.permissions,
-                                        )
+                                        showPermissionExplanation = true
                                     }
                                 },
                                 enabled = !nearbyLoading,
@@ -751,16 +886,40 @@ private fun SearchableTransactionPicker(
                                     )
                                 } else {
                                     Icon(Icons.Outlined.LocationOn, contentDescription = null)
-                                    Text("Find nearby payees", modifier = Modifier.padding(start = 8.dp))
+                                    Text(
+                                        if (nearbyOptions.isEmpty()) "Find nearby payees" else "Refresh nearby payees",
+                                        modifier = Modifier.padding(start = 8.dp),
+                                    )
                                 }
                             }
                         }
                         if (nearbyOptions.isNotEmpty()) {
                             item {
-                                PickerGroup(
+                                NearbyPickerGroup(
                                     options = nearbyOptions,
                                     selected = selected,
-                                    onSelect = onSelect,
+                                    forgettingLocationId = forgettingLocationId,
+                                    onSelect = { onSelect(it.payee) },
+                                    onForget = onForgetPayeeLocation?.let { forgetLocation ->
+                                        { option ->
+                                            coroutineScope.launch {
+                                                forgettingLocationId = option.locationId
+                                                val deleted = runCatching {
+                                                    forgetLocation(option.locationId)
+                                                }.getOrDefault(false)
+                                                if (deleted) {
+                                                    nearbyOptions = nearbyOptions.filterNot {
+                                                        it.locationId == option.locationId
+                                                    }
+                                                    nearbyMessage = "Saved location for ${option.payee} forgotten."
+                                                    onNearbyResult(NearbyPayeeSearchResult(nearbyOptions, nearbyMessage))
+                                                } else {
+                                                    nearbyMessage = "Could not forget the saved location. Try again."
+                                                }
+                                                forgettingLocationId = null
+                                            }
+                                        }
+                                    },
                                 )
                             }
                         }
@@ -837,12 +996,58 @@ private fun SearchableTransactionPicker(
             }
         }
     }
+    if (showPermissionExplanation) {
+        AlertDialog(
+            onDismissRequest = { showPermissionExplanation = false },
+            title = { Text("Use your location?") },
+            text = {
+                Text(
+                    "Actua uses a one-time foreground location to find nearby payees saved inside your Actual budget. It does not track location in the background or send it to another service.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPermissionExplanation = false
+                    locationPermissionLauncher.launch(ForegroundLocationPermission.permissions)
+                }) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionExplanation = false }) { Text("Not now") }
+            },
+        )
+    }
 }
 
 data class NearbyPayeeSearchResult(
-    val payees: List<String> = emptyList(),
+    val options: List<NearbyPayeeOption> = emptyList(),
     val message: String? = null,
 )
+
+data class NearbyPayeeOption(
+    val payee: String,
+    val distance: String,
+    val locationId: String,
+)
+
+data class PayeeLocationSaveResult(
+    val nowNearby: Boolean,
+    val message: String,
+)
+
+internal enum class PayeeLocationInlineAction { Nearby, SaveLocation }
+
+internal fun payeeLocationInlineAction(
+    payee: String,
+    ordinaryPayees: Set<String>,
+    knownNearbyPayees: Set<String>?,
+    canFindNearby: Boolean,
+    canSaveLocation: Boolean,
+): PayeeLocationInlineAction? = when {
+    payee.isBlank() && canFindNearby -> PayeeLocationInlineAction.Nearby
+    payee in ordinaryPayees && canSaveLocation && knownNearbyPayees?.contains(payee) != true ->
+        PayeeLocationInlineAction.SaveLocation
+    else -> null
+}
 
 internal data class AmountFieldPresentation(
     val value: String,
@@ -925,6 +1130,57 @@ private fun PickerGroup(
                     supportingText = supportingValues[option],
                     selected = option == selected,
                 ) { onSelect(option) }
+                if (index < options.lastIndex) {
+                    HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NearbyPickerGroup(
+    options: List<NearbyPayeeOption>,
+    selected: String,
+    forgettingLocationId: String?,
+    onSelect: (NearbyPayeeOption) -> Unit,
+    onForget: ((NearbyPayeeOption) -> Unit)?,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column {
+            options.forEachIndexed { index, option ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onSelect(option) }
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = option.payee == selected, onClick = { onSelect(option) })
+                    Column(modifier = Modifier.weight(1f).padding(horizontal = 4.dp)) {
+                        Text(option.payee, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                        Text(
+                            option.distance,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                    onForget?.let {
+                        TextButton(
+                            onClick = { it(option) },
+                            enabled = forgettingLocationId == null,
+                        ) {
+                            if (forgettingLocationId == option.locationId) {
+                                CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                            } else {
+                                Text("Forget", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
                 if (index < options.lastIndex) {
                     HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
                 }
