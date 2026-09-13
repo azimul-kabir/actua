@@ -76,7 +76,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 
 ## UI and navigation
 
-- [ ] Bottom navigation labels the operational hub **Manage**; its Settings gear opens general preferences and Back returns to Manage.
+- [ ] Bottom navigation labels the operational hub **Manage** with the Tune icon in labeled and Icons only modes; its separate Settings gear opens general preferences.
+- [ ] Manage → Settings and Settings → preference pages animate forward; header Back and Android Back animate in reverse through the same hierarchy.
 - [ ] An upgrade with **More** stored as the start page opens **Manage** and persists the migrated value.
 - [ ] Bottom navigation preserves per-tab state and root reselect/scroll-to-top behavior.
 - [ ] Android Back behaves correctly from details, search, preferences and transaction flows.

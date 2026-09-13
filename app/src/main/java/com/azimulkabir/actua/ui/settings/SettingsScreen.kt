@@ -49,10 +49,17 @@ import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 
-private enum class SettingsPage(val title: String) {
-    Manage("Manage"), General("Settings"), Transactions("Transactions & Accounts"),
-    Display("Display"), Privacy("Privacy"), About("About"),
+internal enum class SettingsPage(val title: String, val depth: Int) {
+    Manage("Manage", 0),
+    General("Settings", 1),
+    Transactions("Transactions & Accounts", 2),
+    Display("Display", 2),
+    Privacy("Privacy", 2),
+    About("About", 2),
 }
+
+internal fun isForwardSettingsNavigation(from: SettingsPage, to: SettingsPage): Boolean =
+    to.depth > from.depth
 
 @Composable
 fun SettingsScreen(
@@ -163,7 +170,7 @@ fun SettingsScreen(
         targetState = page,
         modifier = modifier.fillMaxSize(),
         transitionSpec = {
-            val opening = initialState == SettingsPage.Manage && targetState != SettingsPage.Manage
+            val opening = isForwardSettingsNavigation(initialState, targetState)
             if (opening) {
                 (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { it / 5 }) togetherWith
                     (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { -it / 10 })
