@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.sync
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -35,68 +36,145 @@ sealed interface SyncRunResult {
 
 /** Headless equivalent of iOS syncInBackground, excluding Wallet/FinanceKit. */
 object ActualSyncRunner {
+    private var lastSuccessBudgetId: String? = null
+    private var lastSuccessElapsedMillis: Long = Long.MIN_VALUE
+    private var lastSuccess: SyncRunResult.Success? = null
+
     @Synchronized
-    fun run(context: Context, makeBackup: Boolean = false): SyncRunResult {
+    fun run(
+        context: Context,
+        makeBackup: Boolean = false,
+        allowRecentSuccess: Boolean = false,
+        trigger: String = "Sync",
+    ): SyncRunResult {
         val app = context.applicationContext
+        val status = SyncStatusStore(app)
+        val budgetId = ActiveBudgetStore(app).budgetId ?: return SyncRunResult.NotConfigured.also {
+            status.stoppedWithoutSync()
+        }
         val credentials = CredentialStore(app)
-        val token = credentials.token() ?: return SyncRunResult.NotConfigured
-        val serverUrl = credentials.serverUrl.takeIf(String::isNotBlank) ?: return SyncRunResult.NotConfigured
+        val token = credentials.token() ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
+        val serverUrl = credentials.serverUrl.takeIf(String::isNotBlank)
+            ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
         val fallbackUrl = credentials.fallbackServerUrl.takeIf { it.isNotBlank() && it != serverUrl }
         val files = BudgetFileManager(app)
-        val budgetId = ActiveBudgetStore(app).budgetId ?: return SyncRunResult.NotConfigured
-        if (DemoBudgetManager.isDemoBudget(budgetId)) return SyncRunResult.NotConfigured
-        val metadata = files.listLocalBudgets().firstOrNull { it.id == budgetId } ?: return SyncRunResult.NotConfigured
-        val fileId = metadata.cloudFileId ?: return SyncRunResult.NotConfigured
-        val groupId = metadata.groupId ?: return SyncRunResult.NotConfigured
-        val loadedKey = metadata.encryptKeyId?.let {
-            BudgetEncryptionKeyStore(app).load(fileId) ?: return SyncRunResult.EncryptionKeyUnavailable
+        if (DemoBudgetManager.isDemoBudget(budgetId)) return SyncRunResult.NotConfigured.also {
+            status.stoppedWithoutSync()
         }
-        if (metadata.encryptKeyId != null && loadedKey?.keyId != metadata.encryptKeyId) return SyncRunResult.EncryptionKeyUnavailable
-        return ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { database ->
-            val server = ActualServerClient()
-            fun syncAt(url: String) = ActualSyncClient(url, token, server, database, fileId, groupId,
-                loadedKey?.keyId, loadedKey?.let { ActualMessageCipher(it.key) }).sync()
-            var outcome = try { syncAt(serverUrl) } catch (primary: Exception) {
-                fallbackUrl?.let(::syncAt) ?: throw primary
+        val metadata = files.listLocalBudgets().firstOrNull { it.id == budgetId }
+            ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
+        val fileId = metadata.cloudFileId ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
+        val groupId = metadata.groupId ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
+        val loadedKey = metadata.encryptKeyId?.let {
+            BudgetEncryptionKeyStore(app).load(fileId) ?: return SyncRunResult.EncryptionKeyUnavailable.also {
+                status.failed(IllegalStateException("Unlock this encrypted budget before syncing"))
             }
-            val poster = SchedulePoster(app, database, ActualTransactionWriter(database), ActualScheduleWriter(database))
-            val posted = poster.runIfNeeded(budgetId)
-            if (posted > 0) outcome = try { syncAt(serverUrl) } catch (primary: Exception) {
-                fallbackUrl?.let(::syncAt) ?: throw primary
+        }
+        if (metadata.encryptKeyId != null && loadedKey?.keyId != metadata.encryptKeyId) {
+            return SyncRunResult.EncryptionKeyUnavailable.also {
+                status.failed(IllegalStateException("Unlock this encrypted budget before syncing"))
             }
+        }
+        val nowElapsed = SystemClock.elapsedRealtime()
+        if (SyncCoalescingPolicy.shouldReuse(
+                allowRecentSuccess = allowRecentSuccess,
+                requestedBudgetId = budgetId,
+                completedBudgetId = lastSuccessBudgetId,
+                completedElapsedMillis = lastSuccessElapsedMillis,
+                nowElapsedMillis = nowElapsed,
+            )
+        ) {
             if (makeBackup) runCatching { BackupService(app, files).makeBackup(budgetId) }
-            SyncRunResult.Success(outcome, posted)
+            if (trigger == "App open") status.foregroundRefreshFinished()
+            return requireNotNull(lastSuccess)
+        }
+        status.started(trigger)
+        return try {
+            val result = ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { database ->
+                val server = ActualServerClient()
+                fun syncAt(url: String) = ActualSyncClient(url, token, server, database, fileId, groupId,
+                    loadedKey?.keyId, loadedKey?.let { ActualMessageCipher(it.key) }).sync()
+                var outcome = try { syncAt(serverUrl) } catch (primary: Exception) {
+                    fallbackUrl?.let(::syncAt) ?: throw primary
+                }
+                val poster = SchedulePoster(app, database, ActualTransactionWriter(database), ActualScheduleWriter(database))
+                val posted = poster.runIfNeeded(budgetId)
+                if (posted > 0) outcome = try { syncAt(serverUrl) } catch (primary: Exception) {
+                    fallbackUrl?.let(::syncAt) ?: throw primary
+                }
+                if (makeBackup) runCatching { BackupService(app, files).makeBackup(budgetId) }
+                SyncRunResult.Success(outcome, posted)
+            }
+            lastSuccessBudgetId = budgetId
+            lastSuccessElapsedMillis = SystemClock.elapsedRealtime()
+            lastSuccess = result
+            status.succeeded(result.outcome)
+            SyncSignals.dataChanged()
+            result
+        } catch (error: Exception) {
+            status.failed(error)
+            throw error
         }
     }
 }
 
+internal object SyncCoalescingPolicy {
+    const val RECENT_SUCCESS_WINDOW_MILLIS = 5_000L
+
+    fun shouldReuse(
+        allowRecentSuccess: Boolean,
+        requestedBudgetId: String?,
+        completedBudgetId: String?,
+        completedElapsedMillis: Long,
+        nowElapsedMillis: Long,
+    ): Boolean = allowRecentSuccess && requestedBudgetId != null && requestedBudgetId == completedBudgetId &&
+        nowElapsedMillis >= completedElapsedMillis &&
+        nowElapsedMillis - completedElapsedMillis <= RECENT_SUCCESS_WINDOW_MILLIS
+}
+
+internal fun syncTriggerLabel(reason: String?): String = when (reason) {
+    ActualSyncWorker.REASON_MUTATION -> "After change"
+    ActualSyncWorker.REASON_FOREGROUND -> "App open"
+    else -> "Background"
+}
+
+internal fun allowsRecentSuccess(reason: String?): Boolean =
+    reason != ActualSyncWorker.REASON_MUTATION
+
 class ActualSyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
-        val status = SyncStatusStore(applicationContext); status.started()
+        val reason = inputData.getString(REASON_KEY)
         return try {
-            when (val run = ActualSyncRunner.run(applicationContext, inputData.getBoolean(BACKUP_KEY, false))) {
+            when (val run = ActualSyncRunner.run(
+                applicationContext,
+                makeBackup = inputData.getBoolean(BACKUP_KEY, false),
+                allowRecentSuccess = allowsRecentSuccess(reason),
+                trigger = syncTriggerLabel(reason),
+            )) {
                 is SyncRunResult.Success -> {
-                    status.succeeded(run.outcome)
                     CreditCardDueNotificationScheduler.refresh(applicationContext)
                     WidgetUpdater.requestAll(applicationContext)
                     Result.success()
                 }
-                SyncRunResult.NotConfigured -> { status.stoppedWithoutSync(); Result.success() }
-                SyncRunResult.EncryptionKeyUnavailable -> {
-                    status.failed(IllegalStateException("Unlock this encrypted budget before syncing")); Result.failure()
-                }
+                SyncRunResult.NotConfigured -> Result.success()
+                SyncRunResult.EncryptionKeyUnavailable -> Result.failure()
             }
         } catch (error: Exception) {
-            status.failed(error)
             if (runAttemptCount < 5) Result.retry() else Result.failure()
         } finally {
-            if (inputData.getBoolean(BACKGROUND_KEY, false)) status.backgroundRefreshFinished()
+            if (inputData.getBoolean(BACKGROUND_KEY, false)) {
+                SyncStatusStore(applicationContext).backgroundRefreshFinished()
+            }
         }
     }
 
     companion object {
         const val BACKUP_KEY = "makeBackup"
         const val BACKGROUND_KEY = "backgroundRefresh"
+        const val REASON_KEY = "reason"
+        const val REASON_PERIODIC = "periodic"
+        const val REASON_MUTATION = "mutation"
+        const val REASON_FOREGROUND = "foreground"
     }
 }
 
@@ -120,6 +198,7 @@ object ActualSyncScheduler {
             .setInputData(workDataOf(
                 ActualSyncWorker.BACKUP_KEY to true,
                 ActualSyncWorker.BACKGROUND_KEY to true,
+                ActualSyncWorker.REASON_KEY to ActualSyncWorker.REASON_PERIODIC,
             ))
             .setConstraints(network).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS).build()
         WorkManager.getInstance(context.applicationContext).enqueueUniquePeriodicWork(
@@ -128,13 +207,17 @@ object ActualSyncScheduler {
 
     /** A short delay coalesces the CRDT cells produced by one user operation. */
     fun scheduleMutation(context: Context) {
-        val request = OneTimeWorkRequestBuilder<ActualSyncWorker>().setInitialDelay(1, TimeUnit.SECONDS)
+        val request = OneTimeWorkRequestBuilder<ActualSyncWorker>()
+            .setInputData(workDataOf(ActualSyncWorker.REASON_KEY to ActualSyncWorker.REASON_MUTATION))
+            .setInitialDelay(1, TimeUnit.SECONDS)
             .setConstraints(network).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS).build()
         WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(IMMEDIATE, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
     }
 
     fun scheduleForeground(context: Context) {
-        val request = OneTimeWorkRequestBuilder<ActualSyncWorker>().setConstraints(network).build()
+        val request = OneTimeWorkRequestBuilder<ActualSyncWorker>()
+            .setInputData(workDataOf(ActualSyncWorker.REASON_KEY to ActualSyncWorker.REASON_FOREGROUND))
+            .setConstraints(network).build()
         WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(IMMEDIATE, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
     }
 

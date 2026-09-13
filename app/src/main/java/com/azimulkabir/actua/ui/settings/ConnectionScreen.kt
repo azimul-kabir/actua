@@ -84,6 +84,11 @@ private data class CompletedOpenIdLogin(
     val budgets: List<RemoteBudgetFile>,
 )
 
+internal fun formatSyncDuration(durationMillis: Long): String = when {
+    durationMillis < 1_000L -> "$durationMillis ms"
+    else -> String.format(java.util.Locale.US, "%.1f s", durationMillis / 1_000.0)
+}
+
 @Composable
 fun ConnectionScreen(
     onBack: () -> Unit,
@@ -565,7 +570,9 @@ fun ConnectionScreen(
                 }
                 Row(Modifier.fillMaxWidth()) {
                     Text("Status", Modifier.weight(1f))
-                    Text(if (syncStatus.running || syncing) "Syncing" else if (syncStatus.error != null) "Error" else "Idle",
+                    Text(if (syncStatus.running || syncing) {
+                        syncStatus.activeTrigger?.let { "Syncing · $it" } ?: "Syncing"
+                    } else if (syncStatus.error != null) "Error" else "Idle",
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(Modifier.fillMaxWidth()) {
@@ -574,33 +581,48 @@ fun ConnectionScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(Modifier.fillMaxWidth()) {
-                    Text("Last background refresh", Modifier.weight(1f))
+                    Text("Last app-open refresh", Modifier.weight(1f))
+                    Text(syncStatus.lastForegroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Row(Modifier.fillMaxWidth()) {
+                    Text("Last background attempt", Modifier.weight(1f))
                     Text(syncStatus.lastBackgroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                if (syncStatus.lastDurationMillis > 0) {
+                    Row(Modifier.fillMaxWidth()) {
+                        Text("Last sync duration", Modifier.weight(1f))
+                        Text(formatSyncDuration(syncStatus.lastDurationMillis),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Text(
+                    "Last sync is the latest successful sync from any source. A background attempt may match it when that worker succeeded, or be newer when the worker was skipped or failed. Android schedules background work about every 15 minutes when connected, but battery restrictions may delay it. Opening Actua requests an immediate foreground refresh while local data stays available.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 syncStatus.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 OutlinedButton(enabled = !demoActive && !syncing && !loading && downloadingId == null,
                     modifier = Modifier.fillMaxWidth(), onClick = {
                         syncing = true; message = null
                         scope.launch {
                             runCatching { withContext(Dispatchers.IO) {
-                                syncStatusStore.started(); ActualSyncRunner.run(context)
+                                ActualSyncRunner.run(context, trigger = "Manual")
                             } }.onSuccess { result ->
                                 when (result) {
                                     is SyncRunResult.Success -> {
-                                        syncStatusStore.succeeded(result.outcome)
                                         message = "Synced ${result.outcome.sentMessages} up, ${result.outcome.receivedMessages} down"
                                         onBudgetInstalled()
                                     }
                                     SyncRunResult.NotConfigured -> {
-                                        syncStatusStore.stoppedWithoutSync(); message = "Download and select a budget first."
+                                        message = "Download and select a budget first."
                                     }
                                     SyncRunResult.EncryptionKeyUnavailable -> {
-                                        syncStatusStore.failed(IllegalStateException("Unlock this encrypted budget before syncing"))
                                         message = "Unlock this encrypted budget before syncing."
                                     }
                                 }
-                            }.onFailure { error -> syncStatusStore.failed(error); message = error.message ?: "Sync failed." }
+                            }.onFailure { error -> message = error.message ?: "Sync failed." }
                             syncStatus = syncStatusStore.read(); syncing = false
                         }
                     }) {
