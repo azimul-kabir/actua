@@ -176,9 +176,10 @@ where an Android equivalent exists, Actua uses the native Android integration.
   Crossover, Budget Analysis, Sankey, Balance Forecast, and Monte Carlo cards
   with unknown future widget-type disclosure
 
-- Opt-in foreground-only location-aware payees: explicit picker lookup, 500-metre
-  ranking/deduplication, eligible new-transaction recording, Actual-compatible CRDT
-  storage, schema-gated writes, and synchronized individual/bulk management deletion
+- Opt-in foreground-only location-aware payees: explicit picker lookup using a recent
+  valid cached fix or concurrent enabled Android providers, 500-metre ranking/deduplication,
+  eligible new-transaction recording, Actual-compatible CRDT storage, schema-gated writes,
+  and synchronized individual/bulk management deletion
 
 ## Remaining version 1 work
 
