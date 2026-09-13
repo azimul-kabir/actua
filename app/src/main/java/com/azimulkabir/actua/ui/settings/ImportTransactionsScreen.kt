@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.settings
 
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +27,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -39,8 +41,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.importing.CsvTransactionCandidateSource
 import com.azimulkabir.actua.data.importing.ImportCandidate
+import com.azimulkabir.actua.data.importing.ImportColumnMapping
+import com.azimulkabir.actua.data.importing.ImportColumnRole
 import com.azimulkabir.actua.data.importing.ImportDuplicateDetector
+import com.azimulkabir.actua.data.importing.ImportHistoryEntry
+import com.azimulkabir.actua.data.importing.ImportPreferences
 import com.azimulkabir.actua.data.importing.ImportProblem
+import com.azimulkabir.actua.data.importing.ImportTable
+import com.azimulkabir.actua.data.importing.StatementFormat
 import com.azimulkabir.actua.model.Account
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -74,27 +82,47 @@ fun ImportTransactionsScreen(
     var message by remember { mutableStateOf<String?>(null) }
     var accountMenu by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    val importPreferences = remember { ImportPreferences(context) }
+    var table by remember { mutableStateOf<ImportTable?>(null) }
+    var mapping by remember { mutableStateOf<ImportColumnMapping?>(null) }
+    var sourceName by remember { mutableStateOf("") }
+    var profileName by remember { mutableStateOf("") }
+    var history by remember { mutableStateOf(importPreferences.history()) }
+    var mappingMenuIndex by remember { mutableStateOf<Int?>(null) }
+    var datePatternMenu by remember { mutableStateOf(false) }
+    var profileMenu by remember { mutableStateOf(false) }
     val existingKeys = remember(account?.id, rows.size) { account?.id?.let(duplicateKeys).orEmpty() }
+
+    fun review(parsedTable: ImportTable, selectedMapping: ImportColumnMapping) {
+        mapping = selectedMapping
+        val result = CsvTransactionCandidateSource.parse(parsedTable, selectedMapping)
+        rows.clear()
+        val knownKeys = account?.id?.let(duplicateKeys).orEmpty().toMutableSet()
+        rows += result.candidates.map { candidate ->
+            val key = ImportDuplicateDetector.key(candidate.date, candidate.amountCents, candidate.payee)
+            val duplicate = !knownKeys.add(key)
+            ReviewRow(candidate.sourceRow, formatDate(candidate.date), candidate.payee,
+                BigDecimal.valueOf(candidate.amountCents, 2).toPlainString(), candidate.notes,
+                candidate.reference, selected = !duplicate)
+        }
+        problems = result.problems
+        message = if (rows.isEmpty()) "No valid transactions found." else null
+    }
 
     fun load(uri: Uri) {
         busy = true
         scope.launch {
             runCatching { withContext(Dispatchers.IO) {
-                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                    ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: "statement.csv"
+                val content = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
                     ?: error("Could not read the selected file")
-            } }.map(CsvTransactionCandidateSource::parse)
-                .onSuccess { result ->
-                    rows.clear()
-                    val knownKeys = account?.id?.let(duplicateKeys).orEmpty().toMutableSet()
-                    rows += result.candidates.map { candidate ->
-                        val key = ImportDuplicateDetector.key(candidate.date, candidate.amountCents, candidate.payee)
-                        val duplicate = !knownKeys.add(key)
-                        ReviewRow(candidate.sourceRow, formatDate(candidate.date), candidate.payee,
-                            BigDecimal.valueOf(candidate.amountCents, 2).toPlainString(), candidate.notes,
-                            candidate.reference, selected = !duplicate)
-                    }
-                    problems = result.problems
-                    message = if (rows.isEmpty()) "No valid transactions found." else null
+                name to CsvTransactionCandidateSource.inspect(content)
+            } }.onSuccess { (name, parsedTable) ->
+                    sourceName = name; table = parsedTable
+                    val suggested = CsvTransactionCandidateSource.suggestedMapping(parsedTable.headers)
+                    profileName = ""
+                    review(parsedTable, suggested)
                 }.onFailure { message = it.message ?: "Could not parse this CSV file." }
             busy = false
         }
@@ -125,14 +153,81 @@ fun ImportTransactionsScreen(
                 enabled = !busy && account != null, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                 Text(if (busy) "Reading…" else "Choose CSV file")
             }
+            val activeTable = table
+            val activeMapping = mapping
+            if (activeTable != null && activeMapping != null) {
+                Text("Column mapping", style = MaterialTheme.typography.titleMedium)
+                activeTable.headers.forEachIndexed { index, header ->
+                    Box(Modifier.fillMaxWidth()) {
+                        OutlinedButton(onClick = { mappingMenuIndex = index }, modifier = Modifier.fillMaxWidth()) {
+                            val role = activeMapping.roles.getOrElse(index) { ImportColumnRole.IGNORE }
+                            Text("${header.ifBlank { "Column ${index + 1}" }}: ${role.displayName()}")
+                        }
+                        DropdownMenu(expanded = mappingMenuIndex == index, onDismissRequest = { mappingMenuIndex = null }) {
+                            ImportColumnRole.entries.forEach { role ->
+                                DropdownMenuItem(text = { Text(role.displayName()) }, onClick = {
+                                    val roles = activeMapping.roles.toMutableList().apply { this[index] = role }
+                                    mappingMenuIndex = null
+                                    review(activeTable, activeMapping.copy(roles = roles))
+                                })
+                            }
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Expenses are positive", Modifier.weight(1f))
+                    Switch(checked = activeMapping.expensesArePositive, onCheckedChange = {
+                        review(activeTable, activeMapping.copy(expensesArePositive = it))
+                    })
+                }
+                Box(Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { datePatternMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Date format: ${activeMapping.datePattern}")
+                    }
+                    DropdownMenu(datePatternMenu, { datePatternMenu = false }) {
+                        listOf("Auto", "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "dd MMM yyyy")
+                            .forEach { pattern -> DropdownMenuItem(text = { Text(pattern) }, onClick = {
+                                datePatternMenu = false; review(activeTable, activeMapping.copy(datePattern = pattern))
+                            }) }
+                    }
+                }
+                OutlinedTextField(profileName, { profileName = it }, label = { Text("Mapping profile name") },
+                    singleLine = true, modifier = Modifier.fillMaxWidth())
+                Row {
+                    Box {
+                        TextButton(enabled = importPreferences.profileNames().isNotEmpty(), onClick = { profileMenu = true }) {
+                            Text("Load profile")
+                        }
+                        DropdownMenu(profileMenu, { profileMenu = false }) {
+                            importPreferences.profileNames().forEach { name -> DropdownMenuItem(text = { Text(name) }, onClick = {
+                                val saved = importPreferences.profile(name)
+                                profileMenu = false
+                                if (saved?.roles?.size == activeTable.headers.size) {
+                                    profileName = name; review(activeTable, saved)
+                                } else message = "That profile has a different number of columns."
+                            }) }
+                        }
+                    }
+                    TextButton(enabled = profileName.isNotBlank(), onClick = {
+                        importPreferences.saveProfile(profileName.trim(), activeMapping)
+                        message = "Saved mapping profile ${profileName.trim()}."
+                    }) { Text("Save profile") }
+                }
+            }
             if (problems.isNotEmpty()) Text(
                 "${problems.size} malformed row${if (problems.size == 1) " was" else "s were"} excluded. " +
                     problems.take(3).joinToString { "Row ${it.sourceRow}: ${it.message}" },
                 color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             message?.let { Text(it, modifier = Modifier.padding(bottom = 8.dp)) }
+            if (history.isNotEmpty()) {
+                Text("Recent imports", style = MaterialTheme.typography.titleMedium)
+                history.take(3).forEach { entry ->
+                    Text("${entry.sourceName}: ${entry.imported} imported, ${entry.skipped} skipped · ${entry.accountName}",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             rows.forEachIndexed { index, row ->
                 val candidate = row.toCandidateOrNull()
                 val invalid = candidate == null
@@ -142,10 +237,15 @@ fun ImportTransactionsScreen(
                         ImportDuplicateDetector.key(prior.date, prior.amountCents, prior.payee) == candidateKey
                     } == true
                 })
+                val duplicateReason = when {
+                    candidateKey != null && candidateKey in existingKeys -> "Already in this account"
+                    duplicate -> "Repeated in this file"
+                    else -> null
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = row.selected, onCheckedChange = { rows[index] = row.copy(selected = it) })
                     Text("CSV row ${row.sourceRow}", style = MaterialTheme.typography.labelLarge)
-                    if (duplicate) Text("  Possible duplicate", color = MaterialTheme.colorScheme.error,
+                    if (duplicateReason != null) Text("  $duplicateReason", color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.labelMedium)
                 }
                 OutlinedTextField(row.date, { rows[index] = row.copy(date = it) }, label = { Text("Date (YYYY-MM-DD)") },
@@ -169,14 +269,23 @@ fun ImportTransactionsScreen(
                 val target = account ?: return@Button
                 if (onImport(target.id, ready)) {
                     message = "Imported ${ready.size} transaction${if (ready.size == 1) "" else "s"}."
+                    importPreferences.addHistory(ImportHistoryEntry(sourceName, StatementFormat.CSV, target.name,
+                        ready.size, rows.size - ready.size, System.currentTimeMillis()))
+                    history = importPreferences.history()
                     rows.clear(); problems = emptyList()
                 }
             },
             enabled = selected.isNotEmpty() && ready.size == selected.size,
             modifier = Modifier.fillMaxWidth().padding(16.dp),
         ) { Text("Approve and import ${ready.size}") }
+        if (history.isNotEmpty()) {
+            TextButton(onClick = { importPreferences.clearHistory(); history = emptyList() },
+                modifier = Modifier.align(Alignment.End)) { Text("Clear import history (${history.size})") }
+        }
     }
 }
+
+private fun ImportColumnRole.displayName() = name.lowercase().replaceFirstChar(Char::uppercase)
 
 private fun ReviewRow.toCandidateOrNull(): ImportCandidate? = runCatching {
     val parsedDate = LocalDate.parse(date.trim())

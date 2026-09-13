@@ -74,8 +74,9 @@ at full resolution.
 - Budget table and availability-focused Plan views, category groups, Source of Fund/Income, monthly amounts, progress bars, and hide/show management
 - Account lists, current/cleared/uncleared/reconciled balances, notes, monthly summaries, and full transaction history
 - Expense, income, transfer, editable split, edit, clear, and delete transaction flows
-- Review-first local CSV bank-statement import with common column detection, editable rows,
-  malformed-row exclusion, account selection, and duplicate warnings
+- Review-first local CSV bank-statement import with comma/semicolon/tab detection, configurable
+  column/date/sign mapping, reusable profiles, import history, editable rows, malformed-row
+  exclusion, account selection, and explained duplicate warnings
 - Full-screen searchable account, payee, and category selection with live alphabetical
   results, account balances, transfer grouping, and new-payee creation
 - Foreground-only location-aware payees with automatic nearby suggestions, distance-ranked

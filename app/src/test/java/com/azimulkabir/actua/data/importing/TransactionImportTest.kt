@@ -52,4 +52,36 @@ class TransactionImportTest {
             ImportDuplicateDetector.key(parsed[1].date, parsed[1].amountCents, parsed[1].payee),
         )
     }
+
+    @Test fun `supports semicolon statements with configurable mapping and date format`() {
+        val table = CsvTransactionCandidateSource.inspect(
+            "Booked;Details;Out;Ref\n13-09-2026;Groceries;12.50;bank-1"
+        )
+        val mapping = ImportColumnMapping(
+            listOf(ImportColumnRole.DATE, ImportColumnRole.PAYEE, ImportColumnRole.AMOUNT,
+                ImportColumnRole.REFERENCE),
+            datePattern = "dd-MM-yyyy",
+            expensesArePositive = true,
+        )
+        val result = CsvTransactionCandidateSource.parse(table, mapping)
+        assertEquals(emptyList<ImportProblem>(), result.problems)
+        assertEquals(20260913, result.candidates.single().date)
+        assertEquals(-1250L, result.candidates.single().amountCents)
+        assertEquals("bank-1", result.candidates.single().reference)
+    }
+
+    @Test fun `parses tab separated rows and excel serial dates`() {
+        val table = CsvTransactionCandidateSource.inspect("Date\tMerchant\tAmount\n46322\tCafe\t-3.25")
+        val result = CsvTransactionCandidateSource.parse(table)
+        assertEquals(emptyList<ImportProblem>(), result.problems)
+        assertEquals(20261027, result.candidates.single().date)
+        assertEquals(-325L, result.candidates.single().amountCents)
+    }
+
+    @Test fun `positive expense setting does not invert separate debit credit columns`() {
+        val table = CsvTransactionCandidateSource.inspect("Date,Payee,Debit,Credit\n2026-09-13,Cafe,5,")
+        val suggested = CsvTransactionCandidateSource.suggestedMapping(table.headers)
+        val result = CsvTransactionCandidateSource.parse(table, suggested.copy(expensesArePositive = true))
+        assertEquals(-500L, result.candidates.single().amountCents)
+    }
 }
