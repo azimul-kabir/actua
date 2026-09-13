@@ -77,6 +77,8 @@ at full resolution.
   malformed-row exclusion, account selection, and duplicate warnings
 - Full-screen searchable account, payee, and category selection with live alphabetical
   results, account balances, transfer grouping, and new-payee creation
+- Foreground-only location-aware payees with automatic nearby suggestions, distance-ranked
+  picker results, inline Nearby/Save location actions, and synchronized Forget controls
 - Ready to Assign/To Budget assignment plus category-to-category and category-to-budget money movement
 - Calculator-style and conventional amount entry
 - Inline transaction calculator expressions with predictable backspace editing that remain visible until confirmation
@@ -191,12 +193,16 @@ The app can then connect from **Manage → Connection & Data**. Enter the comple
 
 ## Location-aware payees
 
-Location-aware payees are optional and disabled by default. Enable recording under
-**Manage → Settings → Privacy → Record payee locations**, or use **Find nearby payees** from the
-transaction payee picker for a one-time foreground lookup. Actua requests only
-while-in-use permission, rejects unavailable or inaccurate samples, uses a
-500-metre radius, and never performs background tracking or sends coordinates to
-a third-party location service.
+Location-aware payees are optional and disabled by default. The Payee field provides an inline
+**Nearby** action for the first explicit permission request and one-tap selection of the closest
+match. After permission has been granted, opening the payee picker automatically loads a separate,
+distance-ranked Nearby section without blocking normal search. Existing ordinary payees expose an
+inline **Save location** action, and nearby picker rows can forget the synchronized sample.
+
+Enable **Manage → Settings → Privacy → Record payee locations** only if new transactions should
+also record eligible payees automatically. Actua requests only while-in-use permission, rejects
+unavailable or inaccurate samples, uses a 500-metre radius, and never performs background tracking
+or sends coordinates to a third-party location service.
 
 Coordinates are stored inside the active Actual budget as synchronized
 `payee_locations` rows. New normal transactions can record an eligible payee

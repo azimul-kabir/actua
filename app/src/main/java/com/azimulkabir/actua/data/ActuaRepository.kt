@@ -63,6 +63,12 @@ data class PayeeLocationSummary(
     val createdAt: Long,
 )
 
+data class NearbyPayeeSummary(
+    val locationId: String,
+    val payeeName: String,
+    val distanceMeters: Double,
+)
+
 class ActuaRepository(context: Context) {
     private val appContext = context.applicationContext
     private val scheduleSync = {
@@ -131,8 +137,7 @@ class ActuaRepository(context: Context) {
         val payee = database.fetchPayees().firstOrNull {
             it.transferAccountId == null && it.name == payeeName
         } ?: return false
-        payeeLocationWriter?.record(payee.id, coordinates)
-        return true
+        return payeeLocationWriter?.record(payee.id, coordinates) != null
     }
 
     fun deletePayeeLocation(locationId: String): Boolean =
@@ -141,10 +146,17 @@ class ActuaRepository(context: Context) {
     fun clearPayeeLocations(payeeId: String): Int =
         payeeLocationWriter?.deleteAllForPayee(payeeId) ?: 0
 
-    fun nearbyPayeeNames(coordinates: Coordinates): List<String> =
+    fun nearbyPayees(coordinates: Coordinates): List<NearbyPayeeSummary> =
         actualDatabase?.fetchNearbyPayees(coordinates)
-            ?.map { it.payee.name }
-            ?.filter { it.isNotBlank() && it != "Unknown" }
+            ?.mapNotNull { nearby ->
+                nearby.payee.name.takeIf { it.isNotBlank() && it != "Unknown" }?.let { name ->
+                    NearbyPayeeSummary(
+                        locationId = nearby.location.id,
+                        payeeName = name,
+                        distanceMeters = nearby.distanceMeters,
+                    )
+                }
+            }
             .orEmpty()
 
     fun rules(): List<Rule> = actualDatabase?.fetchRules().orEmpty()
