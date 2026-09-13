@@ -10,8 +10,12 @@ import android.os.Build
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -67,6 +71,28 @@ object LocationSamplePolicy {
         )
 }
 
+object LocationProviderPolicy {
+    const val RECENT_LOCATION_MAX_AGE_MILLIS = 60_000L
+
+    fun activeProviders(enabledProviders: List<String>): List<String> =
+        enabledProviders
+            .asSequence()
+            .filterNot { it == LocationManager.PASSIVE_PROVIDER }
+            .distinct()
+            .sortedBy { provider ->
+                when (provider) {
+                    "fused" -> 0
+                    LocationManager.NETWORK_PROVIDER -> 1
+                    LocationManager.GPS_PROVIDER -> 2
+                    else -> 3
+                }
+            }
+            .toList()
+
+    fun isRecent(ageMillis: Long, maxAgeMillis: Long = RECENT_LOCATION_MAX_AGE_MILLIS): Boolean =
+        ageMillis in 0..maxAgeMillis
+}
+
 /**
  * Foreground-only, one-shot device location access.
  *
@@ -78,39 +104,108 @@ class AndroidLocationProvider(context: Context) {
     private val locationManager = appContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
     suspend fun currentCoordinates(
-        timeoutMillis: Long = 10_000L,
+        timeoutMillis: Long = 15_000L,
         maxAccuracyMeters: Float = LocationSamplePolicy.DEFAULT_MAX_ACCURACY_METERS,
     ): CurrentLocationResult {
         if (!ForegroundLocationPermission.isGranted(appContext)) {
             return CurrentLocationResult.PermissionDenied
         }
 
-        val provider = preferredEnabledProvider() ?: return CurrentLocationResult.ServicesDisabled
-        val location = withTimeoutOrNull(timeoutMillis) { requestCurrentLocation(provider) }
-            ?: return CurrentLocationResult.Timeout
-        location ?: return CurrentLocationResult.Unavailable
+        val enabledProviders = runCatching { locationManager.getProviders(true) }
+            .getOrDefault(emptyList())
+            .distinct()
+        val activeProviders = LocationProviderPolicy.activeProviders(enabledProviders)
+        if (activeProviders.isEmpty()) return CurrentLocationResult.ServicesDisabled
 
-        if (!LocationSamplePolicy.isUsable(location, maxAccuracyMeters)) {
-            return if (location.hasAccuracy() && location.accuracy.isFinite()) {
-                CurrentLocationResult.Inaccurate(location.accuracy)
-            } else {
-                CurrentLocationResult.Unavailable
-            }
+        recentCachedLocation(enabledProviders, maxAccuracyMeters)?.let { location ->
+            return CurrentLocationResult.Success(
+                coordinates = Coordinates(location.latitude, location.longitude),
+                accuracyMeters = location.accuracy,
+            )
         }
 
-        return CurrentLocationResult.Success(
-            coordinates = Coordinates(location.latitude, location.longitude),
-            accuracyMeters = location.accuracy,
-        )
+        val acquisition = withTimeoutOrNull(timeoutMillis) {
+            requestAnyCurrentLocation(activeProviders, maxAccuracyMeters)
+        } ?: return CurrentLocationResult.Timeout
+
+        acquisition.location?.let { location ->
+            return CurrentLocationResult.Success(
+                coordinates = Coordinates(location.latitude, location.longitude),
+                accuracyMeters = location.accuracy,
+            )
+        }
+        return acquisition.bestRejectedAccuracy?.let(CurrentLocationResult::Inaccurate)
+            ?: CurrentLocationResult.Unavailable
     }
 
-    private fun preferredEnabledProvider(): String? {
-        val candidates = listOf(
-            LocationManager.GPS_PROVIDER,
-            LocationManager.NETWORK_PROVIDER,
-        )
-        return candidates.firstOrNull { provider ->
-            runCatching { locationManager.isProviderEnabled(provider) }.getOrDefault(false)
+    @Suppress("MissingPermission")
+    private fun recentCachedLocation(
+        providers: List<String>,
+        maxAccuracyMeters: Float,
+    ): Location? {
+        val nowElapsedNanos = SystemClock.elapsedRealtimeNanos()
+        val nowWallMillis = System.currentTimeMillis()
+        return providers
+            .mapNotNull { provider ->
+                runCatching { locationManager.getLastKnownLocation(provider) }.getOrNull()
+            }
+            .filter { LocationSamplePolicy.isUsable(it, maxAccuracyMeters) }
+            .map { location ->
+                location to locationAgeMillis(location, nowElapsedNanos, nowWallMillis)
+            }
+            .filter { (_, ageMillis) -> LocationProviderPolicy.isRecent(ageMillis) }
+            .minWithOrNull(
+                compareBy<Pair<Location, Long>> { it.second }
+                    .thenBy { it.first.accuracy },
+            )
+            ?.first
+    }
+
+    private fun locationAgeMillis(
+        location: Location,
+        nowElapsedNanos: Long,
+        nowWallMillis: Long,
+    ): Long {
+        val sampleElapsedNanos = location.elapsedRealtimeNanos
+        if (sampleElapsedNanos > 0L && nowElapsedNanos >= sampleElapsedNanos) {
+            return (nowElapsedNanos - sampleElapsedNanos) / 1_000_000L
+        }
+        return nowWallMillis - location.time
+    }
+
+    private data class LocationAcquisition(
+        val location: Location?,
+        val bestRejectedAccuracy: Float?,
+    )
+
+    private suspend fun requestAnyCurrentLocation(
+        providers: List<String>,
+        maxAccuracyMeters: Float,
+    ): LocationAcquisition = coroutineScope {
+        val results = Channel<Location?>(Channel.UNLIMITED)
+        val requests = providers.map { provider ->
+            launch { results.send(requestCurrentLocation(provider)) }
+        }
+        var bestRejectedAccuracy: Float? = null
+        try {
+            var remaining = providers.size
+            while (remaining > 0) {
+                val location = results.receive()
+                remaining -= 1
+                if (location != null && LocationSamplePolicy.isUsable(location, maxAccuracyMeters)) {
+                    return@coroutineScope LocationAcquisition(location, bestRejectedAccuracy)
+                }
+                if (location?.hasAccuracy() == true && location.accuracy.isFinite()) {
+                    bestRejectedAccuracy = minOf(
+                        bestRejectedAccuracy ?: Float.POSITIVE_INFINITY,
+                        location.accuracy,
+                    )
+                }
+            }
+            LocationAcquisition(null, bestRejectedAccuracy)
+        } finally {
+            requests.forEach { it.cancel() }
+            results.cancel()
         }
     }
 
