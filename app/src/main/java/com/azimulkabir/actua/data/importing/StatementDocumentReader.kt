@@ -14,5 +14,7 @@ object StatementDocumentReader {
             val text = PDDocument.load(bytes).use { PDFTextStripper().getText(it) }
             PdfTextTableParser.parse(text)
         }
+        StatementFormat.SHARED_TEXT, StatementFormat.NOTIFICATION ->
+            error("Message imports do not use the document reader")
     }
 }

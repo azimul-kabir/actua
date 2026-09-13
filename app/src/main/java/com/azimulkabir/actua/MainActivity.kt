@@ -21,6 +21,7 @@ import com.azimulkabir.actua.widget.WidgetActions
 import com.azimulkabir.actua.widget.WidgetUpdater
 
 data class AppLaunchRequest(val action: String, val target: String?, val nonce: Long = System.nanoTime())
+const val SHARED_IMPORT_ACTION = "com.azimulkabir.actua.IMPORT_SHARED_TEXT"
 
 class MainActivity : ComponentActivity() {
     private var foregroundGeneration by mutableIntStateOf(0)
@@ -66,4 +67,7 @@ class MainActivity : ComponentActivity() {
     private fun Intent.toLaunchRequest(): AppLaunchRequest? = action?.takeIf {
         it.startsWith("com.azimulkabir.actua.widget.")
     }?.let { AppLaunchRequest(it, getStringExtra(WidgetActions.EXTRA_TARGET)) }
+        ?: takeIf { action == Intent.ACTION_SEND && type?.startsWith("text/") == true }
+            ?.getStringExtra(Intent.EXTRA_TEXT)?.takeIf(String::isNotBlank)
+            ?.let { AppLaunchRequest(SHARED_IMPORT_ACTION, it) }
 }

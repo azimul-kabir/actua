@@ -1,7 +1,9 @@
 package com.azimulkabir.actua.ui.settings
 
 import android.net.Uri
+import android.content.Intent
 import android.provider.OpenableColumns
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +51,10 @@ import com.azimulkabir.actua.data.importing.ImportHistoryEntry
 import com.azimulkabir.actua.data.importing.ImportPreferences
 import com.azimulkabir.actua.data.importing.ImportProblem
 import com.azimulkabir.actua.data.importing.ImportTable
+import com.azimulkabir.actua.data.importing.ImportConfidence
+import com.azimulkabir.actua.data.importing.FinancialMessageParser
+import com.azimulkabir.actua.data.importing.NotificationImportPreferences
+import com.azimulkabir.actua.data.importing.FinancialMessageProfile
 import com.azimulkabir.actua.data.importing.StatementFormat
 import com.azimulkabir.actua.data.importing.StatementDocumentReader
 import com.azimulkabir.actua.model.Account
@@ -67,6 +74,8 @@ private data class ReviewRow(
     val notes: String,
     val reference: String?,
     val selected: Boolean,
+    val confidence: ImportConfidence = ImportConfidence.HIGH,
+    val sourceLabel: String = "Statement",
 )
 
 @Composable
@@ -76,6 +85,8 @@ fun ImportTransactionsScreen(
     onImport: (String, List<ImportCandidate>) -> Boolean,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    initialSharedText: String? = null,
+    onSharedTextConsumed: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -95,22 +106,56 @@ fun ImportTransactionsScreen(
     var mappingMenuIndex by remember { mutableStateOf<Int?>(null) }
     var datePatternMenu by remember { mutableStateOf(false) }
     var profileMenu by remember { mutableStateOf(false) }
+    val notificationPreferences = remember { NotificationImportPreferences(context) }
+    var captureEnabled by remember { mutableStateOf(notificationPreferences.enabled) }
+    var queued by remember { mutableStateOf(notificationPreferences.queued()) }
+    var pastedText by remember { mutableStateOf(initialSharedText.orEmpty()) }
+    var debitKeywords by remember { mutableStateOf(notificationPreferences.profile().debitKeywords.joinToString(", ")) }
+    var creditKeywords by remember { mutableStateOf(notificationPreferences.profile().creditKeywords.joinToString(", ")) }
+    var allowedPackages by remember { mutableStateOf(notificationPreferences.allowedPackages) }
+    var appMenu by remember { mutableStateOf(false) }
+    val notificationApps = remember {
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        context.packageManager.queryIntentActivities(launcher, 0).map { info ->
+            info.activityInfo.packageName to info.loadLabel(context.packageManager).toString()
+        }.distinctBy { it.first }.sortedBy { it.second.lowercase() }
+    }
     val existingKeys = remember(account?.id, rows.size) { account?.id?.let(duplicateKeys).orEmpty() }
 
-    fun review(parsedTable: ImportTable, selectedMapping: ImportColumnMapping) {
-        mapping = selectedMapping
-        val result = CsvTransactionCandidateSource.parse(parsedTable, selectedMapping)
+    fun reviewCandidates(candidates: List<ImportCandidate>, parseProblems: List<ImportProblem>) {
+        candidates.mapNotNull(ImportCandidate::accountHint).distinct().singleOrNull()?.let { hint ->
+            accounts.singleOrNull { hint in it.name.filter(Char::isDigit) }?.let { account = it }
+        }
         rows.clear()
         val knownKeys = account?.id?.let(duplicateKeys).orEmpty().toMutableSet()
-        rows += result.candidates.map { candidate ->
+        rows += candidates.map { candidate ->
             val key = ImportDuplicateDetector.key(candidate.date, candidate.amountCents, candidate.payee)
             val duplicate = !knownKeys.add(key)
             ReviewRow(candidate.sourceRow, formatDate(candidate.date), candidate.payee,
                 BigDecimal.valueOf(candidate.amountCents, 2).toPlainString(), candidate.notes,
-                candidate.reference, selected = !duplicate)
+                candidate.reference, selected = !duplicate, candidate.confidence, candidate.sourceLabel)
         }
-        problems = result.problems
+        problems = parseProblems
         message = if (rows.isEmpty()) "No valid transactions found." else null
+    }
+
+    fun review(parsedTable: ImportTable, selectedMapping: ImportColumnMapping) {
+        mapping = selectedMapping
+        val result = CsvTransactionCandidateSource.parse(parsedTable, selectedMapping)
+        reviewCandidates(result.candidates, result.problems)
+    }
+
+    fun reviewText(value: String, source: String, format: StatementFormat) {
+        val result = FinancialMessageParser.parse(value, source, profile = notificationPreferences.profile())
+        sourceName = source; sourceFormat = format; table = null; mapping = null
+        reviewCandidates(result.candidates, result.problems)
+    }
+
+    LaunchedEffect(initialSharedText) {
+        initialSharedText?.takeIf(String::isNotBlank)?.let {
+            reviewText(it, "Shared message", StatementFormat.SHARED_TEXT)
+            onSharedTextConsumed()
+        }
     }
 
     fun load(uri: Uri) {
@@ -148,6 +193,74 @@ fun ImportTransactionsScreen(
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
             Text("CSV, XLSX, and text-based PDF files stay on this device. Every valid row is shown for review before anything is saved.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(pastedText, { pastedText = it }, label = { Text("Paste SMS or email alert") },
+                minLines = 3, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                TextButton(enabled = pastedText.isNotBlank(), onClick = {
+                    reviewText(pastedText, "Pasted message", StatementFormat.SHARED_TEXT)
+                }) { Text("Review text") }
+                if (queued.isNotEmpty()) TextButton(onClick = {
+                    sourceName = "Captured notifications"; sourceFormat = StatementFormat.NOTIFICATION
+                    table = null; mapping = null; reviewCandidates(queued, emptyList())
+                }) { Text("Review captured (${queued.size})") }
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Capture future bank notifications", Modifier.weight(1f))
+                Switch(captureEnabled, { enabled ->
+                    if (enabled && allowedPackages.isEmpty()) {
+                        message = "Select at least one app before enabling capture."
+                        appMenu = true
+                    } else {
+                        captureEnabled = enabled; notificationPreferences.enabled = enabled
+                        if (enabled) context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    }
+                })
+            }
+            Box(Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = { appMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (allowedPackages.isEmpty()) "Select notification apps" else "Selected notification apps: ${allowedPackages.size}")
+                }
+                DropdownMenu(appMenu, { appMenu = false }) {
+                    notificationApps.forEach { (packageName, label) ->
+                        DropdownMenuItem(
+                            text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(packageName in allowedPackages, null)
+                                Text(label)
+                            } },
+                            onClick = {
+                                allowedPackages = allowedPackages.toMutableSet().apply {
+                                    if (!add(packageName)) remove(packageName)
+                                }
+                                notificationPreferences.allowedPackages = allowedPackages
+                                if (allowedPackages.isEmpty()) {
+                                    captureEnabled = false; notificationPreferences.enabled = false
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+            Text("Optional notification access processes alerts on-device and stores only recognized candidates, not raw notifications.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(debitKeywords, { debitKeywords = it }, label = { Text("Debit keywords") },
+                modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(creditKeywords, { creditKeywords = it }, label = { Text("Credit keywords") },
+                modifier = Modifier.fillMaxWidth())
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                TextButton(onClick = {
+                    val debit = debitKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
+                    val credit = creditKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
+                    if (debit.isEmpty() || credit.isEmpty()) message = "Keep at least one debit and credit keyword."
+                    else {
+                        notificationPreferences.saveProfile(FinancialMessageProfile(debit, credit))
+                        message = "Saved message parser keywords."
+                    }
+                }) { Text("Save parser words") }
+                TextButton(onClick = {
+                    notificationPreferences.clearAll(); captureEnabled = false; queued = emptyList()
+                    message = "Deleted captured candidates and parser settings."
+                }) { Text("Delete notification data") }
+            }
             Box(Modifier.fillMaxWidth().padding(top = 16.dp)) {
                 OutlinedButton(onClick = { accountMenu = true }, enabled = accounts.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
                     Text(account?.name ?: "No open account")
@@ -258,6 +371,8 @@ fun ImportTransactionsScreen(
                     if (duplicateReason != null) Text("  $duplicateReason", color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.labelMedium)
                 }
+                Text("${row.confidence.name.lowercase().replaceFirstChar(Char::uppercase)} confidence · ${row.sourceLabel}",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(row.date, { rows[index] = row.copy(date = it) }, label = { Text("Date (YYYY-MM-DD)") },
                     isError = invalid, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(row.payee, { rows[index] = row.copy(payee = it) }, label = { Text("Payee") },
@@ -282,6 +397,9 @@ fun ImportTransactionsScreen(
                     importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, target.name,
                         ready.size, rows.size - ready.size, System.currentTimeMillis()))
                     history = importPreferences.history()
+                    if (sourceFormat == StatementFormat.NOTIFICATION) {
+                        notificationPreferences.clearQueue(); queued = emptyList()
+                    }
                     rows.clear(); problems = emptyList()
                 }
             },

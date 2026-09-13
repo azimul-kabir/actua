@@ -14,6 +14,9 @@ data class ImportCandidate(
     val notes: String,
     val amountCents: Long,
     val reference: String? = null,
+    val confidence: ImportConfidence = ImportConfidence.HIGH,
+    val sourceLabel: String = "Statement",
+    val accountHint: String? = null,
 )
 
 data class ImportProblem(val sourceRow: Int, val message: String)
@@ -24,7 +27,8 @@ data class ImportParseResult(
 )
 
 enum class ImportColumnRole { IGNORE, DATE, PAYEE, NOTES, REFERENCE, AMOUNT, DEBIT, CREDIT }
-enum class StatementFormat { CSV, XLSX, PDF }
+enum class StatementFormat { CSV, XLSX, PDF, SHARED_TEXT, NOTIFICATION }
+enum class ImportConfidence { HIGH, MEDIUM, LOW }
 
 data class ImportColumnMapping(
     val roles: List<ImportColumnRole>,

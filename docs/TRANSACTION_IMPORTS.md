@@ -38,4 +38,21 @@ present. Scanned/image-only PDFs and layouts whose text cannot be separated reli
 with a CSV/XLSX recommendation. Actua does not use OCR or guess transaction boundaries. Files are
 limited to 25 MB, and expanded XLSX worksheet parts are bounded to reduce malformed-archive risk.
 
-Opt-in notification/share ingestion remains the final slice of issue #65.
+## SMS, email, and app notifications
+
+SMS or email transaction alerts can be pasted into the import screen or shared to Actua through
+Android's text share sheet. Actua requests neither SMS access nor mailbox access. The parser requires
+explicit debit/credit wording and a labeled or currency-prefixed amount, then extracts the date,
+payee, reference, and account/card suffix when available. Every result remains review-only.
+
+Users may optionally enable Android notification-listener access for future transaction alerts.
+This is a system-level sensitive permission and is never enabled silently. Actua ignores messages
+from apps the user has not explicitly selected, ignores messages that do not match the financial
+parser, and stores at most 100 normalized candidates. An empty allowed-app list captures nothing. Raw notification
+text is not retained. Captured data, parser settings, and capture state can be deleted together.
+
+Debit and credit keyword sets are configurable for different bank wording. Confidence is high when
+both a payee and reference are found, medium when a payee is found, and low when the source must be
+used as the payee. An unambiguous card/account suffix can select an Actual account whose name contains
+the same digits. Category assignment remains uncategorized rather than being guessed from merchant
+text; users can apply Actual rules or categorize the reviewed transaction after import.
