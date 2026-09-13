@@ -47,7 +47,8 @@ payee, reference, and account/card suffix when available. Every result remains r
 
 Users may optionally enable Android notification-listener access for future transaction alerts.
 This is a system-level sensitive permission and is never enabled silently. Actua ignores messages
-that do not match the financial parser and stores at most 100 normalized candidates. Raw notification
+from apps the user has not explicitly selected, ignores messages that do not match the financial
+parser, and stores at most 100 normalized candidates. An empty allowed-app list captures nothing. Raw notification
 text is not retained. Captured data, parser settings, and capture state can be deleted together.
 
 Debit and credit keyword sets are configurable for different bank wording. Confidence is high when

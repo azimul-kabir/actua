@@ -58,6 +58,10 @@ class NotificationImportPreferences(context: Context) {
         get() = preferences.getBoolean("enabled", false)
         set(value) { preferences.edit().putBoolean("enabled", value).apply() }
 
+    var allowedPackages: Set<String>
+        get() = preferences.getStringSet("allowedPackages", emptySet())?.toSet().orEmpty()
+        set(value) { preferences.edit().putStringSet("allowedPackages", value).apply() }
+
     fun profile(): FinancialMessageProfile = FinancialMessageProfile(
         preferences.getStringSet("debitKeywords", FinancialMessageParser.defaultProfile.debitKeywords)
             ?: FinancialMessageParser.defaultProfile.debitKeywords,
@@ -96,10 +100,17 @@ class NotificationImportPreferences(context: Context) {
 class FinancialNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val store = NotificationImportPreferences(this)
-        if (!store.enabled || sbn.packageName == packageName) return
+        if (!shouldCaptureNotification(store.enabled, store.allowedPackages, sbn.packageName, packageName)) return
         val extras = sbn.notification.extras
         val content = listOfNotNull(extras.getCharSequence("android.title"), extras.getCharSequence("android.text"))
             .joinToString(" ").trim()
         FinancialMessageParser.parse(content, sbn.packageName, profile = store.profile()).candidates.forEach(store::enqueue)
     }
 }
+
+internal fun shouldCaptureNotification(
+    enabled: Boolean,
+    allowedPackages: Set<String>,
+    sourcePackage: String,
+    ownPackage: String,
+): Boolean = enabled && sourcePackage != ownPackage && sourcePackage in allowedPackages

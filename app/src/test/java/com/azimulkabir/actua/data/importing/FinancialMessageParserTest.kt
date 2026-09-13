@@ -44,4 +44,12 @@ class FinancialMessageParserTest {
             .candidates.single()
         assertEquals(-5_000L, candidate.amountCents)
     }
+
+    @Test
+    fun `notification capture requires explicit allowed app`() {
+        assertTrue(shouldCaptureNotification(true, setOf("bank"), "bank", "actua"))
+        assertTrue(!shouldCaptureNotification(true, emptySet(), "bank", "actua"))
+        assertTrue(!shouldCaptureNotification(false, setOf("bank"), "bank", "actua"))
+        assertTrue(!shouldCaptureNotification(true, setOf("actua"), "actua", "actua"))
+    }
 }

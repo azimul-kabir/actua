@@ -112,6 +112,14 @@ fun ImportTransactionsScreen(
     var pastedText by remember { mutableStateOf(initialSharedText.orEmpty()) }
     var debitKeywords by remember { mutableStateOf(notificationPreferences.profile().debitKeywords.joinToString(", ")) }
     var creditKeywords by remember { mutableStateOf(notificationPreferences.profile().creditKeywords.joinToString(", ")) }
+    var allowedPackages by remember { mutableStateOf(notificationPreferences.allowedPackages) }
+    var appMenu by remember { mutableStateOf(false) }
+    val notificationApps = remember {
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        context.packageManager.queryIntentActivities(launcher, 0).map { info ->
+            info.activityInfo.packageName to info.loadLabel(context.packageManager).toString()
+        }.distinctBy { it.first }.sortedBy { it.second.lowercase() }
+    }
     val existingKeys = remember(account?.id, rows.size) { account?.id?.let(duplicateKeys).orEmpty() }
 
     fun reviewCandidates(candidates: List<ImportCandidate>, parseProblems: List<ImportProblem>) {
@@ -199,9 +207,38 @@ fun ImportTransactionsScreen(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Capture future bank notifications", Modifier.weight(1f))
                 Switch(captureEnabled, { enabled ->
-                    captureEnabled = enabled; notificationPreferences.enabled = enabled
-                    if (enabled) context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    if (enabled && allowedPackages.isEmpty()) {
+                        message = "Select at least one app before enabling capture."
+                        appMenu = true
+                    } else {
+                        captureEnabled = enabled; notificationPreferences.enabled = enabled
+                        if (enabled) context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    }
                 })
+            }
+            Box(Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = { appMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (allowedPackages.isEmpty()) "Select notification apps" else "Selected notification apps: ${allowedPackages.size}")
+                }
+                DropdownMenu(appMenu, { appMenu = false }) {
+                    notificationApps.forEach { (packageName, label) ->
+                        DropdownMenuItem(
+                            text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(packageName in allowedPackages, null)
+                                Text(label)
+                            } },
+                            onClick = {
+                                allowedPackages = allowedPackages.toMutableSet().apply {
+                                    if (!add(packageName)) remove(packageName)
+                                }
+                                notificationPreferences.allowedPackages = allowedPackages
+                                if (allowedPackages.isEmpty()) {
+                                    captureEnabled = false; notificationPreferences.enabled = false
+                                }
+                            },
+                        )
+                    }
+                }
             }
             Text("Optional notification access processes alerts on-device and stores only recognized candidates, not raw notifications.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
