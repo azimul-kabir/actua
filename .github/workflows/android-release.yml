@@ -31,7 +31,7 @@ jobs:
           curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
           export PATH="$HOME/.local/bin:$PATH"
           android --sdk="$ANDROID_SDK_ROOT" sdk install --canary platforms/android-37
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - name: Prepare persistent release signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.ACTUA_RELEASE_KEYSTORE_BASE64 }}
