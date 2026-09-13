@@ -6,6 +6,27 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.18] - 2026-09-13
+
+### Added
+
+- Added automatic nearby-payee suggestions and inline actions to save or remove synchronized payee locations
+- Added review-first XLSX and text-based PDF statement imports alongside CSV
+- Added reusable CSV import profiles with configurable columns, delimiters, date formats, and amount-sign handling
+- Added review-first pasted or shared SMS and email transaction alerts
+- Added optional, per-app on-device capture of incoming financial notifications for later review
+
+### Changed
+
+- App-open synchronization now refreshes immediately when returning from the background, while scheduled WorkManager refreshes run independently and expose distinct status timestamps
+- Import review now explains duplicate warnings, preserves import history, and shows confidence and account hints for notification candidates
+
+### Safety
+
+- Notification access remains disabled until explicitly enabled, limits capture to selected apps, parses alerts on-device, and never creates transactions without review and confirmation
+- Payee location requests remain foreground-only, and automatic location recording remains separately opt-in
+- Statement and notification imports exclude malformed candidates and require an explicit review step before writing to the budget
+
 ## [1.0.0-beta.17] - 2026-09-13
 
 ### Changed
