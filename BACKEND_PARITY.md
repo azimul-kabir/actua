@@ -53,8 +53,9 @@ where an Android equivalent exists, Actua uses the native Android integration.
   automatic picker suggestions, inline Nearby/Save actions, transaction recording, and
   synchronized picker/management deletion
 - Source-independent transaction-import candidates with a local CSV statement source,
-  review/edit/reject/bulk approval, normalized payee matching, malformed-row exclusion,
-  same-account duplicate warnings, and batched Actual-compatible transaction writes
+  configurable delimiter/column/date/sign mapping, reusable local profiles, bounded import
+  history, review/edit/reject/bulk approval, normalized payee matching, malformed-row exclusion,
+  explained existing/within-file duplicate warnings, and batched Actual-compatible writes
 - Transaction form planning and atomic transaction mutations, including split
   creation, child-preserving edits, opposite-direction lines, and collapse to a
   standard transaction
