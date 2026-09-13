@@ -81,7 +81,11 @@ class ActualTransactionFormService(
     }
 
     /** Returns the newly-created ordinary transaction id; edits/transfers/splits return null. */
-    fun save(form: ActualTransactionForm, original: ActualTransaction? = null): String? {
+    fun save(
+        form: ActualTransactionForm,
+        original: ActualTransaction? = null,
+        applyRules: Boolean = true,
+    ): String? {
         require(form.accountId.isNotBlank())
         val normalizedForm = enforceOffBudgetCategoryPolicy(form, offBudgetAccountIds())
         val notes = normalizedForm.notes.takeIf(String::isNotEmpty)
@@ -120,7 +124,7 @@ class ActualTransactionFormService(
                     writer.createTransaction(baseTransaction(
                         id, normalizedForm.accountId, normalizedForm.date, plan.amountCents, payee?.id,
                         normalizedForm.categoryId, notes, normalizedForm.cleared, importedPayee = payee?.name,
-                    ), applyRules = true)
+                    ), applyRules = applyRules)
                     id
                 }
             }

@@ -103,7 +103,7 @@ fun AddTransactionScreen(
     defaultType: Type = Type.EXPENSE,
     hideDecimalPlaces: Boolean = false,
     conventionalAmountEntry: Boolean = false,
-    onResolveRuleCategory: (Transaction) -> String? = { null },
+    onPreviewRules: (Transaction) -> Transaction = { it },
     onFindNearbyPayees: (suspend () -> NearbyPayeeSearchResult)? = null,
     onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
     onForgetPayeeLocation: (suspend (String) -> Boolean)? = null,
@@ -140,6 +140,7 @@ fun AddTransactionScreen(
     var splitLines by remember(editing) { mutableStateOf(editing?.splits.orEmpty()) }
     var splitCalculatorIndex by remember { mutableStateOf<Int?>(null) }
     var splitAmountExpression by remember(editing) { mutableStateOf<String?>(null) }
+    var rulesApplied by remember(editing) { mutableStateOf(false) }
     val isOffBudget = account in offBudgetAccountOptions
     LaunchedEffect(isOffBudget) {
         if (isOffBudget) {
@@ -180,6 +181,7 @@ fun AddTransactionScreen(
                     transferAccount = transferAccount.takeIf { transactionType == "Transfer" },
                     notes = notes,
                     splits = if (isOffBudget) splitLines.map { it.copy(category = "") } else splitLines,
+                    rulesApplied = rulesApplied,
                 ),
             )
         }
@@ -282,8 +284,8 @@ fun AddTransactionScreen(
                             return@PickerTextField
                         }
                         payee = value
-                        if (!isOffBudget) onResolveRuleCategory(
-                            Transaction(
+                        if (editing == null && !isOffBudget && !isSplit) {
+                            val preview = onPreviewRules(Transaction(
                                 id = "",
                                 account = account,
                                 payee = value,
@@ -294,8 +296,17 @@ fun AddTransactionScreen(
                                 date = storageDate(date),
                                 notes = notes,
                                 cleared = cleared,
-                            ),
-                        )?.let { category = it }
+                            ))
+                            payee = preview.payee
+                            category = preview.category
+                            account = preview.account
+                            cleared = preview.cleared
+                            notes = preview.notes
+                            parseStoredDate(preview.date)?.let { date = it }
+                            amountCents = abs(preview.amountCents)
+                            transactionType = preview.type.displayName
+                            rulesApplied = preview.rulesApplied
+                        }
                     },
                     allowCustom = true,
                     onFindNearby = onFindNearbyPayees,
