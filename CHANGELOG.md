@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+No user-facing changes yet.
+
+## [1.0.0-beta.19] - 2026-09-13
+
 ### Fixed
 
 - Account monthly Income, Expenses, and Net now use Actual category classification, exclude transfers and uncategorized cash flow, and count categorized split portions without double-counting their parent
