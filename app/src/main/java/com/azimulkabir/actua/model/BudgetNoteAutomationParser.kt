@@ -22,9 +22,12 @@ object BudgetNoteAutomationParser {
             if (line.isBlank() || !line.startsWith("#")) return@forEachIndexed
             val goalMatch = goal.matchEntire(line)
             if (goalMatch != null) {
-                parseCents(goalMatch.groupValues[1])?.let {
-                    targets += BudgetTarget(BudgetTarget.Type.GOAL, it)
-                } ?: errors += "Line ${index + 1}: invalid goal amount"
+                val cents = parseCents(goalMatch.groupValues[1])
+                if (cents == null) {
+                    errors += "Line ${index + 1}: invalid goal amount"
+                } else {
+                    targets += BudgetTarget(BudgetTarget.Type.GOAL, cents)
+                }
                 return@forEachIndexed
             }
             val match = directive.matchEntire(line)
