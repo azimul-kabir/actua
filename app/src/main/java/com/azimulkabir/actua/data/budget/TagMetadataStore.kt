@@ -18,8 +18,13 @@ class TagMetadataStore(context: Context) {
         val budgetId = activeBudget.budgetId ?: return emptyMap()
         val file = files.databaseFile(budgetId)
         if (!file.exists()) return emptyMap()
+        val modified = file.lastModified()
 
-        return runCatching {
+        synchronized(cacheLock) {
+            if (cachedBudgetId == budgetId && cachedModified == modified) return cachedColors
+        }
+
+        val colors = runCatching {
             SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { database ->
                 if (!hasTagsTable(database)) return@use emptyMap()
                 database.rawQuery(
@@ -38,6 +43,13 @@ class TagMetadataStore(context: Context) {
                 }
             }
         }.getOrDefault(emptyMap())
+
+        synchronized(cacheLock) {
+            cachedBudgetId = budgetId
+            cachedModified = modified
+            cachedColors = colors
+        }
+        return colors
     }
 
     private fun hasTagsTable(database: SQLiteDatabase): Boolean =
@@ -45,4 +57,11 @@ class TagMetadataStore(context: Context) {
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tags' LIMIT 1",
             null,
         ).use { it.moveToFirst() }
+
+    private companion object {
+        val cacheLock = Any()
+        var cachedBudgetId: String? = null
+        var cachedModified: Long = Long.MIN_VALUE
+        var cachedColors: Map<String, String> = emptyMap()
+    }
 }
