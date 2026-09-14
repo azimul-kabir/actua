@@ -22,12 +22,14 @@ class TagMetadataStoreTest {
                 database.execSQL("INSERT INTO tags VALUES ('3','Hidden','#112233','Hidden tag',0,1)")
                 database.execSQL("INSERT INTO tags VALUES ('4','Deleted','#ff0000','Deleted tag',1,0)")
                 database.execSQL("INSERT INTO tags VALUES ('5','NoColor',NULL,'No colour',0,0)")
+                database.execSQL("INSERT INTO tags VALUES ('6','Legacy','#445566','Legacy active tag',NULL,0)")
 
                 val colors = readTagColors(database)
 
                 assertEquals("#336699", colors["Home"])
                 assertEquals("#abcdef", colors["home"])
                 assertEquals("#112233", colors["Hidden"])
+                assertEquals("#445566", colors["Legacy"])
                 assertFalse(colors.containsKey("Deleted"))
                 assertFalse(colors.containsKey("NoColor"))
             }
