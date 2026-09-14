@@ -1,12 +1,18 @@
 package com.azimulkabir.actua.ui.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import com.azimulkabir.actua.data.budget.TagMetadataStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal data class TagOccurrence(
     val name: String,
@@ -60,6 +66,20 @@ internal fun tagForeground(background: Color): Color =
     if (background.luminance() > 0.45f) Color.Black else Color.White
 
 @Composable
+fun rememberActualTagColors(refreshKey: Any? = Unit): Map<String, String> {
+    val context = LocalContext.current
+    val colors by produceState<Map<String, String>>(
+        initialValue = emptyMap(),
+        key1 = context,
+        key2 = refreshKey,
+    ) {
+        value = withContext(Dispatchers.IO) {
+            TagMetadataStore(context).activeTagColors()
+        }
+    }
+    return colors
+}
+
 fun coloredTagText(
     notes: String,
     tagColors: Map<String, String>,
