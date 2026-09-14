@@ -19,6 +19,7 @@ data class ActualCategoryBudget(
     val carryoverEnabled: Boolean,
     val goalDef: String?,
     val templateSource: String?,
+    val cleanupDef: String?,
 )
 
 data class ActualIncomeBudget(

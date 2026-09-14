@@ -164,6 +164,12 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   income-category percentage contributions; exact prior-month copy targets; note-managed refresh
   with source preservation, loss-aware parse failure handling, and safe read-only disclosure of
   advanced templates
+- Notes-managed month-end cleanup source/sink/overspend groups: cleanup-group identity
+  resolution and orphan tombstoning, group-scoped and global weighted sink distribution with
+  deterministic cent-preserving allocation, general overspend auto-fill, a preview-first
+  "Month-end cleanup" whole-budget action, one atomic stale-checked CRDT budget/goal batch on
+  confirmation, idempotent reapplication, and explicit disclosure of unparseable cleanup
+  definitions; see [the audited behavior and staged boundary](docs/BUDGET_AUTOMATION_PARITY.md)
 - Exact schedule-template reference codec (`scheduleId`/`name`) with explicit read-only
   disclosure for unresolved rows; resolved schedule funding now uses the existing recurrence
   projection, completed/past handling, amount-range midpoint, priority validation, Ready to Budget
@@ -206,14 +212,15 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 
 ## Remaining version 1 work
 
-- Cleanup automation and remaining advanced whole-budget template evaluation;
+- Remaining advanced whole-budget template evaluation beyond the shipped UI-managed targets,
+  notes-managed templates, and cleanup source/sink groups;
   see [the audited behavior and staged boundary](docs/BUDGET_AUTOMATION_PARITY.md)
 
 ## Post-v1 portable features
 
 - Advanced split, formula, and template rule actions
-- Goal/cleanup templates and broader budget automation authoring beyond the
-  category targets and target-aware Auto Assign already shipped
+- Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
+  cleanup source/sink groups already shipped
 - SimpleFIN linking, download, reconciliation, and bank-feed pending-import approval
 - Broader country/bank parser templates beyond configurable financial-message keywords
 - General Android transaction notifications and new-transaction detection beyond

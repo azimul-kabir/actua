@@ -7,6 +7,7 @@ import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
+import com.azimulkabir.actua.data.budget.model.ActualCleanupGroup
 import com.azimulkabir.actua.data.budget.model.ActualPayee
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
@@ -573,7 +574,7 @@ class ActualBudgetDatabase private constructor(
     fun fetchCategoryGroups(): List<ActualCategoryGroup> {
         val categories = mutableListOf<ActualCategory>()
         database.rawQuery(
-            """SELECT id, name, cat_group, is_income, hidden, sort_order FROM categories
+            """SELECT id, name, cat_group, is_income, hidden, sort_order, cleanup_def FROM categories
                 WHERE tombstone = 0 OR tombstone IS NULL ORDER BY sort_order ASC""",
             null,
         ).use { cursor ->
@@ -584,6 +585,7 @@ class ActualBudgetDatabase private constructor(
                 isIncome = cursor.intOrZero(3) == 1,
                 hidden = cursor.intOrZero(4) == 1,
                 sortOrder = cursor.doubleOrZero(5),
+                cleanupDef = cursor.stringOrNull(6),
             )
         }
         val result = mutableListOf<ActualCategoryGroup>()
@@ -605,6 +607,20 @@ class ActualBudgetDatabase private constructor(
             }
         }
         return result
+    }
+
+    /** Actual's `cleanup_groups`: named pools referenced by category `cleanup_def` rows. */
+    @Synchronized
+    fun fetchCleanupGroups(includeTombstoned: Boolean = false): List<ActualCleanupGroup> {
+        if (!hasTable("cleanup_groups")) return emptyList()
+        val where = if (includeTombstoned) "" else "WHERE tombstone = 0 OR tombstone IS NULL"
+        return database.rawQuery("SELECT id, name, tombstone FROM cleanup_groups $where", null).use { cursor ->
+            val rows = mutableListOf<ActualCleanupGroup>()
+            while (cursor.moveToNext()) rows += ActualCleanupGroup(
+                id = cursor.getString(0), name = cursor.stringOrNull(1) ?: "Unknown", tombstone = cursor.intOrZero(2) == 1,
+            )
+            rows
+        }
     }
 
     @Synchronized
@@ -855,12 +871,12 @@ class ActualBudgetDatabase private constructor(
         } }
 
         data class Cat(val id: String, val name: String, val group: String, val income: Boolean, val hidden: Boolean, val sort: Double,
-            val goalDef: String?, val templateSource: String?)
+            val goalDef: String?, val templateSource: String?, val cleanupDef: String?)
         data class Group(val id: String, val name: String, val hidden: Boolean, val sort: Double)
         val categories = mutableListOf<Cat>()
-        database.rawQuery("SELECT id,name,cat_group,is_income,hidden,sort_order,goal_def,template_settings FROM categories WHERE tombstone = 0 OR tombstone IS NULL", null).use { c ->
+        database.rawQuery("SELECT id,name,cat_group,is_income,hidden,sort_order,goal_def,template_settings,cleanup_def FROM categories WHERE tombstone = 0 OR tombstone IS NULL", null).use { c ->
             while (c.moveToNext()) categories += Cat(c.getString(0), c.stringOrNull(1) ?: "Unknown", c.stringOrNull(2) ?: "", c.intOrZero(3) == 1, c.intOrZero(4) == 1, c.doubleOrZero(5),
-                c.stringOrNull(6), c.stringOrNull(7)?.let { raw -> runCatching { JSONObject(raw).optString("source") }.getOrNull() })
+                c.stringOrNull(6), c.stringOrNull(7)?.let { raw -> runCatching { JSONObject(raw).optString("source") }.getOrNull() }, c.stringOrNull(8))
         }
         val groups = mutableMapOf<String, Group>()
         database.rawQuery("SELECT id,name,hidden,sort_order FROM category_groups WHERE tombstone = 0 OR tombstone IS NULL", null).use { c ->
@@ -915,7 +931,7 @@ class ActualBudgetDatabase private constructor(
             ActualCategoryBudget(month, cat.id, cat.name, cat.group, group.name, group.sort, cat.sort,
                 budgeted, activity, available, available - budgeted - activity, cat.hidden, group.hidden,
                 targetBudgets[cat.id]?.goal, targetBudgets[cat.id]?.longGoal == true, targetBudgets[cat.id]?.flag == true,
-                cat.goalDef, cat.templateSource)
+                cat.goalDef, cat.templateSource, cat.cleanupDef)
         }.sortedWith(compareBy(ActualCategoryBudget::groupSortOrder, ActualCategoryBudget::categorySortOrder))
         val incomes = categories.filter(Cat::income).mapNotNull { cat ->
             val group = groups[cat.group] ?: return@mapNotNull null
@@ -1349,6 +1365,15 @@ class ActualBudgetDatabase private constructor(
                         """CREATE TABLE IF NOT EXISTS account_groups (
                             id TEXT PRIMARY KEY, name TEXT, sort_order REAL,
                             tombstone INTEGER DEFAULT 0
+                        )""".trimIndent(),
+                    )
+                }
+                // Older Actual servers pre-date the cleanup automation schema; ensure the
+                // groups table exists locally so cleanup_def group references stay resolvable.
+                if (database.hasTable("categories")) {
+                    database.execSQL(
+                        """CREATE TABLE IF NOT EXISTS cleanup_groups (
+                            id TEXT PRIMARY KEY, name TEXT NOT NULL, tombstone INTEGER DEFAULT 0
                         )""".trimIndent(),
                     )
                 }

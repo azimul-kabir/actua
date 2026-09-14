@@ -21,6 +21,8 @@ data class BudgetCategory(
     val automationReadOnly: Boolean = false,
     val goalCents: Long? = null,
     val longGoal: Boolean = false,
+    val cleanupTargets: List<CleanupTarget> = emptyList(),
+    val cleanupInvalid: Boolean = false,
 ) {
     val available: Int get() = actualAvailable ?: assigned - spent
     val assignedCents: Long get() = actualAssignedCents ?: assigned.toLong() * 100

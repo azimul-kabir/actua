@@ -87,6 +87,61 @@ class ActualBudgetReadModelTest {
         }
     }
 
+    /**
+     * Older Actual servers pre-date the cleanup automation schema, so a budget downloaded from
+     * one has neither `cleanup_groups` nor `categories.cleanup_def`. Confirms the defensive
+     * migration adds both, and that a `cleanup_def`/`cleanup_groups` write lands in one atomic
+     * CRDT batch and reads back through both `fetchCategoryGroups()` and `fetchCleanupGroups()`.
+     */
+    @Test
+    fun cleanupSchemaMigratesAndRoundTripsThroughOneAtomicBatch() {
+        val file = createDatabaseFile()
+        try {
+            ActualBudgetDatabase.open(file).use { database ->
+                assertTrue(database.fetchCleanupGroups(includeTombstoned = true).isEmpty())
+
+                var scheduledPushes = 0
+                val writer = ActualEntityWriter(database, "efefefefefefefef", onWrite = { scheduledPushes++ })
+                val cleanupDef = requireNotNull(
+                    com.azimulkabir.actua.model.CleanupTarget.encode(
+                        listOf(com.azimulkabir.actua.model.CleanupTarget(
+                            com.azimulkabir.actua.model.CleanupTarget.Role.SINK, groupId = "vacation-group", weight = 2,
+                        )),
+                    ),
+                )
+                writer.refreshCleanupDefinitions(
+                    categoryCleanupDefs = mapOf("budgetcat" to cleanupDef),
+                    groupUpserts = mapOf("vacation-group" to "Vacation Fund"),
+                    orphanGroupIds = emptySet(),
+                )
+
+                assertEquals(1, scheduledPushes)
+                val groups = database.fetchCleanupGroups()
+                assertEquals(listOf("vacation-group" to "Vacation Fund"), groups.map { it.id to it.name })
+
+                val category = database.fetchCategoryGroups().flatMap { it.categories }.single { it.id == "budgetcat" }
+                assertEquals(cleanupDef, category.cleanupDef)
+                val budgetCategory = database.fetchBudgetMonth("2026-09").categories.single { it.categoryId == "budgetcat" }
+                assertEquals(cleanupDef, budgetCategory.cleanupDef)
+
+                // Tombstoning the group (an orphan re-scan) keeps the row instead of deleting it.
+                writer.refreshCleanupDefinitions(emptyMap(), emptyMap(), setOf("vacation-group"))
+                assertTrue(database.fetchCleanupGroups().isEmpty())
+                assertEquals(1, database.fetchCleanupGroups(includeTombstoned = true).size)
+            }
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                assertTrue(db.rawQuery("SELECT 1 FROM cleanup_groups LIMIT 1", null).use { it.columnCount == 1 })
+                assertTrue(db.rawQuery("PRAGMA table_info(categories)", null).use { cursor ->
+                    val name = cursor.getColumnIndexOrThrow("name")
+                    generateSequence { if (cursor.moveToNext()) cursor.getString(name) else null }
+                        .any { it == "cleanup_def" }
+                })
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
     @Test
     fun scheduleTransactionsCanBeFetchedAndUnlinkedThroughCrdt() = withDatabase { database ->
         val linked = database.fetchScheduleTransactions("schedule-new")

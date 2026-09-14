@@ -1198,6 +1198,10 @@ fun AppNavigation(
                         mutate("Applying budget template") { repository.applyBudgetTemplate(preview) }
                     },
                     scheduleFunding = budgetScheduleFunding,
+                    onPreviewCleanup = { repository.previewCleanup(budgetMonth) },
+                    onApplyCleanup = { preview ->
+                        mutate("Applying month-end cleanup") { repository.applyCleanup(preview) }
+                    },
                     onSearch = { detail = DetailDestination.Search },
                     transactions = filteredTransactions,
                     onDeleteCategory = { group, category ->

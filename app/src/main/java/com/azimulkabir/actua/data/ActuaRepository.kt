@@ -25,6 +25,11 @@ import com.azimulkabir.actua.model.BudgetTarget
 import com.azimulkabir.actua.model.BudgetAutomationDocument
 import com.azimulkabir.actua.model.BudgetNoteAutomationParser
 import com.azimulkabir.actua.model.BudgetTemplatePreview
+import com.azimulkabir.actua.model.CleanupGroup
+import com.azimulkabir.actua.model.CleanupNoteParser
+import com.azimulkabir.actua.model.CleanupPreview
+import com.azimulkabir.actua.model.CleanupTarget
+import com.azimulkabir.actua.model.CleanupTemplatePlanner
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.model.SplitLine
@@ -421,6 +426,7 @@ class ActuaRepository(context: Context) {
                         val automationDocument = BudgetAutomationDocument.decode(
                             it.goalDef, it.templateSource, percentageSources,
                         )
+                        val cleanupDefinition = CleanupTarget.decode(it.cleanupDef)
                         BudgetCategory(
                             it.categoryName,
                             centsToDisplayUnits(it.budgetedCents),
@@ -445,6 +451,8 @@ class ActuaRepository(context: Context) {
                             automationReadOnly = !automationDocument.editable,
                             goalCents = it.goalCents,
                             longGoal = it.longGoal,
+                            cleanupTargets = cleanupDefinition.targets,
+                            cleanupInvalid = cleanupDefinition.invalid,
                         )
                     }, hidden = rows.first().groupHidden)
                 }
@@ -915,6 +923,7 @@ class ActuaRepository(context: Context) {
         if (parsed.valid) {
             actualEntities?.setCategoryNoteTarget(categoryId, BudgetAutomationDocument.encode(parsed.targets))
         }
+        refreshCleanupDefinitions()
         return true
     }
 
@@ -946,6 +955,71 @@ class ActuaRepository(context: Context) {
 
     fun applyBudgetTemplate(preview: BudgetTemplatePreview): Boolean {
         if (preview.changes.isEmpty() && preview.goalChanges.isEmpty()) return true
+        actualBudgets?.applyTemplate(
+            preview.month,
+            preview.changes.associate { it.categoryId to it.proposedCents },
+            preview.changes.associate { it.categoryId to it.currentCents },
+            preview.goalChanges.associate { it.categoryId to it.proposedCents },
+            preview.goalChanges.associate { it.categoryId to it.currentCents },
+        ) ?: return false
+        return true
+    }
+
+    fun cleanupGroups(): List<CleanupGroup> = actualDatabase?.fetchCleanupGroups()?.map { CleanupGroup(it.id, it.name) } ?: emptyList()
+
+    /**
+     * Re-scans every category note for `#cleanup` directives and rewrites `cleanup_def` plus
+     * `cleanup_groups` in one atomic batch, mirroring Actual's `storeNoteCleanups()`. Group
+     * names are resolved case-insensitively; groups no longer referenced by any category are
+     * tombstoned rather than deleted, matching upstream's `tombstoneOrphanCleanupGroups()`.
+     */
+    fun refreshCleanupDefinitions(): Boolean {
+        val db = actualDatabase ?: return false
+        val writer = actualEntities ?: return false
+        val categories = db.fetchCategoryGroups().flatMap { it.categories }
+        val parsedByCategory = categories.mapNotNull { cat ->
+            val rows = CleanupNoteParser.parse(db.fetchNote(cat.id))
+            if (rows.isEmpty()) null else cat.id to rows
+        }.toMap()
+        val existingGroups = db.fetchCleanupGroups(includeTombstoned = true).associateBy { it.name.lowercase() }
+        val allNames = parsedByCategory.values.flatten().mapNotNull { it.groupName?.trim()?.ifBlank { null } }.distinct()
+        val nameToId = mutableMapOf<String, String>()
+        val groupUpserts = mutableMapOf<String, String>()
+        allNames.forEach { name ->
+            val key = name.lowercase()
+            val existing = existingGroups[key]
+            val id = existing?.id ?: java.util.UUID.randomUUID().toString()
+            nameToId[key] = id
+            if (existing == null || existing.tombstone) groupUpserts[id] = name
+        }
+        val cleanupDefs = categories.associate { cat ->
+            val rows = parsedByCategory[cat.id]
+            val targets = rows?.mapNotNull { row ->
+                val groupId = row.groupName?.let { nameToId[it.trim().lowercase()] }
+                if (row.role == CleanupTarget.Role.OVERSPEND && groupId == null) null
+                else CleanupTarget(row.role, groupId, row.weight)
+            }.orEmpty()
+            cat.id to CleanupTarget.encode(targets)
+        }
+        val referencedGroupIds = cleanupDefs.values.flatMap { raw -> CleanupTarget.decode(raw).targets.mapNotNull(CleanupTarget::groupId) }.toSet()
+        val orphanGroupIds = existingGroups.values.filterNot { it.tombstone }.map { it.id }.toSet() - referencedGroupIds
+        val changedDefs = cleanupDefs.filter { (id, raw) -> raw != categories.first { it.id == id }.cleanupDef }
+        if (changedDefs.isEmpty() && groupUpserts.isEmpty() && orphanGroupIds.isEmpty()) return true
+        writer.refreshCleanupDefinitions(changedDefs, groupUpserts, orphanGroupIds)
+        return true
+    }
+
+    /** Read-only dry run for Actual's month-end cleanup source/sink groups. */
+    fun previewCleanup(month: String = currentMonth()): CleanupPreview {
+        val toBudget = budgetOverview(month).toBudgetCents ?: return CleanupPreview(month)
+        val groups = budgetGroups(month)
+        val cleanupGroupNames = actualDatabase?.fetchCleanupGroups()?.associate { it.id to it.name } ?: emptyMap()
+        return CleanupTemplatePlanner.preview(groups, cleanupGroupNames, month, toBudget)
+    }
+
+    /** Applies a confirmed [CleanupPreview] as one synchronized CRDT/database batch. */
+    fun applyCleanup(preview: CleanupPreview): Boolean {
+        if (preview.isUpToDate) return true
         actualBudgets?.applyTemplate(
             preview.month,
             preview.changes.associate { it.categoryId to it.proposedCents },

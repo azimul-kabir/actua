@@ -92,6 +92,7 @@ import com.azimulkabir.actua.model.BudgetAutomationDocument
 import com.azimulkabir.actua.model.BudgetTemplatePlanner
 import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.BudgetScheduleFunding
+import com.azimulkabir.actua.model.CleanupPreview
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
@@ -165,6 +166,8 @@ fun BudgetScreen(
     onSetCategoryAutomations: (String, List<BudgetTarget>) -> Unit = { _, _ -> },
     onApplyBudgetTemplate: (BudgetTemplatePreview) -> Unit = {},
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
+    onPreviewCleanup: () -> CleanupPreview = { CleanupPreview("") },
+    onApplyCleanup: (CleanupPreview) -> Unit = {},
     onSearch: () -> Unit = {},
     transactions: List<Transaction> = emptyList(),
     onDeleteCategory: (String, String) -> Boolean = { _, _ -> false },
@@ -202,6 +205,7 @@ fun BudgetScreen(
     var assignFromBudgetOpen by remember { mutableStateOf(false) }
     var templatePreviewOpen by remember { mutableStateOf(false) }
     var overwriteTemplates by remember { mutableStateOf(false) }
+    var cleanupPreview by remember { mutableStateOf<CleanupPreview?>(null) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(returnToRootRequest) {
@@ -400,7 +404,19 @@ fun BudgetScreen(
                 showAddSheet = false
                 overwriteTemplates = overwrite
                 templatePreviewOpen = true
+            },
+            onPreviewCleanup = {
+                showAddSheet = false
+                cleanupPreview = onPreviewCleanup()
             })
+    }
+    cleanupPreview?.let { preview ->
+        CleanupPreviewSheet(
+            preview = preview,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { cleanupPreview = null },
+            onApply = { onApplyCleanup(it); cleanupPreview = null },
+        )
     }
     if (templatePreviewOpen) {
         BudgetTemplatePreviewSheet(
@@ -2389,7 +2405,7 @@ private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRenam
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddBudgetSheet(onDismiss: () -> Unit, onNewCategory: () -> Unit, onNewGroup: () -> Unit,
-    onApplyTemplate: (Boolean) -> Unit) {
+    onApplyTemplate: (Boolean) -> Unit, onPreviewCleanup: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 28.dp)) {
             Text("Add to budget", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
@@ -2398,6 +2414,82 @@ private fun AddBudgetSheet(onDismiss: () -> Unit, onNewCategory: () -> Unit, onN
             SheetAction("New category group", onNewGroup)
             SheetAction("Apply budget templates", onClick = { onApplyTemplate(false) })
             SheetAction("Overwrite budget templates", onClick = { onApplyTemplate(true) })
+            SheetAction("Month-end cleanup", onClick = onPreviewCleanup)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CleanupPreviewSheet(
+    preview: CleanupPreview,
+    hideDecimalPlaces: Boolean,
+    onDismiss: () -> Unit,
+    onApply: (CleanupPreview) -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Review month-end cleanup", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                "Nothing changes until you confirm. This moves leftover balances between the source and sink " +
+                    "categories defined by \"#cleanup\" notes for ${formatMonth(preview.month)}.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (preview.changes.isEmpty() && preview.goalChanges.isEmpty()) {
+                Text(if (preview.isUpToDate) "No cleanup groups need changes." else "No categories are configured for cleanup.")
+            } else {
+                preview.changes.forEach { change ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(change.categoryName, fontWeight = FontWeight.Medium)
+                            Text(change.groupName, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(
+                            "${formatMoneyCents(change.currentCents, hideDecimalPlaces)} → ${formatMoneyCents(change.proposedCents, hideDecimalPlaces)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+            preview.goalChanges.forEach { change ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(change.categoryName, fontWeight = FontWeight.Medium)
+                        Text("${change.groupName} · Goal reset", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(
+                        "${change.currentCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "None"} → " +
+                            (change.proposedCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "None"),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+            if (preview.warnings.isNotEmpty()) {
+                Text(
+                    preview.warnings.joinToString("\n"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+            if (preview.invalidCategories.isNotEmpty()) {
+                Text(
+                    "Left untouched because their cleanup definition is unsupported: ${preview.invalidCategories.joinToString()}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+                Button(enabled = preview.changes.isNotEmpty() || preview.goalChanges.isNotEmpty(),
+                    onClick = { onApply(preview) }) { Text("Apply cleanup") }
+            }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
