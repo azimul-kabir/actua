@@ -9,6 +9,10 @@
 ![Beta](https://img.shields.io/badge/status-beta-F0A44B)
 ![License](https://img.shields.io/badge/License-MIT-48506A)
 
+<p align="center">
+  <img src="artwork/actua-hero.jpg" alt="Actua for Android showing budget, category, transaction and bills screens" width="900">
+</p>
+
 ## About
 
 Actua brings Actual Budget to Android with a native Material You interface.
@@ -42,18 +46,41 @@ See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implem
 
 ## Screenshots
 
-<table>
-  <tr>
-    <td align="center"><a href="artwork/screenshots/budget-plan.jpg"><img src="artwork/screenshots/budget-plan.jpg" width="220" alt="Actua budget plan view"></a><br><strong>Budget Plan</strong><br><sub>Targets, progress and balances</sub></td>
-    <td align="center"><a href="artwork/screenshots/category-details.jpg"><img src="artwork/screenshots/category-details.jpg" width="220" alt="Actua category details"></a><br><strong>Category Details</strong><br><sub>Budget, move money and auto-assign</sub></td>
-    <td align="center"><a href="artwork/screenshots/accounts.jpg"><img src="artwork/screenshots/accounts.jpg" width="220" alt="Actua accounts overview"></a><br><strong>Accounts</strong><br><sub>On-budget, off-budget and cards</sub></td>
-  </tr>
-  <tr>
-    <td align="center"><a href="artwork/screenshots/transactions.jpg"><img src="artwork/screenshots/transactions.jpg" width="220" alt="Actua transaction list"></a><br><strong>Transactions</strong><br><sub>Searchable, grouped activity</sub></td>
-    <td align="center"><a href="artwork/screenshots/reconciliation.jpg"><img src="artwork/screenshots/reconciliation.jpg" width="220" alt="Actua account reconciliation"></a><br><strong>Reconciliation</strong><br><sub>Match Actua with your bank</sub></td>
-    <td align="center"><a href="artwork/screenshots/bills-calendar.jpg"><img src="artwork/screenshots/bills-calendar.jpg" width="220" alt="Actua bills calendar"></a><br><strong>Bills Calendar</strong><br><sub>Recurring schedules and card bills</sub></td>
-  </tr>
-</table>
+<p align="center">
+  <a href="artwork/screenshots/budget-plan.jpg"><img src="artwork/screenshots/budget-plan.jpg" width="340" alt="Actua budget plan view"></a><br>
+  <strong>Budget Plan</strong><br>
+  <sub>Targets, progress and balances</sub>
+</p>
+
+<p align="center">
+  <a href="artwork/screenshots/category-details.jpg"><img src="artwork/screenshots/category-details.jpg" width="340" alt="Actua category details"></a><br>
+  <strong>Category Details</strong><br>
+  <sub>Budget, move money and auto-assign</sub>
+</p>
+
+<p align="center">
+  <a href="artwork/screenshots/accounts.jpg"><img src="artwork/screenshots/accounts.jpg" width="340" alt="Actua accounts overview"></a><br>
+  <strong>Accounts</strong><br>
+  <sub>On-budget, off-budget and cards</sub>
+</p>
+
+<p align="center">
+  <a href="artwork/screenshots/transactions.jpg"><img src="artwork/screenshots/transactions.jpg" width="340" alt="Actua transaction list"></a><br>
+  <strong>Transactions</strong><br>
+  <sub>Searchable, grouped activity</sub>
+</p>
+
+<p align="center">
+  <a href="artwork/screenshots/reconciliation.jpg"><img src="artwork/screenshots/reconciliation.jpg" width="340" alt="Actua account reconciliation"></a><br>
+  <strong>Reconciliation</strong><br>
+  <sub>Match Actua with your bank</sub>
+</p>
+
+<p align="center">
+  <a href="artwork/screenshots/bills-calendar.jpg"><img src="artwork/screenshots/bills-calendar.jpg" width="340" alt="Actua bills calendar"></a><br>
+  <strong>Bills Calendar</strong><br>
+  <sub>Recurring schedules and card bills</sub>
+</p>
 
 ## Try Actua
 
