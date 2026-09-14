@@ -17,6 +17,8 @@ jobs:
           ref: issue-164-balance-cap-slice-2
       - name: Apply Balance Cap editor patch
         run: python3 .github/scripts/issue164_slice2.py
+      - name: Correct weekly cap start semantics
+        run: python3 .github/scripts/issue164_model_fix.py
       - name: Commit patch if needed
         run: |
           if git diff --quiet; then
@@ -24,6 +26,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/src/main/java/com/azimulkabir/actua/ui/budget/BudgetScreen.kt
-          git commit -m "Apply Balance Cap Slice 2 UI"
+          git add app/src/main/java/com/azimulkabir/actua/ui/budget/BudgetScreen.kt app/src/main/java/com/azimulkabir/actua/model/BudgetTarget.kt
+          git commit -m "Finalize Balance Cap Slice 2 behavior"
           git push
