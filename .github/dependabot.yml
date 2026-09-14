@@ -8,6 +8,20 @@ updates:
       time: "03:00"
       timezone: "Asia/Dhaka"
     open-pull-requests-limit: 5
+    groups:
+      android-platform:
+        patterns:
+          - "androidx.core:*"
+          - "androidx.lifecycle:*"
+          - "androidx.activity:*"
+          - "androidx.test:*"
+          - "androidx.work:*"
+          - "com.android.tools.build:gradle"
+      kotlin-compose:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "org.jetbrains.kotlinx:*"
+          - "androidx.compose.*"
     labels:
       - dependencies
     commit-message:
@@ -21,6 +35,19 @@ updates:
       time: "03:30"
       timezone: "Asia/Dhaka"
     open-pull-requests-limit: 5
+    groups:
+      android-toolchain:
+        patterns:
+          - "actions/checkout"
+          - "actions/setup-java"
+          - "android-actions/setup-android"
+          - "gradle/actions/setup-gradle"
+          - "reactivecircus/android-emulator-runner"
+      ci-support:
+        patterns:
+          - "actions/upload-artifact"
+          - "actions/github-script"
+          - "actions/setup-python"
     labels:
       - dependencies
     commit-message:

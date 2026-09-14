@@ -69,6 +69,20 @@ The default review path has no paid service dependency:
 - Dependabot opens weekly Gradle and GitHub Actions update PRs.
 - CODEOWNERS requests maintainer review for sensitive project areas.
 
+Dependabot groups Android platform and Kotlin/Compose updates separately from
+CI-action updates so compatible changes are reviewed together without combining
+runtime libraries with unrelated workflow changes. Dependency update PRs still
+run the normal Android CI and compatibility checks; Dependabot does not merge
+them automatically.
+
+The version catalog intentionally pins the Android Gradle Plugin, Kotlin Compose
+plugin, Compose BOM, AndroidX runtime libraries, WorkManager, and PDFBox to
+stable versions that build together. Upgrade those pins as a tested set when
+their compatibility constraints require it; do not adopt preview releases just
+to remove a stale-version warning. Gradle runtime JDK 25 and app bytecode
+target Java 17 are likewise deliberate and are validated by the committed
+wrapper and CI workflows.
+
 Use branch protection or a main-branch ruleset to require the Android CI check
 and at least one approving review before merge. Treat `risk:high` as a prompt
 for deeper manual review of sync, database, financial, security, migration, or
