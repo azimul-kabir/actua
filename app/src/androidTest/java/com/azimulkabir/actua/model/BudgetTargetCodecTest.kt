@@ -116,10 +116,10 @@ class BudgetTargetCodecTest {
         assertEquals(80_000L, preview.netBudgetChangeCents)
     }
 
-    @Test fun notesAndUnknownVisualTemplatesAreNotClaimedByEditor() {
+    @Test fun supportedNotesTemplatesDecodeButRemainReadOnly() {
         val periodic = BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 10_000,
-            startingDate = "2026-09-01").toGoalDef()
-        assertEquals(null, BudgetTarget.fromGoalDef(periodic, "notes"))
+            startingDate = "2026-09-01")
+        assertEquals(periodic, BudgetTarget.fromGoalDef(periodic.toGoalDef(), "notes"))
         assertEquals(null, BudgetTarget.fromGoalDef("[{\"type\":\"percentage\",\"directive\":\"template\"}]", "ui"))
         assertEquals(null, BudgetTarget.fromGoalDef(
             "[{\"type\":\"percentage\",\"directive\":\"template\",\"priority\":1,\"percent\":25,\"category\":\"Salary\"}]",
