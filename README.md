@@ -116,7 +116,8 @@ at full resolution.
   UI-managed targets, including goal-only balance targets, weighted remainder automations
   that divide Ready to Budget after higher-priority funding, and current-month
   percentage-of-Available-Funds contributions, while unknown and notes-managed definitions
-  remain safely read-only
+  remain safely read-only; remainder limits support daily, weekly, and monthly caps with
+  explicit carryover hold/release behavior
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
 - Account-specific transaction entry, collapsible account summaries and notes, and configurable bottom navigation labels
 - A dedicated **Manage** bottom-tab hub for operational tools, with general preferences separated behind its Settings gear and legacy **More** start-page preferences migrated automatically

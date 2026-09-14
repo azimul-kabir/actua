@@ -1883,7 +1883,13 @@ private fun TargetDetailsCard(
             title = target.type.label
             detail = when (target.type) {
                 BudgetTarget.Type.AVERAGE -> "Average of ${target.averageMonths} recent months"
-                BudgetTarget.Type.REMAINDER -> "Weight ${target.weight}"
+                BudgetTarget.Type.REMAINDER -> buildString {
+                    append("Weight ${target.weight}")
+                    target.limitAmountCents?.let {
+                        append(" · capped ${formatMoneyCents(it, hideDecimalPlaces)} ${target.limitPeriod?.jsonValue}")
+                        if (target.limitHold) append(" · hold")
+                    }
+                }
                 BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of available funds"
                 else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)
             }
@@ -1997,9 +2003,18 @@ private fun TargetEditorSheet(
     }
     var averageMonths by remember(category) { mutableStateOf(category.target?.averageMonths?.toString() ?: "3") }
     var weight by remember(category) { mutableStateOf(category.target?.weight?.toString() ?: "1") }
+    var limitAmount by remember(category) {
+        mutableStateOf(category.target?.limitAmountCents?.let {
+            java.math.BigDecimal.valueOf(it, 2).stripTrailingZeros().toPlainString()
+        } ?: "")
+    }
+    var limitPeriod by remember(category) { mutableStateOf(category.target?.limitPeriod) }
+    var limitStartDate by remember(category) { mutableStateOf(category.target?.limitStartDate ?: "$month-01") }
+    var limitHold by remember(category) { mutableStateOf(category.target?.limitHold ?: false) }
     var percentage by remember(category) { mutableStateOf(category.target?.percentage?.toString() ?: "10") }
     var typeMenu by remember { mutableStateOf(false) }
     val amountCents = runCatching { java.math.BigDecimal(amount).movePointRight(2).longValueExact() }.getOrNull()
+    val limitAmountCents = runCatching { java.math.BigDecimal(limitAmount).movePointRight(2).longValueExact() }.getOrNull()
     val validDate = when (type) {
         BudgetTarget.Type.BY_DATE -> runCatching { java.time.YearMonth.parse(date.take(7)) }.isSuccess
         BudgetTarget.Type.WEEKLY_SPENDING -> runCatching { java.time.LocalDate.parse(date) }.isSuccess
@@ -2007,7 +2022,10 @@ private fun TargetEditorSheet(
     }
     val canSave = when (type) {
         BudgetTarget.Type.AVERAGE -> averageMonths.toIntOrNull() in 1..24
-        BudgetTarget.Type.REMAINDER -> weight.toIntOrNull()?.let { it >= 1 } == true
+        BudgetTarget.Type.REMAINDER -> weight.toIntOrNull()?.let { it >= 1 } == true &&
+            (limitPeriod == null || limitAmountCents?.let { it > 0L } == true) &&
+            (limitPeriod != BudgetTarget.LimitPeriod.WEEKLY ||
+                runCatching { java.time.LocalDate.parse(limitStartDate) }.isSuccess)
         BudgetTarget.Type.PERCENTAGE -> percentage.toIntOrNull() in 1..100
         else -> amountCents != null && amountCents > 0L
     } && validDate
@@ -2071,6 +2089,50 @@ private fun TargetEditorSheet(
                 )
                 else -> Unit
             }
+            if (type == BudgetTarget.Type.REMAINDER) {
+                Text("Optional remainder cap", style = MaterialTheme.typography.titleSmall)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = limitAmount,
+                        onValueChange = { limitAmount = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Limit amount") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+                    Box {
+                        TextButton(onClick = {
+                            limitPeriod = when (limitPeriod) {
+                                null -> BudgetTarget.LimitPeriod.MONTHLY
+                                BudgetTarget.LimitPeriod.MONTHLY -> BudgetTarget.LimitPeriod.WEEKLY
+                                BudgetTarget.LimitPeriod.WEEKLY -> BudgetTarget.LimitPeriod.DAILY
+                                BudgetTarget.LimitPeriod.DAILY -> null
+                            }
+                        }) { Text(limitPeriod?.jsonValue ?: "No cap") }
+                    }
+                }
+                if (limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) {
+                    OutlinedTextField(
+                        value = limitStartDate,
+                        onValueChange = { limitStartDate = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Weekly start date") },
+                        placeholder = { Text("YYYY-MM-DD") },
+                        singleLine = true,
+                    )
+                }
+                if (limitPeriod != null) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Hold excess carryover", Modifier.weight(1f))
+                        Switch(checked = limitHold, onCheckedChange = { limitHold = it })
+                    }
+                    Text(
+                        "When off, carryover above the cap is released back to Ready to Budget.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(14.dp)) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Text("Reset", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -2111,6 +2173,11 @@ private fun TargetEditorSheet(
                         averageMonths = averageMonths.toIntOrNull()?.coerceIn(1, 24) ?: 3,
                         priority = category.target?.priority ?: 1,
                         weight = weight.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+                        limitPeriod = if (type == BudgetTarget.Type.REMAINDER) limitPeriod else null,
+                        limitAmountCents = if (type == BudgetTarget.Type.REMAINDER) limitAmountCents else null,
+                        limitStartDate = if (type == BudgetTarget.Type.REMAINDER &&
+                            limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) limitStartDate else null,
+                        limitHold = if (type == BudgetTarget.Type.REMAINDER) limitHold else false,
                         percentage = percentage.toIntOrNull()?.coerceIn(1, 100) ?: 0,
                     ))
                 }, enabled = canSave) { Text("Save") }
@@ -2395,6 +2462,14 @@ private fun BudgetTemplatePreviewSheet(
             if (preview.limitedCategories.isNotEmpty()) {
                 Text(
                     "Available funds limited: ${preview.limitedCategories.joinToString()}. Higher-priority automations were funded first.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+            if (preview.cappedCategories.isNotEmpty()) {
+                Text(
+                    "Remainder caps apply to: ${preview.cappedCategories.joinToString()}. " +
+                        "The preview includes daily, weekly, or monthly cap and carryover behavior.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.tertiary,
                 )

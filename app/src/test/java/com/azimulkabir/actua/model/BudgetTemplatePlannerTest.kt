@@ -217,6 +217,48 @@ class BudgetTemplatePlannerTest {
         assertEquals(1, preview.unchangedCount)
     }
 
+    @Test fun dailyAndWeeklyRemainderLimitsUseCalendarOccurrences() {
+        val daily = category("daily", "Daily", 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1,
+                limitPeriod = BudgetTarget.LimitPeriod.DAILY, limitAmountCents = 1_000),
+        ))
+        val weekly = category("weekly", "Weekly", 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1,
+                limitPeriod = BudgetTarget.LimitPeriod.WEEKLY, limitAmountCents = 1_000,
+                limitStartDate = "2026-09-01"),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(daily, weekly))),
+            "2026-09",
+            availableBudgetCents = 10_000,
+        )
+
+        assertEquals(listOf(3_000L, 5_000L), preview.changes.map { it.proposedCents })
+        assertEquals(listOf("Plan · Daily", "Plan · Weekly"), preview.cappedCategories)
+    }
+
+    @Test fun excessCarryoverIsReleasedOnlyWhenHoldIsFalse() {
+        val release = category("release", "Release", 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1,
+                limitPeriod = BudgetTarget.LimitPeriod.MONTHLY, limitAmountCents = 10_000),
+        ), carryover = 20_000)
+        val hold = category("hold", "Hold", 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1,
+                limitPeriod = BudgetTarget.LimitPeriod.MONTHLY, limitAmountCents = 10_000,
+                limitHold = true),
+        ), carryover = 20_000)
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(release, hold))),
+            "2026-09",
+            availableBudgetCents = 0,
+        )
+
+        assertEquals(-10_000L, preview.changes.single { it.categoryId == "release" }.proposedCents)
+        assertEquals(1, preview.unchangedCount)
+    }
+
     private fun category(
         id: String,
         name: String,

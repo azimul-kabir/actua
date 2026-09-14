@@ -89,10 +89,17 @@ data class BudgetAutomationDocument(
             }
             if (targets.any {
                     it.type == BudgetTarget.Type.REMAINDER &&
-                        it.limitPeriod == BudgetTarget.LimitPeriod.WEEKLY &&
-                        it.limitStartDate.isNullOrBlank()
+                        ((it.limitPeriod == null) != (it.limitAmountCents == null))
                 }) {
-                add("Weekly remainder limits need a start date")
+                add("Remainder limits need both a period and amount")
+            }
+            if (targets.any {
+                    it.type == BudgetTarget.Type.REMAINDER &&
+                        it.limitPeriod == BudgetTarget.LimitPeriod.WEEKLY &&
+                        (it.limitStartDate.isNullOrBlank() ||
+                            runCatching { java.time.LocalDate.parse(it.limitStartDate) }.isFailure)
+                }) {
+                add("Weekly remainder limits need a valid start date")
             }
             if (targets.any { it.priority < 0 }) add("Automation priority cannot be negative")
             if (targets.any { it.type == BudgetTarget.Type.PERCENTAGE && it.percentage !in 1..100 }) {
