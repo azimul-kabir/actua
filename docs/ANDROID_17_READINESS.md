@@ -22,9 +22,18 @@ behaviours reviewed for issue #109 and the coverage that guards them.
 ## Compatibility coverage
 
 The Android compatibility workflow runs the complete connected instrumented test
-suite on API 28, 35, 36, and 37. The matrix deliberately retains the oldest
-supported release and the two releases immediately preceding the target so that
-platform fixes do not silently regress existing installations.
+suite on API 28, 35, and 36. The matrix deliberately retains the oldest supported
+release and the two newest stable emulator images currently installable on
+GitHub-hosted runners, so platform fixes do not silently regress existing
+installations.
+
+API 37 compilation and target-SDK checks run in the regular Android workflow,
+which installs the canary API 37 platform explicitly. API 37 is not yet in the
+compatibility matrix because Google's stable SDK channel does not currently
+publish an installable `platforms;android-37` package and emulator image to the
+runner. Add the device job once those packages are available from the stable
+channel; until then, Android 17 runtime paths require the Pixel 8/manual checks
+listed in `RELEASE_SMOKE_TEST.md`.
 
 The regular Android workflow additionally builds debug and release variants,
 runs JVM tests, and runs lint. Signed release installation and the manual paths
