@@ -1890,7 +1890,7 @@ private fun TargetDetailsCard(
         }
         category.automations.size > 1 -> {
             title = "${category.automations.size} automations"
-            detail = category.automations.joinToString { it.type.label }
+            detail = category.automations.joinToString { if (it.isBalanceCap) "Balance cap" else it.type.label }
             supporting = "Edit automation list · Apply after whole-budget preview"
         }
         target == null -> {
@@ -1899,7 +1899,7 @@ private fun TargetDetailsCard(
             supporting = "Auto-Assign can use your target"
         }
         else -> {
-            title = target.type.label
+            title = if (target.isBalanceCap) "Balance cap" else target.type.label
             detail = when (target.type) {
                 BudgetTarget.Type.AVERAGE -> "Average of ${target.averageMonths} recent months"
                 BudgetTarget.Type.COPY -> "Copy ${target.lookBackMonths} months ago"
@@ -1914,8 +1914,14 @@ private fun TargetDetailsCard(
                 else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)
             }
             val timing = when (target.type) {
-                BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS,
-                BudgetTarget.Type.REFILL -> "Resets every month"
+                BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS -> "Resets every month"
+                BudgetTarget.Type.REFILL -> if (target.isBalanceCap) {
+                    when (target.limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY) {
+                        BudgetTarget.LimitPeriod.DAILY -> "Daily balance cap"
+                        BudgetTarget.LimitPeriod.WEEKLY -> "Weekly balance cap"
+                        BudgetTarget.LimitPeriod.MONTHLY -> "Monthly balance cap"
+                    }
+                } else "Resets every month"
                 BudgetTarget.Type.WEEKLY_SPENDING -> "Resets every week"
                 BudgetTarget.Type.BY_DATE -> target.targetMonth?.let { "Target month ${formatMonth(it)}" }
                     ?: "Target date"
@@ -1926,11 +1932,12 @@ private fun TargetDetailsCard(
                 BudgetTarget.Type.PERCENTAGE -> "At this priority"
                 BudgetTarget.Type.SCHEDULE -> "Schedule-driven"
             }
-            supporting = when (target.type) {
-                BudgetTarget.Type.GOAL -> "$timing · Does not budget funds automatically"
-                BudgetTarget.Type.REMAINDER -> "$timing · Applied in whole-budget preview"
-                BudgetTarget.Type.PERCENTAGE -> "$timing · Applied in whole-budget preview"
-                BudgetTarget.Type.SCHEDULE -> "$timing · Read-only until schedule evaluation is exact"
+            supporting = when {
+                target.isBalanceCap -> "$timing · Does not request funding automatically"
+                target.type == BudgetTarget.Type.GOAL -> "$timing · Does not budget funds automatically"
+                target.type == BudgetTarget.Type.REMAINDER -> "$timing · Applied in whole-budget preview"
+                target.type == BudgetTarget.Type.PERCENTAGE -> "$timing · Applied in whole-budget preview"
+                target.type == BudgetTarget.Type.SCHEDULE -> "$timing · Read-only until schedule evaluation is exact"
                 else -> "$timing · Auto-Assign ${formatMoneyCents(target.suggestedBudget(category, month), hideDecimalPlaces)}"
             }
         }
@@ -1967,7 +1974,7 @@ private fun SummaryValue(label: String, amount: Long, hideDecimals: Boolean, mod
 }
 
 private fun buildAutoAssignChoices(category: BudgetCategory, month: String): List<Pair<String, Long>> = buildList {
-    category.target?.let { target ->
+    category.target?.takeUnless(BudgetTarget::isBalanceCap)?.let { target ->
         add("Target · ${target.type.label}" to target.suggestedBudget(category, month))
     }
     category.history.firstOrNull()?.let { last ->
@@ -2037,7 +2044,11 @@ private fun TargetEditorSheet(
             java.math.BigDecimal.valueOf(it, 2).stripTrailingZeros().toPlainString()
         } ?: "")
     }
-    var limitPeriod by remember(category) { mutableStateOf(category.target?.limitPeriod) }
+    var editingBalanceCap by remember(category) { mutableStateOf(category.target?.isBalanceCap == true) }
+    var limitPeriod by remember(category) {
+        mutableStateOf(category.target?.limitPeriod ?: if (category.target?.isBalanceCap == true)
+            BudgetTarget.LimitPeriod.MONTHLY else null)
+    }
     var limitStartDate by remember(category) { mutableStateOf(category.target?.limitStartDate ?: "$month-01") }
     var limitHold by remember(category) { mutableStateOf(category.target?.limitHold ?: false) }
     var percentage by remember(category) { mutableStateOf(category.target?.percentage?.toString() ?: "10") }
@@ -2047,11 +2058,15 @@ private fun TargetEditorSheet(
     val validDate = when (type) {
         BudgetTarget.Type.BY_DATE -> runCatching { java.time.YearMonth.parse(date.take(7)) }.isSuccess
         BudgetTarget.Type.WEEKLY_SPENDING -> runCatching { java.time.LocalDate.parse(date) }.isSuccess
+        BudgetTarget.Type.REFILL -> !editingBalanceCap || limitPeriod != BudgetTarget.LimitPeriod.WEEKLY ||
+            runCatching { java.time.LocalDate.parse(limitStartDate) }.isSuccess
         else -> true
     }
     val canSave = when (type) {
         BudgetTarget.Type.AVERAGE -> averageMonths.toIntOrNull() in 1..24
         BudgetTarget.Type.COPY -> lookBackMonths.toIntOrNull() in 1..24
+        BudgetTarget.Type.REFILL -> amountCents?.let { it > 0L } == true &&
+            (!editingBalanceCap || limitPeriod != null)
         BudgetTarget.Type.REMAINDER -> weight.toIntOrNull()?.let { it >= 1 } == true &&
             (limitPeriod == null || limitAmountCents?.let { it > 0L } == true) &&
             (limitPeriod != BudgetTarget.LimitPeriod.WEEKLY ||
@@ -2072,12 +2087,26 @@ private fun TargetEditorSheet(
                         Column(Modifier.weight(1f)) {
                             Text("Target type", style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(type.label, fontWeight = FontWeight.SemiBold)
+                            Text(if (editingBalanceCap && type == BudgetTarget.Type.REFILL) "Balance cap" else type.label,
+                                fontWeight = FontWeight.SemiBold)
                         }
                         Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Choose target type")
                     }
                 }
                 DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
+                    DropdownMenuItem(text = {
+                        Column {
+                            Text("Balance cap")
+                            Text("Limit the category balance without requesting refill funding",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }, onClick = {
+                        type = BudgetTarget.Type.REFILL
+                        editingBalanceCap = true
+                        if (limitPeriod == null) limitPeriod = BudgetTarget.LimitPeriod.MONTHLY
+                        typeMenu = false
+                    })
                     BudgetTarget.Type.entries.filterNot { it == BudgetTarget.Type.SCHEDULE }.forEach { option ->
                         DropdownMenuItem(text = {
                             Column {
@@ -2085,7 +2114,7 @@ private fun TargetEditorSheet(
                                 Text(option.explanation, style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                        }, onClick = { type = option; typeMenu = false })
+                        }, onClick = { type = option; editingBalanceCap = false; typeMenu = false })
                     }
                 }
             }
@@ -2121,6 +2150,43 @@ private fun TargetEditorSheet(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
                 else -> Unit
+            }
+            if (type == BudgetTarget.Type.REFILL && editingBalanceCap) {
+                Text("Balance cap cadence", style = MaterialTheme.typography.titleSmall)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BudgetTarget.LimitPeriod.entries.forEach { period ->
+                        FilledTonalButton(
+                            onClick = { limitPeriod = period },
+                            modifier = Modifier.weight(1f),
+                            colors = if (limitPeriod == period) ButtonDefaults.filledTonalButtonColors()
+                                else ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                ),
+                        ) { Text(period.jsonValue.replaceFirstChar(Char::uppercase)) }
+                    }
+                }
+                if (limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) {
+                    OutlinedTextField(
+                        value = limitStartDate,
+                        onValueChange = { limitStartDate = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Weekly start date") },
+                        placeholder = { Text("YYYY-MM-DD") },
+                        singleLine = true,
+                    )
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Retain existing funds over the cap")
+                        Text(
+                            if (limitHold) "Excess carryover stays in the category."
+                            else "Excess carryover is released to Ready to Budget.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = limitHold, onCheckedChange = { limitHold = it })
+                }
             }
             if (type == BudgetTarget.Type.REMAINDER) {
                 Text("Optional remainder cap", style = MaterialTheme.typography.titleSmall)
@@ -2170,7 +2236,10 @@ private fun TargetEditorSheet(
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Text("Reset", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(when (type) {
-                        BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS, BudgetTarget.Type.REFILL -> "Every month"
+                        BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS -> "Every month"
+                        BudgetTarget.Type.REFILL -> if (editingBalanceCap)
+                            (limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY).jsonValue.replaceFirstChar(Char::uppercase)
+                            else "Every month"
                         BudgetTarget.Type.WEEKLY_SPENDING -> "Every week"
                         BudgetTarget.Type.BY_DATE -> "On target date"
                         BudgetTarget.Type.AVERAGE -> "Recalculate monthly"
@@ -2182,8 +2251,13 @@ private fun TargetEditorSheet(
                     }, fontWeight = FontWeight.SemiBold)
                 }
             }
-            Text(type.explanation, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                if (type == BudgetTarget.Type.REFILL && editingBalanceCap)
+                    "Limit the category balance without requesting refill funding."
+                else type.explanation,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 if (category.target != null) TextButton(onClick = { onSave(null) }) {
                     Text("Remove target", color = MaterialTheme.colorScheme.error)
@@ -2206,13 +2280,17 @@ private fun TargetEditorSheet(
                         },
                         averageMonths = averageMonths.toIntOrNull()?.coerceIn(1, 24) ?: 3,
                         lookBackMonths = lookBackMonths.toIntOrNull()?.coerceIn(1, 24) ?: 1,
-                        priority = category.target?.priority ?: 1,
+                        priority = if (type == BudgetTarget.Type.REFILL && editingBalanceCap) 0
+                            else category.target?.priority?.takeIf { it > 0 } ?: 1,
                         weight = weight.toIntOrNull()?.coerceAtLeast(1) ?: 1,
-                        limitPeriod = if (type == BudgetTarget.Type.REMAINDER) limitPeriod else null,
+                        limitPeriod = if (type == BudgetTarget.Type.REMAINDER ||
+                            type == BudgetTarget.Type.REFILL && editingBalanceCap) limitPeriod else null,
                         limitAmountCents = if (type == BudgetTarget.Type.REMAINDER) limitAmountCents else null,
-                        limitStartDate = if (type == BudgetTarget.Type.REMAINDER &&
+                        limitStartDate = if ((type == BudgetTarget.Type.REMAINDER ||
+                            type == BudgetTarget.Type.REFILL && editingBalanceCap) &&
                             limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) limitStartDate else null,
-                        limitHold = if (type == BudgetTarget.Type.REMAINDER) limitHold else false,
+                        limitHold = if (type == BudgetTarget.Type.REMAINDER ||
+                            type == BudgetTarget.Type.REFILL && editingBalanceCap) limitHold else false,
                         percentage = percentage.toIntOrNull()?.coerceIn(1, 100) ?: 0,
                     ))
                 }, enabled = canSave) { Text("Save") }
@@ -2290,13 +2368,19 @@ private fun AutomationListEditorSheet(
                     Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(target.type.label, fontWeight = FontWeight.SemiBold)
+                            Text(if (target.isBalanceCap) "Balance cap" else target.type.label,
+                                fontWeight = FontWeight.SemiBold)
                             Text(
                                 when (target.type) {
                                     BudgetTarget.Type.AVERAGE -> "${target.averageMonths} recent months"
                                     BudgetTarget.Type.COPY -> "${target.lookBackMonths} months ago"
                                     BudgetTarget.Type.REMAINDER -> "Weight ${target.weight}"
                                     BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of available funds"
+                                    BudgetTarget.Type.REFILL -> if (target.isBalanceCap) {
+                                        val cadence = (target.limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY).jsonValue
+                                        formatMoneyCents(target.amountCents, hideDecimalPlaces) + " · " + cadence +
+                                            if (target.limitHold) " · retain excess" else " · release excess"
+                                    } else formatMoneyCents(target.amountCents, hideDecimalPlaces)
                                     else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)
                                 },
                                 style = MaterialTheme.typography.bodySmall,

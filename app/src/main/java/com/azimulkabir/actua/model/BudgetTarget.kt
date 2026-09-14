@@ -57,31 +57,43 @@ data class BudgetTarget(
         }
     }
 
-    /** Priority zero is reserved internally for Actual's standalone default monthly `limit`. */
+    /** Priority zero is reserved internally for Actual's standalone `limit` (Balance Cap). */
     val isBalanceCap: Boolean get() = type == Type.REFILL && priority == 0
 
     fun limitForMonth(month: String): Long {
         val limit = limitAmountCents ?: return 0L
-        return when (limitPeriod ?: LimitPeriod.MONTHLY) {
-            LimitPeriod.DAILY -> {
-                val days = runCatching { YearMonth.parse(month).lengthOfMonth().toLong() }.getOrDefault(0L)
-                Math.multiplyExact(limit, days)
-            }
-            LimitPeriod.WEEKLY -> {
-                val monthYear = runCatching { YearMonth.parse(month) }.getOrNull() ?: return 0L
-                val monthStart = monthYear.atDay(1)
-                val nextMonthStart = monthYear.plusMonths(1).atDay(1)
-                val startDate = runCatching { LocalDate.parse(limitStartDate ?: monthStart.toString()) }.getOrNull() ?: monthStart
-                var date = startDate
-                var weeks = 0L
-                while (date.isBefore(nextMonthStart)) {
-                    if (!date.isBefore(monthStart)) weeks += 1L
-                    date = date.plusWeeks(1)
-                }
-                Math.multiplyExact(limit, weeks)
-            }
-            LimitPeriod.MONTHLY -> limit
+        return scaledLimitForMonth(limit, month, limitPeriod, limitStartDate)
+    }
+
+    fun balanceCapForMonth(month: String): Long {
+        if (!isBalanceCap) return 0L
+        return scaledLimitForMonth(amountCents, month, limitPeriod ?: LimitPeriod.MONTHLY, limitStartDate)
+    }
+
+    private fun scaledLimitForMonth(
+        amount: Long,
+        month: String,
+        period: LimitPeriod?,
+        startDateRaw: String?,
+    ): Long = when (period ?: LimitPeriod.MONTHLY) {
+        LimitPeriod.DAILY -> {
+            val days = runCatching { YearMonth.parse(month).lengthOfMonth().toLong() }.getOrDefault(0L)
+            Math.multiplyExact(amount, days)
         }
+        LimitPeriod.WEEKLY -> {
+            val monthYear = runCatching { YearMonth.parse(month) }.getOrNull() ?: return 0L
+            val monthStart = monthYear.atDay(1)
+            val nextMonthStart = monthYear.plusMonths(1).atDay(1)
+            var date = runCatching { LocalDate.parse(startDateRaw ?: monthStart.toString()) }.getOrNull() ?: monthStart
+            while (date.isBefore(monthStart)) date = date.plusWeeks(1)
+            var weeks = 0L
+            while (date.isBefore(nextMonthStart)) {
+                weeks += 1L
+                date = date.plusWeeks(1)
+            }
+            Math.multiplyExact(amount, weeks)
+        }
+        LimitPeriod.MONTHLY -> amount
     }
 
     fun suggestedBudget(category: BudgetCategory, month: String): Long {
@@ -136,7 +148,11 @@ data class BudgetTarget(
                 val cap = JSONObject().put("directive", "template").put("type", "limit")
                     .put("priority", JSONObject.NULL).put("amount", units(amountCents))
                 if (isBalanceCap) {
-                    cap.put("hold", false).put("period", "monthly")
+                    val period = limitPeriod ?: LimitPeriod.MONTHLY
+                    cap.put("hold", limitHold).put("period", period.jsonValue)
+                    if (period == LimitPeriod.WEEKLY && !limitStartDate.isNullOrBlank()) {
+                        cap.put("start", limitStartDate)
+                    }
                     return JSONArray().put(cap).toString()
                 }
                 cap.put("hold", true).put("period", "monthly")
@@ -227,10 +243,25 @@ data class BudgetTarget(
                 }
                 "by" -> BudgetTarget(Type.BY_DATE, cents(), row.optString("month").ifBlank { null }, priority = priority)
                 "limit" -> row.takeIf {
+                    val period = LimitPeriod.fromJson(it.optString("period"))
+                    val start = it.optString("start").ifBlank { null }
                     it.optString("directive") == "template" && it.has("priority") && it.isNull("priority") &&
-                        it.optString("period") == "monthly" && !it.optBoolean("hold", false) &&
-                        it.optString("start").isBlank() && cents() > 0L
-                }?.let { BudgetTarget(Type.REFILL, cents(), priority = 0) }
+                        period != null && cents() > 0L &&
+                        (period != LimitPeriod.WEEKLY || start?.let { rawStart ->
+                            runCatching { LocalDate.parse(rawStart) }.isSuccess
+                        } == true) &&
+                        (period == LimitPeriod.WEEKLY || start == null)
+                }?.let {
+                    val period = requireNotNull(LimitPeriod.fromJson(it.optString("period")))
+                    BudgetTarget(
+                        Type.REFILL,
+                        cents(),
+                        priority = 0,
+                        limitPeriod = period,
+                        limitStartDate = it.optString("start").ifBlank { null },
+                        limitHold = it.optBoolean("hold", false),
+                    )
+                }
                 "average" -> BudgetTarget(Type.AVERAGE, averageMonths = row.optInt("numMonths", 3), priority = priority)
                 "copy" -> row.takeIf { it.optString("directive") == "template" }
                     ?.let { BudgetTarget(Type.COPY, lookBackMonths = it.optInt("lookBack", 1), priority = priority) }
@@ -363,14 +394,14 @@ object BudgetTemplatePlanner {
         val releasedByLimit = eligible.sumOf { (_, category) ->
             val cap = effectiveCap(category, month) ?: return@sumOf 0L
             val excess = max(0L, category.carryoverCents - cap)
-            val release = balanceCap(category) != null || remainderLimit(category)?.limitHold == false
+            val release = balanceCap(category)?.limitHold == false || remainderLimit(category)?.limitHold == false
             if (excess > 0L && release) excess else 0L
         }
         if (available != Long.MAX_VALUE) available += releasedByLimit
         eligible.forEach { (_, category) ->
             val cap = effectiveCap(category, month) ?: return@forEach
             val excess = max(0L, category.carryoverCents - cap)
-            val release = balanceCap(category) != null || remainderLimit(category)?.limitHold == false
+            val release = balanceCap(category)?.limitHold == false || remainderLimit(category)?.limitHold == false
             if (excess > 0L && release) proposed[category] = -excess
         }
         val priorities = eligible.flatMap {
@@ -469,7 +500,7 @@ object BudgetTemplatePlanner {
                 val caps = buildList<Long> {
                     remainderTargets.firstOrNull()?.takeIf { it.limitAmountCents != null }
                         ?.let { add(it.limitForMonth(month)) }
-                    balanceCap(category)?.let { add(it.amountCents) }
+                    balanceCap(category)?.let { add(it.balanceCapForMonth(month)) }
                 }
                 val cap = caps.minOrNull()?.let { maxLimit ->
                     val remaining = max(0L, maxLimit - category.carryoverCents - before)
@@ -518,7 +549,7 @@ object BudgetTemplatePlanner {
 
     private fun effectiveCap(category: BudgetCategory, month: String): Long? = listOfNotNull(
         remainderLimit(category)?.limitForMonth(month),
-        balanceCap(category)?.amountCents,
+        balanceCap(category)?.balanceCapForMonth(month),
     ).minOrNull()
 
     private fun requestedAtPriority(
