@@ -36,8 +36,8 @@ and its editor model is in
 ## Actua implementation boundary
 
 Actua currently reads and edits these exact UI-managed projections: monthly spending, fixed monthly
-saving, save-by-date, refill-to-cap, weekly spending, recent-month average, and goal-only balance
-targets. Goal-only rows update Actual's monthly `goal` and `long_goal` values without requesting
+saving, save-by-date, refill-to-cap, weekly spending, recent-month average, goal-only balance
+targets, and current-month percentage-of-Available-Funds contributions. Goal-only rows update Actual's monthly `goal` and `long_goal` values without requesting
 budget funds. The whole-budget
 action now provides a read-only preview for these supported targets, identifies unchanged rows,
 shows the net budget change, and discloses categories with unsupported definitions. Confirming the
@@ -65,7 +65,10 @@ or monthly cap are now accepted as editable supported definitions and their per-
 applied before the remainder allocation is finalized.
 
 The following upstream constructs are deliberately not executed yet: schedule funding, percentage
-sources, copy/history variants beyond recent average, note parsing, and cleanup source/sink groups.
-Their stored definitions remain untouched and the preview names affected categories. Later #56 work
-must port their evaluation and validation fixtures before enabling writes or full multi-automation
-editing.
+sources other than current-month `available funds` (including income-category and previous-month
+sources), copy/history variants beyond recent average, note parsing, and cleanup source/sink groups.
+Their stored definitions remain untouched and the preview names affected categories. Percentage
+automations use the Ready to Budget amount at the start of their priority, are clamped by the
+same available-funds rules as other positive-priority contributions, and can be edited only when
+their source and current-month semantics round-trip exactly. Later #56 work must port schedule
+evaluation and additional percentage validation fixtures before enabling those definitions.

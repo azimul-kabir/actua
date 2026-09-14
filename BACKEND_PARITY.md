@@ -156,8 +156,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   explicit Overwrite behavior, and one CRDT mutation batch;
   multi-automation list editing and atomic `goal_def` replacement for fully supported UI-managed
   definitions; goal-only balance targets with atomic budget/goal writes; weighted remainder
-  distribution after ordinary priorities; and safe read-only disclosure of advanced or
-  notes-managed templates
+  distribution after ordinary priorities; current-month percentage-of-Available-Funds
+  contributions; and safe read-only disclosure of advanced or notes-managed templates
 - Account details with notes and working, cleared, uncleared, and reconciled balances
 - Full mobile account reconciliation with bank-balance comparison, difference display,
   uncleared-transaction review, optional cleared adjustment, and atomic CRDT locking

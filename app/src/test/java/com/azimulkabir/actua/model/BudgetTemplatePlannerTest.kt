@@ -90,6 +90,23 @@ class BudgetTemplatePlannerTest {
         assertEquals(listOf("Living · Fun"), preview.limitedCategories)
     }
 
+    @Test fun percentageUsesFundsAvailableAtPriorityStart() {
+        val percentage = category("percent", "Percent", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.PERCENTAGE, priority = 1, percentage = 25),
+        ))
+        val fixed = category("fixed", "Fixed", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 50_000, priority = 1),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(percentage, fixed))),
+            "2026-09",
+            availableBudgetCents = 100_000,
+        )
+
+        assertEquals(listOf(25_000L, 50_000L), preview.changes.map { it.proposedCents })
+    }
+
     @Test fun normalApplyLeavesExistingBudgetAmountsUntouched() {
         val category = category("rent", "Rent", assigned = 80_000, target = BudgetTarget(
             BudgetTarget.Type.MONTHLY_SAVINGS, 100_000,

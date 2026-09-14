@@ -113,9 +113,10 @@ at full resolution.
   CRDT writes, separate safe Apply and explicit Overwrite actions, and disclosure of unsupported
   advanced automations
 - Multi-automation category editing with explicit priority ordering for fully supported
-  UI-managed targets, including goal-only balance targets and weighted remainder automations
-  that divide Ready to Budget after higher-priority funding, while unknown and notes-managed
-  definitions remain safely read-only
+  UI-managed targets, including goal-only balance targets, weighted remainder automations
+  that divide Ready to Budget after higher-priority funding, and current-month
+  percentage-of-Available-Funds contributions, while unknown and notes-managed definitions
+  remain safely read-only
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
 - Account-specific transaction entry, collapsible account summaries and notes, and configurable bottom navigation labels
 - A dedicated **Manage** bottom-tab hub for operational tools, with general preferences separated behind its Settings gear and legacy **More** start-page preferences migrated automatically

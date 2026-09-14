@@ -19,6 +19,7 @@ class BudgetTargetCodecTest {
             BudgetTarget(BudgetTarget.Type.AVERAGE, averageMonths = 6),
             BudgetTarget(BudgetTarget.Type.GOAL, 5_000_000),
             BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 3),
+            BudgetTarget(BudgetTarget.Type.PERCENTAGE, priority = 2, percentage = 25),
         )
         targets.forEach { target ->
             val encoded = target.toGoalDef()
@@ -80,6 +81,10 @@ class BudgetTargetCodecTest {
             startingDate = "2026-09-01").toGoalDef()
         assertEquals(null, BudgetTarget.fromGoalDef(periodic, "notes"))
         assertEquals(null, BudgetTarget.fromGoalDef("[{\"type\":\"percentage\",\"directive\":\"template\"}]", "ui"))
+        assertEquals(null, BudgetTarget.fromGoalDef(
+            "[{\"type\":\"percentage\",\"directive\":\"template\",\"priority\":1,\"percent\":25,\"category\":\"Salary\"}]",
+            "ui",
+        ))
     }
 
     @Test fun multipleSupportedAutomationsRoundTripAsOneGoalDefinition() {

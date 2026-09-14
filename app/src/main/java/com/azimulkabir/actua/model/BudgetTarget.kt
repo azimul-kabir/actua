@@ -21,6 +21,9 @@ data class BudgetTarget(
     val limitAmountCents: Long? = null,
     val limitStartDate: String? = null,
     val limitHold: Boolean = false,
+    val percentage: Int = 0,
+    val percentageSource: String = "available funds",
+    val percentagePrevious: Boolean = false,
 ) {
     enum class Type(val label: String, val explanation: String) {
         MONTHLY_SPENDING("Monthly spending", "Set aside enough for this month's spending"),
@@ -31,6 +34,7 @@ data class BudgetTarget(
         AVERAGE("Average recent spending", "Use the average of recent months"),
         GOAL("Goal only", "Show a target balance without automatically budgeting money"),
         REMAINDER("Split remaining funds", "Receive a weighted share of Ready to Budget after other automations"),
+        PERCENTAGE("Percentage of available funds", "Budget a percentage of funds available at this priority"),
     }
 
     enum class LimitPeriod(val jsonValue: String) {
@@ -98,6 +102,7 @@ data class BudgetTarget(
         }
         Type.GOAL -> 0L
         Type.REMAINDER -> 0L
+        Type.PERCENTAGE -> 0L
         }
     }
 
@@ -140,6 +145,11 @@ data class BudgetTarget(
                 if (limit != null) remainder.put("limit", limit)
                 return JSONArray().put(remainder).toString()
             }
+            Type.PERCENTAGE -> return JSONArray().put(
+                JSONObject().put("directive", "template").put("type", "percentage")
+                    .put("priority", priority).put("percent", percentage)
+                    .put("category", percentageSource).put("previous", percentagePrevious),
+            ).toString()
         }
         return JSONArray().put(row).toString()
     }
@@ -194,6 +204,18 @@ data class BudgetTarget(
                         limitAmountCents = limitCents,
                         limitStartDate = limit?.optString("start")?.ifBlank { null },
                         limitHold = limit?.optBoolean("hold", false) == true,
+                    )
+                }
+                "percentage" -> row.takeIf {
+                    it.optString("directive") == "template" &&
+                        it.optString("category").equals("available funds", ignoreCase = true) &&
+                        it.optInt("percent", 0) in 1..100 &&
+                        !it.optBoolean("previous", false)
+                }?.let {
+                    BudgetTarget(
+                        Type.PERCENTAGE,
+                        priority = priority,
+                        percentage = it.optInt("percent"),
                     )
                 }
                 else -> null
@@ -265,13 +287,14 @@ object BudgetTemplatePlanner {
             .map(BudgetTarget::priority).distinct().sorted()
 
         for (priority in priorities) {
+            val priorityAvailableStart = available
             for ((group, category) in eligible) {
                 val targets = category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
                 if (targets.isEmpty()) continue
                 val atPriority = targets.filter { it.priority == priority }
                 if (atPriority.isEmpty()) continue
                 val before = proposed[category] ?: 0L
-                val requested = requestedAtPriority(atPriority, category, month)
+                val requested = requestedAtPriority(atPriority, category, month, priorityAvailableStart)
                 val cap = targets.firstOrNull { it.type == BudgetTarget.Type.REFILL }?.amountCents
                 val capped = cap?.let { minOf(requested, max(0L, it - category.carryoverCents - before)) } ?: requested
                 val allocated = if (available == Long.MAX_VALUE || priority <= 0) capped else
@@ -358,17 +381,28 @@ object BudgetTemplatePlanner {
         return available
     }
 
-    private fun requestedAtPriority(targets: List<BudgetTarget>, category: BudgetCategory, month: String): Long {
+    private fun requestedAtPriority(
+        targets: List<BudgetTarget>,
+        category: BudgetCategory,
+        month: String,
+        availableAtPriorityStart: Long,
+    ): Long {
         val by = targets.filter { it.type == BudgetTarget.Type.BY_DATE }
         val ordinary = targets.filterNot {
             it.type == BudgetTarget.Type.BY_DATE || it.type == BudgetTarget.Type.REFILL ||
-                it.type == BudgetTarget.Type.GOAL || it.type == BudgetTarget.Type.REMAINDER
+            it.type == BudgetTarget.Type.GOAL || it.type == BudgetTarget.Type.REMAINDER ||
+            it.type == BudgetTarget.Type.PERCENTAGE
         }
             .sumOf { it.suggestedBudget(category, month) }
+        val percentage = targets.filter { it.type == BudgetTarget.Type.PERCENTAGE }
+            .sumOf { target ->
+            if (availableAtPriorityStart == Long.MAX_VALUE) 0L
+            else Math.round(max(0L, availableAtPriorityStart).toDouble() * target.percentage / 100.0)
+            }
         val byAmount = if (by.isEmpty()) 0L else combinedByDate(by, category, month)
         val refill = targets.firstOrNull { it.type == BudgetTarget.Type.REFILL }
             ?.let { max(0L, it.amountCents - category.carryoverCents) } ?: 0L
-        return max(0L, ordinary + byAmount + refill)
+        return max(0L, ordinary + byAmount + refill + percentage)
     }
 
     /** Matches Actual's batch treatment of sibling `by` templates: carryover is deducted once. */
