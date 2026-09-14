@@ -42,4 +42,20 @@ class TagTextTest {
         assertEquals(Color.White, tagForeground(Color.Black))
         assertTrue(tagForeground(Color(0xFFF1C40F)) == Color.Black)
     }
+
+    @Test
+    fun `colored tag text preserves note and styles only recognized tags`() {
+        val result = coloredTagText(
+            notes = "Home-School-Office #school #unknown",
+            tagColors = mapOf("school" to "#6A1B9A"),
+        )
+
+        assertEquals("Home-School-Office #school #unknown", result.text)
+        assertEquals(1, result.spanStyles.size)
+        val styledTag = result.spanStyles.single()
+        assertEquals(19, styledTag.start)
+        assertEquals(26, styledTag.end)
+        assertEquals(Color(0xFF6A1B9A), styledTag.item.background)
+        assertEquals(Color.White, styledTag.item.color)
+    }
 }
