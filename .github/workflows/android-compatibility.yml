@@ -29,6 +29,8 @@ jobs:
             api-level: 35
           - android: '16'
             api-level: 36
+          - android: '17'
+            api-level: 37
 
     steps:
       - uses: actions/checkout@v6
