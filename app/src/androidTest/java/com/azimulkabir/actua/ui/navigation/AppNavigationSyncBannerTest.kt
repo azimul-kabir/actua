@@ -49,4 +49,18 @@ class AppNavigationSyncBannerTest {
         assertTrue(textBounds.left >= contentBounds.left)
         assertTrue(textBounds.right <= contentBounds.right)
     }
+
+    @Test
+    fun syncBannerKeepsIndicatorAndTextPresentOnNarrowWidth() {
+        compose.setContent {
+            MaterialTheme {
+                Box(Modifier.width(180.dp)) {
+                    SyncStatusBanner()
+                }
+            }
+        }
+
+        compose.onNodeWithTag("syncStatusBannerIndicator").assertExists()
+        compose.onNodeWithText("Syncing budget… Showing local data.").assertExists()
+    }
 }
