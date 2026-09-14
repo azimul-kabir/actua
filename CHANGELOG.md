@@ -6,6 +6,28 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.20] - 2026-09-14
+
+### Added
+
+- Added schedule-driven budget funding for resolved active schedules, including recurring occurrence counts, amount-range midpoints, priority ordering, and available-funds clamping
+- Added current-month percentage budget contributions from available funds, all income, or a specific income category, plus exact previous-month copy targets
+- Added notes-managed month-end cleanup groups with deterministic cent-preserving sink distribution, overspend filling, preview, and atomic application
+
+### Changed
+
+- Expanded budget automation compatibility to support schedule, percentage, remainder-limit, and notes-managed templates while preserving Actual's priority and source-validation rules
+- Updated the app for Android 17/API 37 readiness and aligned the audited Actual-compatible backend schema with Actual Budget v26.9.0
+
+### Fixed
+
+- Hardened encrypted budget download and open recovery so invalid or incomplete local state is detected before it can be restored or used
+
+### Safety
+
+- Unresolved, malformed, completed, unsupported, mismatched, and prior-month percentage automations remain read-only rather than being approximated or rewritten
+- Cleanup and whole-budget automation changes remain preview-first, stale-checked, integer-cent calculations written as atomic CRDT batches
+
 ## [1.0.0-beta.19] - 2026-09-13
 
 ### Fixed
