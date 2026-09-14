@@ -25,23 +25,7 @@ class TagMetadataStore(context: Context) {
         }
 
         val colors = runCatching {
-            SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { database ->
-                if (!hasTagsTable(database)) return@use emptyMap()
-                database.rawQuery(
-                    "SELECT tag, color FROM tags WHERE tombstone = 0 AND tag IS NOT NULL",
-                    null,
-                ).use { cursor ->
-                    buildMap {
-                        val tagIndex = cursor.getColumnIndexOrThrow("tag")
-                        val colorIndex = cursor.getColumnIndexOrThrow("color")
-                        while (cursor.moveToNext()) {
-                            val tag = cursor.getString(tagIndex)?.takeIf(String::isNotBlank) ?: continue
-                            val color = if (cursor.isNull(colorIndex)) null else cursor.getString(colorIndex)
-                            color?.takeIf(String::isNotBlank)?.let { put(tag, it) }
-                        }
-                    }
-                }
-            }
+            SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use(::readTagColors)
         }.getOrDefault(emptyMap())
 
         synchronized(cacheLock) {
@@ -52,16 +36,33 @@ class TagMetadataStore(context: Context) {
         return colors
     }
 
-    private fun hasTagsTable(database: SQLiteDatabase): Boolean =
-        database.rawQuery(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tags' LIMIT 1",
-            null,
-        ).use { it.moveToFirst() }
-
     private companion object {
         val cacheLock = Any()
         var cachedBudgetId: String? = null
         var cachedModified: Long = Long.MIN_VALUE
         var cachedColors: Map<String, String> = emptyMap()
+    }
+}
+
+internal fun readTagColors(database: SQLiteDatabase): Map<String, String> {
+    val hasTags = database.rawQuery(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tags' LIMIT 1",
+        null,
+    ).use { it.moveToFirst() }
+    if (!hasTags) return emptyMap()
+
+    return database.rawQuery(
+        "SELECT tag, color FROM tags WHERE tombstone = 0 AND tag IS NOT NULL",
+        null,
+    ).use { cursor ->
+        buildMap {
+            val tagIndex = cursor.getColumnIndexOrThrow("tag")
+            val colorIndex = cursor.getColumnIndexOrThrow("color")
+            while (cursor.moveToNext()) {
+                val tag = cursor.getString(tagIndex)?.takeIf(String::isNotBlank) ?: continue
+                val color = if (cursor.isNull(colorIndex)) null else cursor.getString(colorIndex)
+                color?.takeIf(String::isNotBlank)?.let { put(tag, it) }
+            }
+        }
     }
 }
