@@ -179,7 +179,7 @@ data class BudgetTarget(
             source: String?,
             percentageSources: Set<String> = setOf("available funds"),
         ): BudgetTarget? {
-            if (raw.isNullOrBlank() || source != "ui") return null
+            if (raw.isNullOrBlank() || (source != "ui" && source != "notes")) return null
             val array = runCatching { JSONArray(raw) }.getOrNull() ?: return null
             if (array.length() == 2) {
                 val rows = (0 until 2).map(array::getJSONObject)

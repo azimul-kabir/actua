@@ -1868,8 +1868,8 @@ private fun TargetDetailsCard(
     val supporting: String
     when {
         category.hasUnsupportedTarget -> {
-            title = "Advanced target"
-            detail = "Managed in Actual Budget"
+            title = if (category.automationReadOnly) "Notes-managed target" else "Advanced target"
+            detail = if (category.automationReadOnly) "Managed from category notes" else "Managed in Actual Budget"
             supporting = "View target information"
         }
         category.automations.size > 1 -> {
@@ -1985,14 +1985,21 @@ private fun TargetEditorSheet(
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(
-                    if (category.unsupportedAutomationTypes.any { it.equals("schedule", ignoreCase = true) }) {
+                    if (category.automationReadOnly) {
+                        "Notes-managed automation is read-only"
+                    } else if (category.unsupportedAutomationTypes.any { it.equals("schedule", ignoreCase = true) }) {
                         "Schedule funding is read-only"
                     } else {
                         "Advanced target"
                     },
                     style = MaterialTheme.typography.titleMedium,
                 )
-                Text("This category uses advanced target settings that Actua cannot safely edit yet. You can continue to manage it in Actual Budget.",
+                Text(
+                    if (category.automationReadOnly) {
+                        "This automation is regenerated from the category note. Edit the note to change it; Actua will not rewrite it through the target editor."
+                    } else {
+                        "This category uses advanced target settings that Actua cannot safely edit yet. You can continue to manage it in Actual Budget."
+                    },
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Close") }
             }
@@ -2209,7 +2216,9 @@ private fun AutomationListEditorSheet(
     onSave: (List<BudgetTarget>) -> Unit,
 ) {
     if (category.hasUnsupportedTarget) {
-        val types = category.unsupportedAutomationTypes.ifEmpty { listOf("advanced") }.joinToString()
+        val types = category.unsupportedAutomationTypes.ifEmpty {
+            if (category.automationReadOnly) listOf("notes-managed") else listOf("advanced")
+        }.joinToString()
         ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {

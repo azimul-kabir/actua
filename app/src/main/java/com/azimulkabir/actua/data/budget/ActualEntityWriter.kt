@@ -36,6 +36,10 @@ class ActualEntityWriter(
         "goal_def" to goalDef, "template_settings" to "{\"source\":\"ui\"}",
     ))
 
+    fun setCategoryNoteTarget(id: String, goalDef: String?) = update("categories", id, mapOf(
+        "goal_def" to goalDef, "template_settings" to "{\"source\":\"notes\"}",
+    ))
+
     /** Actual deletion keeps historical transaction references and tombstones the category. */
     fun deleteCategory(id: String) = update("categories", id, mapOf("tombstone" to 1))
     fun renameCategoryGroup(id: String, name: String) = update("category_groups", id, mapOf("name" to requiredName(name)))

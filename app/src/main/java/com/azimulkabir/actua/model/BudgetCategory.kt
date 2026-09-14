@@ -18,6 +18,7 @@ data class BudgetCategory(
     val hasUnsupportedTarget: Boolean = false,
     val automations: List<BudgetTarget> = target?.let(::listOf).orEmpty(),
     val unsupportedAutomationTypes: List<String> = emptyList(),
+    val automationReadOnly: Boolean = false,
     val goalCents: Long? = null,
     val longGoal: Boolean = false,
 ) {

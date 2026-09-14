@@ -85,3 +85,8 @@ stale-check, and atomic confirmation path as other templates. Missing, malformed
 unsupported schedule references remain read-only and are disclosed instead of being treated as
 zero-dollar contributions. Schedule and save-by-date templates must share one priority, matching
 Actual's validation rule.
+
+Notes-managed templates are parsed from category notes before their `goal_def` is refreshed.
+Supported note directives retain `template_settings.source = notes` and remain evaluable while
+the editor stays read-only. Malformed notes or notes containing any unsupported directive update
+only the note text and leave the prior definition untouched.

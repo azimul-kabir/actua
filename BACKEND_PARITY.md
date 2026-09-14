@@ -160,6 +160,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   distribution after ordinary priorities; current-month available-funds, all-income, and exact
   income-category percentage contributions; and safe read-only disclosure of advanced or
   notes-managed templates
+  distribution after ordinary priorities; current-month available-funds, all-income, and exact
+  income-category percentage contributions; exact prior-month copy targets; note-managed refresh
+  with source preservation, loss-aware parse failure handling, and safe read-only disclosure of
+  advanced templates
 - Exact schedule-template reference codec (`scheduleId`/`name`) with explicit read-only
   disclosure for unresolved rows; resolved schedule funding now uses the existing recurrence
   projection, completed/past handling, amount-range midpoint, priority validation, Ready to Budget

@@ -19,13 +19,7 @@ data class BudgetAutomationDocument(
         ): BudgetAutomationDocument {
             if (raw.isNullOrBlank()) return BudgetAutomationDocument(emptyList())
             val array = runCatching { JSONArray(raw) }.getOrNull()
-                ?: return BudgetAutomationDocument(emptyList(), listOf("invalid definition"), false)
-            if (source != "ui") return BudgetAutomationDocument(
-                emptyList(),
-                (0 until array.length()).map { array.optJSONObject(it)?.optString("type").orEmpty().ifBlank { "unknown" } },
-                false,
-            )
-
+                ?: return BudgetAutomationDocument(emptyList(), listOf("invalid definition"), source == "ui")
             val rows = (0 until array.length()).mapNotNull(array::optJSONObject)
             if (rows.size != array.length()) {
                 return BudgetAutomationDocument(emptyList(), listOf("invalid definition"), false)
@@ -64,7 +58,7 @@ data class BudgetAutomationDocument(
                 unsupported += "by priorities"
             }
             if (validate(supported).isNotEmpty()) unsupported += "invalid supported definition"
-            return BudgetAutomationDocument(supported, unsupported.distinct())
+            return BudgetAutomationDocument(supported, unsupported.distinct(), editable = source == "ui")
         }
 
         fun encode(targets: List<BudgetTarget>): String? {
