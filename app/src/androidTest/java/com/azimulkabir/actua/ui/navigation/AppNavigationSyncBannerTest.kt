@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlin.math.abs
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -38,10 +39,12 @@ class AppNavigationSyncBannerTest {
         val hostBounds = compose.onNodeWithTag("syncStatusBannerHost").fetchSemanticsNode().boundsInRoot
         val indicatorBounds = compose.onNodeWithTag("syncStatusBannerIndicator").fetchSemanticsNode().boundsInRoot
         val textBounds = compose.onNodeWithText("Syncing budget… Showing local data.").fetchSemanticsNode().boundsInRoot
-        val minStartInset = with(compose.density) { 16.dp.toPx() }
-        val minGap = with(compose.density) { 8.dp.toPx() }
+        val expectedStartInset = with(compose.density) { 20.dp.toPx() }
+        val expectedGap = with(compose.density) { 10.dp.toPx() }
+        val actualStartInset = indicatorBounds.left - hostBounds.left
+        val actualGap = textBounds.left - indicatorBounds.right
 
-        assertTrue(indicatorBounds.left - hostBounds.left >= minStartInset)
-        assertTrue(textBounds.left - indicatorBounds.right >= minGap)
+        assertTrue(abs(actualStartInset - expectedStartInset) <= 2f)
+        assertTrue(abs(actualGap - expectedGap) <= 2f)
     }
 }
