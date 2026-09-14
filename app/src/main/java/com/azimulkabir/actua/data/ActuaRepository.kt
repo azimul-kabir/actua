@@ -23,6 +23,7 @@ import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetHistory
 import com.azimulkabir.actua.model.BudgetTarget
 import com.azimulkabir.actua.model.BudgetAutomationDocument
+import com.azimulkabir.actua.model.BudgetNoteAutomationParser
 import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
@@ -441,6 +442,7 @@ class ActuaRepository(context: Context) {
                             hasUnsupportedTarget = automationDocument.hasUnsupported,
                             automations = automationDocument.supported,
                             unsupportedAutomationTypes = automationDocument.unsupportedTypes,
+                            automationReadOnly = !automationDocument.editable,
                             goalCents = it.goalCents,
                             longGoal = it.longGoal,
                         )
@@ -907,7 +909,12 @@ class ActuaRepository(context: Context) {
     }
 
     fun setCategoryNote(categoryId: String, note: String): Boolean {
-        actualEntities?.setNote(categoryId, normalizeNote(note)) ?: return false
+        val normalized = normalizeNote(note)
+        actualEntities?.setNote(categoryId, normalized) ?: return false
+        val parsed = BudgetNoteAutomationParser.parse(normalized)
+        if (parsed.valid) {
+            actualEntities?.setCategoryNoteTarget(categoryId, BudgetAutomationDocument.encode(parsed.targets))
+        }
         return true
     }
 

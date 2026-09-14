@@ -17,6 +17,7 @@ class BudgetTargetCodecTest {
             BudgetTarget(BudgetTarget.Type.REFILL, 50_000),
             BudgetTarget(BudgetTarget.Type.WEEKLY_SPENDING, 5_000, startingDate = "2026-09-01"),
             BudgetTarget(BudgetTarget.Type.AVERAGE, averageMonths = 6),
+            BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 2),
             BudgetTarget(BudgetTarget.Type.GOAL, 5_000_000),
             BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 3),
             BudgetTarget(BudgetTarget.Type.PERCENTAGE, priority = 2, percentage = 25),
@@ -41,6 +42,16 @@ class BudgetTargetCodecTest {
         assertEquals(listOf(target), document.supported)
         assertEquals(emptyList<String>(), document.unsupportedTypes)
         assertEquals(false, document.hasUnsupported)
+    }
+
+    @Test fun notesManagedCopyDefinitionsRemainEvaluableButReadOnly() {
+        val target = BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 2)
+        val document = BudgetAutomationDocument.decode(target.toGoalDef(), "notes")
+
+        assertEquals(listOf(target), document.supported)
+        assertEquals(emptyList<String>(), document.unsupportedTypes)
+        assertEquals(false, document.editable)
+        assertEquals(true, document.hasUnsupported)
     }
 
     @Test fun remainderLimitCodecPreservesAllPeriodsAndWeeklyStart() {
@@ -105,10 +116,10 @@ class BudgetTargetCodecTest {
         assertEquals(80_000L, preview.netBudgetChangeCents)
     }
 
-    @Test fun notesAndUnknownVisualTemplatesAreNotClaimedByEditor() {
+    @Test fun supportedNotesTemplatesDecodeButRemainReadOnly() {
         val periodic = BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 10_000,
-            startingDate = "2026-09-01").toGoalDef()
-        assertEquals(null, BudgetTarget.fromGoalDef(periodic, "notes"))
+            startingDate = "2026-09-01")
+        assertEquals(periodic, BudgetTarget.fromGoalDef(periodic.toGoalDef(), "notes"))
         assertEquals(null, BudgetTarget.fromGoalDef("[{\"type\":\"percentage\",\"directive\":\"template\"}]", "ui"))
         assertEquals(null, BudgetTarget.fromGoalDef(
             "[{\"type\":\"percentage\",\"directive\":\"template\",\"priority\":1,\"percent\":25,\"category\":\"Salary\"}]",

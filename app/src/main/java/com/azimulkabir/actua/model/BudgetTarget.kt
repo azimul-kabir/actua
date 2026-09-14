@@ -15,6 +15,7 @@ data class BudgetTarget(
     val targetMonth: String? = null,
     val startingDate: String? = null,
     val averageMonths: Int = 3,
+    val lookBackMonths: Int = 1,
     val priority: Int = 1,
     val weight: Int = 1,
     val limitPeriod: LimitPeriod? = null,
@@ -34,6 +35,7 @@ data class BudgetTarget(
         REFILL("Refill up to amount", "Top the category back up to a balance cap"),
         WEEKLY_SPENDING("Spend every week", "Budget this amount for each week in the month"),
         AVERAGE("Average recent spending", "Use the average of recent months"),
+        COPY("Copy previous budget", "Reuse the budget from a prior month"),
         GOAL("Goal only", "Show a target balance without automatically budgeting money"),
         REMAINDER("Split remaining funds", "Receive a weighted share of Ready to Budget after other automations"),
         PERCENTAGE("Percentage of available funds", "Budget a percentage of funds available at this priority"),
@@ -103,6 +105,11 @@ data class BudgetTarget(
                 .map { kotlin.math.abs(minOf(it.spentCents, 0L)) }
             if (values.isEmpty()) 0L else (values.sum().toDouble() / values.size).toLong()
         }
+        Type.COPY -> {
+            val selected = runCatching { YearMonth.parse(month) }.getOrNull() ?: return 0L
+            val previous = selected.minusMonths(lookBackMonths.coerceAtLeast(1).toLong()).toString()
+            category.history.firstOrNull { it.month == previous }?.assignedCents ?: 0L
+        }
         Type.GOAL -> 0L
         Type.REMAINDER -> 0L
         Type.PERCENTAGE -> 0L
@@ -132,6 +139,7 @@ data class BudgetTarget(
                 .put("period", JSONObject().put("period", "week").put("amount", 1))
                 .put("starting", startingDate)
             Type.AVERAGE -> row.put("type", "average").put("numMonths", averageMonths.coerceIn(1, 24))
+            Type.COPY -> row.put("type", "copy").put("lookBack", lookBackMonths.coerceIn(1, 24))
             Type.GOAL -> return JSONArray().put(
                 JSONObject().put("directive", "goal").put("type", "goal").put("amount", units(amountCents)),
             ).toString()
@@ -171,7 +179,7 @@ data class BudgetTarget(
             source: String?,
             percentageSources: Set<String> = setOf("available funds"),
         ): BudgetTarget? {
-            if (raw.isNullOrBlank() || source != "ui") return null
+            if (raw.isNullOrBlank() || (source != "ui" && source != "notes")) return null
             val array = runCatching { JSONArray(raw) }.getOrNull() ?: return null
             if (array.length() == 2) {
                 val rows = (0 until 2).map(array::getJSONObject)
@@ -212,6 +220,8 @@ data class BudgetTarget(
                 "by" -> BudgetTarget(Type.BY_DATE, cents(), row.optString("month").ifBlank { null }, priority = priority)
                 "limit" -> BudgetTarget(Type.REFILL, cents(), priority = priority)
                 "average" -> BudgetTarget(Type.AVERAGE, averageMonths = row.optInt("numMonths", 3), priority = priority)
+                "copy" -> row.takeIf { it.optString("directive") == "template" }
+                    ?.let { BudgetTarget(Type.COPY, lookBackMonths = it.optInt("lookBack", 1), priority = priority) }
                 "goal" -> row.takeIf { it.optString("directive") == "goal" }
                     ?.let { BudgetTarget(Type.GOAL, cents()) }
                 "remainder" -> row.takeIf {

@@ -1868,8 +1868,8 @@ private fun TargetDetailsCard(
     val supporting: String
     when {
         category.hasUnsupportedTarget -> {
-            title = "Advanced target"
-            detail = "Managed in Actual Budget"
+            title = if (category.automationReadOnly) "Notes-managed target" else "Advanced target"
+            detail = if (category.automationReadOnly) "Managed from category notes" else "Managed in Actual Budget"
             supporting = "View target information"
         }
         category.automations.size > 1 -> {
@@ -1886,6 +1886,7 @@ private fun TargetDetailsCard(
             title = target.type.label
             detail = when (target.type) {
                 BudgetTarget.Type.AVERAGE -> "Average of ${target.averageMonths} recent months"
+                BudgetTarget.Type.COPY -> "Copy ${target.lookBackMonths} months ago"
                 BudgetTarget.Type.REMAINDER -> buildString {
                     append("Weight ${target.weight}")
                     target.limitAmountCents?.let {
@@ -1903,6 +1904,7 @@ private fun TargetDetailsCard(
                 BudgetTarget.Type.BY_DATE -> target.targetMonth?.let { "Target month ${formatMonth(it)}" }
                     ?: "Target date"
                 BudgetTarget.Type.AVERAGE -> "Recalculates every month"
+                BudgetTarget.Type.COPY -> "Copies a previous budget"
                 BudgetTarget.Type.GOAL -> "Target only"
                 BudgetTarget.Type.REMAINDER -> "After other automations"
                 BudgetTarget.Type.PERCENTAGE -> "At this priority"
@@ -1983,14 +1985,21 @@ private fun TargetEditorSheet(
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(
-                    if (category.unsupportedAutomationTypes.any { it.equals("schedule", ignoreCase = true) }) {
+                    if (category.automationReadOnly) {
+                        "Notes-managed automation is read-only"
+                    } else if (category.unsupportedAutomationTypes.any { it.equals("schedule", ignoreCase = true) }) {
                         "Schedule funding is read-only"
                     } else {
                         "Advanced target"
                     },
                     style = MaterialTheme.typography.titleMedium,
                 )
-                Text("This category uses advanced target settings that Actua cannot safely edit yet. You can continue to manage it in Actual Budget.",
+                Text(
+                    if (category.automationReadOnly) {
+                        "This automation is regenerated from the category note. Edit the note to change it; Actua will not rewrite it through the target editor."
+                    } else {
+                        "This category uses advanced target settings that Actua cannot safely edit yet. You can continue to manage it in Actual Budget."
+                    },
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Close") }
             }
@@ -2005,6 +2014,7 @@ private fun TargetEditorSheet(
         mutableStateOf(category.target?.targetMonth ?: category.target?.startingDate ?: "$month-01")
     }
     var averageMonths by remember(category) { mutableStateOf(category.target?.averageMonths?.toString() ?: "3") }
+    var lookBackMonths by remember(category) { mutableStateOf(category.target?.lookBackMonths?.toString() ?: "1") }
     var weight by remember(category) { mutableStateOf(category.target?.weight?.toString() ?: "1") }
     var limitAmount by remember(category) {
         mutableStateOf(category.target?.limitAmountCents?.let {
@@ -2025,6 +2035,7 @@ private fun TargetEditorSheet(
     }
     val canSave = when (type) {
         BudgetTarget.Type.AVERAGE -> averageMonths.toIntOrNull() in 1..24
+        BudgetTarget.Type.COPY -> lookBackMonths.toIntOrNull() in 1..24
         BudgetTarget.Type.REMAINDER -> weight.toIntOrNull()?.let { it >= 1 } == true &&
             (limitPeriod == null || limitAmountCents?.let { it > 0L } == true) &&
             (limitPeriod != BudgetTarget.LimitPeriod.WEEKLY ||
@@ -2062,7 +2073,7 @@ private fun TargetEditorSheet(
                     }
                 }
             }
-            if (type != BudgetTarget.Type.AVERAGE && type != BudgetTarget.Type.REMAINDER &&
+            if (type != BudgetTarget.Type.AVERAGE && type != BudgetTarget.Type.COPY && type != BudgetTarget.Type.REMAINDER &&
                 type != BudgetTarget.Type.PERCENTAGE) {
                 OutlinedTextField(value = amount, onValueChange = { amount = it }, modifier = Modifier.fillMaxWidth(),
                     label = { Text("Amount") }, prefix = { Text(formatMoneyCents(0, hideDecimalPlaces).filterNot { it.isDigit() || it in ".,−-" }) },
@@ -2075,6 +2086,9 @@ private fun TargetEditorSheet(
                     modifier = Modifier.fillMaxWidth(), label = { Text("First week starts") }, placeholder = { Text("YYYY-MM-DD") }, singleLine = true)
                 BudgetTarget.Type.AVERAGE -> OutlinedTextField(value = averageMonths, onValueChange = { averageMonths = it.filter(Char::isDigit) },
                     modifier = Modifier.fillMaxWidth(), label = { Text("Months to average") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                BudgetTarget.Type.COPY -> OutlinedTextField(value = lookBackMonths, onValueChange = { lookBackMonths = it.filter(Char::isDigit) },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Months to copy") }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 BudgetTarget.Type.REMAINDER -> OutlinedTextField(value = weight, onValueChange = { weight = it.filter(Char::isDigit) },
                     modifier = Modifier.fillMaxWidth(), label = { Text("Weight") }, singleLine = true,
@@ -2144,6 +2158,7 @@ private fun TargetEditorSheet(
                         BudgetTarget.Type.WEEKLY_SPENDING -> "Every week"
                         BudgetTarget.Type.BY_DATE -> "On target date"
                         BudgetTarget.Type.AVERAGE -> "Recalculate monthly"
+                        BudgetTarget.Type.COPY -> "Copy previous budget"
                         BudgetTarget.Type.GOAL -> "Does not auto-budget"
                         BudgetTarget.Type.REMAINDER -> "After other automations"
                         BudgetTarget.Type.PERCENTAGE -> "At this priority"
@@ -2174,6 +2189,7 @@ private fun TargetEditorSheet(
                             else -> null
                         },
                         averageMonths = averageMonths.toIntOrNull()?.coerceIn(1, 24) ?: 3,
+                        lookBackMonths = lookBackMonths.toIntOrNull()?.coerceIn(1, 24) ?: 1,
                         priority = category.target?.priority ?: 1,
                         weight = weight.toIntOrNull()?.coerceAtLeast(1) ?: 1,
                         limitPeriod = if (type == BudgetTarget.Type.REMAINDER) limitPeriod else null,
@@ -2200,7 +2216,9 @@ private fun AutomationListEditorSheet(
     onSave: (List<BudgetTarget>) -> Unit,
 ) {
     if (category.hasUnsupportedTarget) {
-        val types = category.unsupportedAutomationTypes.ifEmpty { listOf("advanced") }.joinToString()
+        val types = category.unsupportedAutomationTypes.ifEmpty {
+            if (category.automationReadOnly) listOf("notes-managed") else listOf("advanced")
+        }.joinToString()
         ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2260,6 +2278,7 @@ private fun AutomationListEditorSheet(
                             Text(
                                 when (target.type) {
                                     BudgetTarget.Type.AVERAGE -> "${target.averageMonths} recent months"
+                                    BudgetTarget.Type.COPY -> "${target.lookBackMonths} months ago"
                                     BudgetTarget.Type.REMAINDER -> "Weight ${target.weight}"
                                     BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of available funds"
                                     else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)

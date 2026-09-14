@@ -40,6 +40,23 @@ class BudgetTargetTest {
             .suggestedBudget(category, "2026-09"))
     }
 
+    @Test fun copyUsesAssignedBudgetFromTheRequestedPriorMonth() {
+        val category = category().copy(history = listOf(
+            BudgetHistory("2026-08", 42_500, -10_000),
+            BudgetHistory("2026-07", 31_000, -20_000),
+        ))
+
+        assertEquals(42_500, BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 1)
+            .suggestedBudget(category, "2026-09"))
+        assertEquals(31_000, BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 2)
+            .suggestedBudget(category, "2026-09"))
+    }
+
+    @Test fun copyReturnsZeroWhenPriorMonthHistoryIsMissing() {
+        assertEquals(0, BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 1)
+            .suggestedBudget(category(), "2026-09"))
+    }
+
     private fun category(carryover: Long = 0) = BudgetCategory(
         name = "Groceries", assigned = 0, spent = 0, actualAvailable = carryover.toInt(),
         actualAssignedCents = 0, availableCents = carryover,

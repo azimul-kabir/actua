@@ -150,7 +150,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Category Spent amounts open the matching category transactions for the selected month
 - Category details with notes, rollover overspending, and six-month history-based quick assign
 - Actual-compatible UI-managed category targets for monthly spending, fixed monthly saving,
-  save-by-date, refill-to-cap, weekly spending, and recent-spending averages; target-aware
+  save-by-date, refill-to-cap, weekly spending, recent-spending averages, and exact prior-month
+  copy targets; target-aware
   Auto Assign; preview-first whole-budget application of supported targets in upstream priority
   order with multi-contribution, refill-cap and available-funds handling, safe Apply versus
   explicit Overwrite behavior, and one CRDT mutation batch;
@@ -159,6 +160,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   distribution after ordinary priorities; current-month available-funds, all-income, and exact
   income-category percentage contributions; and safe read-only disclosure of advanced or
   notes-managed templates
+  distribution after ordinary priorities; current-month available-funds, all-income, and exact
+  income-category percentage contributions; exact prior-month copy targets; note-managed refresh
+  with source preservation, loss-aware parse failure handling, and safe read-only disclosure of
+  advanced templates
 - Exact schedule-template reference codec (`scheduleId`/`name`) with explicit read-only
   disclosure for unresolved rows; resolved schedule funding now uses the existing recurrence
   projection, completed/past handling, amount-range midpoint, priority validation, Ready to Budget

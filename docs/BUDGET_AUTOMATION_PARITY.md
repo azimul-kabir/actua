@@ -36,7 +36,8 @@ and its editor model is in
 ## Actua implementation boundary
 
 Actua currently reads and edits these exact UI-managed projections: monthly spending, fixed monthly
-saving, save-by-date, refill-to-cap, weekly spending, recent-month average, goal-only balance
+saving, save-by-date, refill-to-cap, weekly spending, recent-month average, prior-month copy,
+goal-only balance
 targets, and current-month percentage-of-Available-Funds contributions. Goal-only rows update Actual's monthly `goal` and `long_goal` values without requesting
 budget funds. The whole-budget
 action now provides a read-only preview for these supported targets, identifies unchanged rows,
@@ -84,3 +85,8 @@ stale-check, and atomic confirmation path as other templates. Missing, malformed
 unsupported schedule references remain read-only and are disclosed instead of being treated as
 zero-dollar contributions. Schedule and save-by-date templates must share one priority, matching
 Actual's validation rule.
+
+Notes-managed templates are parsed from category notes before their `goal_def` is refreshed.
+Supported note directives retain `template_settings.source = notes` and remain evaluable while
+the editor stays read-only. Malformed notes or notes containing any unsupported directive update
+only the note text and leave the prior definition untouched.

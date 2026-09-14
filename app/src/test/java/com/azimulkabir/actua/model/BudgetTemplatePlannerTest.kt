@@ -285,6 +285,19 @@ class BudgetTemplatePlannerTest {
         assertEquals(1, preview.unchangedCount)
     }
 
+    @Test fun copyTemplatePlansTheAssignedBudgetFromHistory() {
+        val category = category(
+            "copy", "Copy", assigned = 0,
+            automations = listOf(BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 1)),
+        ).copy(history = listOf(BudgetHistory("2026-08", 42_500, -12_000)))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(category))), "2026-09",
+        )
+
+        assertEquals(42_500L, preview.changes.single().proposedCents)
+    }
+
     @Test fun dailyAndWeeklyRemainderLimitsUseCalendarOccurrences() {
         val daily = category("daily", "Daily", 0, automations = listOf(
             BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1,
