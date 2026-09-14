@@ -46,6 +46,11 @@ data class BudgetAutomationDocument(
                 val type = row.optString("type").ifBlank { "unknown" }
                 if (type == "limit" || type == "refill") {
                     unsupported += type
+                } else if (type == "schedule") {
+                    // Schedule funding also depends on recurrence and rule-action
+                    // evaluation, which this planner does not have as an exact
+                    // portable projection yet. Keep the row untouched.
+                    unsupported += type
                 } else {
                     val target = BudgetTarget.fromGoalDef(JSONArray().put(JSONObject(row.toString())).toString(), "ui")
                     if (target == null) unsupported += type else supported += target
@@ -99,12 +104,18 @@ data class BudgetAutomationDocument(
                 }) {
                 add("Only current Available Funds percentage automations are supported")
             }
+            if (targets.any {
+                    it.type == BudgetTarget.Type.SCHEDULE &&
+                        it.scheduleId.isNullOrBlank() && it.scheduleName.isNullOrBlank()
+                }) {
+                add("Schedule automations need a schedule ID or name")
+            }
             if (targets.filter { it.type == BudgetTarget.Type.BY_DATE }.map(BudgetTarget::priority).distinct().size > 1) {
                 add("Date targets must use the same priority")
             }
             targets.forEachIndexed { index, target ->
                 if (target.type != BudgetTarget.Type.AVERAGE && target.type != BudgetTarget.Type.REMAINDER &&
-                    target.type != BudgetTarget.Type.PERCENTAGE &&
+                    target.type != BudgetTarget.Type.PERCENTAGE && target.type != BudgetTarget.Type.SCHEDULE &&
                     target.amountCents <= 0
                 ) {
                     add("Automation ${index + 1} needs a positive amount")
