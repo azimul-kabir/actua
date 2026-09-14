@@ -9,14 +9,57 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: android-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  detect-changes:
+    name: Detect Android-impacting changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      android_changed: ${{ steps.changes.outputs.android_changed }}
+    steps:
+      - name: Detect changed paths
+        id: changes
+        uses: actions/github-script@v9
+        with:
+          script: |
+            if (context.eventName !== 'pull_request') {
+              core.setOutput('android_changed', 'true');
+              return;
+            }
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100
+            });
+            const names = files.map(file => file.filename);
+            const androidChanged = names.some(name =>
+              name.startsWith('app/') ||
+              name.startsWith('gradle/') ||
+              name === 'gradle.properties' ||
+              name === 'settings.gradle.kts' ||
+              name === 'build.gradle.kts' ||
+              name === 'gradlew' ||
+              name === 'gradlew.bat' ||
+              name.startsWith('.github/workflows/android-')
+            );
+
+            core.notice(androidChanged
+              ? 'Android-impacting files changed; full Android CI will run.'
+              : 'No Android-impacting files changed; expensive Android CI will be skipped.');
+            core.setOutput('android_changed', androidChanged ? 'true' : 'false');
+
   build-test-lint:
     name: Build, tests and lint
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.android_changed == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -36,8 +79,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
-      - name: Build debug APK, run JVM regression tests and lint
-        run: ./gradlew --no-daemon --stacktrace assembleDebug testInstrumentedUnitTest lintDebug
+      - name: Build debug APK
+        run: ./gradlew --no-daemon --stacktrace assembleDebug
+      - name: Run JVM regression tests
+        run: ./gradlew --no-daemon --stacktrace testInstrumentedUnitTest
+      - name: Run Android lint
+        run: ./gradlew --no-daemon --stacktrace lintDebug
       - name: Upload test and lint reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
