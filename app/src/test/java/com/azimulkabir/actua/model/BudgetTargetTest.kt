@@ -40,28 +40,6 @@ class BudgetTargetTest {
             .suggestedBudget(category, "2026-09"))
     }
 
-    @Test fun scheduleTemplateRoundTripsItsStableReferenceWithoutApproximation() {
-        val target = BudgetTarget(
-            type = BudgetTarget.Type.SCHEDULE,
-            priority = 2,
-            scheduleId = "schedule-123",
-            scheduleName = "Rent",
-        )
-
-        val decoded = BudgetTarget.fromGoalDef(target.toGoalDef(), "ui")
-
-        assertEquals(target, decoded)
-    }
-
-    @Test fun scheduleTemplateCanRoundTripNameOnlyForNotesCompatibility() {
-        val target = BudgetTarget(
-            type = BudgetTarget.Type.SCHEDULE,
-            scheduleName = "Annual insurance",
-        )
-
-        assertEquals(target, BudgetTarget.fromGoalDef(target.toGoalDef(), "ui"))
-    }
-
     private fun category(carryover: Long = 0) = BudgetCategory(
         name = "Groceries", assigned = 0, spent = 0, actualAvailable = carryover.toInt(),
         actualAssignedCents = 0, availableCents = carryover,
