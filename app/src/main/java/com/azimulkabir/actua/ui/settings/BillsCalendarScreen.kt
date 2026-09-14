@@ -54,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,7 +68,6 @@ import com.azimulkabir.actua.data.schedules.ScheduleStatus
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.time.Month
 import java.time.format.TextStyle
-import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -85,6 +85,7 @@ fun BillsCalendarScreen(
     onDelete: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val locale = LocalConfiguration.current.locales[0]
     val today = remember { DayDate.today() }
     var month by remember { mutableStateOf(DayDate(today.year, today.month, 1)) }
     var mode by remember { mutableStateOf(BillsTabMode.RECURRING) }
@@ -135,7 +136,7 @@ fun BillsCalendarScreen(
                     Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, "Previous month")
                 }
                 Text(
-                    "${Month.of(month.month).getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.year}",
+                    "${Month.of(month.month).getDisplayName(TextStyle.FULL, locale)} ${month.year}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -345,6 +346,7 @@ private fun BillCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
+    val locale = LocalConfiguration.current.locales[0]
     Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(
             Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(12.dp),
@@ -373,7 +375,7 @@ private fun BillCard(
             Surface(shape = RoundedCornerShape(9.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                 Column(Modifier.padding(horizontal = 9.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(item.date.day.toString().padStart(2, '0'), fontWeight = FontWeight.Bold)
-                    Text(Month.of(item.date.month).getDisplayName(TextStyle.SHORT, Locale.getDefault()).uppercase(),
+                    Text(Month.of(item.date.month).getDisplayName(TextStyle.SHORT, locale).uppercase(locale),
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 }
             }
