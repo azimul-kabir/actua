@@ -129,6 +129,15 @@ class BudgetTemplatePlannerTest {
         assertEquals(listOf("Plan · Fixed"), preview.limitedCategories)
     }
 
+    @Test fun scheduleFundingSupportsCrossYearMonthDistance() {
+        val funding = BudgetScheduleFunding(
+            id = "annual", name = "Annual bill", amountCents = 120_000,
+            occurrencesInMonth = 0, monthsUntilNextOccurrence = 4,
+        )
+
+        assertEquals(30_000L, funding.requestedBudget(0))
+    }
+
     @Test fun unresolvedScheduleRemainsReadOnlyInMixedDocument() {
         val schedule = category("schedule", "Scheduled bill", assigned = 0, automations = listOf(
             BudgetTarget(BudgetTarget.Type.SCHEDULE, priority = 1, scheduleName = "Missing"),

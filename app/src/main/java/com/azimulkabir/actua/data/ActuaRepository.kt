@@ -498,7 +498,8 @@ class ActuaRepository(context: Context) {
             val next = dates.firstOrNull { it >= monthStart }
                 ?: schedule.nextDate
                 ?: return@mapNotNull null
-            val monthsUntil = (next.year - selected.year) * 12 + next.month - selected.month
+            val monthsUntil = (next.year - selected.year) * 12 +
+                next.month - selected.monthValue
             BudgetScheduleFunding(
                 id = schedule.id,
                 name = schedule.name,
