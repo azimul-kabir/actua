@@ -9,26 +9,122 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: android-compatibility-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  select-coverage:
+    name: Select compatibility coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run_compatibility: ${{ steps.coverage.outputs.run_compatibility }}
+      matrix: ${{ steps.coverage.outputs.matrix }}
+      level: ${{ steps.coverage.outputs.level }}
+    steps:
+      - name: Choose emulator matrix from changed paths
+        id: coverage
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fullMatrix = {
+              include: [
+                { android: '9', api_level: 28 },
+                { android: '15', api_level: 35 },
+                { android: '16', api_level: 36 }
+              ]
+            };
+
+            if (context.eventName !== 'pull_request') {
+              core.setOutput('run_compatibility', 'true');
+              core.setOutput('level', 'full');
+              core.setOutput('matrix', JSON.stringify(fullMatrix));
+              core.notice('Push/manual run: full compatibility matrix selected.');
+              return;
+            }
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100
+            });
+            const names = files.map(file => file.filename);
+
+            const runtimeChanged = names.some(name =>
+              name.startsWith('app/') ||
+              name.startsWith('gradle/') ||
+              name === 'gradle.properties' ||
+              name === 'settings.gradle.kts' ||
+              name === 'build.gradle.kts' ||
+              name === 'gradlew' ||
+              name === 'gradlew.bat' ||
+              name === '.github/workflows/android-compatibility.yml'
+            );
+
+            if (!runtimeChanged) {
+              core.setOutput('run_compatibility', 'false');
+              core.setOutput('level', 'none');
+              core.setOutput('matrix', JSON.stringify({ include: [] }));
+              core.notice('No Android runtime/build changes: emulator compatibility skipped.');
+              return;
+            }
+
+            const highRisk = [
+              /^app\/src\/main\/java\/com\/azimulkabir\/actua\/data\/(sync|budget|security|network|rules|schedules)\//,
+              /^app\/src\/main\/java\/com\/azimulkabir\/actua\/data\/ActuaRepository\.kt$/,
+              /Migration/i,
+              /Writer\.kt$/,
+              /^\.github\/workflows\/android-compatibility\.yml$/
+            ];
+            const broadCoverage = [
+              /^app\/src\/main\/java\/com\/azimulkabir\/actua\/data\//,
+              /(^|\/)build\.gradle(?:\.kts)?$/,
+              /(^|\/)settings\.gradle(?:\.kts)?$/,
+              /^gradle\//,
+              /^gradle\.properties$/,
+              /^gradlew(?:\.bat)?$/
+            ];
+
+            let matrix;
+            let level;
+            if (names.some(name => highRisk.some(pattern => pattern.test(name)))) {
+              level = 'full';
+              matrix = fullMatrix;
+            } else if (names.some(name => broadCoverage.some(pattern => pattern.test(name)))) {
+              level = 'broad';
+              matrix = {
+                include: [
+                  { android: '9', api_level: 28 },
+                  { android: '15', api_level: 35 }
+                ]
+              };
+            } else {
+              level = 'standard';
+              matrix = {
+                include: [
+                  { android: '15', api_level: 35 }
+                ]
+              };
+            }
+
+            core.setOutput('run_compatibility', 'true');
+            core.setOutput('level', level);
+            core.setOutput('matrix', JSON.stringify(matrix));
+            core.notice(`Compatibility coverage selected: ${level} (${matrix.include.map(item => `API ${item.api_level}`).join(', ')}).`);
+
   emulator-compatibility:
-    name: Android ${{ matrix.android }} / API ${{ matrix.api-level }}
+    name: Android ${{ matrix.android }} / API ${{ matrix.api_level }}
+    needs: select-coverage
+    if: ${{ needs.select-coverage.outputs.run_compatibility == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - android: '9'
-            api-level: 28
-          - android: '15'
-            api-level: 35
-          - android: '16'
-            api-level: 36
+      matrix: ${{ fromJSON(needs.select-coverage.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v7
@@ -62,7 +158,7 @@ jobs:
       - name: Run compatibility instrumentation tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: ${{ matrix.api-level }}
+          api-level: ${{ matrix.api_level }}
           target: google_apis
           arch: x86_64
           disable-animations: true
@@ -73,7 +169,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: android-compatibility-api-${{ matrix.api-level }}
+          name: android-compatibility-api-${{ matrix.api_level }}
           path: |
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
