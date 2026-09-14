@@ -46,6 +46,14 @@ internal sealed interface TagNoteSegment {
     }
 }
 
+data class TagStyledText internal constructor(
+    val notes: String,
+    val tagColors: Map<String, String>,
+)
+
+fun coloredTagText(notes: String, tagColors: Map<String, String>): TagStyledText =
+    TagStyledText(notes, tagColors)
+
 /**
  * Finds Actual-style tags without changing the note text.
  *
@@ -135,6 +143,20 @@ fun rememberActualTagColors(refreshKey: Any? = Unit): Map<String, String> {
     }
     return colors
 }
+
+@Composable
+fun TagNoteText(
+    content: TagStyledText,
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+) = TagNoteText(
+    notes = content.notes,
+    tagColors = content.tagColors,
+    modifier = modifier,
+    style = style,
+    horizontalArrangement = horizontalArrangement,
+)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
