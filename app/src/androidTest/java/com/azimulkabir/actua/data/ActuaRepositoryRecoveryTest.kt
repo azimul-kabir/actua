@@ -5,6 +5,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.UUID
@@ -39,6 +40,7 @@ class ActuaRepositoryRecoveryTest {
             try {
                 assertTrue(repository.isUsingActualBudget)
                 assertEquals(valid.id, ActiveBudgetStore(context).budgetId)
+                assertFalse(files.budgetDirectory(invalid.id).exists())
             } finally {
                 repository.close()
             }

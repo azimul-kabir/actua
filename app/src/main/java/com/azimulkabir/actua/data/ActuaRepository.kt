@@ -120,7 +120,10 @@ class ActuaRepository(context: Context) {
 
     private fun openBudget(files: BudgetFileManager, budgetId: String): ActualBudgetDatabase? {
         val database = runCatching { ActualBudgetDatabase.open(files.databaseFile(budgetId)) }
-            .onFailure { Log.e("ActuaRepository", "Could not open a local budget (${it.javaClass.simpleName})") }
+            .onFailure {
+                Log.e("ActuaRepository", "Could not open a local budget (${it.javaClass.simpleName})")
+                discardUnreadableBudget(files, budgetId)
+            }
             .getOrNull()
             ?: return null
         return try {
@@ -132,8 +135,14 @@ class ActuaRepository(context: Context) {
         } catch (error: Exception) {
             Log.e("ActuaRepository", "Skipping an unusable local budget (${error.javaClass.simpleName})")
             database.close()
+            discardUnreadableBudget(files, budgetId)
             null
         }
+    }
+
+    private fun discardUnreadableBudget(files: BudgetFileManager, budgetId: String) {
+        runCatching { files.deleteBudget(budgetId) }
+            .onFailure { Log.e("ActuaRepository", "Could not discard an unreadable local budget (${it.javaClass.simpleName})") }
     }
 
     fun categoryNames(): List<String> = actualDatabase?.fetchCategoryGroups()
