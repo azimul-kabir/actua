@@ -55,6 +55,41 @@ class ActualBudgetDatabaseSyncTest {
     }
 
     @Test
+    fun incomingTagMessagesMaterializeActualTagMetadata() {
+        withDatabase { database, file ->
+            database.receiveMessages(
+                listOf(
+                    message(
+                        1_700_000_000_000,
+                        dataset = "tags",
+                        row = "tag-1",
+                        column = "tag",
+                        value = "S:school",
+                    ),
+                    message(
+                        1_700_000_000_001,
+                        dataset = "tags",
+                        row = "tag-1",
+                        column = "color",
+                        value = "S:#6A1B9A",
+                    ),
+                    message(
+                        1_700_000_000_002,
+                        dataset = "tags",
+                        row = "tag-1",
+                        column = "description",
+                        value = "S:School",
+                    ),
+                ),
+            )
+
+            SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { readable ->
+                assertEquals("#6A1B9A", readTagColors(readable)["school"])
+            }
+        }
+    }
+
+    @Test
     fun twoClientsConvergeWithOverlapAndReverseDelivery() {
         val first = createDatabaseFile()
         val second = createDatabaseFile()
@@ -111,6 +146,7 @@ class ActualBudgetDatabaseSyncTest {
             database.execSQL("CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT, offbudget INTEGER DEFAULT 0, closed INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0)")
             listOf("categories", "category_groups", "payee_mapping", "payees", "transactions", "zero_budgets")
                 .forEach { database.execSQL("CREATE TABLE $it (id TEXT PRIMARY KEY)") }
+            database.execSQL("CREATE TABLE tags (id TEXT PRIMARY KEY, tag TEXT UNIQUE, color TEXT, description TEXT)")
             database.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
             database.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, column TEXT NOT NULL, value BLOB NOT NULL)")
         }
