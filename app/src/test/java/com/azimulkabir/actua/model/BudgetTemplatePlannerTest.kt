@@ -220,7 +220,7 @@ class BudgetTemplatePlannerTest {
     @Test fun dailyAndWeeklyRemainderLimitsUseCalendarOccurrences() {
         val daily = category("daily", "Daily", 0, automations = listOf(
             BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1,
-                limitPeriod = BudgetTarget.LimitPeriod.DAILY, limitAmountCents = 1_000),
+                limitPeriod = BudgetTarget.LimitPeriod.DAILY, limitAmountCents = 100),
         ))
         val weekly = category("weekly", "Weekly", 0, automations = listOf(
             BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1,
