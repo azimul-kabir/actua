@@ -85,11 +85,10 @@ data class BudgetTarget(
             val monthStart = monthYear.atDay(1)
             val nextMonthStart = monthYear.plusMonths(1).atDay(1)
             var date = runCatching { LocalDate.parse(startDateRaw ?: monthStart.toString()) }.getOrNull() ?: monthStart
-            while (date.isAfter(monthStart)) date = date.minusWeeks(1)
-            while (date.plusWeeks(1).isBefore(monthStart) || date.plusWeeks(1).isEqual(monthStart)) date = date.plusWeeks(1)
+            while (date.isBefore(monthStart)) date = date.plusWeeks(1)
             var weeks = 0L
             while (date.isBefore(nextMonthStart)) {
-                if (!date.isBefore(monthStart)) weeks += 1L
+                weeks += 1L
                 date = date.plusWeeks(1)
             }
             Math.multiplyExact(amount, weeks)
