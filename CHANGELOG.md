@@ -6,6 +6,26 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.21] - 2026-09-14
+
+### Added
+
+- Added full standalone Balance Cap editing with daily, weekly, and monthly cadence, weekly start dates, and retain-overflow controls while preserving Actual's stored automation semantics
+- Added Actual Budget tag-colour rendering for recognized transaction-note tags using synced tag metadata, with readable foreground colours and safe fallback styling
+
+### Changed
+
+- Simplified the project README around installation links, core features, screenshots, demo access, credits, community, and licensing
+- Balance Cap automations now participate as a distinct supported category automation instead of being exposed through refill-style editing
+
+### Fixed
+
+- Corrected ongoing sync-status layout on Connection & Data so the progress indicator remains visible, aligned, and properly spaced on narrow screens
+
+### Safety
+
+- Advanced or malformed Balance Cap definitions remain protected from silent rewriting, and tag rendering is display-only and does not modify transaction notes or tag metadata
+
 ## [1.0.0-beta.20] - 2026-09-14
 
 ### Added
@@ -257,7 +277,6 @@ No user-facing changes yet.
   schedule creation
 - Added a monthly Bills calendar with recurring and card-bill views, due-date
   projection, status totals, date filters, and schedule actions
-
 ### Changed
 
 - Refined Bills and schedule navigation so adding, editing, posting, skipping,
