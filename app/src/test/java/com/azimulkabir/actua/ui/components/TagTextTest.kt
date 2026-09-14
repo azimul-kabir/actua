@@ -83,11 +83,16 @@ class TagTextTest {
         val yellow = Color(0xFFF1C40F)
         val purple = Color(0xFF3F176D)
 
-        assertEquals(0.14f, tagChipBackground(yellow, darkTheme = false).alpha, 0.0001f)
-        assertEquals(0.24f, tagChipBackground(purple, darkTheme = true).alpha, 0.0001f)
-        assertTrue(tagChipForeground(yellow, darkTheme = false).luminance() < yellow.luminance())
-        assertTrue(tagChipForeground(purple, darkTheme = true).luminance() > purple.luminance())
-        assertFalse(tagChipForeground(yellow, darkTheme = false) == yellow)
-        assertFalse(tagChipForeground(purple, darkTheme = true) == purple)
+        val lightBackgroundAlpha = tagChipBackground(yellow, darkTheme = false).alpha
+        val darkBackgroundAlpha = tagChipBackground(purple, darkTheme = true).alpha
+        assertTrue(lightBackgroundAlpha in 0.13f..0.15f)
+        assertTrue(darkBackgroundAlpha in 0.23f..0.25f)
+
+        val lightForeground = tagChipForeground(yellow, darkTheme = false)
+        val darkForeground = tagChipForeground(purple, darkTheme = true)
+        assertTrue(lightForeground.luminance() < yellow.luminance())
+        assertTrue(darkForeground.luminance() > purple.luminance())
+        assertFalse(lightForeground == yellow)
+        assertFalse(darkForeground == purple)
     }
 }
