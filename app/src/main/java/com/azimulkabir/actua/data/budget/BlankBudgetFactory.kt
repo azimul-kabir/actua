@@ -23,7 +23,8 @@ internal object BlankBudgetFactory {
     private val SCHEMA = listOf(
         "CREATE TABLE __meta__ (key TEXT PRIMARY KEY, value TEXT)",
         "CREATE TABLE __migrations__ (id INT PRIMARY KEY NOT NULL)",
-        "CREATE TABLE accounts (id TEXT PRIMARY KEY, account_id TEXT, name TEXT, balance_current INTEGER, balance_available INTEGER, balance_limit INTEGER, mask TEXT, official_name TEXT, subtype TEXT, bank TEXT, offbudget INTEGER DEFAULT 0, closed INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0, sort_order REAL, type TEXT, account_sync_source TEXT, last_sync TEXT, last_reconciled TEXT, bank_sync_status TEXT)",
+        "CREATE TABLE account_groups (id TEXT PRIMARY KEY, name TEXT, sort_order REAL, tombstone INTEGER DEFAULT 0)",
+        "CREATE TABLE accounts (id TEXT PRIMARY KEY, account_id TEXT, name TEXT, balance_current INTEGER, balance_available INTEGER, balance_limit INTEGER, mask TEXT, official_name TEXT, subtype TEXT, bank TEXT, offbudget INTEGER DEFAULT 0, closed INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0, sort_order REAL, type TEXT, account_sync_source TEXT, last_sync TEXT, last_reconciled TEXT, bank_sync_status TEXT, account_group_id TEXT DEFAULT NULL)",
         "CREATE TABLE banks (id TEXT PRIMARY KEY, bank_id TEXT, name TEXT, tombstone INTEGER DEFAULT 0)",
         "CREATE TABLE categories (id TEXT PRIMARY KEY, name TEXT, is_income INTEGER DEFAULT 0, cat_group TEXT, sort_order REAL, tombstone INTEGER DEFAULT 0, hidden BOOLEAN NOT NULL DEFAULT 0, goal_def TEXT DEFAULT NULL, template_settings JSON DEFAULT '{\"source\": \"notes\"}', cleanup_def TEXT DEFAULT NULL)",
         "CREATE TABLE category_groups (id TEXT PRIMARY KEY, name TEXT, is_income INTEGER DEFAULT 0, sort_order REAL, tombstone INTEGER DEFAULT 0, hidden BOOLEAN NOT NULL DEFAULT 0)",
@@ -45,7 +46,7 @@ internal object BlankBudgetFactory {
         "CREATE TABLE preferences (id TEXT PRIMARY KEY, value TEXT)",
         "CREATE TABLE reflect_budgets (id TEXT PRIMARY KEY, month INTEGER, category TEXT, amount INTEGER DEFAULT 0, carryover INTEGER DEFAULT 0, goal INTEGER DEFAULT NULL, long_goal INTEGER DEFAULT NULL)",
         "CREATE TABLE rules (id TEXT PRIMARY KEY, stage TEXT, conditions TEXT, actions TEXT, tombstone INTEGER DEFAULT 0, conditions_op TEXT DEFAULT 'and')",
-        "CREATE TABLE schedules (id TEXT PRIMARY KEY, rule TEXT, active INTEGER DEFAULT 0, completed INTEGER DEFAULT 0, posts_transaction INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0, name TEXT DEFAULT NULL, custom_upcoming_length TEXT DEFAULT NULL, sort_order REAL)",
+        "CREATE TABLE schedules (id TEXT PRIMARY KEY, rule TEXT, active INTEGER DEFAULT 0, completed INTEGER DEFAULT 0, posts_transaction INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0, name TEXT DEFAULT NULL, custom_upcoming_length TEXT DEFAULT NULL, sort_order REAL DEFAULT 0)",
         "CREATE TABLE schedules_json_paths (schedule_id TEXT PRIMARY KEY, payee TEXT, account TEXT, amount TEXT, date TEXT)",
         "CREATE TABLE schedules_next_date (id TEXT PRIMARY KEY, schedule_id TEXT, local_next_date INTEGER, local_next_date_ts INTEGER, base_next_date INTEGER, base_next_date_ts INTEGER, tombstone INTEGER DEFAULT 0)",
         "CREATE TABLE tags (id TEXT PRIMARY KEY, tag TEXT UNIQUE, color TEXT, description TEXT, tombstone INTEGER DEFAULT 0, hidden BOOLEAN DEFAULT 0)",
@@ -76,7 +77,7 @@ internal object BlankBudgetFactory {
         1730744182000,1736640000000,1737158400000,1738491452000,1739139550000,1740506588539,
         1745425408000,1749799110000,1749799110001,1754611200000,1759260219000,1759842823172,
         1762178745667,1765518577215,1768872504000,1769000000000,1778510362740,1780099200000,
-        1780327681000,1780606215000,1780606215001,
+        1780327681000,1780606215000,1780606215001,1783004650757,1787013118115,
     )
 
     private val STARTER_DATA = listOf(

@@ -59,6 +59,35 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun migrationAddsCurrentActualAccountGroupSchema() {
+        val file = createDatabaseFile()
+        try {
+            ActualBudgetDatabase.open(file).close()
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                assertTrue(db.rawQuery("SELECT 1 FROM account_groups LIMIT 1", null).use { it.columnCount == 1 })
+                assertTrue(db.rawQuery("PRAGMA table_info(accounts)", null).use { cursor ->
+                    val name = cursor.getColumnIndexOrThrow("name")
+                    generateSequence { if (cursor.moveToNext()) cursor.getString(name) else null }
+                        .any { it == "account_group_id" }
+                })
+                assertTrue(db.rawQuery("PRAGMA table_info(schedules)", null).use { cursor ->
+                    val name = cursor.getColumnIndexOrThrow("name")
+                    generateSequence { if (cursor.moveToNext()) cursor.getString(name) else null }
+                        .any { it == "sort_order" }
+                })
+                assertTrue(db.rawQuery(
+                    "SELECT 1 FROM __migrations__ WHERE id = 1783004650757", null,
+                ).use { it.moveToFirst() })
+                assertTrue(db.rawQuery(
+                    "SELECT 1 FROM __migrations__ WHERE id = 1787013118115", null,
+                ).use { it.moveToFirst() })
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun scheduleTransactionsCanBeFetchedAndUnlinkedThroughCrdt() = withDatabase { database ->
         val linked = database.fetchScheduleTransactions("schedule-new")
         assertEquals(listOf("ordinary"), linked.map { it.id })
@@ -667,7 +696,7 @@ class ActualBudgetReadModelTest {
             db.execSQL("CREATE TABLE dashboard_pages (id TEXT PRIMARY KEY, name TEXT, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE dashboard (id TEXT PRIMARY KEY, type TEXT, x INTEGER, y INTEGER, meta TEXT, tombstone INTEGER DEFAULT 0, dashboard_page_id TEXT)")
             db.execSQL("CREATE TABLE rules (id TEXT PRIMARY KEY, stage TEXT, conditions_op TEXT, conditions TEXT, actions TEXT, tombstone INTEGER)")
-            db.execSQL("CREATE TABLE schedules (id TEXT PRIMARY KEY, rule TEXT, name TEXT, posts_transaction INTEGER, completed INTEGER, custom_upcoming_length TEXT, tombstone INTEGER, sort_order REAL)")
+            db.execSQL("CREATE TABLE schedules (id TEXT PRIMARY KEY, rule TEXT, name TEXT, posts_transaction INTEGER, completed INTEGER, custom_upcoming_length TEXT, tombstone INTEGER)")
             db.execSQL("CREATE TABLE schedules_next_date (id TEXT PRIMARY KEY, schedule_id TEXT, local_next_date INTEGER, local_next_date_ts INTEGER, base_next_date INTEGER, base_next_date_ts INTEGER)")
 
             db.execSQL("INSERT INTO accounts VALUES ('checking','Checking','checking',0,0,0,1), ('savings','Savings','savings',0,0,0,2)")
@@ -696,7 +725,7 @@ class ActualBudgetReadModelTest {
             db.execSQL("""INSERT INTO rules VALUES ('rent-rule',NULL,'and',
                 '[{"op":"is","field":"acct","value":"checking"},{"op":"is","field":"description","value":"store"},{"op":"is","field":"amount","value":-1500},{"op":"isapprox","field":"date","value":{"frequency":"monthly","start":"2026-09-05"}}]',
                 '[{"op":"set","field":"category","value":"rent"},{"op":"link-schedule","value":"rent-schedule"}]',0)""")
-            db.execSQL("INSERT INTO schedules VALUES ('rent-schedule','rent-rule','Rent',1,0,NULL,0,1)")
+            db.execSQL("INSERT INTO schedules VALUES ('rent-schedule','rent-rule','Rent',1,0,NULL,0)")
             db.execSQL("INSERT INTO schedules_next_date VALUES ('rent-next','rent-schedule',20260905,100,20260904,100)")
 
             db.execSQL("INSERT INTO messages_crdt(timestamp,dataset,row,`column`,value) VALUES ('2026-09-04T10:00:00.000Z-0000-aaaaaaaaaaaaaaaa','transactions','ordinary','schedule','S:schedule-old')")
