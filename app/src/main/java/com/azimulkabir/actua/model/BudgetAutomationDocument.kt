@@ -51,11 +51,12 @@ data class BudgetAutomationDocument(
                 if (type == "limit" || type == "refill") {
                     unsupported += type
                 } else {
-                    val target = BudgetTarget.fromGoalDef(JSONArray().put(JSONObject(row.toString())).toString(), "ui")
+                    val target = BudgetTarget.fromGoalDef(
+                        JSONArray().put(JSONObject(row.toString())).toString(),
+                        "ui",
+                        percentageSources,
+                    )
                     if (target == null) unsupported += type
-                    else if (target.type == BudgetTarget.Type.PERCENTAGE &&
-                        target.percentageSource.lowercase() !in percentageSources.map(String::lowercase).toSet()
-                    ) unsupported += type
                     else supported += target
                 }
             }

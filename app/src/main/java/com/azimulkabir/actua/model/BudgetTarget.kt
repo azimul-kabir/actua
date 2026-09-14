@@ -166,7 +166,11 @@ data class BudgetTarget(
     }
 
     companion object {
-        fun fromGoalDef(raw: String?, source: String?): BudgetTarget? {
+        fun fromGoalDef(
+            raw: String?,
+            source: String?,
+            percentageSources: Set<String> = setOf("available funds"),
+        ): BudgetTarget? {
             if (raw.isNullOrBlank() || source != "ui") return null
             val array = runCatching { JSONArray(raw) }.getOrNull() ?: return null
             if (array.length() == 2) {
@@ -228,6 +232,7 @@ data class BudgetTarget(
                 "percentage" -> row.takeIf {
                     it.optString("directive") == "template" &&
                         it.optString("category").isNotBlank() &&
+                        it.optString("category").lowercase() in percentageSources.map(String::lowercase).toSet() &&
                         it.optInt("percent", 0) in 1..100 &&
                         !it.optBoolean("previous", false)
                 }?.let {
