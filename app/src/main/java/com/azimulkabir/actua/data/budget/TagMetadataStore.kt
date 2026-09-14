@@ -14,14 +14,20 @@ class TagMetadataStore(context: Context) {
     private val activeBudget = ActiveBudgetStore(appContext)
     private val files = BudgetFileManager(appContext)
 
-    fun activeTagColors(): Map<String, String> {
+    fun activeTagColors(dataGeneration: Long = 0L): Map<String, String> {
         val budgetId = activeBudget.budgetId ?: return emptyMap()
         val file = files.databaseFile(budgetId)
         if (!file.exists()) return emptyMap()
         val modified = file.lastModified()
 
         synchronized(cacheLock) {
-            if (cachedBudgetId == budgetId && cachedModified == modified) return cachedColors
+            if (
+                cachedBudgetId == budgetId &&
+                cachedModified == modified &&
+                cachedDataGeneration == dataGeneration
+            ) {
+                return cachedColors
+            }
         }
 
         val colors = runCatching {
@@ -31,6 +37,7 @@ class TagMetadataStore(context: Context) {
         synchronized(cacheLock) {
             cachedBudgetId = budgetId
             cachedModified = modified
+            cachedDataGeneration = dataGeneration
             cachedColors = colors
         }
         return colors
@@ -40,6 +47,7 @@ class TagMetadataStore(context: Context) {
         val cacheLock = Any()
         var cachedBudgetId: String? = null
         var cachedModified: Long = Long.MIN_VALUE
+        var cachedDataGeneration: Long = Long.MIN_VALUE
         var cachedColors: Map<String, String> = emptyMap()
     }
 }
@@ -52,8 +60,7 @@ internal fun readTagColors(database: SQLiteDatabase): Map<String, String> {
     if (!hasTags) return emptyMap()
 
     // Match Actual Budget's tags schema directly. Do not assume lifecycle columns
-    // such as tombstone/hidden exist, because current Actual databases store
-    // id, tag, color, and description only.
+    // such as tombstone/hidden exist, because older Actual databases may not have them.
     return database.rawQuery(
         "SELECT tag, color FROM tags WHERE tag IS NOT NULL",
         null,

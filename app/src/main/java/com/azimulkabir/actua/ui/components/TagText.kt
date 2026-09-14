@@ -77,7 +77,7 @@ fun rememberActualTagColors(refreshKey: Any? = Unit): Map<String, String> {
         key2 = refreshKey to syncDataGeneration,
     ) {
         value = withContext(Dispatchers.IO) {
-            TagMetadataStore(context).activeTagColors()
+            TagMetadataStore(context).activeTagColors(syncDataGeneration)
         }
     }
     return colors
