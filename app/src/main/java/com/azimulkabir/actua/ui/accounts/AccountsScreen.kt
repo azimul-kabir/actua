@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,7 +61,6 @@ import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.NewAccountDialog
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.text.NumberFormat
-import java.util.Locale
 import kotlin.math.absoluteValue
 
 private data class AccountSection(val title: String, val accounts: List<Account>)
@@ -238,6 +238,7 @@ private fun AccountsSummary(
     hideDecimalPlaces: Boolean,
     showMonthlySummary: Boolean,
 ) {
+    val locale = LocalConfiguration.current.locales[0]
     val total = accounts.sumOf { it.balanceCents }
     val monthKey = java.text.SimpleDateFormat("yyyyMM", java.util.Locale.US).format(java.util.Date())
     val monthTransactions = transactions.filter { it.date.filter(Char::isDigit).startsWith(monthKey) }
@@ -257,7 +258,7 @@ private fun AccountsSummary(
             if (showMonthlySummary) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp),
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
-                Text(java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.getDefault()).format(java.util.Date()), style = MaterialTheme.typography.labelMedium,
+                Text(java.text.SimpleDateFormat("MMMM yyyy", locale).format(java.util.Date()), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween) {

@@ -114,7 +114,7 @@ internal object DemoBudgetSeeder {
             // Credit-card configuration uses the same preference key read by Actua.
             database.execSQL(
                 "INSERT OR REPLACE INTO preferences(id,value) VALUES(?,?)",
-                arrayOf("actuali:credit_card:$credit", JSONObject().put("statementDay", 20).put("dueOffsetDays", 15).put("limitCents", 500000).toString()),
+                arrayOf<Any?>("actuali:credit_card:$credit", JSONObject().put("statementDay", 20).put("dueOffsetDays", 15).put("limitCents", 500000).toString()),
             )
 
             seedRules(database, groceries, supermarket, entertainment, streaming, transport, fuel)
@@ -128,14 +128,14 @@ internal object DemoBudgetSeeder {
     }
 
     private fun insertAccount(db: SQLiteDatabase, id: String, name: String, type: String, offBudget: Int, order: Double) =
-        db.execSQL("INSERT OR REPLACE INTO accounts(id,name,type,offbudget,closed,tombstone,sort_order) VALUES(?,?,?,?,0,0,?)", arrayOf(id, name, type, offBudget, order))
+        db.execSQL("INSERT OR REPLACE INTO accounts(id,name,type,offbudget,closed,tombstone,sort_order) VALUES(?,?,?,?,0,0,?)", arrayOf<Any?>(id, name, type, offBudget, order))
 
     private fun group(db: SQLiteDatabase, name: String, income: Boolean, order: Double): String = id().also {
-        db.execSQL("INSERT INTO category_groups(id,name,is_income,sort_order,tombstone,hidden) VALUES(?,?,?,?,0,0)", arrayOf(it, name, if (income) 1 else 0, order))
+        db.execSQL("INSERT INTO category_groups(id,name,is_income,sort_order,tombstone,hidden) VALUES(?,?,?,?,0,0)", arrayOf<Any?>(it, name, if (income) 1 else 0, order))
     }
 
     private fun category(db: SQLiteDatabase, name: String, group: String, income: Boolean, order: Double): String = id().also {
-        db.execSQL("INSERT INTO categories(id,name,is_income,cat_group,sort_order,tombstone,hidden,template_settings) VALUES(?,?,?,?,?,0,0,?)", arrayOf(it, name, if (income) 1 else 0, group, order, "{\"source\":\"notes\"}"))
+        db.execSQL("INSERT INTO categories(id,name,is_income,cat_group,sort_order,tombstone,hidden,template_settings) VALUES(?,?,?,?,?,0,0,?)", arrayOf<Any?>(it, name, if (income) 1 else 0, group, order, "{\"source\":\"notes\"}"))
         db.execSQL("INSERT OR REPLACE INTO category_mapping(id,transferId) VALUES(?,?)", arrayOf(it, it))
     }
 
@@ -158,7 +158,7 @@ internal object DemoBudgetSeeder {
                     cleared: Boolean, reconciled: Boolean, starting: Boolean = false) {
         db.execSQL(
             "INSERT INTO transactions(id,acct,category,amount,description,date,starting_balance_flag,tombstone,cleared,reconciled,sort_order) VALUES(?,?,?,?,?,?,?,0,?,?,?)",
-            arrayOf(id(), account, category, amount, payee, date.format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE).toInt(), if (starting) 1 else 0, if (cleared) 1 else 0, if (reconciled) 1 else 0, System.nanoTime().toDouble()),
+            arrayOf<Any?>(id(), account, category, amount, payee, date.format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE).toInt(), if (starting) 1 else 0, if (cleared) 1 else 0, if (reconciled) 1 else 0, System.nanoTime().toDouble()),
         )
     }
 
@@ -178,17 +178,17 @@ internal object DemoBudgetSeeder {
         val sortOrder = System.nanoTime().toDouble()
         db.execSQL(
             "INSERT INTO transactions(id,acct,category,amount,description,date,transferred_id,tombstone,cleared,reconciled,sort_order) VALUES(?,?,?,?,?,?,?,0,1,?,?)",
-            arrayOf(sourceId, fromAccount, null, -amount, fromPayee, ymd, targetId, if (reconciled) 1 else 0, sortOrder),
+            arrayOf<Any?>(sourceId, fromAccount, null, -amount, fromPayee, ymd, targetId, if (reconciled) 1 else 0, sortOrder),
         )
         db.execSQL(
             "INSERT INTO transactions(id,acct,category,amount,description,date,transferred_id,tombstone,cleared,reconciled,sort_order) VALUES(?,?,?,?,?,?,?,0,1,?,?)",
-            arrayOf(targetId, toAccount, null, amount, toPayee, ymd, sourceId, if (reconciled) 1 else 0, sortOrder + 1),
+            arrayOf<Any?>(targetId, toAccount, null, amount, toPayee, ymd, sourceId, if (reconciled) 1 else 0, sortOrder + 1),
         )
     }
 
     private fun budget(db: SQLiteDatabase, month: YearMonth, category: String, amount: Long) {
         val key = month.year * 100 + month.monthValue
-        db.execSQL("INSERT OR REPLACE INTO zero_budgets(id,month,category,amount,carryover) VALUES(?,?,?,?,0)", arrayOf("$key-$category", key, category, amount))
+        db.execSQL("INSERT OR REPLACE INTO zero_budgets(id,month,category,amount,carryover) VALUES(?,?,?,?,0)", arrayOf<Any?>("$key-$category", key, category, amount))
         db.execSQL("INSERT OR IGNORE INTO created_budgets(month) VALUES(?)", arrayOf(month.toString()))
     }
 
@@ -220,19 +220,19 @@ internal object DemoBudgetSeeder {
             .put(JSONObject().put("op", "isapprox").put("field", "amount").put("value", amount))
         val actions = JSONArray().put(JSONObject().put("op", "link-schedule").put("value", scheduleId))
         db.execSQL("INSERT INTO rules(id,stage,conditions,actions,tombstone,conditions_op) VALUES(?,NULL,?,?,0,'and')", arrayOf(ruleId, conditions.toString(), actions.toString()))
-        db.execSQL("INSERT INTO schedules(id,rule,active,completed,posts_transaction,tombstone,name) VALUES(?,?,1,0,?,0,?)", arrayOf(scheduleId, ruleId, if (autoPost) 1 else 0, name))
+        db.execSQL("INSERT INTO schedules(id,rule,active,completed,posts_transaction,tombstone,name) VALUES(?,?,1,0,?,0,?)", arrayOf<Any?>(scheduleId, ruleId, if (autoPost) 1 else 0, name))
         val ymd = next.format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE).toInt()
         val ts = System.currentTimeMillis()
-        db.execSQL("INSERT INTO schedules_next_date(id,schedule_id,local_next_date,local_next_date_ts,base_next_date,base_next_date_ts,tombstone) VALUES(?,?,?,?,?,?,0)", arrayOf(nextId, scheduleId, ymd, ts, ymd, ts))
+        db.execSQL("INSERT INTO schedules_next_date(id,schedule_id,local_next_date,local_next_date_ts,base_next_date,base_next_date_ts,tombstone) VALUES(?,?,?,?,?,?,0)", arrayOf<Any?>(nextId, scheduleId, ymd, ts, ymd, ts))
     }
 
     private fun seedDashboard(db: SQLiteDatabase) {
         val page = "demo-dashboard-main"
         db.execSQL("INSERT OR REPLACE INTO dashboard_pages(id,name,tombstone) VALUES(?,?,0)", arrayOf(page, "Overview"))
         val welcome = JSONObject().put("content", "**Welcome to Actua Demo** 👋\\n\\nThis budget is stored only on this device. Try targets, rules, schedules, reconciliation, credit cards and reports.")
-        db.execSQL("INSERT INTO dashboard(id,type,width,height,x,y,meta,tombstone,dashboard_page_id) VALUES(?,?,?,?,?,?,?,0,?)", arrayOf(id(), "markdown-card", 12, 2, 0, 0, welcome.toString(), page))
-        db.execSQL("INSERT INTO dashboard(id,type,width,height,x,y,meta,tombstone,dashboard_page_id) VALUES(?,?,?,?,?,?,?,0,?)", arrayOf(id(), "spending-card", 12, 2, 0, 2, "{\"name\":\"This Month\",\"mode\":\"single-month\"}", page))
-        db.execSQL("INSERT INTO dashboard(id,type,width,height,x,y,meta,tombstone,dashboard_page_id) VALUES(?,?,?,?,?,?,?,0,?)", arrayOf(id(), "net-worth-card", 12, 2, 0, 4, "{}", page))
+        db.execSQL("INSERT INTO dashboard(id,type,width,height,x,y,meta,tombstone,dashboard_page_id) VALUES(?,?,?,?,?,?,?,0,?)", arrayOf<Any?>(id(), "markdown-card", 12, 2, 0, 0, welcome.toString(), page))
+        db.execSQL("INSERT INTO dashboard(id,type,width,height,x,y,meta,tombstone,dashboard_page_id) VALUES(?,?,?,?,?,?,?,0,?)", arrayOf<Any?>(id(), "spending-card", 12, 2, 0, 2, "{\"name\":\"This Month\",\"mode\":\"single-month\"}", page))
+        db.execSQL("INSERT INTO dashboard(id,type,width,height,x,y,meta,tombstone,dashboard_page_id) VALUES(?,?,?,?,?,?,?,0,?)", arrayOf<Any?>(id(), "net-worth-card", 12, 2, 0, 4, "{}", page))
     }
 
     private fun safeDay(base: LocalDate, day: Int): LocalDate = base.withDayOfMonth(minOf(day, base.lengthOfMonth()))
