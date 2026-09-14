@@ -1,0 +1,27 @@
+name: Apply Issue 164 UI polish
+
+on:
+  push:
+    branches:
+      - issue-164-balance-cap-slice-2
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: issue-164-balance-cap-slice-2
+      - name: Apply UI polish
+        run: python3 .github/scripts/issue164_ui_polish.py
+      - name: Clean helper files and commit
+        run: |
+          rm .github/scripts/issue164_ui_polish.py .github/workflows/issue-164-ui-polish.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Polish Balance Cap UI labels and auto-assign"
+          git push
