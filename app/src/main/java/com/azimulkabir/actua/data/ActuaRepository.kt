@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data
 
 import android.content.Context
+import android.util.Log
 import com.azimulkabir.actua.data.budget.ActualBudgetDatabase
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.ActualTransactionForm
@@ -12,6 +13,7 @@ import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.BudgetFileManager
+import com.azimulkabir.actua.data.budget.BudgetOpenProbe
 import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.location.Coordinates
 import com.azimulkabir.actua.data.location.PayeeLocationWriter
@@ -85,12 +87,16 @@ class ActuaRepository(context: Context) {
         WidgetUpdater.requestAll(appContext)
     }
     private val actualDatabase: ActualBudgetDatabase? = BudgetFileManager(context).let { files ->
-        val budgets = files.listLocalBudgets()
-        val selectedId = ActiveBudgetStore(context).budgetId
-        val selected = budgets.firstOrNull { it.id == selectedId } ?: budgets.firstOrNull()
-        selected?.let { metadata ->
-            runCatching { ActualBudgetDatabase.open(files.databaseFile(metadata.id)) }.getOrNull()
+        val activeBudgetStore = ActiveBudgetStore(context)
+        val selectedId = activeBudgetStore.budgetId
+        val candidates = files.listLocalBudgets().sortedBy { if (it.id == selectedId) 0 else 1 }
+        val opened = candidates.firstNotNullOfOrNull { metadata ->
+            openBudget(files, metadata.id)?.also {
+                if (metadata.id != selectedId) activeBudgetStore.budgetId = metadata.id
+            }
         }
+        if (opened == null && selectedId != null) activeBudgetStore.budgetId = null
+        opened
     }
     private val actualWriter = actualDatabase?.let { ActualTransactionWriter(it, onWrite = scheduleSync) }
     private val actualEntities = actualDatabase?.let { ActualEntityWriter(it, onWrite = scheduleSync) }
@@ -107,6 +113,21 @@ class ActuaRepository(context: Context) {
 
     fun close() {
         actualDatabase?.close()
+    }
+
+    private fun openBudget(files: BudgetFileManager, budgetId: String): ActualBudgetDatabase? {
+        val database = runCatching { ActualBudgetDatabase.open(files.databaseFile(budgetId)) }
+            .onFailure { Log.e("ActuaRepository", "Could not open local budget $budgetId", it) }
+            .getOrNull()
+            ?: return null
+        return try {
+            BudgetOpenProbe.validate(database)
+            database
+        } catch (error: Exception) {
+            Log.e("ActuaRepository", "Skipping unusable local budget $budgetId", error)
+            database.close()
+            null
+        }
     }
 
     fun categoryNames(): List<String> = actualDatabase?.fetchCategoryGroups()
