@@ -187,6 +187,9 @@ for normal in-place upgrades afterward.
 
 ## Build and test
 
+The [Android 17 readiness audit](docs/ANDROID_17_READINESS.md) records API 37
+behaviour decisions and the compatibility-test matrix.
+
 ```bash
 ./gradlew assembleDebug
 ./gradlew testInstrumentedUnitTest lintDebug
