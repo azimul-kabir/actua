@@ -21,6 +21,7 @@ sealed class BudgetFileException(message: String) : Exception(message) {
     data object MissingMetadata : BudgetFileException("The budget archive is missing metadata.json")
     data object InvalidMetadata : BudgetFileException("The budget metadata is invalid")
     data object IncompatibleBudget : BudgetFileException("This backup belongs to a different budget")
+    class InvalidBudgetData(reason: String) : BudgetFileException(reason)
     class UnsafeArchive(reason: String) : BudgetFileException("Unsafe budget archive: $reason")
 }
 
@@ -121,6 +122,7 @@ class BudgetFileManager(context: Context) {
         try {
             val extracted = extractArchive(archive, staging)
             ActualBudgetDatabase.validate(extracted.database)
+            BudgetOpenProbe.validate(extracted.database)
 
             val json = JSONObject(extracted.metadata.readText())
             val original = BudgetMetadata.fromJson(json)
