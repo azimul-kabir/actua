@@ -91,6 +91,7 @@ import com.azimulkabir.actua.model.BudgetTarget
 import com.azimulkabir.actua.model.BudgetAutomationDocument
 import com.azimulkabir.actua.model.BudgetTemplatePlanner
 import com.azimulkabir.actua.model.BudgetTemplatePreview
+import com.azimulkabir.actua.model.BudgetScheduleFunding
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
@@ -163,6 +164,7 @@ fun BudgetScreen(
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
     onSetCategoryAutomations: (String, List<BudgetTarget>) -> Unit = { _, _ -> },
     onApplyBudgetTemplate: (BudgetTemplatePreview) -> Unit = {},
+    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
     onSearch: () -> Unit = {},
     transactions: List<Transaction> = emptyList(),
     onDeleteCategory: (String, String) -> Boolean = { _, _ -> false },
@@ -402,9 +404,10 @@ fun BudgetScreen(
     }
     if (templatePreviewOpen) {
         BudgetTemplatePreviewSheet(
-            preview = remember(groups, month, overview.toBudgetCents, overwriteTemplates) {
+            preview = remember(groups, month, overview.toBudgetCents, overwriteTemplates, scheduleFunding) {
                 BudgetTemplatePlanner.preview(
                     groups, month, overview.toBudgetCents ?: Long.MAX_VALUE, overwriteTemplates,
+                    scheduleFunding,
                 )
             },
             hideDecimalPlaces = hideDecimalPlaces,

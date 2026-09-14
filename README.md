@@ -115,9 +115,12 @@ at full resolution.
 - Multi-automation category editing with explicit priority ordering for fully supported
   UI-managed targets, including goal-only balance targets, weighted remainder automations
   that divide Ready to Budget after higher-priority funding, and current-month
-  percentage-of-Available-Funds contributions, while unknown and notes-managed definitions
-  remain safely read-only; remainder limits support daily, weekly, and monthly caps with
+  percentage-of-Available-Funds, all-income, and exact income-category contributions, while unknown
+  and notes-managed definitions remain safely read-only; remainder limits support daily, weekly, and monthly caps with
   explicit carryover hold/release behavior
+- Schedule-driven funding for resolved active schedules, including recurring occurrence counts,
+  amount-range midpoint handling, priority interaction, Ready to Budget clamping, and preview-first
+  atomic application; unresolved or unsupported schedule references remain read-only
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
 - Account-specific transaction entry, collapsible account summaries and notes, and configurable bottom navigation labels
 - A dedicated **Manage** bottom-tab hub for operational tools, with general preferences separated behind its Settings gear and legacy **More** start-page preferences migrated automatically

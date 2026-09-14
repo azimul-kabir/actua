@@ -12,7 +12,11 @@ data class BudgetAutomationDocument(
     val hasUnsupported: Boolean get() = unsupportedTypes.isNotEmpty() || !editable
 
     companion object {
-        fun decode(raw: String?, source: String?): BudgetAutomationDocument {
+        fun decode(
+            raw: String?,
+            source: String?,
+            percentageSources: Set<String> = setOf("available funds"),
+        ): BudgetAutomationDocument {
             if (raw.isNullOrBlank()) return BudgetAutomationDocument(emptyList())
             val array = runCatching { JSONArray(raw) }.getOrNull()
                 ?: return BudgetAutomationDocument(emptyList(), listOf("invalid definition"), false)
@@ -46,14 +50,14 @@ data class BudgetAutomationDocument(
                 val type = row.optString("type").ifBlank { "unknown" }
                 if (type == "limit" || type == "refill") {
                     unsupported += type
-                } else if (type == "schedule") {
-                    // Schedule funding also depends on recurrence and rule-action
-                    // evaluation, which this planner does not have as an exact
-                    // portable projection yet. Keep the row untouched.
-                    unsupported += type
                 } else {
-                    val target = BudgetTarget.fromGoalDef(JSONArray().put(JSONObject(row.toString())).toString(), "ui")
-                    if (target == null) unsupported += type else supported += target
+                    val target = BudgetTarget.fromGoalDef(
+                        JSONArray().put(JSONObject(row.toString())).toString(),
+                        "ui",
+                        percentageSources,
+                    )
+                    if (target == null) unsupported += type
+                    else supported += target
                 }
             }
             if (supported.filter { it.type == BudgetTarget.Type.BY_DATE }.map(BudgetTarget::priority).distinct().size > 1) {
@@ -105,17 +109,23 @@ data class BudgetAutomationDocument(
             if (targets.any { it.type == BudgetTarget.Type.PERCENTAGE && it.percentage !in 1..100 }) {
                 add("Percentage automations must be between 1 and 100")
             }
-            if (targets.any {
-                    it.type == BudgetTarget.Type.PERCENTAGE &&
-                        (it.percentageSource != "available funds" || it.percentagePrevious)
-                }) {
-                add("Only current Available Funds percentage automations are supported")
+            if (targets.any { it.type == BudgetTarget.Type.PERCENTAGE && it.percentageSource.isBlank() }) {
+                add("Percentage automations need an income source")
+            }
+            if (targets.any { it.type == BudgetTarget.Type.PERCENTAGE && it.percentagePrevious }) {
+                add("Previous-month percentage automations are not supported")
             }
             if (targets.any {
                     it.type == BudgetTarget.Type.SCHEDULE &&
                         it.scheduleId.isNullOrBlank() && it.scheduleName.isNullOrBlank()
                 }) {
                 add("Schedule automations need a schedule ID or name")
+            }
+            val scheduleAndByPriorities = targets.filter {
+                it.type == BudgetTarget.Type.SCHEDULE || it.type == BudgetTarget.Type.BY_DATE
+            }.map(BudgetTarget::priority).distinct()
+            if (scheduleAndByPriorities.size > 1) {
+                add("Schedule and date automations must use the same priority")
             }
             if (targets.filter { it.type == BudgetTarget.Type.BY_DATE }.map(BudgetTarget::priority).distinct().size > 1) {
                 add("Date targets must use the same priority")

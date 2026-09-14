@@ -107,6 +107,74 @@ class BudgetTemplatePlannerTest {
         assertEquals(listOf(25_000L, 50_000L), preview.changes.map { it.proposedCents })
     }
 
+    @Test fun scheduleFundingUsesResolvedScheduleAndParticipatesInPriorityClamp() {
+        val schedule = category("schedule", "Scheduled bill", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.SCHEDULE, priority = 1, scheduleId = "bill-1"),
+        ))
+        val fixed = category("fixed", "Fixed", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 60_000, priority = 2),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(schedule, fixed))),
+            "2026-09",
+            availableBudgetCents = 100_000,
+            schedules = listOf(BudgetScheduleFunding(
+                id = "bill-1", name = "Rent", amountCents = 50_000,
+                occurrencesInMonth = 1, monthsUntilNextOccurrence = 0,
+            )),
+        )
+
+        assertEquals(listOf(50_000L, 50_000L), preview.changes.map { it.proposedCents })
+        assertEquals(listOf("Plan · Fixed"), preview.limitedCategories)
+    }
+
+    @Test fun scheduleFundingSupportsCrossYearMonthDistance() {
+        val funding = BudgetScheduleFunding(
+            id = "annual", name = "Annual bill", amountCents = 120_000,
+            occurrencesInMonth = 0, monthsUntilNextOccurrence = 4,
+        )
+
+        assertEquals(30_000L, funding.requestedBudget(0))
+    }
+
+    @Test fun unresolvedScheduleRemainsReadOnlyInMixedDocument() {
+        val schedule = category("schedule", "Scheduled bill", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.SCHEDULE, priority = 1, scheduleName = "Missing"),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(schedule))),
+            "2026-09",
+            availableBudgetCents = 100_000,
+        )
+
+        assertEquals(emptyList<BudgetTemplateChange>(), preview.changes)
+        assertEquals(listOf("Plan · Scheduled bill"), preview.unsupportedCategories)
+    }
+
+    @Test fun percentageUsesExactIncomeCategorySource() {
+        val income = BudgetCategory(
+            name = "Salary", assigned = 0, spent = 0, id = "income-1",
+            availableCents = 400_000, isIncome = true, spentCents = 0,
+        )
+        val expense = category("giving", "Giving", assigned = 0, automations = listOf(
+            BudgetTarget(
+                BudgetTarget.Type.PERCENTAGE, priority = 1, percentage = 10,
+                percentageSource = "income-1",
+            ),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Income", listOf(income), isIncome = true),
+                BudgetGroup("Plan", listOf(expense))),
+            "2026-09",
+            availableBudgetCents = 100_000,
+        )
+
+        assertEquals(40_000L, preview.changes.single().proposedCents)
+    }
+
     @Test fun normalApplyLeavesExistingBudgetAmountsUntouched() {
         val category = category("rent", "Rent", assigned = 80_000, target = BudgetTarget(
             BudgetTarget.Type.MONTHLY_SAVINGS, 100_000,

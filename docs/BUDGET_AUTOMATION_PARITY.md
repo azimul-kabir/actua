@@ -70,18 +70,17 @@ emits the negative excess release that Actual uses to return the excess to Ready
 Remainder distribution uses integer-cent quotient/remainder allocation in stable category order,
 so repeated previews and applications are deterministic.
 
-The following upstream constructs are deliberately not executed yet: schedule funding, percentage
-sources other than current-month `available funds` (including income-category and previous-month
-sources), copy/history variants beyond recent average, note parsing, and cleanup source/sink groups.
-Their stored definitions remain untouched and the preview names affected categories. Percentage
-automations use the Ready to Budget amount at the start of their priority, are clamped by the
-same available-funds rules as other positive-priority contributions, and can be edited only when
-their source and current-month semantics round-trip exactly. Later #56 work must port schedule
-evaluation and additional percentage validation fixtures before enabling those definitions.
+Percentage sources now support current-month `available funds`, `all income`, and exact income
+category IDs/names present in the downloaded budget. Previous-month sources remain unsupported;
+their stored definitions remain untouched and the preview names affected categories. Percentage
+automations use their source value at the start of the priority and are clamped by the same
+available-funds rules as other positive-priority contributions.
 
-Schedule-template rows now have an exact, lossless UI codec for their stable `scheduleId`/`name`
-reference and are explicitly disclosed as read-only. They are not included in planner evaluation:
-Actual's schedule engine combines recurrence windows, completed/past-date handling, amount ranges,
-weekend solving, and schedule-owned rule actions. Treating any of those as a simple monthly amount
-would change funding semantics, so Actua leaves the stored row untouched until the existing
-schedule projections can carry all required inputs and the behavior has regression coverage.
+Schedule-template rows have an exact, lossless UI codec for their stable `scheduleId`/`name`
+reference. The repository projects active schedules into recurrence-aware funding facts, including
+fixed and recurring dates, range midpoint amounts, completed/past handling, and monthly occurrence
+counts. Resolved schedule rows participate in the same priority, Ready to Budget clamp, preview,
+stale-check, and atomic confirmation path as other templates. Missing, malformed, completed, or
+unsupported schedule references remain read-only and are disclosed instead of being treated as
+zero-dollar contributions. Schedule and save-by-date templates must share one priority, matching
+Actual's validation rule.

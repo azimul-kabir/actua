@@ -54,6 +54,7 @@ import com.azimulkabir.actua.data.schedules.ScheduleDiscovery
 import com.azimulkabir.actua.data.schedules.BillCalendarItem
 import com.azimulkabir.actua.data.schedules.BillsCalendarEngine
 import com.azimulkabir.actua.data.schedules.sortedForDisplay
+import com.azimulkabir.actua.model.BudgetScheduleFunding
 import com.azimulkabir.actua.widget.WidgetUpdater
 
 data class PayeeLocationSummary(
@@ -408,11 +409,17 @@ class ActuaRepository(context: Context) {
             val budget = db.fetchBudgetMonth(month)
             val selectedMonth = java.time.YearMonth.parse(month)
             val histories = (1L..6L).map { offset -> db.fetchBudgetMonth(selectedMonth.minusMonths(offset).toString()) }
+            val percentageSources = setOf("available funds", "all income") +
+                (budget.incomeCategories + budget.hiddenIncomeCategories).flatMap {
+                    listOfNotNull(it.categoryId, it.categoryName)
+                }
             val expenseGroups = (budget.categories + budget.hiddenCategories).groupBy { it.groupId }.values
                 .sortedBy { it.first().groupSortOrder }
                 .map { rows ->
                     BudgetGroup(rows.first().groupName, rows.sortedBy { it.categorySortOrder }.map {
-                        val automationDocument = BudgetAutomationDocument.decode(it.goalDef, it.templateSource)
+                        val automationDocument = BudgetAutomationDocument.decode(
+                            it.goalDef, it.templateSource, percentageSources,
+                        )
                         BudgetCategory(
                             it.categoryName,
                             centsToDisplayUnits(it.budgetedCents),
@@ -439,6 +446,7 @@ class ActuaRepository(context: Context) {
                         )
                     }, hidden = rows.first().groupHidden)
                 }
+
             val incomeGroups = (budget.incomeCategories + budget.hiddenIncomeCategories)
                 .groupBy { it.groupName }
                 .map { (groupName, rows) ->
@@ -466,6 +474,42 @@ class ActuaRepository(context: Context) {
             return expenseGroups + incomeGroups
         }
         return emptyList()
+    }
+
+    fun budgetScheduleFunding(month: String = currentMonth()): List<BudgetScheduleFunding> {
+        val db = actualDatabase ?: return emptyList()
+        val selected = runCatching { java.time.YearMonth.parse(month) }.getOrNull() ?: return emptyList()
+        val monthStart = DayDate(selected.year, selected.monthValue, 1)
+        val monthEnd = DayDate(selected.year, selected.monthValue, selected.lengthOfMonth())
+        return db.fetchScheduleSummaries().mapNotNull { schedule ->
+            val amount = kotlin.math.abs(schedule.amount?.postAmount ?: return@mapNotNull null)
+            if (schedule.completed || amount <= 0L) return@mapNotNull null
+            val condition = schedule.dateCondition ?: return@mapNotNull null
+            val dates = when (condition) {
+                is com.azimulkabir.actua.data.schedules.ScheduleDateCondition.Fixed ->
+                    listOf(condition.day)
+                is com.azimulkabir.actua.data.schedules.ScheduleDateCondition.Recurring ->
+                    com.azimulkabir.actua.data.schedules.ScheduleRecurrence
+                        .upcomingDates(condition.config, 64, monthStart)
+                com.azimulkabir.actua.data.schedules.ScheduleDateCondition.Unsupported ->
+                    return@mapNotNull null
+            }
+            val inMonth = dates.count { it >= monthStart && it <= monthEnd }
+            val next = dates.firstOrNull { it >= monthStart }
+                ?: schedule.nextDate
+                ?: return@mapNotNull null
+            val monthsUntil = (next.year - selected.year) * 12 +
+                next.month - selected.monthValue
+            BudgetScheduleFunding(
+                id = schedule.id,
+                name = schedule.name,
+                amountCents = amount,
+                occurrencesInMonth = inMonth,
+                monthsUntilNextOccurrence = monthsUntil,
+                categoryId = schedule.categoryId,
+                active = next >= monthStart,
+            )
+        }
     }
 
     fun budgetOverview(month: String = currentMonth()): BudgetOverview {
