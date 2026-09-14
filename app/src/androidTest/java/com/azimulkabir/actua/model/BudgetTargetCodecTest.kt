@@ -29,6 +29,65 @@ class BudgetTargetCodecTest {
         }
     }
 
+    @Test fun defaultMonthlyBalanceCapIsEditableAndRoundTripsWithoutRefill() {
+        val raw = """[{"directive":"template","type":"limit","amount":500,"period":"monthly","hold":false,"priority":null}]"""
+        val document = BudgetAutomationDocument.decode(raw, "ui")
+
+        assertEquals(emptyList<String>(), document.unsupportedTypes)
+        assertEquals(true, document.editable)
+        assertEquals(false, document.hasUnsupported)
+        assertEquals(1, document.supported.size)
+        val cap = document.supported.single()
+        assertEquals(BudgetTarget.Type.REFILL, cap.type)
+        assertEquals(true, cap.isBalanceCap)
+        assertEquals(50_000L, cap.amountCents)
+
+        val encoded = requireNotNull(BudgetAutomationDocument.encode(document.supported))
+        val rows = JSONArray(encoded)
+        assertEquals(1, rows.length())
+        assertEquals("limit", rows.getJSONObject(0).getString("type"))
+        assertEquals(true, rows.getJSONObject(0).isNull("priority"))
+        assertEquals("monthly", rows.getJSONObject(0).getString("period"))
+        assertEquals(false, rows.getJSONObject(0).getBoolean("hold"))
+    }
+
+    @Test fun advancedBalanceCapsRemainReadOnlyUntilTheirControlsAreExposed() {
+        listOf(
+            """[{"directive":"template","type":"limit","amount":500,"period":"weekly","start":"2026-09-01","hold":false,"priority":null}]""",
+            """[{"directive":"template","type":"limit","amount":500,"period":"daily","hold":false,"priority":null}]""",
+            """[{"directive":"template","type":"limit","amount":500,"period":"monthly","hold":true,"priority":null}]""",
+        ).forEach { raw ->
+            val document = BudgetAutomationDocument.decode(raw, "ui")
+            assertEquals(emptyList<BudgetTarget>(), document.supported)
+            assertEquals(listOf("limit"), document.unsupportedTypes)
+            assertEquals(true, document.hasUnsupported)
+        }
+    }
+
+    @Test fun balanceCapDoesNotFundLikeRefillAndReleasesOnlyExcessCarryover() {
+        val cap = BudgetTarget(BudgetTarget.Type.REFILL, 50_000, priority = 0)
+        val category = BudgetCategory(
+            name = "Buffer",
+            assigned = 0,
+            spent = 0,
+            actualAssignedCents = 0,
+            id = "buffer",
+            availableCents = 80_000,
+            automations = listOf(cap),
+        )
+
+        assertEquals(0L, cap.suggestedBudget(category, "2026-09"))
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(category))),
+            "2026-09",
+            overwriteExisting = true,
+        )
+        assertEquals(
+            listOf(BudgetTemplateChange("Plan", "buffer", "Buffer", 0L, -30_000L)),
+            preview.changes,
+        )
+    }
+
     @Test fun remainderWithAnEmbeddedLimitRoundTripsAsSupported() {
         val target = BudgetTarget(
             BudgetTarget.Type.REMAINDER,

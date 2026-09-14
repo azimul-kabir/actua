@@ -42,7 +42,7 @@ data class BudgetAutomationDocument(
                     return@forEachIndexed
                 }
                 val type = row.optString("type").ifBlank { "unknown" }
-                if (type == "limit" || type == "refill") {
+                if (type == "refill") {
                     unsupported += type
                 } else {
                     val target = BudgetTarget.fromGoalDef(
@@ -74,7 +74,7 @@ data class BudgetAutomationDocument(
 
         fun validate(targets: List<BudgetTarget>): List<String> = buildList {
             if (targets.size > 20) add("A category can have at most 20 automations")
-            if (targets.count { it.type == BudgetTarget.Type.REFILL } > 1) add("Only one refill automation is allowed")
+            if (targets.count { it.type == BudgetTarget.Type.REFILL } > 1) add("Only one refill or balance cap automation is allowed")
             if (targets.count { it.type == BudgetTarget.Type.GOAL } > 1) add("Only one goal-only automation is allowed")
             if (targets.any { it.type == BudgetTarget.Type.REMAINDER && it.weight < 1 }) {
                 add("Remainder weights must be at least 1")
