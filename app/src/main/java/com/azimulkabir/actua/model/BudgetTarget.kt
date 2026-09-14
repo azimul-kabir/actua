@@ -192,7 +192,7 @@ data class BudgetTarget(
                         weight = row.getInt("weight"),
                         limitPeriod = limitPeriod,
                         limitAmountCents = limitCents,
-                        limitStartDate = limit?.optString("start").ifBlank { null },
+                        limitStartDate = limit?.optString("start")?.ifBlank { null },
                         limitHold = limit?.optBoolean("hold", false) == true,
                     )
                 }
