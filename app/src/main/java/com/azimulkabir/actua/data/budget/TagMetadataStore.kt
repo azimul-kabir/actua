@@ -52,7 +52,7 @@ internal fun readTagColors(database: SQLiteDatabase): Map<String, String> {
     if (!hasTags) return emptyMap()
 
     return database.rawQuery(
-        "SELECT tag, color FROM tags WHERE tombstone = 0 AND tag IS NOT NULL",
+        "SELECT tag, color FROM tags WHERE (tombstone = 0 OR tombstone IS NULL) AND tag IS NOT NULL",
         null,
     ).use { cursor ->
         buildMap {
