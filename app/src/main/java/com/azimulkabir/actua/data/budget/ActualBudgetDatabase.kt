@@ -1300,6 +1300,8 @@ class ActualBudgetDatabase private constructor(
             ColumnMigration(1780606215000, "accounts", "bank_sync_status", "TEXT"),
             ColumnMigration(1780606215003, "accounts", "account_sync_source", "TEXT"),
             ColumnMigration(1780606215004, "accounts", "last_sync", "TEXT"),
+            ColumnMigration(1783004650757, "schedules", "sort_order", "REAL DEFAULT 0"),
+            ColumnMigration(1787013118115, "accounts", "account_group_id", "TEXT DEFAULT NULL"),
         )
         private val internalTables = setOf("messages_crdt", "messages_clock", "migrations", "__migrations__")
         private val requiredTables = setOf(
@@ -1341,6 +1343,14 @@ class ActualBudgetDatabase private constructor(
                     database.execSQL("CREATE INDEX IF NOT EXISTS idx_payee_locations_tombstone_payee_created ON payee_locations(tombstone, payee_id, created_at)")
                     database.execSQL("CREATE INDEX IF NOT EXISTS idx_payee_locations_geo_tombstone ON payee_locations(tombstone, latitude, longitude)")
                     database.execSQL("INSERT OR IGNORE INTO __migrations__ (id) VALUES (1768872504000)")
+                }
+                if (database.hasTable("accounts")) {
+                    database.execSQL(
+                        """CREATE TABLE IF NOT EXISTS account_groups (
+                            id TEXT PRIMARY KEY, name TEXT, sort_order REAL,
+                            tombstone INTEGER DEFAULT 0
+                        )""".trimIndent(),
+                    )
                 }
                 val added = mutableListOf<Pair<String, String>>()
                 columnMigrations.filterNot { it.id in applied }.forEach { migration ->

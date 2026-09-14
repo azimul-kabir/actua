@@ -30,6 +30,10 @@ where an Android equivalent exists, Actua uses the native Android integration.
 
 ## Ported and tested
 
+Backend compatibility is audited against Actual Budget v26.9.0 at commit
+`59fe126f637d858c061e1eeedbef5436c8f2225a`; see
+[the detailed schema and protocol audit](docs/ACTUAL_26_9_COMPATIBILITY.md).
+
 - Budget archive validation, import, download, active selection, and export
 - Password and OpenID/OIDC login through Actual's `/account/login` flow, including explicit
   login-method selection, browser authorization, a localhost-only callback listener,
