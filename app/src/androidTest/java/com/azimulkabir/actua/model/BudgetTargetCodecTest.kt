@@ -44,6 +44,16 @@ class BudgetTargetCodecTest {
         assertEquals(false, document.hasUnsupported)
     }
 
+    @Test fun notesManagedCopyDefinitionsRemainEvaluableButReadOnly() {
+        val target = BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 2)
+        val document = BudgetAutomationDocument.decode(target.toGoalDef(), "notes")
+
+        assertEquals(listOf(target), document.supported)
+        assertEquals(emptyList<String>(), document.unsupportedTypes)
+        assertEquals(false, document.editable)
+        assertEquals(true, document.hasUnsupported)
+    }
+
     @Test fun remainderLimitCodecPreservesAllPeriodsAndWeeklyStart() {
         listOf(
             BudgetTarget.LimitPeriod.DAILY to null,

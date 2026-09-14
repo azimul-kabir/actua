@@ -41,9 +41,9 @@ class BudgetNoteAutomationParserTest {
 
     @Test fun notesManagedSupportedDefinitionsRemainEvaluableButNotEditable() {
         val target = BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 2)
-        val document = BudgetAutomationDocument.decode(
-            """[{"directive":"template","type":"copy","lookBack":2}]""",
-            "notes",
+        val document = BudgetAutomationDocument(
+            supported = listOf(target),
+            editable = false,
         )
 
         assertEquals(listOf(target), document.supported)
