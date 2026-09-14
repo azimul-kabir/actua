@@ -71,7 +71,7 @@ jobs:
 
       - name: Upload compatibility test reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-compatibility-api-${{ matrix.api-level }}
           path: |
