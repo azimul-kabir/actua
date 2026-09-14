@@ -76,6 +76,19 @@ data class BudgetAutomationDocument(
             if (targets.any { it.type == BudgetTarget.Type.REMAINDER && it.weight < 1 }) {
                 add("Remainder weights must be at least 1")
             }
+            if (targets.any {
+                    it.type == BudgetTarget.Type.REMAINDER && it.limitPeriod != null &&
+                        it.limitAmountCents != null && it.limitAmountCents <= 0
+                }) {
+                add("Remainder limits must be positive")
+            }
+            if (targets.any {
+                    it.type == BudgetTarget.Type.REMAINDER &&
+                        it.limitPeriod == BudgetTarget.LimitPeriod.WEEKLY &&
+                        it.limitStartDate.isNullOrBlank()
+                }) {
+                add("Weekly remainder limits need a start date")
+            }
             if (targets.any { it.priority < 0 }) add("Automation priority cannot be negative")
             if (targets.filter { it.type == BudgetTarget.Type.BY_DATE }.map(BudgetTarget::priority).distinct().size > 1) {
                 add("Date targets must use the same priority")

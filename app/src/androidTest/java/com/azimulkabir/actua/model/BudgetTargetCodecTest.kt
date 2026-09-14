@@ -27,15 +27,52 @@ class BudgetTargetCodecTest {
         }
     }
 
-    @Test fun remainderWithAnEmbeddedLimitStaysReadOnly() {
-        val document = BudgetAutomationDocument.decode(
-            "[{\"directive\":\"template\",\"type\":\"remainder\",\"priority\":null,\"weight\":2,\"limit\":{\"amount\":100,\"period\":\"monthly\",\"hold\":true}}]",
-            "ui",
+    @Test fun remainderWithAnEmbeddedLimitRoundTripsAsSupported() {
+        val target = BudgetTarget(
+            BudgetTarget.Type.REMAINDER,
+            weight = 2,
+            limitPeriod = BudgetTarget.LimitPeriod.MONTHLY,
+            limitAmountCents = 100_000,
+            limitHold = true,
+        )
+        val document = BudgetAutomationDocument.decode(target.toGoalDef(), "ui")
+
+        assertEquals(listOf(target), document.supported)
+        assertEquals(emptyList<String>(), document.unsupportedTypes)
+        assertEquals(false, document.hasUnsupported)
+    }
+
+    @Test fun remainderLimitCapsTheShareOfAvailableFunds() {
+        val rent = BudgetCategory(
+            name = "Rent",
+            assigned = 0,
+            spent = 0,
+            actualAssignedCents = 0,
+            id = "rent",
+            automations = listOf(BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 50_000)),
+        )
+        val savings = BudgetCategory(
+            name = "Savings",
+            assigned = 0,
+            spent = 0,
+            actualAssignedCents = 0,
+            id = "savings",
+            automations = listOf(BudgetTarget(
+                BudgetTarget.Type.REMAINDER,
+                weight = 1,
+                limitPeriod = BudgetTarget.LimitPeriod.MONTHLY,
+                limitAmountCents = 30_000,
+            )),
         )
 
-        assertEquals(emptyList<BudgetTarget>(), document.supported)
-        assertEquals(listOf("remainder"), document.unsupportedTypes)
-        assertEquals(true, document.hasUnsupported)
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(rent, savings))),
+            "2026-09",
+            availableBudgetCents = 100_000,
+        )
+
+        assertEquals(listOf(50_000L, 30_000L), preview.changes.map { it.proposedCents })
+        assertEquals(80_000L, preview.netBudgetChangeCents)
     }
 
     @Test fun notesAndUnknownVisualTemplatesAreNotClaimedByEditor() {

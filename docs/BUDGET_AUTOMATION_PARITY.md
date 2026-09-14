@@ -60,11 +60,12 @@ orphaned monthly goals are cleared after their definition is removed. UI-managed
 with positive integer weights are also editable. After ordinary priorities consume their funding,
 the planner divides the remaining Ready to Budget amount proportionally by weight across eligible
 remainder categories, preserves every cent through deterministic rounding, and includes the result
-in the same preview and atomic confirmation path. Remainder definitions with embedded limits remain
-read-only until their daily, weekly, and monthly limit semantics are ported.
+in the same preview and atomic confirmation path. Remainder rows with an embedded daily, weekly,
+or monthly cap are now accepted as editable supported definitions and their per-month limit is
+applied before the remainder allocation is finalized.
 
 The following upstream constructs are deliberately not executed yet: schedule funding, percentage
-sources, copy/history variants beyond recent average, remainder limits, note parsing, and cleanup
-source/sink groups. Their
-stored definitions remain untouched and the preview names affected categories. Later #56 work must
-port their evaluation and validation fixtures before enabling writes or full multi-automation editing.
+sources, copy/history variants beyond recent average, note parsing, and cleanup source/sink groups.
+Their stored definitions remain untouched and the preview names affected categories. Later #56 work
+must port their evaluation and validation fixtures before enabling writes or full multi-automation
+editing.

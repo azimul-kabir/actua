@@ -17,6 +17,10 @@ data class BudgetTarget(
     val averageMonths: Int = 3,
     val priority: Int = 1,
     val weight: Int = 1,
+    val limitPeriod: LimitPeriod? = null,
+    val limitAmountCents: Long? = null,
+    val limitStartDate: String? = null,
+    val limitHold: Boolean = false,
 ) {
     enum class Type(val label: String, val explanation: String) {
         MONTHLY_SPENDING("Monthly spending", "Set aside enough for this month's spending"),
@@ -27,6 +31,45 @@ data class BudgetTarget(
         AVERAGE("Average recent spending", "Use the average of recent months"),
         GOAL("Goal only", "Show a target balance without automatically budgeting money"),
         REMAINDER("Split remaining funds", "Receive a weighted share of Ready to Budget after other automations"),
+    }
+
+    enum class LimitPeriod(val jsonValue: String) {
+        DAILY("daily"),
+        WEEKLY("weekly"),
+        MONTHLY("monthly");
+
+        companion object {
+            fun fromJson(raw: String?): LimitPeriod? = when (raw?.trim()?.lowercase()) {
+                "daily" -> DAILY
+                "weekly" -> WEEKLY
+                "monthly" -> MONTHLY
+                else -> null
+            }
+        }
+    }
+
+    fun limitForMonth(month: String): Long {
+        val limit = limitAmountCents ?: return 0L
+        return when (limitPeriod ?: LimitPeriod.MONTHLY) {
+            LimitPeriod.DAILY -> {
+                val days = runCatching { YearMonth.parse(month).lengthOfMonth().toLong() }.getOrDefault(0L)
+                limit * days
+            }
+            LimitPeriod.WEEKLY -> {
+                val monthYear = runCatching { YearMonth.parse(month) }.getOrNull() ?: return 0L
+                val monthStart = monthYear.atDay(1)
+                val nextMonthStart = monthYear.plusMonths(1).atDay(1)
+                val startDate = runCatching { LocalDate.parse(limitStartDate ?: monthStart.toString()) }.getOrNull() ?: monthStart
+                var date = startDate
+                var weeks = 0L
+                while (date.isBefore(nextMonthStart)) {
+                    if (!date.isBefore(monthStart)) weeks += 1L
+                    date = date.plusWeeks(1)
+                }
+                limit * weeks
+            }
+            LimitPeriod.MONTHLY -> limit
+        }
     }
 
     fun suggestedBudget(category: BudgetCategory, month: String): Long {
@@ -83,10 +126,20 @@ data class BudgetTarget(
             Type.GOAL -> return JSONArray().put(
                 JSONObject().put("directive", "goal").put("type", "goal").put("amount", units(amountCents)),
             ).toString()
-            Type.REMAINDER -> return JSONArray().put(
-                JSONObject().put("directive", "template").put("type", "remainder")
-                    .put("priority", JSONObject.NULL).put("weight", weight),
-            ).toString()
+            Type.REMAINDER -> {
+                val remainder = JSONObject().put("directive", "template").put("type", "remainder")
+                    .put("priority", JSONObject.NULL).put("weight", weight)
+                val limit = limitPeriod?.let { period ->
+                    val raw = JSONObject().put("amount", units(limitAmountCents ?: 0L)).put("period", period.jsonValue)
+                        .put("hold", limitHold)
+                    if (period == LimitPeriod.WEEKLY && !limitStartDate.isNullOrBlank()) {
+                        raw.put("start", limitStartDate)
+                    }
+                    raw
+                }
+                if (limit != null) remainder.put("limit", limit)
+                return JSONArray().put(remainder).toString()
+            }
         }
         return JSONArray().put(row).toString()
     }
@@ -111,6 +164,11 @@ data class BudgetTarget(
             val row = array.takeIf { it.length() == 1 }?.getJSONObject(0) ?: return null
             fun cents() = (row.optDouble("amount", 0.0) * 100.0).toLong()
             val priority = row.optInt("priority", 1)
+            val limit = row.optJSONObject("limit")
+            val parsedLimitPeriod = limit?.optString("period")?.let(LimitPeriod::fromJson)
+            val parsedLimitCents = limit?.takeIf { it.has("amount") }?.let {
+                (it.optDouble("amount", 0.0) * 100.0).toLong().takeIf { it > 0 }
+            }
             return when (row.optString("type")) {
                 "spend" -> BudgetTarget(Type.MONTHLY_SPENDING, cents(), row.optString("month").ifBlank { null }, priority = priority)
                 "periodic" -> when (row.optJSONObject("period")?.optString("period")) {
@@ -125,8 +183,19 @@ data class BudgetTarget(
                     ?.let { BudgetTarget(Type.GOAL, cents()) }
                 "remainder" -> row.takeIf {
                     it.optString("directive") == "template" && it.has("priority") && it.isNull("priority") &&
-                        it.optInt("weight", 0) > 0 && !it.has("limit")
-                }?.let { BudgetTarget(Type.REMAINDER, weight = row.getInt("weight")) }
+                        it.optInt("weight", 0) > 0
+                }?.let {
+                    val limitPeriod = parsedLimitPeriod
+                    val limitCents = parsedLimitCents
+                    if (limitPeriod != null && limitCents == null) null else BudgetTarget(
+                        Type.REMAINDER,
+                        weight = row.getInt("weight"),
+                        limitPeriod = limitPeriod,
+                        limitAmountCents = limitCents,
+                        limitStartDate = limit?.optString("start")?.ifBlank { null },
+                        limitHold = limit?.optBoolean("hold", false) == true,
+                    )
+                }
                 else -> null
             }
         }
@@ -212,7 +281,7 @@ object BudgetTemplatePlanner {
                 if (available != Long.MAX_VALUE) available -= allocated
             }
         }
-        distributeRemainder(eligible, proposed, available)
+        distributeRemainder(eligible, proposed, available, month)
         for ((group, category) in supported) {
             if (category.hasUnsupportedTarget) {
                 unsupported += "${group.name} · ${category.name}"
@@ -249,28 +318,36 @@ object BudgetTemplatePlanner {
         eligible: List<Pair<BudgetGroup, BudgetCategory>>,
         proposed: MutableMap<BudgetCategory, Long>,
         startingAvailable: Long,
+        month: String,
     ): Long {
         var available = startingAvailable
         if (available == Long.MAX_VALUE || available <= 0L) return available
         while (available > 0L) {
             val active = eligible.mapNotNull { (_, category) ->
                 val targets = category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
-                val weight = targets.filter { it.type == BudgetTarget.Type.REMAINDER }.sumOf { it.weight.toLong() }
-                if (weight <= 0) return@mapNotNull null
+                val remainderTargets = targets.filter { it.type == BudgetTarget.Type.REMAINDER }
+                val weight = remainderTargets.sumOf { it.weight.toLong() }
+                if (weight <= 0L) return@mapNotNull null
                 val before = proposed[category] ?: 0L
-                val cap = targets.firstOrNull { it.type == BudgetTarget.Type.REFILL }?.amountCents
-                if (cap != null && cap - category.carryoverCents - before <= 0L) null
-                else Triple(category, weight, cap)
+                val cap = remainderTargets.firstOrNull()?.let { target ->
+                    val limit = target.limitAmountCents ?: return@let null
+                    val maxLimit = target.limitForMonth(month)
+                    val remaining = max(0L, maxLimit - category.carryoverCents - before)
+                    if (remaining <= 0L) return@let 0L
+                    remaining
+                }
+                if (cap != null && cap <= 0L) return@mapNotNull null
+                Triple(category, weight, cap)
             }
             if (active.isEmpty()) break
             val totalWeight = active.sumOf { it.second }
-            val perWeight = available.toDouble() / totalWeight
+            val perWeight = if (totalWeight == 0L) 0.0 else available.toDouble() / totalWeight
             val beforePass = available
             active.forEach { (category, weight, cap) ->
                 val before = proposed[category] ?: 0L
                 var allocated = kotlin.math.round(weight * perWeight).toLong()
                 if (allocated > available || available - allocated <= 1L) allocated = available
-                if (cap != null) allocated = minOf(allocated, max(0L, cap - category.carryoverCents - before))
+                if (cap != null) allocated = minOf(allocated, cap)
                 if (allocated > 0L) {
                     proposed[category] = before + allocated
                     available -= allocated
