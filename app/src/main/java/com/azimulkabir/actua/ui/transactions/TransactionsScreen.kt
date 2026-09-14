@@ -81,6 +81,8 @@ import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
+import com.azimulkabir.actua.ui.components.coloredTagText
+import com.azimulkabir.actua.ui.components.rememberActualTagColors
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
@@ -149,6 +151,7 @@ fun TransactionsScreen(
     }
     var accountNote by remember(account) { mutableStateOf(account?.note.orEmpty()) }
     val context = LocalContext.current
+    val tagColors = rememberActualTagColors(transactions)
     val accountDetailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences(
             "account_detail_preferences",
@@ -340,14 +343,14 @@ fun TransactionsScreen(
                     items(transactions, key = { it.id }) { transaction ->
                         TransactionRow(transaction, hideDecimalPlaces, showDate = false, onClick = { viewed = transaction },
                             showAccount = accountName == null, onLongClick = { selected = transaction },
-                            onClearedClick = { onSetCleared(transaction, !transaction.cleared) })
+                            onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors)
                     }
                 }
             } else {
                 items(visible, key = { it.id }) { transaction ->
                     TransactionRow(transaction, hideDecimalPlaces, showDate = true, onClick = { viewed = transaction },
                         showAccount = accountName == null, onLongClick = { selected = transaction },
-                        onClearedClick = { onSetCleared(transaction, !transaction.cleared) })
+                        onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors)
                 }
             }
         }
@@ -360,6 +363,7 @@ fun TransactionsScreen(
             onDismiss = { viewed = null },
             onEdit = { viewed = null; onEdit(transaction) },
             onDelete = { viewed = null; onDelete(transaction) },
+            tagColors = tagColors,
         )
     }
     selected?.let { transaction ->
@@ -679,8 +683,7 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
                 }) { Text("Save") }
             },
             dismissButton = {
-                TextButton(onClick = { noteEditorOpen = false }) { Text("Cancel") }
-            },
+                TextButton(onClick = { noteEditorOpen = false }) { Text("Cancel") } },
         )
     }
 }
@@ -706,8 +709,9 @@ private fun ToggleItem(label: String, checked: Boolean, onChange: (Boolean) -> U
 @Composable
 fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     showDate: Boolean, showAccount: Boolean, onClick: () -> Unit, onLongClick: () -> Unit,
-    onClearedClick: (() -> Unit)? = null) {
+    onClearedClick: (() -> Unit)? = null, tagColors: Map<String, String>? = null) {
     val presentation = transactionRowPresentation(transaction, showAccount)
+    val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     Column(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
         .padding(horizontal = 20.dp, vertical = 12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -734,7 +738,7 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
         if (transaction.notes.isNotBlank() || showDate) {
             Row(Modifier.fillMaxWidth().padding(top = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (transaction.notes.isNotBlank()) {
-                    Text(transaction.notes, style = MaterialTheme.typography.bodyMedium,
+                    Text(coloredTagText(transaction.notes, effectiveTagColors), style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 } else Spacer(Modifier.weight(1f))
                 if (showDate) Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodySmall,
@@ -813,9 +817,11 @@ fun TransactionDetailsSheet(
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    tagColors: Map<String, String>? = null,
 ) {
     var confirmDelete by remember(transaction.id) { mutableStateOf(false) }
     val presentation = transactionRowPresentation(transaction, showAccount = true)
+    val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp),
@@ -836,7 +842,9 @@ fun TransactionDetailsSheet(
                 TransactionDetail("Transfer account", it)
             }
             TransactionDetail("Status", if (transaction.cleared) "Cleared" else "Uncleared")
-            transaction.notes.takeIf(String::isNotBlank)?.let { TransactionDetail("Notes", it) }
+            transaction.notes.takeIf(String::isNotBlank)?.let {
+                TransactionTagDetail("Notes", it, effectiveTagColors)
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = { confirmDelete = true }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
@@ -861,6 +869,14 @@ private fun TransactionDetail(label: String, value: String) {
     Row(Modifier.fillMaxWidth()) {
         Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(0.4f))
         Text(value, modifier = Modifier.weight(0.6f), textAlign = TextAlign.End)
+    }
+}
+
+@Composable
+private fun TransactionTagDetail(label: String, value: String, tagColors: Map<String, String>) {
+    Row(Modifier.fillMaxWidth()) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(0.4f))
+        Text(coloredTagText(value, tagColors), modifier = Modifier.weight(0.6f), textAlign = TextAlign.End)
     }
 }
 
