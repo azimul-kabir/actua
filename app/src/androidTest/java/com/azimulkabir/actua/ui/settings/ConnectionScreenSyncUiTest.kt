@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.fetchSemanticsNode
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -45,5 +46,20 @@ class ConnectionScreenSyncUiTest {
         val contentCenter = (contentBounds.left + contentBounds.right) / 2f
 
         assertTrue(abs(rootCenter - contentCenter) <= 2f)
+    }
+
+    @Test
+    fun manualSyncButtonShowsDemoLabelWithoutSpinner() {
+        compose.setContent {
+            MaterialTheme {
+                ManualSyncButtonContent(
+                    syncing = false,
+                    demoActive = true,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Demo is local only").assertExists()
+        compose.onNodeWithTag("manualSyncButtonIndicator").assertDoesNotExist()
     }
 }
