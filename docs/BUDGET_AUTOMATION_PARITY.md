@@ -62,7 +62,13 @@ the planner divides the remaining Ready to Budget amount proportionally by weigh
 remainder categories, preserves every cent through deterministic rounding, and includes the result
 in the same preview and atomic confirmation path. Remainder rows with an embedded daily, weekly,
 or monthly cap are now accepted as editable supported definitions and their per-month limit is
-applied before the remainder allocation is finalized.
+applied before the remainder allocation is finalized. The preview identifies every category with
+such a cap. Daily limits multiply by the selected calendar month's length; weekly limits count
+occurrences from the stored weekly start date that fall in the selected month. If prior-month
+carryover already exceeds the cap, `hold=true` preserves it and budgets nothing, while `hold=false`
+emits the negative excess release that Actual uses to return the excess to Ready to Budget.
+Remainder distribution uses integer-cent quotient/remainder allocation in stable category order,
+so repeated previews and applications are deterministic.
 
 The following upstream constructs are deliberately not executed yet: schedule funding, percentage
 sources other than current-month `available funds` (including income-category and previous-month

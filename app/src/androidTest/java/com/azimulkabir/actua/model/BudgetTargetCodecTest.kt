@@ -43,6 +43,35 @@ class BudgetTargetCodecTest {
         assertEquals(false, document.hasUnsupported)
     }
 
+    @Test fun remainderLimitCodecPreservesAllPeriodsAndWeeklyStart() {
+        listOf(
+            BudgetTarget.LimitPeriod.DAILY to null,
+            BudgetTarget.LimitPeriod.MONTHLY to null,
+            BudgetTarget.LimitPeriod.WEEKLY to "2026-09-01",
+        ).forEach { (period, start) ->
+            val target = BudgetTarget(
+                BudgetTarget.Type.REMAINDER,
+                weight = 2,
+                limitPeriod = period,
+                limitAmountCents = 12_345,
+                limitStartDate = start,
+                limitHold = true,
+            )
+            assertEquals(target, BudgetTarget.fromGoalDef(target.toGoalDef(), "ui"))
+        }
+    }
+
+    @Test fun malformedRemainderLimitRemainsReadOnly() {
+        val document = BudgetAutomationDocument.decode(
+            """[{"directive":"template","type":"remainder","priority":null,"weight":1,
+                "limit":{"amount":10,"period":"quarterly","hold":false}}]""".replace("\n", ""),
+            "ui",
+        )
+
+        assertEquals(emptyList<BudgetTarget>(), document.supported)
+        assertEquals(true, document.hasUnsupported)
+    }
+
     @Test fun remainderLimitCapsTheShareOfAvailableFunds() {
         val rent = BudgetCategory(
             name = "Rent",
