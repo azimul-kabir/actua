@@ -54,7 +54,7 @@ class AppNavigationSyncBannerTest {
     fun syncBannerKeepsIndicatorAndTextPresentOnNarrowWidth() {
         compose.setContent {
             MaterialTheme {
-                Box(Modifier.width(180.dp)) {
+                Box(Modifier.width(180.dp).testTag("syncStatusBannerNarrowHost")) {
                     SyncStatusBanner()
                 }
             }
@@ -62,5 +62,15 @@ class AppNavigationSyncBannerTest {
 
         compose.onNodeWithTag("syncStatusBannerIndicator").assertExists()
         compose.onNodeWithText("Syncing budget… Showing local data.").assertExists()
+
+        val hostBounds = compose.onNodeWithTag("syncStatusBannerNarrowHost").fetchSemanticsNode().boundsInRoot
+        val contentBounds = compose.onNodeWithTag("syncStatusBannerContent").fetchSemanticsNode().boundsInRoot
+        val indicatorBounds = compose.onNodeWithTag("syncStatusBannerIndicator").fetchSemanticsNode().boundsInRoot
+        val textBounds = compose.onNodeWithText("Syncing budget… Showing local data.").fetchSemanticsNode().boundsInRoot
+
+        assertTrue(contentBounds.left >= hostBounds.left)
+        assertTrue(contentBounds.right <= hostBounds.right)
+        assertTrue(textBounds.left >= indicatorBounds.right)
+        assertTrue(textBounds.right <= contentBounds.right)
     }
 }
