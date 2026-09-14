@@ -27,9 +27,9 @@ release and the two newest stable emulator images currently installable on
 GitHub-hosted runners, so platform fixes do not silently regress existing
 installations.
 
-API 37 compilation and target-SDK checks run in the regular Android workflow,
-which installs the canary API 37 platform explicitly. API 37 is not yet in the
-compatibility matrix because Google's stable SDK channel does not currently
+API 37 compilation and target-SDK checks run in the regular Android workflow and
+the compatibility workflow, both of which install the canary API 37 platform
+explicitly. API 37 is not yet in the runtime compatibility matrix because Google's stable SDK channel does not currently
 publish an installable `platforms;android-37` package and emulator image to the
 runner. Add the device job once those packages are available from the stable
 channel; until then, Android 17 runtime paths require the Pixel 8/manual checks
