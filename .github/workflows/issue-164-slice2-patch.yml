@@ -10,137 +10,18 @@ permissions:
 
 jobs:
   patch:
-    if: ${{ !contains(github.event.head_commit.message, 'Apply Balance Cap Slice 2 UI') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           ref: issue-164-balance-cap-slice-2
-      - name: Patch Balance Cap editor UI
-        shell: python
+      - name: Apply Balance Cap editor patch
+        run: python3 .github/scripts/issue164_slice2.py
+      - name: Commit patch if needed
         run: |
-          from pathlib import Path
-
-          path = Path('app/src/main/java/com/azimulkabir/actua/ui/budget/BudgetScreen.kt')
-          text = path.read_text()
-
-          def replace(old, new):
-              global text
-              if old not in text:
-                  raise SystemExit(f'Expected snippet not found:\n{old[:300]}')
-              text = text.replace(old, new, 1)
-
-          replace(
-              '            title = target.type.label\n',
-              '            title = if (target.isBalanceCap) "Balance cap" else target.type.label\n'
-          )
-
-          replace(
-              '                BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS,\n                BudgetTarget.Type.REFILL -> "Resets every month"\n',
-              '                BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS -> "Resets every month"\n                BudgetTarget.Type.REFILL -> if (target.isBalanceCap) {\n                    when (target.limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY) {\n                        BudgetTarget.LimitPeriod.DAILY -> "Daily balance cap"\n                        BudgetTarget.LimitPeriod.WEEKLY -> "Weekly balance cap"\n                        BudgetTarget.LimitPeriod.MONTHLY -> "Monthly balance cap"\n                    }\n                } else "Resets every month"\n'
-          )
-
-          replace(
-              '    var limitPeriod by remember(category) { mutableStateOf(category.target?.limitPeriod) }\n',
-              '    var editingBalanceCap by remember(category) { mutableStateOf(category.target?.isBalanceCap == true) }\n    var limitPeriod by remember(category) {\n        mutableStateOf(category.target?.limitPeriod ?: if (category.target?.isBalanceCap == true)\n            BudgetTarget.LimitPeriod.MONTHLY else null)\n    }\n'
-          )
-
-          replace(
-              '        BudgetTarget.Type.WEEKLY_SPENDING -> runCatching { java.time.LocalDate.parse(date) }.isSuccess\n        else -> true\n',
-              '        BudgetTarget.Type.WEEKLY_SPENDING -> runCatching { java.time.LocalDate.parse(date) }.isSuccess\n        BudgetTarget.Type.REFILL -> !editingBalanceCap || limitPeriod != BudgetTarget.LimitPeriod.WEEKLY ||\n            runCatching { java.time.LocalDate.parse(limitStartDate) }.isSuccess\n        else -> true\n'
-          )
-
-          replace(
-              '        BudgetTarget.Type.COPY -> lookBackMonths.toIntOrNull() in 1..24\n        BudgetTarget.Type.REMAINDER -> weight.toIntOrNull()?.let { it >= 1 } == true &&\n',
-              '        BudgetTarget.Type.COPY -> lookBackMonths.toIntOrNull() in 1..24\n        BudgetTarget.Type.REFILL -> amountCents?.let { it > 0L } == true &&\n            (!editingBalanceCap || limitPeriod != null)\n        BudgetTarget.Type.REMAINDER -> weight.toIntOrNull()?.let { it >= 1 } == true &&\n'
-          )
-
-          replace(
-              '                            Text(type.label, fontWeight = FontWeight.SemiBold)\n',
-              '                            Text(if (editingBalanceCap && type == BudgetTarget.Type.REFILL) "Balance cap" else type.label,\n                                fontWeight = FontWeight.SemiBold)\n'
-          )
-
-          replace(
-              '                DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {\n                    BudgetTarget.Type.entries.filterNot { it == BudgetTarget.Type.SCHEDULE }.forEach { option ->\n',
-              '                DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {\n                    DropdownMenuItem(text = {\n                        Column {\n                            Text("Balance cap")\n                            Text("Limit the category balance without requesting refill funding",\n                                style = MaterialTheme.typography.bodySmall,\n                                color = MaterialTheme.colorScheme.onSurfaceVariant)\n                        }\n                    }, onClick = {\n                        type = BudgetTarget.Type.REFILL\n                        editingBalanceCap = true\n                        if (limitPeriod == null) limitPeriod = BudgetTarget.LimitPeriod.MONTHLY\n                        typeMenu = false\n                    })\n                    BudgetTarget.Type.entries.filterNot { it == BudgetTarget.Type.SCHEDULE }.forEach { option ->\n'
-          )
-
-          replace(
-              '                        }, onClick = { type = option; typeMenu = false })\n',
-              '                        }, onClick = { type = option; editingBalanceCap = false; typeMenu = false })\n'
-          )
-
-          replace(
-              '            if (type == BudgetTarget.Type.REMAINDER) {\n',
-              '''            if (type == BudgetTarget.Type.REFILL && editingBalanceCap) {
-                Text("Balance cap cadence", style = MaterialTheme.typography.titleSmall)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BudgetTarget.LimitPeriod.entries.forEach { period ->
-                        FilledTonalButton(
-                            onClick = { limitPeriod = period },
-                            modifier = Modifier.weight(1f),
-                            colors = if (limitPeriod == period) ButtonDefaults.filledTonalButtonColors()
-                                else ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                ),
-                        ) { Text(period.jsonValue.replaceFirstChar(Char::uppercase)) }
-                    }
-                }
-                if (limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) {
-                    OutlinedTextField(
-                        value = limitStartDate,
-                        onValueChange = { limitStartDate = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Weekly start date") },
-                        placeholder = { Text("YYYY-MM-DD") },
-                        singleLine = true,
-                    )
-                }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Retain existing funds over the cap")
-                        Text(
-                            if (limitHold) "Excess carryover stays in the category."
-                            else "Excess carryover is released to Ready to Budget.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(checked = limitHold, onCheckedChange = { limitHold = it })
-                }
-            }
-            if (type == BudgetTarget.Type.REMAINDER) {
-'''
-          )
-
-          replace(
-              '                        BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS, BudgetTarget.Type.REFILL -> "Every month"\n',
-              '                        BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS -> "Every month"\n                        BudgetTarget.Type.REFILL -> if (editingBalanceCap)\n                            (limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY).jsonValue.replaceFirstChar(Char::uppercase)\n                            else "Every month"\n'
-          )
-
-          replace(
-              '                        priority = category.target?.priority ?: 1,\n',
-              '                        priority = if (type == BudgetTarget.Type.REFILL && editingBalanceCap) 0\n                            else category.target?.priority?.takeIf { it > 0 } ?: 1,\n'
-          )
-
-          replace(
-              '                        limitPeriod = if (type == BudgetTarget.Type.REMAINDER) limitPeriod else null,\n                        limitAmountCents = if (type == BudgetTarget.Type.REMAINDER) limitAmountCents else null,\n                        limitStartDate = if (type == BudgetTarget.Type.REMAINDER &&\n                            limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) limitStartDate else null,\n                        limitHold = if (type == BudgetTarget.Type.REMAINDER) limitHold else false,\n',
-              '                        limitPeriod = if (type == BudgetTarget.Type.REMAINDER ||\n                            type == BudgetTarget.Type.REFILL && editingBalanceCap) limitPeriod else null,\n                        limitAmountCents = if (type == BudgetTarget.Type.REMAINDER) limitAmountCents else null,\n                        limitStartDate = if ((type == BudgetTarget.Type.REMAINDER ||\n                            type == BudgetTarget.Type.REFILL && editingBalanceCap) &&\n                            limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) limitStartDate else null,\n                        limitHold = if (type == BudgetTarget.Type.REMAINDER ||\n                            type == BudgetTarget.Type.REFILL && editingBalanceCap) limitHold else false,\n'
-          )
-
-          replace(
-              '                            Text(target.type.label, fontWeight = FontWeight.SemiBold)\n',
-              '                            Text(if (target.isBalanceCap) "Balance cap" else target.type.label,\n                                fontWeight = FontWeight.SemiBold)\n'
-          )
-
-          replace(
-              '                                    BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of available funds"\n                                    else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)\n',
-              '                                    BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of available funds"\n                                    BudgetTarget.Type.REFILL -> if (target.isBalanceCap) {\n                                        val cadence = (target.limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY).jsonValue\n                                        formatMoneyCents(target.amountCents, hideDecimalPlaces) + " · " + cadence +\n                                            if (target.limitHold) " · retain excess" else " · release excess"\n                                    } else formatMoneyCents(target.amountCents, hideDecimalPlaces)\n                                    else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)\n'
-          )
-
-          path.write_text(text)
-      - name: Commit patch
-        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app/src/main/java/com/azimulkabir/actua/ui/budget/BudgetScreen.kt
