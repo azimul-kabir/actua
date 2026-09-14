@@ -36,12 +36,12 @@ class AppNavigationSyncBannerTest {
         compose.onNodeWithTag("syncStatusBannerIndicator").assertExists()
         compose.onNodeWithText("Syncing budget… Showing local data.").assertExists()
 
-        val hostBounds = compose.onNodeWithTag("syncStatusBannerHost").fetchSemanticsNode().boundsInRoot
+        val contentBounds = compose.onNodeWithTag("syncStatusBannerContent").fetchSemanticsNode().boundsInRoot
         val indicatorBounds = compose.onNodeWithTag("syncStatusBannerIndicator").fetchSemanticsNode().boundsInRoot
         val textBounds = compose.onNodeWithText("Syncing budget… Showing local data.").fetchSemanticsNode().boundsInRoot
         val expectedStartInset = with(compose.density) { 20.dp.toPx() }
         val expectedGap = with(compose.density) { 10.dp.toPx() }
-        val actualStartInset = indicatorBounds.left - hostBounds.left
+        val actualStartInset = indicatorBounds.left - contentBounds.left
         val actualGap = textBounds.left - indicatorBounds.right
 
         assertTrue(abs(actualStartInset - expectedStartInset) <= 2f)

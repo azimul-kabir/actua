@@ -159,7 +159,8 @@ internal fun SyncStatusBanner(modifier: Modifier = Modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                .padding(start = 20.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+                .testTag("syncStatusBannerContent"),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
