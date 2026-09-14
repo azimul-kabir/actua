@@ -64,14 +64,15 @@ class BudgetTargetCodecTest {
         }
     }
 
-    @Test fun balanceCapDoesNotTurnIntoRefillFundingOrZeroExistingBudget() {
+    @Test fun balanceCapDoesNotFundLikeRefillAndReleasesOnlyExcessCarryover() {
         val cap = BudgetTarget(BudgetTarget.Type.REFILL, 50_000, priority = 0)
         val category = BudgetCategory(
             name = "Buffer",
-            assigned = 30_000,
+            assigned = 0,
             spent = 0,
-            actualAssignedCents = 30_000,
+            actualAssignedCents = 0,
             id = "buffer",
+            availableCents = 80_000,
             automations = listOf(cap),
         )
 
@@ -81,7 +82,10 @@ class BudgetTargetCodecTest {
             "2026-09",
             overwriteExisting = true,
         )
-        assertEquals(emptyList<BudgetTemplateChange>(), preview.changes)
+        assertEquals(
+            listOf(BudgetTemplateChange("Plan", "buffer", "Buffer", 0L, -30_000L)),
+            preview.changes,
+        )
     }
 
     @Test fun remainderWithAnEmbeddedLimitRoundTripsAsSupported() {
