@@ -9,8 +9,8 @@
 ![Beta](https://img.shields.io/badge/status-beta-F0A44B)
 ![License](https://img.shields.io/badge/License-MIT-48506A)
 
-<p align="center">
-  <img src="artwork/actua-hero.jpg" alt="Actua for Android showing budget, category, transaction and bills screens" width="900">
+<p align="left">
+  <img src="artwork/actua-hero.png" alt="Actua for Android showing budget, category, transaction and bills screens" width="900">
 </p>
 
 ## About
