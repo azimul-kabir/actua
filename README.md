@@ -153,7 +153,7 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 
 - Android 9 (API 28) or later
 - A reachable self-hosted Actual Budget server for synchronized real budgets; password and Actual-managed OpenID/OIDC authentication are supported, while the built-in demo budget works without a server
-- Android Studio with JDK 11 or later for local builds
+- Android Studio with JDK 25 for the Gradle runtime; app Java/Kotlin bytecode targets Java 17
 
 ## Before testing with a real budget
 
