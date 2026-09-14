@@ -1884,6 +1884,7 @@ private fun TargetDetailsCard(
             detail = when (target.type) {
                 BudgetTarget.Type.AVERAGE -> "Average of ${target.averageMonths} recent months"
                 BudgetTarget.Type.REMAINDER -> "Weight ${target.weight}"
+                BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of available funds"
                 else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)
             }
             val timing = when (target.type) {
@@ -1895,10 +1896,12 @@ private fun TargetDetailsCard(
                 BudgetTarget.Type.AVERAGE -> "Recalculates every month"
                 BudgetTarget.Type.GOAL -> "Target only"
                 BudgetTarget.Type.REMAINDER -> "After other automations"
+                BudgetTarget.Type.PERCENTAGE -> "At this priority"
             }
             supporting = when (target.type) {
                 BudgetTarget.Type.GOAL -> "$timing · Does not budget funds automatically"
                 BudgetTarget.Type.REMAINDER -> "$timing · Applied in whole-budget preview"
+                BudgetTarget.Type.PERCENTAGE -> "$timing · Applied in whole-budget preview"
                 else -> "$timing · Auto-Assign ${formatMoneyCents(target.suggestedBudget(category, month), hideDecimalPlaces)}"
             }
         }
@@ -1985,6 +1988,7 @@ private fun TargetEditorSheet(
     }
     var averageMonths by remember(category) { mutableStateOf(category.target?.averageMonths?.toString() ?: "3") }
     var weight by remember(category) { mutableStateOf(category.target?.weight?.toString() ?: "1") }
+    var percentage by remember(category) { mutableStateOf(category.target?.percentage?.toString() ?: "10") }
     var typeMenu by remember { mutableStateOf(false) }
     val amountCents = runCatching { java.math.BigDecimal(amount).movePointRight(2).longValueExact() }.getOrNull()
     val validDate = when (type) {
@@ -1995,6 +1999,7 @@ private fun TargetEditorSheet(
     val canSave = when (type) {
         BudgetTarget.Type.AVERAGE -> averageMonths.toIntOrNull() in 1..24
         BudgetTarget.Type.REMAINDER -> weight.toIntOrNull()?.let { it >= 1 } == true
+        BudgetTarget.Type.PERCENTAGE -> percentage.toIntOrNull() in 1..100
         else -> amountCents != null && amountCents > 0L
     } && validDate
     ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null,
@@ -2027,7 +2032,8 @@ private fun TargetEditorSheet(
                     }
                 }
             }
-            if (type != BudgetTarget.Type.AVERAGE && type != BudgetTarget.Type.REMAINDER) {
+            if (type != BudgetTarget.Type.AVERAGE && type != BudgetTarget.Type.REMAINDER &&
+                type != BudgetTarget.Type.PERCENTAGE) {
                 OutlinedTextField(value = amount, onValueChange = { amount = it }, modifier = Modifier.fillMaxWidth(),
                     label = { Text("Amount") }, prefix = { Text(formatMoneyCents(0, hideDecimalPlaces).filterNot { it.isDigit() || it in ".,−-" }) },
                     singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
@@ -2044,6 +2050,16 @@ private fun TargetEditorSheet(
                     modifier = Modifier.fillMaxWidth(), label = { Text("Weight") }, singleLine = true,
                     supportingText = { Text("Higher weights receive a larger share of remaining Ready to Budget funds.") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                BudgetTarget.Type.PERCENTAGE -> OutlinedTextField(
+                    value = percentage,
+                    onValueChange = { percentage = it.filter(Char::isDigit) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Percentage") },
+                    suffix = { Text("%") },
+                    supportingText = { Text("Uses Available Funds at the start of this priority.") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
                 else -> Unit
             }
             Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(14.dp)) {
@@ -2056,6 +2072,7 @@ private fun TargetEditorSheet(
                         BudgetTarget.Type.AVERAGE -> "Recalculate monthly"
                         BudgetTarget.Type.GOAL -> "Does not auto-budget"
                         BudgetTarget.Type.REMAINDER -> "After other automations"
+                        BudgetTarget.Type.PERCENTAGE -> "At this priority"
                     }, fontWeight = FontWeight.SemiBold)
                 }
             }
@@ -2084,6 +2101,7 @@ private fun TargetEditorSheet(
                         averageMonths = averageMonths.toIntOrNull()?.coerceIn(1, 24) ?: 3,
                         priority = category.target?.priority ?: 1,
                         weight = weight.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+                        percentage = percentage.toIntOrNull()?.coerceIn(1, 100) ?: 0,
                     ))
                 }, enabled = canSave) { Text("Save") }
             }
@@ -2163,6 +2181,7 @@ private fun AutomationListEditorSheet(
                                 when (target.type) {
                                     BudgetTarget.Type.AVERAGE -> "${target.averageMonths} recent months"
                                     BudgetTarget.Type.REMAINDER -> "Weight ${target.weight}"
+                                    BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of available funds"
                                     else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)
                                 },
                                 style = MaterialTheme.typography.bodySmall,

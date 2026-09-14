@@ -90,11 +90,21 @@ data class BudgetAutomationDocument(
                 add("Weekly remainder limits need a start date")
             }
             if (targets.any { it.priority < 0 }) add("Automation priority cannot be negative")
+            if (targets.any { it.type == BudgetTarget.Type.PERCENTAGE && it.percentage !in 1..100 }) {
+                add("Percentage automations must be between 1 and 100")
+            }
+            if (targets.any {
+                    it.type == BudgetTarget.Type.PERCENTAGE &&
+                        (it.percentageSource != "available funds" || it.percentagePrevious)
+                }) {
+                add("Only current Available Funds percentage automations are supported")
+            }
             if (targets.filter { it.type == BudgetTarget.Type.BY_DATE }.map(BudgetTarget::priority).distinct().size > 1) {
                 add("Date targets must use the same priority")
             }
             targets.forEachIndexed { index, target ->
                 if (target.type != BudgetTarget.Type.AVERAGE && target.type != BudgetTarget.Type.REMAINDER &&
+                    target.type != BudgetTarget.Type.PERCENTAGE &&
                     target.amountCents <= 0
                 ) {
                     add("Automation ${index + 1} needs a positive amount")
