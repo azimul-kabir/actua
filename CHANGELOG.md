@@ -277,6 +277,7 @@ No user-facing changes yet.
   schedule creation
 - Added a monthly Bills calendar with recurring and card-bill views, due-date
   projection, status totals, date filters, and schedule actions
+
 ### Changed
 
 - Refined Bills and schedule navigation so adding, editing, posting, skipping,
