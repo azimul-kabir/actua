@@ -1890,7 +1890,7 @@ private fun TargetDetailsCard(
         }
         category.automations.size > 1 -> {
             title = "${category.automations.size} automations"
-            detail = category.automations.joinToString { it.type.label }
+            detail = category.automations.joinToString { if (it.isBalanceCap) "Balance cap" else it.type.label }
             supporting = "Edit automation list · Apply after whole-budget preview"
         }
         target == null -> {
@@ -1932,11 +1932,12 @@ private fun TargetDetailsCard(
                 BudgetTarget.Type.PERCENTAGE -> "At this priority"
                 BudgetTarget.Type.SCHEDULE -> "Schedule-driven"
             }
-            supporting = when (target.type) {
-                BudgetTarget.Type.GOAL -> "$timing · Does not budget funds automatically"
-                BudgetTarget.Type.REMAINDER -> "$timing · Applied in whole-budget preview"
-                BudgetTarget.Type.PERCENTAGE -> "$timing · Applied in whole-budget preview"
-                BudgetTarget.Type.SCHEDULE -> "$timing · Read-only until schedule evaluation is exact"
+            supporting = when {
+                target.isBalanceCap -> "$timing · Does not request funding automatically"
+                target.type == BudgetTarget.Type.GOAL -> "$timing · Does not budget funds automatically"
+                target.type == BudgetTarget.Type.REMAINDER -> "$timing · Applied in whole-budget preview"
+                target.type == BudgetTarget.Type.PERCENTAGE -> "$timing · Applied in whole-budget preview"
+                target.type == BudgetTarget.Type.SCHEDULE -> "$timing · Read-only until schedule evaluation is exact"
                 else -> "$timing · Auto-Assign ${formatMoneyCents(target.suggestedBudget(category, month), hideDecimalPlaces)}"
             }
         }
@@ -1973,7 +1974,7 @@ private fun SummaryValue(label: String, amount: Long, hideDecimals: Boolean, mod
 }
 
 private fun buildAutoAssignChoices(category: BudgetCategory, month: String): List<Pair<String, Long>> = buildList {
-    category.target?.let { target ->
+    category.target?.takeUnless(BudgetTarget::isBalanceCap)?.let { target ->
         add("Target · ${target.type.label}" to target.suggestedBudget(category, month))
     }
     category.history.firstOrNull()?.let { last ->
@@ -2250,8 +2251,13 @@ private fun TargetEditorSheet(
                     }, fontWeight = FontWeight.SemiBold)
                 }
             }
-            Text(type.explanation, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                if (type == BudgetTarget.Type.REFILL && editingBalanceCap)
+                    "Limit the category balance without requesting refill funding."
+                else type.explanation,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 if (category.target != null) TextButton(onClick = { onSave(null) }) {
                     Text("Remove target", color = MaterialTheme.colorScheme.error)
