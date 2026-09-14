@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.graphics.Color
@@ -11,6 +12,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import com.azimulkabir.actua.data.budget.TagMetadataStore
+import com.azimulkabir.actua.data.sync.SyncSignals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -68,10 +70,11 @@ internal fun tagForeground(background: Color): Color =
 @Composable
 fun rememberActualTagColors(refreshKey: Any? = Unit): Map<String, String> {
     val context = LocalContext.current
+    val syncDataGeneration by SyncSignals.dataGeneration.collectAsState()
     val colors by produceState<Map<String, String>>(
         initialValue = emptyMap(),
         key1 = context,
-        key2 = refreshKey,
+        key2 = refreshKey to syncDataGeneration,
     ) {
         value = withContext(Dispatchers.IO) {
             TagMetadataStore(context).activeTagColors()
