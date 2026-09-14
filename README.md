@@ -108,6 +108,7 @@ at full resolution.
   with a compact icon-only mode
 - Global search across transactions, accounts, payees, categories, notes, and transfers
 - Unified Material You category budgeting with synced targets, target-aware auto-assign, money movement, details, and recent activity
+- Exact prior-month copy targets alongside recent-spending averages, with unsupported history variants preserved read-only
 - Preview-first whole-budget application for supported category targets, including multiple
   contributions, upstream priority order, refill caps and available-funds clamping, with atomic
   CRDT writes, separate safe Apply and explicit Overwrite actions, and disclosure of unsupported

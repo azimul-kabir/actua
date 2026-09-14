@@ -109,6 +109,9 @@ data class BudgetAutomationDocument(
             if (targets.any { it.type == BudgetTarget.Type.PERCENTAGE && it.percentage !in 1..100 }) {
                 add("Percentage automations must be between 1 and 100")
             }
+            if (targets.any { it.type == BudgetTarget.Type.COPY && it.lookBackMonths !in 1..24 }) {
+                add("Copy automations must look back 1 to 24 months")
+            }
             if (targets.any { it.type == BudgetTarget.Type.PERCENTAGE && it.percentageSource.isBlank() }) {
                 add("Percentage automations need an income source")
             }
@@ -131,7 +134,8 @@ data class BudgetAutomationDocument(
                 add("Date targets must use the same priority")
             }
             targets.forEachIndexed { index, target ->
-                if (target.type != BudgetTarget.Type.AVERAGE && target.type != BudgetTarget.Type.REMAINDER &&
+                if (target.type != BudgetTarget.Type.AVERAGE && target.type != BudgetTarget.Type.COPY &&
+                    target.type != BudgetTarget.Type.REMAINDER &&
                     target.type != BudgetTarget.Type.PERCENTAGE && target.type != BudgetTarget.Type.SCHEDULE &&
                     target.amountCents <= 0
                 ) {

@@ -150,7 +150,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Category Spent amounts open the matching category transactions for the selected month
 - Category details with notes, rollover overspending, and six-month history-based quick assign
 - Actual-compatible UI-managed category targets for monthly spending, fixed monthly saving,
-  save-by-date, refill-to-cap, weekly spending, and recent-spending averages; target-aware
+  save-by-date, refill-to-cap, weekly spending, recent-spending averages, and exact prior-month
+  copy targets; target-aware
   Auto Assign; preview-first whole-budget application of supported targets in upstream priority
   order with multi-contribution, refill-cap and available-funds handling, safe Apply versus
   explicit Overwrite behavior, and one CRDT mutation batch;

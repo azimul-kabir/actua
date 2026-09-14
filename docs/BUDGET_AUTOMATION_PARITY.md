@@ -36,7 +36,8 @@ and its editor model is in
 ## Actua implementation boundary
 
 Actua currently reads and edits these exact UI-managed projections: monthly spending, fixed monthly
-saving, save-by-date, refill-to-cap, weekly spending, recent-month average, goal-only balance
+saving, save-by-date, refill-to-cap, weekly spending, recent-month average, prior-month copy,
+goal-only balance
 targets, and current-month percentage-of-Available-Funds contributions. Goal-only rows update Actual's monthly `goal` and `long_goal` values without requesting
 budget funds. The whole-budget
 action now provides a read-only preview for these supported targets, identifies unchanged rows,
