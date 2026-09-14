@@ -90,12 +90,20 @@ not a full device suite.
 ## Contribution and workflow safety
 
 Every development change must start with a GitHub issue that defines the problem,
-scope, and acceptance criteria. Only after the issue exists, create a focused
-feature or fix branch and open a pull request linked to that issue. Do not develop
-directly on `main` or open an unlinked development PR. Use one concern per issue,
-branch, and PR, concise titles, and the PR template. Report Android issues here and
-link upstream evidence for shared behavior. Do not include sensitive data in issues,
-review output or screenshots.
+scope, and acceptance criteria. When creating that issue, first inspect the
+repository's existing labels and include the appropriate labels in the issue
+creation request itself. Every new issue should receive at least one suitable
+existing type/category label whenever one is available; prefer the most specific
+applicable labels rather than leaving the issue unlabeled. Do not invent or create
+new labels unless explicitly requested. Labeling is part of issue creation and
+must happen before branch creation, implementation, or pull-request work begins.
+
+Only after the issue exists, create a focused feature or fix branch and open a
+pull request linked to that issue. Do not develop directly on `main` or open an
+unlinked development PR. Use one concern per issue, branch, and PR, concise
+titles, and the PR template. Report Android issues here and link upstream evidence
+for shared behavior. Do not include sensitive data in issues, review output or
+screenshots.
 
 Normal Android CI executes PR code under `pull_request` on hosted runners with
 read-only repository permissions and no privileged secrets. Any workflow using
