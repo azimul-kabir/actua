@@ -67,7 +67,7 @@ settings, signing material or versionCode/versionName changes unless requested.
 ## Build and validation
 
 Use the committed Gradle wrapper. The daemon toolchain is JDK 25 in
-`gradle/gradle-daemon-jvm.properties`; Java/Kotlin bytecode targets Java 11,
+`gradle/gradle-daemon-jvm.properties`; Java/Kotlin bytecode targets Java 17,
 which is not the Gradle runtime requirement. Install Android SDK 37; minSdk is
 28. Dependency versions live in `gradle/libs.versions.toml`.
 
