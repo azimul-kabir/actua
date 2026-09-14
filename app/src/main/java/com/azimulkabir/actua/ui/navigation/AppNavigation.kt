@@ -177,6 +177,9 @@ fun AppNavigation(
         mutableStateOf(java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date()))
     }
     val budgetGroups = remember(dataVersion, budgetMonth) { repository.budgetGroups(budgetMonth) }
+    val budgetScheduleFunding = remember(dataVersion, budgetMonth) {
+        repository.budgetScheduleFunding(budgetMonth)
+    }
     val budgetOverview = remember(dataVersion, budgetMonth) { repository.budgetOverview(budgetMonth) }
     val accounts = remember(dataVersion) { repository.accounts() }
     var hideReconciledTransactions by remember {
@@ -1194,6 +1197,7 @@ fun AppNavigation(
                     onApplyBudgetTemplate = { preview ->
                         mutate("Applying budget template") { repository.applyBudgetTemplate(preview) }
                     },
+                    scheduleFunding = budgetScheduleFunding,
                     onSearch = { detail = DetailDestination.Search },
                     transactions = filteredTransactions,
                     onDeleteCategory = { group, category ->

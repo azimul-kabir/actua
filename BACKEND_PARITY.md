@@ -156,11 +156,13 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   explicit Overwrite behavior, and one CRDT mutation batch;
   multi-automation list editing and atomic `goal_def` replacement for fully supported UI-managed
   definitions; goal-only balance targets with atomic budget/goal writes; weighted remainder
-  distribution after ordinary priorities; current-month percentage-of-Available-Funds
-  contributions; and safe read-only disclosure of advanced or notes-managed templates
+  distribution after ordinary priorities; current-month available-funds, all-income, and exact
+  income-category percentage contributions; and safe read-only disclosure of advanced or
+  notes-managed templates
 - Exact schedule-template reference codec (`scheduleId`/`name`) with explicit read-only
-  disclosure; schedule funding remains disabled until recurrence, past/completed handling,
-  amount ranges, and schedule-owned rule actions can be evaluated without approximation
+  disclosure for unresolved rows; resolved schedule funding now uses the existing recurrence
+  projection, completed/past handling, amount-range midpoint, priority validation, Ready to Budget
+  clamping, preview-first review, and atomic confirmation path
 - Account details with notes and working, cleared, uncleared, and reconciled balances
 - Full mobile account reconciliation with bank-balance comparison, difference display,
   uncleared-transaction review, optional cleared adjustment, and atomic CRDT locking

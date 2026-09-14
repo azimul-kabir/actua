@@ -227,7 +227,7 @@ data class BudgetTarget(
                 }
                 "percentage" -> row.takeIf {
                     it.optString("directive") == "template" &&
-                        it.optString("category").equals("available funds", ignoreCase = true) &&
+                        it.optString("category").isNotBlank() &&
                         it.optInt("percent", 0) in 1..100 &&
                         !it.optBoolean("previous", false)
                 }?.let {
@@ -293,6 +293,7 @@ object BudgetTemplatePlanner {
         month: String,
         availableBudgetCents: Long = Long.MAX_VALUE,
         overwriteExisting: Boolean = false,
+        schedules: List<BudgetScheduleFunding> = emptyList(),
     ): BudgetTemplatePreview {
         val changes = mutableListOf<BudgetTemplateChange>()
         val unsupported = mutableListOf<String>()
@@ -304,9 +305,23 @@ object BudgetTemplatePlanner {
         val supported = groups.filterNot { it.isIncome || it.hidden }.flatMap { group ->
             group.categories.filterNot { it.isIncome || it.hidden }.map { group to it }
         }
+        val scheduleNames = schedules.flatMap { it.referenceNames }.toSet()
+        val percentageSources = groups.filter { it.isIncome }.flatMap { it.categories }.flatMap { category ->
+            listOfNotNull(category.id, category.name).map { it to category.balanceCents.coerceAtLeast(0L) }
+        }.toMap() + ("all income" to groups.filter { it.isIncome }.flatMap { it.categories }
+            .sumOf { it.balanceCents.coerceAtLeast(0L) })
         val eligible = supported.filter { (_, category) ->
             val hasTargets = category.automations.isNotEmpty() || category.target != null
-            val canRun = !category.hasUnsupportedTarget && hasTargets
+            val targets = category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
+            val unresolvedSchedule = targets.any {
+                it.type == BudgetTarget.Type.SCHEDULE &&
+                    ((it.scheduleId ?: it.scheduleName).orEmpty() !in scheduleNames ||
+                        schedules.none { schedule ->
+                            targetReference(it) in schedule.referenceNames &&
+                                (schedule.categoryId == null || schedule.categoryId == category.id)
+                        })
+            }
+            val canRun = !category.hasUnsupportedTarget && hasTargets && !unresolvedSchedule
             if (canRun && !overwriteExisting && category.assignedCents != 0L) skippedExisting++
             canRun && (overwriteExisting || category.assignedCents == 0L)
         }
@@ -345,7 +360,9 @@ object BudgetTemplatePlanner {
                 val atPriority = targets.filter { it.priority == priority }
                 if (atPriority.isEmpty()) continue
                 val before = proposed[category] ?: 0L
-                val requested = requestedAtPriority(atPriority, category, month, priorityAvailableStart)
+                val requested = requestedAtPriority(
+                    atPriority, category, month, priorityAvailableStart, schedules, percentageSources,
+                )
                 val refillCap = targets.firstOrNull { it.type == BudgetTarget.Type.REFILL }?.amountCents
                 val remainderCap = remainderLimit?.limitForMonth(month)
                 val cap = listOfNotNull(refillCap, remainderCap).minOrNull()
@@ -359,11 +376,18 @@ object BudgetTemplatePlanner {
         }
         distributeRemainder(eligible, proposed, available, month)
         for ((group, category) in supported) {
-            if (category.hasUnsupportedTarget) {
+            val targets = category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
+            val unresolvedSchedule = targets.any {
+                it.type == BudgetTarget.Type.SCHEDULE &&
+                    schedules.none { schedule ->
+                        targetReference(it) in schedule.referenceNames && schedule.active &&
+                            (schedule.categoryId == null || schedule.categoryId == category.id)
+                    }
+            }
+            if (category.hasUnsupportedTarget || unresolvedSchedule) {
                 unsupported += "${group.name} · ${category.name}"
                 continue
             }
-            val targets = category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
             val goal = targets.firstOrNull { it.type == BudgetTarget.Type.GOAL }?.amountCents
             val goalChanged = goal != category.goalCents || goal != null && !category.longGoal
             if (goalChanged && (targets.isEmpty() || overwriteExisting || category.assignedCents == 0L)) {
@@ -461,24 +485,44 @@ object BudgetTemplatePlanner {
         category: BudgetCategory,
         month: String,
         availableAtPriorityStart: Long,
+        schedules: List<BudgetScheduleFunding>,
+        percentageSources: Map<String, Long>,
     ): Long {
         val by = targets.filter { it.type == BudgetTarget.Type.BY_DATE }
         val ordinary = targets.filterNot {
             it.type == BudgetTarget.Type.BY_DATE || it.type == BudgetTarget.Type.REFILL ||
             it.type == BudgetTarget.Type.GOAL || it.type == BudgetTarget.Type.REMAINDER ||
-            it.type == BudgetTarget.Type.PERCENTAGE
+            it.type == BudgetTarget.Type.PERCENTAGE || it.type == BudgetTarget.Type.SCHEDULE
         }
             .sumOf { it.suggestedBudget(category, month) }
+        val schedule = targets.filter { it.type == BudgetTarget.Type.SCHEDULE }.sumOf { target ->
+            schedules.firstOrNull {
+                targetReference(target) in it.referenceNames &&
+                    (it.categoryId == null || it.categoryId == category.id)
+            }
+                ?.requestedBudget(category.carryoverCents) ?: 0L
+        }
         val percentage = targets.filter { it.type == BudgetTarget.Type.PERCENTAGE }
             .sumOf { target ->
-            if (availableAtPriorityStart == Long.MAX_VALUE) 0L
-            else Math.round(max(0L, availableAtPriorityStart).toDouble() * target.percentage / 100.0)
+            val source = if (target.percentageSource.equals("available funds", ignoreCase = true)) {
+                availableAtPriorityStart
+            } else {
+                percentageSources.entries.firstOrNull {
+                    it.key.equals(target.percentageSource, ignoreCase = true)
+                }?.value ?: 0L
+            }
+            if (source == Long.MAX_VALUE) 0L
+            else Math.round(max(0L, source).toDouble() * target.percentage / 100.0)
             }
         val byAmount = if (by.isEmpty()) 0L else combinedByDate(by, category, month)
         val refill = targets.firstOrNull { it.type == BudgetTarget.Type.REFILL }
             ?.let { max(0L, it.amountCents - category.carryoverCents) } ?: 0L
-        return max(0L, ordinary + byAmount + refill + percentage)
+        return max(0L, ordinary + byAmount + refill + percentage + schedule)
     }
+
+    private fun targetReference(target: BudgetTarget): String =
+        target.scheduleId?.takeIf(String::isNotBlank)
+            ?: target.scheduleName?.trim().orEmpty()
 
     /** Matches Actual's batch treatment of sibling `by` templates: carryover is deducted once. */
     private fun combinedByDate(targets: List<BudgetTarget>, category: BudgetCategory, month: String): Long {

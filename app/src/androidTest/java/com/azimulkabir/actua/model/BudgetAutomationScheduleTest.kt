@@ -28,7 +28,7 @@ class BudgetAutomationScheduleTest {
         assertEquals(target, BudgetTarget.fromGoalDef(target.toGoalDef(), "ui"))
     }
 
-    @Test fun scheduleDefinitionsRemainReadOnlyInsteadOfBeingEvaluatedAsZero() {
+    @Test fun scheduleDefinitionsDecodeLosslesslyAndWaitForScheduleResolution() {
         val raw = BudgetTarget(
             type = BudgetTarget.Type.SCHEDULE,
             scheduleId = "schedule-123",
@@ -36,9 +36,8 @@ class BudgetAutomationScheduleTest {
 
         val document = BudgetAutomationDocument.decode(raw, "ui")
 
-        assertTrue(document.hasUnsupported)
-        assertEquals(listOf("schedule"), document.unsupportedTypes)
-        assertTrue(document.supported.isEmpty())
+        assertTrue(document.supported.single().type == BudgetTarget.Type.SCHEDULE)
+        assertTrue(document.unsupportedTypes.isEmpty())
     }
 
     @Test fun scheduleWithoutReferenceIsRejectedByCodec() {
