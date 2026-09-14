@@ -51,8 +51,11 @@ internal fun readTagColors(database: SQLiteDatabase): Map<String, String> {
     ).use { it.moveToFirst() }
     if (!hasTags) return emptyMap()
 
+    // Match Actual Budget's tags schema directly. Do not assume lifecycle columns
+    // such as tombstone/hidden exist, because current Actual databases store
+    // id, tag, color, and description only.
     return database.rawQuery(
-        "SELECT tag, color FROM tags WHERE (tombstone = 0 OR tombstone IS NULL) AND tag IS NOT NULL",
+        "SELECT tag, color FROM tags WHERE tag IS NOT NULL",
         null,
     ).use { cursor ->
         buildMap {
