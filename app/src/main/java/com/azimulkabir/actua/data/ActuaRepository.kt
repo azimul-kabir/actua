@@ -90,7 +90,9 @@ class ActuaRepository(context: Context) {
     private val actualDatabase: ActualBudgetDatabase? = BudgetFileManager(context).let { files ->
         val activeBudgetStore = ActiveBudgetStore(context)
         val selectedId = activeBudgetStore.budgetId
-        val candidates = files.listLocalBudgets().sortedBy { if (it.id == selectedId) 0 else 1 }
+        val candidates = files.listLocalBudgets().sortedWith(
+            compareBy({ if (it.id == selectedId) 0 else 1 }, { it.budgetName?.lowercase() ?: it.id }, { it.id }),
+        )
         val opened = candidates.firstNotNullOfOrNull { metadata ->
             openBudget(files, metadata.id)?.also {
                 if (metadata.id != selectedId) activeBudgetStore.budgetId = metadata.id
