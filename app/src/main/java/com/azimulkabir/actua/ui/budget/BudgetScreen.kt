@@ -1897,11 +1897,13 @@ private fun TargetDetailsCard(
                 BudgetTarget.Type.GOAL -> "Target only"
                 BudgetTarget.Type.REMAINDER -> "After other automations"
                 BudgetTarget.Type.PERCENTAGE -> "At this priority"
+                BudgetTarget.Type.SCHEDULE -> "Schedule-driven"
             }
             supporting = when (target.type) {
                 BudgetTarget.Type.GOAL -> "$timing · Does not budget funds automatically"
                 BudgetTarget.Type.REMAINDER -> "$timing · Applied in whole-budget preview"
                 BudgetTarget.Type.PERCENTAGE -> "$timing · Applied in whole-budget preview"
+                BudgetTarget.Type.SCHEDULE -> "$timing · Read-only until schedule evaluation is exact"
                 else -> "$timing · Auto-Assign ${formatMoneyCents(target.suggestedBudget(category, month), hideDecimalPlaces)}"
             }
         }
@@ -1971,7 +1973,14 @@ private fun TargetEditorSheet(
             Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Advanced target", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (category.unsupportedAutomationTypes.any { it.equals("schedule", ignoreCase = true) }) {
+                        "Schedule funding is read-only"
+                    } else {
+                        "Advanced target"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Text("This category uses advanced target settings that Actua cannot safely edit yet. You can continue to manage it in Actual Budget.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Close") }
@@ -2021,7 +2030,7 @@ private fun TargetEditorSheet(
                     }
                 }
                 DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
-                    BudgetTarget.Type.entries.forEach { option ->
+                    BudgetTarget.Type.entries.filterNot { it == BudgetTarget.Type.SCHEDULE }.forEach { option ->
                         DropdownMenuItem(text = {
                             Column {
                                 Text(option.label)
@@ -2073,6 +2082,7 @@ private fun TargetEditorSheet(
                         BudgetTarget.Type.GOAL -> "Does not auto-budget"
                         BudgetTarget.Type.REMAINDER -> "After other automations"
                         BudgetTarget.Type.PERCENTAGE -> "At this priority"
+                        BudgetTarget.Type.SCHEDULE -> "Schedule-driven"
                     }, fontWeight = FontWeight.SemiBold)
                 }
             }

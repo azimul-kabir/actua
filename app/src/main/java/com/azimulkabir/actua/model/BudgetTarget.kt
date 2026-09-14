@@ -24,6 +24,8 @@ data class BudgetTarget(
     val percentage: Int = 0,
     val percentageSource: String = "available funds",
     val percentagePrevious: Boolean = false,
+    val scheduleId: String? = null,
+    val scheduleName: String? = null,
 ) {
     enum class Type(val label: String, val explanation: String) {
         MONTHLY_SPENDING("Monthly spending", "Set aside enough for this month's spending"),
@@ -35,6 +37,7 @@ data class BudgetTarget(
         GOAL("Goal only", "Show a target balance without automatically budgeting money"),
         REMAINDER("Split remaining funds", "Receive a weighted share of Ready to Budget after other automations"),
         PERCENTAGE("Percentage of available funds", "Budget a percentage of funds available at this priority"),
+        SCHEDULE("Cover scheduled transaction", "Save up for a scheduled transaction"),
     }
 
     enum class LimitPeriod(val jsonValue: String) {
@@ -103,6 +106,7 @@ data class BudgetTarget(
         Type.GOAL -> 0L
         Type.REMAINDER -> 0L
         Type.PERCENTAGE -> 0L
+        Type.SCHEDULE -> 0L
         }
     }
 
@@ -150,6 +154,13 @@ data class BudgetTarget(
                     .put("priority", priority).put("percent", percentage)
                     .put("category", percentageSource).put("previous", percentagePrevious),
             ).toString()
+            Type.SCHEDULE -> {
+                val schedule = JSONObject().put("directive", "template").put("type", "schedule")
+                    .put("priority", priority)
+                scheduleId?.takeIf(String::isNotBlank)?.let { schedule.put("scheduleId", it) }
+                scheduleName?.takeIf(String::isNotBlank)?.let { schedule.put("name", it) }
+                return JSONArray().put(schedule).toString()
+            }
         }
         return JSONArray().put(row).toString()
     }
@@ -216,6 +227,17 @@ data class BudgetTarget(
                         Type.PERCENTAGE,
                         priority = priority,
                         percentage = it.optInt("percent"),
+                    )
+                }
+                "schedule" -> row.takeIf {
+                    it.optString("directive") == "template" &&
+                        (it.optString("scheduleId").isNotBlank() || it.optString("name").isNotBlank())
+                }?.let {
+                    BudgetTarget(
+                        Type.SCHEDULE,
+                        priority = priority,
+                        scheduleId = it.optString("scheduleId").ifBlank { null },
+                        scheduleName = it.optString("name").ifBlank { null },
                     )
                 }
                 else -> null

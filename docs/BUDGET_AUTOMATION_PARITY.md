@@ -72,3 +72,10 @@ automations use the Ready to Budget amount at the start of their priority, are c
 same available-funds rules as other positive-priority contributions, and can be edited only when
 their source and current-month semantics round-trip exactly. Later #56 work must port schedule
 evaluation and additional percentage validation fixtures before enabling those definitions.
+
+Schedule-template rows now have an exact, lossless UI codec for their stable `scheduleId`/`name`
+reference and are explicitly disclosed as read-only. They are not included in planner evaluation:
+Actual's schedule engine combines recurrence windows, completed/past-date handling, amount ranges,
+weekend solving, and schedule-owned rule actions. Treating any of those as a simple monthly amount
+would change funding semantics, so Actua leaves the stored row untouched until the existing
+schedule projections can carry all required inputs and the behavior has regression coverage.
