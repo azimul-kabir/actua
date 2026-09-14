@@ -90,3 +90,49 @@ Notes-managed templates are parsed from category notes before their `goal_def` i
 Supported note directives retain `template_settings.source = notes` and remain evaluable while
 the editor stays read-only. Malformed notes or notes containing any unsupported directive update
 only the note text and leave the prior definition untouched.
+
+## Slice 9: cleanup source/sink groups
+
+Faithful reference: Actual's
+[`cleanup-template.ts`](https://github.com/actualbudget/actual/blob/2fc69915c21fd61071d7913ffb7382dcf38d5857/packages/loot-core/src/server/budget/cleanup-template.ts),
+[`cleanup-template-notes.ts`](https://github.com/actualbudget/actual/blob/2fc69915c21fd61071d7913ffb7382dcf38d5857/packages/loot-core/src/server/budget/cleanup-template-notes.ts),
+[`cleanup-groups.ts`](https://github.com/actualbudget/actual/blob/2fc69915c21fd61071d7913ffb7382dcf38d5857/packages/loot-core/src/server/budget/cleanup-groups.ts),
+and the `cleanup-template.pegjs` grammar at the same commit.
+
+Cleanup is entirely notes-managed: `#cleanup source`, `#cleanup sink [weight]`, `#cleanup
+<group> source`, `#cleanup [<group>] sink [weight]`, and a bare `#cleanup <group>` (overspend)
+are parsed from every category's note into `cleanup_def` (a JSON array of `{role, groupId,
+weight}` rows) and `cleanup_groups` (named pools), mirroring `storeNoteCleanups()` and
+`tombstoneOrphanCleanupGroups()`. There is no UI editor for cleanup rows, matching upstream.
+Group names resolve case-insensitively; a re-scan un-tombstones a matching existing group rather
+than duplicating it, and un-referenced groups are tombstoned, never deleted.
+
+Cleanup-group-scoped rows (`groupId != null`) run first, one isolated pool per group: valid
+(non-negative-balance) sources sum into the pool; a group with no sinks and no overspend rows is
+left untouched and reported with an explicit warning instead of silently zeroing its sources;
+otherwise the pool first funds that group's overspent, non-`carryover` categories (partial fill
+allowed), then splits any remainder across that group's weighted sinks. Global rows (`groupId ==
+null`) return each source's leftover to the shared Ready-to-Budget pool and reset its `goal`/
+`long_goal`, followed by an unconditional overspend auto-fill of every non-income, non-`carryover`
+category (whether or not it participates in any cleanup group) from that growing shared pool, and
+finally any remainder splits across global weighted sinks.
+
+A whole-budget "Month-end cleanup" action previews every proposed budget and goal change plus
+warnings and invalid categories before anything is written; confirming writes the batch through
+the existing `applyTemplate` atomic, stale-checked budget/goal path (the same one whole-budget
+templates use), so a cleanup can never partially apply or silently overwrite budget cells changed
+after the preview was taken. Reapplying an already-current preview is a no-op, giving idempotent
+recovery if a batch is retried. Categories whose `cleanup_def` fails to parse (or whose weight or
+role is not one Actua recognizes) are disclosed by name and left completely untouched — never
+approximated as a supported row.
+
+**Deliberate deviation from upstream:** weighted sink and cleanup distribution uses deterministic
+integer-cent quotient/remainder allocation (`allocateByWeight`) so every distribution sums exactly
+to the pool being divided. Upstream instead rounds each sink independently with `Math.round()`,
+which can drift by a cent and relies on a final live-recompute clamp against Ready to Budget to
+correct it. Actua's simulation is sequential and in-memory (`assigned`/`balance`/`toBudget` deltas
+against the read model) rather than upstream's per-write live SQL-sheet recomputation, which is an
+intentional, behavior-equivalent simplification for the same reason: this codebase never bypasses
+Actual's CRDT writers, so there is no live SQL view to recompute against mid-batch. `cleanup_def`
+rows attached to unrecognized JSON shapes remain untouched by design; there is currently no
+`cleanup_def` variant Actua deliberately drops beyond malformed/unparseable notes and definitions.

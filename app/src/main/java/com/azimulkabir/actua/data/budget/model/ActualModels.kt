@@ -42,6 +42,14 @@ data class ActualCategory(
     val isIncome: Boolean,
     val hidden: Boolean,
     val sortOrder: Double,
+    val cleanupDef: String? = null,
+)
+
+/** Actual's `cleanup_groups` table: named pools referenced by category `cleanup_def` rows. */
+data class ActualCleanupGroup(
+    val id: String,
+    val name: String,
+    val tombstone: Boolean = false,
 )
 
 data class ActualCategoryGroup(

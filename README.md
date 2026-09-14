@@ -124,6 +124,11 @@ at full resolution.
 - Schedule-driven funding for resolved active schedules, including recurring occurrence counts,
   amount-range midpoint handling, priority interaction, Ready to Budget clamping, and preview-first
   atomic application; unresolved or unsupported schedule references remain read-only
+- Notes-managed month-end "Cleanup" source/sink/overspend groups: cleanup-group identity
+  resolution, group-scoped and global weighted sink distribution with deterministic
+  cent-preserving allocation, general overspend auto-fill, a preview-first "Month-end cleanup"
+  action with one atomic stale-checked budget/goal write on confirmation, and explicit
+  disclosure of unparseable cleanup definitions
 - Expandable inline Auto-Assign and Move Money controls within the category amount keypad
 - Account-specific transaction entry, collapsible account summaries and notes, and configurable bottom navigation labels
 - A dedicated **Manage** bottom-tab hub for operational tools, with general preferences separated behind its Settings gear and legacy **More** start-page preferences migrated automatically

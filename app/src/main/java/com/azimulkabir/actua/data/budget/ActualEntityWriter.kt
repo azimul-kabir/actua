@@ -40,6 +40,24 @@ class ActualEntityWriter(
         "goal_def" to goalDef, "template_settings" to "{\"source\":\"notes\"}",
     ))
 
+    /**
+     * Rewrites every category's `cleanup_def` in one atomic batch, matching Actual's
+     * `storeNoteCleanups()`: group upserts (create/un-tombstone) and orphan tombstones from
+     * one note re-scan land together with the category rows that reference them.
+     */
+    @Synchronized
+    fun refreshCleanupDefinitions(
+        categoryCleanupDefs: Map<String, String?>,
+        groupUpserts: Map<String, String>,
+        orphanGroupIds: Set<String>,
+    ) {
+        val messages = mutableListOf<CrdtMessage>()
+        groupUpserts.forEach { (id, name) -> messages += fields("cleanup_groups", id, mapOf("name" to name, "tombstone" to 0)) }
+        orphanGroupIds.forEach { id -> messages += fields("cleanup_groups", id, mapOf("tombstone" to 1)) }
+        categoryCleanupDefs.forEach { (id, cleanupDef) -> messages += fields("categories", id, mapOf("cleanup_def" to cleanupDef)) }
+        persist(messages)
+    }
+
     /** Actual deletion keeps historical transaction references and tombstones the category. */
     fun deleteCategory(id: String) = update("categories", id, mapOf("tombstone" to 1))
     fun renameCategoryGroup(id: String, name: String) = update("category_groups", id, mapOf("name" to requiredName(name)))
@@ -214,8 +232,9 @@ class ActualEntityWriter(
     companion object {
         private val allowedFields = mapOf(
             "accounts" to setOf("name", "closed", "offbudget", "tombstone", "sort_order"),
-            "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order", "goal_def", "template_settings"),
+            "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order", "goal_def", "template_settings", "cleanup_def"),
             "category_groups" to setOf("name", "hidden", "tombstone", "sort_order"),
+            "cleanup_groups" to setOf("name", "tombstone"),
             "payees" to setOf("name", "tombstone"),
             "preferences" to setOf("value"), "notes" to setOf("note"),
             "rules" to setOf("stage", "conditions_op", "conditions", "actions", "tombstone"),
