@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -41,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -87,6 +89,35 @@ private data class CompletedOpenIdLogin(
 internal fun formatSyncDuration(durationMillis: Long): String = when {
     durationMillis < 1_000L -> "$durationMillis ms"
     else -> String.format(java.util.Locale.US, "%.1f s", durationMillis / 1_000.0)
+}
+
+@Composable
+internal fun ManualSyncButtonContent(
+    syncing: Boolean,
+    demoActive: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            modifier = Modifier.testTag("manualSyncButtonContent"),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (syncing) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .testTag("manualSyncButtonIndicator"),
+                    strokeWidth = 2.dp,
+                )
+            }
+            Text(if (demoActive) "Demo is local only" else if (syncing) "Syncing…" else "Sync now")
+        }
+    }
 }
 
 @Composable
@@ -626,8 +657,7 @@ fun ConnectionScreen(
                             syncStatus = syncStatusStore.read(); syncing = false
                         }
                     }) {
-                    if (syncing) CircularProgressIndicator(Modifier.padding(end = 8.dp))
-                    Text(if (demoActive) "Demo is local only" else if (syncing) "Syncing…" else "Sync now")
+                    ManualSyncButtonContent(syncing = syncing, demoActive = demoActive)
                 }
                 Text("Budgets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 OutlinedButton(
