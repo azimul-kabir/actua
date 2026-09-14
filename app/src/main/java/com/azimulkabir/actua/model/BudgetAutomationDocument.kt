@@ -42,7 +42,7 @@ data class BudgetAutomationDocument(
                     return@forEachIndexed
                 }
                 val type = row.optString("type").ifBlank { "unknown" }
-                if (type == "limit" || type == "refill") {
+                if (type == "refill") {
                     unsupported += type
                 } else {
                     val target = BudgetTarget.fromGoalDef(
@@ -74,7 +74,12 @@ data class BudgetAutomationDocument(
 
         fun validate(targets: List<BudgetTarget>): List<String> = buildList {
             if (targets.size > 20) add("A category can have at most 20 automations")
-            if (targets.count { it.type == BudgetTarget.Type.REFILL } > 1) add("Only one refill automation is allowed")
+            if (targets.count { it.type == BudgetTarget.Type.REFILL && it.limitPeriod == null } > 1) {
+                add("Only one refill automation is allowed")
+            }
+            if (targets.count { it.type == BudgetTarget.Type.REFILL && it.limitPeriod != null } > 1) {
+                add("Only one balance cap automation is allowed")
+            }
             if (targets.count { it.type == BudgetTarget.Type.GOAL } > 1) add("Only one goal-only automation is allowed")
             if (targets.any { it.type == BudgetTarget.Type.REMAINDER && it.weight < 1 }) {
                 add("Remainder weights must be at least 1")
@@ -92,12 +97,18 @@ data class BudgetAutomationDocument(
                 add("Remainder limits need both a period and amount")
             }
             if (targets.any {
-                    it.type == BudgetTarget.Type.REMAINDER &&
+                    (it.type == BudgetTarget.Type.REMAINDER || it.type == BudgetTarget.Type.REFILL) &&
                         it.limitPeriod == BudgetTarget.LimitPeriod.WEEKLY &&
                         (it.limitStartDate.isNullOrBlank() ||
                             runCatching { java.time.LocalDate.parse(it.limitStartDate) }.isFailure)
                 }) {
-                add("Weekly remainder limits need a valid start date")
+                add("Weekly limits need a valid start date")
+            }
+            if (targets.any {
+                    it.type == BudgetTarget.Type.REFILL && it.limitPeriod != null &&
+                        (it.limitAmountCents == null || it.limitAmountCents <= 0)
+                }) {
+                add("Balance caps need a positive limit amount")
             }
             if (targets.any { it.priority < 0 }) add("Automation priority cannot be negative")
             if (targets.any { it.type == BudgetTarget.Type.PERCENTAGE && it.percentage !in 1..100 }) {
