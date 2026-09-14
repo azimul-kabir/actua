@@ -2,6 +2,7 @@ package com.azimulkabir.actua.ui.components
 
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -37,25 +38,55 @@ class TagTextTest {
     }
 
     @Test
-    fun `foreground remains readable for light and dark colors`() {
-        assertEquals(Color.Black, tagForeground(Color.White))
-        assertEquals(Color.White, tagForeground(Color.Black))
-        assertTrue(tagForeground(Color(0xFFF1C40F)) == Color.Black)
+    fun `mixed note becomes plain and recognized tag segments without changing text`() {
+        val notes = "Home-School-Office #school #unknown ##escaped #Adeeba"
+        val segments = tagSegments(
+            notes = notes,
+            tagColors = mapOf(
+                "school" to "#F2B632",
+                "Adeeba" to "#6A1B9A",
+            ),
+        )
+
+        assertEquals(notes, segments.joinToString("") { it.text })
+        val tags = segments.filterIsInstance<TagNoteSegment.Tag>()
+        assertEquals(listOf("school", "Adeeba"), tags.map { it.name })
+        assertEquals(Color(0xFFF2B632), tags[0].color)
+        assertEquals(Color(0xFF6A1B9A), tags[1].color)
+        assertTrue(segments.filterIsInstance<TagNoteSegment.Plain>().any { "#unknown" in it.text })
+        assertTrue(segments.filterIsInstance<TagNoteSegment.Plain>().any { "##escaped" in it.text })
     }
 
     @Test
-    fun `colored tag text preserves note and styles only recognized tags`() {
-        val result = coloredTagText(
-            notes = "Home-School-Office #school #unknown",
-            tagColors = mapOf("school" to "#6A1B9A"),
+    fun `unknown and malformed tag metadata stays plain text`() {
+        val notes = "#unknown #broken"
+        val segments = tagSegments(notes, mapOf("broken" to "not-a-color"))
+
+        assertEquals(listOf(TagNoteSegment.Plain(notes)), segments)
+    }
+
+    @Test
+    fun `adjacent recognized tags remain distinct chip segments`() {
+        val segments = tagSegments(
+            "#one#two",
+            mapOf("one" to "#336699", "two" to "#CC5500"),
         )
 
-        assertEquals("Home-School-Office #school #unknown", result.text)
-        assertEquals(1, result.spanStyles.size)
-        val styledTag = result.spanStyles.single()
-        assertEquals(19, styledTag.start)
-        assertEquals(26, styledTag.end)
-        assertEquals(Color(0xFF6A1B9A), styledTag.item.background)
-        assertEquals(Color.White, styledTag.item.color)
+        assertEquals(2, segments.size)
+        assertTrue(segments.all { it is TagNoteSegment.Tag })
+        assertEquals("#one#two", segments.joinToString("") { it.text })
+    }
+
+    @Test
+    fun `chip colors stay tinted and foreground adapts for theme contrast`() {
+        val yellow = Color(0xFFF1C40F)
+        val purple = Color(0xFF3F176D)
+
+        assertEquals(0.14f, tagChipBackground(yellow, darkTheme = false).alpha, 0.0001f)
+        assertEquals(0.24f, tagChipBackground(purple, darkTheme = true).alpha, 0.0001f)
+        assertTrue(tagChipForeground(yellow, darkTheme = false).luminance() < yellow.luminance())
+        assertTrue(tagChipForeground(purple, darkTheme = true).luminance() > purple.luminance())
+        assertFalse(tagChipForeground(yellow, darkTheme = false) == yellow)
+        assertFalse(tagChipForeground(purple, darkTheme = true) == purple)
     }
 }
