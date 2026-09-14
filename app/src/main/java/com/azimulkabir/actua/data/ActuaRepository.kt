@@ -64,6 +64,7 @@ import com.azimulkabir.actua.data.schedules.BillsCalendarEngine
 import com.azimulkabir.actua.data.schedules.sortedForDisplay
 import com.azimulkabir.actua.model.BudgetScheduleFunding
 import com.azimulkabir.actua.widget.WidgetUpdater
+import kotlinx.coroutines.CancellationException
 
 data class PayeeLocationSummary(
     val id: String,
@@ -123,6 +124,9 @@ class ActuaRepository(context: Context) {
         return try {
             BudgetOpenProbe.validate(database)
             database
+        } catch (error: CancellationException) {
+            database.close()
+            throw error
         } catch (error: Exception) {
             Log.e("ActuaRepository", "Skipping an unusable local budget", error)
             database.close()
