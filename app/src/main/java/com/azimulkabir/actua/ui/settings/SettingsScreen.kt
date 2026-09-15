@@ -46,11 +46,13 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
+import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 
 internal enum class SettingsPage(val title: String, val depth: Int) {
     Manage("Manage", 0),
+    Tags("Tags", 1),
     General("Settings", 1),
     Transactions("Transactions & Accounts", 2),
     Display("Display", 2),
@@ -105,6 +107,10 @@ fun SettingsScreen(
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val locationPreferences = remember { LocationPreferences(context) }
+    val tagRepository = remember { ActiveTagRepository(context) }
+    var tagVersion by remember { mutableStateOf(0L) }
+    val managedTags = remember(tagVersion) { tagRepository.tags(tagVersion) }
+    val tagCapabilities = remember(tagVersion) { tagRepository.capabilities(tagVersion) }
     val initialLocationPermissionGranted = remember {
         ForegroundLocationPermission.isGranted(context)
     }
@@ -148,6 +154,7 @@ fun SettingsScreen(
     var page by rememberSaveable { mutableStateOf(SettingsPage.Manage) }
     val scrollState = rememberScrollState()
     fun parentPage(current: SettingsPage): SettingsPage = when (current) {
+        SettingsPage.Tags -> SettingsPage.Manage
         SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.About ->
             SettingsPage.General
         SettingsPage.General -> SettingsPage.Manage
@@ -181,199 +188,222 @@ fun SettingsScreen(
         },
         label = "Settings navigation motion",
     ) { shownPage ->
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
-        SettingsHeader(
-            title = shownPage.title,
-            showBack = shownPage != SettingsPage.Manage,
-            showSettings = shownPage == SettingsPage.Manage,
-            onBack = ::navigateBack,
-            onSettings = { page = SettingsPage.General },
-        )
-        when (shownPage) {
-            SettingsPage.Manage -> {
-                SettingsSection("Automation")
-                SettingsRow("Bills & Calendar", "Upcoming schedules and credit-card due dates", true) {
-                    openFullScreen(onBillsCalendarClick)
+        if (shownPage == SettingsPage.Tags) {
+            ManageTagsScreen(
+                tags = managedTags,
+                hiddenSupported = tagCapabilities.hidden,
+                onBack = ::navigateBack,
+                onCreate = { name, color, description, hidden ->
+                    runCatching { tagRepository.create(name, color, description, hidden) }
+                        .onSuccess { tagVersion += 1 }
+                },
+                onUpdate = { tag, name, color, description, hidden ->
+                    runCatching { tagRepository.update(tag, name, color, description, hidden) }
+                        .onSuccess { if (it) tagVersion += 1 }
+                },
+                onDelete = { tag ->
+                    runCatching { tagRepository.delete(tag) }
+                        .onSuccess { if (it) tagVersion += 1 }
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+            SettingsHeader(
+                title = shownPage.title,
+                showBack = shownPage != SettingsPage.Manage,
+                showSettings = shownPage == SettingsPage.Manage,
+                onBack = ::navigateBack,
+                onSettings = { page = SettingsPage.General },
+            )
+            when (shownPage) {
+                SettingsPage.Manage -> {
+                    SettingsSection("Automation")
+                    SettingsRow("Bills & Calendar", "Upcoming schedules and credit-card due dates", true) {
+                        openFullScreen(onBillsCalendarClick)
+                    }
+                    SettingsRow("Scheduled Transactions", "Review recurring bills, income and upcoming dates", true) {
+                        openFullScreen(onSchedulesClick)
+                    }
+                    SettingsRow("Rules", "Automatically categorize and transform transactions", true) {
+                        openFullScreen(onRulesClick)
+                    }
+                    SettingsSection("Transactions & data")
+                    SettingsRow("Tags", "Create, edit, color, hide and delete managed tags", true) {
+                        page = SettingsPage.Tags
+                    }
+                    SettingsRow("Import Transactions", "Review a CSV bank statement before importing", true) {
+                        openFullScreen(onImportTransactionsClick)
+                    }
+                    SettingsRow("Connection & Data", "Actual server, budgets, sync, backups and restore", true) {
+                        openFullScreen(onConnectionClick)
+                    }
+                    SettingsSection("Financial setup")
+                    SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true) {
+                        openFullScreen(onCreditCardsClick)
+                    }
                 }
-                SettingsRow("Scheduled Transactions", "Review recurring bills, income and upcoming dates", true) {
-                    openFullScreen(onSchedulesClick)
+                SettingsPage.General -> {
+                    SettingsSection("Preferences")
+                    SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists and account summaries", true) {
+                        page = SettingsPage.Transactions
+                    }
+                    SettingsRow("Display", "Currency, date, numbers, appearance and start page", true) {
+                        page = SettingsPage.Display
+                    }
+                    SettingsRow("Privacy", "Balances and optional location-aware payee controls", true) {
+                        page = SettingsPage.Privacy
+                    }
+                    SettingsSection("About")
+                    SettingsRow("About Actua", "Version, project information, credits and license", true) {
+                        page = SettingsPage.About
+                    }
                 }
-                SettingsRow("Rules", "Automatically categorize and transform transactions", true) {
-                    openFullScreen(onRulesClick)
+                SettingsPage.Transactions -> {
+                    SettingsChoice("Default account", defaultAccount ?: "None", listOf("None") + accountOptions) {
+                        onDefaultAccountChange(it.takeUnless { value -> value == "None" })
+                    }
+                    SettingsToggle("Group transactions by date", "Use dated sections in transaction lists", groupTransactionsByDate, onGroupTransactionsByDateChange)
+                    SettingsToggle("Conventional amount entry", "Type 324 as 324.00 instead of filling cents first",
+                        conventionalAmountEntry, onConventionalAmountEntryChange)
+                    SettingsToggle("Account monthly summary", "Show Income, Expenses and Net at the top of Accounts",
+                        showAccountsMonthlySummary, onShowAccountsMonthlySummaryChange)
+                    SettingsToggle(
+                        "Current balance summary",
+                        "Show current, cleared, uncleared and reconciled balances inside accounts",
+                        showCurrentBalanceSummary,
+                        onShowCurrentBalanceSummaryChange,
+                    )
+                    SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true) {
+                        openFullScreen(onCreditCardsClick)
+                    }
                 }
-                SettingsSection("Transactions & data")
-                SettingsRow("Import Transactions", "Review a CSV bank statement before importing", true) {
-                    openFullScreen(onImportTransactionsClick)
+                SettingsPage.Display -> {
+                    SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->
+                        onCurrencyCodeChange(currencyOptions.first { it.first == selected }.second)
+                    }
+                    if (currencyCode.isNotBlank()) SettingsToggle("Symbol only",
+                        "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
+                        currencySymbolOnly, onCurrencySymbolOnlyChange)
+                    SettingsChoice(
+                        "Date format",
+                        dateFormat,
+                        listOf("System default", "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"),
+                        onDateFormatChange,
+                    )
+                    Text(
+                        "Preview: ${datePreview(dateFormat)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                    SettingsChoice(
+                        "Number format",
+                        numberFormat,
+                        listOf("System default", "1,234.56", "1.234,56", "1 234,56", "1234.56", "1,23,456.78"),
+                        onNumberFormatChange,
+                    )
+                    Text(
+                        "Preview: ${numberPreview(numberFormat)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                    SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
+                    SettingsChoice(
+                        "Start page",
+                        startPage,
+                        listOf("Budget", "Accounts", "Transactions", "Reports", "Manage"),
+                        onStartPageChange,
+                    )
+                    SettingsChoice(
+                        "Bottom navigation labels",
+                        if (showBottomNavigationLabels) "Icons and names" else "Icons only",
+                        listOf("Icons and names", "Icons only"),
+                    ) { onShowBottomNavigationLabelsChange(it == "Icons and names") }
+                    SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
+                        hideDecimalPlaces, onHideDecimalPlacesChange)
                 }
-                SettingsRow("Connection & Data", "Actual server, budgets, sync, backups and restore", true) {
-                    openFullScreen(onConnectionClick)
+                SettingsPage.Privacy -> {
+                    SettingsToggle("Hide balances", "Mask budget, account and transaction amounts",
+                        hideBalances, onHideBalancesChange)
+                    SettingsSection("Location-aware payees")
+                    SettingsToggle(
+                        "Record payee locations",
+                        if (recordPayeeLocations && locationPermissionGranted) {
+                            "Use your location only while Actua is open to remember eligible payees nearby. Coordinates stay in your Actual budget and sync with it."
+                        } else {
+                            "Optional and off by default. Enabling asks for foreground location permission. No background tracking or third-party location service is used."
+                        },
+                        recordPayeeLocations,
+                        ::setRecordPayeeLocations,
+                    )
+                    SettingsRow(
+                        "Payee Locations",
+                        "Inspect or delete coordinates saved in this budget",
+                        true,
+                    ) { openFullScreen(onPayeeLocationsClick) }
+                    Text(
+                        if (locationPermissionGranted) {
+                            "Location permission: allowed while using the app"
+                        } else {
+                            "Location permission: not granted"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
                 }
-                SettingsSection("Financial setup")
-                SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true) {
-                    openFullScreen(onCreditCardsClick)
+                SettingsPage.About -> {
+                    ListItem(
+                        headlineContent = { Text("Actua") },
+                        supportingContent = {
+                            Text("Native Android client for Actual Budget\nVersion ${BuildConfig.VERSION_NAME}")
+                        },
+                    )
+                    SettingsSection("Project")
+                    ListItem(
+                        headlineContent = { Text("Actua on GitHub") },
+                        supportingContent = { Text("github.com/azimul-kabir/actua") },
+                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://github.com/azimul-kabir/actua")
+                        },
+                    )
+                    ListItem(
+                        headlineContent = { Text("Independent community project") },
+                        supportingContent = {
+                            Text("Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.")
+                        },
+                    )
+                    SettingsSection("Credits")
+                    ListItem(
+                        headlineContent = { Text("Actuali for iOS") },
+                        supportingContent = {
+                            Text("Actua was originally based on and continues to reference Matt Farrell’s open-source Actuali project for tested behavior and design guidance.")
+                        },
+                    )
+                    ListItem(
+                        headlineContent = { Text("Actual Budget") },
+                        supportingContent = {
+                            Text("Synchronization behavior is compatible with the open-source Actual Budget project.")
+                        },
+                    )
+                    SettingsSection("Compatibility")
+                    ListItem(
+                        headlineContent = { Text("Android 9 or later") },
+                        supportingContent = { Text("Requires a reachable self-hosted Actual Budget server.") },
+                    )
+                    SettingsSection("License")
+                    ListItem(
+                        headlineContent = { Text("MIT License") },
+                        supportingContent = {
+                            Text("Open-source notices and complete attribution are available in the repository’s LICENSE and NOTICE files.")
+                        },
+                    )
                 }
-            }
-            SettingsPage.General -> {
-                SettingsSection("Preferences")
-                SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists and account summaries", true) {
-                    page = SettingsPage.Transactions
-                }
-                SettingsRow("Display", "Currency, date, numbers, appearance and start page", true) {
-                    page = SettingsPage.Display
-                }
-                SettingsRow("Privacy", "Balances and optional location-aware payee controls", true) {
-                    page = SettingsPage.Privacy
-                }
-                SettingsSection("About")
-                SettingsRow("About Actua", "Version, project information, credits and license", true) {
-                    page = SettingsPage.About
-                }
-            }
-            SettingsPage.Transactions -> {
-                SettingsChoice("Default account", defaultAccount ?: "None", listOf("None") + accountOptions) {
-                    onDefaultAccountChange(it.takeUnless { value -> value == "None" })
-                }
-                SettingsToggle("Group transactions by date", "Use dated sections in transaction lists", groupTransactionsByDate, onGroupTransactionsByDateChange)
-                SettingsToggle("Conventional amount entry", "Type 324 as 324.00 instead of filling cents first",
-                    conventionalAmountEntry, onConventionalAmountEntryChange)
-                SettingsToggle("Account monthly summary", "Show Income, Expenses and Net at the top of Accounts",
-                    showAccountsMonthlySummary, onShowAccountsMonthlySummaryChange)
-                SettingsToggle(
-                    "Current balance summary",
-                    "Show current, cleared, uncleared and reconciled balances inside accounts",
-                    showCurrentBalanceSummary,
-                    onShowCurrentBalanceSummaryChange,
-                )
-                SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true) {
-                    openFullScreen(onCreditCardsClick)
-                }
-            }
-            SettingsPage.Display -> {
-                SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->
-                    onCurrencyCodeChange(currencyOptions.first { it.first == selected }.second)
-                }
-                if (currencyCode.isNotBlank()) SettingsToggle("Symbol only",
-                    "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
-                    currencySymbolOnly, onCurrencySymbolOnlyChange)
-                SettingsChoice(
-                    "Date format",
-                    dateFormat,
-                    listOf("System default", "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"),
-                    onDateFormatChange,
-                )
-                Text(
-                    "Preview: ${datePreview(dateFormat)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                )
-                SettingsChoice(
-                    "Number format",
-                    numberFormat,
-                    listOf("System default", "1,234.56", "1.234,56", "1 234,56", "1234.56", "1,23,456.78"),
-                    onNumberFormatChange,
-                )
-                Text(
-                    "Preview: ${numberPreview(numberFormat)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                )
-                SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
-                SettingsChoice(
-                    "Start page",
-                    startPage,
-                    listOf("Budget", "Accounts", "Transactions", "Reports", "Manage"),
-                    onStartPageChange,
-                )
-                SettingsChoice(
-                    "Bottom navigation labels",
-                    if (showBottomNavigationLabels) "Icons and names" else "Icons only",
-                    listOf("Icons and names", "Icons only"),
-                ) { onShowBottomNavigationLabelsChange(it == "Icons and names") }
-                SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
-                    hideDecimalPlaces, onHideDecimalPlacesChange)
-            }
-            SettingsPage.Privacy -> {
-                SettingsToggle("Hide balances", "Mask budget, account and transaction amounts",
-                    hideBalances, onHideBalancesChange)
-                SettingsSection("Location-aware payees")
-                SettingsToggle(
-                    "Record payee locations",
-                    if (recordPayeeLocations && locationPermissionGranted) {
-                        "Use your location only while Actua is open to remember eligible payees nearby. Coordinates stay in your Actual budget and sync with it."
-                    } else {
-                        "Optional and off by default. Enabling asks for foreground location permission. No background tracking or third-party location service is used."
-                    },
-                    recordPayeeLocations,
-                    ::setRecordPayeeLocations,
-                )
-                SettingsRow(
-                    "Payee Locations",
-                    "Inspect or delete coordinates saved in this budget",
-                    true,
-                ) { openFullScreen(onPayeeLocationsClick) }
-                Text(
-                    if (locationPermissionGranted) {
-                        "Location permission: allowed while using the app"
-                    } else {
-                        "Location permission: not granted"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                )
-            }
-            SettingsPage.About -> {
-                ListItem(
-                    headlineContent = { Text("Actua") },
-                    supportingContent = {
-                        Text("Native Android client for Actual Budget\nVersion ${BuildConfig.VERSION_NAME}")
-                    },
-                )
-                SettingsSection("Project")
-                ListItem(
-                    headlineContent = { Text("Actua on GitHub") },
-                    supportingContent = { Text("github.com/azimul-kabir/actua") },
-                    trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-                    modifier = Modifier.clickable {
-                        uriHandler.openUri("https://github.com/azimul-kabir/actua")
-                    },
-                )
-                ListItem(
-                    headlineContent = { Text("Independent community project") },
-                    supportingContent = {
-                        Text("Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.")
-                    },
-                )
-                SettingsSection("Credits")
-                ListItem(
-                    headlineContent = { Text("Actuali for iOS") },
-                    supportingContent = {
-                        Text("Actua was originally based on and continues to reference Matt Farrell’s open-source Actuali project for tested behavior and design guidance.")
-                    },
-                )
-                ListItem(
-                    headlineContent = { Text("Actual Budget") },
-                    supportingContent = {
-                        Text("Synchronization behavior is compatible with the open-source Actual Budget project.")
-                    },
-                )
-                SettingsSection("Compatibility")
-                ListItem(
-                    headlineContent = { Text("Android 9 or later") },
-                    supportingContent = { Text("Requires a reachable self-hosted Actual Budget server.") },
-                )
-                SettingsSection("License")
-                ListItem(
-                    headlineContent = { Text("MIT License") },
-                    supportingContent = {
-                        Text("Open-source notices and complete attribution are available in the repository’s LICENSE and NOTICE files.")
-                    },
-                )
+                SettingsPage.Tags -> Unit
             }
         }
-    }
     }
 }
 
