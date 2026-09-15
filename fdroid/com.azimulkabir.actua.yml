@@ -1,5 +1,5 @@
 # Submission template for fdroiddata/metadata/com.azimulkabir.actua.yml.
-# Actua 1.0.0-beta.23 is built from source at the release tag pinned below.
+# Actua 1.0.0-beta.23 is built from source at the release commit pinned below.
 
 Categories:
   - Money
@@ -16,7 +16,7 @@ Repo: https://github.com/azimul-kabir/actua.git
 Builds:
   - versionName: 1.0.0-beta.23
     versionCode: 40
-    commit: v1.0.0-beta.23
+    commit: 1eed7a1b67dc18cbd73bd99da17f14d1b7ae6abe
     subdir: app
     prebuild:
       - sed -i '/^plugins {$/,/^}$/d' ../settings.gradle.kts
