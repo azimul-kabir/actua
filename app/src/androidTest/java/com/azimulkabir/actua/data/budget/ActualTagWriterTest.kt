@@ -3,7 +3,6 @@ package com.azimulkabir.actua.data.budget
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -91,6 +90,15 @@ class ActualTagWriterTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "tags-writer-${UUID.randomUUID()}.sqlite")
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
+            // ActualBudgetDatabase validates the canonical core tables before it
+            // exposes writers. This fixture only needs their structure, not data.
+            db.execSQL("CREATE TABLE accounts (id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE categories (id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE category_groups (id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE payee_mapping (id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE payees (id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE zero_budgets (id TEXT PRIMARY KEY)")
             db.execSQL("CREATE TABLE tags (id TEXT PRIMARY KEY, tag TEXT UNIQUE, color TEXT, description TEXT, hidden INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
             db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, column TEXT NOT NULL, value BLOB NOT NULL)")
