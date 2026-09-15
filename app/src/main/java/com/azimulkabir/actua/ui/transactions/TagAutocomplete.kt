@@ -24,6 +24,10 @@ internal fun matchingTags(tags: List<ActualTag>, query: String): List<ActualTag>
     .sortedWith(compareBy<ActualTag>({ !it.tag.equals(query, true) }, { !it.tag.startsWith(query, true) }, { it.tag.lowercase() }).thenBy { it.tag })
     .toList()
 
+internal fun canCreateTag(query: String, tags: List<ActualTag>): Boolean =
+    query.isNotBlank() && query.none { it == '#' || it.isWhitespace() } &&
+        tags.none { it.tag.equals(query, ignoreCase = false) }
+
 internal fun replaceActiveTag(text: String, token: ActiveTagToken, tag: String): Pair<String, Int> {
     val replacement = "#$tag"
     val updated = text.replaceRange(token.start, token.endExclusive, replacement)
