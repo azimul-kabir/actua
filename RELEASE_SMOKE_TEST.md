@@ -78,6 +78,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Budget Snapshot widget works at 2x2 and compact 3x1/4x1 sizes.
 - [ ] Quick Transaction widget works at 2x2 and compact 3x1/4x1 sizes and all three actions open correctly.
 - [ ] Favourite Categories and Account Balances widgets configure, refresh and deep-link correctly.
+- [ ] Upcoming Schedules widget shows overdue-first ordering, relative due labels (Today/Tomorrow/In N days/N days overdue), respects hide-balances, refreshes after schedule mutations and sync, and tapping it opens Scheduled Transactions.
 - [ ] Widget amounts respect hide-balances, currency and decimal display preferences.
 
 ## UI and navigation

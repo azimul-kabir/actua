@@ -13,6 +13,13 @@ import com.azimulkabir.actua.MainActivity
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
+import com.azimulkabir.actua.data.schedules.DayDate
+import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
+import com.azimulkabir.actua.data.schedules.ScheduleWidgetEntry
+import com.azimulkabir.actua.data.schedules.ScheduleWidgetPeriod
+import com.azimulkabir.actua.data.schedules.ScheduleWidgetProjection
+import com.azimulkabir.actua.data.schedules.ScheduledAmount
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.NumberDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -28,6 +35,7 @@ object WidgetActions {
     const val ADD_INCOME = "com.azimulkabir.actua.widget.ADD_INCOME"
     const val ADD_TRANSFER = "com.azimulkabir.actua.widget.ADD_TRANSFER"
     const val SEARCH = "com.azimulkabir.actua.widget.SEARCH"
+    const val SCHEDULES = "com.azimulkabir.actua.widget.SCHEDULES"
     const val EXTRA_TARGET = "widget_target"
 }
 
@@ -107,6 +115,10 @@ class AccountBalancesWidgetProvider : ActuaWidgetProvider() {
     override val kind = WidgetKind.Accounts
 }
 
+class ScheduledTransactionsWidgetProvider : ActuaWidgetProvider() {
+    override val kind: WidgetKind? = null
+}
+
 object WidgetUpdater {
     private const val COMPACT_HEIGHT_DP = 100
 
@@ -115,6 +127,7 @@ object WidgetUpdater {
         FavouriteCategoriesWidgetProvider::class.java,
         QuickTransactionWidgetProvider::class.java,
         AccountBalancesWidgetProvider::class.java,
+        ScheduledTransactionsWidgetProvider::class.java,
     )
 
     fun requestAll(context: Context) {
@@ -143,6 +156,7 @@ object WidgetUpdater {
             is FavouriteCategoriesWidgetProvider -> updateCategories(context, manager, widgetId)
             is QuickTransactionWidgetProvider -> updateQuickTransaction(context, manager, widgetId)
             is AccountBalancesWidgetProvider -> updateAccounts(context, manager, widgetId)
+            is ScheduledTransactionsWidgetProvider -> updateSchedules(context, manager, widgetId)
             else -> Unit
         }
     }
@@ -239,6 +253,67 @@ object WidgetUpdater {
             manager.updateAppWidget(widgetId, views)
         } finally {
             repository.close()
+        }
+    }
+
+    private fun updateSchedules(context: Context, manager: AppWidgetManager, widgetId: Int) {
+        val views = RemoteViews(context.packageName, R.layout.widget_scheduled_transactions)
+        val repository = ActuaRepository(context)
+        try {
+            val entries = if (!repository.isUsingActualBudget) {
+                views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_budget))
+                emptyList()
+            } else {
+                views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_schedules))
+                val today = DayDate.today()
+                ScheduleWidgetProjection.upcoming(
+                    repository.schedules(today), today, ScheduleWidgetPeriod.FOURTEEN.days,
+                ).take(4)
+            }
+            bindScheduleRows(context, views, entries, widgetId)
+            views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.SCHEDULES, widgetId))
+            manager.updateAppWidget(widgetId, views)
+        } finally {
+            repository.close()
+        }
+    }
+
+    private fun bindScheduleRows(context: Context, views: RemoteViews, entries: List<ScheduleWidgetEntry>, widgetId: Int) {
+        val containers = intArrayOf(
+            R.id.widget_schedule_row_1, R.id.widget_schedule_row_2, R.id.widget_schedule_row_3, R.id.widget_schedule_row_4,
+        )
+        val titles = intArrayOf(
+            R.id.widget_schedule_title_1, R.id.widget_schedule_title_2, R.id.widget_schedule_title_3, R.id.widget_schedule_title_4,
+        )
+        val dues = intArrayOf(
+            R.id.widget_schedule_due_1, R.id.widget_schedule_due_2, R.id.widget_schedule_due_3, R.id.widget_schedule_due_4,
+        )
+        val amounts = intArrayOf(
+            R.id.widget_schedule_amount_1, R.id.widget_schedule_amount_2, R.id.widget_schedule_amount_3, R.id.widget_schedule_amount_4,
+        )
+        containers.indices.forEach { index ->
+            val entry = entries.getOrNull(index)
+            views.setViewVisibility(containers[index], if (entry == null) View.GONE else View.VISIBLE)
+            if (entry != null) {
+                views.setTextViewText(titles[index], entry.item.title)
+                views.setTextViewText(dues[index], entry.relativeLabel)
+                views.setTextViewText(amounts[index], scheduleAmount(context, entry.item.schedule))
+                views.setOnClickPendingIntent(
+                    containers[index], open(context, WidgetActions.SCHEDULES, widgetId * 10 + index + 1),
+                )
+            }
+        }
+        views.setViewVisibility(R.id.widget_empty, if (entries.isEmpty()) View.VISIBLE else View.GONE)
+    }
+
+    private fun scheduleAmount(context: Context, schedule: ActualScheduleSummary): String {
+        val amount = schedule.amount
+        return if (amount is ScheduledAmount.Range) {
+            val low = minOf(amount.first, amount.second)
+            val high = maxOf(amount.first, amount.second)
+            "${money(context, low)} – ${money(context, high)}"
+        } else {
+            (if (schedule.amountOp == ScheduleAmountOp.APPROXIMATE) "~ " else "") + money(context, schedule.postAmount)
         }
     }
 
