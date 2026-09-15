@@ -74,10 +74,15 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Local backup snapshots, CRDT stripping, retention, validated document-picker import,
   restore, and one-shot revert
 - Rule JSON parsing, schema translation, ranking, condition/action evaluation,
-  named-payee resolution, live form previews, and rule application for incoming transactions
+  named-payee resolution, live form previews, and rule application for incoming transactions,
+  including transfer drafts matched through the destination account's canonical transfer payee
 - Rule list/search/editor UI and Actual-compatible CRDT create, update, and
   delete mutations for supported condition and action schemas, with protection
   for schedule-owned rules
+- Actual-compatible canonical tag data model, colored `#tag` rendering consistent across
+  transaction list/detail surfaces, notes autocomplete, native tag create/edit/delete/color/hidden
+  management, and tap-a-tag transaction discovery, synced from Actual's tag dataset; see
+  [docs/tags.md](docs/tags.md)
 - Timezone-free schedule day math, upcoming windows, lifecycle status, and
   transaction occurrence matching
 - Searchable Scheduled Transactions UI with new-schedule creation,

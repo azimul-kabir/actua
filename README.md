@@ -39,7 +39,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Automatic local backups and restore
 - Home-screen widgets and launcher shortcuts
 - Configurable currency, dates, numbers and appearance
-- Actual tag colors in transaction notes
+- Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering
 - Built-in local demo budget
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status.
