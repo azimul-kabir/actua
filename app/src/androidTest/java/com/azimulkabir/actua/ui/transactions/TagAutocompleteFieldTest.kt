@@ -3,7 +3,6 @@ package com.azimulkabir.actua.ui.transactions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
