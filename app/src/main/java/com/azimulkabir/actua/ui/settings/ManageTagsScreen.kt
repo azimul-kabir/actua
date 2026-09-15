@@ -18,8 +18,11 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -56,13 +59,33 @@ fun ManageTagsScreen(
 ) {
     var query by remember { mutableStateOf("") }; var editing by remember { mutableStateOf<ActualTag?>(null) }
     var creating by remember { mutableStateOf(false) }; var deleting by remember { mutableStateOf<ActualTag?>(null) }
+    var viewing by remember { mutableStateOf<ActualTag?>(null) }; var actionsFor by remember { mutableStateOf<ActualTag?>(null) }
     val filtered = remember(tags, query) { tags.filter { query.isBlank() || it.tag.contains(query, true) || it.description.orEmpty().contains(query, true) } }
+
+    viewing?.let { tag ->
+        ManagedTagTransactionsScreen(tag = tag, onBack = { viewing = null }, modifier = modifier)
+        return
+    }
+
     Scaffold(modifier = modifier, topBar = { TopAppBar(title = { Text("Manage Tags") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } }) }, floatingActionButton = { FloatingActionButton(onClick = { creating = true }) { Icon(Icons.Outlined.Add, "Create tag") } }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             OutlinedTextField(query, { query = it }, label = { Text("Search tags") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
             if (filtered.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(if (tags.isEmpty()) "No managed tags yet" else "No tags match your search") }
             else LazyColumn { items(filtered, key = { it.id }) { tag ->
-                ListItem(headlineContent = { Text("#${tag.tag}") }, supportingContent = { val detail = listOfNotNull(tag.description?.takeIf(String::isNotBlank), if (tag.hidden) "Hidden" else null); if (detail.isNotEmpty()) Text(detail.joinToString(" · ")) }, leadingContent = { TagColorDot(tag.color) }, trailingContent = { Row { IconButton(onClick = { editing = tag }) { Icon(Icons.Outlined.Edit, "Edit #${tag.tag}") }; IconButton(onClick = { deleting = tag }) { Icon(Icons.Outlined.Delete, "Delete #${tag.tag}") } } }, modifier = Modifier.clickable { editing = tag })
+                Box {
+                    ListItem(
+                        headlineContent = { Text("#${tag.tag}") },
+                        supportingContent = { val detail = listOfNotNull(tag.description?.takeIf(String::isNotBlank), if (tag.hidden) "Hidden" else null); if (detail.isNotEmpty()) Text(detail.joinToString(" · ")) },
+                        leadingContent = { TagColorDot(tag.color) },
+                        trailingContent = { IconButton(onClick = { actionsFor = tag }) { Icon(Icons.Outlined.Edit, "Actions for #${tag.tag}") } },
+                        modifier = Modifier.clickable { viewing = tag },
+                    )
+                    DropdownMenu(expanded = actionsFor?.id == tag.id, onDismissRequest = { actionsFor = null }) {
+                        DropdownMenuItem(text = { Text("View transactions") }, leadingIcon = { Icon(Icons.Outlined.ReceiptLong, null) }, onClick = { actionsFor = null; viewing = tag })
+                        DropdownMenuItem(text = { Text("Edit") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { actionsFor = null; editing = tag })
+                        DropdownMenuItem(text = { Text("Delete") }, leadingIcon = { Icon(Icons.Outlined.Delete, null) }, onClick = { actionsFor = null; deleting = tag })
+                    }
+                }
             } }
         }
     }
@@ -85,4 +108,5 @@ fun ManageTagsScreen(
 }
 
 @Composable private fun TagColorDot(value: String?) { Box(Modifier.size(18.dp).background(parseTagColor(value), CircleShape)) }
-private fun parseTagColor(value: String?): Color = runCatching { Color(android.graphics.Color.parseColor(value ?: "#808080")) }.getOrDefault(Color.Gray)
+internal fun parseManagedTagColor(value: String?): Color = runCatching { Color(android.graphics.Color.parseColor(value ?: "#808080")) }.getOrDefault(Color.Gray)
+private fun parseTagColor(value: String?): Color = parseManagedTagColor(value)
