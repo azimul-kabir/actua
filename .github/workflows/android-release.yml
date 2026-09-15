@@ -55,6 +55,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.name }}
           RELEASE_VERSION_CODE: ${{ steps.version.outputs.code }}
+          RELEASE_COMMIT_SHA: ${{ github.sha }}
         run: |
           python3 - <<'PY'
           import os
@@ -62,20 +63,21 @@ jobs:
 
           version_name = os.environ["RELEASE_VERSION"]
           version_code = os.environ["RELEASE_VERSION_CODE"]
-          tag = f"v{version_name}"
+          commit_sha = os.environ["RELEASE_COMMIT_SHA"]
           path = "fdroid/com.azimulkabir.actua.yml"
 
           with open(path) as f:
               content = f.read()
 
+          # F-Droid requires a pinned commit SHA in the build recipe, not a tag or branch.
           content = re.sub(
-              r"(?m)^(# Actua ).*( is built from source at the release tag pinned below\.)$",
+              r"(?m)^(# Actua ).*( is built from source at the release commit pinned below\.)$",
               rf"\g<1>{version_name}\g<2>",
               content,
           )
           content = re.sub(r"(?m)^(\s*- versionName: ).*$", rf"\g<1>{version_name}", content)
           content = re.sub(r"(?m)^(\s*versionCode: ).*$", rf"\g<1>{version_code}", content)
-          content = re.sub(r"(?m)^(\s*commit: ).*$", rf"\g<1>{tag}", content)
+          content = re.sub(r"(?m)^(\s*commit: ).*$", rf"\g<1>{commit_sha}", content)
           content = re.sub(r"(?m)^(CurrentVersion: ).*$", rf"\g<1>{version_name}", content)
           content = re.sub(r"(?m)^(CurrentVersionCode: ).*$", rf"\g<1>{version_code}", content)
 
