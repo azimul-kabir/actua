@@ -4,9 +4,20 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.24] - 2026-09-15
+
+### Added
+
+- Added multi-select mode to Transactions: a select toggle enables checkbox-based multi-selection with a bulk-actions menu for mark cleared/uncleared, delete, link to schedule, unlink schedule, and (for a single linked selection) view schedule
+
 ### Fixed
 
 - Fixed a spurious error banner (e.g. a raw `CertPathValidatorException`) appearing on cold app launch, most noticeably via the Add Expense/Income/Transfer/Search home-screen shortcuts; the automatic app-open sync is opportunistic and no longer surfaces transient network failures as a Snackbar, since they're already recorded for the Connection screen and resolved by the next sync attempt
+- Fixed the transaction notes `#` tag autocomplete dropdown dismissing and reopening the on-screen keyboard on every keystroke while a tag token is active; the suggestion popup no longer takes window focus, so the keyboard stays open while suggestions update live underneath
+
+### Safety
+
+- Bulk delete requires an explicit confirmation naming the number of transactions before any deletion occurs, and merging selected transactions is intentionally not offered in this release since its semantics (which fields win, how splits reconcile) still need a separate design discussion
 
 ## [1.0.0-beta.23] - 2026-09-15
 

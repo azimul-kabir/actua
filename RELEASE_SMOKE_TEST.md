@@ -38,6 +38,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 
 - [ ] Add expense, income and transfer transactions.
 - [ ] Add and edit a split transaction.
+- [ ] Typing `#` (or deleting characters) in a transaction note while suggestions are showing keeps the on-screen keyboard open without flicker.
+- [ ] In Transactions, enable multi-select, select several transactions, and verify bulk mark cleared/uncleared, delete (with confirmation naming the count), link to schedule, unlink schedule, and (single selection) view schedule.
 - [ ] Payee search filters character-by-character across normal payees and transfer accounts.
 - [ ] Find nearby payees requests foreground permission only after explicit use and normal search remains available on denial/failure.
 - [ ] Indoors, Find nearby payees succeeds from a recent valid fix or an enabled network/fused source when GPS alone cannot obtain a fix.
