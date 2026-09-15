@@ -2,31 +2,19 @@
 
 This directory contains a submission template for the official `fdroiddata` repository. It is not consumed by the Actua Android build.
 
+## Submission approach
+
+Actua is built entirely from source by F-Droid's own build server. The metadata template no longer uses `Binaries`/`binary` or `AllowedAPKSigningKeys`; F-Droid compiles the app itself and signs the resulting APK with its own repository key, the standard model for F-Droid inclusion.
+
+The release build type's signing config (`app/build.gradle.kts`) only applies a keystore when the `ACTUA_KEYSTORE_*` environment variables are present (used by Actua's own GitHub Actions release job). When those variables are absent, as on F-Droid's build server, `assembleRelease` produces an unsigned APK that F-Droid signs itself.
+
 ## First submission target
 
-Actua `1.0.0-beta.9` (`versionCode 26`) is the first intended F-Droid submission target. The GitHub release APK continues to use Actua's persistent signing identity.
+Actua `1.0.0-beta.23` (`versionCode 40`) is the current intended F-Droid submission target.
 
-Release/build commit:
+Release/build commit (`v1.0.0-beta.23`):
 
-`bdd92875ea07c3ff2759b708c80076a402d3f0a0`
-
-Published APK SHA-256:
-
-`d5a9ee7c52a595b8d032b8342fccc5c806bbb69978c1e1c5a90faf8cb3d3abc0`
-
-Expected SHA-256 signing-certificate fingerprint:
-
-`2a37719a0770ce4e03f3c080bd9d780c22300e28db678823b5595c9ad55753cc`
-
-The fdroiddata template uses `Binaries`/`binary` plus `AllowedAPKSigningKeys` so F-Droid can publish the upstream Actua-signed APK only after its own source rebuild verifies as reproducible.
-
-## Verification completed
-
-- The `v1.0.0-beta.9` release and GitHub Actions release job both point to the exact commit above.
-- The release workflow verified the APK successfully with Android `apksigner` using APK Signature Scheme v2.
-- The release certificate SHA-256 fingerprint matches the expected persistent Actua signing identity above.
-- The published APK was downloaded independently by the `F-Droid Verify` GitHub Actions workflow and passed `fdroid scanner --exit-code` with a clean result.
-- `com.azimulkabir.actua.yml` now contains the exact full commit SHA for version 26.
+`1eed7a1b67dc18cbd73bd99da17f14d1b7ae6abe`
 
 ## Remaining submission checks
 
@@ -36,4 +24,4 @@ The fdroiddata template uses `Binaries`/`binary` plus `AllowedAPKSigningKeys` so
 
 ## Build-recipe note
 
-The root `settings.gradle.kts` uses the Foojay toolchain-resolver plugin. The F-Droid recipe removes that root `plugins` block during `prebuild`; the app itself does not depend on Foojay at runtime. F-Droid's normal Android build preparation handles release signing configuration, while reproducible verification compares its rebuilt APK with the developer-signed GitHub binary.
+The root `settings.gradle.kts` uses the Foojay toolchain-resolver plugin. The F-Droid recipe removes that root `plugins` block during `prebuild`; the app itself does not depend on Foojay at runtime.
