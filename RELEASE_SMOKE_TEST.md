@@ -79,6 +79,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Quick Transaction widget works at 2x2 and compact 3x1/4x1 sizes and all three actions open correctly.
 - [ ] Favourite Categories and Account Balances widgets configure, refresh and deep-link correctly.
 - [ ] Upcoming Schedules widget shows overdue-first ordering, relative due labels (Today/Tomorrow/In N days/N days overdue), respects hide-balances, refreshes after schedule mutations and sync, and tapping it opens Scheduled Transactions.
+- [ ] Upcoming Schedules widget switches to its compact layout at the smallest resize size without clipped or overlapping content, and back to the full layout when resized larger.
 - [ ] Upcoming Schedules widget's 7/14/30-day period is chosen when the widget is added, persists per widget instance, and can be changed later through the reconfigure entry point.
 - [ ] Widget amounts respect hide-balances, currency and decimal display preferences.
 
