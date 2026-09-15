@@ -121,7 +121,7 @@ jobs:
     needs: select-coverage
     if: ${{ needs.select-coverage.outputs.run_compatibility == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.select-coverage.outputs.matrix) }}
@@ -131,22 +131,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-
-      - uses: android-actions/setup-android@v4
-        with:
-          packages: platform-tools
-
-      - name: Install Android 17 compile SDK
-        run: |
-          curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
-          export PATH="$HOME/.local/bin:$PATH"
-          android --sdk="$ANDROID_SDK_ROOT" sdk install --canary platforms/android-37
-
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: ./.github/actions/setup-android-toolchain
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
