@@ -30,3 +30,12 @@ data class SplitLine(
 )
 
 enum class Type { EXPENSE, INCOME, TRANSFER }
+
+/** A copy of this transaction detached from its schedule link and split children, ready to be saved as a new one. */
+fun Transaction.asDuplicate(): Transaction = copy(
+    id = "",
+    reconciled = false,
+    rulesApplied = true,
+    scheduleId = null,
+    splits = splits.map { it.copy(childId = null) },
+)

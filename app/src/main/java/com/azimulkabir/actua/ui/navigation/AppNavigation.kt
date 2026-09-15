@@ -99,6 +99,7 @@ import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.model.asDuplicate
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.location.AndroidLocationProvider
 import com.azimulkabir.actua.data.location.CurrentLocationResult
@@ -264,6 +265,7 @@ fun AppNavigation(
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var reconcileOpen by remember { mutableStateOf(false) }
     var scheduleReturnsToBills by rememberSaveable { mutableStateOf(false) }
+    var scheduleReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
     var billsCalendarReturnsToSchedules by rememberSaveable { mutableStateOf(false) }
     var creditCardsReturnToBills by rememberSaveable { mutableStateOf(false) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
@@ -661,6 +663,15 @@ fun AppNavigation(
                         repository.deleteTransactions(transactionsToDelete.map { it.id }) > 0
                     }
                 },
+                onDuplicate = { transaction ->
+                    mutate("Duplicating transaction") { repository.saveTransaction(transaction.asDuplicate()); true }
+                },
+                onDuplicateMultiple = { transactionsToDuplicate ->
+                    mutate("Duplicating transactions") {
+                        transactionsToDuplicate.forEach { repository.saveTransaction(it.asDuplicate()) }
+                        transactionsToDuplicate.isNotEmpty()
+                    }
+                },
                 onLinkSchedule = { transactionsToLink, scheduleId ->
                     mutate("Linking schedule") {
                         repository.linkScheduleTransactions(scheduleId, transactionsToLink.map { it.id }) > 0
@@ -673,6 +684,8 @@ fun AppNavigation(
                 },
                 onViewSchedule = { scheduleId ->
                     editingScheduleId = scheduleId
+                    scheduleReturnsToBills = false
+                    scheduleReturnsToTransactions = true
                     detail = DetailDestination.EditSchedule
                 },
                 linkableSchedules = remember(schedules) {
@@ -985,6 +998,7 @@ fun AppNavigation(
                 onEdit = { id ->
                     editingScheduleId = id
                     scheduleReturnsToBills = false
+                    scheduleReturnsToTransactions = false
                     detail = DetailDestination.EditSchedule
                 },
                 onPost = { id, today ->
@@ -1061,6 +1075,7 @@ fun AppNavigation(
                 onEditSchedule = { id ->
                     editingScheduleId = id
                     scheduleReturnsToBills = true
+                    scheduleReturnsToTransactions = false
                     detail = DetailDestination.EditSchedule
                 },
                 onPost = { id, today ->
@@ -1126,21 +1141,36 @@ fun AppNavigation(
                         repository.scheduleTransactions(item.schedule.id)
                     },
                     onBack = {
-                        detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
+                        detail = when {
+                            scheduleReturnsToTransactions -> DetailDestination.Transactions
+                            scheduleReturnsToBills -> DetailDestination.BillsCalendar
+                            else -> DetailDestination.Schedules
+                        }
                         scheduleReturnsToBills = false
+                        scheduleReturnsToTransactions = false
                     },
                     onSave = { fields, payeeName ->
                         if (mutate("Saving schedule") {
                             repository.updateSchedule(item.schedule.id, fields, payeeName)
                         }) {
-                            detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
+                            detail = when {
+                                scheduleReturnsToTransactions -> DetailDestination.Transactions
+                                scheduleReturnsToBills -> DetailDestination.BillsCalendar
+                                else -> DetailDestination.Schedules
+                            }
                             scheduleReturnsToBills = false
+                            scheduleReturnsToTransactions = false
                         }
                     },
                     onDelete = {
                         if (mutate("Deleting schedule") { repository.deleteSchedule(item.schedule.id) }) {
-                            detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
+                            detail = when {
+                                scheduleReturnsToTransactions -> DetailDestination.Transactions
+                                scheduleReturnsToBills -> DetailDestination.BillsCalendar
+                                else -> DetailDestination.Schedules
+                            }
                             scheduleReturnsToBills = false
+                            scheduleReturnsToTransactions = false
                         }
                     },
                     onUnlinkTransaction = { transactionId ->

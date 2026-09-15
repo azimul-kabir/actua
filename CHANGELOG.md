@@ -4,6 +4,15 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added a "Duplicate" transaction action to the transaction bottom sheet, transaction details sheet, and the multi-select bulk-actions menu; duplicating creates an immediate, unlinked copy of the transaction(s) rather than opening the editor
+- Long-pressing a transaction now offers a "Select" action that enters multi-select mode with that transaction pre-selected, in addition to the existing app-bar select toggle
+
+### Fixed
+
+- Fixed "View schedule" (from the Transactions multi-select bulk menu) not returning to the Transactions screen after back/save/delete on the opened schedule; it previously always dropped you onto the Schedules list or Bills calendar
+
 ## [1.0.0-beta.24] - 2026-09-15
 
 ### Added
