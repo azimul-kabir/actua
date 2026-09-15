@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +46,7 @@ import com.azimulkabir.actua.data.budget.model.ActualTag
 private val tagPalette = listOf("#E57373", "#FFB74D", "#FFF176", "#81C784", "#4DB6AC", "#64B5F6", "#7986CB", "#BA68C8", "#A1887F", "#90A4AE")
 internal fun isValidManagedTagName(name: String): Boolean = name.isNotBlank() && name.none { it == '#' || it.isWhitespace() }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageTagsScreen(
     tags: List<ActualTag>, hiddenSupported: Boolean, onBack: () -> Unit,
