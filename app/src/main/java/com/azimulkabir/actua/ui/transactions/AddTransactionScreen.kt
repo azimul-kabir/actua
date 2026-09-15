@@ -217,6 +217,7 @@ fun AddTransactionScreen(
                     FilterChip(
                         selected = transactionType == type.displayName,
                         onClick = {
+                            if (transactionType != type.displayName) rulesApplied = false
                             transactionType = type.displayName
                             if (type == Type.TRANSFER) splitLines = emptyList()
                         },
@@ -330,7 +331,7 @@ fun AddTransactionScreen(
                         category = ""
                         splitLines = splitLines.map { line -> line.copy(category = "") }
                     }
-                    if (transferAccount == it) transferAccount = ""
+                    if (transferAccount == it) { transferAccount = ""; rulesApplied = false }
                 },
             )
             if (transactionType == Type.TRANSFER.displayName) {
@@ -338,7 +339,30 @@ fun AddTransactionScreen(
                     label = "To", value = transferAccount,
                     options = accountOptions.filterNot { it == account },
                     supportingValues = accountBalanceLabels,
-                    onValueChange = { transferAccount = it },
+                    onValueChange = { value ->
+                        if (value == transferAccount) return@PickerTextField
+                        transferAccount = value
+                        if (editing == null && value.isNotBlank()) {
+                            val preview = onPreviewRules(Transaction(
+                                id = "",
+                                account = account,
+                                payee = payee,
+                                category = category,
+                                amount = (amountCents / 100).toInt(),
+                                amountCents = amountCents,
+                                type = Type.TRANSFER,
+                                transferAccount = value,
+                                date = storageDate(date),
+                                notes = notes,
+                                cleared = cleared,
+                            ))
+                            cleared = preview.cleared
+                            notes = preview.notes
+                            parseStoredDate(preview.date)?.let { date = it }
+                            amountCents = abs(preview.amountCents)
+                            rulesApplied = preview.rulesApplied
+                        }
+                    },
                 )
             } else {
                 if (!isSplit) {

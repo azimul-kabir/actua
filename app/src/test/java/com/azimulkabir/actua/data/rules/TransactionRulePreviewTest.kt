@@ -60,6 +60,30 @@ class TransactionRulePreviewTest {
         assertEquals("", offBudgetPreview.category)
     }
 
+    @Test fun `transfer draft keeps payee, category and type fixed while notes and cleared apply`() {
+        val transferDraft = Transaction(
+            id = "", date = "20260913", payee = "Transfer: Savings", category = "",
+            account = "Checking", amount = -100, cleared = false, amountCents = 10_000,
+            type = Type.TRANSFER, transferAccount = "Savings",
+        )
+        val result = RuleRunResult(
+            actual().copy(
+                payeeId = "transfer-savings", transferAccountId = "savings",
+                notes = "#transfer-test", cleared = true, categoryId = "food",
+            ),
+            setOf("notes", "cleared", "category"), null, false,
+        )
+
+        val preview = TransactionRulePreview.map(transferDraft, result, choices)
+
+        assertEquals(Type.TRANSFER, preview.type)
+        assertEquals("Transfer: Savings", preview.payee)
+        assertEquals("", preview.category)
+        assertEquals("#transfer-test", preview.notes)
+        assertTrue(preview.cleared)
+        assertEquals("Savings", preview.transferAccount)
+    }
+
     private fun draft() = Transaction(
         id = "", date = "20260913", payee = "Shop", category = "Existing",
         account = "Checking", amount = -10, cleared = false, amountCents = 1000,
