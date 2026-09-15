@@ -16,7 +16,7 @@ Repo: https://github.com/azimul-kabir/actua.git
 Builds:
   - versionName: 1.0.0-beta.24
     versionCode: 41
-    commit: 1eab3fb159fa7b04ebdb298aeb80eee7d421fe2c
+    commit: 214be7fd94610b2990c5e88723b41da17865a172
     subdir: app
     prebuild:
       - sed -i '/^plugins {$/,/^}$/d' ../settings.gradle.kts
