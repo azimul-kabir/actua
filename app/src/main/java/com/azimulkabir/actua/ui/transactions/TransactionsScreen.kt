@@ -118,6 +118,8 @@ fun TransactionsScreen(
     onReconcileAccount: (Account) -> Boolean = { false },
     onCreateReconciliationAdjustment: (Account, Long) -> Boolean = { _, _ -> false },
     onDelete: (Transaction) -> Unit = {},
+    onDuplicate: (Transaction) -> Unit = {},
+    onDuplicateMultiple: (List<Transaction>) -> Unit = {},
     account: Account? = null,
     creditCard: CreditCardStatus? = null,
     onSaveAccountNote: (String) -> Unit = {},
@@ -343,6 +345,11 @@ fun TransactionsScreen(
                                 bulkMenuOpen = false
                                 selectedTransactions.filter { it.cleared }.forEach { onSetCleared(it, false) }
                             })
+                            DropdownMenuItem(text = { Text("Duplicate") }, onClick = {
+                                bulkMenuOpen = false
+                                onDuplicateMultiple(selectedTransactions)
+                                selectionModeOn = false
+                            })
                             DropdownMenuItem(text = { Text("Link to schedule") }, onClick = {
                                 bulkMenuOpen = false
                                 showLinkSchedulePicker = true
@@ -466,6 +473,7 @@ fun TransactionsScreen(
             onDismiss = { viewed = null },
             onEdit = { viewed = null; onEdit(transaction) },
             onDelete = { viewed = null; onDelete(transaction) },
+            onDuplicate = { viewed = null; onDuplicate(transaction) },
             tagColors = tagColors,
         )
     }
@@ -475,9 +483,15 @@ fun TransactionsScreen(
                 Text(transaction.payee, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
                 Action("Edit transaction") { selected = null; onEdit(transaction) }
+                Action("Duplicate transaction") { selected = null; onDuplicate(transaction) }
                 Action(if (transaction.cleared) "Mark uncleared" else "Mark cleared") {
                     selected = null
                     onSetCleared(transaction, !transaction.cleared)
+                }
+                Action("Select") {
+                    selected = null
+                    selectionModeOn = true
+                    selectedIds = setOf(transaction.id)
                 }
                 Action("Delete transaction", destructive = true) {
                     selected = null
@@ -965,6 +979,7 @@ fun TransactionDetailsSheet(
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onDuplicate: () -> Unit = {},
     tagColors: Map<String, String>? = null,
 ) {
     var confirmDelete by remember(transaction.id) { mutableStateOf(false) }
@@ -997,6 +1012,7 @@ fun TransactionDetailsSheet(
                 TextButton(onClick = { confirmDelete = true }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
+                TextButton(onClick = onDuplicate) { Text("Duplicate") }
                 TextButton(onClick = onEdit) { Text("Edit") }
             }
         }
