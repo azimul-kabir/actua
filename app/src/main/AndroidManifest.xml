@@ -51,6 +51,14 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".widget.ScheduleWidgetConfigurationActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Actua">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
