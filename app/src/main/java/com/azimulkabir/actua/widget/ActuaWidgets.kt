@@ -282,7 +282,10 @@ object WidgetUpdater {
     }
 
     private fun updateSchedules(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val views = RemoteViews(context.packageName, R.layout.widget_scheduled_transactions)
+        val compact = isCompact(manager, widgetId)
+        val layout = if (compact) R.layout.widget_scheduled_transactions_compact else R.layout.widget_scheduled_transactions
+        val maxRows = if (compact) 2 else 4
+        val views = RemoteViews(context.packageName, layout)
         val repository = ActuaRepository(context)
         try {
             val entries = if (!repository.isUsingActualBudget) {
@@ -292,9 +295,9 @@ object WidgetUpdater {
                 views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_schedules))
                 val today = DayDate.today()
                 val periodDays = ScheduleWidgetPreferences(context).periodDays(widgetId)
-                ScheduleWidgetProjection.upcoming(repository.schedules(today), today, periodDays).take(4)
+                ScheduleWidgetProjection.upcoming(repository.schedules(today), today, periodDays).take(maxRows)
             }
-            bindScheduleRows(context, views, entries, widgetId)
+            bindScheduleRows(context, views, entries, widgetId, maxRows)
             views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.SCHEDULES, widgetId))
             manager.updateAppWidget(widgetId, views)
         } finally {
@@ -302,19 +305,25 @@ object WidgetUpdater {
         }
     }
 
-    private fun bindScheduleRows(context: Context, views: RemoteViews, entries: List<ScheduleWidgetEntry>, widgetId: Int) {
+    private fun bindScheduleRows(
+        context: Context,
+        views: RemoteViews,
+        entries: List<ScheduleWidgetEntry>,
+        widgetId: Int,
+        maxRows: Int,
+    ) {
         val containers = intArrayOf(
             R.id.widget_schedule_row_1, R.id.widget_schedule_row_2, R.id.widget_schedule_row_3, R.id.widget_schedule_row_4,
-        )
+        ).take(maxRows)
         val titles = intArrayOf(
             R.id.widget_schedule_title_1, R.id.widget_schedule_title_2, R.id.widget_schedule_title_3, R.id.widget_schedule_title_4,
-        )
+        ).take(maxRows)
         val dues = intArrayOf(
             R.id.widget_schedule_due_1, R.id.widget_schedule_due_2, R.id.widget_schedule_due_3, R.id.widget_schedule_due_4,
-        )
+        ).take(maxRows)
         val amounts = intArrayOf(
             R.id.widget_schedule_amount_1, R.id.widget_schedule_amount_2, R.id.widget_schedule_amount_3, R.id.widget_schedule_amount_4,
-        )
+        ).take(maxRows)
         containers.indices.forEach { index ->
             val entry = entries.getOrNull(index)
             views.setViewVisibility(containers[index], if (entry == null) View.GONE else View.VISIBLE)
