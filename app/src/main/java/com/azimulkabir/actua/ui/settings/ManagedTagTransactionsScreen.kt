@@ -40,32 +40,20 @@ import com.azimulkabir.actua.data.budget.model.ActualTag
 import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
-import com.azimulkabir.actua.ui.transactions.filterTransactionsByTag
+import com.azimulkabir.actua.ui.transactions.filterByTag
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun ManagedTagTransactionsScreen(
-    tag: ActualTag,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+internal fun ManagedTagTransactionsScreen(tag: ActualTag, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val repository = remember { ActuaRepository(context) }
     val syncGeneration by SyncSignals.dataGeneration.collectAsState()
-    val transactions = remember(syncGeneration, tag.tag) {
-        filterTransactionsByTag(repository.transactions(), tag.tag)
-    }
+    val transactions = remember(syncGeneration, tag.tag) { repository.transactions().filterByTag(tag.tag) }
     BackHandler(onBack = onBack)
 
     Column(modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text("Tag transactions") },
-            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        TopAppBar(title = { Text("Tag transactions") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } })
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             AssistChip(
                 onClick = onBack,
                 label = { Text("#${tag.tag}") },
@@ -78,24 +66,22 @@ internal fun ManagedTagTransactionsScreen(
         if (transactions.isEmpty()) {
             Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("No transactions use #${tag.tag}", style = MaterialTheme.typography.titleMedium)
-                Text("Managed and unmanaged hashtag text is matched exactly. Escaped ##${tag.tag} text is ignored.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+                Text("Exact hashtag matching is used. Escaped ##${tag.tag} text is ignored.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             }
-        } else {
-            LazyColumn(Modifier.fillMaxSize()) {
-                items(transactions, key = { it.id }) { transaction ->
-                    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(transaction.payee.ifBlank { "No payee" }, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(listOf(transaction.category, transaction.account).filter(String::isNotBlank).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text(formatMoneyCents(transaction.amountCents, false), fontWeight = FontWeight.SemiBold)
+        } else LazyColumn(Modifier.fillMaxSize()) {
+            items(transactions, key = { it.id }) { transaction ->
+                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(transaction.payee.ifBlank { "No payee" }, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(listOf(transaction.category, transaction.account).filter(String::isNotBlank).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        transaction.notes?.takeIf(String::isNotBlank)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp)) }
-                        Text(formatStoredDate(transaction.date), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+                        Text(formatMoneyCents(transaction.amountCents, false), fontWeight = FontWeight.SemiBold)
                     }
-                    HorizontalDivider()
+                    transaction.notes.takeIf(String::isNotBlank)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp)) }
+                    Text(formatStoredDate(transaction.date), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
                 }
+                HorizontalDivider()
             }
         }
     }
