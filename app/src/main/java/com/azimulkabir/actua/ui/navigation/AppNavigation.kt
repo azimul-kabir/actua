@@ -656,6 +656,30 @@ fun AppNavigation(
                 onDelete = { transaction ->
                     mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
                 },
+                onDeleteMultiple = { transactionsToDelete ->
+                    mutate("Deleting transactions") {
+                        repository.deleteTransactions(transactionsToDelete.map { it.id }) > 0
+                    }
+                },
+                onLinkSchedule = { transactionsToLink, scheduleId ->
+                    mutate("Linking schedule") {
+                        repository.linkScheduleTransactions(scheduleId, transactionsToLink.map { it.id }) > 0
+                    }
+                },
+                onUnlinkSchedule = { transactionsToUnlink ->
+                    mutate("Unlinking schedule") {
+                        repository.unlinkScheduleFromTransactions(transactionsToUnlink.map { it.id }) > 0
+                    }
+                },
+                onViewSchedule = { scheduleId ->
+                    editingScheduleId = scheduleId
+                    detail = DetailDestination.EditSchedule
+                },
+                linkableSchedules = remember(schedules) {
+                    schedules.filterNot { it.schedule.completed }.map {
+                        com.azimulkabir.actua.ui.transactions.ScheduleOption(it.schedule.id, it.title)
+                    }
+                },
                 account = accounts.firstOrNull { it.name == transactionAccount },
                 creditCard = creditCards.firstOrNull { card ->
                     card.accountId == accounts.firstOrNull { it.name == transactionAccount }?.id

@@ -16,6 +16,7 @@ data class Transaction(
     val splits: List<SplitLine> = emptyList(),
     val categoryIsIncome: Boolean? = null,
     val rulesApplied: Boolean = false,
+    val scheduleId: String? = null,
 )
 
 data class SplitLine(

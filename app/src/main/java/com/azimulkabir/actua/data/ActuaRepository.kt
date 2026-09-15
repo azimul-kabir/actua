@@ -664,6 +664,7 @@ class ActuaRepository(context: Context) {
                     transferAccount = it.transferAccountId?.let(accountNames::get),
                     notes = it.notes.orEmpty(),
                     categoryIsIncome = it.categoryIsIncome,
+                    scheduleId = it.scheduleId,
                     splits = it.splitPortions.map { part ->
                         SplitLine(
                             category = part.categoryName.orEmpty(),
@@ -1157,6 +1158,44 @@ class ActuaRepository(context: Context) {
         val transaction = actualDatabase?.fetchTransaction(id) ?: return false
         actualWriter!!.deleteTransaction(transaction)
         return true
+    }
+
+    fun deleteTransactions(ids: Collection<String>): Int {
+        val db = actualDatabase ?: return 0
+        val writer = actualWriter ?: return 0
+        var count = 0
+        for (id in ids) {
+            val transaction = db.fetchTransaction(id) ?: continue
+            writer.deleteTransaction(transaction)
+            count++
+        }
+        return count
+    }
+
+    fun linkScheduleTransactions(scheduleId: String, transactionIds: Collection<String>): Int {
+        val db = actualDatabase ?: return 0
+        val writer = actualWriter ?: return 0
+        require(db.fetchScheduleSummaries().any { it.id == scheduleId }) { "That schedule no longer exists" }
+        var count = 0
+        for (id in transactionIds) {
+            val transaction = db.fetchTransaction(id) ?: continue
+            writer.setScheduleLink(transaction, scheduleId)
+            count++
+        }
+        return count
+    }
+
+    fun unlinkScheduleFromTransactions(transactionIds: Collection<String>): Int {
+        val db = actualDatabase ?: return 0
+        val writer = actualWriter ?: return 0
+        var count = 0
+        for (id in transactionIds) {
+            val transaction = db.fetchTransaction(id) ?: continue
+            if (transaction.scheduleId == null) continue
+            writer.setScheduleLink(transaction, null)
+            count++
+        }
+        return count
     }
 
     private fun parseDate(value: String): Int {

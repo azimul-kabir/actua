@@ -36,6 +36,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -127,6 +128,11 @@ fun TransactionsScreen(
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
     onReconcileVisibilityChange: (Boolean) -> Unit = {},
     returnToRootRequest: Int = 0,
+    onDeleteMultiple: (List<Transaction>) -> Unit = {},
+    onLinkSchedule: (List<Transaction>, String) -> Unit = { _, _ -> },
+    onUnlinkSchedule: (List<Transaction>) -> Unit = {},
+    onViewSchedule: (String) -> Unit = {},
+    linkableSchedules: List<ScheduleOption> = emptyList(),
 ) {
     val listState = rememberLazyListState()
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
@@ -135,6 +141,12 @@ fun TransactionsScreen(
     var hideCleared by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Transaction?>(null) }
     var viewed by remember { mutableStateOf<Transaction?>(null) }
+    var selectionModeOn by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    LaunchedEffect(selectionModeOn) { if (!selectionModeOn) selectedIds = emptySet() }
+    var bulkMenuOpen by remember { mutableStateOf(false) }
+    var showLinkSchedulePicker by remember { mutableStateOf(false) }
+    var confirmBulkDelete by remember { mutableStateOf(false) }
     var reconcileOpen by remember(account?.id) { mutableStateOf(false) }
     LaunchedEffect(reconcileOpen) { onReconcileVisibilityChange(reconcileOpen) }
     DisposableEffect(Unit) {
@@ -245,6 +257,13 @@ fun TransactionsScreen(
                     IconButton(onClick = { showSearch = !showSearch }) {
                         Icon(Icons.Outlined.Search, contentDescription = "Search transactions")
                     }
+                    IconButton(onClick = { selectionModeOn = !selectionModeOn }) {
+                        Icon(
+                            Icons.Outlined.CheckCircle,
+                            contentDescription = if (selectionModeOn) "Exit selection mode" else "Select transactions",
+                            tint = if (selectionModeOn) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                        )
+                    }
                     androidx.compose.foundation.layout.Box {
                         IconButton(onClick = { menuOpen = true }) {
                             Icon(Icons.Outlined.MoreVert, contentDescription = "Transaction options")
@@ -289,6 +308,70 @@ fun TransactionsScreen(
                 placeholder = { Text("Search transactions") }, singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
             )
+        }
+        AnimatedVisibility(
+            visible = selectionModeOn,
+            enter = fadeIn(tween(180)) + expandVertically(tween(240)),
+            exit = fadeOut(tween(120)) + shrinkVertically(tween(200)),
+        ) {
+            val selectedTransactions = visible.filter { it.id in selectedIds }
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        if (selectedIds.isEmpty()) "Tap transactions to select" else "${selectedIds.size} selected",
+                        modifier = Modifier.weight(1f),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    TextButton(onClick = { selectionModeOn = false }) { Text("Cancel") }
+                    androidx.compose.foundation.layout.Box {
+                        IconButton(onClick = { bulkMenuOpen = true }, enabled = selectedTransactions.isNotEmpty()) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = "Bulk actions")
+                        }
+                        DropdownMenu(expanded = bulkMenuOpen, onDismissRequest = { bulkMenuOpen = false }) {
+                            DropdownMenuItem(text = { Text("Mark cleared") }, onClick = {
+                                bulkMenuOpen = false
+                                selectedTransactions.filterNot { it.cleared }.forEach { onSetCleared(it, true) }
+                            })
+                            DropdownMenuItem(text = { Text("Mark uncleared") }, onClick = {
+                                bulkMenuOpen = false
+                                selectedTransactions.filter { it.cleared }.forEach { onSetCleared(it, false) }
+                            })
+                            DropdownMenuItem(text = { Text("Link to schedule") }, onClick = {
+                                bulkMenuOpen = false
+                                showLinkSchedulePicker = true
+                            })
+                            if (selectedTransactions.any { it.scheduleId != null }) {
+                                DropdownMenuItem(text = { Text("Unlink schedule") }, onClick = {
+                                    bulkMenuOpen = false
+                                    onUnlinkSchedule(selectedTransactions.filter { it.scheduleId != null })
+                                    selectionModeOn = false
+                                })
+                            }
+                            if (selectedTransactions.size == 1) {
+                                selectedTransactions.first().scheduleId?.let { scheduleId ->
+                                    DropdownMenuItem(text = { Text("View schedule") }, onClick = {
+                                        bulkMenuOpen = false
+                                        selectionModeOn = false
+                                        onViewSchedule(scheduleId)
+                                    })
+                                }
+                            }
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                onClick = { bulkMenuOpen = false; confirmBulkDelete = true },
+                            )
+                        }
+                    }
+                }
+            }
         }
         if (searchingDatabase && completedQuery != search) {
             Text(if (searchError) "Search failed. Change the search to try again." else "Searching…",
@@ -341,16 +424,36 @@ fun TransactionsScreen(
                                 .padding(horizontal = 20.dp, vertical = 8.dp))
                     }
                     items(transactions, key = { it.id }) { transaction ->
-                        TransactionRow(transaction, hideDecimalPlaces, showDate = false, onClick = { viewed = transaction },
-                            showAccount = accountName == null, onLongClick = { selected = transaction },
-                            onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors)
+                        TransactionRow(transaction, hideDecimalPlaces, showDate = false,
+                            onClick = {
+                                if (selectionModeOn) {
+                                    selectedIds = selectedIds.toggle(transaction.id)
+                                } else viewed = transaction
+                            },
+                            showAccount = accountName == null,
+                            onLongClick = {
+                                if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
+                                else selected = transaction
+                            },
+                            onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
+                            selectionMode = selectionModeOn, selected = transaction.id in selectedIds)
                     }
                 }
             } else {
                 items(visible, key = { it.id }) { transaction ->
-                    TransactionRow(transaction, hideDecimalPlaces, showDate = true, onClick = { viewed = transaction },
-                        showAccount = accountName == null, onLongClick = { selected = transaction },
-                        onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors)
+                    TransactionRow(transaction, hideDecimalPlaces, showDate = true,
+                        onClick = {
+                            if (selectionModeOn) {
+                                selectedIds = selectedIds.toggle(transaction.id)
+                            } else viewed = transaction
+                        },
+                        showAccount = accountName == null,
+                        onLongClick = {
+                            if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
+                            else selected = transaction
+                        },
+                        onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
+                        selectionMode = selectionModeOn, selected = transaction.id in selectedIds)
                 }
             }
         }
@@ -383,7 +486,48 @@ fun TransactionsScreen(
             }
         }
     }
+    if (confirmBulkDelete) {
+        val count = selectedIds.size
+        AlertDialog(
+            onDismissRequest = { confirmBulkDelete = false },
+            title = { Text("Delete $count ${if (count == 1) "transaction" else "transactions"}?") },
+            text = { Text("These transactions will be deleted.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDeleteMultiple(visible.filter { it.id in selectedIds })
+                    confirmBulkDelete = false
+                    selectionModeOn = false
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { confirmBulkDelete = false }) { Text("Cancel") } },
+        )
+    }
+    if (showLinkSchedulePicker) {
+        ModalBottomSheet(onDismissRequest = { showLinkSchedulePicker = false }) {
+            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+                Text("Link to schedule", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                if (linkableSchedules.isEmpty()) {
+                    Text("No schedules available", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                } else {
+                    val ids = selectedIds
+                    linkableSchedules.forEach { schedule ->
+                        Action(schedule.name) {
+                            showLinkSchedulePicker = false
+                            onLinkSchedule(visible.filter { it.id in ids }, schedule.id)
+                            selectionModeOn = false
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
+
+private fun Set<String>.toggle(id: String): Set<String> = if (id in this) this - id else this + id
+
+data class ScheduleOption(val id: String, val name: String)
 
 @Composable
 private fun ReconcileAccountScreen(
@@ -709,12 +853,16 @@ private fun ToggleItem(label: String, checked: Boolean, onChange: (Boolean) -> U
 @Composable
 fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     showDate: Boolean, showAccount: Boolean, onClick: () -> Unit, onLongClick: () -> Unit,
-    onClearedClick: (() -> Unit)? = null, tagColors: Map<String, String>? = null) {
+    onClearedClick: (() -> Unit)? = null, tagColors: Map<String, String>? = null,
+    selectionMode: Boolean = false, selected: Boolean = false) {
     val presentation = transactionRowPresentation(transaction, showAccount)
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     Column(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
         .padding(horizontal = 20.dp, vertical = 12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            if (selectionMode) {
+                Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
+            }
             Text(presentation.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
