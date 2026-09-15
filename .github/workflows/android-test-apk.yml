@@ -27,20 +27,7 @@ jobs:
           ref: ${{ inputs.ref || github.ref }}
           persist-credentials: false
 
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-
-      - uses: android-actions/setup-android@v4
-
-      - name: Install Android 17 compile SDK
-        run: |
-          curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
-          export PATH="$HOME/.local/bin:$PATH"
-          android --sdk="$ANDROID_SDK_ROOT" sdk install --canary platforms/android-37
-
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: ./.github/actions/setup-android-toolchain
 
       - name: Prepare isolated test app identity
         shell: bash
