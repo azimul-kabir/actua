@@ -4,7 +4,9 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
-No user-facing changes yet.
+### Fixed
+
+- Fixed a spurious error banner (e.g. a raw `CertPathValidatorException`) appearing on cold app launch, most noticeably via the Add Expense/Income/Transfer/Search home-screen shortcuts; the automatic app-open sync is opportunistic and no longer surfaces transient network failures as a Snackbar, since they're already recorded for the Connection screen and resolved by the next sync attempt
 
 ## [1.0.0-beta.23] - 2026-09-15
 

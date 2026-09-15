@@ -368,7 +368,11 @@ fun AppNavigation(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
-            errorMessage = error.message ?: "Automatic sync failed."
+            // This automatic app-open sync is opportunistic: a cold launch can race the
+            // network coming up (e.g. via a launcher shortcut straight into the editor),
+            // and ActualSyncRunner.run already records the failure in SyncStatusStore for
+            // the Connection screen. Surfacing every transient failure here as a Snackbar
+            // would alarm the user over something that resolves on the next sync attempt.
             null
         }
         when (result) {
