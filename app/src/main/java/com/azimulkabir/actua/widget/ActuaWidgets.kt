@@ -62,6 +62,26 @@ internal class WidgetPreferences(context: Context) {
     private companion object { const val NAME = "home_widget_preferences" }
 }
 
+internal class ScheduleWidgetPreferences(context: Context) {
+    private val values = context.applicationContext.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+
+    fun periodDays(widgetId: Int): Int = values.getInt(key(widgetId), ScheduleWidgetPeriod.FOURTEEN.days)
+
+    fun save(widgetId: Int, days: Int) {
+        values.edit().putInt(key(widgetId), days).apply()
+    }
+
+    fun remove(widgetIds: IntArray) {
+        values.edit().apply {
+            widgetIds.forEach { remove(key(it)) }
+        }.apply()
+    }
+
+    private fun key(widgetId: Int) = "period_$widgetId"
+
+    private companion object { const val NAME = "schedule_widget_preferences" }
+}
+
 abstract class ActuaWidgetProvider : AppWidgetProvider() {
     abstract val kind: WidgetKind?
 
@@ -117,6 +137,11 @@ class AccountBalancesWidgetProvider : ActuaWidgetProvider() {
 
 class ScheduledTransactionsWidgetProvider : ActuaWidgetProvider() {
     override val kind: WidgetKind? = null
+
+    override fun onDeleted(context: Context, widgetIds: IntArray) {
+        super.onDeleted(context, widgetIds)
+        ScheduleWidgetPreferences(context).remove(widgetIds)
+    }
 }
 
 object WidgetUpdater {
@@ -266,9 +291,8 @@ object WidgetUpdater {
             } else {
                 views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_schedules))
                 val today = DayDate.today()
-                ScheduleWidgetProjection.upcoming(
-                    repository.schedules(today), today, ScheduleWidgetPeriod.FOURTEEN.days,
-                ).take(4)
+                val periodDays = ScheduleWidgetPreferences(context).periodDays(widgetId)
+                ScheduleWidgetProjection.upcoming(repository.schedules(today), today, periodDays).take(4)
             }
             bindScheduleRows(context, views, entries, widgetId)
             views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.SCHEDULES, widgetId))
