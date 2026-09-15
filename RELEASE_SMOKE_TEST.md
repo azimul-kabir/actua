@@ -32,6 +32,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Category details show notes, recent activity, rollover setting and target information correctly.
 - [ ] Auto-Assign works for a supported target and produces the expected amount.
 - [ ] Hide/unhide category/group and verify the state survives refresh/relaunch.
+- [ ] A category with an active budget-automation goal shows its progress bar filling toward the goal as it's funded, and dropping when the goal amount is spent; a category without a goal still shows plain spend-down progress.
 
 ## Transactions and accounts
 
@@ -45,6 +46,10 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Verify transfer and blank payees never record a location and same-payee samples within 500 metres are deduplicated.
 - [ ] Delete one saved location, then clear all for a payee, sync, and verify the tombstones are reflected in Actual.
 - [ ] Global search finds transactions, accounts, payees, categories, notes and transfers.
+- [ ] `#tag` renders with its configured Actual color consistently across the main Transactions tab, account lists, transaction detail, search results and category recent-activity.
+- [ ] Typing `#` in a transaction note offers matching/creatable tag suggestions; selecting one inserts it correctly and syncs.
+- [ ] Manage → Tags: create, edit (color/hidden), rename and delete a tag; renaming updates matching transaction-note hashtags.
+- [ ] Tapping a managed tag opens its matching transactions, including parent/split notes, with the active filter clearly shown and clearable.
 - [ ] Cleared/uncleared/reconciled balances agree with the source budget.
 - [ ] Reconcile an account using a known bank balance and verify the resulting locked/reconciled rows.
 - [ ] Reconciled-transaction filtering works in account and all-transactions views.
@@ -54,6 +59,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 
 - [ ] Existing supported Actual rules load and can be edited without corrupting their JSON/conditions.
 - [ ] Create/edit/delete a supported rule and confirm it syncs correctly.
+- [ ] Create a transfer with a rule configured to match its destination account; selecting the destination applies the rule's Notes/Cleared/etc. in the editor, and the saved transfer stays correctly linked.
 - [ ] Scheduled Transactions list opens and status/date/amount alignment is correct.
 - [ ] Create/edit a recurring schedule and verify recurrence preview.
 - [ ] Exercise Post, Post today, Skip next date and linked-history/unlink flows on test data.

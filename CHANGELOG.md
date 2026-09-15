@@ -6,6 +6,27 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.22] - 2026-09-15
+
+### Added
+
+- Added full Actual Budget tag support: colored tag rendering consistent across every transaction list, `#` autocomplete with inline tag creation in transaction notes, a native Manage Tags screen for create/edit/delete/color/hidden state, and tap-a-tag transaction discovery/filtering, all backed by Actual's canonical tag dataset and refreshed after sync
+- Added a README hero image and a mobile-friendly screenshot gallery
+
+### Changed
+
+- Budget category progress bars now fill toward an active budget-automation goal instead of always reading as spend-down, so a long-term funding goal shows real progress before anything is spent
+
+### Fixed
+
+- Fixed colored transaction-note tags rendering inconsistently across transaction lists, including tag metadata schema handling and cache invalidation after sync
+- Fixed transfer transactions not applying matching Actual rules; selecting a destination account now triggers rule evaluation and applies supported actions such as Notes and Cleared
+
+### Safety
+
+- Tag rendering remains display-only and never mutates transaction notes or synchronized tag metadata, with unknown or malformed tag metadata falling back to normal text
+- Categories without an active goal keep their existing spend-down progress behavior unchanged, and transfer rule matching preserves Actual's canonical transfer-payee representation and linked transfer persistence
+
 ## [1.0.0-beta.21] - 2026-09-14
 
 ### Added
