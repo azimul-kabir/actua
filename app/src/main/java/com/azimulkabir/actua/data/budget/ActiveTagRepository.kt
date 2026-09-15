@@ -35,11 +35,12 @@ class ActiveTagRepository(context: Context) {
             if (normalized != tag.tag) {
                 val transactions = database.fetchTransactions(limit = Int.MAX_VALUE)
                 val changed = transactions.mapNotNull { transaction ->
-                    val renamed = renameTagInNotes(transaction.notes, tag.tag, normalized)
-                    if (renamed == transaction.notes) null else transaction to transaction.copy(notes = renamed)
+                    val notes = transaction.notes ?: return@mapNotNull null
+                    val renamed = renameTagInNotes(notes, tag.tag, normalized)
+                    if (renamed == notes) null else transaction to transaction.copy(notes = renamed)
                 }
                 if (changed.isNotEmpty()) {
-                    ActualTransactionWriter(database).mutate(updates = changed)
+                    ActualTransactionWriter(database, onWrite = ::scheduleMutation).mutate(updates = changed)
                 }
             }
             tagWriter(database).update(
