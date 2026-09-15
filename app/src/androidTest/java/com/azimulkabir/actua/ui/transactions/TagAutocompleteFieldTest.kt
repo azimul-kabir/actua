@@ -5,6 +5,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.azimulkabir.actua.data.budget.model.ActualTag
 import org.junit.Rule
@@ -56,6 +57,21 @@ class TagAutocompleteFieldTest {
         compose.onNode(hasSetTextAction()).performTextInput("#travel")
 
         compose.onNodeWithText("Create #travel").assertExists()
+    }
+
+    @Test
+    fun tappingTrailingHashButtonOffersExistingTags() {
+        compose.setContent {
+            MaterialTheme {
+                TagAutocompleteField(value = "", tags = tags, onValueChange = {}, onCreateTag = { null })
+            }
+        }
+
+        compose.onNodeWithText("#").performClick()
+
+        compose.onNodeWithText("#school").assertExists()
+        compose.onNodeWithText("#groceries").assertExists()
+        compose.onNodeWithText("#archived").assertDoesNotExist()
     }
 
     @Test

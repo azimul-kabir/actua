@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -20,6 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
@@ -37,6 +40,7 @@ internal fun TagAutocompleteField(
     modifier: Modifier = Modifier,
 ) {
     var fieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
+    val focusRequester = remember { FocusRequester() }
     var focused by remember { mutableStateOf(false) }
     var dismissedToken by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(value) {
@@ -55,7 +59,16 @@ internal fun TagAutocompleteField(
             onValueChange = { next -> fieldValue = next; onValueChange(next.text) },
             label = { Text(label) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
+            trailingIcon = {
+                IconButton(onClick = {
+                    val cursor = fieldValue.selection.end
+                    val text = fieldValue.text.replaceRange(cursor, cursor, "#")
+                    fieldValue = TextFieldValue(text, TextRange(cursor + 1))
+                    onValueChange(text)
+                    focusRequester.requestFocus()
+                }) { Text("#", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            },
+            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester).onFocusChanged { focused = it.isFocused },
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { dismissedToken = tokenKey }, modifier = Modifier.fillMaxWidth(0.92f)) {
             matches.forEach { tag ->
