@@ -241,6 +241,11 @@ fun AppNavigation(
     val scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() }
     val ruleEditorData = remember(dataVersion) { repository.ruleEditorData() }
     val schedules = remember(dataVersion) { repository.schedules() }
+    val linkableSchedules = remember(schedules) {
+        schedules.filterNot { it.schedule.completed }.map {
+            com.azimulkabir.actua.ui.transactions.ScheduleOption(it.schedule.id, it.title)
+        }
+    }
     var editingScheduleId by rememberSaveable { mutableStateOf<String?>(null) }
     var destination by rememberSaveable {
         mutableStateOf(MainDestination.entries.firstOrNull { it.label == displayPreferences.startPage }
@@ -266,6 +271,7 @@ fun AppNavigation(
     var reconcileOpen by remember { mutableStateOf(false) }
     var scheduleReturnsToBills by rememberSaveable { mutableStateOf(false) }
     var scheduleReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
+    var scheduleReturnsToTransactionsTab by rememberSaveable { mutableStateOf(false) }
     var billsCalendarReturnsToSchedules by rememberSaveable { mutableStateOf(false) }
     var creditCardsReturnToBills by rememberSaveable { mutableStateOf(false) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
@@ -307,6 +313,21 @@ fun AppNavigation(
             false
         },
     )
+
+    fun returnFromEditSchedule() {
+        when {
+            scheduleReturnsToTransactionsTab -> {
+                destination = MainDestination.Transactions
+                detail = DetailDestination.Main
+            }
+            scheduleReturnsToTransactions -> detail = DetailDestination.Transactions
+            scheduleReturnsToBills -> detail = DetailDestination.BillsCalendar
+            else -> detail = DetailDestination.Schedules
+        }
+        scheduleReturnsToBills = false
+        scheduleReturnsToTransactions = false
+        scheduleReturnsToTransactionsTab = false
+    }
 
     fun openAddTransaction() {
         addOrigin = destination
@@ -686,13 +707,10 @@ fun AppNavigation(
                     editingScheduleId = scheduleId
                     scheduleReturnsToBills = false
                     scheduleReturnsToTransactions = true
+                    scheduleReturnsToTransactionsTab = false
                     detail = DetailDestination.EditSchedule
                 },
-                linkableSchedules = remember(schedules) {
-                    schedules.filterNot { it.schedule.completed }.map {
-                        com.azimulkabir.actua.ui.transactions.ScheduleOption(it.schedule.id, it.title)
-                    }
-                },
+                linkableSchedules = linkableSchedules,
                 account = accounts.firstOrNull { it.name == transactionAccount },
                 creditCard = creditCards.firstOrNull { card ->
                     card.accountId == accounts.firstOrNull { it.name == transactionAccount }?.id
@@ -999,6 +1017,7 @@ fun AppNavigation(
                     editingScheduleId = id
                     scheduleReturnsToBills = false
                     scheduleReturnsToTransactions = false
+                    scheduleReturnsToTransactionsTab = false
                     detail = DetailDestination.EditSchedule
                 },
                 onPost = { id, today ->
@@ -1076,6 +1095,7 @@ fun AppNavigation(
                     editingScheduleId = id
                     scheduleReturnsToBills = true
                     scheduleReturnsToTransactions = false
+                    scheduleReturnsToTransactionsTab = false
                     detail = DetailDestination.EditSchedule
                 },
                 onPost = { id, today ->
@@ -1141,36 +1161,18 @@ fun AppNavigation(
                         repository.scheduleTransactions(item.schedule.id)
                     },
                     onBack = {
-                        detail = when {
-                            scheduleReturnsToTransactions -> DetailDestination.Transactions
-                            scheduleReturnsToBills -> DetailDestination.BillsCalendar
-                            else -> DetailDestination.Schedules
-                        }
-                        scheduleReturnsToBills = false
-                        scheduleReturnsToTransactions = false
+                        returnFromEditSchedule()
                     },
                     onSave = { fields, payeeName ->
                         if (mutate("Saving schedule") {
                             repository.updateSchedule(item.schedule.id, fields, payeeName)
                         }) {
-                            detail = when {
-                                scheduleReturnsToTransactions -> DetailDestination.Transactions
-                                scheduleReturnsToBills -> DetailDestination.BillsCalendar
-                                else -> DetailDestination.Schedules
-                            }
-                            scheduleReturnsToBills = false
-                            scheduleReturnsToTransactions = false
+                            returnFromEditSchedule()
                         }
                     },
                     onDelete = {
                         if (mutate("Deleting schedule") { repository.deleteSchedule(item.schedule.id) }) {
-                            detail = when {
-                                scheduleReturnsToTransactions -> DetailDestination.Transactions
-                                scheduleReturnsToBills -> DetailDestination.BillsCalendar
-                                else -> DetailDestination.Schedules
-                            }
-                            scheduleReturnsToBills = false
-                            scheduleReturnsToTransactions = false
+                            returnFromEditSchedule()
                         }
                     },
                     onUnlinkTransaction = { transactionId ->
@@ -1386,6 +1388,38 @@ fun AppNavigation(
                     onDelete = { transaction ->
                         mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
                     },
+                    onDeleteMultiple = { transactionsToDelete ->
+                        mutate("Deleting transactions") {
+                            repository.deleteTransactions(transactionsToDelete.map { it.id }) > 0
+                        }
+                    },
+                    onDuplicate = { transaction ->
+                        mutate("Duplicating transaction") { repository.saveTransaction(transaction.asDuplicate()); true }
+                    },
+                    onDuplicateMultiple = { transactionsToDuplicate ->
+                        mutate("Duplicating transactions") {
+                            transactionsToDuplicate.forEach { repository.saveTransaction(it.asDuplicate()) }
+                            transactionsToDuplicate.isNotEmpty()
+                        }
+                    },
+                    onLinkSchedule = { transactionsToLink, scheduleId ->
+                        mutate("Linking schedule") {
+                            repository.linkScheduleTransactions(scheduleId, transactionsToLink.map { it.id }) > 0
+                        }
+                    },
+                    onUnlinkSchedule = { transactionsToUnlink ->
+                        mutate("Unlinking schedule") {
+                            repository.unlinkScheduleFromTransactions(transactionsToUnlink.map { it.id }) > 0
+                        }
+                    },
+                    onViewSchedule = { scheduleId ->
+                        editingScheduleId = scheduleId
+                        scheduleReturnsToBills = false
+                        scheduleReturnsToTransactions = false
+                        scheduleReturnsToTransactionsTab = true
+                        detail = DetailDestination.EditSchedule
+                    },
+                    linkableSchedules = linkableSchedules,
                     showBackButton = false,
                     returnToRootRequest = rootRequests[MainDestination.Transactions] ?: 0,
                 )
