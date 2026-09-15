@@ -6,6 +6,21 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 No user-facing changes yet.
 
+## [1.0.0-beta.23] - 2026-09-15
+
+### Added
+
+- Added a read-only Upcoming Schedules home-screen widget: overdue-first ordering, relative due labels (Today/Tomorrow/In N days/N days overdue), a per-instance configurable 7/14/30-day period, a compact layout for smaller sizes, and a tap-through deep link to Scheduled Transactions
+- Added a tappable `#` trailing icon to the transaction Notes field, matching Actual's mobile UI, for starting a tag without typing `#`
+
+### Fixed
+
+- Fixed transaction notes `#` tag autocomplete never appearing in Add/Edit Transaction; typing `#` in the main Notes field or a split note now shows matching-tag suggestions and an inline "Create #tag" option, as already documented
+
+### Safety
+
+- The Upcoming Schedules widget is read-only; no financial mutation (post, skip, complete) is reachable from it, and it respects hide-balances, currency, and decimal-place display preferences
+
 ## [1.0.0-beta.22] - 2026-09-15
 
 ### Added
