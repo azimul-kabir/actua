@@ -133,6 +133,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Android home-screen widget snapshot generation from the selected local budget, including
   budget overview, configurable category and account rows, privacy-aware amount formatting,
   post-write/post-sync refresh, and transaction-entry deep links
+- Read-only upcoming-schedules widget reusing the existing schedule status/effective-date
+  pipeline, with overdue-first ordering, a per-instance configurable 7/14/30-day period,
+  privacy-aware amount formatting, a compact layout for small sizes, and a Scheduled
+  Transactions deep link; no financial mutation is reachable from the widget
 - Android launcher long-press actions for preselected expense, income, and transfer entry plus search
 - Manual Sync Now plus live idle/running/error, trigger, duration, last-success,
   last-app-open-refresh, and last-background-refresh status in Connection & Data
