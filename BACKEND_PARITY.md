@@ -66,6 +66,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Transaction form planning and atomic transaction mutations, including split
   creation, child-preserving edits, opposite-direction lines, and collapse to a
   standard transaction
+- Multi-select mode in Transactions with bulk mark cleared/uncleared, delete,
+  link to schedule, unlink schedule, and single-selection view schedule
 - Zero/reflect budget month calculations, carryover, To Budget, and exact-cent writes
 - Synced account/category notes, per-account working/cleared/uncleared/reconciled
   balances, and category rollover-overspending preferences
@@ -227,6 +229,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 
 ## Post-v1 portable features
 
+- Merging multiple selected transactions (field precedence and split reconciliation
+  semantics are not yet defined; deliberately excluded from the multi-select bulk actions)
 - Advanced split, formula, and template rule actions
 - Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
   cleanup source/sink groups already shipped
