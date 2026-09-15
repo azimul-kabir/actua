@@ -31,6 +31,28 @@ GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
 description, and attaches the versioned APK. Update `versionCode`,
 `versionName`, and `CHANGELOG.md` together for each release.
 
+### Release preparation checklist
+
+Every release follows this sequence:
+
+1. Open a release-prep issue first (per AGENTS.md's issue-before-branch rule), scoped to
+   everything merged since the previous release.
+2. Bump `versionCode` (+1) and `versionName` together in `app/build.gradle.kts`.
+3. Add a `## [<version>]` section to `CHANGELOG.md` in the existing
+   Added/Changed/Fixed/Safety format.
+4. Add a dedicated `docs/releases/<version>.md` file: a one-line summary, the
+   feature/fix breakdown, compatibility/safety notes, and a "Since beta N" list of the
+   merged PRs, matching the structure of the existing files in that directory.
+5. Sweep every markdown doc in the repo for staleness against what actually shipped, not
+   just the version files above. `README.md`'s feature list and `BACKEND_PARITY.md`'s
+   implementation-boundary tracking (required by AGENTS.md whenever the implementation
+   boundary changes) are the most commonly missed spots.
+6. Add or update `RELEASE_SMOKE_TEST.md` checklist items for any new user-facing behavior
+   in the release that isn't already exercised by an existing item.
+7. Open the release PR linked to that issue. Merging it to `main` triggers the Android
+   Release workflow, since it touches `app/build.gradle.kts`, `CHANGELOG.md`, and
+   `docs/releases/**` — all in the workflow's push-trigger path filter.
+
 The release workflow requires one long-lived signing key. Generate and back up
 the keystore outside the repository, then configure these GitHub Actions secrets:
 
