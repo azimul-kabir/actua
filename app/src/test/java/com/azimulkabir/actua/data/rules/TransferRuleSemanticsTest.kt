@@ -47,7 +47,7 @@ class TransferRuleSemanticsTest {
             transfer(),
             listOf(rule(
                 Rule.Action("set", "notes", RuleValue.Text("#transfer-test")),
-                Rule.Action("set", "cleared", RuleValue.BooleanValue(true)),
+                Rule.Action("set", "cleared", RuleValue.Flag(true)),
             )),
         )
 
@@ -61,7 +61,7 @@ class TransferRuleSemanticsTest {
         val draft = transfer(payeeId = "transfer-other", transferAccountId = "other")
         val result = RulesEngine.apply(
             draft,
-            listOf(rule(Rule.Action("set", "cleared", RuleValue.BooleanValue(true)))),
+            listOf(rule(Rule.Action("set", "cleared", RuleValue.Flag(true)))),
         )
 
         assertEquals(draft, result.transaction)
