@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import com.azimulkabir.actua.data.budget.model.ActualTag
 
 @Composable
@@ -70,7 +71,12 @@ internal fun TagAutocompleteField(
             },
             modifier = Modifier.fillMaxWidth().focusRequester(focusRequester).onFocusChanged { focused = it.isFocused },
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { dismissedToken = tokenKey }, modifier = Modifier.fillMaxWidth(0.92f)) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { dismissedToken = tokenKey },
+            properties = PopupProperties(focusable = false),
+            modifier = Modifier.fillMaxWidth(0.92f),
+        ) {
             matches.forEach { tag ->
                 DropdownMenuItem(
                     leadingIcon = { Box(Modifier.size(14.dp).background(parseTagSuggestionColor(tag.color), CircleShape)) },
