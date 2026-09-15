@@ -831,21 +831,49 @@ class ActuaRepository(context: Context) {
 
     fun previewRules(transaction: Transaction): Transaction {
         val db = actualDatabase ?: return transaction
-        if (transaction.type == Type.TRANSFER || transaction.splits.isNotEmpty()) return transaction
+        if (transaction.splits.isNotEmpty()) return transaction
         val accounts = db.fetchAccounts().filterNot { it.closed }
         val account = accounts.firstOrNull { it.name == transaction.account } ?: return transaction
-        val payee = db.fetchPayees().firstOrNull {
-            it.transferAccountId == null && it.name.equals(transaction.payee.trim(), ignoreCase = true)
-        }
         val categories = db.fetchCategoryGroups().filterNot { it.hidden }
             .flatMap { group -> group.categories.filterNot { it.hidden } }
-        val currentCategory = categories.firstOrNull { it.name == transaction.category }?.id
-        val signedAmount = when (transaction.type) {
-            Type.EXPENSE -> -kotlin.math.abs(transaction.amountCents)
-            Type.INCOME -> kotlin.math.abs(transaction.amountCents)
-            Type.TRANSFER -> transaction.amountCents
-        }
-        val preview = com.azimulkabir.actua.data.rules.RulesEngine.apply(
+        val ruleTransaction = if (transaction.type == Type.TRANSFER) {
+            val destination = accounts.firstOrNull { it.name == transaction.transferAccount } ?: return transaction
+            // Actual represents a transfer's destination through the destination account's
+            // canonical transfer payee, not a plain account id, so rules keyed to that
+            // destination match on this payee rather than on `transferAccountId` directly.
+            val transferPayee = db.fetchPayees().firstOrNull { it.transferAccountId == destination.id }
+                ?: return transaction
+            com.azimulkabir.actua.data.budget.model.ActualTransaction(
+                id = "rule-preview",
+                accountId = account.id,
+                date = parseDate(transaction.date),
+                amountCents = transaction.amountCents,
+                payeeId = transferPayee.id,
+                payeeName = transferPayee.name,
+                categoryId = null,
+                categoryName = null,
+                notes = transaction.notes.takeIf(String::isNotEmpty),
+                cleared = transaction.cleared,
+                reconciled = false,
+                transferId = null,
+                isParent = false,
+                parentId = null,
+                tombstone = false,
+                sortOrder = null,
+                importedPayee = null,
+                scheduleId = null,
+                transferAccountId = destination.id,
+            )
+        } else {
+            val payee = db.fetchPayees().firstOrNull {
+                it.transferAccountId == null && it.name.equals(transaction.payee.trim(), ignoreCase = true)
+            }
+            val currentCategory = categories.firstOrNull { it.name == transaction.category }?.id
+            val signedAmount = when (transaction.type) {
+                Type.EXPENSE -> -kotlin.math.abs(transaction.amountCents)
+                Type.INCOME -> kotlin.math.abs(transaction.amountCents)
+                Type.TRANSFER -> transaction.amountCents
+            }
             com.azimulkabir.actua.data.budget.model.ActualTransaction(
                 id = "rule-preview",
                 accountId = account.id,
@@ -866,7 +894,10 @@ class ActuaRepository(context: Context) {
                 importedPayee = transaction.payee.trim().takeIf(String::isNotEmpty),
                 scheduleId = null,
                 transferAccountId = null,
-            ),
+            )
+        }
+        val preview = com.azimulkabir.actua.data.rules.RulesEngine.apply(
+            ruleTransaction,
             db.fetchRules(),
             db.ruleContext(),
         )
