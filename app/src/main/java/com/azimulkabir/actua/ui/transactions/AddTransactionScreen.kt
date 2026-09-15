@@ -69,6 +69,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.SplitLine
@@ -141,6 +142,10 @@ fun AddTransactionScreen(
     var splitCalculatorIndex by remember { mutableStateOf<Int?>(null) }
     var splitAmountExpression by remember(editing) { mutableStateOf<String?>(null) }
     var rulesApplied by remember(editing) { mutableStateOf(false) }
+    val context = LocalContext.current
+    val tagRepository = remember { ActiveTagRepository(context) }
+    var tagVersion by remember { mutableStateOf(0L) }
+    val availableTags = remember(tagVersion) { tagRepository.tags(tagVersion) }
     val isOffBudget = account in offBudgetAccountOptions
     LaunchedEffect(isOffBudget) {
         if (isOffBudget) {
@@ -481,15 +486,16 @@ fun AddTransactionScreen(
                                     },
                                     allowCustom = true,
                                 )
-                                OutlinedTextField(
+                                TagAutocompleteField(
                                     value = line.notes,
+                                    tags = availableTags,
                                     onValueChange = { value ->
                                         splitLines = splitLines.toMutableList().also {
                                             it[index] = line.copy(notes = value)
                                         }
                                     },
-                                    label = { Text("Split note") },
-                                    singleLine = true,
+                                    onCreateTag = { name -> tagRepository.create(name)?.also { tagVersion += 1 } },
+                                    label = "Split note",
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                                 if (splitLines.size > 2) {
@@ -524,8 +530,14 @@ fun AddTransactionScreen(
                 )
                 Box(Modifier.matchParentSize().clickable { showDatePicker = true })
             }
-            OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, singleLine = true,
-                modifier = Modifier.fillMaxWidth())
+            TagAutocompleteField(
+                value = notes,
+                tags = availableTags,
+                onValueChange = { notes = it },
+                onCreateTag = { name -> tagRepository.create(name)?.also { tagVersion += 1 } },
+                label = "Notes",
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Cleared", modifier = Modifier.weight(1f))
                 Switch(checked = cleared, onCheckedChange = { cleared = it })
