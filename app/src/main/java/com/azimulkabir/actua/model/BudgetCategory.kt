@@ -28,6 +28,13 @@ data class BudgetCategory(
     val assignedCents: Long get() = actualAssignedCents ?: assigned.toLong() * 100
     val balanceCents: Long get() = availableCents ?: available.toLong() * 100
     val carryoverCents: Long get() = balanceCents - assignedCents + spentCents
+
+    // With an active goal, progress tracks balance funded toward it rather than spend-down.
+    val progressFraction: Float get() {
+        val goal = goalCents
+        if (goal != null && goal > 0L) return (balanceCents.toFloat() / goal).coerceIn(0f, 1f)
+        return if (assignedCents <= 0L) 0f else (spentCents.toFloat() / assignedCents).coerceIn(0f, 1f)
+    }
 }
 
 data class BudgetHistory(val month: String, val assignedCents: Long, val spentCents: Long)

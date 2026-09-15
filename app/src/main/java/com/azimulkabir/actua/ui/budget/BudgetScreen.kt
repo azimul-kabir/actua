@@ -910,10 +910,8 @@ private fun PlanBudgetCategoryRow(
             )
         }
         if (showProgressBar) {
-            val fraction = if (category.assignedCents <= 0L) 0f else
-                (category.spentCents.toFloat() / category.assignedCents).coerceIn(0f, 1f)
             LinearProgressIndicator(
-                progress = { fraction },
+                progress = { category.progressFraction },
                 modifier = Modifier.fillMaxWidth().padding(top = 9.dp).height(5.dp)
                     .clip(RoundedCornerShape(100)),
                 color = if (category.balanceCents < 0) MaterialTheme.colorScheme.error
@@ -1223,10 +1221,8 @@ private fun CategoryRow(
             }
         }
         AnimatedVisibility(visible = showProgressBar) {
-            val fraction = if (category.assigned <= 0) 0f
-            else (category.spent.toFloat() / category.assigned).coerceIn(0f, 1f)
             LinearProgressIndicator(
-                progress = { fraction },
+                progress = { category.progressFraction },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(4.dp)
                     .clip(RoundedCornerShape(100)),
                 color = if (category.available < 0) MaterialTheme.colorScheme.error
@@ -1682,8 +1678,7 @@ private fun CategoryDetailsScreen(
     var deleteConfirmOpen by remember(category) { mutableStateOf(false) }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     var overflowOpen by remember(category) { mutableStateOf(false) }
-    val progress = if (category.assignedCents <= 0L) 0f else
-        (kotlin.math.abs(category.spentCents).toFloat() / kotlin.math.abs(category.assignedCents)).coerceIn(0f, 1f)
+    val progress = category.progressFraction
     BackHandler(onBack = onDismiss)
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
