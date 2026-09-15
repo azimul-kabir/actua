@@ -2,22 +2,34 @@ package com.azimulkabir.actua.data.budget
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import com.azimulkabir.actua.data.budget.model.ActualTag
+import com.azimulkabir.actua.data.budget.model.ActualTagCapabilities
 
 /**
- * Read-only access to Actual Budget tag metadata for presentation purposes.
+ * Read-only access to Actual Budget's canonical synced tag metadata.
  *
- * Tags remain stored in transaction notes. This store only exposes the synced
- * metadata from Actual's `tags` table and never mutates either notes or tag rows.
+ * Transaction hashtags remain in notes; this store exposes the separate `tags`
+ * metadata dataset used by Actual for colour, description and visibility.
  */
 class TagMetadataStore(context: Context) {
     private val appContext = context.applicationContext
     private val activeBudget = ActiveBudgetStore(appContext)
     private val files = BudgetFileManager(appContext)
 
-    fun activeTagColors(dataGeneration: Long = 0L): Map<String, String> {
-        val budgetId = activeBudget.budgetId ?: return emptyMap()
+    fun activeTags(dataGeneration: Long = 0L): List<ActualTag> = snapshot(dataGeneration).tags
+
+    fun activeTagColors(dataGeneration: Long = 0L): Map<String, String> =
+        activeTags(dataGeneration).mapNotNull { tag ->
+            tag.color?.takeIf(String::isNotBlank)?.let { tag.tag to it }
+        }.toMap()
+
+    fun activeCapabilities(dataGeneration: Long = 0L): ActualTagCapabilities =
+        snapshot(dataGeneration).capabilities
+
+    private fun snapshot(dataGeneration: Long): TagSnapshot {
+        val budgetId = activeBudget.budgetId ?: return TagSnapshot.EMPTY
         val file = files.databaseFile(budgetId)
-        if (!file.exists()) return emptyMap()
+        if (!file.exists()) return TagSnapshot.EMPTY
         val modified = file.lastModified()
 
         synchronized(cacheLock) {
@@ -25,22 +37,20 @@ class TagMetadataStore(context: Context) {
                 cachedBudgetId == budgetId &&
                 cachedModified == modified &&
                 cachedDataGeneration == dataGeneration
-            ) {
-                return cachedColors
-            }
+            ) return cachedSnapshot
         }
 
-        val colors = runCatching {
-            SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use(::readTagColors)
-        }.getOrDefault(emptyMap())
+        val value = runCatching {
+            SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use(::readTags)
+        }.getOrDefault(TagSnapshot.EMPTY)
 
         synchronized(cacheLock) {
             cachedBudgetId = budgetId
             cachedModified = modified
             cachedDataGeneration = dataGeneration
-            cachedColors = colors
+            cachedSnapshot = value
         }
-        return colors
+        return value
     }
 
     private companion object {
@@ -48,31 +58,61 @@ class TagMetadataStore(context: Context) {
         var cachedBudgetId: String? = null
         var cachedModified: Long = Long.MIN_VALUE
         var cachedDataGeneration: Long = Long.MIN_VALUE
-        var cachedColors: Map<String, String> = emptyMap()
+        var cachedSnapshot: TagSnapshot = TagSnapshot.EMPTY
     }
 }
 
-internal fun readTagColors(database: SQLiteDatabase): Map<String, String> {
+internal data class TagSnapshot(
+    val tags: List<ActualTag>,
+    val capabilities: ActualTagCapabilities,
+) {
+    companion object {
+        val EMPTY = TagSnapshot(emptyList(), ActualTagCapabilities(available = false, hidden = false))
+    }
+}
+
+internal fun readTags(database: SQLiteDatabase): TagSnapshot {
     val hasTags = database.rawQuery(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tags' LIMIT 1",
         null,
     ).use { it.moveToFirst() }
-    if (!hasTags) return emptyMap()
+    if (!hasTags) return TagSnapshot.EMPTY
 
-    // Match Actual Budget's tags schema directly. Do not assume lifecycle columns
-    // such as tombstone/hidden exist, because older Actual databases may not have them.
-    return database.rawQuery(
-        "SELECT tag, color FROM tags WHERE tag IS NOT NULL",
+    val columns = database.rawQuery("PRAGMA table_info(tags)", null).use { cursor ->
+        buildSet {
+            val nameIndex = cursor.getColumnIndexOrThrow("name")
+            while (cursor.moveToNext()) add(cursor.getString(nameIndex))
+        }
+    }
+    if ("id" !in columns || "tag" !in columns) return TagSnapshot.EMPTY
+
+    val colorExpr = if ("color" in columns) "color" else "NULL AS color"
+    val descriptionExpr = if ("description" in columns) "description" else "NULL AS description"
+    val hiddenExpr = if ("hidden" in columns) "hidden" else "0 AS hidden"
+    val tombstoneFilter = if ("tombstone" in columns) "WHERE tombstone = 0 OR tombstone IS NULL" else ""
+
+    val tags = database.rawQuery(
+        "SELECT id, tag, $colorExpr, $descriptionExpr, $hiddenExpr FROM tags $tombstoneFilter ORDER BY tag COLLATE NOCASE, tag",
         null,
     ).use { cursor ->
-        buildMap {
-            val tagIndex = cursor.getColumnIndexOrThrow("tag")
-            val colorIndex = cursor.getColumnIndexOrThrow("color")
+        buildList {
             while (cursor.moveToNext()) {
-                val tag = cursor.getString(tagIndex)?.takeIf(String::isNotBlank) ?: continue
-                val color = if (cursor.isNull(colorIndex)) null else cursor.getString(colorIndex)
-                color?.takeIf(String::isNotBlank)?.let { put(tag, it) }
+                val id = cursor.getString(0)?.takeIf(String::isNotBlank) ?: continue
+                val tag = cursor.getString(1)?.takeIf(String::isNotBlank) ?: continue
+                add(ActualTag(
+                    id = id,
+                    tag = tag,
+                    color = if (cursor.isNull(2)) null else cursor.getString(2),
+                    description = if (cursor.isNull(3)) null else cursor.getString(3),
+                    hidden = !cursor.isNull(4) && cursor.getInt(4) == 1,
+                ))
             }
         }
     }
+    return TagSnapshot(tags, ActualTagCapabilities(available = true, hidden = "hidden" in columns))
 }
+
+internal fun readTagColors(database: SQLiteDatabase): Map<String, String> =
+    readTags(database).tags.mapNotNull { tag ->
+        tag.color?.takeIf(String::isNotBlank)?.let { tag.tag to it }
+    }.toMap()
