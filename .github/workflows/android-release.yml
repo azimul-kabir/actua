@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          persist-credentials: false
+          persist-credentials: true
       - uses: ./.github/actions/setup-android-toolchain
       - name: Prepare persistent release signing key
         env:
@@ -48,7 +48,54 @@ jobs:
           "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
       - name: Read release version
         id: version
-        run: echo "name=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "name=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+          echo "code=$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+      - name: Update F-Droid submission template
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.name }}
+          RELEASE_VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+
+          version_name = os.environ["RELEASE_VERSION"]
+          version_code = os.environ["RELEASE_VERSION_CODE"]
+          tag = f"v{version_name}"
+          path = "fdroid/com.azimulkabir.actua.yml"
+
+          with open(path) as f:
+              content = f.read()
+
+          content = re.sub(
+              r"(?m)^(# Actua ).*( is built from source at the release tag pinned below\.)$",
+              rf"\g<1>{version_name}\g<2>",
+              content,
+          )
+          content = re.sub(r"(?m)^(\s*- versionName: ).*$", rf"\g<1>{version_name}", content)
+          content = re.sub(r"(?m)^(\s*versionCode: ).*$", rf"\g<1>{version_code}", content)
+          content = re.sub(r"(?m)^(\s*commit: ).*$", rf"\g<1>{tag}", content)
+          content = re.sub(r"(?m)^(CurrentVersion: ).*$", rf"\g<1>{version_name}", content)
+          content = re.sub(r"(?m)^(CurrentVersionCode: ).*$", rf"\g<1>{version_code}", content)
+
+          with open(path, "w") as f:
+              f.write(content)
+          PY
+      - name: Commit F-Droid submission template update
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.name }}
+        run: |
+          if git diff --quiet -- fdroid/com.azimulkabir.actua.yml; then
+            echo "No F-Droid template changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fdroid/com.azimulkabir.actua.yml
+          git commit -m "Update F-Droid submission template for v${RELEASE_VERSION}"
+          git pull --rebase origin main
+          git push origin HEAD:main
       - name: Prepare release notes
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.name }}
