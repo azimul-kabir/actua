@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Checkbox
@@ -57,9 +58,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -85,6 +88,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.azimulkabir.actua.model.BudgetCategory
+import com.azimulkabir.actua.model.BudgetCategoryView
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetTarget
@@ -152,6 +156,8 @@ fun BudgetScreen(
     onShowGroupTotalsChange: (Boolean) -> Unit = {},
     hideFullySpent: Boolean = false,
     onHideFullySpentChange: (Boolean) -> Unit = {},
+    categoryView: String = "All",
+    onCategoryViewChange: (String) -> Unit = {},
     onSetCategoryHidden: (String, String, Boolean) -> Boolean = { _, _, _ -> false },
     onSetGroupHidden: (String, Boolean) -> Boolean = { _, _ -> false },
     onRenameCategory: (String, String, String) -> Unit = { _, _, _ -> },
@@ -238,6 +244,7 @@ fun BudgetScreen(
             showGroupTotals = showGroupTotals,
             hideFullySpent = hideFullySpent,
             showHidden = showHidden,
+            categoryView = categoryView,
             onOptionsChange = { optionsExpanded = it },
             onAdd = { showAddSheet = true },
             onShowSpentChange = onShowSpentChange,
@@ -247,6 +254,7 @@ fun BudgetScreen(
             onShowGroupTotalsChange = onShowGroupTotalsChange,
             onHideFullySpentChange = onHideFullySpentChange,
             onShowHiddenChange = onShowHiddenChange,
+            onCategoryViewChange = onCategoryViewChange,
             onExpandAll = {
                 saveCollapsedGroups(emptySet())
                 optionsExpanded = false
@@ -279,11 +287,13 @@ fun BudgetScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
         ) {
+            val selectedView = BudgetCategoryView.fromLabel(categoryView)
             groups.filter { showHidden || !it.hidden }.forEach { group ->
                 val collapsed = group.name in collapsedGroups
                 val visibleCategories = group.categories.filter { category ->
                     (showHidden || !category.hidden) &&
-                        (!hideFullySpent || category.available != 0)
+                        (!hideFullySpent || category.available != 0) &&
+                        (category.isIncome || selectedView.matches(category))
                 }
                 stickyHeader(key = "header-${group.name}") {
                     val onGroupClick = {
@@ -605,6 +615,7 @@ private fun BudgetToolbar(
     showGroupTotals: Boolean,
     hideFullySpent: Boolean,
     showHidden: Boolean,
+    categoryView: String,
     onOptionsChange: (Boolean) -> Unit,
     onAdd: () -> Unit,
     onShowSpentChange: (Boolean) -> Unit,
@@ -614,11 +625,13 @@ private fun BudgetToolbar(
     onShowGroupTotalsChange: (Boolean) -> Unit,
     onHideFullySpentChange: (Boolean) -> Unit,
     onShowHiddenChange: (Boolean) -> Unit,
+    onCategoryViewChange: (String) -> Unit,
     onExpandAll: () -> Unit,
     onCollapseAll: () -> Unit,
     onSearch: () -> Unit,
 ) {
     var monthPickerOpen by remember { mutableStateOf(false) }
+    var viewsSheetOpen by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -648,6 +661,14 @@ private fun BudgetToolbar(
                 Row {
                     IconButton(onClick = onSearch) {
                         Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
+                    }
+                    IconButton(onClick = { viewsSheetOpen = true }) {
+                        Icon(
+                            Icons.Outlined.FilterList,
+                            contentDescription = "Budget views",
+                            tint = if (categoryView != "All") MaterialTheme.colorScheme.primary
+                                else LocalContentColor.current,
+                        )
                     }
                     IconButton(onClick = onAdd) {
                         Icon(Icons.Outlined.Add, contentDescription = "Add category")
@@ -692,6 +713,46 @@ private fun BudgetToolbar(
                 monthPickerOpen = false
             },
         )
+    }
+    if (viewsSheetOpen) {
+        BudgetViewsSheet(
+            selected = categoryView,
+            onDismiss = { viewsSheetOpen = false },
+            onSelect = {
+                onCategoryViewChange(it)
+                viewsSheetOpen = false
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BudgetViewsSheet(
+    selected: String,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            Text(
+                "Views",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            )
+            BudgetCategoryView.entries.forEach { view ->
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .clickable(role = Role.RadioButton) { onSelect(view.label) }
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = view.label == selected, onClick = { onSelect(view.label) })
+                    Text(view.label, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
     }
 }
 

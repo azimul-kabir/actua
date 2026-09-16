@@ -37,6 +37,26 @@ data class BudgetCategory(
     }
 }
 
+enum class BudgetCategoryView(val label: String) {
+    ALL("All"),
+    OVERSPENT("Overspent"),
+    UNDERFUNDED("Underfunded"),
+    OVERFUNDED("Overfunded"),
+    MONEY_AVAILABLE("Money Available");
+
+    fun matches(category: BudgetCategory): Boolean = when (this) {
+        ALL -> true
+        OVERSPENT -> category.balanceCents < 0L
+        UNDERFUNDED -> (category.goalCents ?: 0L) > 0L && category.balanceCents < category.goalCents!!
+        OVERFUNDED -> (category.goalCents ?: 0L) > 0L && category.balanceCents > category.goalCents!!
+        MONEY_AVAILABLE -> category.balanceCents > 0L
+    }
+
+    companion object {
+        fun fromLabel(label: String): BudgetCategoryView = entries.find { it.label == label } ?: ALL
+    }
+}
+
 data class BudgetHistory(val month: String, val assignedCents: Long, val spentCents: Long)
 
 data class BudgetOverview(
