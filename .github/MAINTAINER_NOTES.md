@@ -31,6 +31,13 @@ GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
 description, and attaches the versioned APK. Update `versionCode`,
 `versionName`, and `CHANGELOG.md` together for each release.
 
+Because ordinary PRs also append to `CHANGELOG.md`'s Unreleased section (and can touch
+`docs/releases/**`), the workflow's push trigger alone can't tell a release-prep push from a
+regular one. A `check-version-bump` job runs first and compares `versionCode` in
+`app/build.gradle.kts` against the previous commit on `main`; the actual build-and-publish job
+only proceeds when that changed (a manual `workflow_dispatch` run always proceeds). A PR that
+only edits the changelog's Unreleased section no longer re-publishes the current release.
+
 ### Release preparation checklist
 
 Every release follows this sequence:
@@ -50,8 +57,8 @@ Every release follows this sequence:
 6. Add or update `RELEASE_SMOKE_TEST.md` checklist items for any new user-facing behavior
    in the release that isn't already exercised by an existing item.
 7. Open the release PR linked to that issue. Merging it to `main` triggers the Android
-   Release workflow, since it touches `app/build.gradle.kts`, `CHANGELOG.md`, and
-   `docs/releases/**` — all in the workflow's push-trigger path filter.
+   Release workflow's build-and-publish job, since it bumps `versionCode` in
+   `app/build.gradle.kts` — the signal `check-version-bump` looks for.
 
 The release workflow requires one long-lived signing key. Generate and back up
 the keystore outside the repository, then configure these GitHub Actions secrets:
