@@ -99,6 +99,7 @@ import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.model.asDuplicate
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.location.AndroidLocationProvider
@@ -223,13 +224,14 @@ fun AppNavigation(
     var hideReconciledTransactions by remember {
         mutableStateOf(displayPreferences.hideReconciledTransactions)
     }
+    var transactionStatusFilter by rememberSaveable { mutableStateOf(TransactionStatusFilter.ALL) }
     val transactions = remember(dataVersion) { repository.transactions() }
-    val filteredTransactions = remember(dataVersion, hideReconciledTransactions) {
-        if (hideReconciledTransactions) repository.transactions(hideReconciled = true) else transactions
+    val filteredTransactions = remember(dataVersion, hideReconciledTransactions, transactionStatusFilter) {
+        repository.transactions(hideReconciled = hideReconciledTransactions, statusFilter = transactionStatusFilter)
     }
-    val searchTransactions: suspend (String) -> List<Transaction> = remember(repository, hideReconciledTransactions) {
+    val searchTransactions: suspend (String) -> List<Transaction> = remember(repository, hideReconciledTransactions, transactionStatusFilter) {
         { query -> withContext(Dispatchers.IO) {
-            repository.transactions(query, hideReconciled = hideReconciledTransactions)
+            repository.transactions(query, hideReconciled = hideReconciledTransactions, statusFilter = transactionStatusFilter)
         } }
     }
     val categoryNames = remember(dataVersion) { repository.categoryNames() }
@@ -655,6 +657,8 @@ fun AppNavigation(
                 modifier = contentModifier,
                 transactions = filteredTransactions,
                 searchTransactions = searchTransactions,
+                transactionStatusFilter = transactionStatusFilter,
+                onTransactionStatusFilterChange = { transactionStatusFilter = it },
                 hideDecimalPlaces = hideDecimalPlaces,
                 conventionalAmountEntry = conventionalAmountEntry,
                 groupTransactionsByDate = groupTransactionsByDate,
@@ -911,11 +915,12 @@ fun AppNavigation(
             )
             DetailDestination.Search -> GlobalSearchScreen(
                 transactions = filteredTransactions,
-                searchTransactions = remember(repository, hideReconciledTransactions) {
+                searchTransactions = remember(repository, hideReconciledTransactions, transactionStatusFilter) {
                     { query, limit, offset ->
                         withContext(Dispatchers.IO) {
                             repository.transactions(query, limit, offset,
-                                hideReconciled = hideReconciledTransactions)
+                                hideReconciled = hideReconciledTransactions,
+                                statusFilter = transactionStatusFilter)
                         }
                     }
                 },
@@ -1374,6 +1379,8 @@ fun AppNavigation(
                     },
                     modifier = contentModifier,
                     transactions = filteredTransactions,
+                    transactionStatusFilter = transactionStatusFilter,
+                    onTransactionStatusFilterChange = { transactionStatusFilter = it },
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,
                     groupTransactionsByDate = groupTransactionsByDate,
