@@ -641,9 +641,14 @@ class ActualBudgetDatabase private constructor(
             accountClause = " AND t.acct = ?"
             args += accountId
         }
+        val statusFilterActive = statusFilter != null && statusFilter != TransactionStatusFilter.ALL
         val stateClause = buildString {
-            if (unclearedOnly) append(" AND COALESCE(t.cleared, 0) = 0")
-            if (hideReconciled) append(" AND COALESCE(t.reconciled, 0) = 0")
+            // statusFilter supersedes the legacy flags below; combining them (e.g. hideReconciled
+            // with statusFilter = RECONCILED) would otherwise AND together contradictory clauses.
+            if (!statusFilterActive) {
+                if (unclearedOnly) append(" AND COALESCE(t.cleared, 0) = 0")
+                if (hideReconciled) append(" AND COALESCE(t.reconciled, 0) = 0")
+            }
 
             when (statusFilter) {
                 TransactionStatusFilter.UNCATEGORIZED -> append(" AND (c.name IS NULL OR c.name = '') AND t.transferred_id IS NULL AND (t.isParent = 0 OR t.isParent IS NULL)")
