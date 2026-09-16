@@ -34,7 +34,7 @@ class BudgetSummarySheetTest {
     @Test
     fun readyToBudgetOpensBothActionsDirectlyWithoutAnOverflowMenu() {
         compose.setContent {
-            MaterialTheme { BudgetScreen(overview = overview(toBudgetCents = 1_200L)) }
+            MaterialTheme { BudgetScreen(groups = emptyList(), overview = overview(toBudgetCents = 1_200L)) }
         }
 
         // A single tap on the summary itself is the only step needed to reach both actions.
@@ -48,7 +48,7 @@ class BudgetSummarySheetTest {
     @Test
     fun actionsExpandInlineInsteadOfStackingAnotherModal() {
         compose.setContent {
-            MaterialTheme { BudgetScreen(overview = overview(toBudgetCents = 1_200L)) }
+            MaterialTheme { BudgetScreen(groups = emptyList(), overview = overview(toBudgetCents = 1_200L)) }
         }
 
         compose.onNodeWithText("Ready to Budget").performClick()
@@ -70,6 +70,7 @@ class BudgetSummarySheetTest {
         compose.setContent {
             MaterialTheme {
                 BudgetScreen(
+                    groups = emptyList(),
                     overview = overview(toBudgetCents = 1_200L),
                     onHoldForNextMonth = { heldAmount = it },
                 )
@@ -91,6 +92,7 @@ class BudgetSummarySheetTest {
         compose.setContent {
             MaterialTheme {
                 BudgetScreen(
+                    groups = emptyList(),
                     overview = overview(toBudgetCents = 1_200L, bufferedCents = 500L),
                     onResetNextMonthBuffer = { resetCalled = true },
                 )
