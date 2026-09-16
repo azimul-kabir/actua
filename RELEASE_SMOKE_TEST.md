@@ -33,6 +33,10 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Auto-Assign works for a supported target and produces the expected amount.
 - [ ] Hide/unhide category/group and verify the state survives refresh/relaunch.
 - [ ] A category with an active budget-automation goal shows its progress bar filling toward the goal as it's funded, and dropping when the goal amount is spent; a category without a goal still shows plain spend-down progress.
+- [ ] Fund a multi-month "Have amount by a date" or "Cover scheduled transaction" target partway and verify the progress bar reflects overall goal progress, not just the current month's installment.
+- [ ] Budget toolbar filter chips (Overspent, Underfunded, Overfunded, Money Available) narrow the category list correctly and the selection persists after navigating away and back.
+- [ ] On an envelope budget, use "Hold for next month" on the To Budget row to buffer part or all of the amount, verify it carries to next month, then "Reset next month's buffer" and confirm it's cleared; the action is unavailable on non-envelope budgets.
+- [ ] Manage → Categories → Reorder Categories: drag a category to a new position and to a different expense group, and use the up/down buttons as a non-drag alternative; verify the new order persists and syncs, and the income group's position stays fixed.
 
 ## Transactions and accounts
 
@@ -40,6 +44,10 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Add and edit a split transaction.
 - [ ] Typing `#` (or deleting characters) in a transaction note while suggestions are showing keeps the on-screen keyboard open without flicker.
 - [ ] In Transactions, enable multi-select, select several transactions, and verify bulk mark cleared/uncleared, delete (with confirmation naming the count), link to schedule, unlink schedule, and (single selection) view schedule.
+- [ ] Long-press a transaction to enter multi-select mode with it pre-selected; use "Duplicate" from the transaction sheet, details sheet, and bulk-actions menu and verify an unlinked copy is created immediately without opening the editor.
+- [ ] From the multi-select bulk menu, open "View schedule" on a linked transaction, then back/save/delete on the schedule and verify you return to Transactions rather than Schedules or Bills calendar.
+- [ ] Transactions screen status filter chips (Uncategorized, Uncleared, Cleared, Reconciled) each narrow the list correctly and can be combined/cleared.
+- [ ] Pick an explicit category in Add Transaction before typing a payee that matches a rule setting a different category, and verify the explicit choice is preserved; leave the category empty and verify the rule still fills it in.
 - [ ] Payee search filters character-by-character across normal payees and transfer accounts.
 - [ ] Find nearby payees requests foreground permission only after explicit use and normal search remains available on denial/failure.
 - [ ] Indoors, Find nearby payees succeeds from a recent valid fix or an enabled network/fused source when GPS alone cannot obtain a fix.

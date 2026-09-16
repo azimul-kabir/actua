@@ -4,10 +4,20 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.25] - 2026-09-16
+
 ### Added
 
 - Added a "Duplicate" transaction action to the transaction bottom sheet, transaction details sheet, and the multi-select bulk-actions menu; duplicating creates an immediate, unlinked copy of the transaction(s) rather than opening the editor
 - Long-pressing a transaction now offers a "Select" action that enters multi-select mode with that transaction pre-selected, in addition to the existing app-bar select toggle
+- Added Budget category view filters (Overspent, Underfunded, Overfunded, Money Available) as a FilterChip row in the Budget toolbar, alongside the existing hide-fully-spent and show-hidden filters; the selection persists across sessions
+- Added query-level transaction status filters (Uncategorized, Uncleared, Cleared, Reconciled) as a FilterChip row on the Transactions screen, filtering directly at the database layer
+- Added drag-to-reorder for budget category groups and categories via a new Reorder Categories screen (Manage → Categories), with drag handles and up/down buttons as a non-drag accessible alternative; categories can be moved between expense groups, while the income group's position stays fixed
+- Added a "Hold for next month" / "Reset next month's buffer" action to the To Budget row menu (Plan and classic budget views) for envelope budgets, letting part or all of a month's To Budget amount carry to next month instead of being budgeted immediately
+
+### Changed
+
+- A category explicitly chosen in the transaction form (or typed before a payee-triggered rule preview) now survives a matching rule instead of being overwritten; an empty or inferred category is still filled in by rules as before
 
 ### Fixed
 
