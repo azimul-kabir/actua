@@ -14,7 +14,36 @@ permissions:
   contents: write
 
 jobs:
+  check-version-bump:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: check
+        # CHANGELOG.md and docs/releases/** are also touched by ordinary PRs appending to the
+        # Unreleased section, not just release-prep PRs. Only a real versionCode bump means a
+        # release should actually be built and published.
+        run: |
+          before="${{ github.event.before }}"
+          if [ -z "$before" ] || ! git cat-file -e "$before" 2>/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          previous="$(git show "$before:app/build.gradle.kts" 2>/dev/null | grep -E 'versionCode = ' || true)"
+          current="$(grep -E 'versionCode = ' app/build.gradle.kts)"
+          if [ "$previous" = "$current" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
   build-release:
+    needs: [check-version-bump]
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.check-version-bump.outputs.changed == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
