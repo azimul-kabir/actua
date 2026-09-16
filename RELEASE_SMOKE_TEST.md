@@ -6,6 +6,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 
 - [ ] Android CI is green for the exact release commit.
 - [ ] Release APK is produced from the intended commit/tag and has the expected version name/code.
+- [ ] Since release builds are now R8-minified: exercise PDF statement import/export (pdfbox-android), background sync (WorkManager), and general Compose navigation on the installed release APK, and confirm no `ClassNotFoundException`/`NoSuchMethodException` crashes from shrinking or obfuscation.
 - [ ] APK installs as an update over the previous production-signed Actua build without removing app data.
 - [ ] `Actua Test` still installs side-by-side with production Actua and keeps separate app data.
 - [ ] Fresh install launches successfully on Android 9+ and the current target Android version.
@@ -35,7 +36,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] A category with an active budget-automation goal shows its progress bar filling toward the goal as it's funded, and dropping when the goal amount is spent; a category without a goal still shows plain spend-down progress.
 - [ ] Fund a multi-month "Have amount by a date" or "Cover scheduled transaction" target partway and verify the progress bar reflects overall goal progress, not just the current month's installment.
 - [ ] Budget toolbar filter chips (Overspent, Underfunded, Overfunded, Money Available) narrow the category list correctly and the selection persists after navigating away and back.
-- [ ] On an envelope budget, use "Hold for next month" on the To Budget row to buffer part or all of the amount, verify it carries to next month, then "Reset next month's buffer" and confirm it's cleared; the action is unavailable on non-envelope budgets.
+- [ ] Tap the Ready/To Budget amount (Plan or classic view) and verify the Budget Summary sheet shows "Move to Category" and "Hold for Next Month" as direct tiles with no overflow menu; on an envelope budget, use "Hold for Next Month" to buffer part or all of the amount, verify it carries to next month, then "Reset Hold" and confirm it's cleared; the hold/reset tiles are unavailable on non-envelope budgets.
 - [ ] Manage → Categories → Reorder Categories: drag a category to a new position and to a different expense group, and use the up/down buttons as a non-drag alternative; verify the new order persists and syncs, and the income group's position stays fixed.
 
 ## Transactions and accounts
