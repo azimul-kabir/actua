@@ -105,6 +105,24 @@ titles, and the PR template. Report Android issues here and link upstream eviden
 for shared behavior. Do not include sensitive data in issues, review output or
 screenshots.
 
+### Autonomous coding-agent workflow
+
+Browser-based or autonomous coding agents, including Jules, must follow the same
+issue-first workflow as human contributors. Before implementation, read this
+file, README.md and BACKEND_PARITY.md; inspect the linked issue and the existing
+implementation before proposing or making changes.
+
+Keep work limited to the issue's requested scope. For a multi-slice issue,
+implement only the requested or current unfinished slice unless explicitly asked
+to complete the whole issue. Do not close a parent issue while documented slices
+remain incomplete.
+
+Add or update meaningful regression coverage for changed behavior and run the
+relevant validation documented above. In the pull request, report the exact
+checks run and any checks that could not be run. Open a focused pull request
+linked to the issue and do not merge it automatically; maintainer approval is
+required before merge. Avoid unrelated refactors or opportunistic cleanup.
+
 Normal Android CI executes PR code under `pull_request` on hosted runners with
 read-only repository permissions and no privileged secrets. Any workflow using
 `pull_request_target` must inspect GitHub metadata only. It must never check out
