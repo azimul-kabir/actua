@@ -170,6 +170,8 @@ fun BudgetScreen(
     onSetBudgetAmount: (String, String, Long) -> Unit = { _, _, _ -> },
     onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
+    onHoldForNextMonth: (Long) -> Unit = {},
+    onResetNextMonthBuffer: () -> Unit = {},
     onSetCategoryAutomations: (String, List<BudgetTarget>) -> Unit = { _, _ -> },
     onApplyBudgetTemplate: (BudgetTemplatePreview) -> Unit = {},
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
@@ -210,6 +212,7 @@ fun BudgetScreen(
     var autoAssignBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var settingTarget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var assignFromBudgetOpen by remember { mutableStateOf(false) }
+    var holdForNextMonthOpen by remember { mutableStateOf(false) }
     var templatePreviewOpen by remember { mutableStateOf(false) }
     var overwriteTemplates by remember { mutableStateOf(false) }
     var cleanupPreview by remember { mutableStateOf<CleanupPreview?>(null) }
@@ -275,6 +278,8 @@ fun BudgetScreen(
                     overview = overview,
                     hideDecimalPlaces = hideDecimalPlaces,
                     onClick = { assignFromBudgetOpen = true },
+                    onHoldForNextMonth = { holdForNextMonthOpen = true },
+                    onResetNextMonthBuffer = onResetNextMonthBuffer,
                 )
             } else {
                 BudgetOverviewRow(
@@ -282,6 +287,8 @@ fun BudgetScreen(
                     showSpent = showSpent,
                     hideDecimalPlaces = hideDecimalPlaces,
                     onToBudgetClick = { assignFromBudgetOpen = true },
+                    onHoldForNextMonth = { holdForNextMonthOpen = true },
+                    onResetNextMonthBuffer = onResetNextMonthBuffer,
                 )
             }
         }
@@ -505,6 +512,17 @@ fun BudgetScreen(
                     onTransferBudget(null, null, group, category, amount)
                 }
                 assignFromBudgetOpen = false
+            },
+        )
+    }
+    if (holdForNextMonthOpen) {
+        HoldForNextMonthSheet(
+            toBudgetCents = overview.toBudgetCents ?: 0L,
+            bufferedCents = overview.bufferedCents,
+            onDismiss = { holdForNextMonthOpen = false },
+            onSave = { amount ->
+                onHoldForNextMonth(amount)
+                holdForNextMonthOpen = false
             },
         )
     }
@@ -824,8 +842,11 @@ private fun PlanBudgetOverview(
     overview: BudgetOverview,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
+    onHoldForNextMonth: () -> Unit = {},
+    onResetNextMonthBuffer: () -> Unit = {},
 ) {
     val ready = overview.toBudgetCents ?: 0L
+    var menuExpanded by remember { mutableStateOf(false) }
     Surface(
         onClick = onClick,
         color = if (ready >= 0L) MaterialTheme.colorScheme.primaryContainer
@@ -833,21 +854,46 @@ private fun PlanBudgetOverview(
         shape = RoundedCornerShape(28.dp),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                "Ready to Budget",
-                style = MaterialTheme.typography.titleSmall,
-                textAlign = TextAlign.End,
-            )
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "Ready to Budget",
+                    style = MaterialTheme.typography.titleSmall,
+                    textAlign = TextAlign.End,
+                )
+                if (overview.toBudgetCents != null) {
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = "To Budget options")
+                        }
+                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Hold for next month") },
+                                onClick = { menuExpanded = false; onHoldForNextMonth() },
+                            )
+                            if (overview.bufferedCents != 0L) {
+                                DropdownMenuItem(
+                                    text = { Text("Reset next month's buffer") },
+                                    onClick = { menuExpanded = false; onResetNextMonthBuffer() },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (overview.bufferedCents != 0L) {
+                Text(
+                    "${formatMoneyCents(overview.bufferedCents, hideDecimalPlaces)} held for next month",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
     }
 }
@@ -1074,26 +1120,55 @@ private fun BudgetOverviewRow(
     showSpent: Boolean,
     hideDecimalPlaces: Boolean,
     onToBudgetClick: () -> Unit,
+    onHoldForNextMonth: () -> Unit = {},
+    onResetNextMonthBuffer: () -> Unit = {},
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 1.dp) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OverviewCell(
-                "To budget",
-                overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
-                Modifier.weight(1.35f),
-                Alignment.Start,
-                positive = overview.toBudgetCents?.let { it > 0 } == true,
-                pill = true,
-                pillOffset = (-8).dp,
-                onClick = onToBudgetClick,
-            )
-            OverviewCell("Budgeted", formatMoneyCents(overview.budgetedCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
-            if (showSpent) OverviewCell("Spent", formatMoneyCents(overview.spentCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
-            OverviewCell("Balance", formatMoneyCents(overview.availableCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End,
-                positive = overview.availableCents >= 0, pill = true, pillOffset = 8.dp)
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OverviewCell(
+                    "To budget",
+                    overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
+                    Modifier.weight(1.35f),
+                    Alignment.Start,
+                    positive = overview.toBudgetCents?.let { it > 0 } == true,
+                    pill = true,
+                    pillOffset = (-8).dp,
+                    onClick = onToBudgetClick,
+                )
+                OverviewCell("Budgeted", formatMoneyCents(overview.budgetedCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
+                if (showSpent) OverviewCell("Spent", formatMoneyCents(overview.spentCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
+                OverviewCell("Balance", formatMoneyCents(overview.availableCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End,
+                    positive = overview.availableCents >= 0, pill = true, pillOffset = 8.dp)
+                if (overview.toBudgetCents != null) {
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = "To budget options")
+                        }
+                        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Hold for next month") },
+                                onClick = { menuExpanded = false; onHoldForNextMonth() },
+                            )
+                            if (overview.bufferedCents != 0L) {
+                                DropdownMenuItem(
+                                    text = { Text("Reset next month's buffer") },
+                                    onClick = { menuExpanded = false; onResetNextMonthBuffer() },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (overview.bufferedCents != 0L) {
+                Text(
+                    "${formatMoneyCents(overview.bufferedCents, hideDecimalPlaces)} held for next month",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
     }
 }
@@ -1619,6 +1694,46 @@ private fun AssignBudgetSheet(
                         calculator.finish().takeIf { it > 0L }?.let { onSave(target.first, target.second, it) }
                     }
                 },
+            )
+        }
+    }
+}
+
+@Composable
+private fun HoldForNextMonthSheet(
+    toBudgetCents: Long,
+    bufferedCents: Long,
+    onDismiss: () -> Unit,
+    onSave: (Long) -> Unit,
+) {
+    val maxHoldable = remember(toBudgetCents, bufferedCents) { maxOf(0L, toBudgetCents + bufferedCents) }
+    val calculator = remember(maxHoldable, bufferedCents) {
+        CalculatorAmountState(bufferedCents.coerceIn(0L, maxHoldable), allowsNegative = false)
+    }
+    var enteredAmount by remember(maxHoldable, bufferedCents) {
+        mutableStateOf(bufferedCents.coerceIn(0L, maxHoldable))
+    }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+            Text(
+                "Hold for next month",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                "Set aside part or all of To Budget instead of budgeting it now",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+            )
+            InlineCalculatorAmount("Amount", enteredAmount)
+            CompactCalculatorPad(
+                calculator = calculator,
+                horizontalPadding = 0.dp,
+                showDisplay = false,
+                onValueChange = { enteredAmount = it },
+                onDone = { onSave(calculator.finish().coerceIn(0L, maxHoldable)) },
             )
         }
     }

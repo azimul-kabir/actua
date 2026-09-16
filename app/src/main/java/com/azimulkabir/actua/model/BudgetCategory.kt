@@ -64,6 +64,7 @@ data class BudgetOverview(
     val budgetedCents: Long,
     val spentCents: Long,
     val availableCents: Long,
+    val bufferedCents: Long = 0,
 )
 
 data class BudgetGroup(
