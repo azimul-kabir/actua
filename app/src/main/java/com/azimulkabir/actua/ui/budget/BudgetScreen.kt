@@ -17,6 +17,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,6 +54,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -85,6 +87,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.azimulkabir.actua.model.BudgetCategory
+import com.azimulkabir.actua.model.BudgetCategoryView
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetTarget
@@ -152,6 +155,10 @@ fun BudgetScreen(
     onShowGroupTotalsChange: (Boolean) -> Unit = {},
     hideFullySpent: Boolean = false,
     onHideFullySpentChange: (Boolean) -> Unit = {},
+    categoryView: String = "All",
+    onCategoryViewChange: (String) -> Unit = {},
+    showCategoryFilters: Boolean = true,
+    onShowCategoryFiltersChange: (Boolean) -> Unit = {},
     onSetCategoryHidden: (String, String, Boolean) -> Boolean = { _, _, _ -> false },
     onSetGroupHidden: (String, Boolean) -> Boolean = { _, _ -> false },
     onRenameCategory: (String, String, String) -> Unit = { _, _, _ -> },
@@ -238,6 +245,7 @@ fun BudgetScreen(
             showGroupTotals = showGroupTotals,
             hideFullySpent = hideFullySpent,
             showHidden = showHidden,
+            showCategoryFilters = showCategoryFilters,
             onOptionsChange = { optionsExpanded = it },
             onAdd = { showAddSheet = true },
             onShowSpentChange = onShowSpentChange,
@@ -247,6 +255,7 @@ fun BudgetScreen(
             onShowGroupTotalsChange = onShowGroupTotalsChange,
             onHideFullySpentChange = onHideFullySpentChange,
             onShowHiddenChange = onShowHiddenChange,
+            onShowCategoryFiltersChange = onShowCategoryFiltersChange,
             onExpandAll = {
                 saveCollapsedGroups(emptySet())
                 optionsExpanded = false
@@ -257,6 +266,9 @@ fun BudgetScreen(
             },
             onSearch = onSearch,
         )
+        AnimatedVisibility(visible = showCategoryFilters) {
+            BudgetCategoryFilterRow(selected = categoryView, onSelect = onCategoryViewChange)
+        }
         AnimatedVisibility(visible = showOverview) {
             if (budgetView == "Plan") {
                 PlanBudgetOverview(
@@ -279,11 +291,13 @@ fun BudgetScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
         ) {
+            val selectedView = BudgetCategoryView.fromLabel(categoryView)
             groups.filter { showHidden || !it.hidden }.forEach { group ->
                 val collapsed = group.name in collapsedGroups
                 val visibleCategories = group.categories.filter { category ->
                     (showHidden || !category.hidden) &&
-                        (!hideFullySpent || category.available != 0)
+                        (!hideFullySpent || category.available != 0) &&
+                        (category.isIncome || selectedView.matches(category))
                 }
                 stickyHeader(key = "header-${group.name}") {
                     val onGroupClick = {
@@ -605,6 +619,7 @@ private fun BudgetToolbar(
     showGroupTotals: Boolean,
     hideFullySpent: Boolean,
     showHidden: Boolean,
+    showCategoryFilters: Boolean,
     onOptionsChange: (Boolean) -> Unit,
     onAdd: () -> Unit,
     onShowSpentChange: (Boolean) -> Unit,
@@ -614,6 +629,7 @@ private fun BudgetToolbar(
     onShowGroupTotalsChange: (Boolean) -> Unit,
     onHideFullySpentChange: (Boolean) -> Unit,
     onShowHiddenChange: (Boolean) -> Unit,
+    onShowCategoryFiltersChange: (Boolean) -> Unit,
     onExpandAll: () -> Unit,
     onCollapseAll: () -> Unit,
     onSearch: () -> Unit,
@@ -677,6 +693,7 @@ private fun BudgetToolbar(
                 HorizontalDivider()
                 ToggleMenuItem("Hide fully spent", hideFullySpent, onHideFullySpentChange)
                 ToggleMenuItem("Show hidden categories and groups", showHidden, onShowHiddenChange)
+                ToggleMenuItem("Show category filters", showCategoryFilters, onShowCategoryFiltersChange)
                 HorizontalDivider()
                 DropdownMenuItem(text = { Text("Expand all groups") }, onClick = onExpandAll)
                 DropdownMenuItem(text = { Text("Collapse all groups") }, onClick = onCollapseAll)
@@ -692,6 +709,30 @@ private fun BudgetToolbar(
                 monthPickerOpen = false
             },
         )
+    }
+}
+
+@Composable
+private fun BudgetCategoryFilterRow(
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .horizontalScroll(androidx.compose.foundation.rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        BudgetCategoryView.entries.forEach { view ->
+            val isSelected = view.label == selected
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    onSelect(if (view == BudgetCategoryView.ALL || isSelected) BudgetCategoryView.ALL.label else view.label)
+                },
+                label = { Text(view.label) },
+            )
+        }
     }
 }
 
