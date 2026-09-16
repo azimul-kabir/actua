@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed the "Syncing budget… Showing local data." banner appearing on every local edit (adding/editing transactions, budgeting a category, toggling cleared, etc.); it now only appears for app-open and background syncs, which can bring in changes the screen doesn't have yet, not for the upload triggered by an edit you just made
+
 ## [1.0.0-beta.25] - 2026-09-16
 
 ### Added

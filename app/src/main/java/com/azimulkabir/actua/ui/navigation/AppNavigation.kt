@@ -107,8 +107,10 @@ import com.azimulkabir.actua.data.location.AndroidLocationProvider
 import com.azimulkabir.actua.data.location.CurrentLocationResult
 import com.azimulkabir.actua.data.location.LocationUtils
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
+import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_AFTER_CHANGE
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.sync.SyncSignals
+import com.azimulkabir.actua.data.sync.SyncStatus
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.LocationPreferences
@@ -149,6 +151,13 @@ private data class TabSnapshot(
 
 internal fun shouldRequestForegroundSync(foregroundGeneration: Int): Boolean =
     foregroundGeneration > 0
+
+/**
+ * An "After change" sync only uploads a local edit already reflected on screen, so it never
+ * needs the banner; "App open"/"Background" syncs can bring in data the screen doesn't have yet.
+ */
+internal fun shouldShowSyncBanner(status: SyncStatus): Boolean =
+    status.running && status.activeTrigger != SYNC_TRIGGER_AFTER_CHANGE
 
 @Composable
 internal fun SyncStatusBanner(modifier: Modifier = Modifier) {
@@ -509,7 +518,7 @@ fun AppNavigation(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            if (syncStatus.running && repository.isUsingActualBudget) {
+            if (shouldShowSyncBanner(syncStatus) && repository.isUsingActualBudget) {
                 SyncStatusBanner()
             }
         },

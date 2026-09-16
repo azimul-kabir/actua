@@ -132,8 +132,11 @@ internal object SyncCoalescingPolicy {
         nowElapsedMillis - completedElapsedMillis <= RECENT_SUCCESS_WINDOW_MILLIS
 }
 
+/** Emitted for a `REASON_MUTATION` sync: a local change upload, not a refresh of what's on screen. */
+const val SYNC_TRIGGER_AFTER_CHANGE = "After change"
+
 internal fun syncTriggerLabel(reason: String?): String = when (reason) {
-    ActualSyncWorker.REASON_MUTATION -> "After change"
+    ActualSyncWorker.REASON_MUTATION -> SYNC_TRIGGER_AFTER_CHANGE
     ActualSyncWorker.REASON_FOREGROUND -> "App open"
     else -> "Background"
 }
@@ -211,13 +214,6 @@ object ActualSyncScheduler {
             .setInputData(workDataOf(ActualSyncWorker.REASON_KEY to ActualSyncWorker.REASON_MUTATION))
             .setInitialDelay(1, TimeUnit.SECONDS)
             .setConstraints(network).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS).build()
-        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(IMMEDIATE, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
-    }
-
-    fun scheduleForeground(context: Context) {
-        val request = OneTimeWorkRequestBuilder<ActualSyncWorker>()
-            .setInputData(workDataOf(ActualSyncWorker.REASON_KEY to ActualSyncWorker.REASON_FOREGROUND))
-            .setConstraints(network).build()
         WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(IMMEDIATE, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
     }
 
