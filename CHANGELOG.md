@@ -12,6 +12,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Fixed "View schedule" (from the Transactions multi-select bulk menu) not returning to the Transactions screen after back/save/delete on the opened schedule; it previously always dropped you onto the Schedules list or Bills calendar
+- Fixed the budget progress bar for "Have amount by a date" and "Cover scheduled transaction" targets tracking only this month's installment instead of the overall goal; a category funded 10% toward a multi-month target now shows 10% progress instead of 100% once that month's slice is met
 
 ## [1.0.0-beta.24] - 2026-09-15
 
