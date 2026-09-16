@@ -5,6 +5,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.model.BudgetOverview
 import org.junit.Assert.assertTrue
@@ -51,13 +52,14 @@ class BudgetSummarySheetTest {
         }
 
         compose.onNodeWithText("Ready to Budget").performClick()
-        compose.onNodeWithText("Hold for Next Month").performClick()
-        compose.onNodeWithText("Set aside part or all of To Budget instead of budgeting it now").assertExists()
+        compose.onNodeWithText("Hold for Next Month").performScrollTo().performClick()
+        compose.onNodeWithText("Set aside part or all of To Budget instead of budgeting it now")
+            .performScrollTo().assertExists()
 
         // Switching to the other action swaps the inline content in the same sheet, it does not
         // open a second sheet/popup on top of the first.
-        compose.onNodeWithText("Move to Category").performClick()
-        compose.onNodeWithText("Choose a category to fund from To Budget").assertExists()
+        compose.onNodeWithText("Move to Category").performScrollTo().performClick()
+        compose.onNodeWithText("Choose a category to fund from To Budget").performScrollTo().assertExists()
         compose.onNodeWithText("Set aside part or all of To Budget instead of budgeting it now").assertDoesNotExist()
         compose.onNodeWithText("Budget Summary").assertExists()
     }
@@ -75,9 +77,9 @@ class BudgetSummarySheetTest {
         }
 
         compose.onNodeWithText("Ready to Budget").performClick()
-        compose.onNodeWithText("Hold for Next Month").performClick()
-        compose.onNodeWithText("5").performClick()
-        compose.onNodeWithText("✓").performClick()
+        compose.onNodeWithText("Hold for Next Month").performScrollTo().performClick()
+        compose.onNodeWithText("5").performScrollTo().performClick()
+        compose.onNodeWithText("✓").performScrollTo().performClick()
 
         assertTrue(heldAmount != null && heldAmount!! > 0L)
         compose.onNodeWithText("Budget Summary").assertDoesNotExist()
@@ -98,7 +100,7 @@ class BudgetSummarySheetTest {
         compose.onNode(hasText("held for next month", substring = true)).assertExists()
 
         compose.onNodeWithText("Ready to Budget").performClick()
-        compose.onNodeWithText("Reset Hold").performClick()
+        compose.onNodeWithText("Reset Hold").performScrollTo().performClick()
 
         assertTrue(resetCalled)
     }
