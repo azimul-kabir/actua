@@ -18,8 +18,8 @@ android {
         applicationId = "com.azimulkabir.actua"
         minSdk = 28
         targetSdk = 37
-        versionCode = 43
-        versionName = "1.0.0-beta.26"
+        versionCode = 44
+        versionName = "1.0.0-beta.27"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

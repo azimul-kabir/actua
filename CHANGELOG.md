@@ -4,6 +4,20 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.27] - 2026-09-17
+
+### Changed
+
+- Redesigned Budget Automation as a dedicated full-page editor matching upstream Actual Budget's mobile structure: a separate "Automations" list (Fixed amount, Cover schedule, Save by date, % of income, From history, Refill to cap, Whatever is left) and "Options" section (Balance cap, Long-term goal), each capped at one per category; Refill to cap no longer carries its own amount and instead ties to the sibling Balance cap automation, as it does upstream
+- Replaced the Reorder Categories screen with a full Manage Categories page (create/rename/hide groups and categories, delete a category, move a category to another group) and a separate Reorder Groups screen for group-only ordering; category drag now only mutates local state during the drag and persists once on drop (reverting on failure), starts immediately from a large handle instead of waiting for a long-press, and auto-scrolls near the list edges
+- Tapping Ready to Budget / To Budget now opens the Budget Summary sheet already expanded in its "Move to Category" state instead of the collapsed action-selection state that needed a second tap
+- Restyled the Plan-view "Ready to Budget" overview card from a 28dp to a 14dp corner radius to match the other cards in that view
+
+### Fixed
+
+- Fixed budget progress bars ignoring "Have amount by a date" and "% of income"/goal-based (`BY_DATE`/`GOAL`) targets until an unrelated whole-budget "Apply Templates" run synced the goal amount from the server; the goal is now computed locally from the target definition so progress reflects it immediately
+- Fixed the target editor excluding "Cover schedule" targets from its type picker and silently dropping the linked schedule when saving an existing schedule-linked target; added a schedule picker to select, change, or clear the link, and fixed the details card to show the linked schedule's name/amount instead of $0.00
+
 ## [1.0.0-beta.26] - 2026-09-16
 
 ### Changed
