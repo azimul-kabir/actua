@@ -17,6 +17,8 @@ data class Transaction(
     val categoryIsIncome: Boolean? = null,
     val rulesApplied: Boolean = false,
     val scheduleId: String? = null,
+    /** True when [category] was explicitly picked by the user, so a matching rule must not overwrite it. */
+    val categoryIsExplicit: Boolean = false,
 )
 
 data class SplitLine(

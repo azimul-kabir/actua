@@ -821,6 +821,7 @@ class ActuaRepository(context: Context) {
                         )
                     },
                     collapseSplit = original?.isParent == true && transaction.splits.isEmpty(),
+                    categoryIsExplicit = transaction.categoryIsExplicit,
                 ),
                 original = original,
                 applyRules = !transaction.rulesApplied,

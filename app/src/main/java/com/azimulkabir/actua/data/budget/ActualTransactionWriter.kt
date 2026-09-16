@@ -5,6 +5,7 @@ import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.sync.CrdtMessage
 import com.azimulkabir.actua.data.sync.CrdtValue
 import com.azimulkabir.actua.data.sync.HybridLogicalClock
+import com.azimulkabir.actua.data.rules.RuleChangeGuard
 import com.azimulkabir.actua.data.rules.RulesEngine
 import java.util.UUID
 
@@ -35,13 +36,22 @@ class ActualTransactionWriter(
         return payee
     }
 
-    fun createTransaction(transaction: ActualTransaction, applyRules: Boolean = true): ActualTransaction? {
+    fun createTransaction(
+        transaction: ActualTransaction,
+        applyRules: Boolean = true,
+        preserveCategory: Boolean = false,
+    ): ActualTransaction? {
         var final = transaction
         if (applyRules && transaction.transferId == null) {
             val result = RulesEngine.apply(transaction, database.fetchRules(), database.ruleContext())
             if (result.isDeleted) return null
             final = result.transaction
             result.pendingPayeeName?.let { final = final.copy(payeeId = resolveOrCreatePayee(it).id) }
+            if (preserveCategory &&
+                !RuleChangeGuard.shouldApplyRuleChange("category", transaction.categoryId, final.categoryId)
+            ) {
+                final = final.copy(categoryId = transaction.categoryId)
+            }
         }
         if (database.fetchAccounts().any { it.id == final.accountId && it.offBudget }) {
             final = final.copy(categoryId = null)
