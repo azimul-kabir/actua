@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Enabled R8 code shrinking and resource shrinking for release builds to reduce APK size
+
 ### Fixed
 
 - Fixed the "Syncing budget… Showing local data." banner appearing on every local edit (adding/editing transactions, budgeting a category, toggling cleared, etc.); it now only appears for app-open and background syncs, which can bring in changes the screen doesn't have yet, not for the upload triggered by an edit you just made
