@@ -557,6 +557,7 @@ fun BudgetScreen(
             },
             onEditTransaction = onEditTransaction,
             onDeleteTransaction = onDeleteTransaction,
+            scheduleFunding = scheduleFunding,
         )
     }
     movingBudget?.let { (group, category) ->
@@ -608,6 +609,7 @@ fun BudgetScreen(
             category = category,
             month = month,
             hideDecimalPlaces = hideDecimalPlaces,
+            scheduleFunding = scheduleFunding,
             onDismiss = { settingTarget = null },
             onSave = { automations ->
                 onSetCategoryAutomations(category.id.orEmpty(), automations)
@@ -1848,6 +1850,7 @@ private fun CategoryDetailsScreen(
     onDelete: () -> Unit,
     onEditTransaction: (Transaction) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
+    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
 ) {
     var note by remember(category) { mutableStateOf(category.note) }
     var noteEditorOpen by remember(category) { mutableStateOf(false) }
@@ -1929,6 +1932,7 @@ private fun CategoryDetailsScreen(
                     category = category,
                     month = month,
                     hideDecimalPlaces = hideDecimalPlaces,
+                    scheduleFunding = scheduleFunding,
                     onClick = onEditTarget,
                 )
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(18.dp)) {
@@ -2048,9 +2052,16 @@ private fun TargetDetailsCard(
     category: BudgetCategory,
     month: String,
     hideDecimalPlaces: Boolean,
+    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
     onClick: () -> Unit,
 ) {
     val target = category.target
+    val linkedSchedule = target?.takeIf { it.type == BudgetTarget.Type.SCHEDULE }?.let { scheduled ->
+        scheduleFunding.firstOrNull { funding ->
+            val reference = scheduled.scheduleId?.takeIf(String::isNotBlank) ?: scheduled.scheduleName?.trim().orEmpty()
+            reference in funding.referenceNames
+        }
+    }
     val title: String
     val detail: String
     val supporting: String
@@ -2083,6 +2094,7 @@ private fun TargetDetailsCard(
                     }
                 }
                 BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of available funds"
+                BudgetTarget.Type.SCHEDULE -> target.scheduleName ?: linkedSchedule?.name ?: "No schedule linked"
                 else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)
             }
             val timing = when (target.type) {
@@ -2102,14 +2114,18 @@ private fun TargetDetailsCard(
                 BudgetTarget.Type.GOAL -> "Target only"
                 BudgetTarget.Type.REMAINDER -> "After other automations"
                 BudgetTarget.Type.PERCENTAGE -> "At this priority"
-                BudgetTarget.Type.SCHEDULE -> "Schedule-driven"
+                BudgetTarget.Type.SCHEDULE -> linkedSchedule?.let {
+                    "Due in ${formatMoneyCents(it.amountCents, hideDecimalPlaces)}"
+                } ?: "Schedule-driven"
             }
             supporting = when {
                 target.isBalanceCap -> "$timing · Does not request funding automatically"
                 target.type == BudgetTarget.Type.GOAL -> "$timing · Does not budget funds automatically"
                 target.type == BudgetTarget.Type.REMAINDER -> "$timing · Applied in whole-budget preview"
                 target.type == BudgetTarget.Type.PERCENTAGE -> "$timing · Applied in whole-budget preview"
-                target.type == BudgetTarget.Type.SCHEDULE -> "$timing · Read-only until schedule evaluation is exact"
+                target.type == BudgetTarget.Type.SCHEDULE && linkedSchedule == null ->
+                    "$timing · Linked schedule not found — tap to relink"
+                target.type == BudgetTarget.Type.SCHEDULE -> "$timing · Applied in whole-budget preview"
                 else -> "$timing · Auto-Assign ${formatMoneyCents(target.suggestedBudget(category, month), hideDecimalPlaces)}"
             }
         }
@@ -2171,6 +2187,7 @@ private fun TargetEditorSheet(
     category: BudgetCategory,
     month: String,
     hideDecimalPlaces: Boolean,
+    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (BudgetTarget?) -> Unit,
 ) {
@@ -2224,7 +2241,10 @@ private fun TargetEditorSheet(
     var limitStartDate by remember(category) { mutableStateOf(category.target?.limitStartDate ?: "$month-01") }
     var limitHold by remember(category) { mutableStateOf(category.target?.limitHold ?: false) }
     var percentage by remember(category) { mutableStateOf(category.target?.percentage?.toString() ?: "10") }
+    var scheduleId by remember(category) { mutableStateOf(category.target?.scheduleId) }
+    var scheduleName by remember(category) { mutableStateOf(category.target?.scheduleName) }
     var typeMenu by remember { mutableStateOf(false) }
+    var scheduleMenu by remember { mutableStateOf(false) }
     val amountCents = runCatching { java.math.BigDecimal(amount).movePointRight(2).longValueExact() }.getOrNull()
     val limitAmountCents = runCatching { java.math.BigDecimal(limitAmount).movePointRight(2).longValueExact() }.getOrNull()
     val validDate = when (type) {
@@ -2244,6 +2264,7 @@ private fun TargetEditorSheet(
             (limitPeriod != BudgetTarget.LimitPeriod.WEEKLY ||
                 runCatching { java.time.LocalDate.parse(limitStartDate) }.isSuccess)
         BudgetTarget.Type.PERCENTAGE -> percentage.toIntOrNull() in 1..100
+        BudgetTarget.Type.SCHEDULE -> !scheduleId.isNullOrBlank() || !scheduleName.isNullOrBlank()
         else -> amountCents != null && amountCents > 0L
     } && validDate
     ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null,
@@ -2279,7 +2300,7 @@ private fun TargetEditorSheet(
                         if (limitPeriod == null) limitPeriod = BudgetTarget.LimitPeriod.MONTHLY
                         typeMenu = false
                     })
-                    BudgetTarget.Type.entries.filterNot { it == BudgetTarget.Type.SCHEDULE }.forEach { option ->
+                    BudgetTarget.Type.entries.forEach { option ->
                         DropdownMenuItem(text = {
                             Column {
                                 Text(option.label)
@@ -2291,7 +2312,7 @@ private fun TargetEditorSheet(
                 }
             }
             if (type != BudgetTarget.Type.AVERAGE && type != BudgetTarget.Type.COPY && type != BudgetTarget.Type.REMAINDER &&
-                type != BudgetTarget.Type.PERCENTAGE) {
+                type != BudgetTarget.Type.PERCENTAGE && type != BudgetTarget.Type.SCHEDULE) {
                 OutlinedTextField(value = amount, onValueChange = { amount = it }, modifier = Modifier.fillMaxWidth(),
                     label = { Text("Amount") }, prefix = { Text(formatMoneyCents(0, hideDecimalPlaces).filterNot { it.isDigit() || it in ".,−-" }) },
                     singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
@@ -2299,6 +2320,44 @@ private fun TargetEditorSheet(
             when (type) {
                 BudgetTarget.Type.BY_DATE -> OutlinedTextField(value = date.take(7), onValueChange = { date = it },
                     modifier = Modifier.fillMaxWidth(), label = { Text("Target month") }, placeholder = { Text("YYYY-MM") }, singleLine = true)
+                BudgetTarget.Type.SCHEDULE -> Box {
+                    Surface(onClick = { scheduleMenu = true }, color = MaterialTheme.colorScheme.surfaceContainer,
+                        shape = RoundedCornerShape(14.dp)) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Linked schedule", style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(scheduleName ?: "No schedule linked", fontWeight = FontWeight.SemiBold)
+                            }
+                            Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Choose linked schedule")
+                        }
+                    }
+                    DropdownMenu(expanded = scheduleMenu, onDismissRequest = { scheduleMenu = false }) {
+                        if (scheduleId != null || scheduleName != null) {
+                            DropdownMenuItem(text = { Text("No schedule", color = MaterialTheme.colorScheme.error) },
+                                onClick = { scheduleId = null; scheduleName = null; scheduleMenu = false })
+                        }
+                        if (scheduleFunding.isEmpty()) {
+                            DropdownMenuItem(text = { Text("No schedules available", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                onClick = { scheduleMenu = false }, enabled = false)
+                        }
+                        scheduleFunding.forEach { schedule ->
+                            DropdownMenuItem(text = {
+                                Column {
+                                    Text(schedule.name ?: "Unnamed schedule")
+                                    Text(formatMoneyCents(schedule.amountCents, hideDecimalPlaces),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }, onClick = {
+                                scheduleId = schedule.id
+                                scheduleName = schedule.name
+                                scheduleMenu = false
+                            })
+                        }
+                    }
+                }
                 BudgetTarget.Type.WEEKLY_SPENDING -> OutlinedTextField(value = date, onValueChange = { date = it },
                     modifier = Modifier.fillMaxWidth(), label = { Text("First week starts") }, placeholder = { Text("YYYY-MM-DD") }, singleLine = true)
                 BudgetTarget.Type.AVERAGE -> OutlinedTextField(value = averageMonths, onValueChange = { averageMonths = it.filter(Char::isDigit) },
@@ -2464,6 +2523,8 @@ private fun TargetEditorSheet(
                         limitHold = if (type == BudgetTarget.Type.REMAINDER ||
                             type == BudgetTarget.Type.REFILL && editingBalanceCap) limitHold else false,
                         percentage = percentage.toIntOrNull()?.coerceIn(1, 100) ?: 0,
+                        scheduleId = if (type == BudgetTarget.Type.SCHEDULE) scheduleId else null,
+                        scheduleName = if (type == BudgetTarget.Type.SCHEDULE) scheduleName else null,
                     ))
                 }, enabled = canSave) { Text("Save") }
             }
@@ -2478,6 +2539,7 @@ private fun AutomationListEditorSheet(
     category: BudgetCategory,
     month: String,
     hideDecimalPlaces: Boolean,
+    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (List<BudgetTarget>) -> Unit,
 ) {
@@ -2508,6 +2570,7 @@ private fun AutomationListEditorSheet(
             category = category.copy(target = existing, automations = existing?.let(::listOf).orEmpty()),
             month = month,
             hideDecimalPlaces = hideDecimalPlaces,
+            scheduleFunding = scheduleFunding,
             onDismiss = { adding = false; editingIndex = null },
             onSave = { target ->
                 val index = editingIndex

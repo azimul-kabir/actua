@@ -29,9 +29,23 @@ data class BudgetCategory(
     val balanceCents: Long get() = availableCents ?: available.toLong() * 100
     val carryoverCents: Long get() = balanceCents - assignedCents + spentCents
 
+    /**
+     * The full balance this category is working toward, independent of this month's
+     * installment. Prefers Actual's server-computed [goalCents] (kept in sync by whole-budget
+     * template apply); falls back to the category's own "goal only" or long-term "by date"
+     * target amount so a target set in Actua reflects immediately, without requiring Apply.
+     */
+    val effectiveGoalCents: Long? get() {
+        goalCents?.takeIf { it > 0L }?.let { return it }
+        val targets = automations.ifEmpty { target?.let(::listOf).orEmpty() }
+        targets.firstOrNull { it.type == BudgetTarget.Type.GOAL }?.let { return it.amountCents }
+        val byDate = targets.filter { it.type == BudgetTarget.Type.BY_DATE }.sumOf { it.amountCents }
+        return byDate.takeIf { it > 0L }
+    }
+
     // With an active goal, progress tracks balance funded toward it rather than spend-down.
     val progressFraction: Float get() {
-        val goal = goalCents
+        val goal = effectiveGoalCents
         if (goal != null && goal > 0L) return (balanceCents.toFloat() / goal).coerceIn(0f, 1f)
         return if (assignedCents <= 0L) 0f else (spentCents.toFloat() / assignedCents).coerceIn(0f, 1f)
     }
@@ -47,8 +61,8 @@ enum class BudgetCategoryView(val label: String) {
     fun matches(category: BudgetCategory): Boolean = when (this) {
         ALL -> true
         OVERSPENT -> category.balanceCents < 0L
-        UNDERFUNDED -> (category.goalCents ?: 0L) > 0L && category.balanceCents < category.goalCents!!
-        OVERFUNDED -> (category.goalCents ?: 0L) > 0L && category.balanceCents > category.goalCents!!
+        UNDERFUNDED -> (category.effectiveGoalCents ?: 0L) > 0L && category.balanceCents < category.effectiveGoalCents!!
+        OVERFUNDED -> (category.effectiveGoalCents ?: 0L) > 0L && category.balanceCents > category.effectiveGoalCents!!
         MONEY_AVAILABLE -> category.balanceCents > 0L
     }
 
