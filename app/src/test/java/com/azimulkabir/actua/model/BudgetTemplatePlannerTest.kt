@@ -7,10 +7,10 @@ class BudgetTemplatePlannerTest {
     @Test fun previewsOnlyChangedSupportedTargets() {
         val groups = listOf(BudgetGroup("Living", listOf(
             category("rent", "Rent", assigned = 80_000, target = BudgetTarget(
-                BudgetTarget.Type.MONTHLY_SAVINGS, 100_000,
+                BudgetTarget.Type.FIXED, 100_000,
             )),
             category("food", "Food", assigned = 30_000, target = BudgetTarget(
-                BudgetTarget.Type.MONTHLY_SAVINGS, 30_000,
+                BudgetTarget.Type.FIXED, 30_000,
             )),
             category("advanced", "Advanced", assigned = 0, unsupported = true),
         )))
@@ -26,14 +26,14 @@ class BudgetTemplatePlannerTest {
 
     @Test fun repeatedApplicationProducesAnEmptyPreview() {
         val original = category("rent", "Rent", assigned = 80_000, target = BudgetTarget(
-            BudgetTarget.Type.MONTHLY_SAVINGS, 100_000,
+            BudgetTarget.Type.FIXED, 100_000,
         ))
         val first = BudgetTemplatePlanner.preview(
             listOf(BudgetGroup("Living", listOf(original))), "2026-09", overwriteExisting = true,
         )
         val applied = category(
             "rent", "Rent", first.changes.single().proposedCents,
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 100_000),
+            BudgetTarget(BudgetTarget.Type.FIXED, 100_000),
         )
 
         val second = BudgetTemplatePlanner.preview(
@@ -62,8 +62,9 @@ class BudgetTemplatePlannerTest {
 
     @Test fun refillCapsOtherContributionsInTheSameCategory() {
         val targets = listOf(
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 80_000),
-            BudgetTarget(BudgetTarget.Type.REFILL, 100_000),
+            BudgetTarget(BudgetTarget.Type.FIXED, 80_000),
+            BudgetTarget(BudgetTarget.Type.LIMIT, 100_000, limitPeriod = BudgetTarget.LimitPeriod.MONTHLY),
+            BudgetTarget(BudgetTarget.Type.REFILL),
         )
         val category = category("buffer", "Buffer", assigned = 0, automations = targets, carryover = 25_000)
 
@@ -74,10 +75,10 @@ class BudgetTemplatePlannerTest {
 
     @Test fun fundsHigherPrioritiesFirstAndReportsAvailableFundsClamp() {
         val first = category("rent", "Rent", assigned = 0, automations = listOf(
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 80_000, priority = 1),
+            BudgetTarget(BudgetTarget.Type.FIXED, 80_000, priority = 1),
         ))
         val second = category("fun", "Fun", assigned = 0, automations = listOf(
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 50_000, priority = 2),
+            BudgetTarget(BudgetTarget.Type.FIXED, 50_000, priority = 2),
         ))
 
         val preview = BudgetTemplatePlanner.preview(
@@ -95,7 +96,7 @@ class BudgetTemplatePlannerTest {
             BudgetTarget(BudgetTarget.Type.PERCENTAGE, priority = 1, percentage = 25),
         ))
         val fixed = category("fixed", "Fixed", assigned = 0, automations = listOf(
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 50_000, priority = 1),
+            BudgetTarget(BudgetTarget.Type.FIXED, 50_000, priority = 1),
         ))
 
         val preview = BudgetTemplatePlanner.preview(
@@ -112,7 +113,7 @@ class BudgetTemplatePlannerTest {
             BudgetTarget(BudgetTarget.Type.SCHEDULE, priority = 1, scheduleId = "bill-1"),
         ))
         val fixed = category("fixed", "Fixed", assigned = 0, automations = listOf(
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 60_000, priority = 2),
+            BudgetTarget(BudgetTarget.Type.FIXED, 60_000, priority = 2),
         ))
 
         val preview = BudgetTemplatePlanner.preview(
@@ -177,7 +178,7 @@ class BudgetTemplatePlannerTest {
 
     @Test fun normalApplyLeavesExistingBudgetAmountsUntouched() {
         val category = category("rent", "Rent", assigned = 80_000, target = BudgetTarget(
-            BudgetTarget.Type.MONTHLY_SAVINGS, 100_000,
+            BudgetTarget.Type.FIXED, 100_000,
         ))
 
         val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Living", listOf(category))), "2026-09")
@@ -189,7 +190,7 @@ class BudgetTemplatePlannerTest {
 
     @Test fun overwriteReturnsExistingTemplateFundsBeforeRecalculation() {
         val category = category("rent", "Rent", assigned = 80_000, target = BudgetTarget(
-            BudgetTarget.Type.MONTHLY_SAVINGS, 100_000,
+            BudgetTarget.Type.FIXED, 100_000,
         ))
 
         val preview = BudgetTemplatePlanner.preview(
@@ -264,7 +265,7 @@ class BudgetTemplatePlannerTest {
 
     @Test fun distributesRemainingFundsByWeightAfterPriorities() {
         val fixed = category("rent", "Rent", assigned = 0, automations = listOf(
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 60_000),
+            BudgetTarget(BudgetTarget.Type.FIXED, 60_000),
         ))
         val first = category("fun", "Fun", assigned = 0, automations = listOf(
             BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1),
@@ -315,7 +316,9 @@ class BudgetTemplatePlannerTest {
     @Test fun copyTemplatePlansTheAssignedBudgetFromHistory() {
         val category = category(
             "copy", "Copy", assigned = 0,
-            automations = listOf(BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 1)),
+            automations = listOf(
+                BudgetTarget(BudgetTarget.Type.HISTORICAL, historicalMode = BudgetTarget.HistoricalMode.COPY, historicalMonths = 1),
+            ),
         ).copy(history = listOf(BudgetHistory("2026-08", 42_500, -12_000)))
 
         val preview = BudgetTemplatePlanner.preview(

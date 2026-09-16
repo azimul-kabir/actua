@@ -95,7 +95,6 @@ import com.azimulkabir.actua.model.BudgetCategoryView
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetTarget
-import com.azimulkabir.actua.model.BudgetAutomationDocument
 import com.azimulkabir.actua.model.BudgetTemplatePlanner
 import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.BudgetScheduleFunding
@@ -176,7 +175,7 @@ fun BudgetScreen(
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
     onHoldForNextMonth: (Long) -> Unit = {},
     onResetNextMonthBuffer: () -> Unit = {},
-    onSetCategoryAutomations: (String, List<BudgetTarget>) -> Unit = { _, _ -> },
+    onEditAutomations: (BudgetGroup, BudgetCategory) -> Unit = { _, _ -> },
     onApplyBudgetTemplate: (BudgetTemplatePreview) -> Unit = {},
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
     onPreviewCleanup: () -> CleanupPreview = { CleanupPreview("") },
@@ -215,7 +214,6 @@ fun BudgetScreen(
     var fundingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var autoAssignBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
-    var settingTarget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var budgetSummaryOpen by remember { mutableStateOf(false) }
     var templatePreviewOpen by remember { mutableStateOf(false) }
     var overwriteTemplates by remember { mutableStateOf(false) }
@@ -396,7 +394,7 @@ fun BudgetScreen(
             onDismiss = { selectedCategory = null },
             onRename = { selectedCategory = null; renamingCategory = parent to category },
             onEditBudget = { selectedCategory = null; editingBudget = parent to category },
-            onSetTarget = { selectedCategory = null; settingTarget = parent to category },
+            onSetTarget = { selectedCategory = null; onEditAutomations(parent, category) },
             onDetails = { selectedCategory = null; categoryDetails = parent to category },
             onTransactionsThisMonth = { selectedCategory = null; onShowCategoryTransactions(category.name, true, false) },
             onAllTransactions = { selectedCategory = null; onShowCategoryTransactions(category.name, false, false) },
@@ -538,7 +536,7 @@ fun BudgetScreen(
             onEditBudget = { categoryDetails = null; editingBudget = group to category },
             onMoveMoney = { categoryDetails = null; movingBudget = group to category },
             onAutoAssign = { categoryDetails = null; autoAssignBudget = group to category },
-            onEditTarget = { settingTarget = group to category },
+            onEditTarget = { onEditAutomations(group, category) },
             transactions = transactions.filter { it.category == category.name }
                 .sortedByDescending { it.date }.take(3),
             onRename = { categoryDetails = null; renamingCategory = group to category },
@@ -601,27 +599,6 @@ fun BudgetScreen(
             onMove = { fromGroup, fromCategory, toGroup, toCategory, amount ->
                 onTransferBudget(fromGroup, fromCategory, toGroup, toCategory, amount)
                 autoAssignBudget = null
-            },
-        )
-    }
-    settingTarget?.let { (_, category) ->
-        AutomationListEditorSheet(
-            category = category,
-            month = month,
-            hideDecimalPlaces = hideDecimalPlaces,
-            scheduleFunding = scheduleFunding,
-            onDismiss = { settingTarget = null },
-            onSave = { automations ->
-                onSetCategoryAutomations(category.id.orEmpty(), automations)
-                categoryDetails = categoryDetails?.let { (detailsGroup, detailsCategory) ->
-                    detailsGroup to detailsCategory.copy(
-                        target = automations.singleOrNull(),
-                        automations = automations,
-                        hasUnsupportedTarget = false,
-                        unsupportedAutomationTypes = emptyList(),
-                    )
-                }
-                settingTarget = null
             },
         )
     }
@@ -2073,7 +2050,7 @@ private fun TargetDetailsCard(
         }
         category.automations.size > 1 -> {
             title = "${category.automations.size} automations"
-            detail = category.automations.joinToString { if (it.isBalanceCap) "Balance cap" else it.type.label }
+            detail = category.automations.joinToString { it.type.label }
             supporting = "Edit automation list · Apply after whole-budget preview"
         }
         target == null -> {
@@ -2082,10 +2059,12 @@ private fun TargetDetailsCard(
             supporting = "Auto-Assign can use your target"
         }
         else -> {
-            title = if (target.isBalanceCap) "Balance cap" else target.type.label
+            title = target.type.label
             detail = when (target.type) {
-                BudgetTarget.Type.AVERAGE -> "Average of ${target.averageMonths} recent months"
-                BudgetTarget.Type.COPY -> "Copy ${target.lookBackMonths} months ago"
+                BudgetTarget.Type.HISTORICAL -> when (target.historicalMode) {
+                    BudgetTarget.HistoricalMode.AVERAGE -> "Average of ${target.historicalMonths} recent months"
+                    BudgetTarget.HistoricalMode.COPY -> "Copy ${target.historicalMonths} months ago"
+                }
                 BudgetTarget.Type.REMAINDER -> buildString {
                     append("Weight ${target.weight}")
                     target.limitAmountCents?.let {
@@ -2093,24 +2072,22 @@ private fun TargetDetailsCard(
                         if (target.limitHold) append(" · hold")
                     }
                 }
-                BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of available funds"
+                BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of ${if (target.percentagePrevious) "last" else "this"} month's ${target.percentageSource}"
                 BudgetTarget.Type.SCHEDULE -> target.scheduleName ?: linkedSchedule?.name ?: "No schedule linked"
+                BudgetTarget.Type.REFILL -> "Refill to the category's balance cap"
                 else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)
             }
             val timing = when (target.type) {
-                BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS -> "Resets every month"
-                BudgetTarget.Type.REFILL -> if (target.isBalanceCap) {
-                    when (target.limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY) {
-                        BudgetTarget.LimitPeriod.DAILY -> "Daily balance cap"
-                        BudgetTarget.LimitPeriod.WEEKLY -> "Weekly balance cap"
-                        BudgetTarget.LimitPeriod.MONTHLY -> "Monthly balance cap"
-                    }
-                } else "Resets every month"
-                BudgetTarget.Type.WEEKLY_SPENDING -> "Resets every week"
+                BudgetTarget.Type.FIXED -> "Every ${if (target.everyCount > 1) "${target.everyCount} " else ""}${target.period.jsonValue}${if (target.everyCount > 1) "s" else ""}"
+                BudgetTarget.Type.LIMIT -> when (target.limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY) {
+                    BudgetTarget.LimitPeriod.DAILY -> "Daily balance cap"
+                    BudgetTarget.LimitPeriod.WEEKLY -> "Weekly balance cap"
+                    BudgetTarget.LimitPeriod.MONTHLY -> "Monthly balance cap"
+                }
+                BudgetTarget.Type.REFILL -> "Resets every month"
                 BudgetTarget.Type.BY_DATE -> target.targetMonth?.let { "Target month ${formatMonth(it)}" }
                     ?: "Target date"
-                BudgetTarget.Type.AVERAGE -> "Recalculates every month"
-                BudgetTarget.Type.COPY -> "Copies a previous budget"
+                BudgetTarget.Type.HISTORICAL -> "Recalculates every month"
                 BudgetTarget.Type.GOAL -> "Target only"
                 BudgetTarget.Type.REMAINDER -> "After other automations"
                 BudgetTarget.Type.PERCENTAGE -> "At this priority"
@@ -2119,10 +2096,11 @@ private fun TargetDetailsCard(
                 } ?: "Schedule-driven"
             }
             supporting = when {
-                target.isBalanceCap -> "$timing · Does not request funding automatically"
+                target.type == BudgetTarget.Type.LIMIT -> "$timing · Does not request funding automatically"
                 target.type == BudgetTarget.Type.GOAL -> "$timing · Does not budget funds automatically"
                 target.type == BudgetTarget.Type.REMAINDER -> "$timing · Applied in whole-budget preview"
                 target.type == BudgetTarget.Type.PERCENTAGE -> "$timing · Applied in whole-budget preview"
+                target.type == BudgetTarget.Type.REFILL -> "$timing · Applied in whole-budget preview"
                 target.type == BudgetTarget.Type.SCHEDULE && linkedSchedule == null ->
                     "$timing · Linked schedule not found — tap to relink"
                 target.type == BudgetTarget.Type.SCHEDULE -> "$timing · Applied in whole-budget preview"
@@ -2162,7 +2140,7 @@ private fun SummaryValue(label: String, amount: Long, hideDecimals: Boolean, mod
 }
 
 private fun buildAutoAssignChoices(category: BudgetCategory, month: String): List<Pair<String, Long>> = buildList {
-    category.target?.takeUnless(BudgetTarget::isBalanceCap)?.let { target ->
+    category.target?.takeUnless { it.type == BudgetTarget.Type.LIMIT }?.let { target ->
         add("Target · ${target.type.label}" to target.suggestedBudget(category, month))
     }
     category.history.firstOrNull()?.let { last ->
@@ -2180,466 +2158,6 @@ private fun buildAutoAssignChoices(category: BudgetCategory, month: String): Lis
     }
     if (category.assignedCents != 0L) add("Set budgeted to zero" to 0L)
 }.distinctBy { it.first }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TargetEditorSheet(
-    category: BudgetCategory,
-    month: String,
-    hideDecimalPlaces: Boolean,
-    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
-    onDismiss: () -> Unit,
-    onSave: (BudgetTarget?) -> Unit,
-) {
-    if (category.hasUnsupportedTarget) {
-        ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null) {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(
-                    if (category.automationReadOnly) {
-                        "Notes-managed automation is read-only"
-                    } else if (category.unsupportedAutomationTypes.any { it.equals("schedule", ignoreCase = true) }) {
-                        "Schedule funding is read-only"
-                    } else {
-                        "Advanced target"
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    if (category.automationReadOnly) {
-                        "This automation is regenerated from the category note. Edit the note to change it; Actua will not rewrite it through the target editor."
-                    } else {
-                        "This category uses advanced target settings that Actua cannot safely edit yet. You can continue to manage it in Actual Budget."
-                    },
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Close") }
-            }
-        }
-        return
-    }
-    var type by remember(category) { mutableStateOf(category.target?.type ?: BudgetTarget.Type.MONTHLY_SPENDING) }
-    var amount by remember(category) {
-        mutableStateOf(category.target?.amountCents?.let { java.math.BigDecimal.valueOf(it, 2).stripTrailingZeros().toPlainString() } ?: "")
-    }
-    var date by remember(category, month) {
-        mutableStateOf(category.target?.targetMonth ?: category.target?.startingDate ?: "$month-01")
-    }
-    var averageMonths by remember(category) { mutableStateOf(category.target?.averageMonths?.toString() ?: "3") }
-    var lookBackMonths by remember(category) { mutableStateOf(category.target?.lookBackMonths?.toString() ?: "1") }
-    var weight by remember(category) { mutableStateOf(category.target?.weight?.toString() ?: "1") }
-    var limitAmount by remember(category) {
-        mutableStateOf(category.target?.limitAmountCents?.let {
-            java.math.BigDecimal.valueOf(it, 2).stripTrailingZeros().toPlainString()
-        } ?: "")
-    }
-    var editingBalanceCap by remember(category) { mutableStateOf(category.target?.isBalanceCap == true) }
-    var limitPeriod by remember(category) {
-        mutableStateOf(category.target?.limitPeriod ?: if (category.target?.isBalanceCap == true)
-            BudgetTarget.LimitPeriod.MONTHLY else null)
-    }
-    var limitStartDate by remember(category) { mutableStateOf(category.target?.limitStartDate ?: "$month-01") }
-    var limitHold by remember(category) { mutableStateOf(category.target?.limitHold ?: false) }
-    var percentage by remember(category) { mutableStateOf(category.target?.percentage?.toString() ?: "10") }
-    var scheduleId by remember(category) { mutableStateOf(category.target?.scheduleId) }
-    var scheduleName by remember(category) { mutableStateOf(category.target?.scheduleName) }
-    var typeMenu by remember { mutableStateOf(false) }
-    var scheduleMenu by remember { mutableStateOf(false) }
-    val amountCents = runCatching { java.math.BigDecimal(amount).movePointRight(2).longValueExact() }.getOrNull()
-    val limitAmountCents = runCatching { java.math.BigDecimal(limitAmount).movePointRight(2).longValueExact() }.getOrNull()
-    val validDate = when (type) {
-        BudgetTarget.Type.BY_DATE -> runCatching { java.time.YearMonth.parse(date.take(7)) }.isSuccess
-        BudgetTarget.Type.WEEKLY_SPENDING -> runCatching { java.time.LocalDate.parse(date) }.isSuccess
-        BudgetTarget.Type.REFILL -> !editingBalanceCap || limitPeriod != BudgetTarget.LimitPeriod.WEEKLY ||
-            runCatching { java.time.LocalDate.parse(limitStartDate) }.isSuccess
-        else -> true
-    }
-    val canSave = when (type) {
-        BudgetTarget.Type.AVERAGE -> averageMonths.toIntOrNull() in 1..24
-        BudgetTarget.Type.COPY -> lookBackMonths.toIntOrNull() in 1..24
-        BudgetTarget.Type.REFILL -> amountCents?.let { it > 0L } == true &&
-            (!editingBalanceCap || limitPeriod != null)
-        BudgetTarget.Type.REMAINDER -> weight.toIntOrNull()?.let { it >= 1 } == true &&
-            (limitPeriod == null || limitAmountCents?.let { it > 0L } == true) &&
-            (limitPeriod != BudgetTarget.LimitPeriod.WEEKLY ||
-                runCatching { java.time.LocalDate.parse(limitStartDate) }.isSuccess)
-        BudgetTarget.Type.PERCENTAGE -> percentage.toIntOrNull() in 1..100
-        BudgetTarget.Type.SCHEDULE -> !scheduleId.isNullOrBlank() || !scheduleName.isNullOrBlank()
-        else -> amountCents != null && amountCents > 0L
-    } && validDate
-    ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Box {
-                Surface(onClick = { typeMenu = true }, color = MaterialTheme.colorScheme.surfaceContainer,
-                    shape = RoundedCornerShape(14.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Target type", style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(if (editingBalanceCap && type == BudgetTarget.Type.REFILL) "Balance cap" else type.label,
-                                fontWeight = FontWeight.SemiBold)
-                        }
-                        Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Choose target type")
-                    }
-                }
-                DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
-                    DropdownMenuItem(text = {
-                        Column {
-                            Text("Balance cap")
-                            Text("Limit the category balance without requesting refill funding",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }, onClick = {
-                        type = BudgetTarget.Type.REFILL
-                        editingBalanceCap = true
-                        if (limitPeriod == null) limitPeriod = BudgetTarget.LimitPeriod.MONTHLY
-                        typeMenu = false
-                    })
-                    BudgetTarget.Type.entries.forEach { option ->
-                        DropdownMenuItem(text = {
-                            Column {
-                                Text(option.label)
-                                Text(option.explanation, style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }, onClick = { type = option; editingBalanceCap = false; typeMenu = false })
-                    }
-                }
-            }
-            if (type != BudgetTarget.Type.AVERAGE && type != BudgetTarget.Type.COPY && type != BudgetTarget.Type.REMAINDER &&
-                type != BudgetTarget.Type.PERCENTAGE && type != BudgetTarget.Type.SCHEDULE) {
-                OutlinedTextField(value = amount, onValueChange = { amount = it }, modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Amount") }, prefix = { Text(formatMoneyCents(0, hideDecimalPlaces).filterNot { it.isDigit() || it in ".,−-" }) },
-                    singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-            }
-            when (type) {
-                BudgetTarget.Type.BY_DATE -> OutlinedTextField(value = date.take(7), onValueChange = { date = it },
-                    modifier = Modifier.fillMaxWidth(), label = { Text("Target month") }, placeholder = { Text("YYYY-MM") }, singleLine = true)
-                BudgetTarget.Type.SCHEDULE -> Box {
-                    Surface(onClick = { scheduleMenu = true }, color = MaterialTheme.colorScheme.surfaceContainer,
-                        shape = RoundedCornerShape(14.dp)) {
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text("Linked schedule", style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(scheduleName ?: "No schedule linked", fontWeight = FontWeight.SemiBold)
-                            }
-                            Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Choose linked schedule")
-                        }
-                    }
-                    DropdownMenu(expanded = scheduleMenu, onDismissRequest = { scheduleMenu = false }) {
-                        if (scheduleId != null || scheduleName != null) {
-                            DropdownMenuItem(text = { Text("No schedule", color = MaterialTheme.colorScheme.error) },
-                                onClick = { scheduleId = null; scheduleName = null; scheduleMenu = false })
-                        }
-                        if (scheduleFunding.isEmpty()) {
-                            DropdownMenuItem(text = { Text("No schedules available", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                onClick = { scheduleMenu = false }, enabled = false)
-                        }
-                        scheduleFunding.forEach { schedule ->
-                            DropdownMenuItem(text = {
-                                Column {
-                                    Text(schedule.name ?: "Unnamed schedule")
-                                    Text(formatMoneyCents(schedule.amountCents, hideDecimalPlaces),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }, onClick = {
-                                scheduleId = schedule.id
-                                scheduleName = schedule.name
-                                scheduleMenu = false
-                            })
-                        }
-                    }
-                }
-                BudgetTarget.Type.WEEKLY_SPENDING -> OutlinedTextField(value = date, onValueChange = { date = it },
-                    modifier = Modifier.fillMaxWidth(), label = { Text("First week starts") }, placeholder = { Text("YYYY-MM-DD") }, singleLine = true)
-                BudgetTarget.Type.AVERAGE -> OutlinedTextField(value = averageMonths, onValueChange = { averageMonths = it.filter(Char::isDigit) },
-                    modifier = Modifier.fillMaxWidth(), label = { Text("Months to average") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                BudgetTarget.Type.COPY -> OutlinedTextField(value = lookBackMonths, onValueChange = { lookBackMonths = it.filter(Char::isDigit) },
-                    modifier = Modifier.fillMaxWidth(), label = { Text("Months to copy") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                BudgetTarget.Type.REMAINDER -> OutlinedTextField(value = weight, onValueChange = { weight = it.filter(Char::isDigit) },
-                    modifier = Modifier.fillMaxWidth(), label = { Text("Weight") }, singleLine = true,
-                    supportingText = { Text("Higher weights receive a larger share of remaining Ready to Budget funds.") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                BudgetTarget.Type.PERCENTAGE -> OutlinedTextField(
-                    value = percentage,
-                    onValueChange = { percentage = it.filter(Char::isDigit) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Percentage") },
-                    suffix = { Text("%") },
-                    supportingText = { Text("Uses Available Funds at the start of this priority.") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-                else -> Unit
-            }
-            if (type == BudgetTarget.Type.REFILL && editingBalanceCap) {
-                Text("Balance cap cadence", style = MaterialTheme.typography.titleSmall)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BudgetTarget.LimitPeriod.entries.forEach { period ->
-                        FilledTonalButton(
-                            onClick = { limitPeriod = period },
-                            modifier = Modifier.weight(1f),
-                            colors = if (limitPeriod == period) ButtonDefaults.filledTonalButtonColors()
-                                else ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                ),
-                        ) { Text(period.jsonValue.replaceFirstChar(Char::uppercase)) }
-                    }
-                }
-                if (limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) {
-                    OutlinedTextField(
-                        value = limitStartDate,
-                        onValueChange = { limitStartDate = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Weekly start date") },
-                        placeholder = { Text("YYYY-MM-DD") },
-                        singleLine = true,
-                    )
-                }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Retain existing funds over the cap")
-                        Text(
-                            if (limitHold) "Excess carryover stays in the category."
-                            else "Excess carryover is released to Ready to Budget.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(checked = limitHold, onCheckedChange = { limitHold = it })
-                }
-            }
-            if (type == BudgetTarget.Type.REMAINDER) {
-                Text("Optional remainder cap", style = MaterialTheme.typography.titleSmall)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = limitAmount,
-                        onValueChange = { limitAmount = it },
-                        modifier = Modifier.weight(1f),
-                        label = { Text("Limit amount") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    )
-                    Box {
-                        TextButton(onClick = {
-                            limitPeriod = when (limitPeriod) {
-                                null -> BudgetTarget.LimitPeriod.MONTHLY
-                                BudgetTarget.LimitPeriod.MONTHLY -> BudgetTarget.LimitPeriod.WEEKLY
-                                BudgetTarget.LimitPeriod.WEEKLY -> BudgetTarget.LimitPeriod.DAILY
-                                BudgetTarget.LimitPeriod.DAILY -> null
-                            }
-                        }) { Text(limitPeriod?.jsonValue ?: "No cap") }
-                    }
-                }
-                if (limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) {
-                    OutlinedTextField(
-                        value = limitStartDate,
-                        onValueChange = { limitStartDate = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Weekly start date") },
-                        placeholder = { Text("YYYY-MM-DD") },
-                        singleLine = true,
-                    )
-                }
-                if (limitPeriod != null) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Hold excess carryover", Modifier.weight(1f))
-                        Switch(checked = limitHold, onCheckedChange = { limitHold = it })
-                    }
-                    Text(
-                        "When off, carryover above the cap is released back to Ready to Budget.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(14.dp)) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                    Text("Reset", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(when (type) {
-                        BudgetTarget.Type.MONTHLY_SPENDING, BudgetTarget.Type.MONTHLY_SAVINGS -> "Every month"
-                        BudgetTarget.Type.REFILL -> if (editingBalanceCap)
-                            (limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY).jsonValue.replaceFirstChar(Char::uppercase)
-                            else "Every month"
-                        BudgetTarget.Type.WEEKLY_SPENDING -> "Every week"
-                        BudgetTarget.Type.BY_DATE -> "On target date"
-                        BudgetTarget.Type.AVERAGE -> "Recalculate monthly"
-                        BudgetTarget.Type.COPY -> "Copy previous budget"
-                        BudgetTarget.Type.GOAL -> "Does not auto-budget"
-                        BudgetTarget.Type.REMAINDER -> "After other automations"
-                        BudgetTarget.Type.PERCENTAGE -> "At this priority"
-                        BudgetTarget.Type.SCHEDULE -> "Schedule-driven"
-                    }, fontWeight = FontWeight.SemiBold)
-                }
-            }
-            Text(
-                if (type == BudgetTarget.Type.REFILL && editingBalanceCap)
-                    "Limit the category balance without requesting refill funding."
-                else type.explanation,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                if (category.target != null) TextButton(onClick = { onSave(null) }) {
-                    Text("Remove target", color = MaterialTheme.colorScheme.error)
-                }
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                Button(onClick = {
-                    onSave(BudgetTarget(
-                        type = type,
-                        amountCents = amountCents ?: 0L,
-                        targetMonth = when (type) {
-                            BudgetTarget.Type.MONTHLY_SPENDING -> month
-                            BudgetTarget.Type.BY_DATE -> date.take(7)
-                            else -> null
-                        },
-                        startingDate = when (type) {
-                            BudgetTarget.Type.MONTHLY_SAVINGS -> "$month-01"
-                            BudgetTarget.Type.WEEKLY_SPENDING -> date
-                            else -> null
-                        },
-                        averageMonths = averageMonths.toIntOrNull()?.coerceIn(1, 24) ?: 3,
-                        lookBackMonths = lookBackMonths.toIntOrNull()?.coerceIn(1, 24) ?: 1,
-                        priority = if (type == BudgetTarget.Type.REFILL && editingBalanceCap) 0
-                            else category.target?.priority?.takeIf { it > 0 } ?: 1,
-                        weight = weight.toIntOrNull()?.coerceAtLeast(1) ?: 1,
-                        limitPeriod = if (type == BudgetTarget.Type.REMAINDER ||
-                            type == BudgetTarget.Type.REFILL && editingBalanceCap) limitPeriod else null,
-                        limitAmountCents = if (type == BudgetTarget.Type.REMAINDER) limitAmountCents else null,
-                        limitStartDate = if ((type == BudgetTarget.Type.REMAINDER ||
-                            type == BudgetTarget.Type.REFILL && editingBalanceCap) &&
-                            limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) limitStartDate else null,
-                        limitHold = if (type == BudgetTarget.Type.REMAINDER ||
-                            type == BudgetTarget.Type.REFILL && editingBalanceCap) limitHold else false,
-                        percentage = percentage.toIntOrNull()?.coerceIn(1, 100) ?: 0,
-                        scheduleId = if (type == BudgetTarget.Type.SCHEDULE) scheduleId else null,
-                        scheduleName = if (type == BudgetTarget.Type.SCHEDULE) scheduleName else null,
-                    ))
-                }, enabled = canSave) { Text("Save") }
-            }
-            Spacer(Modifier.height(12.dp))
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AutomationListEditorSheet(
-    category: BudgetCategory,
-    month: String,
-    hideDecimalPlaces: Boolean,
-    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
-    onDismiss: () -> Unit,
-    onSave: (List<BudgetTarget>) -> Unit,
-) {
-    if (category.hasUnsupportedTarget) {
-        val types = category.unsupportedAutomationTypes.ifEmpty {
-            if (category.automationReadOnly) listOf("notes-managed") else listOf("advanced")
-        }.joinToString()
-        ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null) {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Automations are read-only", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "This category contains $types automation settings that Actua cannot safely edit yet. Nothing has been changed. Continue managing this category in Actual Budget.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Close") }
-            }
-        }
-        return
-    }
-    var entries by remember(category) { mutableStateOf(category.automations) }
-    var editingIndex by remember { mutableStateOf<Int?>(null) }
-    var adding by remember { mutableStateOf(false) }
-    if (adding || editingIndex != null) {
-        val existing = editingIndex?.let(entries::get)
-        TargetEditorSheet(
-            category = category.copy(target = existing, automations = existing?.let(::listOf).orEmpty()),
-            month = month,
-            hideDecimalPlaces = hideDecimalPlaces,
-            scheduleFunding = scheduleFunding,
-            onDismiss = { adding = false; editingIndex = null },
-            onSave = { target ->
-                val index = editingIndex
-                entries = when {
-                    target != null && index == null -> entries + target
-                    target != null -> entries.toMutableList().also { it[requireNotNull(index)] = target }
-                    index != null -> entries.toMutableList().also { it.removeAt(index) }
-                    else -> entries
-                }
-                adding = false
-                editingIndex = null
-            },
-        )
-        return
-    }
-    val errors = BudgetAutomationDocument.validate(entries)
-    ModalBottomSheet(onDismissRequest = onDismiss, dragHandle = null,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Budget automations", style = MaterialTheme.typography.titleMedium)
-            Text("Automations are saved together. Whole-budget Apply remains preview-first.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            entries.forEachIndexed { index, target ->
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(16.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(if (target.isBalanceCap) "Balance cap" else target.type.label,
-                                fontWeight = FontWeight.SemiBold)
-                            Text(
-                                when (target.type) {
-                                    BudgetTarget.Type.AVERAGE -> "${target.averageMonths} recent months"
-                                    BudgetTarget.Type.COPY -> "${target.lookBackMonths} months ago"
-                                    BudgetTarget.Type.REMAINDER -> "Weight ${target.weight}"
-                                    BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of available funds"
-                                    BudgetTarget.Type.REFILL -> if (target.isBalanceCap) {
-                                        val cadence = (target.limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY).jsonValue
-                                        formatMoneyCents(target.amountCents, hideDecimalPlaces) + " · " + cadence +
-                                            if (target.limitHold) " · retain excess" else " · release excess"
-                                    } else formatMoneyCents(target.amountCents, hideDecimalPlaces)
-                                    else -> formatMoneyCents(target.amountCents, hideDecimalPlaces)
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        TextButton(onClick = { editingIndex = index }) { Text("Edit") }
-                        TextButton(onClick = { entries = entries.toMutableList().also { it.removeAt(index) } }) {
-                            Text("Remove", color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                }
-            }
-            if (entries.isEmpty()) Text("No automations yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(enabled = entries.size < 20, onClick = { adding = true }) { Text("Add automation") }
-            errors.forEach { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                Button(enabled = errors.isEmpty(), onClick = { onSave(entries) }) { Text("Save automations") }
-            }
-            Spacer(Modifier.height(12.dp))
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

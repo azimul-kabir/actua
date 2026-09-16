@@ -11,16 +11,25 @@ import org.junit.runner.RunWith
 class BudgetTargetCodecTest {
     @Test fun supportedTargetsRoundTripThroughActualGoalDef() {
         val targets = listOf(
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SPENDING, 2_000_000, "2026-09"),
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 100_000, startingDate = "2026-09-01"),
-            BudgetTarget(BudgetTarget.Type.BY_DATE, 1_200_000, "2027-09"),
-            BudgetTarget(BudgetTarget.Type.REFILL, 50_000),
-            BudgetTarget(BudgetTarget.Type.WEEKLY_SPENDING, 5_000, startingDate = "2026-09-01"),
-            BudgetTarget(BudgetTarget.Type.AVERAGE, averageMonths = 6),
-            BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 2),
+            BudgetTarget(BudgetTarget.Type.BY_DATE, 1_200_000, targetMonth = "2027-09"),
+            BudgetTarget(
+                BudgetTarget.Type.BY_DATE, 2_000_000, targetMonth = "2026-09",
+                allowEarlySpending = true, spendFromMonth = "2026-09",
+            ),
+            BudgetTarget(BudgetTarget.Type.BY_DATE, 60_000, targetMonth = "2027-09", repeats = true, repeatEvery = 3, repeatAnnual = false),
+            BudgetTarget(BudgetTarget.Type.FIXED, 100_000, startingDate = "2026-09-01"),
+            BudgetTarget(BudgetTarget.Type.FIXED, 5_000, startingDate = "2026-09-01", period = BudgetTarget.Period.WEEK),
+            BudgetTarget(BudgetTarget.Type.FIXED, 40_000, startingDate = "2026-09-01", period = BudgetTarget.Period.YEAR, everyCount = 2),
+            BudgetTarget(BudgetTarget.Type.REFILL),
+            BudgetTarget(BudgetTarget.Type.HISTORICAL, historicalMode = BudgetTarget.HistoricalMode.AVERAGE, historicalMonths = 6),
+            BudgetTarget(BudgetTarget.Type.HISTORICAL, historicalMode = BudgetTarget.HistoricalMode.COPY, historicalMonths = 2),
             BudgetTarget(BudgetTarget.Type.GOAL, 5_000_000),
             BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 3),
             BudgetTarget(BudgetTarget.Type.PERCENTAGE, priority = 2, percentage = 25),
+            BudgetTarget(BudgetTarget.Type.PERCENTAGE, priority = 2, percentage = 25, percentagePrevious = true),
+            BudgetTarget(BudgetTarget.Type.LIMIT, 50_000, limitPeriod = BudgetTarget.LimitPeriod.MONTHLY),
+            BudgetTarget(BudgetTarget.Type.SCHEDULE, priority = 1, scheduleId = "s1", scheduleName = "Rent", scheduleFull = true),
+            BudgetTarget(BudgetTarget.Type.FIXED, 100_000, startingDate = "2026-09-01", note = "For the roof fund"),
         )
         targets.forEach { target ->
             val encoded = target.toGoalDef()
@@ -29,7 +38,7 @@ class BudgetTargetCodecTest {
         }
     }
 
-    @Test fun defaultMonthlyBalanceCapIsEditableAndRoundTripsWithoutRefill() {
+    @Test fun standaloneBalanceCapRoundTripsWithoutARefillSibling() {
         val raw = """[{"directive":"template","type":"limit","amount":500,"period":"monthly","hold":false,"priority":null}]"""
         val document = BudgetAutomationDocument.decode(raw, "ui")
 
@@ -38,8 +47,7 @@ class BudgetTargetCodecTest {
         assertEquals(false, document.hasUnsupported)
         assertEquals(1, document.supported.size)
         val cap = document.supported.single()
-        assertEquals(BudgetTarget.Type.REFILL, cap.type)
-        assertEquals(true, cap.isBalanceCap)
+        assertEquals(BudgetTarget.Type.LIMIT, cap.type)
         assertEquals(50_000L, cap.amountCents)
         assertEquals(BudgetTarget.LimitPeriod.MONTHLY, cap.limitPeriod)
         assertEquals(false, cap.limitHold)
@@ -55,28 +63,9 @@ class BudgetTargetCodecTest {
 
     @Test fun advancedBalanceCapsAreEditableAndRoundTripLosslessly() {
         val cases = listOf(
-            BudgetTarget(
-                BudgetTarget.Type.REFILL,
-                12_345,
-                priority = 0,
-                limitPeriod = BudgetTarget.LimitPeriod.WEEKLY,
-                limitStartDate = "2026-09-01",
-                limitHold = false,
-            ),
-            BudgetTarget(
-                BudgetTarget.Type.REFILL,
-                12_345,
-                priority = 0,
-                limitPeriod = BudgetTarget.LimitPeriod.DAILY,
-                limitHold = false,
-            ),
-            BudgetTarget(
-                BudgetTarget.Type.REFILL,
-                12_345,
-                priority = 0,
-                limitPeriod = BudgetTarget.LimitPeriod.MONTHLY,
-                limitHold = true,
-            ),
+            BudgetTarget(BudgetTarget.Type.LIMIT, 12_345, limitPeriod = BudgetTarget.LimitPeriod.WEEKLY, limitStartDate = "2026-09-01", limitHold = false),
+            BudgetTarget(BudgetTarget.Type.LIMIT, 12_345, limitPeriod = BudgetTarget.LimitPeriod.DAILY, limitHold = false),
+            BudgetTarget(BudgetTarget.Type.LIMIT, 12_345, limitPeriod = BudgetTarget.LimitPeriod.MONTHLY, limitHold = true),
         )
 
         cases.forEach { target ->
@@ -103,12 +92,7 @@ class BudgetTargetCodecTest {
     }
 
     @Test fun balanceCapDoesNotFundLikeRefillAndReleasesOnlyExcessCarryover() {
-        val cap = BudgetTarget(
-            BudgetTarget.Type.REFILL,
-            50_000,
-            priority = 0,
-            limitPeriod = BudgetTarget.LimitPeriod.MONTHLY,
-        )
+        val cap = BudgetTarget(BudgetTarget.Type.LIMIT, 50_000, limitPeriod = BudgetTarget.LimitPeriod.MONTHLY)
         val category = BudgetCategory(
             name = "Buffer",
             assigned = 0,
@@ -133,9 +117,7 @@ class BudgetTargetCodecTest {
 
     @Test fun balanceCapHoldRetainsExistingFundsOverTheCap() {
         val cap = BudgetTarget(
-            BudgetTarget.Type.REFILL,
-            50_000,
-            priority = 0,
+            BudgetTarget.Type.LIMIT, 50_000,
             limitPeriod = BudgetTarget.LimitPeriod.MONTHLY,
             limitHold = true,
         )
@@ -158,22 +140,35 @@ class BudgetTargetCodecTest {
     }
 
     @Test fun dailyAndWeeklyBalanceCapsScaleForTheSelectedMonth() {
-        val daily = BudgetTarget(
-            BudgetTarget.Type.REFILL,
-            1_000,
-            priority = 0,
-            limitPeriod = BudgetTarget.LimitPeriod.DAILY,
-        )
+        val daily = BudgetTarget(BudgetTarget.Type.LIMIT, 1_000, limitPeriod = BudgetTarget.LimitPeriod.DAILY)
         val weekly = BudgetTarget(
-            BudgetTarget.Type.REFILL,
-            10_000,
-            priority = 0,
+            BudgetTarget.Type.LIMIT, 10_000,
             limitPeriod = BudgetTarget.LimitPeriod.WEEKLY,
             limitStartDate = "2026-09-01",
         )
 
-        assertEquals(30_000L, daily.balanceCapForMonth("2026-09"))
-        assertEquals(50_000L, weekly.balanceCapForMonth("2026-09"))
+        assertEquals(30_000L, daily.capForMonth("2026-09"))
+        assertEquals(50_000L, weekly.capForMonth("2026-09"))
+    }
+
+    @Test fun refillRequiresASiblingBalanceCapToContribute() {
+        val refillOnly = BudgetCategory(
+            name = "Buffer", assigned = 0, spent = 0, actualAssignedCents = 0, id = "buffer",
+            availableCents = 0, automations = listOf(BudgetTarget(BudgetTarget.Type.REFILL)),
+        )
+        val withCap = refillOnly.copy(
+            availableCents = 10_000,
+            automations = listOf(
+                BudgetTarget(BudgetTarget.Type.REFILL),
+                BudgetTarget(BudgetTarget.Type.LIMIT, 50_000, limitPeriod = BudgetTarget.LimitPeriod.MONTHLY),
+            ),
+        )
+
+        val withoutCapPreview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Plan", listOf(refillOnly))), "2026-09")
+        assertEquals(emptyList<BudgetTemplateChange>(), withoutCapPreview.changes)
+
+        val withCapPreview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Plan", listOf(withCap))), "2026-09")
+        assertEquals(40_000L, withCapPreview.changes.single().proposedCents)
     }
 
     @Test fun remainderWithAnEmbeddedLimitRoundTripsAsSupported() {
@@ -191,8 +186,8 @@ class BudgetTargetCodecTest {
         assertEquals(false, document.hasUnsupported)
     }
 
-    @Test fun notesManagedCopyDefinitionsRemainEvaluableButReadOnly() {
-        val target = BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 2)
+    @Test fun notesManagedHistoricalDefinitionsRemainEvaluableButReadOnly() {
+        val target = BudgetTarget(BudgetTarget.Type.HISTORICAL, historicalMode = BudgetTarget.HistoricalMode.COPY, historicalMonths = 2)
         val document = BudgetAutomationDocument.decode(target.toGoalDef(), "notes")
 
         assertEquals(listOf(target), document.supported)
@@ -237,7 +232,7 @@ class BudgetTargetCodecTest {
             spent = 0,
             actualAssignedCents = 0,
             id = "rent",
-            automations = listOf(BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 50_000)),
+            automations = listOf(BudgetTarget(BudgetTarget.Type.FIXED, 50_000)),
         )
         val savings = BudgetCategory(
             name = "Savings",
@@ -264,9 +259,8 @@ class BudgetTargetCodecTest {
     }
 
     @Test fun supportedNotesTemplatesDecodeButRemainReadOnly() {
-        val periodic = BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 10_000,
-            startingDate = "2026-09-01")
-        assertEquals(periodic, BudgetTarget.fromGoalDef(periodic.toGoalDef(), "notes"))
+        val fixed = BudgetTarget(BudgetTarget.Type.FIXED, 10_000, startingDate = "2026-09-01")
+        assertEquals(fixed, BudgetTarget.fromGoalDef(fixed.toGoalDef(), "notes"))
         assertEquals(null, BudgetTarget.fromGoalDef("[{\"type\":\"percentage\",\"directive\":\"template\"}]", "ui"))
         assertEquals(null, BudgetTarget.fromGoalDef(
             "[{\"type\":\"percentage\",\"directive\":\"template\",\"priority\":1,\"percent\":25,\"category\":\"Salary\"}]",
@@ -276,9 +270,9 @@ class BudgetTargetCodecTest {
 
     @Test fun multipleSupportedAutomationsRoundTripAsOneGoalDefinition() {
         val targets = listOf(
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 10_000, startingDate = "2026-09-01", priority = 2),
+            BudgetTarget(BudgetTarget.Type.FIXED, 10_000, startingDate = "2026-09-01", priority = 2),
             BudgetTarget(BudgetTarget.Type.BY_DATE, 120_000, targetMonth = "2027-09", priority = 3),
-            BudgetTarget(BudgetTarget.Type.AVERAGE, averageMonths = 3),
+            BudgetTarget(BudgetTarget.Type.HISTORICAL, historicalMode = BudgetTarget.HistoricalMode.AVERAGE, historicalMonths = 3),
         )
         val encoded = requireNotNull(BudgetAutomationDocument.encode(targets))
         val decoded = BudgetAutomationDocument.decode(encoded, "ui")
@@ -297,7 +291,7 @@ class BudgetTargetCodecTest {
         assertEquals(true, advanced.hasUnsupported)
 
         val notes = BudgetAutomationDocument.decode(
-            BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 10_000).toGoalDef(), "notes",
+            BudgetTarget(BudgetTarget.Type.FIXED, 10_000).toGoalDef(), "notes",
         )
         assertEquals(false, notes.editable)
         assertEquals(true, notes.hasUnsupported)

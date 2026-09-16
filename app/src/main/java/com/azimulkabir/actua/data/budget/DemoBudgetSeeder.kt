@@ -48,12 +48,30 @@ internal object DemoBudgetSeeder {
             val emergency = category(database, "Emergency Fund", goalsGroup, false, 1.0)
             val vacation = category(database, "Vacation", goalsGroup, false, 2.0)
 
-            setTarget(database, groceries, BudgetTarget(BudgetTarget.Type.MONTHLY_SPENDING, 60000, YearMonth.from(now).toString()))
-            setTarget(database, emergency, BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, 25000, startingDate = now.withDayOfMonth(1).toString()))
+            setTarget(database, groceries, BudgetTarget(BudgetTarget.Type.FIXED, 60000, startingDate = now.withDayOfMonth(1).toString()))
+            setTarget(database, emergency, BudgetTarget(BudgetTarget.Type.FIXED, 25000, startingDate = now.withDayOfMonth(1).toString()))
             setTarget(database, vacation, BudgetTarget(BudgetTarget.Type.BY_DATE, 180000, YearMonth.from(now).plusMonths(6).toString()))
-            setTarget(database, dining, BudgetTarget(BudgetTarget.Type.REFILL, 25000))
-            setTarget(database, transport, BudgetTarget(BudgetTarget.Type.WEEKLY_SPENDING, 5000, startingDate = now.withDayOfMonth(1).toString()))
-            setTarget(database, entertainment, BudgetTarget(BudgetTarget.Type.AVERAGE, averageMonths = 3))
+            setTargets(
+                database, dining,
+                listOf(
+                    BudgetTarget(BudgetTarget.Type.LIMIT, 25000, limitPeriod = BudgetTarget.LimitPeriod.MONTHLY),
+                    BudgetTarget(BudgetTarget.Type.REFILL),
+                ),
+            )
+            setTarget(
+                database, transport,
+                BudgetTarget(
+                    BudgetTarget.Type.FIXED, 5000, startingDate = now.withDayOfMonth(1).toString(),
+                    period = BudgetTarget.Period.WEEK,
+                ),
+            )
+            setTarget(
+                database, entertainment,
+                BudgetTarget(
+                    BudgetTarget.Type.HISTORICAL,
+                    historicalMode = BudgetTarget.HistoricalMode.AVERAGE, historicalMonths = 3,
+                ),
+            )
 
             val paycheck = payee(database, "Employer")
             val landlord = payee(database, "Landlord")
@@ -141,6 +159,11 @@ internal object DemoBudgetSeeder {
 
     private fun setTarget(db: SQLiteDatabase, categoryId: String, target: BudgetTarget) {
         db.execSQL("UPDATE categories SET goal_def=?, template_settings=? WHERE id=?", arrayOf(target.toGoalDef(), "{\"source\":\"ui\"}", categoryId))
+    }
+
+    private fun setTargets(db: SQLiteDatabase, categoryId: String, targets: List<BudgetTarget>) {
+        val goalDef = com.azimulkabir.actua.model.BudgetAutomationDocument.encode(targets)
+        db.execSQL("UPDATE categories SET goal_def=?, template_settings=? WHERE id=?", arrayOf(goalDef, "{\"source\":\"ui\"}", categoryId))
     }
 
     private fun payee(db: SQLiteDatabase, name: String): String = id().also {
