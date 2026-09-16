@@ -13,9 +13,7 @@ AutoName: Actua
 
 RepoType: git
 Repo: https://github.com/azimul-kabir/actua.git
-
 Binaries: https://github.com/azimul-kabir/actua/releases/download/v%v/Actua-v%v.apk
-AllowedAPKSigningKeys: 2a37719a0770ce4e03f3c080bd9d780c22300e28db678823b5595c9ad55753cc
 
 Builds:
   - versionName: 1.0.0-beta.25
@@ -25,6 +23,8 @@ Builds:
     gradle:
       - yes
     prebuild: sed -i '/^plugins {$/,/^}$/d' ../settings.gradle.kts
+
+AllowedAPKSigningKeys: 2a37719a0770ce4e03f3c080bd9d780c22300e28db678823b5595c9ad55753cc
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
