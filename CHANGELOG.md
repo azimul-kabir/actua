@@ -4,8 +4,11 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.26] - 2026-09-16
+
 ### Changed
 
+- Reworked the To Budget summary into a single flat sheet: tapping the Ready/To Budget amount now shows "Move to Category" and "Hold for Next Month" as direct tiles instead of behind a "⋮" overflow menu; a "Reset Hold" tile appears directly once an amount is held
 - Enabled R8 code shrinking and resource shrinking for release builds to reduce APK size
 
 ### Fixed
