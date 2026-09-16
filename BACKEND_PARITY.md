@@ -68,7 +68,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   standard transaction
 - Multi-select mode in Transactions with bulk mark cleared/uncleared, delete,
   link to schedule, unlink schedule, and single-selection view schedule
-- Zero/reflect budget month calculations, carryover, To Budget, and exact-cent writes
+- Query-level transaction status filters (Uncategorized, Uncleared, Cleared,
+  Reconciled) mapped to database-layer SQL and surfaced as a Transactions FilterChip row
+- Zero/reflect budget month calculations, carryover, To Budget, buffered
+  hold-for-next-month writes, and exact-cent writes
 - Synced account/category notes, per-account working/cleared/uncleared/reconciled
   balances, and category rollover-overspending preferences
 - Shared compact calculator-style amount entry for budget and transaction writes,
@@ -77,7 +80,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   restore, and one-shot revert
 - Rule JSON parsing, schema translation, ranking, condition/action evaluation,
   named-payee resolution, live form previews, and rule application for incoming transactions,
-  including transfer drafts matched through the destination account's canonical transfer payee
+  including transfer drafts matched through the destination account's canonical transfer payee;
+  ports Actual's `shouldApplyRuleChange` precedence so an explicit user-picked category survives
+  a matching rule while an empty/inferred category is still filled in
 - Rule list/search/editor UI and Actual-compatible CRDT create, update, and
   delete mutations for supported condition and action schemas, with protection
   for schedule-owned rules
@@ -162,6 +167,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Actual income/source-of-funds categories rendered as the final Budget section,
   with received totals and income-safe contextual actions
 - Persistent table and availability-focused Plan budget presentations
+- Budget category view filters (Overspent, Underfunded, Overfunded, Money Available) as a
+  persisted FilterChip row alongside the existing hide-fully-spent and show-hidden filters
 - Working previous/next budget month navigation, with reads and budget writes scoped to the selected month
 - App-wide display currency selection (including no currency), symbol-only mode,
   and decimal-place presentation
