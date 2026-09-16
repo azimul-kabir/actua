@@ -106,6 +106,20 @@ class ActualBudgetWriter(
         onWrite()
     }
 
+    /** Holds part or all of [month]'s To Budget amount for next month (Actual's zero_budget_months.buffered). */
+    @Synchronized
+    fun setBuffered(month: String, amountCents: Long) {
+        val cell = database.bufferCell(month) ?: error("Buffer table is missing")
+        database.applyLocalMessages(listOf(message("zero_budget_months", cell.rowId, "buffered", amountCents)))
+        database.saveClock(ActualBudgetDatabase.ClockRecord(
+            clock.current().toString(), database.deriveMerkleFromMessageLog().root,
+        ))
+        onWrite()
+    }
+
+    /** Clears a manual hold on [month], reverting next month's carryover to the automatic buffer. */
+    fun resetBuffer(month: String) = setBuffered(month, 0)
+
     @Synchronized
     fun transfer(month: String, fromCategoryId: String?, toCategoryId: String?, amountCents: Long) {
         require(amountCents > 0) { "Transfer amount must be positive" }

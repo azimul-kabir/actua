@@ -41,6 +41,7 @@ data class ActualBudgetMonth(
     val toBudgetCents: Long?,
     val hiddenCategories: List<ActualCategoryBudget>,
     val hiddenIncomeCategories: List<ActualIncomeBudget>,
+    val bufferedCents: Long = 0,
 ) {
     val isTracking: Boolean get() = toBudgetCents == null
 }

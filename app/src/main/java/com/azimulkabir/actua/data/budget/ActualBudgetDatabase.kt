@@ -820,6 +820,25 @@ class ActualBudgetDatabase private constructor(
         val longGoal: Boolean,
     )
 
+    data class BufferCell(
+        val rowId: String,
+        val exists: Boolean,
+        val bufferedCents: Long,
+    )
+
+    /** Row in zero_budget_months holding the amount manually held for next month ("hold for next month"). */
+    @Synchronized
+    fun bufferCell(month: String): BufferCell? {
+        parseMonth(month) ?: return null
+        if (!hasTable("zero_budget_months")) return null
+        return database.rawQuery(
+            "SELECT id, buffered FROM zero_budget_months WHERE id = ?", arrayOf(month),
+        ).use { cursor ->
+            if (cursor.moveToFirst()) BufferCell(cursor.getString(0), true, cursor.longOrZero(1))
+            else BufferCell(month, false, 0)
+        }
+    }
+
     @Synchronized
     fun budgetCell(month: String, categoryId: String): BudgetCell? {
         val monthInt = parseMonth(month) ?: return null
@@ -960,6 +979,7 @@ class ActualBudgetDatabase private constructor(
             if (envelope) toBudget else null,
             expenses.filter { it.hidden || it.groupHidden },
             incomes.filter { it.hidden || it.groupHidden },
+            if (envelope) buffered[target] ?: 0 else 0,
         )
     }
 

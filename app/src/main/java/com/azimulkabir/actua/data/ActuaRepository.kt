@@ -569,6 +569,7 @@ class ActuaRepository(context: Context) {
                 budgetedCents = budget.categories.sumOf { it.budgetedCents },
                 spentCents = budget.categories.sumOf { it.spentCents },
                 availableCents = budget.categories.sumOf { it.availableCents },
+                bufferedCents = budget.bufferedCents,
             )
         }
         return BudgetOverview(null, 0, 0, 0)
@@ -1028,6 +1029,18 @@ class ActuaRepository(context: Context) {
         val months = generateSequence(start) { current -> current.plusMonths(1).takeIf { it <= end } }.toList()
             .ifEmpty { listOf(start) }.map(java.time.YearMonth::toString)
         actualBudgets?.setCarryover(months, categoryId, enabled) ?: return false
+        return true
+    }
+
+    /** Holds part or all of [month]'s To Budget amount for next month. Envelope budgets only. */
+    fun setBufferedAmount(month: String, amountCents: Long): Boolean {
+        actualBudgets?.setBuffered(month, amountCents) ?: return false
+        return true
+    }
+
+    /** Cancels a manual hold on [month], returning the full amount to this month's To Budget. */
+    fun resetNextMonthBuffer(month: String): Boolean {
+        actualBudgets?.resetBuffer(month) ?: return false
         return true
     }
 

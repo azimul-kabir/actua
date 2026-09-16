@@ -1302,6 +1302,12 @@ fun AppNavigation(
                     onSetCategoryCarryover = { categoryId, enabled ->
                         mutate("Updating rollover") { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
                     },
+                    onHoldForNextMonth = { amount ->
+                        mutate("Holding for next month") { repository.setBufferedAmount(budgetMonth, amount) }
+                    },
+                    onResetNextMonthBuffer = {
+                        mutate("Resetting next month's buffer") { repository.resetNextMonthBuffer(budgetMonth) }
+                    },
                     onSetCategoryAutomations = { categoryId, targets ->
                         mutate("Saving automations") { repository.setCategoryAutomations(categoryId, targets) }
                     },
