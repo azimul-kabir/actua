@@ -16,7 +16,9 @@ class ForegroundSyncPolicyTest {
 
     @Test
     fun bannerIsSuppressedForMutationUploadsButShownForRefreshTriggers() {
-        assertFalse(shouldShowSyncBanner(runningStatus(activeTrigger = null)))
+        // An unset trigger is a legacy/unknown state, not a known mutation upload, so it fails
+        // safe by showing the banner rather than silently hiding a running sync.
+        assertTrue(shouldShowSyncBanner(runningStatus(activeTrigger = null)))
         assertFalse(shouldShowSyncBanner(runningStatus(activeTrigger = SYNC_TRIGGER_AFTER_CHANGE)))
         assertTrue(shouldShowSyncBanner(runningStatus(activeTrigger = "App open")))
         assertTrue(shouldShowSyncBanner(runningStatus(activeTrigger = "Background")))
