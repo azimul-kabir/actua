@@ -124,6 +124,13 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   tombstones its categories before the group; and reorder uses Actual-compatible
   shove sort orders. Destructive UI remains opt-in only where a safe confirmation
   flow is present.
+- Dedicated **Reorder Categories** screen (Manage > Categories) surfaces the category
+  and category-group reorder mutation core with drag handles plus up/down buttons as
+  a non-drag accessible alternative; categories can be dragged or moved between
+  expense groups (adopting the destination group's income/hidden flags, mirroring
+  category creation), while the income category group's position stays fixed
+  per Actual semantics. Hidden groups/categories remain visible and reorderable
+  in the list so ordering cannot be corrupted while hidden.
 - Category context actions for budget editing, month/all transaction lists,
   paired budget transfers/overspending coverage, and reversible hide/show
 - Android system-back integration for detail screens and bottom-tab history;

@@ -93,6 +93,7 @@ fun SettingsScreen(
     onCreditCardsClick: () -> Unit = {},
     onBillsCalendarClick: () -> Unit = {},
     onRulesClick: () -> Unit = {},
+    onReorderCategoriesClick: () -> Unit = {},
     onSchedulesClick: () -> Unit = {},
     onImportTransactionsClick: () -> Unit = {},
     onPayeeLocationsClick: () -> Unit = {},
@@ -226,6 +227,10 @@ fun SettingsScreen(
                     }
                     SettingsRow("Rules", "Automatically categorize and transform transactions", true) {
                         openFullScreen(onRulesClick)
+                    }
+                    SettingsSection("Categories")
+                    SettingsRow("Reorder Categories", "Drag or use the arrows to reorder groups and categories", true) {
+                        openFullScreen(onReorderCategoriesClick)
                     }
                     SettingsSection("Transactions & data")
                     SettingsRow("Tags", "Create, edit, color, hide and delete managed tags", true) {

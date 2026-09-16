@@ -115,21 +115,33 @@ class ActualEntityWriter(
         persist(messages)
     }
 
-    /** Move a category before another category in the same group, or to the end when beforeId is null. */
+    /**
+     * Move a category before another category within [groupId] (or to the end when beforeId is
+     * null). When [groupId] differs from the category's current group, it is reassigned there
+     * first, matching Actual's `cat_group` update and adopting the destination group's
+     * income/hidden flags the same way `createCategory` does for a brand-new category.
+     */
     @Synchronized
-    fun moveCategory(id: String, beforeId: String?) {
+    fun moveCategory(id: String, groupId: String, beforeId: String?) {
         val groups = database.fetchCategoryGroups()
-        val group = groups.firstOrNull { it.categories.any { category -> category.id == id } }
+        val category = groups.flatMap { it.categories }.firstOrNull { it.id == id }
             ?: error("Category no longer exists")
-        require(beforeId == null || group.categories.any { it.id == beforeId }) { "Categories can only be reordered within their group" }
+        val target = groups.firstOrNull { it.id == groupId } ?: error("Category group no longer exists")
+        require(beforeId == null || target.categories.any { it.id == beforeId }) { "Categories can only be reordered within their group" }
         if (beforeId == id) return
-        val positions = group.categories.filterNot { it.id == id }
+        val positions = target.categories.filterNot { it.id == id }
             .sortedWith(compareBy({ it.sortOrder }, { it.id }))
             .map { SortOrder.Position(it.id, it.sortOrder) }
         val placement = SortOrder.shove(positions, beforeId)
         val messages = mutableListOf<CrdtMessage>()
         placement.moved.forEach { messages += fields("categories", it.id, mapOf("sort_order" to it.sortOrder)) }
-        messages += fields("categories", id, mapOf("sort_order" to placement.sortOrder))
+        val categoryFields = linkedMapOf<String, Any?>("sort_order" to placement.sortOrder)
+        if (category.groupId != groupId) {
+            categoryFields["cat_group"] = groupId
+            categoryFields["is_income"] = flag(target.isIncome)
+            categoryFields["hidden"] = flag(target.hidden)
+        }
+        messages += fields("categories", id, categoryFields)
         persist(messages)
     }
 
