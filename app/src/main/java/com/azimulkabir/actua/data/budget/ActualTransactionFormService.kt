@@ -20,6 +20,8 @@ data class ActualTransactionForm(
     val cleared: Boolean = false,
     val splits: List<ActualSplitLineForm> = emptyList(),
     val collapseSplit: Boolean = false,
+    /** True when [categoryId] was explicitly picked by the user, so a matching rule must not overwrite it. */
+    val categoryIsExplicit: Boolean = false,
 )
 
 data class ActualSplitLineForm(
@@ -124,7 +126,7 @@ class ActualTransactionFormService(
                     writer.createTransaction(baseTransaction(
                         id, normalizedForm.accountId, normalizedForm.date, plan.amountCents, payee?.id,
                         normalizedForm.categoryId, notes, normalizedForm.cleared, importedPayee = payee?.name,
-                    ), applyRules = applyRules)
+                    ), applyRules = applyRules, preserveCategory = normalizedForm.categoryIsExplicit && normalizedForm.categoryId != null)
                     id
                 }
             }

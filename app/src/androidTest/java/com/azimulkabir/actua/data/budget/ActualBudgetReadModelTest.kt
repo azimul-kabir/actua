@@ -585,6 +585,21 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun explicitCategoryChoiceSurvivesAMatchingRuleButAnInferredOneDoesNot() = withDatabase { database ->
+        val writer = ActualTransactionWriter(database, nodeId = "eeeeeeeeeeeeeeee")
+        val explicit = transaction("explicit-pick", "checking", -450, 20260904, null, "rent")
+            .copy(importedPayee = "THE COFFEE PLACE")
+        val explicitResult = writer.createTransaction(explicit, preserveCategory = true)
+        assertEquals("rent", explicitResult?.categoryId)
+        assertEquals("rent", database.fetchTransaction("explicit-pick")?.categoryId)
+
+        val inferred = transaction("inferred-pick", "checking", -450, 20260904, null, "rent")
+            .copy(importedPayee = "THE COFFEE PLACE")
+        val inferredResult = writer.createTransaction(inferred, preserveCategory = false)
+        assertEquals("grocery", inferredResult?.categoryId)
+    }
+
+    @Test
     fun readsEffectivePostableScheduleAndDeduplicatesLinkedTransactions() = withDatabase { database ->
         val schedule = database.fetchSchedules().single()
         assertEquals("rent-schedule", schedule.id)

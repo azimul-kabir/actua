@@ -142,6 +142,9 @@ fun AddTransactionScreen(
     var splitCalculatorIndex by remember { mutableStateOf<Int?>(null) }
     var splitAmountExpression by remember(editing) { mutableStateOf<String?>(null) }
     var rulesApplied by remember(editing) { mutableStateOf(false) }
+    // A picker choice is explicit and must survive a rule preview triggered by a later payee
+    // edit; a category filled in by an earlier rule preview is not.
+    var categoryIsExplicit by remember(editing) { mutableStateOf(editing?.category?.isNotBlank() == true) }
     val context = LocalContext.current
     val tagRepository = remember { ActiveTagRepository(context) }
     var tagVersion by remember { mutableStateOf(0L) }
@@ -150,6 +153,7 @@ fun AddTransactionScreen(
     LaunchedEffect(isOffBudget) {
         if (isOffBudget) {
             category = ""
+            categoryIsExplicit = false
             splitLines = splitLines.map { it.copy(category = "") }
         }
     }
@@ -187,6 +191,7 @@ fun AddTransactionScreen(
                     notes = notes,
                     splits = if (isOffBudget) splitLines.map { it.copy(category = "") } else splitLines,
                     rulesApplied = rulesApplied,
+                    categoryIsExplicit = categoryIsExplicit,
                 ),
             )
         }
@@ -304,7 +309,9 @@ fun AddTransactionScreen(
                                 cleared = cleared,
                             ))
                             payee = preview.payee
-                            category = preview.category
+                            // A picker choice survives a rule the payee edit triggers; the rule
+                            // may still fill in a category the user hasn't touched.
+                            if (!categoryIsExplicit || category.isBlank()) category = preview.category
                             account = preview.account
                             cleared = preview.cleared
                             notes = preview.notes
@@ -323,7 +330,7 @@ fun AddTransactionScreen(
             if (transactionType != Type.TRANSFER.displayName && !isSplit && !isOffBudget) {
                 PickerTextField(
                     label = "Category", value = category, options = categoryOptions,
-                    onValueChange = { category = it },
+                    onValueChange = { category = it; categoryIsExplicit = it.isNotBlank() },
                 )
             }
             PickerTextField(
