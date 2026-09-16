@@ -87,7 +87,7 @@ class CategoryReorderPlannerTest {
     @Test fun moveGroupUpAndDownRespectEdgesAndIncomeExclusion() {
         assertNull(CategoryReorderPlanner.moveGroupUp(groups(), "bills"))
         val (updated, move) = CategoryReorderPlanner.moveGroupDown(groups(), "bills")!!
-        assertEquals(CategoryReorderPlanner.GroupMove("bills", null), move)
+        assertEquals(CategoryReorderPlanner.GroupMove("bills", "income"), move)
         assertEquals(listOf("fun", "bills", "income"), updated.map { it.id })
         assertNull(CategoryReorderPlanner.moveGroupDown(groups(), "fun"))
     }
