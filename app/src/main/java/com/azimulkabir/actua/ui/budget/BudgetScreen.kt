@@ -39,6 +39,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
@@ -181,6 +182,7 @@ fun BudgetScreen(
     onPreviewCleanup: () -> CleanupPreview = { CleanupPreview("") },
     onApplyCleanup: (CleanupPreview) -> Unit = {},
     onSearch: () -> Unit = {},
+    onManageCategories: () -> Unit = {},
     transactions: List<Transaction> = emptyList(),
     onDeleteCategory: (String, String) -> Boolean = { _, _ -> false },
     onEditTransaction: (Transaction) -> Unit = {},
@@ -270,6 +272,7 @@ fun BudgetScreen(
                 optionsExpanded = false
             },
             onSearch = onSearch,
+            onManageCategories = onManageCategories,
         )
         AnimatedVisibility(visible = showCategoryFilters) {
             BudgetCategoryFilterRow(selected = categoryView, onSelect = onCategoryViewChange)
@@ -648,6 +651,7 @@ private fun BudgetToolbar(
     onExpandAll: () -> Unit,
     onCollapseAll: () -> Unit,
     onSearch: () -> Unit,
+    onManageCategories: () -> Unit,
 ) {
     var monthPickerOpen by remember { mutableStateOf(false) }
     Row(
@@ -682,6 +686,9 @@ private fun BudgetToolbar(
                     }
                     IconButton(onClick = onAdd) {
                         Icon(Icons.Outlined.Add, contentDescription = "Add category")
+                    }
+                    IconButton(onClick = onManageCategories) {
+                        Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = "Manage Categories")
                     }
                     IconButton(onClick = { onOptionsChange(true) }) {
                         Icon(Icons.Outlined.MoreVert, contentDescription = "Budget display options")
@@ -845,7 +852,7 @@ private fun PlanBudgetOverview(
         onClick = onClick,
         color = if (ready >= 0L) MaterialTheme.colorScheme.primaryContainer
             else MaterialTheme.colorScheme.errorContainer,
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(14.dp),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {

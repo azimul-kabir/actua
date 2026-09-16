@@ -91,7 +91,8 @@ import com.azimulkabir.actua.ui.settings.FindSchedulesScreen
 import com.azimulkabir.actua.ui.settings.BillsCalendarScreen
 import com.azimulkabir.actua.ui.settings.ImportTransactionsScreen
 import com.azimulkabir.actua.ui.settings.PayeeLocationsScreen
-import com.azimulkabir.actua.ui.settings.ReorderCategoriesScreen
+import com.azimulkabir.actua.ui.categories.ManageCategoriesScreen
+import com.azimulkabir.actua.ui.categories.ReorderGroupsScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeOption
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeSearchResult
@@ -137,7 +138,7 @@ private enum class MainDestination(
     Manage("Manage", Icons.Outlined.Tune),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ReorderCategories }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -500,6 +501,9 @@ fun AppNavigation(
             detail == DetailDestination.EditTransaction && editorReturnsToTransactions -> {
                 detail = DetailDestination.Transactions
                 editingTransaction = null
+            }
+            detail == DetailDestination.ReorderGroups -> {
+                detail = DetailDestination.ManageCategories
             }
             detail != DetailDestination.Main -> {
                 if (detail == DetailDestination.Transactions && transactionsReturnCategory != null) {
@@ -1017,10 +1021,31 @@ fun AppNavigation(
                 onDelete = { ruleId -> mutate("Deleting rule") { repository.deleteRule(ruleId) } },
                 modifier = contentModifier,
             )
-            DetailDestination.ReorderCategories -> ReorderCategoriesScreen(
+            DetailDestination.ManageCategories -> ManageCategoriesScreen(
                 groups = reorderCategoryGroups,
                 onBack = { detail = DetailDestination.Main },
+                onReorderGroupsClick = { detail = DetailDestination.ReorderGroups },
+                onCreateGroup = { name -> mutate("Creating group") { repository.createCategoryGroup(name) } },
+                onRenameGroup = { group, name -> mutate("Renaming group") { repository.renameCategoryGroup(group, name) } },
+                onSetGroupHidden = { group, hidden ->
+                    mutate(if (hidden) "Hiding group" else "Showing group") { repository.setCategoryGroupHidden(group, hidden) }
+                },
+                onCreateCategory = { group, name -> mutate("Creating category") { repository.createCategory(group, name) } },
+                onRenameCategory = { group, category, name ->
+                    mutate("Renaming category") { repository.renameCategory(group, category, name) }
+                },
+                onSetCategoryHidden = { group, category, hidden ->
+                    mutate(if (hidden) "Hiding category" else "Showing category") {
+                        repository.setCategoryHidden(group, category, hidden)
+                    }
+                },
+                onDeleteCategory = { group, category -> mutate("Deleting category") { repository.deleteCategory(group, category) } },
                 onMoveCategory = { move -> mutate("Reordering category") { repository.moveCategory(move) } },
+                modifier = contentModifier,
+            )
+            DetailDestination.ReorderGroups -> ReorderGroupsScreen(
+                groups = reorderCategoryGroups,
+                onBack = { detail = DetailDestination.ManageCategories },
                 onMoveGroup = { move -> mutate("Reordering category group") { repository.moveCategoryGroup(move) } },
                 modifier = contentModifier,
             )
@@ -1329,6 +1354,7 @@ fun AppNavigation(
                         mutate("Applying month-end cleanup") { repository.applyCleanup(preview) }
                     },
                     onSearch = { detail = DetailDestination.Search },
+                    onManageCategories = { detail = DetailDestination.ManageCategories },
                     transactions = filteredTransactions,
                     onDeleteCategory = { group, category ->
                         mutate("Deleting category") { repository.deleteCategory(group, category) }
@@ -1543,7 +1569,7 @@ fun AppNavigation(
                         detail = DetailDestination.CreditCards
                     },
                     onRulesClick = { detail = DetailDestination.Rules },
-                    onReorderCategoriesClick = { detail = DetailDestination.ReorderCategories },
+                    onManageCategoriesClick = { detail = DetailDestination.ManageCategories },
                     onSchedulesClick = { detail = DetailDestination.Schedules },
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
                     onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },
