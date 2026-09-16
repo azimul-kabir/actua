@@ -58,8 +58,8 @@ class ActualEntityWriterReorderTest {
         try {
             writer.moveCategoryGroup("income", "bills")
             fail("Expected the income group's position to be fixed")
-        } catch (_: IllegalStateException) {
-            // expected
+        } catch (_: IllegalArgumentException) {
+            // expected: moveCategoryGroup enforces this with require(), not error()
         }
         val groups = database.fetchCategoryGroups().sortedBy { it.sortOrder }
         assertEquals(listOf("bills", "fun", "income"), groups.map { it.id })

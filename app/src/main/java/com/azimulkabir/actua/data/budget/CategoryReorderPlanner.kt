@@ -88,7 +88,11 @@ object CategoryReorderPlanner {
         val reorderable = groups.filterNot { it.isIncome }
         val index = reorderable.indexOfFirst { it.id == groupId }
         if (index < 0 || index >= reorderable.size - 1) return null
-        return moveGroup(groups, groupId, reorderable.getOrNull(index + 2)?.id)
+        // Falling off the end of the reorderable neighbors must land just before the fixed-position
+        // income group, not at the true end of [groups] (moveGroup's null target), or the group would
+        // jump past the income group's position instead of merely swapping with its last neighbor.
+        val targetId = reorderable.getOrNull(index + 2)?.id ?: groups.firstOrNull { it.isIncome }?.id
+        return moveGroup(groups, groupId, targetId)
     }
 
     private fun previousGroup(groups: List<ActualCategoryGroup>, groupId: String): ActualCategoryGroup? {
