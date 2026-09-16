@@ -79,6 +79,8 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     implementation(libs.pdfbox.android)
     testImplementation(libs.junit)
+    // Real org.json impl for JVM unit tests — the Android stub jar throws on use.
+    testImplementation("org.json:json:20240303")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

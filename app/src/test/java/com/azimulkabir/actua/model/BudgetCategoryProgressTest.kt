@@ -40,6 +40,38 @@ class BudgetCategoryProgressTest {
         assertEquals(0.5f, negativeGoal.progressFraction)
     }
 
+    @Test fun `by-date long-term target drives progress before server goal is synced`() {
+        val target = BudgetTarget(BudgetTarget.Type.BY_DATE, amountCents = 40_000, targetMonth = "2026-12")
+        val category = category(
+            assignedCents = 5_000, spentCents = 0, balanceCents = 10_000, goalCents = null,
+        ).copy(target = target)
+        assertEquals(0.25f, category.progressFraction)
+    }
+
+    @Test fun `goal-only target drives progress before server goal is synced`() {
+        val target = BudgetTarget(BudgetTarget.Type.GOAL, amountCents = 50_000)
+        val category = category(
+            assignedCents = 0, spentCents = 0, balanceCents = 25_000, goalCents = null,
+        ).copy(target = target)
+        assertEquals(0.5f, category.progressFraction)
+    }
+
+    @Test fun `server goal wins over a locally computed long-term target`() {
+        val target = BudgetTarget(BudgetTarget.Type.BY_DATE, amountCents = 40_000, targetMonth = "2026-12")
+        val category = category(
+            assignedCents = 5_000, spentCents = 0, balanceCents = 10_000, goalCents = 20_000,
+        ).copy(target = target)
+        assertEquals(0.5f, category.progressFraction)
+    }
+
+    @Test fun `schedule-linked target without a server goal falls back to spend-down progress`() {
+        val target = BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = "bill-1")
+        val category = category(
+            assignedCents = 10_000, spentCents = 5_000, balanceCents = 5_000, goalCents = null,
+        ).copy(target = target)
+        assertEquals(0.5f, category.progressFraction)
+    }
+
     private fun category(
         assignedCents: Long,
         spentCents: Long,
