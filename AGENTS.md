@@ -108,8 +108,10 @@ screenshots.
 ### Autonomous coding-agent workflow
 
 Browser-based or autonomous coding agents, including Jules, must follow the same
-issue-first workflow as human contributors. Before implementation, read this
-file, README.md and BACKEND_PARITY.md; inspect the linked issue and the existing
+issue-first workflow as human contributors. Before implementation, always read
+this file. Consult README.md and BACKEND_PARITY.md when they are relevant to the
+task, especially for product behavior, backend parity, protocol, database, or
+implementation-boundary changes. Inspect the linked issue and the existing
 implementation before proposing or making changes.
 
 Keep work limited to the issue's requested scope. For a multi-slice issue,
