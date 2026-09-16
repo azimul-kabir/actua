@@ -57,6 +57,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getString(BUDGET_CATEGORY_VIEW, "All") ?: "All"
         set(value) { preferences.edit().putString(BUDGET_CATEGORY_VIEW, value).apply() }
 
+    var showCategoryFilters: Boolean
+        get() = preferences.getBoolean(SHOW_CATEGORY_FILTERS, true)
+        set(value) { preferences.edit().putBoolean(SHOW_CATEGORY_FILTERS, value).apply() }
+
     var hideBalances: Boolean
         get() = preferences.getBoolean(HIDE_BALANCES, false)
         set(value) { preferences.edit().putBoolean(HIDE_BALANCES, value).apply() }
@@ -123,6 +127,7 @@ class DisplayPreferences(context: Context) {
         const val SHOW_GROUP_TOTALS = "show_group_totals"
         const val HIDE_FULLY_SPENT_CATEGORIES = "hide_fully_spent_categories"
         const val BUDGET_CATEGORY_VIEW = "budget_category_view"
+        const val SHOW_CATEGORY_FILTERS = "show_category_filters"
         const val HIDE_BALANCES = "hide_balances"
         const val APPEARANCE = "appearance"
         const val START_PAGE = "start_page"

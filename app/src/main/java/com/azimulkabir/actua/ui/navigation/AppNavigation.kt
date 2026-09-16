@@ -287,6 +287,7 @@ fun AppNavigation(
     var showGroupTotals by remember { mutableStateOf(displayPreferences.showGroupTotals) }
     var hideFullySpentCategories by remember { mutableStateOf(displayPreferences.hideFullySpentCategories) }
     var budgetCategoryView by remember { mutableStateOf(displayPreferences.budgetCategoryView) }
+    var showCategoryFilters by remember { mutableStateOf(displayPreferences.showCategoryFilters) }
     var hideBalances by remember { mutableStateOf(displayPreferences.hideBalances) }
     var appearance by remember { mutableStateOf(displayPreferences.appearance) }
     var startPage by remember { mutableStateOf(displayPreferences.startPage) }
@@ -1236,6 +1237,11 @@ fun AppNavigation(
                     onCategoryViewChange = {
                         displayPreferences.budgetCategoryView = it
                         budgetCategoryView = it
+                    },
+                    showCategoryFilters = showCategoryFilters,
+                    onShowCategoryFiltersChange = {
+                        displayPreferences.showCategoryFilters = it
+                        showCategoryFilters = it
                     },
                     onSetCategoryHidden = { group, category, hidden ->
                         mutate(if (hidden) "Hiding category" else "Showing category") {
