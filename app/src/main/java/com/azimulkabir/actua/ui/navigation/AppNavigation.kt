@@ -81,6 +81,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
+import com.azimulkabir.actua.ui.automation.BudgetAutomationScreen
 import com.azimulkabir.actua.ui.budget.BudgetScreen
 import com.azimulkabir.actua.ui.settings.SettingsScreen
 import com.azimulkabir.actua.ui.settings.ConnectionScreen
@@ -138,7 +139,7 @@ private enum class MainDestination(
     Manage("Manage", Icons.Outlined.Tune),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -261,6 +262,7 @@ fun AppNavigation(
         }
     }
     var editingScheduleId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editingAutomationCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var destination by rememberSaveable {
         mutableStateOf(MainDestination.entries.firstOrNull { it.label == displayPreferences.startPage }
             ?: MainDestination.Accounts)
@@ -504,6 +506,11 @@ fun AppNavigation(
             }
             detail == DetailDestination.ReorderGroups -> {
                 detail = DetailDestination.ManageCategories
+            }
+            detail == DetailDestination.BudgetAutomation -> {
+                reopenBudgetCategory = editingAutomationCategory
+                editingAutomationCategory = null
+                detail = DetailDestination.Main
             }
             detail != DetailDestination.Main -> {
                 if (detail == DetailDestination.Transactions && transactionsReturnCategory != null) {
@@ -1049,6 +1056,26 @@ fun AppNavigation(
                 onMoveGroup = { move -> mutate("Reordering category group") { repository.moveCategoryGroup(move) } },
                 modifier = contentModifier,
             )
+            DetailDestination.BudgetAutomation -> budgetGroups.firstNotNullOfOrNull { g ->
+                g.categories.firstOrNull { it.name == editingAutomationCategory }?.let { g to it }
+            }?.let { (group, category) ->
+                BudgetAutomationScreen(
+                    group = group,
+                    category = category,
+                    month = budgetMonth,
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    scheduleFunding = budgetScheduleFunding,
+                    onBack = {
+                        reopenBudgetCategory = editingAutomationCategory
+                        editingAutomationCategory = null
+                        detail = DetailDestination.Main
+                    },
+                    onSave = { automations ->
+                        mutate("Saving automations") { repository.setCategoryAutomations(category.id.orEmpty(), automations) }
+                    },
+                    modifier = contentModifier,
+                )
+            } ?: run { detail = DetailDestination.Main }
             DetailDestination.Schedules -> SchedulesScreen(
                 schedules = schedules,
                 hideDecimalPlaces = hideDecimalPlaces,
@@ -1342,8 +1369,9 @@ fun AppNavigation(
                     onResetNextMonthBuffer = {
                         mutate("Resetting next month's buffer") { repository.resetNextMonthBuffer(budgetMonth) }
                     },
-                    onSetCategoryAutomations = { categoryId, targets ->
-                        mutate("Saving automations") { repository.setCategoryAutomations(categoryId, targets) }
+                    onEditAutomations = { _, category ->
+                        editingAutomationCategory = category.name
+                        detail = DetailDestination.BudgetAutomation
                     },
                     onApplyBudgetTemplate = { preview ->
                         mutate("Applying budget template") { repository.applyBudgetTemplate(preview) }

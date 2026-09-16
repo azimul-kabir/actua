@@ -18,8 +18,14 @@ class BudgetNoteAutomationParserTest {
         assertTrue(parsed.valid)
         assertEquals(
             listOf(
-                BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 12, priority = 2),
-                BudgetTarget(BudgetTarget.Type.AVERAGE, averageMonths = 3, priority = 1),
+                BudgetTarget(
+                    BudgetTarget.Type.HISTORICAL,
+                    historicalMode = BudgetTarget.HistoricalMode.COPY, historicalMonths = 12, priority = 2,
+                ),
+                BudgetTarget(
+                    BudgetTarget.Type.HISTORICAL,
+                    historicalMode = BudgetTarget.HistoricalMode.AVERAGE, historicalMonths = 3, priority = 1,
+                ),
                 BudgetTarget(BudgetTarget.Type.GOAL, 50_000),
             ),
             parsed.targets,
@@ -40,7 +46,7 @@ class BudgetNoteAutomationParserTest {
     }
 
     @Test fun notesManagedSupportedDefinitionsRemainEvaluableButNotEditable() {
-        val target = BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = 2)
+        val target = BudgetTarget(BudgetTarget.Type.HISTORICAL, historicalMode = BudgetTarget.HistoricalMode.COPY, historicalMonths = 2)
         val document = BudgetAutomationDocument(
             supported = listOf(target),
             editable = false,

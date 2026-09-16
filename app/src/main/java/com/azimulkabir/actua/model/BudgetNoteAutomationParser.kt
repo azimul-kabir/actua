@@ -53,11 +53,21 @@ object BudgetNoteAutomationParser {
     private fun parseBody(body: String, priority: Int): BudgetTarget? {
         Regex("""copy\s+from\s+([1-9]\d*)\s+months?\s+ago$""", RegexOption.IGNORE_CASE)
             .matchEntire(body)?.let {
-                return BudgetTarget(BudgetTarget.Type.COPY, lookBackMonths = it.groupValues[1].toInt(), priority = priority)
+                return BudgetTarget(
+                    BudgetTarget.Type.HISTORICAL,
+                    historicalMode = BudgetTarget.HistoricalMode.COPY,
+                    historicalMonths = it.groupValues[1].toInt(),
+                    priority = priority,
+                )
             }
         Regex("""average\s+([1-9]\d*)\s+months?$""", RegexOption.IGNORE_CASE)
             .matchEntire(body)?.let {
-                return BudgetTarget(BudgetTarget.Type.AVERAGE, averageMonths = it.groupValues[1].toInt(), priority = priority)
+                return BudgetTarget(
+                    BudgetTarget.Type.HISTORICAL,
+                    historicalMode = BudgetTarget.HistoricalMode.AVERAGE,
+                    historicalMonths = it.groupValues[1].toInt(),
+                    priority = priority,
+                )
             }
         Regex("""remainder(?:\s+([1-9]\d*))?$""", RegexOption.IGNORE_CASE)
             .matchEntire(body)?.let {
@@ -66,7 +76,7 @@ object BudgetNoteAutomationParser {
         Regex("""([0-9]+(?:\.[0-9]+)?)\s+repeat\s+every\s+month(?:s)?\s+starting\s+(\d{4}-\d{2}-\d{2})$""", RegexOption.IGNORE_CASE)
             .matchEntire(body)?.let {
                 return parseCents(it.groupValues[1])?.let { cents ->
-                    BudgetTarget(BudgetTarget.Type.MONTHLY_SAVINGS, cents, startingDate = it.groupValues[2], priority = priority)
+                    BudgetTarget(BudgetTarget.Type.FIXED, cents, startingDate = it.groupValues[2], priority = priority)
                 }
             }
         Regex("""([0-9]+(?:\.[0-9]+)?)\s+by\s+(\d{4}-\d{2})$""", RegexOption.IGNORE_CASE)
@@ -77,7 +87,7 @@ object BudgetNoteAutomationParser {
             }
         parseCents(amount.find(body)?.value ?: return null)?.let { cents ->
             if (body.matches(Regex("""[0-9]+(?:\.[0-9]+)?"""))) {
-                return BudgetTarget(BudgetTarget.Type.MONTHLY_SPENDING, cents, priority = priority)
+                return BudgetTarget(BudgetTarget.Type.FIXED, cents, priority = priority)
             }
         }
         return null
