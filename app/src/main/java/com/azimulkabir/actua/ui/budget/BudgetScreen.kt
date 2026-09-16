@@ -1604,7 +1604,7 @@ private fun BudgetSummarySheet(
     onResetNextMonthBuffer: () -> Unit,
 ) {
     val covering = toBudgetCents < 0L
-    var action by remember { mutableStateOf<BudgetSummaryAction?>(null) }
+    var action by remember { mutableStateOf<BudgetSummaryAction?>(BudgetSummaryAction.MOVE) }
 
     val options = remember(groups) {
         groups.filterNot { it.isIncome }.flatMap { group ->
