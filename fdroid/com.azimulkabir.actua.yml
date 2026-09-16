@@ -1,10 +1,11 @@
 # Submission template for fdroiddata/metadata/com.azimulkabir.actua.yml.
-# Actua 1.0.0-beta.24 is built from source at the release commit pinned below.
+# Actua 1.0.0-beta.25 is built from source at the release commit pinned below.
 
 Categories:
-  - Money
+  - Finance Manager
 License: MIT
-WebSite: https://github.com/azimul-kabir/actua
+AuthorName: Azimul Kabir
+AuthorWebSite: https://github.com/azimul-kabir
 SourceCode: https://github.com/azimul-kabir/actua
 IssueTracker: https://github.com/azimul-kabir/actua/issues
 
@@ -13,17 +14,19 @@ AutoName: Actua
 RepoType: git
 Repo: https://github.com/azimul-kabir/actua.git
 
+Binaries: https://github.com/azimul-kabir/actua/releases/download/v%v/Actua-v%v.apk
+AllowedAPKSigningKeys: 2a37719a0770ce4e03f3c080bd9d780c22300e28db678823b5595c9ad55753cc
+
 Builds:
-  - versionName: 1.0.0-beta.24
-    versionCode: 41
-    commit: 8dd78062b64d1807e610eb683eaccbfea1666e44
+  - versionName: 1.0.0-beta.25
+    versionCode: 42
+    commit: 067536771ca8c63ddcb161cc8cc8dc653b14a472
     subdir: app
-    prebuild:
-      - sed -i '/^plugins {$/,/^}$/d' ../settings.gradle.kts
     gradle:
       - yes
+    prebuild: sed -i '/^plugins {$/,/^}$/d' ../settings.gradle.kts
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.0.0-beta.24
-CurrentVersionCode: 41
+CurrentVersion: 1.0.0-beta.25
+CurrentVersionCode: 42
