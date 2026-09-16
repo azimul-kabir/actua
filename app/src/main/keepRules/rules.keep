@@ -10,3 +10,9 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+# pdfbox-android's JPXFilter optionally calls into com.gemalto.jp2.JP2Decoder for
+# JPEG2000-encoded images in a PDF, via the separate PdfBox-Android-JP2 extension
+# artifact. This app doesn't depend on that extension (statement import only reads
+# text via PDFTextStripper), so the class is genuinely absent, not stripped by R8.
+-dontwarn com.gemalto.jp2.**
