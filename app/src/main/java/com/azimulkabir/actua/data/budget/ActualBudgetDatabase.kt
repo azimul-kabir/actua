@@ -10,6 +10,7 @@ import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualCleanupGroup
 import com.azimulkabir.actua.data.budget.model.ActualPayee
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
 import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
 import com.azimulkabir.actua.data.budget.model.ActualIncomeBudget
@@ -631,6 +632,7 @@ class ActualBudgetDatabase private constructor(
         query: String? = null,
         unclearedOnly: Boolean = false,
         hideReconciled: Boolean = false,
+        statusFilter: TransactionStatusFilter? = null,
     ): List<ActualTransaction> {
         require(limit >= 0 && offset >= 0)
         val args = mutableListOf<String>()
@@ -642,6 +644,14 @@ class ActualBudgetDatabase private constructor(
         val stateClause = buildString {
             if (unclearedOnly) append(" AND COALESCE(t.cleared, 0) = 0")
             if (hideReconciled) append(" AND COALESCE(t.reconciled, 0) = 0")
+
+            when (statusFilter) {
+                TransactionStatusFilter.UNCATEGORIZED -> append(" AND (c.name IS NULL OR c.name = '') AND t.transferred_id IS NULL AND (t.isParent = 0 OR t.isParent IS NULL)")
+                TransactionStatusFilter.UNCLEARED -> append(" AND COALESCE(t.cleared, 0) = 0")
+                TransactionStatusFilter.CLEARED -> append(" AND COALESCE(t.cleared, 0) = 1 AND COALESCE(t.reconciled, 0) = 0")
+                TransactionStatusFilter.RECONCILED -> append(" AND COALESCE(t.reconciled, 0) = 1")
+                else -> {}
+            }
         }
         val searchClause = if (query.isNullOrBlank()) "" else {
             // Bind a literal substring: %, _ and backslash are user text, not wildcards.

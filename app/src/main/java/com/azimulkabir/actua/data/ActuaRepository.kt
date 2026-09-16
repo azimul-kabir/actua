@@ -33,6 +33,7 @@ import com.azimulkabir.actua.model.CleanupPreview
 import com.azimulkabir.actua.model.CleanupTarget
 import com.azimulkabir.actua.model.CleanupTemplatePlanner
 import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.model.SplitLine
 import com.azimulkabir.actua.model.ReportCategory
@@ -633,14 +634,15 @@ class ActuaRepository(context: Context) {
     }
 
     fun transactions(query: String? = null, limit: Int = Int.MAX_VALUE, offset: Int = 0,
-        unclearedOnly: Boolean = false, hideReconciled: Boolean = false): List<Transaction> {
+        unclearedOnly: Boolean = false, hideReconciled: Boolean = false,
+        statusFilter: TransactionStatusFilter = TransactionStatusFilter.ALL): List<Transaction> {
         actualDatabase?.let { db ->
             val accountNames = db.fetchAccounts().associate { it.id to it.name }
             // The database API defaults to a 500-row page. This repository currently backs
             // an in-memory Compose list, so explicitly load the complete history; otherwise
             // older synced transactions exist locally but silently disappear from Accounts.
             return db.fetchTransactions(limit = limit, offset = offset, query = query,
-                unclearedOnly = unclearedOnly, hideReconciled = hideReconciled).map {
+                unclearedOnly = unclearedOnly, hideReconciled = hideReconciled, statusFilter = statusFilter).map {
                 val isTransfer = it.transferId != null
                 Transaction(
                     id = it.id,

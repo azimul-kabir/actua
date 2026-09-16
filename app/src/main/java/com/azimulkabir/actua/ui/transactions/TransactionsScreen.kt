@@ -43,6 +43,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import com.azimulkabir.actua.model.TransactionStatusFilter
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import kotlinx.coroutines.CancellationException
@@ -108,6 +112,8 @@ fun TransactionsScreen(
     onEdit: (Transaction) -> Unit,
     modifier: Modifier = Modifier,
     transactions: List<Transaction> = sampleTransactions,
+    transactionStatusFilter: TransactionStatusFilter = TransactionStatusFilter.ALL,
+    onTransactionStatusFilterChange: (TransactionStatusFilter) -> Unit = {},
     hideDecimalPlaces: Boolean = false,
     conventionalAmountEntry: Boolean = true,
     groupTransactionsByDate: Boolean = true,
@@ -383,6 +389,36 @@ fun TransactionsScreen(
         if (searchingDatabase && completedQuery != search) {
             Text(if (searchError) "Search failed. Change the search to try again." else "Searching…",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = transactionStatusFilter == TransactionStatusFilter.ALL,
+                onClick = { onTransactionStatusFilterChange(TransactionStatusFilter.ALL) },
+                label = { Text("All") }
+            )
+            FilterChip(
+                selected = transactionStatusFilter == TransactionStatusFilter.UNCATEGORIZED,
+                onClick = { onTransactionStatusFilterChange(TransactionStatusFilter.UNCATEGORIZED) },
+                label = { Text("Uncategorized") }
+            )
+            FilterChip(
+                selected = transactionStatusFilter == TransactionStatusFilter.UNCLEARED,
+                onClick = { onTransactionStatusFilterChange(TransactionStatusFilter.UNCLEARED) },
+                label = { Text("Uncleared") }
+            )
+            FilterChip(
+                selected = transactionStatusFilter == TransactionStatusFilter.CLEARED,
+                onClick = { onTransactionStatusFilterChange(TransactionStatusFilter.CLEARED) },
+                label = { Text("Cleared") }
+            )
+            FilterChip(
+                selected = transactionStatusFilter == TransactionStatusFilter.RECONCILED,
+                onClick = { onTransactionStatusFilterChange(TransactionStatusFilter.RECONCILED) },
+                label = { Text("Reconciled") }
+            )
         }
         LazyColumn(
             state = listState,
