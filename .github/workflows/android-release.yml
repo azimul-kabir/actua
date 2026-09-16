@@ -89,6 +89,7 @@ jobs:
           python3 - <<'PY'
           import os
           import re
+          import sys
 
           version_name = os.environ["RELEASE_VERSION"]
           version_code = os.environ["RELEASE_VERSION_CODE"]
@@ -98,17 +99,42 @@ jobs:
           with open(path) as f:
               content = f.read()
 
+          def sub_required(pattern, repl, content, description):
+              content, count = re.subn(pattern, repl, content, flags=re.MULTILINE)
+              if count == 0:
+                  sys.exit(f"F-Droid template update failed: no match for {description} in {path}")
+              return content
+
           # F-Droid requires a pinned commit SHA in the build recipe, not a tag or branch.
-          content = re.sub(
-              r"(?m)^(# Actua ).*( is built from source at the release commit pinned below\.)$",
+          content = sub_required(
+              r"^(# Actua ).*( is built from source at the release commit pinned below\.)$",
               rf"\g<1>{version_name}\g<2>",
               content,
+              "header comment",
           )
-          content = re.sub(r"(?m)^(\s*- versionName: ).*$", rf"\g<1>{version_name}", content)
-          content = re.sub(r"(?m)^(\s*versionCode: ).*$", rf"\g<1>{version_code}", content)
-          content = re.sub(r"(?m)^(\s*commit: ).*$", rf"\g<1>{commit_sha}", content)
-          content = re.sub(r"(?m)^(CurrentVersion: ).*$", rf"\g<1>{version_name}", content)
-          content = re.sub(r"(?m)^(CurrentVersionCode: ).*$", rf"\g<1>{version_code}", content)
+          content = sub_required(r"^(\s*- versionName: ).*$", rf"\g<1>{version_name}", content, "Builds versionName")
+          content = sub_required(r"^(\s*versionCode: ).*$", rf"\g<1>{version_code}", content, "Builds versionCode")
+          content = sub_required(r"^(\s*commit: ).*$", rf"\g<1>{commit_sha}", content, "Builds commit")
+          content = sub_required(r"^(CurrentVersion: ).*$", rf"\g<1>{version_name}", content, "CurrentVersion")
+          content = sub_required(r"^(CurrentVersionCode: ).*$", rf"\g<1>{version_code}", content, "CurrentVersionCode")
+
+          # These fields don't change per release, but they were added by hand
+          # directly in the fdroiddata merge request in response to reviewer
+          # comments and only backported here afterward. Nothing else in this
+          # script keeps them in sync, so fail loudly if one goes missing
+          # (e.g. a template edit accidentally drops it) instead of silently
+          # publishing an incomplete submission template.
+          required_inline_fields = [
+              "License", "AuthorName", "AuthorWebSite", "SourceCode", "IssueTracker",
+              "RepoType", "Repo", "Binaries", "AllowedAPKSigningKeys",
+              "AutoUpdateMode", "UpdateCheckMode",
+          ]
+          for field in required_inline_fields:
+              if not re.search(rf"^{field}:\s*\S", content, re.MULTILINE):
+                  sys.exit(f"F-Droid template is missing required field '{field}' in {path}")
+
+          if not re.search(r"^Categories:\s*\n\s*-\s*\S", content, re.MULTILINE):
+              sys.exit(f"F-Droid template is missing a Categories entry in {path}")
 
           with open(path, "w") as f:
               f.write(content)
