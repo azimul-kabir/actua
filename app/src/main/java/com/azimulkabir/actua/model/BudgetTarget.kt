@@ -446,7 +446,7 @@ object BudgetTemplatePlanner {
                 unsupported += "${group.name} · ${category.name}"
                 continue
             }
-            val goal = targets.firstOrNull { it.type == BudgetTarget.Type.GOAL }?.amountCents
+            val goal = targetBalanceGoal(targets, category, schedules)
             val goalChanged = goal != category.goalCents || goal != null && !category.longGoal
             if (goalChanged && (targets.isEmpty() || overwriteExisting || category.assignedCents == 0L)) {
                 val id = category.id
@@ -595,6 +595,29 @@ object BudgetTemplatePlanner {
     private fun targetReference(target: BudgetTarget): String =
         target.scheduleId?.takeIf(String::isNotBlank)
             ?: target.scheduleName?.trim().orEmpty()
+
+    /**
+     * The full balance a category is working toward, independent of how much of it is
+     * budgeted this month. An explicit "Goal only" target wins when present; otherwise a
+     * "by date" or "cover scheduled transaction" template contributes its whole target
+     * amount, so progress reflects completion of the goal rather than this month's installment.
+     */
+    private fun targetBalanceGoal(
+        targets: List<BudgetTarget>,
+        category: BudgetCategory,
+        schedules: List<BudgetScheduleFunding>,
+    ): Long? {
+        targets.firstOrNull { it.type == BudgetTarget.Type.GOAL }?.let { return it.amountCents }
+        val byDate = targets.filter { it.type == BudgetTarget.Type.BY_DATE }.sumOf { it.amountCents }
+        val schedule = targets.filter { it.type == BudgetTarget.Type.SCHEDULE }.sumOf { target ->
+            schedules.firstOrNull {
+                targetReference(target) in it.referenceNames &&
+                    (it.categoryId == null || it.categoryId == category.id)
+            }?.amountCents ?: 0L
+        }
+        val total = byDate + schedule
+        return total.takeIf { it > 0L }
+    }
 
     /** Matches Actual's batch treatment of sibling `by` templates: carryover is deducted once. */
     private fun combinedByDate(targets: List<BudgetTarget>, category: BudgetCategory, month: String): Long {
