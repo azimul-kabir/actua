@@ -16,6 +16,15 @@ usable offline. A successful sync emits an in-process data-generation signal. Th
 Accounts, Transactions, Reports, rules, schedules, payees, and credit-card projections then reread
 the committed database without requiring navigation or **Sync now**.
 
+The banner only appears for **App open** and **Background** syncs, where the server may hold changes
+the local database doesn't have yet. A sync triggered by a local edit (trigger **After change**) only
+uploads what the visible screen already reflects, so it never shows the banner; a failure from that
+upload still surfaces through the existing error path in **Manage → Connection & Data** rather than a
+blocking banner. Without this distinction, active editing (entering several transactions, budgeting
+multiple categories, toggling cleared status) would otherwise retrigger the banner on every edit spaced
+more than a second apart, since each mutation sync is a full network round trip that never reuses a
+recent success (see below).
+
 Foreground and periodic requests for the same budget reuse a successful sync that completed within
 five seconds. This prevents an app-open request waiting behind a nearly completed background worker
 from immediately repeating the full network round trip. Post-mutation work never reuses that result,
