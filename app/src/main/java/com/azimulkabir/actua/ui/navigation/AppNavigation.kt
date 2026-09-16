@@ -91,6 +91,7 @@ import com.azimulkabir.actua.ui.settings.FindSchedulesScreen
 import com.azimulkabir.actua.ui.settings.BillsCalendarScreen
 import com.azimulkabir.actua.ui.settings.ImportTransactionsScreen
 import com.azimulkabir.actua.ui.settings.PayeeLocationsScreen
+import com.azimulkabir.actua.ui.settings.ReorderCategoriesScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeOption
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeSearchResult
@@ -134,7 +135,7 @@ private enum class MainDestination(
     Manage("Manage", Icons.Outlined.Tune),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ReorderCategories }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -239,6 +240,7 @@ fun AppNavigation(
     val reportSnapshot = remember(dataVersion) { repository.reports() }
     val creditCards = remember(dataVersion) { repository.creditCards() }
     val rules = remember(dataVersion) { repository.rules() }
+    val reorderCategoryGroups = remember(dataVersion) { repository.categoryGroupsForReorder() }
     val rulesSupported = remember(dataVersion) { repository.rulesSupported() }
     val scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() }
     val ruleEditorData = remember(dataVersion) { repository.ruleEditorData() }
@@ -1006,6 +1008,13 @@ fun AppNavigation(
                 onDelete = { ruleId -> mutate("Deleting rule") { repository.deleteRule(ruleId) } },
                 modifier = contentModifier,
             )
+            DetailDestination.ReorderCategories -> ReorderCategoriesScreen(
+                groups = reorderCategoryGroups,
+                onBack = { detail = DetailDestination.Main },
+                onMoveCategory = { move -> mutate("Reordering category") { repository.moveCategory(move) } },
+                onMoveGroup = { move -> mutate("Reordering category group") { repository.moveCategoryGroup(move) } },
+                modifier = contentModifier,
+            )
             DetailDestination.Schedules -> SchedulesScreen(
                 schedules = schedules,
                 hideDecimalPlaces = hideDecimalPlaces,
@@ -1519,6 +1528,7 @@ fun AppNavigation(
                         detail = DetailDestination.CreditCards
                     },
                     onRulesClick = { detail = DetailDestination.Rules },
+                    onReorderCategoriesClick = { detail = DetailDestination.ReorderCategories },
                     onSchedulesClick = { detail = DetailDestination.Schedules },
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
                     onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },

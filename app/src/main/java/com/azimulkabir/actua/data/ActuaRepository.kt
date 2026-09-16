@@ -11,6 +11,8 @@ import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.ActualSplitLineForm
 import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
+import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
+import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BudgetOpenProbe
@@ -976,6 +978,23 @@ class ActuaRepository(context: Context) {
     fun setCategoryGroupHidden(groupName: String, hidden: Boolean): Boolean {
         val group = actualDatabase?.fetchCategoryGroups()?.firstOrNull { it.name == groupName } ?: return false
         actualEntities!!.setCategoryGroupHidden(group.id, hidden)
+        return true
+    }
+
+    /** Category groups and categories sorted for the drag-to-reorder management screen. */
+    fun categoryGroupsForReorder(): List<ActualCategoryGroup> =
+        actualDatabase?.fetchCategoryGroups()
+            ?.sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            ?.map { it.copy(categories = it.categories.sortedWith(compareBy({ category -> category.sortOrder }, { category -> category.id }))) }
+            .orEmpty()
+
+    fun moveCategory(move: CategoryReorderPlanner.CategoryMove): Boolean {
+        actualEntities?.moveCategory(move.categoryId, move.groupId, move.beforeCategoryId) ?: return false
+        return true
+    }
+
+    fun moveCategoryGroup(move: CategoryReorderPlanner.GroupMove): Boolean {
+        actualEntities?.moveCategoryGroup(move.groupId, move.beforeGroupId) ?: return false
         return true
     }
 
