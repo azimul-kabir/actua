@@ -43,7 +43,10 @@ class DisconnectResetActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ActuaTheme(appearance = DisplayPreferences(this).appearance) {
+            ActuaTheme(
+                appearance = DisplayPreferences(this).appearance,
+                dynamicColor = DisplayPreferences(this).useDynamicColor,
+            ) {
                 when (stage) {
                     Stage.Confirm -> AlertDialog(
                         onDismissRequest = ::cancelAndRestore,

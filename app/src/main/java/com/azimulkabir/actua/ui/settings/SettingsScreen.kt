@@ -20,12 +20,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -43,12 +41,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.LocationPreferences
+import com.azimulkabir.actua.ui.components.ActuaListRow
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaSectionHeader
 
 internal enum class SettingsPage(val title: String, val depth: Int) {
     Manage("Manage", 0),
@@ -81,6 +81,8 @@ fun SettingsScreen(
     onHideBalancesChange: (Boolean) -> Unit = {},
     appearance: String = "System",
     onAppearanceChange: (String) -> Unit = {},
+    useDynamicColor: Boolean = false,
+    onUseDynamicColorChange: (Boolean) -> Unit = {},
     startPage: String = "Budget",
     onStartPageChange: (String) -> Unit = {},
     accountOptions: List<String> = emptyList(),
@@ -208,13 +210,16 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxSize(),
             )
         } else Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
-            SettingsHeader(
+            ActuaScreenHeader(
                 title = shownPage.title,
-                showBack = shownPage != SettingsPage.Manage,
-                showSettings = shownPage == SettingsPage.Manage,
-                onBack = ::navigateBack,
-                onSettings = { page = SettingsPage.General },
-            )
+                onBack = if (shownPage != SettingsPage.Manage) ::navigateBack else null,
+            ) {
+                if (shownPage == SettingsPage.Manage) {
+                    IconButton(onClick = { page = SettingsPage.General }) {
+                        Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                    }
+                }
+            }
             when (shownPage) {
                 SettingsPage.Manage -> {
                     SettingsSection("Automation")
@@ -309,6 +314,14 @@ fun SettingsScreen(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
                     SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        SettingsToggle(
+                            "Material You colors",
+                            "Match colors to your wallpaper instead of Actua's default theme",
+                            useDynamicColor,
+                            onUseDynamicColorChange,
+                        )
+                    }
                     SettingsChoice(
                         "Start page",
                         startPage,
@@ -424,36 +437,6 @@ private fun numberPreview(format: String): String = when (format) {
     else -> java.text.NumberFormat.getNumberInstance().format(1234.56)
 }
 
-@Composable
-private fun SettingsHeader(
-    title: String,
-    showBack: Boolean,
-    showSettings: Boolean,
-    onBack: () -> Unit,
-    onSettings: () -> Unit,
-) {
-    androidx.compose.foundation.layout.Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-    ) {
-        if (showBack) IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
-        }
-        Text(
-            title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f)
-                .padding(horizontal = if (showBack) 4.dp else 16.dp, vertical = 10.dp),
-        )
-        if (showSettings) {
-            IconButton(onClick = onSettings) {
-                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
-            }
-        }
-    }
-}
-
 private val currencyOptions = listOf(
     "None" to "",
     "৳ BDT" to "BDT",
@@ -501,26 +484,32 @@ private fun SettingsToggle(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    ListItem(
-        headlineContent = { Text(label) },
-        supportingContent = { Text(detail) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = onCheckedChange) },
-        modifier = Modifier.clickable { onCheckedChange(!checked) },
+    ActuaListRow(
+        title = { Text(label, style = MaterialTheme.typography.bodyLarge) },
+        subtitle = { Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+        trailing = { Switch(checked = checked, onCheckedChange = onCheckedChange) },
+        onClick = { onCheckedChange(!checked) },
     )
 }
 
 @Composable
 private fun SettingsSection(label: String) {
-    HorizontalDivider()
-    Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 20.dp, top = 14.dp, bottom = 4.dp))
+    ActuaSectionHeader(label)
 }
 
 @Composable
 private fun SettingsRow(label: String, detail: String, enabled: Boolean = false, onClick: () -> Unit = {}) {
-    ListItem(headlineContent = { Text(label) }, supportingContent = {
-        Text(if (enabled) detail else "$detail · Coming with backend port")
-    }, trailingContent = {
-        if (enabled) Icon(Icons.Outlined.ChevronRight, contentDescription = null)
-    }, modifier = Modifier.clickable(enabled = enabled, onClick = onClick))
+    ActuaListRow(
+        title = { Text(label, style = MaterialTheme.typography.bodyLarge) },
+        subtitle = {
+            Text(
+                if (enabled) detail else "$detail · Coming with backend port",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        trailing = { if (enabled) Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+        enabled = enabled,
+        onClick = onClick,
+    )
 }

@@ -35,13 +35,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             var appearance by remember { mutableStateOf(DisplayPreferences(this).appearance) }
-            ActuaTheme(appearance = appearance) {
+            var useDynamicColor by remember { mutableStateOf(DisplayPreferences(this).useDynamicColor) }
+            ActuaTheme(appearance = appearance, dynamicColor = useDynamicColor) {
                 AppNavigation(
                     modifier = Modifier.fillMaxSize(),
                     foregroundGeneration = foregroundGeneration,
                     launchRequest = launchRequest,
                     onLaunchRequestConsumed = { launchRequest = null },
                     onAppearanceChange = { appearance = it },
+                    onUseDynamicColorChange = { useDynamicColor = it },
                 )
             }
         }
