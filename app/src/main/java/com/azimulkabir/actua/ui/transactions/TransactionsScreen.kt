@@ -134,6 +134,9 @@ fun TransactionsScreen(
     showBackButton: Boolean = true,
     showCurrentBalanceSummary: Boolean = true,
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
+    showRunningBalance: Boolean = false,
+    onShowRunningBalanceChange: (Boolean) -> Unit = {},
+    allTransactions: List<Transaction> = transactions,
     onReconcileVisibilityChange: (Boolean) -> Unit = {},
     returnToRootRequest: Int = 0,
     onDeleteMultiple: (List<Transaction>) -> Unit = {},
@@ -217,6 +220,10 @@ fun TransactionsScreen(
                     it.splits.flatMap { split -> listOf(split.payee, split.notes, split.category) })
                     .any { text -> text.contains(search, ignoreCase = true) })
     }
+    val runningBalances = remember(allTransactions, accountName, showRunningBalance) {
+        if (showRunningBalance && accountName != null) accountRunningBalances(allTransactions, accountName)
+        else emptyMap()
+    }
 
     AnimatedContent(
         targetState = reconcileOpen && account != null,
@@ -294,6 +301,11 @@ fun TransactionsScreen(
                                     "Show current balance summary",
                                     showCurrentBalanceSummary,
                                     onShowCurrentBalanceSummaryChange,
+                                )
+                                ToggleItem(
+                                    "Running balance",
+                                    showRunningBalance,
+                                    onShowRunningBalanceChange,
                                 )
                                 ToggleItem("Show notes", showAccountNotes) { show ->
                                     showAccountNotes = show
@@ -479,7 +491,8 @@ fun TransactionsScreen(
                                 else selected = transaction
                             },
                             onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
-                            selectionMode = selectionModeOn, selected = transaction.id in selectedIds)
+                            selectionMode = selectionModeOn, selected = transaction.id in selectedIds,
+                            runningBalanceCents = runningBalances[transaction.id])
                     }
                 }
             } else {
@@ -496,7 +509,8 @@ fun TransactionsScreen(
                             else selected = transaction
                         },
                         onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
-                        selectionMode = selectionModeOn, selected = transaction.id in selectedIds)
+                        selectionMode = selectionModeOn, selected = transaction.id in selectedIds,
+                        runningBalanceCents = runningBalances[transaction.id])
                 }
             }
         }
@@ -904,7 +918,7 @@ private fun ToggleItem(label: String, checked: Boolean, onChange: (Boolean) -> U
 fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     showDate: Boolean, showAccount: Boolean, onClick: () -> Unit, onLongClick: () -> Unit,
     onClearedClick: (() -> Unit)? = null, tagColors: Map<String, String>? = null,
-    selectionMode: Boolean = false, selected: Boolean = false) {
+    selectionMode: Boolean = false, selected: Boolean = false, runningBalanceCents: Long? = null) {
     val presentation = transactionRowPresentation(transaction, showAccount)
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     Column(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
@@ -915,7 +929,13 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
             }
             Text(presentation.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
+            Column(horizontalAlignment = Alignment.End) {
+                Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
+                runningBalanceCents?.let {
+                    Text(formatMoneyCents(it, hideDecimalPlaces), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End)
+                }
+            }
             ClearedIndicator(transaction.cleared, onClearedClick)
         }
         presentation.transferContext?.let {
@@ -974,6 +994,18 @@ internal fun transactionRowPresentation(transaction: Transaction, showAccount: B
         accountLabel = null,
         transferContext = if (!showAccount) null else if (outgoing) "From ${transaction.account}" else "To ${transaction.account}",
     )
+}
+
+// transactions must be newest-first (as loaded from Actual); reversing gives the chronological fold order.
+internal fun accountRunningBalances(transactions: List<Transaction>, accountName: String): Map<String, Long> {
+    var balance = 0L
+    val balances = LinkedHashMap<String, Long>()
+    for (transaction in transactions.asReversed()) {
+        if (transaction.account != accountName) continue
+        balance += transaction.amountCents
+        balances[transaction.id] = balance
+    }
+    return balances
 }
 
 @Composable

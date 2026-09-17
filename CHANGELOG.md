@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a "Running balance" toggle to an account's transaction register overflow menu; when enabled, each transaction row shows the account's balance after that transaction as a smaller line under its amount, computed from the account's full transaction history (including transfers, splits and the opening balance) rather than only the currently visible/filtered rows, and persists across sessions
 - Added a "Copy last month's budget" action to the Budget screen's overflow menu, which copies the previous month's budgeted amounts for visible expense categories (plus visible income categories for tracking budgets) into the selected month; hidden categories and groups are left unchanged
 
 ## [1.0.0-beta.27] - 2026-09-17
