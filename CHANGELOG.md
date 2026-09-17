@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Restructured the account detail balance header into an always-visible three-column Cleared / Balance / Uncleared row, matching the Actual PWA layout; only Reconciled (and, for credit cards, Available credit / Credit limit, with Credit limit now under Available credit) stays behind the collapsible toggle
+
 ### Added
 
 - Added a "Running balance" toggle to an account's transaction register overflow menu; when enabled, each transaction row shows the account's balance after that transaction as a smaller line under its amount, computed from the account's full transaction history (including transfers, splits and the opening balance) rather than only the currently visible/filtered rows, and persists across sessions
