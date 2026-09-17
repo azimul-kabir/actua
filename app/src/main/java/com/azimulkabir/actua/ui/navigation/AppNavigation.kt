@@ -1422,12 +1422,6 @@ fun AppNavigation(
                             repository.transferBudget(fromGroup, fromCategory, toGroup, toCategory, amount, budgetMonth)
                         }
                     },
-                    onCreateCategory = { group, name ->
-                        mutate("Creating category") { repository.createCategory(group, name) }
-                    },
-                    onCreateGroup = { name ->
-                        mutate("Creating group") { repository.createCategoryGroup(name) }
-                    },
                     onSetBudgetAmount = { group, category, amount ->
                         mutate("Updating budget") { repository.setBudgetAmount(group, category, amount, budgetMonth) }
                     },
@@ -1674,7 +1668,6 @@ fun AppNavigation(
                         detail = DetailDestination.CreditCards
                     },
                     onRulesClick = { detail = DetailDestination.Rules },
-                    onManageCategoriesClick = { detail = DetailDestination.ManageCategories },
                     onSchedulesClick = { detail = DetailDestination.Schedules },
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
                     onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },

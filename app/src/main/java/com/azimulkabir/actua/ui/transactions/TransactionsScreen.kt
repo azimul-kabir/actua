@@ -151,7 +151,6 @@ fun TransactionsScreen(
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
     var showSearch by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
-    var hideCleared by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Transaction?>(null) }
     var viewed by remember { mutableStateOf<Transaction?>(null) }
     var selectionModeOn by remember { mutableStateOf(false) }
@@ -215,7 +214,6 @@ fun TransactionsScreen(
         (accountName == null || it.account == accountName) &&
             (categoryName == null || it.category == categoryName) &&
             (month == null || it.date.filter(Char::isDigit).startsWith(month.replace("-", ""))) &&
-            (!hideCleared || !it.cleared) &&
             (!hideReconciledTransactions || !it.reconciled) &&
             (searchingDatabase || search.isBlank() ||
                 (listOf(it.payee, it.category, it.account, it.notes, it.transferAccount.orEmpty()) +
@@ -287,9 +285,6 @@ fun TransactionsScreen(
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             ToggleItem("Group by date", groupTransactionsByDate, onGroupTransactionsByDateChange)
-                            ToggleItem("Hide cleared transactions", hideCleared) { hideCleared = it }
-                            ToggleItem("Hide reconciled transactions", hideReconciledTransactions,
-                                onHideReconciledTransactionsChange)
                             account?.let { selectedAccount ->
                                 if (!selectedAccount.closed) {
                                     DropdownMenuItem(
@@ -464,7 +459,6 @@ fun TransactionsScreen(
                 Text(
                     when {
                         search.isNotBlank() -> "No matching transactions"
-                        hideCleared -> "No uncleared transactions"
                         hideReconciledTransactions -> "No unreconciled transactions"
                         else -> "No transactions"
                     },
