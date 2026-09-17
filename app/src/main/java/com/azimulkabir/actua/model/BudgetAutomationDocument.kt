@@ -118,6 +118,12 @@ data class BudgetAutomationDocument(
                 add("Percentage automations need an income source")
             }
             if (targets.any {
+                    it.adjustmentType == BudgetTarget.AdjustmentType.PERCENT && it.adjustmentPercent == null ||
+                        it.adjustmentType == BudgetTarget.AdjustmentType.FIXED && it.adjustmentAmountCents == null
+                }) {
+                add("Adjustments need a value")
+            }
+            if (targets.any {
                     it.type == BudgetTarget.Type.SCHEDULE &&
                         it.scheduleId.isNullOrBlank() && it.scheduleName.isNullOrBlank()
                 }) {
