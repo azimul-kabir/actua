@@ -105,7 +105,6 @@ import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.RenameDialog
-import com.azimulkabir.actua.ui.components.NewCategoryDialog
 import com.azimulkabir.actua.ui.transactions.TransactionDetailsSheet
 import java.text.NumberFormat
 import java.util.Locale
@@ -166,8 +165,6 @@ fun BudgetScreen(
     onSetGroupHidden: (String, Boolean) -> Boolean = { _, _ -> false },
     onRenameCategory: (String, String, String) -> Unit = { _, _, _ -> },
     onRenameGroup: (String, String) -> Unit = { _, _ -> },
-    onCreateCategory: (String, String) -> Unit = { _, _ -> },
-    onCreateGroup: (String) -> Unit = {},
     onShowCategoryTransactions: (String, Boolean, Boolean) -> Unit = { _, _, _ -> },
     onTransferBudget: (String?, String?, String?, String?, Long) -> Unit = { _, _, _, _, _ -> },
     onSetBudgetAmount: (String, String, Long) -> Unit = { _, _, _ -> },
@@ -209,8 +206,6 @@ fun BudgetScreen(
     var editingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var renamingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var renamingGroup by remember { mutableStateOf<BudgetGroup?>(null) }
-    var creatingCategory by remember { mutableStateOf(false) }
-    var creatingGroup by remember { mutableStateOf(false) }
     var movingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var fundingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
@@ -423,8 +418,6 @@ fun BudgetScreen(
     }
     if (showAddSheet) {
         AddBudgetSheet(onDismiss = { showAddSheet = false },
-            onNewCategory = { showAddSheet = false; creatingCategory = true },
-            onNewGroup = { showAddSheet = false; creatingGroup = true },
             onApplyTemplate = { overwrite ->
                 showAddSheet = false
                 overwriteTemplates = overwrite
@@ -484,12 +477,6 @@ fun BudgetScreen(
         }) }
     renamingGroup?.let { group -> RenameDialog("Rename group", group.name,
         onDismiss = { renamingGroup = null }, onSave = { name -> onRenameGroup(group.name, name); renamingGroup = null }) }
-    if (creatingCategory) NewCategoryDialog(groups.map { it.name }, { creatingCategory = false }) { group, name ->
-        onCreateCategory(group, name); creatingCategory = false
-    }
-    if (creatingGroup) RenameDialog("New category group", "", { creatingGroup = false }) { name ->
-        onCreateGroup(name); creatingGroup = false
-    }
     fundingCategory?.let { (group, category) ->
         FundingActionsSheet(
             category = category,
@@ -2249,14 +2236,12 @@ private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRenam
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddBudgetSheet(onDismiss: () -> Unit, onNewCategory: () -> Unit, onNewGroup: () -> Unit,
+private fun AddBudgetSheet(onDismiss: () -> Unit,
     onApplyTemplate: (Boolean) -> Unit, onPreviewCleanup: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 28.dp)) {
             Text("Add to budget", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
-            SheetAction("New category", onNewCategory)
-            SheetAction("New category group", onNewGroup)
             SheetAction("Apply budget templates", onClick = { onApplyTemplate(false) })
             SheetAction("Overwrite budget templates", onClick = { onApplyTemplate(true) })
             SheetAction("Month-end cleanup", onClick = onPreviewCleanup)
