@@ -640,8 +640,7 @@ private fun BudgetToolbar(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.weight(1f)
-                .clip(MaterialTheme.shapes.medium)
+            modifier = Modifier.clip(MaterialTheme.shapes.medium)
                 .clickable { monthPickerOpen = true }
                 .padding(horizontal = 6.dp, vertical = 8.dp),
         ) {
@@ -662,6 +661,7 @@ private fun BudgetToolbar(
                 )
             }
         }
+        Spacer(modifier = Modifier.weight(1f))
         Box {
             Surface(
                 shape = MaterialTheme.shapes.extraLarge,
