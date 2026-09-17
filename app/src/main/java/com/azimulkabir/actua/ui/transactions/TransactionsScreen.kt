@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MoreVert
@@ -90,6 +89,9 @@ import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import com.azimulkabir.actua.ui.components.coloredTagText
 import com.azimulkabir.actua.ui.components.rememberActualTagColors
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.theme.AmountTypography
+import com.azimulkabir.actua.ui.theme.Spacing
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
@@ -252,19 +254,12 @@ fun TransactionsScreen(
             onCreateAdjustment = { difference -> onCreateReconciliationAdjustment(account, difference) },
         )
     } else Column(modifier = modifier.fillMaxSize()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            if (showBackButton) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
-                }
-            }
-            Text(categoryName ?: accountName ?: if (showBackButton) "All accounts" else "Transactions",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
+        ActuaScreenHeader(
+            title = categoryName ?: accountName ?: if (showBackButton) "All accounts" else "Transactions",
+            onBack = if (showBackButton) onBack else null,
+        ) {
             Surface(
-                shape = RoundedCornerShape(28.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 tonalElevation = 2.dp,
             ) {
@@ -334,7 +329,7 @@ fun TransactionsScreen(
             val selectedTransactions = visible.filter { it.id in selectedIds }
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
             ) {
                 Row(
@@ -449,7 +444,7 @@ fun TransactionsScreen(
             }
             item("transaction-total") {
                 val total = visible.sumOf { it.amountCents }
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = 10.dp)) {
                     Text("${visible.size} transactions", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.weight(1f))
                     Amount(total, FontWeight.Bold, hideDecimalPlaces)
@@ -463,7 +458,7 @@ fun TransactionsScreen(
                         else -> "No transactions"
                     },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier.padding(Spacing.screenHorizontal),
                 )
             }
             if (groupTransactionsByDate) {
@@ -472,7 +467,7 @@ fun TransactionsScreen(
                         Text(formatTransactionDate(date), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer)
-                                .padding(horizontal = 20.dp, vertical = 8.dp))
+                                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm))
                     }
                     items(transactions, key = { it.id }) { transaction ->
                         TransactionRow(transaction, hideDecimalPlaces, showDate = false,
@@ -631,7 +626,7 @@ private fun ReconcileAccountScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item("balances") {
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(20.dp)) {
+                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text("Cleared balance", style = MaterialTheme.typography.labelLarge,
@@ -662,7 +657,7 @@ private fun ReconcileAccountScreen(
             difference?.let { amount ->
                 if (amount == 0L) {
                     item("match") {
-                        Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(20.dp)) {
+                        Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.large) {
                             Column(Modifier.fillMaxWidth().padding(18.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -687,7 +682,7 @@ private fun ReconcileAccountScreen(
                     }
                 } else {
                     item("difference") {
-                        Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = RoundedCornerShape(20.dp)) {
+                        Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.large) {
                             Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text("Difference", style = MaterialTheme.typography.titleMedium,
@@ -755,7 +750,7 @@ private fun ReconciliationTransactionRow(
     onMarkCleared: () -> Unit,
 ) {
     Surface(onClick = onMarkCleared, color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(16.dp)) {
+        shape = MaterialTheme.shapes.large) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -801,7 +796,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showSummary) Surface(
             color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
         ) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -840,7 +835,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
             }
         }
         card?.let {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) {
+            Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Billing cycle", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(it.cycle.dueSummary(), style = MaterialTheme.typography.bodyMedium,
@@ -853,7 +848,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
         if (showNotes) Surface(
             onClick = { noteEditorOpen = true },
             color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
         ) {
             Text(
                 text = note.ifBlank { "Add note" },
@@ -938,7 +933,7 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     val presentation = transactionRowPresentation(transaction, showAccount)
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     Column(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
-        .padding(horizontal = 20.dp, vertical = 12.dp)) {
+        .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             if (selectionMode) {
                 Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
@@ -1030,7 +1025,7 @@ private fun CategoryChip(label: String, transfer: Boolean) {
     Surface(
         color = if (transfer) MaterialTheme.colorScheme.secondaryContainer
             else MaterialTheme.colorScheme.surfaceContainer,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium,
             color = if (transfer) MaterialTheme.colorScheme.onSecondaryContainer
@@ -1135,7 +1130,7 @@ internal fun formatTransactionDate(value: String): String {
 
 @Composable
 private fun Amount(value: Long, weight: FontWeight, hideDecimalPlaces: Boolean) {
-    Text(formatMoneyCents(value, hideDecimalPlaces, showPositiveSign = true), style = MaterialTheme.typography.bodyMedium, fontWeight = weight, textAlign = TextAlign.End,
+    Text(formatMoneyCents(value, hideDecimalPlaces, showPositiveSign = true), style = AmountTypography.rowAmount.copy(fontWeight = weight), textAlign = TextAlign.End,
         color = if (value >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
 }
 
