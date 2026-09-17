@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 val releaseKeystorePath = providers.environmentVariable("ACTUA_KEYSTORE_PATH").orNull
@@ -65,7 +66,15 @@ android {
     }
 }
 
+baselineProfile {
+    // Skip regenerating the profile on every build; run `:app:generateBaselineProfile`
+    // manually (on a connected device/emulator) when app flows change meaningfully.
+    automaticGenerationDuringBuild = false
+}
+
 dependencies {
+    baselineProfile(project(":baselineprofile"))
+    implementation(libs.androidx.profileinstaller)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
