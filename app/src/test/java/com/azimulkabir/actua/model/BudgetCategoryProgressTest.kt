@@ -5,39 +5,39 @@ import org.junit.Test
 
 class BudgetCategoryProgressTest {
     @Test fun `no goal uses spent of assigned`() {
-        assertEquals(0.5f, category(assignedCents = 10_000, spentCents = 5_000).progressFraction)
+        assertEquals(0.5f, category(assignedCents = 10_000, spentCents = 5_000).progressFraction())
     }
 
     @Test fun `no goal with nothing assigned is zero`() {
-        assertEquals(0f, category(assignedCents = 0, spentCents = 0).progressFraction)
+        assertEquals(0f, category(assignedCents = 0, spentCents = 0).progressFraction())
     }
 
     @Test fun `goal underfunded tracks balance toward goal`() {
         val category = category(assignedCents = 5_000, spentCents = 0, balanceCents = 5_000, goalCents = 20_000)
-        assertEquals(0.25f, category.progressFraction)
+        assertEquals(0.25f, category.progressFraction())
     }
 
     @Test fun `goal fully funded before anything is spent reads full`() {
         val category = category(assignedCents = 20_000, spentCents = 0, balanceCents = 20_000, goalCents = 20_000)
-        assertEquals(1f, category.progressFraction)
+        assertEquals(1f, category.progressFraction())
     }
 
     @Test fun `goal partially spent back down reduces progress`() {
         val category = category(assignedCents = 20_000, spentCents = 15_000, balanceCents = 5_000, goalCents = 20_000)
-        assertEquals(0.25f, category.progressFraction)
+        assertEquals(0.25f, category.progressFraction())
     }
 
     @Test fun `goal overfunded clamps to full`() {
         val category = category(assignedCents = 25_000, spentCents = 0, balanceCents = 25_000, goalCents = 20_000)
-        assertEquals(1f, category.progressFraction)
+        assertEquals(1f, category.progressFraction())
     }
 
     @Test fun `zero or negative goal falls back to spent of assigned`() {
         val zeroGoal = category(assignedCents = 10_000, spentCents = 5_000, balanceCents = 5_000, goalCents = 0)
-        assertEquals(0.5f, zeroGoal.progressFraction)
+        assertEquals(0.5f, zeroGoal.progressFraction())
 
         val negativeGoal = category(assignedCents = 10_000, spentCents = 5_000, balanceCents = 5_000, goalCents = -100)
-        assertEquals(0.5f, negativeGoal.progressFraction)
+        assertEquals(0.5f, negativeGoal.progressFraction())
     }
 
     @Test fun `by-date long-term target drives progress before server goal is synced`() {
@@ -45,7 +45,7 @@ class BudgetCategoryProgressTest {
         val category = category(
             assignedCents = 5_000, spentCents = 0, balanceCents = 10_000, goalCents = null,
         ).copy(target = target)
-        assertEquals(0.25f, category.progressFraction)
+        assertEquals(0.25f, category.progressFraction())
     }
 
     @Test fun `goal-only target drives progress before server goal is synced`() {
@@ -53,23 +53,43 @@ class BudgetCategoryProgressTest {
         val category = category(
             assignedCents = 0, spentCents = 0, balanceCents = 25_000, goalCents = null,
         ).copy(target = target)
-        assertEquals(0.5f, category.progressFraction)
+        assertEquals(0.5f, category.progressFraction())
     }
 
-    @Test fun `server goal wins over a locally computed long-term target`() {
+    @Test fun `locally computed by-date target wins over a stale server goal`() {
+        // goalCents = 20,000 mimics a stale "monthly installment" value left over from before
+        // an automation was last applied; the by-date target's own amount (40,000) is the
+        // true end goal and must win, matching issue #305.
         val target = BudgetTarget(BudgetTarget.Type.BY_DATE, amountCents = 40_000, targetMonth = "2026-12")
         val category = category(
             assignedCents = 5_000, spentCents = 0, balanceCents = 10_000, goalCents = 20_000,
         ).copy(target = target)
-        assertEquals(0.5f, category.progressFraction)
+        assertEquals(0.25f, category.progressFraction())
     }
 
-    @Test fun `schedule-linked target without a server goal falls back to spend-down progress`() {
+    @Test fun `schedule-linked target without resolvable schedule data falls back to spend-down progress`() {
         val target = BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = "bill-1")
         val category = category(
             assignedCents = 10_000, spentCents = 5_000, balanceCents = 5_000, goalCents = null,
         ).copy(target = target)
-        assertEquals(0.5f, category.progressFraction)
+        assertEquals(0.5f, category.progressFraction())
+    }
+
+    @Test fun `schedule-linked target resolves the full occurrence amount over a stale server goal`() {
+        // The reported scenario: an annual "cover scheduled transaction" goal of 630.00, with
+        // 262.50 saved and 52.50/month assigned. A stale server goal of 52.50 (this month's
+        // installment) must not win once the schedule's true amount can be resolved.
+        val target = BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = "bill-1")
+        val category = category(
+            assignedCents = 5_250, spentCents = 0, balanceCents = 26_250, goalCents = 5_250,
+        ).copy(target = target)
+        val schedules = listOf(
+            BudgetScheduleFunding(
+                id = "bill-1", name = "Auto insurance", amountCents = 63_000,
+                occurrencesInMonth = 0, monthsUntilNextOccurrence = 7,
+            ),
+        )
+        assertEquals(0.4166667f, category.progressFraction(schedules), 0.0001f)
     }
 
     private fun category(

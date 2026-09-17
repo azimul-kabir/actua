@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed progress bars still reading as fully funded for non-monthly "Cover scheduled transaction" and "Save by a date" goals: a locally-known target definition now always wins over Actual's server-synced goal cell, since that cell can be left over from before an automation was last (re-)applied and represent only the current month's installment rather than the true end goal; "Cover scheduled transaction" goals also now resolve their full occurrence amount from the linked schedule directly, instead of only falling back to month-to-month spend progress when no server goal was synced
+
 ## [1.0.0-beta.29] - 2026-09-17
 
 ### Changed

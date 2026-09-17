@@ -306,7 +306,7 @@ fun BudgetScreen(
                 val visibleCategories = group.categories.filter { category ->
                     (showHidden || !category.hidden) &&
                         (!hideFullySpent || category.available != 0) &&
-                        (category.isIncome || selectedView.matches(category))
+                        (category.isIncome || selectedView.matches(category, scheduleFunding))
                 }
                 stickyHeader(key = "header-${group.name}") {
                     val onGroupClick = {
@@ -371,6 +371,7 @@ fun BudgetScreen(
                                 hideDecimalPlaces = hideDecimalPlaces,
                                 onClick = { editingBudget = group to category },
                                 onLongClick = { selectedCategory = category },
+                                scheduleFunding = scheduleFunding,
                             )
                         } else {
                             CategoryRow(
@@ -381,6 +382,7 @@ fun BudgetScreen(
                                 onLongClick = { selectedCategory = category },
                                 onOpen = { editingBudget = group to category },
                                 hideDecimalPlaces = hideDecimalPlaces,
+                                scheduleFunding = scheduleFunding,
                             )
                         }
                     }
@@ -920,6 +922,7 @@ private fun PlanBudgetCategoryRow(
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
 ) {
     Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
         if (showTopDivider) HorizontalDivider(
@@ -957,7 +960,7 @@ private fun PlanBudgetCategoryRow(
         }
         if (showProgressBar) {
             LinearProgressIndicator(
-                progress = { category.progressFraction },
+                progress = { category.progressFraction(scheduleFunding) },
                 modifier = Modifier.fillMaxWidth().padding(top = 9.dp).height(5.dp)
                     .clip(PillShape),
                 color = if (category.balanceCents < 0) MaterialTheme.colorScheme.error
@@ -1240,6 +1243,7 @@ private fun CategoryRow(
     onLongClick: () -> Unit,
     onOpen: () -> Unit,
     hideDecimalPlaces: Boolean,
+    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
 ) {
     if (showTopDivider) {
         HorizontalDivider(modifier = Modifier.padding(start = 16.dp),
@@ -1275,7 +1279,7 @@ private fun CategoryRow(
         }
         AnimatedVisibility(visible = showProgressBar) {
             LinearProgressIndicator(
-                progress = { category.progressFraction },
+                progress = { category.progressFraction(scheduleFunding) },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(4.dp)
                     .clip(PillShape),
                 color = if (category.available < 0) MaterialTheme.colorScheme.error
@@ -1833,7 +1837,7 @@ private fun CategoryDetailsScreen(
     var deleteConfirmOpen by remember(category) { mutableStateOf(false) }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     var overflowOpen by remember(category) { mutableStateOf(false) }
-    val progress = category.progressFraction
+    val progress = category.progressFraction(scheduleFunding)
     BackHandler(onBack = onDismiss)
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {

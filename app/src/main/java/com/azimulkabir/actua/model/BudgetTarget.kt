@@ -747,7 +747,7 @@ object BudgetTemplatePlanner {
      * "Save by date" or "Cover schedule" template contributes its whole target amount, so
      * progress reflects completion of the goal rather than this month's installment.
      */
-    private fun targetBalanceGoal(
+    internal fun targetBalanceGoal(
         targets: List<BudgetTarget>,
         category: BudgetCategory,
         schedules: List<BudgetScheduleFunding>,
