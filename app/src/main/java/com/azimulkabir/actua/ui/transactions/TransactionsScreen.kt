@@ -978,48 +978,46 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     selectionMode: Boolean = false, selected: Boolean = false, runningBalanceCents: Long? = null) {
     val presentation = transactionRowPresentation(transaction, showAccount)
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
-    Column(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
-        .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            if (selectionMode) {
-                Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
-            }
+    Row(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
+        .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md), verticalAlignment = Alignment.Top) {
+        if (selectionMode) {
+            Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
+        }
+        ClearedIndicator(transaction.cleared, onClearedClick, modifier = Modifier.padding(end = 10.dp, top = 2.dp))
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(presentation.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f).padding(end = 12.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces,
-                modifier = Modifier.padding(end = 8.dp))
-            ClearedIndicator(transaction.cleared, onClearedClick)
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            presentation.transferContext?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
+            } ?: Spacer(Modifier.height(7.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                CategoryChip(presentation.categoryLabel, transaction.type == Type.TRANSFER)
+                presentation.accountLabel?.let {
+                    Spacer(Modifier.weight(1f))
+                    Text(it, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
+                }
+            }
+            if (transaction.notes.isNotBlank()) {
+                Text(coloredTagText(transaction.notes, effectiveTagColors), style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 7.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
         }
-        presentation.transferContext?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.height(6.dp))
-        } ?: Spacer(Modifier.height(7.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            CategoryChip(presentation.categoryLabel, transaction.type == Type.TRANSFER)
-            Spacer(Modifier.weight(1f))
+        Column(horizontalAlignment = Alignment.End) {
+            Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
             runningBalanceCents?.let {
-                Text(formatMoneyCents(it, hideDecimalPlaces), style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
-                    modifier = Modifier.padding(start = 12.dp))
-            }
-            presentation.accountLabel?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
-                    modifier = Modifier.padding(start = 12.dp))
-            }
-        }
-        if (transaction.notes.isNotBlank() || showDate) {
-            Row(Modifier.fillMaxWidth().padding(top = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (transaction.notes.isNotBlank()) {
-                    Text(coloredTagText(transaction.notes, effectiveTagColors), style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                } else Spacer(Modifier.weight(1f))
-                if (showDate) Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End,
-                    modifier = Modifier.padding(start = 12.dp))
+                Spacer(Modifier.height(6.dp))
+                Text(formatMoneyCents(it, hideDecimalPlaces), style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.tertiary, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
+            } ?: Spacer(Modifier.height(7.dp))
+            if (showDate) {
+                Spacer(Modifier.height(if (runningBalanceCents != null) 5.dp else 0.dp))
+                Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End)
             }
         }
     }
@@ -1081,9 +1079,9 @@ private fun CategoryChip(label: String, transfer: Boolean) {
 }
 
 @Composable
-private fun ClearedIndicator(cleared: Boolean, onClick: (() -> Unit)? = null) {
+private fun ClearedIndicator(cleared: Boolean, onClick: (() -> Unit)? = null, modifier: Modifier = Modifier) {
     Surface(
-        modifier = Modifier.padding(start = 7.dp).size(18.dp)
+        modifier = modifier.size(18.dp)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = CircleShape,
         color = if (cleared) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
