@@ -945,15 +945,16 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     Column(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
         .padding(horizontal = 20.dp, vertical = 12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             if (selectionMode) {
                 Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
             }
             Text(presentation.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Column(horizontalAlignment = Alignment.End) {
+                modifier = Modifier.weight(1f).padding(end = 12.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 8.dp)) {
                 Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
                 runningBalanceCents?.let {
+                    Spacer(Modifier.height(3.dp))
                     Text(formatMoneyCents(it, hideDecimalPlaces), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End)
                 }
