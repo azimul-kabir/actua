@@ -178,7 +178,7 @@ private fun CompactCalculatorKey(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.height(40.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         color = when {
             confirm -> MaterialTheme.colorScheme.primaryContainer
             operator -> MaterialTheme.colorScheme.secondaryContainer

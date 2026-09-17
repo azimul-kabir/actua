@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -180,7 +179,7 @@ fun TagNoteText(
                 is TagNoteSegment.Plain -> Text(segment.text, style = style)
                 is TagNoteSegment.Tag -> Surface(
                     color = tagChipBackground(segment.color, darkTheme),
-                    shape = RoundedCornerShape(7.dp),
+                    shape = MaterialTheme.shapes.small,
                     modifier = Modifier.padding(
                         start = if (index > 0 && segments[index - 1] is TagNoteSegment.Tag) 2.dp else 0.dp,
                     ),

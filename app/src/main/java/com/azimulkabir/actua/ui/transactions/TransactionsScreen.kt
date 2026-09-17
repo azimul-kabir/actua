@@ -93,6 +93,7 @@ import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.ui.theme.Spacing
+import com.azimulkabir.actua.ui.theme.success
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
@@ -1039,7 +1040,7 @@ private fun ClearedIndicator(cleared: Boolean, onClick: (() -> Unit)? = null) {
         modifier = Modifier.padding(start = 7.dp).size(18.dp)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = CircleShape,
-        color = if (cleared) Color(0xFF2E7D32) else MaterialTheme.colorScheme.surfaceContainerHighest,
+        color = if (cleared) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Icon(
             Icons.Rounded.Check,
