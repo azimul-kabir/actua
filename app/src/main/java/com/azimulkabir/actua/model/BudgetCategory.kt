@@ -31,21 +31,29 @@ data class BudgetCategory(
 
     /**
      * The full balance this category is working toward, independent of this month's
-     * installment. Prefers Actual's server-computed [goalCents] (kept in sync by whole-budget
-     * template apply); falls back to the category's own "goal only" or long-term "by date"
-     * target amount so a target set in Actua reflects immediately, without requiring Apply.
+     * installment. A locally-known "goal only", "by date" or "cover schedule" target wins
+     * over Actual's server-synced [goalCents]: the server value can be a stale monthly
+     * installment amount left over from before an automation was last (re-)applied, while the
+     * target definition itself always resolves to the true end goal. [goalCents] is only used
+     * as a fallback when no supported target is present locally (e.g. a target type Actua
+     * doesn't model) or a schedule target can't yet be resolved against [schedules].
      */
-    val effectiveGoalCents: Long? get() {
-        goalCents?.takeIf { it > 0L }?.let { return it }
+    fun effectiveGoalCents(schedules: List<BudgetScheduleFunding> = emptyList()): Long? {
         val targets = automations.ifEmpty { target?.let(::listOf).orEmpty() }
-        targets.firstOrNull { it.type == BudgetTarget.Type.GOAL }?.let { return it.amountCents }
-        val byDate = targets.filter { it.type == BudgetTarget.Type.BY_DATE }.sumOf { it.amountCents }
-        return byDate.takeIf { it > 0L }
+        val hasBalanceTarget = targets.any {
+            it.type == BudgetTarget.Type.GOAL ||
+                it.type == BudgetTarget.Type.BY_DATE ||
+                it.type == BudgetTarget.Type.SCHEDULE
+        }
+        if (hasBalanceTarget) {
+            BudgetTemplatePlanner.targetBalanceGoal(targets, this, schedules)?.let { return it }
+        }
+        return goalCents?.takeIf { it > 0L }
     }
 
     // With an active goal, progress tracks balance funded toward it rather than spend-down.
-    val progressFraction: Float get() {
-        val goal = effectiveGoalCents
+    fun progressFraction(schedules: List<BudgetScheduleFunding> = emptyList()): Float {
+        val goal = effectiveGoalCents(schedules)
         if (goal != null && goal > 0L) return (balanceCents.toFloat() / goal).coerceIn(0f, 1f)
         return if (assignedCents <= 0L) 0f else (spentCents.toFloat() / assignedCents).coerceIn(0f, 1f)
     }
@@ -58,11 +66,17 @@ enum class BudgetCategoryView(val label: String) {
     OVERFUNDED("Overfunded"),
     MONEY_AVAILABLE("Money Available");
 
-    fun matches(category: BudgetCategory): Boolean = when (this) {
+    fun matches(category: BudgetCategory, schedules: List<BudgetScheduleFunding> = emptyList()): Boolean = when (this) {
         ALL -> true
         OVERSPENT -> category.balanceCents < 0L
-        UNDERFUNDED -> (category.effectiveGoalCents ?: 0L) > 0L && category.balanceCents < category.effectiveGoalCents!!
-        OVERFUNDED -> (category.effectiveGoalCents ?: 0L) > 0L && category.balanceCents > category.effectiveGoalCents!!
+        UNDERFUNDED -> {
+            val goal = category.effectiveGoalCents(schedules)
+            (goal ?: 0L) > 0L && category.balanceCents < goal!!
+        }
+        OVERFUNDED -> {
+            val goal = category.effectiveGoalCents(schedules)
+            (goal ?: 0L) > 0L && category.balanceCents > goal!!
+        }
         MONEY_AVAILABLE -> category.balanceCents > 0L
     }
 
