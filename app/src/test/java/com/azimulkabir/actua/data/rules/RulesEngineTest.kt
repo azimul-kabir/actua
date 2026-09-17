@@ -61,9 +61,51 @@ class RulesEngineTest {
         assertTrue(result.transaction.tombstone)
     }
 
+    @Test fun scheduleOwnedRuleBypassesConditionsForItsOwnTransaction() {
+        val ownedRule = Rule("owned", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+            listOf(Rule.Condition("is", "date", RuleValue.Text("2099-01-01"))),
+            listOf(Rule.Action("set", "notes", RuleValue.Text("tagged")), Rule.Action("link-schedule", null, RuleValue.Text("sched1"))))
+        val result = RulesEngine.apply(transaction(scheduleId = "sched1"), listOf(ownedRule))
+        assertEquals("tagged", result.transaction.notes)
+    }
+
+    @Test fun otherScheduleOwnedRulesAreSkippedEntirely() {
+        val ownRule = Rule("own", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND, emptyList(),
+            listOf(Rule.Action("link-schedule", null, RuleValue.Text("sched1"))))
+        val otherRule = Rule("other", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+            listOf(Rule.Condition("is", "account", RuleValue.Text("a"))),
+            listOf(Rule.Action("set", "notes", RuleValue.Text("hijacked")), Rule.Action("link-schedule", null, RuleValue.Text("sched2"))))
+        val result = RulesEngine.apply(transaction(scheduleId = "sched1"), listOf(ownRule, otherRule))
+        assertEquals(null, result.transaction.notes)
+    }
+
+    @Test fun ordinaryRulesStillConditionCheckOnScheduleTransactions() {
+        val rule = Rule("ordinary", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+            listOf(Rule.Condition("is", "account", RuleValue.Text("nope"))),
+            listOf(Rule.Action("set", "notes", RuleValue.Text("should-not-apply"))))
+        val result = RulesEngine.apply(transaction(scheduleId = "sched1"), listOf(rule))
+        assertEquals(null, result.transaction.notes)
+    }
+
+    @Test fun recurringDateConditionMatchesThroughRulesEngine() {
+        val config = com.azimulkabir.actua.data.schedules.RecurConfig(
+            com.azimulkabir.actua.data.schedules.RecurConfig.Frequency.MONTHLY, 1,
+            com.azimulkabir.actua.data.schedules.DayDate(2026, 1, 3))
+        val configJson = RuleValue.fromJson(config.toJson())
+        assertTrue(configJson is RuleValue.ObjectValue)
+        val onSchedule = Rule("recur", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+            listOf(Rule.Condition("is", "date", configJson)),
+            listOf(Rule.Action("set", "notes", RuleValue.Text("matched"))))
+        val matchResult = RulesEngine.apply(transaction(date = 20260503), listOf(onSchedule))
+        assertEquals("matched", matchResult.transaction.notes)
+        val noMatchResult = RulesEngine.apply(transaction(date = 20260504), listOf(onSchedule))
+        assertEquals(null, noMatchResult.transaction.notes)
+        assertEquals(true, RuleDateMatcher.matchesRecurring(20260503, "isapprox", configJson as RuleValue.ObjectValue))
+    }
+
     private fun transaction(
         amount: Long = -100, imported: String? = null, payee: String? = null,
-        payeeName: String? = null, notes: String? = null,
-    ) = ActualTransaction("t", "a", 20260503, amount, payee, payeeName, null, null, notes,
-        false, false, null, false, null, false, null, imported, null, null)
+        payeeName: String? = null, notes: String? = null, date: Int = 20260503, scheduleId: String? = null,
+    ) = ActualTransaction("t", "a", date, amount, payee, payeeName, null, null, notes,
+        false, false, null, false, null, false, null, imported, scheduleId, null)
 }

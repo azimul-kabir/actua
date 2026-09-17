@@ -1,6 +1,10 @@
 package com.azimulkabir.actua.data.rules
 
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.schedules.DayDate
+import com.azimulkabir.actua.data.schedules.RecurConfig
+import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
+import org.json.JSONObject
 import java.time.DateTimeException
 import java.time.LocalDate
 import kotlin.math.abs
@@ -35,18 +39,35 @@ object RulesEngine {
     fun apply(transaction: ActualTransaction, rules: List<Rule>, context: RuleContext = RuleContext()): RuleRunResult {
         val bag = Bag(transaction, context)
         val before = bag.snapshot()
+        val scheduleId = transaction.scheduleId
         RuleRanker.rank(rules).filter { rule ->
-            rule.conditions.isNotEmpty() && if (rule.conditionsOp == Rule.ConditionsOp.AND)
-                rule.conditions.all { evaluate(it, bag) } else rule.conditions.any { evaluate(it, bag) }
+            val linkedSchedule = rule.linkedScheduleId()
+            when {
+                // The schedule's own rule always fires for its transaction, skipping condition
+                // checks, while every other schedule-owned rule is excluded entirely -- matching
+                // upstream's runRules schedule bypass/exclusion (transaction-rules.ts).
+                scheduleId != null && linkedSchedule != null -> linkedSchedule == scheduleId
+                else -> conditionsMatch(rule, bag)
+            }
         }.forEach { rule -> rule.actions.forEach { apply(it, bag) } }
         return RuleRunResult(bag.transaction(), bag.changed(before), bag.pendingPayeeName, bag.deleted)
     }
+
+    private fun conditionsMatch(rule: Rule, bag: Bag): Boolean = rule.conditions.isNotEmpty() &&
+        if (rule.conditionsOp == Rule.ConditionsOp.AND) rule.conditions.all { evaluate(it, bag) }
+        else rule.conditions.any { evaluate(it, bag) }
+
+    private fun Rule.linkedScheduleId(): String? = actions.firstOrNull { it.op == "link-schedule" }?.value?.text
 
     private fun evaluate(condition: Rule.Condition, bag: Bag): Boolean {
         if (condition.op == "onBudget") return bag.onBudget == true
         if (condition.op == "offBudget") return bag.onBudget == false
         return when (RuleSchema.type(condition.field)) {
-            RuleFieldType.DATE -> condition.value.text?.let { RuleDateMatcher.matches(bag.number("date")?.toInt(), condition.op, it) } == true
+            RuleFieldType.DATE -> when (val value = condition.value) {
+                is RuleValue.Text -> RuleDateMatcher.matches(bag.number("date")?.toInt(), condition.op, value.value) == true
+                is RuleValue.ObjectValue -> RuleDateMatcher.matchesRecurring(bag.number("date")?.toInt(), condition.op, value) == true
+                else -> false
+            }
             RuleFieldType.NUMBER -> evaluateNumber(condition, bag)
             RuleFieldType.BOOLEAN -> condition.op == "is" && condition.value.flag != null && bag.flag(condition.field) == condition.value.flag
             else -> evaluateText(condition, bag)
@@ -160,6 +181,18 @@ object RuleDateMatcher {
                 try { abs(LocalDate.of(date/10000, date/100%100, date%100).toEpochDay() - LocalDate.of(target/10000, target/100%100, target%100).toEpochDay()) <= 2 } catch (_: DateTimeException) { return null }
             op == "gt" && digits.length == 8 -> date > target; op == "gte" && digits.length == 8 -> date >= target
             op == "lt" && digits.length == 8 -> date < target; op == "lte" && digits.length == 8 -> date <= target; else -> null }
+    }
+
+    /** A schedule's recurring date condition is stored as a RecurConfig JSON object rather than a string. */
+    fun matchesRecurring(transactionDate: Int?, op: String, value: RuleValue.ObjectValue): Boolean? {
+        val date = transactionDate ?: return false
+        val config = (value.jsonValue() as? JSONObject)?.let(RecurConfig::parse) ?: return null
+        val day = DayDate.fromYyyymmdd(date) ?: return null
+        return when (op) {
+            "is" -> ScheduleRecurrence.occursOn(config, day)
+            "isapprox" -> ScheduleRecurrence.occursApprox(config, day)
+            else -> null
+        }
     }
 }
 
