@@ -508,6 +508,13 @@ fun AppNavigation(
                 billsCalendarReturnsToSchedules = false
                 detail = DetailDestination.Schedules
             }
+            detail == DetailDestination.CreditCardStatementDetail -> {
+                detail = DetailDestination.CreditCardStatements
+            }
+            detail == DetailDestination.CreditCardStatements -> {
+                detail = if (statementsReturnToTransactions) DetailDestination.Transactions else DetailDestination.CreditCards
+                statementsReturnToTransactions = false
+            }
             detail == DetailDestination.EditTransaction && editorReturnsToTransactions -> {
                 detail = DetailDestination.Transactions
                 editingTransaction = null
