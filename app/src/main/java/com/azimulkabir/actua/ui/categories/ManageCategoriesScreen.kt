@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DragHandle
@@ -50,6 +49,7 @@ import com.azimulkabir.actua.data.budget.CategoryDragReorder
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
 import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.MoveCategoryDialog
 import com.azimulkabir.actua.ui.components.NewCategoryDialog
 import com.azimulkabir.actua.ui.components.RenameDialog
@@ -155,9 +155,7 @@ fun ManageCategoriesScreen(
     }
 
     Column(modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
-            Text("Manage Categories", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        ActuaScreenHeader(title = "Manage Categories", onBack = onBack) {
             IconButton(onClick = onReorderGroupsClick) { Icon(Icons.Outlined.SwapVert, contentDescription = "Reorder Groups") }
             IconButton(onClick = { addingGroup = true }) { Icon(Icons.Outlined.Add, contentDescription = "Add group") }
         }

@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.AlertDialog
@@ -41,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.CreditCardStatus
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -64,10 +64,7 @@ fun CreditCardsScreen(
     val availableAccounts = accounts.filter { !it.closed && it.id !in configured }
 
     Column(modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
-            Text("Credit Cards", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f))
+        ActuaScreenHeader(title = "Credit Cards", onBack = onBack) {
             IconButton(onClick = { adding = true }, enabled = availableAccounts.isNotEmpty()) {
                 Icon(Icons.Outlined.Add, "Add credit card")
             }

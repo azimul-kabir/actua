@@ -7,7 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Calculate
@@ -21,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.schedules.*
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
 import com.azimulkabir.actua.ui.components.centsToInput
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -123,19 +123,10 @@ fun EditScheduleScreen(
 
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        ActuaScreenHeader(
+            title = if (schedule == null) "New Schedule" else "Edit Schedule",
+            onBack = onBack,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
-            }
-            Text(
-                if (schedule == null) "New Schedule" else "Edit Schedule",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
             TextButton(
                 enabled = canSave,
                 onClick = { onSave(fields(), payeeName) },
@@ -427,19 +418,7 @@ private fun RepeatEditorScreen(
     var dateTarget by remember { mutableStateOf<RepeatDateTarget?>(null) }
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
-            }
-            Text(
-                "Repeat",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-            )
-        }
+        ActuaScreenHeader(title = "Repeat", onBack = onBack)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
                 .padding(start = 20.dp, end = 20.dp, bottom = 32.dp),
