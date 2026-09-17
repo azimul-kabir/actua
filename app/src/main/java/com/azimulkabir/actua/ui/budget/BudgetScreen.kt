@@ -105,6 +105,8 @@ import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.RenameDialog
+import com.azimulkabir.actua.ui.theme.PillShape
+import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.transactions.TransactionDetailsSheet
 import java.text.NumberFormat
 import java.util.Locale
@@ -627,7 +629,7 @@ private fun BudgetToolbar(
 ) {
     var monthPickerOpen by remember { mutableStateOf(false) }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
@@ -638,7 +640,7 @@ private fun BudgetToolbar(
                 formatMonth(month),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(RoundedCornerShape(12.dp))
+                modifier = Modifier.clip(MaterialTheme.shapes.medium)
                     .clickable { monthPickerOpen = true }
                     .padding(horizontal = 6.dp, vertical = 8.dp),
             )
@@ -648,7 +650,7 @@ private fun BudgetToolbar(
         }
         Box {
             Surface(
-                shape = RoundedCornerShape(28.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 tonalElevation = 2.dp,
             ) {
@@ -826,7 +828,7 @@ private fun PlanBudgetOverview(
         onClick = onClick,
         color = if (ready >= 0L) MaterialTheme.colorScheme.primaryContainer
             else MaterialTheme.colorScheme.errorContainer,
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
@@ -956,7 +958,7 @@ private fun PlanBudgetCategoryRow(
             LinearProgressIndicator(
                 progress = { category.progressFraction },
                 modifier = Modifier.fillMaxWidth().padding(top = 9.dp).height(5.dp)
-                    .clip(RoundedCornerShape(100)),
+                    .clip(PillShape),
                 color = if (category.balanceCents < 0) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -1127,11 +1129,11 @@ private fun OverviewCell(
                 else MaterialTheme.colorScheme.surfaceContainerHighest
             if (onClick != null) {
                 Surface(onClick = onClick, modifier = pillModifier, color = pillColor,
-                    shape = RoundedCornerShape(8.dp)) {
+                    shape = MaterialTheme.shapes.small) {
                     OverviewPillAmount(amount, positive)
                 }
             } else {
-                Surface(modifier = pillModifier, color = pillColor, shape = RoundedCornerShape(8.dp)) {
+                Surface(modifier = pillModifier, color = pillColor, shape = MaterialTheme.shapes.small) {
                     OverviewPillAmount(amount, positive)
                 }
             }
@@ -1274,7 +1276,7 @@ private fun CategoryRow(
             LinearProgressIndicator(
                 progress = { category.progressFraction },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(4.dp)
-                    .clip(RoundedCornerShape(100)),
+                    .clip(PillShape),
                 color = if (category.available < 0) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -1377,7 +1379,7 @@ private fun EditBudgetAmountSheet(
                         Surface(
                             onClick = { onSave(amount) },
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = RoundedCornerShape(14.dp),
+                            shape = MaterialTheme.shapes.large,
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
@@ -1476,7 +1478,7 @@ private fun BudgetEntryAction(
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(onClick = onClick, color = if (selected) MaterialTheme.colorScheme.secondaryContainer
             else MaterialTheme.colorScheme.surfaceContainer,
-            shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
+            shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
             Icon(icon, contentDescription = null, tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
                 else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 11.dp))
@@ -1497,7 +1499,7 @@ private fun InlineCalculatorAmount(label: String, amount: Long, modifier: Modifi
     )
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Row(
@@ -1543,7 +1545,7 @@ private fun BalancePill(
     val negative = amount < 0
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
         color = when {
             positive -> MaterialTheme.colorScheme.primaryContainer
             negative -> MaterialTheme.colorScheme.errorContainer
@@ -1756,7 +1758,7 @@ private fun MoveEndpointSelector(
         Surface(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Row(
@@ -1871,7 +1873,7 @@ private fun CategoryDetailsScreen(
             Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp)
                 .verticalScroll(androidx.compose.foundation.rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(22.dp)) {
+                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.large) {
                     Column(
                         Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1884,7 +1886,7 @@ private fun CategoryDetailsScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer)
                         LinearProgressIndicator(
                             progress = { progress },
-                            modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(100)),
+                            modifier = Modifier.fillMaxWidth().height(5.dp).clip(PillShape),
                             color = if (category.balanceCents < 0L) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.primary,
                             trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -1907,7 +1909,7 @@ private fun CategoryDetailsScreen(
                     scheduleFunding = scheduleFunding,
                     onClick = onEditTarget,
                 )
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(18.dp)) {
+                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
                     Column {
                         Row(
                             Modifier.fillMaxWidth().clickable { noteEditorOpen = true }
@@ -1937,7 +1939,7 @@ private fun CategoryDetailsScreen(
                         }
                     }
                 }
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(18.dp)) {
+                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
                     Column {
                         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 2.dp),
                             verticalAlignment = Alignment.CenterVertically) {
@@ -2104,7 +2106,7 @@ private fun TargetDetailsCard(
         }
     }
     Surface(onClick = onClick, color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(18.dp)) {
+        shape = MaterialTheme.shapes.large) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
