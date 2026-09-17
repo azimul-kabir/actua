@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -59,7 +58,11 @@ import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.NewAccountDialog
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.MonetaryText
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.theme.AmountTypography
+import com.azimulkabir.actua.ui.theme.Spacing
 import java.text.NumberFormat
 import kotlin.math.absoluteValue
 
@@ -115,14 +118,9 @@ fun AccountsScreen(
     ).filter { it.accounts.isNotEmpty() }
 
     Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, top = 10.dp, end = 12.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Accounts", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f))
+        ActuaScreenHeader(title = "Accounts") {
             Surface(
-                shape = RoundedCornerShape(28.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 tonalElevation = 2.dp,
             ) {
@@ -248,24 +246,24 @@ private fun AccountsSummary(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
     ) {
-        Column(modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 12.dp, bottom = 12.dp)) {
+        Column(modifier = Modifier.padding(start = Spacing.screenHorizontal, top = Spacing.md, end = Spacing.md, bottom = Spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("All accounts", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                Text("All accounts", style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f))
-                BalanceText(total, FontWeight.Bold, hideDecimalPlaces)
+                MonetaryText(total, hideDecimalPlaces, style = AmountTypography.rowAmount.copy(fontWeight = FontWeight.Bold))
                 Icon(Icons.Outlined.ChevronRight, contentDescription = "View all transactions")
             }
             if (showMonthlySummary) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp),
+                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.md),
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
                 Text(java.text.SimpleDateFormat("MMMM yyyy", locale).format(java.util.Date()), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
                     horizontalArrangement = Arrangement.SpaceBetween) {
                     SummaryStat("Income", summary.incomeCents, hideDecimalPlaces = hideDecimalPlaces)
                     SummaryStat("Expenses", summary.expenseCents, Alignment.CenterHorizontally, hideDecimalPlaces)
                     SummaryStat("Net", summary.netCents, Alignment.End, hideDecimalPlaces,
-                        Modifier.padding(end = 24.dp))
+                        Modifier.padding(end = Spacing.xl))
                 }
             }
         }
@@ -278,7 +276,7 @@ private fun SummaryStat(label: String, amount: Long, alignment: Alignment.Horizo
     Column(horizontalAlignment = alignment, modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        BalanceText(amount, FontWeight.SemiBold, hideDecimalPlaces)
+        MonetaryText(amount, hideDecimalPlaces)
     }
 }
 
@@ -291,17 +289,17 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
         Row(
             modifier = Modifier.fillMaxWidth().combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = {},
-            ).padding(horizontal = 16.dp, vertical = 12.dp),
+            ).padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(Icons.Outlined.KeyboardArrowDown,
                 contentDescription = if (collapsed) "Expand ${section.title}" else "Collapse ${section.title}",
                 modifier = Modifier.rotate(rotation))
-            Text(section.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
+            Text(section.title, style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.weight(1f))
-            BalanceText(total, FontWeight.SemiBold, hideDecimalPlaces)
+            MonetaryText(total, hideDecimalPlaces)
             // Match the space occupied by the account-row disclosure chevron.
-            Spacer(Modifier.width(20.dp))
+            Spacer(Modifier.width(Spacing.screenHorizontal))
         }
     }
 }
@@ -319,7 +317,7 @@ private fun AccountRow(
     Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
         if (showTopDivider) {
             HorizontalDivider(
-                modifier = Modifier.padding(start = 24.dp, end = 12.dp),
+                modifier = Modifier.padding(start = Spacing.screenHorizontal, end = Spacing.md),
                 thickness = 1.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.32f),
             )
@@ -327,7 +325,7 @@ private fun AccountRow(
         Row(
             modifier = Modifier.fillMaxWidth()
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                .padding(start = 24.dp, top = 15.dp, end = 12.dp, bottom = 15.dp),
+                .padding(start = Spacing.screenHorizontal, top = 15.dp, end = Spacing.md, bottom = 15.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -336,20 +334,11 @@ private fun AccountRow(
                     ?: account.type, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            BalanceText(account.balanceCents, FontWeight.SemiBold, hideDecimalPlaces)
+            MonetaryText(account.balanceCents, hideDecimalPlaces)
             Icon(Icons.Outlined.ChevronRight, contentDescription = "Open ${account.name}",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
-}
-
-@Composable
-private fun BalanceText(amount: Long, weight: FontWeight, hideDecimalPlaces: Boolean) {
-    Text(formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodyMedium, fontWeight = weight, color = when {
-        amount > 0 -> MaterialTheme.colorScheme.primary
-        amount < 0 -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
