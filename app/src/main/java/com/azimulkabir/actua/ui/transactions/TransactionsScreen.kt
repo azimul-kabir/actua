@@ -981,11 +981,9 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     Row(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
         .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md), verticalAlignment = Alignment.Top) {
         if (selectionMode) {
-            Checkbox(checked = selected, onCheckedChange = null,
-                modifier = Modifier.align(Alignment.CenterVertically).padding(end = 4.dp))
+            Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
         }
-        ClearedIndicator(transaction.cleared, onClearedClick,
-            modifier = Modifier.align(Alignment.CenterVertically).padding(end = 10.dp))
+        ClearedIndicator(transaction.cleared, onClearedClick, modifier = Modifier.padding(end = 10.dp, top = 2.dp))
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(presentation.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1115,7 +1113,7 @@ fun TransactionDetailsSheet(
                 Text("Transaction details", style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Amount(transaction.amountCents, FontWeight.Bold, hideDecimalPlaces)
-                ClearedIndicator(transaction.cleared)
+                ClearedIndicator(transaction.cleared, modifier = Modifier.padding(start = 8.dp))
             }
             HorizontalDivider()
             TransactionDetail("Payee", presentation.title)
