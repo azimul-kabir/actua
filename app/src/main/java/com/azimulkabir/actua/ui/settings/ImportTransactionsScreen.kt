@@ -15,15 +15,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -58,6 +54,7 @@ import com.azimulkabir.actua.data.importing.FinancialMessageProfile
 import com.azimulkabir.actua.data.importing.StatementFormat
 import com.azimulkabir.actua.data.importing.StatementDocumentReader
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -186,10 +183,7 @@ fun ImportTransactionsScreen(
     }
 
     Column(modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
-            Text("Import transactions", style = MaterialTheme.typography.titleLarge)
-        }
+        ActuaScreenHeader(title = "Import transactions", onBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
             Text("CSV, XLSX, and text-based PDF files stay on this device. Every valid row is shown for review before anything is saved.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

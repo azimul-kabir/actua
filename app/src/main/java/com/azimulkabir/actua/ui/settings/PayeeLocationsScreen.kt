@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -28,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.PayeeLocationSummary
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import java.text.DateFormat
 import java.util.Date
 
@@ -47,19 +47,7 @@ fun PayeeLocationsScreen(
 ) {
     var pendingDeletion by remember { mutableStateOf<LocationDeletion?>(null) }
     Column(modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
-            }
-            Text(
-                "Payee Locations",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-        }
+        ActuaScreenHeader(title = "Payee Locations", onBack = onBack)
         Text(
             "Saved coordinates stay in your Actual budget and synchronize with it. Actua never tracks location in the background.",
             style = MaterialTheme.typography.bodyMedium,

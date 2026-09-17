@@ -19,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
@@ -64,6 +63,7 @@ import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.sync.SyncStatusStore
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -450,13 +450,7 @@ fun ConnectionScreen(
     )
 
     Column(modifier = modifier.fillMaxSize()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
-            }
-            Text("Connection & data", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        }
+        ActuaScreenHeader(title = "Connection & data", onBack = onBack)
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("Try Actua", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

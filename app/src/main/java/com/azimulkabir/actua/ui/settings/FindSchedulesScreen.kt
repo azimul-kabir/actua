@@ -11,13 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.schedules.RecurConfig
 import com.azimulkabir.actua.data.schedules.ScheduleDiscovery
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 
 @Composable
@@ -46,19 +45,7 @@ fun FindSchedulesScreen(
     val selected = proposals.orEmpty().filter { it.proposal.id in selectedIds }.map { it.proposal }
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
-            }
-            Text(
-                "Find Schedules",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
+        ActuaScreenHeader(title = "Find Schedules", onBack = onBack) {
             TextButton(onClick = { onCreate(selected) }, enabled = selected.isNotEmpty()) {
                 Text("Create")
             }

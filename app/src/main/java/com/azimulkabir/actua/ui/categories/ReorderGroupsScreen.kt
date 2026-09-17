@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -43,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
 import com.azimulkabir.actua.data.budget.GroupDragReorder
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.dragReorderHandle
 import kotlinx.coroutines.launch
 
@@ -124,10 +124,7 @@ fun ReorderGroupsScreen(
     val reorderable = remember(localGroups) { localGroups.filterNot { it.isIncome } }
 
     Column(modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
-            Text("Reorder Groups", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-        }
+        ActuaScreenHeader(title = "Reorder Groups", onBack = onBack)
         Text(
             "Drag a handle to reorder, or use the up/down arrows.",
             style = MaterialTheme.typography.bodySmall,

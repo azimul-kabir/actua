@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Add
@@ -65,6 +64,7 @@ import com.azimulkabir.actua.data.schedules.BillsCalendarEngine
 import com.azimulkabir.actua.data.schedules.BillsTabMode
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.time.Month
 import java.time.format.TextStyle
@@ -105,13 +105,7 @@ fun BillsCalendarScreen(
 
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
-            Text("Bills", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f))
+        ActuaScreenHeader(title = "Bills", onBack = onBack) {
             IconButton(onClick = if (mode == BillsTabMode.RECURRING) onAddSchedule else onConfigureCards) {
                 Icon(Icons.Outlined.Add, if (mode == BillsTabMode.RECURRING) "Add schedule" else "Configure cards")
             }

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Button
@@ -47,6 +46,7 @@ import com.azimulkabir.actua.data.rules.RuleEditorData
 import com.azimulkabir.actua.data.rules.RuleFieldType
 import com.azimulkabir.actua.data.rules.RuleSchema
 import com.azimulkabir.actua.data.rules.RuleValue
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import java.time.LocalDate
 
 @Composable
@@ -63,9 +63,7 @@ fun RulesScreen(
     var search by remember { mutableStateOf("") }
     var editing by remember { mutableStateOf<Rule?>(null) }
     Column(modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
-            Text("Rules", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        ActuaScreenHeader(title = "Rules", onBack = onBack) {
             if (supported) IconButton(onClick = { editing = Rule.empty() }) { Icon(Icons.Outlined.Add, "Add rule") }
         }
         if (!supported) {
