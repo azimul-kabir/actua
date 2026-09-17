@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
@@ -38,7 +37,6 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.TextButton
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Search
@@ -80,6 +78,8 @@ import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
 import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.parseStoredDate
 import com.azimulkabir.actua.ui.components.storageDate
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.theme.Spacing
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -219,7 +219,7 @@ fun AddTransactionScreen(
         }
         Column(
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).imePadding()
-                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.screenHorizontal),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -386,7 +386,7 @@ fun AddTransactionScreen(
                             )
                         },
                         modifier = Modifier.fillMaxWidth().height(54.dp),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = MaterialTheme.shapes.large,
                     ) { Text(if (isOffBudget) "Split transaction" else "Split into multiple categories") }
                 } else {
                     Column(
@@ -516,7 +516,7 @@ fun AddTransactionScreen(
                         FilledTonalButton(
                             onClick = { splitLines = splitLines + SplitLine() },
                             modifier = Modifier.fillMaxWidth().height(54.dp),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = MaterialTheme.shapes.large,
                         ) { Text("Add another split") }
                         Text(
                             if (splitTotal == amountCents) "Split total matches the transaction amount"
@@ -632,7 +632,7 @@ private fun TransactionSaveButton(
         onClick = onClick,
         enabled = canSave,
         modifier = modifier.height(56.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
     ) {
         Icon(Icons.Outlined.Check, contentDescription = null)
         Text("Save", modifier = Modifier.padding(start = 8.dp))
@@ -871,20 +871,7 @@ private fun SearchableTransactionPicker(
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize().imePadding()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
-                    }
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                ActuaScreenHeader(title = title, onBack = onDismiss)
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
@@ -895,7 +882,7 @@ private fun SearchableTransactionPicker(
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)
                         .focusRequester(focusRequester),
                 )
                 LaunchedEffect(Unit) {
@@ -905,7 +892,7 @@ private fun SearchableTransactionPicker(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        start = 20.dp, end = 20.dp, top = 8.dp, bottom = 32.dp,
+                        start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.sm, bottom = Spacing.xxl,
                     ),
                 ) {
                     if (selected.isNotBlank() && query.isBlank() && selected in uniqueOptions) {
@@ -931,7 +918,7 @@ private fun SearchableTransactionPicker(
                                 },
                                 enabled = !nearbyLoading,
                                 modifier = Modifier.fillMaxWidth().height(52.dp),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = MaterialTheme.shapes.large,
                             ) {
                                 if (nearbyLoading) {
                                     CircularProgressIndicator(
@@ -1173,7 +1160,7 @@ private fun PickerGroup(
     onSelect: (String) -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -1201,7 +1188,7 @@ private fun NearbyPickerGroup(
     onForget: ((NearbyPayeeOption) -> Unit)?,
 ) {
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
     ) {
