@@ -216,6 +216,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Credit-card account details with limit, available credit, current billing cycle,
   cycle spending, and calculated payment due date using either a fixed due day or
   a legacy days-after-statement offset
+- Credit card statement history: the last 3 closed billing-cycle statements with
+  their due amounts, each opening to its own transaction list, ported 1:1 from
+  Actuali's `CreditCardCycle`
 - Opt-in Android credit-card payment reminders at 7, 5, 3, and 1 days before
   due, with permission handling, stale-work cancellation, delivery-time balance
   validation, and unpaid-first stable due-date sorting
