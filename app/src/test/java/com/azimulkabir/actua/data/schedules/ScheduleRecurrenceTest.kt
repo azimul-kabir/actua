@@ -40,4 +40,22 @@ class ScheduleRecurrenceTest {
             listOf(RecurConfig.Pattern("day",7)), true,"after")
         assertEquals("2026-02-09", next(after, "2026-02-01"))
     }
+
+    @Test fun occursOnAndOccursApproxMatchTheRecurrence() {
+        val monthly = RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2026, 1, 3))
+        org.junit.Assert.assertTrue(ScheduleRecurrence.occursOn(monthly, DayDate(2026, 5, 3)))
+        org.junit.Assert.assertFalse(ScheduleRecurrence.occursOn(monthly, DayDate(2026, 5, 4)))
+        org.junit.Assert.assertTrue(ScheduleRecurrence.occursApprox(monthly, DayDate(2026, 5, 5)))
+        org.junit.Assert.assertFalse(ScheduleRecurrence.occursApprox(monthly, DayDate(2026, 5, 6)))
+    }
+
+    @Test fun parseToleratesLongValuedNumbersFromRuleValueRoundTrip() {
+        val json = org.json.JSONObject().put("start", "2026-01-03").put("frequency", "monthly")
+            .put("interval", 1L).put("patterns", org.json.JSONArray()
+                .put(org.json.JSONObject().put("type", "day").put("value", 3L)))
+            .put("endMode", "never")
+        val config = requireNotNull(RecurConfig.parse(json))
+        assertEquals(1, config.interval)
+        assertEquals(listOf(RecurConfig.Pattern("day", 3)), config.patterns)
+    }
 }

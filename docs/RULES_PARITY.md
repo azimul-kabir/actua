@@ -206,34 +206,6 @@ upstream's class-based `Condition`/`Action`/`Rule`.
 
 ## Deliberate deviations and known gaps
 
-- **No `runRules` schedule bypass/exclusion.** Upstream's `runRules` special-cases a transaction
-  linked to a schedule (`trans.schedule != null`): that schedule's own rule always runs (bypassing
-  its own condition check entirely) and every rule linked to any *other* schedule is skipped, so a
-  posted/edited schedule transaction can never accidentally pick up another schedule's rule actions
-  by incidentally matching its conditions, and the owning schedule's rule always applies even when
-  the actual posting date falls outside what its (possibly recurring) date condition would otherwise
-  match. `RulesEngine.apply` has no equivalent: it condition-checks every rule uniformly regardless
-  of whether the transaction being processed is linked to a schedule, so (a) a schedule-owned rule
-  whose date condition is a recurring config never matches through the generic date-condition path
-  (see the next gap) and its non-schedule-slot actions are not guaranteed to apply on posting, and
-  (b) an unrelated schedule's rule could in principle also apply to a posted transaction if its other
-  conditions happen to match. In practice this is a narrower gap for schedule postings whose
-  category/payee/amount already come from a direct schedule-field projection
-  (`SchedulePoster`/`ActuaRepository.postScheduleTransaction`) rather than rule application, but any
-  *extra*, user-added action on a schedule-owned rule (e.g. a note or tag beyond the four recognized
-  slots) is not guaranteed to apply on posting today. Tracked as
-  [#290](https://github.com/azimul-kabir/actua/issues/290).
-- **Recurring date conditions never match through `RulesEngine`.** `RuleDateMatcher.matches` only
-  accepts a string date value; a rule's `date` condition holding a recurring config (the shape a
-  schedule's `isapprox` date condition stores, and the shape upstream's `condition.ts` evaluates via
-  `RSchedule.occursBetween`/`occursOn`) is parsed by `RuleValue.fromJson` as an `ObjectValue`, whose
-  `.text` is `null`, so the condition always evaluates to `false`. Combined with the previous gap,
-  this means a schedule-owned rule's date condition can never be satisfied by the generic rules path
-  (only the dedicated schedule-matching code in `data/schedules/` evaluates recurring dates
-  correctly); a schedule-owned rule is therefore only reliably useful today through its
-  category/payee/amount slots, which `SchedulePoster` already applies directly rather than through
-  rule condition matching. Tracked together with the previous gap as
-  [#290](https://github.com/azimul-kabir/actua/issues/290).
 - **`isNot category (none)` does not exclude split parents.** Upstream expands `isNot category null`
   to also require `parent == false` (a split parent never satisfies "category is not none", even
   though a transfer does). Actua's `evaluateText` `"isNot"` branch has no such exclusion.

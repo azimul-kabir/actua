@@ -32,7 +32,7 @@ data class RecurConfig(
             val start = DayDate.fromIso(json.optString("start")) ?: return null
             val interval = when (val raw = json.opt("interval")) {
                 null, JSONObject.NULL -> 1
-                is Int -> raw.coerceAtLeast(1)
+                is kotlin.Number -> raw.toInt().coerceAtLeast(1)
                 else -> return null
             }
             val patterns = buildList {
@@ -40,14 +40,14 @@ data class RecurConfig(
                 if (array != null) for (index in 0 until array.length()) {
                     val pattern = array.optJSONObject(index) ?: return null
                     val type = pattern.optString("type")
-                    val value = pattern.opt("value") as? Int ?: return null
+                    val value = (pattern.opt("value") as? kotlin.Number)?.toInt() ?: return null
                     if (value == 0 || (type == "day" && abs(value) > 31) ||
                         (type != "day" && (type !in WEEKDAYS || abs(value) > 5))) return null
                     add(Pattern(type, value))
                 }
             }
             val endMode = json.optString("endMode", "never")
-            val endOccurrences = (json.opt("endOccurrences") as? Int)
+            val endOccurrences = (json.opt("endOccurrences") as? kotlin.Number)?.toInt()
             val endDate = json.optString("endDate").takeIf(String::isNotBlank)?.let(DayDate::fromIso)
             if (endMode == "on_date" && endDate == null) return null
             if (endMode == "after_n_occurrences" && (endOccurrences ?: 0) <= 0) return null
@@ -82,6 +82,15 @@ object ScheduleRecurrence {
             dates += next; cursor = next.addingDays(1)
         }
         return dates
+    }
+
+    /** Whether `date` is itself an occurrence of `config`. */
+    fun occursOn(config: RecurConfig, date: DayDate): Boolean = nextOccurrence(config, date) == date
+
+    /** Whether `date` falls within `days` of an occurrence of `config` (upstream's `isapprox`). */
+    fun occursApprox(config: RecurConfig, date: DayDate, days: Int = 2): Boolean {
+        val occurrence = nextOccurrence(config, date.addingDays(-days)) ?: return false
+        return occurrence <= date.addingDays(days)
     }
 
     fun skipSearchStart(nextDate: DayDate, config: RecurConfig): DayDate {
