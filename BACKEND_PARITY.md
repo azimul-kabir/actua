@@ -85,7 +85,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   a matching rule while an empty/inferred category is still filled in
 - Rule list/search/editor UI and Actual-compatible CRDT create, update, and
   delete mutations for supported condition and action schemas, with protection
-  for schedule-owned rules
+  for schedule-owned rules; see [docs/RULES_PARITY.md](docs/RULES_PARITY.md) for the audited
+  condition/action/ranking behavior and its implementation boundary
 - Actual-compatible canonical tag data model, colored `#tag` rendering consistent across
   transaction list/detail surfaces, notes autocomplete, native tag create/edit/delete/color/hidden
   management, and tap-a-tag transaction discovery, synced from Actual's tag dataset; see
@@ -254,6 +255,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Merging multiple selected transactions (field precedence and split reconciliation
   semantics are not yet defined; deliberately excluded from the multi-select bulk actions)
 - Advanced split, formula, and template rule actions
+- "Apply rule now" bulk re-application of a rule to existing transactions, a live
+  matching-transaction preview in the rule editor, and automatic category-rule suggestion from
+  repeated recategorization (see [docs/RULES_PARITY.md](docs/RULES_PARITY.md))
 - Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
   cleanup source/sink groups already shipped
 - SimpleFIN linking, download, reconciliation, and bank-feed pending-import approval
