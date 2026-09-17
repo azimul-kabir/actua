@@ -1371,6 +1371,9 @@ fun AppNavigation(
                     onResetNextMonthBuffer = {
                         mutate("Resetting next month's buffer") { repository.resetNextMonthBuffer(budgetMonth) }
                     },
+                    onCopyPreviousMonth = {
+                        mutate("Copying last month's budget") { repository.copyPreviousMonthBudget(budgetMonth) }
+                    },
                     onEditAutomations = { _, category ->
                         editingAutomationCategory = category.name
                         detail = DetailDestination.BudgetAutomation

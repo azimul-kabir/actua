@@ -175,6 +175,7 @@ fun BudgetScreen(
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
     onHoldForNextMonth: (Long) -> Unit = {},
     onResetNextMonthBuffer: () -> Unit = {},
+    onCopyPreviousMonth: () -> Unit = {},
     onEditAutomations: (BudgetGroup, BudgetCategory) -> Unit = { _, _ -> },
     onApplyBudgetTemplate: (BudgetTemplatePreview) -> Unit = {},
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
@@ -267,6 +268,10 @@ fun BudgetScreen(
             },
             onCollapseAll = {
                 saveCollapsedGroups(groups.mapTo(mutableSetOf()) { it.name })
+                optionsExpanded = false
+            },
+            onCopyPreviousMonth = {
+                onCopyPreviousMonth()
                 optionsExpanded = false
             },
             onSearch = onSearch,
@@ -629,6 +634,7 @@ private fun BudgetToolbar(
     onShowCategoryFiltersChange: (Boolean) -> Unit,
     onExpandAll: () -> Unit,
     onCollapseAll: () -> Unit,
+    onCopyPreviousMonth: () -> Unit,
     onSearch: () -> Unit,
     onManageCategories: () -> Unit,
 ) {
@@ -698,6 +704,8 @@ private fun BudgetToolbar(
                 HorizontalDivider()
                 DropdownMenuItem(text = { Text("Expand all groups") }, onClick = onExpandAll)
                 DropdownMenuItem(text = { Text("Collapse all groups") }, onClick = onCollapseAll)
+                HorizontalDivider()
+                DropdownMenuItem(text = { Text("Copy last month's budget") }, onClick = onCopyPreviousMonth)
             }
         }
     }
