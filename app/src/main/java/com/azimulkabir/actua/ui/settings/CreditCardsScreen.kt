@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.History
@@ -41,6 +40,7 @@ import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.theme.warning
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -111,8 +111,8 @@ private fun CreditCardRow(
     onViewStatements: () -> Unit = {},
 ) {
     val days = card.cycle.daysUntilDue()
-    val urgency = when { days <= 3 -> MaterialTheme.colorScheme.error; days <= 7 -> Color(0xFFF57C00); else -> Color(0xFFF9A825) }
-    Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+    val urgency = when { days <= 3 -> MaterialTheme.colorScheme.error; days <= 7 -> MaterialTheme.colorScheme.warning; else -> Color(0xFFF9A825) }
+    Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.padding(vertical = 0.dp).align(Alignment.CenterVertically)) {
                 Surface(color = urgency, modifier = Modifier.padding(0.dp)) { Box(Modifier.padding(horizontal = 2.dp, vertical = 34.dp)) }

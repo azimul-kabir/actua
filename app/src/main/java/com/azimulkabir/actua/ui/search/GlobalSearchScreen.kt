@@ -98,7 +98,7 @@ fun GlobalSearchScreen(
             leadingIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
             trailingIcon = { Icon(Icons.Outlined.Search, "Search") },
             singleLine = true,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+            shape = MaterialTheme.shapes.extraLarge,
         )
         androidx.compose.foundation.lazy.LazyRow(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),

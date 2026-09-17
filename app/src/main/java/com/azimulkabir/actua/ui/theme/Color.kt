@@ -1,8 +1,11 @@
 package com.azimulkabir.actua.ui.theme
 
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 // Actua's default color scheme is derived from the app's own launcher icon
 // (a vivid indigo/violet, #4B18D1 — see actua_launcher_background.xml) so the
@@ -127,3 +130,19 @@ val ActuaDarkColorScheme = darkColorScheme(
     surfaceContainerHigh = Color(0xFF2B292F),
     surfaceContainerHighest = Color(0xFF36343A),
 )
+
+// Material 3 has no built-in "success"/"warning" roles, but Actua needs both for
+// paid/cleared and due-soon status across Accounts, Transactions, Schedules and
+// Bills. These live here rather than as scattered hex literals per screen, and
+// pick a theme-appropriate tone from the current background rather than a
+// single hardcoded value that only reads correctly in light mode.
+private val SuccessGreenLight = Color(0xFF2E7D32)
+private val SuccessGreenDark = Color(0xFF81C995)
+private val WarningAmberLight = Color(0xFFF57C00)
+private val WarningAmberDark = Color(0xFFFFB74D)
+
+val ColorScheme.success: Color
+    @Composable get() = if (background.luminance() > 0.5f) SuccessGreenLight else SuccessGreenDark
+
+val ColorScheme.warning: Color
+    @Composable get() = if (background.luminance() > 0.5f) WarningAmberLight else WarningAmberDark

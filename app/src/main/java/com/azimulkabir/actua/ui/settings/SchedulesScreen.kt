@@ -49,7 +49,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,6 +61,9 @@ import com.azimulkabir.actua.data.schedules.ScheduledAmount
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatDate as formatDisplayDate
+import com.azimulkabir.actua.ui.theme.PillShape
+import com.azimulkabir.actua.ui.theme.success
+import com.azimulkabir.actua.ui.theme.warning
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -248,7 +250,7 @@ private fun ScheduleRow(
                 Text(
                     formatScheduleAmount(item, hideDecimals),
                     fontWeight = FontWeight.SemiBold,
-                    color = if (schedule.postAmount > 0) Color(0xFF2E7D32)
+                    color = if (schedule.postAmount > 0) MaterialTheme.colorScheme.success
                         else MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -347,14 +349,14 @@ private fun ScheduleAction(
 private fun StatusChip(status: ScheduleStatus) {
     val color = when (status) {
         ScheduleStatus.MISSED -> MaterialTheme.colorScheme.error
-        ScheduleStatus.DUE -> Color(0xFFF57C00)
+        ScheduleStatus.DUE -> MaterialTheme.colorScheme.warning
         ScheduleStatus.UPCOMING -> MaterialTheme.colorScheme.primary
-        ScheduleStatus.PAID -> Color(0xFF2E7D32)
+        ScheduleStatus.PAID -> MaterialTheme.colorScheme.success
         ScheduleStatus.COMPLETED, ScheduleStatus.SCHEDULED -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     androidx.compose.material3.Surface(
         color = color.copy(alpha = 0.14f),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+        shape = PillShape,
     ) {
         Text(status.name.lowercase().replaceFirstChar(Char::uppercase), color = color,
             style = MaterialTheme.typography.labelSmall,

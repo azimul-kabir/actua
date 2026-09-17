@@ -82,7 +82,7 @@ fun RulesScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             filtered.forEach { rule ->
                 Surface(onClick = { editing = rule }, color = MaterialTheme.colorScheme.surfaceContainer,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) {
+                    shape = MaterialTheme.shapes.large) {
                     Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(rule.stage.name, style = MaterialTheme.typography.labelSmall,
@@ -169,7 +169,7 @@ private fun RuleEditor(rule: Rule, data: RuleEditorData, scheduleOwned: Boolean,
 @Composable
 private fun ConditionEditor(condition: Rule.Condition, data: RuleEditorData,
     onChange: (Rule.Condition) -> Unit, onRemove: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SelectField(RuleSchema.fieldLabel(condition.field), RuleSchema.conditionFields.map { it to RuleSchema.fieldLabel(it) }) { field ->
@@ -190,7 +190,7 @@ private fun ConditionEditor(condition: Rule.Condition, data: RuleEditorData,
 @Composable
 private fun ActionEditor(action: Rule.Action, data: RuleEditorData,
     onChange: (Rule.Action) -> Unit, onRemove: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SelectField(RuleSchema.opLabel(action.op), listOf("set", "prepend-notes", "append-notes", "delete-transaction")

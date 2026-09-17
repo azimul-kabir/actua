@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
@@ -66,6 +65,7 @@ import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.theme.success
 import java.time.Month
 import java.time.format.TextStyle
 import kotlinx.coroutines.Dispatchers
@@ -160,7 +160,7 @@ fun BillsCalendarScreen(
                     hideDecimalPlaces, Modifier.weight(1f))
                 SummaryMetric("Overdue", summary.overdueCents, MaterialTheme.colorScheme.error,
                     hideDecimalPlaces, Modifier.weight(1f))
-                SummaryMetric("Paid", summary.paidCents, Color(0xFF2E7D32),
+                SummaryMetric("Paid", summary.paidCents, MaterialTheme.colorScheme.success,
                     hideDecimalPlaces, Modifier.weight(1f))
             }
 
@@ -186,7 +186,7 @@ fun BillsCalendarScreen(
                 }
             } else if (visible.isEmpty()) {
                 Surface(
-                    shape = RoundedCornerShape(18.dp),
+                    shape = MaterialTheme.shapes.large,
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -264,7 +264,7 @@ private fun BillsCalendarGrid(
     val byDate = items.groupBy(BillCalendarItem::date)
     val cells = List<DayDate?>(BillsCalendarEngine.leadingEmptyDays(year, month)) { null } +
         BillsCalendarEngine.daysInMonth(year, month)
-    Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+    Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(Modifier.fillMaxWidth()) {
                 listOf("M", "T", "W", "T", "F", "S", "S").forEach { label ->
@@ -319,7 +319,7 @@ private fun CalendarDay(
 
 @Composable
 private fun SummaryMetric(title: String, cents: Long, color: Color, hideDecimals: Boolean, modifier: Modifier) {
-    Surface(modifier, shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+    Surface(modifier, shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.padding(horizontal = 10.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 Spacer(Modifier.size(7.dp).background(color, CircleShape))
@@ -341,7 +341,7 @@ private fun BillCard(
     onLongClick: () -> Unit,
 ) {
     val locale = LocalConfiguration.current.locales[0]
-    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+    Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(
             Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -357,7 +357,7 @@ private fun BillCard(
                 Text(item.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text(formatMoneyCents(item.amountCents, hideDecimalPlaces),
-                        color = if (item.amountCents > 0) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface)
+                        color = if (item.amountCents > 0) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.onSurface)
                     Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(item.relativeDueText(today), style = MaterialTheme.typography.bodySmall,
                         color = statusColor(item.status))
@@ -366,7 +366,7 @@ private fun BillCard(
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Surface(shape = RoundedCornerShape(9.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+            Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                 Column(Modifier.padding(horizontal = 9.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(item.date.day.toString().padStart(2, '0'), fontWeight = FontWeight.Bold)
                     Text(Month.of(item.date.month).getDisplayName(TextStyle.SHORT, locale).uppercase(locale),
@@ -419,7 +419,7 @@ private fun ActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, lab
 @Composable
 private fun statusColor(status: ScheduleStatus): Color = when (status) {
     ScheduleStatus.MISSED -> MaterialTheme.colorScheme.error
-    ScheduleStatus.PAID, ScheduleStatus.COMPLETED -> Color(0xFF2E7D32)
+    ScheduleStatus.PAID, ScheduleStatus.COMPLETED -> MaterialTheme.colorScheme.success
     ScheduleStatus.DUE -> MaterialTheme.colorScheme.tertiary
     else -> MaterialTheme.colorScheme.primary
 }

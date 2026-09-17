@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.CreditCardCycle
@@ -28,6 +27,7 @@ import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.transactions.TransactionRow
+import com.azimulkabir.actua.ui.theme.success
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -70,7 +70,7 @@ private fun StatementRow(statement: CreditCardCycle.StatementRecord, hideDecimal
         Column(Modifier.weight(1f)) {
             Text("${statement.startDate.abbreviated()} – ${statement.endDate.abbreviated()}")
             if (statement.isPaid) {
-                Text("Paid", style = MaterialTheme.typography.bodySmall, color = Color(0xFF2E7D32))
+                Text("Paid", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.success)
             } else {
                 Text("Due ${statement.dueDate.abbreviated()}", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -136,6 +136,6 @@ private fun DetailRow(title: String, value: String, highlightGreen: Boolean = fa
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
         Text(value, fontWeight = FontWeight.SemiBold,
-            color = if (highlightGreen) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface)
+            color = if (highlightGreen) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.onSurface)
     }
 }
