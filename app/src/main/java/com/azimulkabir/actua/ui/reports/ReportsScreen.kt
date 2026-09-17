@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Search
@@ -47,6 +46,8 @@ import com.azimulkabir.actua.model.ReportSnapshot
 import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.theme.PillShape
+import com.azimulkabir.actua.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlin.math.absoluteValue
@@ -75,15 +76,17 @@ fun ReportsScreen(
     LazyColumn(
         state = listState,
         modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp, 20.dp, 20.dp, 96.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            Spacing.screenHorizontal, Spacing.screenHorizontal, Spacing.screenHorizontal, 96.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Reports", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                Text("Reports", style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f))
                 Surface(
-                    shape = RoundedCornerShape(28.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     tonalElevation = 2.dp,
                 ) {
@@ -235,9 +238,9 @@ private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean) {
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Spacer(Modifier.weight(point.primaryCents.toFloat().coerceAtLeast(1f) / maximum).height(6.dp)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)))
+                    .background(MaterialTheme.colorScheme.primary, PillShape))
                 Spacer(Modifier.weight(point.secondaryCents.toFloat().coerceAtLeast(1f) / maximum).height(6.dp)
-                    .background(MaterialTheme.colorScheme.tertiary, RoundedCornerShape(50)))
+                    .background(MaterialTheme.colorScheme.tertiary, PillShape))
             }
         }
     }
@@ -251,7 +254,7 @@ private fun Spending(widget: ReportWidget, hideDecimals: Boolean) {
     Text(formatMoneyCents(current, hideDecimals), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     Text("Comparison ${formatMoneyCents(comparison, hideDecimals)}", color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.fillMaxWidth((current.toFloat() / maximum).coerceIn(0f, 1f)).height(9.dp)
-        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)))
+        .background(MaterialTheme.colorScheme.primary, PillShape))
 }
 
 @Composable
@@ -291,7 +294,7 @@ private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean) {
                 Text(formatMoneyCents(category.spentCents, hideDecimals), fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.fillMaxWidth((category.spentCents.absoluteValue.toFloat() / maximum).coerceIn(0f, 1f))
-                .height(7.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)))
+                .height(7.dp).background(MaterialTheme.colorScheme.primary, PillShape))
         }
     }
 }
@@ -328,16 +331,16 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean) {
                 val point = day?.let(values::get)
                 Column(
                     Modifier.weight(1f).height(38.dp)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(7.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.small)
                         .padding(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(day?.toString().orEmpty(), style = MaterialTheme.typography.labelSmall)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         if ((point?.primaryCents ?: 0) > 0) Spacer(Modifier.weight(1f).height(3.dp)
-                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)))
+                            .background(MaterialTheme.colorScheme.primary, PillShape))
                         if ((point?.secondaryCents ?: 0) > 0) Spacer(Modifier.weight(1f).height(3.dp)
-                            .background(MaterialTheme.colorScheme.error, RoundedCornerShape(50)))
+                            .background(MaterialTheme.colorScheme.error, PillShape))
                     }
                 }
             }
