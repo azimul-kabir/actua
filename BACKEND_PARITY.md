@@ -170,6 +170,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Budget category view filters (Overspent, Underfunded, Overfunded, Money Available) as a
   persisted FilterChip row alongside the existing hide-fully-spent and show-hidden filters
 - Working previous/next budget month navigation, with reads and budget writes scoped to the selected month
+- "Copy last month's budget" Budget screen action that copies the previous month's budgeted
+  amounts for visible expense categories (and visible income categories for tracking budgets)
+  into the selected month, leaving hidden categories and groups unchanged
 - App-wide display currency selection (including no currency), symbol-only mode,
   and decimal-place presentation
 - Category Spent amounts open the matching category transactions for the selected month
@@ -183,12 +186,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   multi-automation list editing and atomic `goal_def` replacement for fully supported UI-managed
   definitions; goal-only balance targets with atomic budget/goal writes; weighted remainder
   distribution after ordinary priorities; current-month available-funds, all-income, and exact
-  income-category percentage contributions; and safe read-only disclosure of advanced or
-  notes-managed templates
-  distribution after ordinary priorities; current-month available-funds, all-income, and exact
-  income-category percentage contributions; exact prior-month copy targets; note-managed refresh
-  with source preservation, loss-aware parse failure handling, and safe read-only disclosure of
-  advanced templates
+  income-category percentage contributions selected from a real picker over the budget's actual
+  income categories (round-tripped without being silently discarded on decode); exact prior-month
+  copy targets; signed increase/decrease adjustment modifiers for Cover schedule and From history
+  (average) automations; note-managed refresh with source preservation, loss-aware parse failure
+  handling, and safe read-only disclosure of advanced templates
 - Notes-managed month-end cleanup source/sink/overspend groups: cleanup-group identity
   resolution and orphan tombstoning, group-scoped and global weighted sink distribution with
   deterministic cent-preserving allocation, general overspend auto-fill, a preview-first
@@ -199,7 +201,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   disclosure for unresolved rows; resolved schedule funding now uses the existing recurrence
   projection, completed/past handling, amount-range midpoint, priority validation, Ready to Budget
   clamping, preview-first review, and atomic confirmation path
-- Account details with notes and working, cleared, uncleared, and reconciled balances
+- Account details with notes and an always-visible three-column Cleared / Balance / Uncleared
+  balance header matching the Actual PWA layout, with Reconciled (and, for credit cards,
+  Available credit / Credit limit) behind a collapsible toggle
+- Optional per-account "Running balance" register display computed from the account's full
+  transaction history, including transfers, splits, and the opening balance
 - Full mobile account reconciliation with bank-balance comparison, difference display,
   uncleared-transaction review, optional cleared adjustment, and atomic CRDT locking
   of every cleared stored row including split parents and children

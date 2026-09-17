@@ -4,14 +4,21 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.28] - 2026-09-17
+
 ### Changed
 
 - Restructured the account detail balance header into an always-visible three-column Cleared / Balance / Uncleared row, matching the Actual PWA layout; only Reconciled (and, for credit cards, Available credit / Credit limit, with Credit limit now under Available credit) stays behind the collapsible toggle
+- Cover schedule and From history (average) budget automations now support Actual's signed increase/decrease adjustment modifier, and % of income now offers a real picker over available funds, all income, and the budget's actual income categories instead of a fixed "available funds" text note
 
 ### Added
 
 - Added a "Running balance" toggle to an account's transaction register overflow menu; when enabled, each transaction row shows the account's balance after that transaction as a smaller line under its amount, computed from the account's full transaction history (including transfers, splits and the opening balance) rather than only the currently visible/filtered rows, and persists across sessions
 - Added a "Copy last month's budget" action to the Budget screen's overflow menu, which copies the previous month's budgeted amounts for visible expense categories (plus visible income categories for tracking budgets) into the selected month; hidden categories and groups are left unchanged
+
+### Fixed
+
+- Fixed a percentage budget automation's selected income category being silently discarded and replaced with the default on decode
 
 ## [1.0.0-beta.27] - 2026-09-17
 

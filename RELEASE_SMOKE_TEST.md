@@ -40,6 +40,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Manage → Categories → Manage Categories: create/rename/hide a group and a category, delete a category, and move a category to another group; drag a category within its group using the handle (no long-press needed) and verify it persists once on drop (not on every row crossed) and auto-scrolls near the list edges; verify a failed persist reverts the drag.
 - [ ] Manage → Categories → Reorder Groups: drag a group to a new position with the up/down buttons as a non-drag alternative; verify the new order persists and syncs, and the income group's position stays fixed.
 - [ ] Manage → Categories → automation editor: open a category's Budget Automation page and verify the "Automations" list (Fixed amount, Cover schedule, Save by date, % of income, From history, Refill to cap, Whatever is left) and "Options" section (Balance cap, Long-term goal) each allow at most one entry; set a Balance cap and a Refill to cap together and verify Refill to cap tracks the Balance cap amount instead of taking its own; verify Fixed amount's period (day/week/month/year), Save by date's repeat/early-spending options, and Cover schedule's savings mode and schedule picker (select/change/clear) all save and reload correctly, including the note field on each automation.
+- [ ] Set a Cover schedule or From history (average) automation's signed increase/decrease adjustment, save, and verify it reloads correctly; set % of income to a specific income category (not just available funds/all income), save, reopen the editor and verify the selected category round-trips instead of reverting to the default.
+- [ ] Budget screen overflow menu → "Copy last month's budget": verify it copies the previous month's budgeted amounts into visible expense categories (and visible income categories on a tracking budget) for the selected month, and leaves hidden categories/groups unchanged.
 
 ## Transactions and accounts
 
@@ -63,7 +65,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Typing `#` in a transaction note offers matching/creatable tag suggestions; selecting one inserts it correctly and syncs.
 - [ ] Manage → Tags: create, edit (color/hidden), rename and delete a tag; renaming updates matching transaction-note hashtags.
 - [ ] Tapping a managed tag opens its matching transactions, including parent/split notes, with the active filter clearly shown and clearable.
-- [ ] Cleared/uncleared/reconciled balances agree with the source budget.
+- [ ] Cleared/uncleared/reconciled balances agree with the source budget; account detail shows an always-visible Cleared / Balance / Uncleared row, with Reconciled (and, for credit cards, Available credit / Credit limit) behind the collapsible toggle.
+- [ ] Enable "Running balance" from an account's transaction register overflow menu and verify each row shows the correct balance after that transaction, including across transfers, splits and the opening balance, and that the setting persists after navigating away and relaunching.
 - [ ] Reconcile an account using a known bank balance and verify the resulting locked/reconciled rows.
 - [ ] Reconciled-transaction filtering works in account and all-transactions views.
 - [ ] Credit-card limit, cycle spending and due-date information render correctly when configured.
