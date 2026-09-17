@@ -24,8 +24,10 @@ import org.junit.Test
 class AccountDetailsTest {
     @get:Rule val compose = createComposeRule()
 
-    private val account = Account(
-        name = "Checking",
+    // AccountDetails persists its expand/collapse state to real SharedPreferences keyed by
+    // account id, so each test uses a distinct id to avoid leaking state across test methods.
+    private fun account(id: String) = Account(
+        name = id,
         balance = 500,
         type = "checking",
         clearedCents = 40_000L,
@@ -33,7 +35,7 @@ class AccountDetailsTest {
         reconciledCents = 30_000L,
     )
 
-    private fun cardStatus(limitCents: Long? = 200_000L) = CreditCardStatus(
+    private fun cardStatus(account: Account, limitCents: Long? = 200_000L) = CreditCardStatus(
         accountId = account.id,
         accountName = account.name,
         balanceCents = account.balanceCents,
@@ -53,7 +55,8 @@ class AccountDetailsTest {
     fun clearedBalanceAndUnclearedAreAlwaysVisible() {
         compose.setContent {
             MaterialTheme {
-                AccountDetails(account, null, "", {}, hideDecimals = false, showSummary = true, showNotes = false)
+                AccountDetails(account("acct-always-visible"), null, "", {},
+                    hideDecimals = false, showSummary = true, showNotes = false)
             }
         }
 
@@ -66,7 +69,8 @@ class AccountDetailsTest {
     fun reconciledStaysCollapsedUntilToggled() {
         compose.setContent {
             MaterialTheme {
-                AccountDetails(account, null, "", {}, hideDecimals = false, showSummary = true, showNotes = false)
+                AccountDetails(account("acct-toggle"), null, "", {},
+                    hideDecimals = false, showSummary = true, showNotes = false)
             }
         }
 
@@ -80,9 +84,11 @@ class AccountDetailsTest {
 
     @Test
     fun creditLimitSitsUnderAvailableCreditWhenExpanded() {
+        val account = account("acct-credit-card")
         compose.setContent {
             MaterialTheme {
-                AccountDetails(account, cardStatus(), "", {}, hideDecimals = false, showSummary = true, showNotes = false)
+                AccountDetails(account, cardStatus(account), "", {},
+                    hideDecimals = false, showSummary = true, showNotes = false)
             }
         }
 
