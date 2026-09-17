@@ -139,7 +139,7 @@ private enum class MainDestination(
     Manage("Manage", Icons.Outlined.Tune),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -290,6 +290,9 @@ fun AppNavigation(
     var scheduleReturnsToTransactionsTab by rememberSaveable { mutableStateOf(false) }
     var billsCalendarReturnsToSchedules by rememberSaveable { mutableStateOf(false) }
     var creditCardsReturnToBills by rememberSaveable { mutableStateOf(false) }
+    var statementsAccountId by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedStatement by remember { mutableStateOf<com.azimulkabir.actua.model.CreditCardCycle.StatementRecord?>(null) }
+    var editorReturnsToStatementDetail by rememberSaveable { mutableStateOf(false) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
     var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
@@ -771,10 +774,15 @@ fun AppNavigation(
                         reopenBudgetCategory = transactionCategory
                         destination = MainDestination.Budget
                     }
-                    detail = if (editorReturnsToTransactions) DetailDestination.Transactions else DetailDestination.Main
+                    detail = when {
+                        editorReturnsToStatementDetail -> DetailDestination.CreditCardStatementDetail
+                        editorReturnsToTransactions -> DetailDestination.Transactions
+                        else -> DetailDestination.Main
+                    }
                     editingTransaction = null
-                    if (!editorReturnsToTransactions && !editorReturnsToCategory) destination = addOrigin
+                    if (!editorReturnsToTransactions && !editorReturnsToCategory && !editorReturnsToStatementDetail) destination = addOrigin
                     editorReturnsToCategory = false
+                    editorReturnsToStatementDetail = false
                 },
                 onSave = {
                     val wasEditing = editingTransaction != null
@@ -808,6 +816,9 @@ fun AppNavigation(
                             destination = MainDestination.Budget
                             detail = DetailDestination.Main
                             editorReturnsToCategory = false
+                        } else if (editorReturnsToStatementDetail) {
+                            detail = DetailDestination.CreditCardStatementDetail
+                            editorReturnsToStatementDetail = false
                         } else if (editorReturnsToTransactions) {
                             detail = DetailDestination.Transactions
                         } else if (wasEditing) {
@@ -825,11 +836,16 @@ fun AppNavigation(
                 onDelete = { transaction ->
                     if (mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }) {
                         editingTransaction = null
-                        detail = if (editorReturnsToTransactions) {
-                            DetailDestination.Transactions
-                        } else {
-                            destination = addOrigin
-                            DetailDestination.Main
+                        detail = when {
+                            editorReturnsToStatementDetail -> {
+                                editorReturnsToStatementDetail = false
+                                DetailDestination.CreditCardStatementDetail
+                            }
+                            editorReturnsToTransactions -> DetailDestination.Transactions
+                            else -> {
+                                destination = addOrigin
+                                DetailDestination.Main
+                            }
                         }
                     }
                 },
@@ -1023,8 +1039,57 @@ fun AppNavigation(
                         CreditCardDueNotificationScheduler.refresh(context)
                     }
                 },
+                onViewStatements = { card ->
+                    statementsAccountId = card.accountId
+                    detail = DetailDestination.CreditCardStatements
+                },
                 modifier = contentModifier,
             )
+            DetailDestination.CreditCardStatements -> {
+                val accountId = statementsAccountId
+                val card = creditCards.firstOrNull { it.accountId == accountId }
+                val statements = remember(accountId, dataVersion) {
+                    accountId?.let { repository.fetchRecentStatements(it) } ?: emptyList()
+                }
+                com.azimulkabir.actua.ui.settings.CreditCardStatementsScreen(
+                    accountName = card?.accountName ?: "",
+                    statements = statements,
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    onBack = { detail = DetailDestination.CreditCards },
+                    onSelectStatement = { statement ->
+                        selectedStatement = statement
+                        detail = DetailDestination.CreditCardStatementDetail
+                    },
+                    modifier = contentModifier,
+                )
+            }
+            DetailDestination.CreditCardStatementDetail -> {
+                val statement = selectedStatement
+                val accountId = statementsAccountId
+                if (statement == null || accountId == null) {
+                    detail = DetailDestination.CreditCardStatements
+                } else {
+                    var statementTransactions by remember(statement) { mutableStateOf<List<Transaction>?>(null) }
+                    LaunchedEffect(statement, accountId, dataVersion) {
+                        statementTransactions = repository.fetchStatementTransactions(
+                            accountId, statement.startDate.yyyymmdd, statement.endDate.yyyymmdd,
+                        )
+                    }
+                    com.azimulkabir.actua.ui.settings.CreditCardStatementDetailScreen(
+                        statement = statement,
+                        transactions = statementTransactions ?: emptyList(),
+                        isLoading = statementTransactions == null,
+                        hideDecimalPlaces = hideDecimalPlaces,
+                        onBack = { detail = DetailDestination.CreditCardStatements },
+                        onSelectTransaction = { tx ->
+                            editingTransaction = tx
+                            editorReturnsToStatementDetail = true
+                            detail = DetailDestination.EditTransaction
+                        },
+                        modifier = contentModifier,
+                    )
+                }
+            }
             DetailDestination.Rules -> RulesScreen(
                 rules = rules,
                 supported = rulesSupported,

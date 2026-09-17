@@ -154,6 +154,53 @@ class ActualBudgetDatabase private constructor(
         """.trimIndent(), arrayOf(accountId, fromDate.toString(), toDate.toString()),
     ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else 0L }
 
+    /** Statement records for the given closed cycles on a credit card account, newest first;
+     * cycles with no recorded transactions and zero statement balance are excluded. */
+    @Synchronized
+    fun fetchRecentStatements(
+        accountId: String, cycles: List<CreditCardCycle.StatementCycle>, liveBalanceCents: Long,
+    ): List<CreditCardCycle.StatementRecord> {
+        val records = mutableListOf<CreditCardCycle.StatementRecord>()
+        for (cycle in cycles) {
+            val (statementRawBalance, paymentsSince, totalSpend, transactionCount) = database.rawQuery(
+                """
+                    SELECT
+                        COALESCE(SUM(CASE WHEN t.date <= ? THEN t.amount ELSE 0 END), 0),
+                        COALESCE(SUM(CASE WHEN t.date > ? AND t.amount > 0 THEN t.amount ELSE 0 END), 0),
+                        COALESCE(SUM(CASE WHEN t.date >= ? AND t.date <= ? AND t.amount < 0 THEN -t.amount ELSE 0 END), 0),
+                        COUNT(CASE WHEN t.date >= ? AND t.date <= ? THEN 1 ELSE NULL END)
+                    FROM transactions t
+                    LEFT JOIN transactions p ON p.id = t.parent_id
+                    WHERE t.acct = ? AND t.date IS NOT NULL
+                      AND (t.tombstone = 0 OR t.tombstone IS NULL)
+                      AND (t.isChild = 0 OR t.isChild IS NULL OR
+                           (p.id IS NOT NULL AND (p.tombstone = 0 OR p.tombstone IS NULL)))
+                      AND (t.isParent = 0 OR t.isParent IS NULL)
+                """.trimIndent(),
+                arrayOf(
+                    cycle.end.yyyymmdd.toString(), cycle.end.yyyymmdd.toString(),
+                    cycle.start.yyyymmdd.toString(), cycle.end.yyyymmdd.toString(),
+                    cycle.start.yyyymmdd.toString(), cycle.end.yyyymmdd.toString(),
+                    accountId,
+                ),
+            ).use { cursor ->
+                if (cursor.moveToFirst()) {
+                    listOf(cursor.getLong(0), cursor.getLong(1), cursor.getLong(2), cursor.getLong(3))
+                } else listOf(0L, 0L, 0L, 0L)
+            }
+
+            val due = CreditCardCycle.calculateStatementDue(statementRawBalance, paymentsSince, liveBalanceCents, cycle.dueDate)
+            if (transactionCount > 0 || due.statementBalance > 0) {
+                records += CreditCardCycle.StatementRecord(
+                    startDate = cycle.start, endDate = cycle.end, dueDate = cycle.dueDate,
+                    statementBalance = due.statementBalance, paymentsSince = due.paymentsSince,
+                    remainingDue = due.remainingDue, totalSpend = totalSpend,
+                )
+            }
+        }
+        return records
+    }
+
     @Synchronized
     fun fetchPayees(): List<ActualPayee> {
         val result = mutableListOf<ActualPayee>()
