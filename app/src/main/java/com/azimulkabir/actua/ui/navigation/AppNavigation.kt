@@ -200,6 +200,7 @@ fun AppNavigation(
     launchRequest: AppLaunchRequest? = null,
     onLaunchRequestConsumed: () -> Unit = {},
     onAppearanceChange: (String) -> Unit = {},
+    onUseDynamicColorChange: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -309,6 +310,7 @@ fun AppNavigation(
     var showCategoryFilters by remember { mutableStateOf(displayPreferences.showCategoryFilters) }
     var hideBalances by remember { mutableStateOf(displayPreferences.hideBalances) }
     var appearance by remember { mutableStateOf(displayPreferences.appearance) }
+    var useDynamicColor by remember { mutableStateOf(displayPreferences.useDynamicColor) }
     var startPage by remember { mutableStateOf(displayPreferences.startPage) }
     var defaultAccount by remember { mutableStateOf(displayPreferences.defaultAccount) }
     var groupTransactionsByDate by remember { mutableStateOf(displayPreferences.groupTransactionsByDate) }
@@ -1637,6 +1639,12 @@ fun AppNavigation(
                         displayPreferences.appearance = it
                         appearance = it
                         onAppearanceChange(it)
+                    },
+                    useDynamicColor = useDynamicColor,
+                    onUseDynamicColorChange = {
+                        displayPreferences.useDynamicColor = it
+                        useDynamicColor = it
+                        onUseDynamicColorChange(it)
                     },
                     startPage = startPage,
                     onStartPageChange = {

@@ -81,6 +81,8 @@ fun SettingsScreen(
     onHideBalancesChange: (Boolean) -> Unit = {},
     appearance: String = "System",
     onAppearanceChange: (String) -> Unit = {},
+    useDynamicColor: Boolean = false,
+    onUseDynamicColorChange: (Boolean) -> Unit = {},
     startPage: String = "Budget",
     onStartPageChange: (String) -> Unit = {},
     accountOptions: List<String> = emptyList(),
@@ -312,6 +314,14 @@ fun SettingsScreen(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
                     SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        SettingsToggle(
+                            "Material You colors",
+                            "Match colors to your wallpaper instead of Actua's default theme",
+                            useDynamicColor,
+                            onUseDynamicColorChange,
+                        )
+                    }
                     SettingsChoice(
                         "Start page",
                         startPage,

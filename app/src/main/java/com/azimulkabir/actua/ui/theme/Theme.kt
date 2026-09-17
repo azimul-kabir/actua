@@ -12,8 +12,9 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 fun ActuaTheme(
     appearance: String = "System",
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // Material You (wallpaper-derived) dynamic color, opt-in and only available on Android 12+.
+    // Actua's own brand palette (ActuaLightColorScheme/ActuaDarkColorScheme) is the default.
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (appearance) {

@@ -69,6 +69,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getString(APPEARANCE, "System") ?: "System"
         set(value) { preferences.edit().putString(APPEARANCE, value).apply() }
 
+    var useDynamicColor: Boolean
+        get() = preferences.getBoolean(USE_DYNAMIC_COLOR, false)
+        set(value) { preferences.edit().putBoolean(USE_DYNAMIC_COLOR, value).apply() }
+
     var startPage: String
         get() {
             val stored = preferences.getString(START_PAGE, "Budget") ?: "Budget"
@@ -134,6 +138,7 @@ class DisplayPreferences(context: Context) {
         const val SHOW_CATEGORY_FILTERS = "show_category_filters"
         const val HIDE_BALANCES = "hide_balances"
         const val APPEARANCE = "appearance"
+        const val USE_DYNAMIC_COLOR = "use_dynamic_color"
         const val START_PAGE = "start_page"
         const val LEGACY_MORE_PAGE = "More"
         const val MANAGE_PAGE = "Manage"

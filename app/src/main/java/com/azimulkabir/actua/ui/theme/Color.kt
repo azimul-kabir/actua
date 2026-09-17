@@ -4,44 +4,48 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-// Actua brand palette: a restrained teal accent (money, growth) over neutral
-// surfaces, following Material 3 tonal conventions. Kept in one place so the
-// whole app shares a single, deliberate color language in both themes.
+// Actua's default color scheme is derived from the app's own launcher icon
+// (a vivid indigo/violet, #4B18D1 — see actua_launcher_background.xml) so the
+// in-app palette and the icon on a user's home screen read as one brand.
+// This is the default; users can opt into Material You (wallpaper-derived
+// dynamic color) instead via Settings > Display.
 
-private val TealPrimary = Color(0xFF00695C)
-private val TealOnPrimary = Color(0xFFFFFFFF)
-private val TealPrimaryContainer = Color(0xFFB2DFDB)
-private val TealOnPrimaryContainer = Color(0xFF00251A)
+val ActuaBrandSeed = Color(0xFF4B18D1)
 
-private val SageSecondary = Color(0xFF4C6359)
-private val SageOnSecondary = Color(0xFFFFFFFF)
-private val SageSecondaryContainer = Color(0xFFCEE9DA)
-private val SageOnSecondaryContainer = Color(0xFF092017)
+private val VioletPrimary = ActuaBrandSeed
+private val VioletOnPrimary = Color(0xFFFFFFFF)
+private val VioletPrimaryContainer = Color(0xFFE4DBFF)
+private val VioletOnPrimaryContainer = Color(0xFF1B0060)
 
-private val SlateTertiary = Color(0xFF3D6373)
-private val SlateOnTertiary = Color(0xFFFFFFFF)
-private val SlateTertiaryContainer = Color(0xFFC0E9FB)
-private val SlateOnTertiaryContainer = Color(0xFF001F29)
+private val SlateSecondary = Color(0xFF5F5C71)
+private val SlateOnSecondary = Color(0xFFFFFFFF)
+private val SlateSecondaryContainer = Color(0xFFE4DFFF)
+private val SlateOnSecondaryContainer = Color(0xFF1A1830)
+
+private val OrchidTertiary = Color(0xFF7C5295)
+private val OrchidOnTertiary = Color(0xFFFFFFFF)
+private val OrchidTertiaryContainer = Color(0xFFF6D8FF)
+private val OrchidOnTertiaryContainer = Color(0xFF300442)
 
 private val ErrorRed = Color(0xFFBA1A1A)
 private val OnErrorRed = Color(0xFFFFFFFF)
 private val ErrorContainerRed = Color(0xFFFFDAD6)
 private val OnErrorContainerRed = Color(0xFF410002)
 
-private val TealPrimaryDark = Color(0xFF4DB6AC)
-private val TealOnPrimaryDark = Color(0xFF003731)
-private val TealPrimaryContainerDark = Color(0xFF00504A)
-private val TealOnPrimaryContainerDark = Color(0xFFB2DFDB)
+private val VioletPrimaryDark = Color(0xFFC6B7FF)
+private val VioletOnPrimaryDark = Color(0xFF34008A)
+private val VioletPrimaryContainerDark = Color(0xFF34059B)
+private val VioletOnPrimaryContainerDark = Color(0xFFE4DBFF)
 
-private val SageSecondaryDark = Color(0xFFB3CCC0)
-private val SageOnSecondaryDark = Color(0xFF1F352C)
-private val SageSecondaryContainerDark = Color(0xFF354B41)
-private val SageOnSecondaryContainerDark = Color(0xFFCEE9DA)
+private val SlateSecondaryDark = Color(0xFFC8C3DC)
+private val SlateOnSecondaryDark = Color(0xFF302E41)
+private val SlateSecondaryContainerDark = Color(0xFF474459)
+private val SlateOnSecondaryContainerDark = Color(0xFFE4DFFF)
 
-private val SlateTertiaryDark = Color(0xFFA5CCDD)
-private val SlateOnTertiaryDark = Color(0xFF073543)
-private val SlateTertiaryContainerDark = Color(0xFF244C5B)
-private val SlateOnTertiaryContainerDark = Color(0xFFC0E9FB)
+private val OrchidTertiaryDark = Color(0xFFE9B9FF)
+private val OrchidOnTertiaryDark = Color(0xFF48195F)
+private val OrchidTertiaryContainerDark = Color(0xFF613177)
+private val OrchidOnTertiaryContainerDark = Color(0xFFF6D8FF)
 
 private val ErrorRedDark = Color(0xFFFFB4AB)
 private val OnErrorRedDark = Color(0xFF690005)
@@ -49,77 +53,77 @@ private val ErrorContainerRedDark = Color(0xFF93000A)
 private val OnErrorContainerRedDark = Color(0xFFFFDAD6)
 
 val ActuaLightColorScheme = lightColorScheme(
-    primary = TealPrimary,
-    onPrimary = TealOnPrimary,
-    primaryContainer = TealPrimaryContainer,
-    onPrimaryContainer = TealOnPrimaryContainer,
-    inversePrimary = Color(0xFF80CBC4),
-    secondary = SageSecondary,
-    onSecondary = SageOnSecondary,
-    secondaryContainer = SageSecondaryContainer,
-    onSecondaryContainer = SageOnSecondaryContainer,
-    tertiary = SlateTertiary,
-    onTertiary = SlateOnTertiary,
-    tertiaryContainer = SlateTertiaryContainer,
-    onTertiaryContainer = SlateOnTertiaryContainer,
+    primary = VioletPrimary,
+    onPrimary = VioletOnPrimary,
+    primaryContainer = VioletPrimaryContainer,
+    onPrimaryContainer = VioletOnPrimaryContainer,
+    inversePrimary = Color(0xFFC6B7FF),
+    secondary = SlateSecondary,
+    onSecondary = SlateOnSecondary,
+    secondaryContainer = SlateSecondaryContainer,
+    onSecondaryContainer = SlateOnSecondaryContainer,
+    tertiary = OrchidTertiary,
+    onTertiary = OrchidOnTertiary,
+    tertiaryContainer = OrchidTertiaryContainer,
+    onTertiaryContainer = OrchidOnTertiaryContainer,
     error = ErrorRed,
     onError = OnErrorRed,
     errorContainer = ErrorContainerRed,
     onErrorContainer = OnErrorContainerRed,
-    background = Color(0xFFF7FAF9),
-    onBackground = Color(0xFF191C1B),
-    surface = Color(0xFFF7FAF9),
-    onSurface = Color(0xFF191C1B),
-    surfaceVariant = Color(0xFFDBE5E0),
-    onSurfaceVariant = Color(0xFF3F4945),
-    outline = Color(0xFF6F7975),
-    outlineVariant = Color(0xFFBFC9C4),
+    background = Color(0xFFFFFBFF),
+    onBackground = Color(0xFF1C1B20),
+    surface = Color(0xFFFFFBFF),
+    onSurface = Color(0xFF1C1B20),
+    surfaceVariant = Color(0xFFE5E0EC),
+    onSurfaceVariant = Color(0xFF47464F),
+    outline = Color(0xFF78767F),
+    outlineVariant = Color(0xFFC9C5D0),
     scrim = Color(0xFF000000),
-    inverseSurface = Color(0xFF2D3230),
-    inverseOnSurface = Color(0xFFEFF1EF),
-    surfaceDim = Color(0xFFD6DAD8),
-    surfaceBright = Color(0xFFF7FAF9),
+    inverseSurface = Color(0xFF312F35),
+    inverseOnSurface = Color(0xFFF4EFF4),
+    surfaceDim = Color(0xFFDED8E0),
+    surfaceBright = Color(0xFFFFFBFF),
     surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFF1F5F3),
-    surfaceContainer = Color(0xFFEBEFED),
-    surfaceContainerHigh = Color(0xFFE5EAE7),
-    surfaceContainerHighest = Color(0xFFDFE4E1),
+    surfaceContainerLow = Color(0xFFF8F2FA),
+    surfaceContainer = Color(0xFFF2ECF4),
+    surfaceContainerHigh = Color(0xFFECE6EE),
+    surfaceContainerHighest = Color(0xFFE6E1E9),
 )
 
 val ActuaDarkColorScheme = darkColorScheme(
-    primary = TealPrimaryDark,
-    onPrimary = TealOnPrimaryDark,
-    primaryContainer = TealPrimaryContainerDark,
-    onPrimaryContainer = TealOnPrimaryContainerDark,
-    inversePrimary = TealPrimary,
-    secondary = SageSecondaryDark,
-    onSecondary = SageOnSecondaryDark,
-    secondaryContainer = SageSecondaryContainerDark,
-    onSecondaryContainer = SageOnSecondaryContainerDark,
-    tertiary = SlateTertiaryDark,
-    onTertiary = SlateOnTertiaryDark,
-    tertiaryContainer = SlateTertiaryContainerDark,
-    onTertiaryContainer = SlateOnTertiaryContainerDark,
+    primary = VioletPrimaryDark,
+    onPrimary = VioletOnPrimaryDark,
+    primaryContainer = VioletPrimaryContainerDark,
+    onPrimaryContainer = VioletOnPrimaryContainerDark,
+    inversePrimary = VioletPrimary,
+    secondary = SlateSecondaryDark,
+    onSecondary = SlateOnSecondaryDark,
+    secondaryContainer = SlateSecondaryContainerDark,
+    onSecondaryContainer = SlateOnSecondaryContainerDark,
+    tertiary = OrchidTertiaryDark,
+    onTertiary = OrchidOnTertiaryDark,
+    tertiaryContainer = OrchidTertiaryContainerDark,
+    onTertiaryContainer = OrchidOnTertiaryContainerDark,
     error = ErrorRedDark,
     onError = OnErrorRedDark,
     errorContainer = ErrorContainerRedDark,
     onErrorContainer = OnErrorContainerRedDark,
-    background = Color(0xFF101413),
-    onBackground = Color(0xFFDEE4E1),
-    surface = Color(0xFF101413),
-    onSurface = Color(0xFFDEE4E1),
-    surfaceVariant = Color(0xFF3F4945),
-    onSurfaceVariant = Color(0xFFBFC9C4),
-    outline = Color(0xFF899791),
-    outlineVariant = Color(0xFF3F4945),
+    background = Color(0xFF141318),
+    onBackground = Color(0xFFE6E1E9),
+    surface = Color(0xFF141318),
+    onSurface = Color(0xFFE6E1E9),
+    surfaceVariant = Color(0xFF47464F),
+    onSurfaceVariant = Color(0xFFC9C5D0),
+    outline = Color(0xFF928F99),
+    outlineVariant = Color(0xFF47464F),
     scrim = Color(0xFF000000),
-    inverseSurface = Color(0xFFDEE4E1),
-    inverseOnSurface = Color(0xFF2D3230),
-    surfaceDim = Color(0xFF101413),
-    surfaceBright = Color(0xFF363A38),
-    surfaceContainerLowest = Color(0xFF0B0F0E),
-    surfaceContainerLow = Color(0xFF191C1B),
-    surfaceContainer = Color(0xFF1D211F),
-    surfaceContainerHigh = Color(0xFF272B2A),
-    surfaceContainerHighest = Color(0xFF323635),
+    inverseSurface = Color(0xFFE6E1E9),
+    inverseOnSurface = Color(0xFF312F35),
+    surfaceDim = Color(0xFF141318),
+    surfaceBright = Color(0xFF3B383E),
+    surfaceContainerLowest = Color(0xFF0F0D13),
+    surfaceContainerLow = Color(0xFF1C1B20),
+    surfaceContainer = Color(0xFF201F25),
+    surfaceContainerHigh = Color(0xFF2B292F),
+    surfaceContainerHighest = Color(0xFF36343A),
 )
