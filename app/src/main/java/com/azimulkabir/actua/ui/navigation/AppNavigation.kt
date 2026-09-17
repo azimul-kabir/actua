@@ -292,6 +292,7 @@ fun AppNavigation(
     var billsCalendarReturnsToSchedules by rememberSaveable { mutableStateOf(false) }
     var creditCardsReturnToBills by rememberSaveable { mutableStateOf(false) }
     var statementsAccountId by rememberSaveable { mutableStateOf<String?>(null) }
+    var statementsReturnToTransactions by rememberSaveable { mutableStateOf(false) }
     var selectedStatement by remember { mutableStateOf<com.azimulkabir.actua.model.CreditCardCycle.StatementRecord?>(null) }
     var editorReturnsToStatementDetail by rememberSaveable { mutableStateOf(false) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
@@ -755,6 +756,13 @@ fun AppNavigation(
                         mutate("Saving account note") { repository.setAccountNote(account.id, note) }
                     }
                 },
+                onViewStatements = {
+                    accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
+                        statementsAccountId = account.id
+                        statementsReturnToTransactions = true
+                        detail = DetailDestination.CreditCardStatements
+                    }
+                },
                 initialSearch = transactionSearch,
                 showCurrentBalanceSummary = showCurrentBalanceSummary,
                 onShowCurrentBalanceSummaryChange = {
@@ -1057,7 +1065,10 @@ fun AppNavigation(
                     accountName = card?.accountName ?: "",
                     statements = statements,
                     hideDecimalPlaces = hideDecimalPlaces,
-                    onBack = { detail = DetailDestination.CreditCards },
+                    onBack = {
+                        detail = if (statementsReturnToTransactions) DetailDestination.Transactions else DetailDestination.CreditCards
+                        statementsReturnToTransactions = false
+                    },
                     onSelectStatement = { statement ->
                         selectedStatement = statement
                         detail = DetailDestination.CreditCardStatementDetail

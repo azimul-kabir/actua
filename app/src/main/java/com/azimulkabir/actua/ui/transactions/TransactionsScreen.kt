@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -150,6 +151,7 @@ fun TransactionsScreen(
     onUnlinkSchedule: (List<Transaction>) -> Unit = {},
     onViewSchedule: (String) -> Unit = {},
     linkableSchedules: List<ScheduleOption> = emptyList(),
+    onViewStatements: (() -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
@@ -441,6 +443,7 @@ fun TransactionsScreen(
                         hideDecimalPlaces,
                         showCurrentBalanceSummary,
                         showAccountNotes,
+                        onViewStatements,
                     )
                 }
             }
@@ -771,9 +774,14 @@ private fun ReconciliationTransactionRow(
 private fun formatReconciliationMoney(cents: Long, hideDecimalPlaces: Boolean): String =
     formatMoneyCents(cents, hideDecimalPlaces, respectBalanceVisibility = false)
 
+private fun com.azimulkabir.actua.data.schedules.DayDate.formatted(): String =
+    java.time.LocalDate.of(year, month, day)
+        .format(java.time.format.DateTimeFormatter.ofPattern("d MMM, yyyy", java.util.Locale.ENGLISH))
+
 @Composable
 internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
-    onSaveNote: (String) -> Unit, hideDecimals: Boolean, showSummary: Boolean, showNotes: Boolean) {
+    onSaveNote: (String) -> Unit, hideDecimals: Boolean, showSummary: Boolean, showNotes: Boolean,
+    onViewStatements: (() -> Unit)? = null) {
     val context = LocalContext.current
     val detailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("account_detail_preferences", android.content.Context.MODE_PRIVATE)
@@ -838,9 +846,32 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
             Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Billing cycle", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    val (cycleStart, cycleEnd) = it.cycle.cycleRange()
+                    Text("${cycleStart.formatted()} – ${cycleEnd.formatted()}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(it.cycle.dueSummary(), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary)
                     DetailAmount("Cycle spend", it.cycleSpendCents, hideDecimals)
+                    if (onViewStatements != null) {
+                        HorizontalDivider()
+                        Row(
+                            Modifier.fillMaxWidth().clickable(onClick = onViewStatements),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Statement history",
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Icon(
+                                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    }
                 }
             }
         }
