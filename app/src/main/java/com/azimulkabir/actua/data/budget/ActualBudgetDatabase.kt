@@ -430,10 +430,15 @@ class ActualBudgetDatabase private constructor(
         return result
     }
 
+    /**
+     * Whether a posted transaction already exists for the schedule occurrence bounded by
+     * [onOrAfter]..[onOrBefore] (inclusive), matching upstream's occurrence-scoped
+     * `isScheduleOccurrencePosted` window rather than an unbounded "any transaction since" check.
+     */
     @Synchronized
-    fun hasScheduleTransaction(scheduleId: String, onOrAfter: Int): Boolean = database.rawQuery(
-        """SELECT EXISTS(SELECT 1 FROM transactions WHERE schedule=? AND date>=?
-            AND (tombstone=0 OR tombstone IS NULL))""", arrayOf(scheduleId, onOrAfter.toString()),
+    fun hasScheduleTransaction(scheduleId: String, onOrAfter: Int, onOrBefore: Int = onOrAfter): Boolean = database.rawQuery(
+        """SELECT EXISTS(SELECT 1 FROM transactions WHERE schedule=? AND date>=? AND date<=?
+            AND (tombstone=0 OR tombstone IS NULL))""", arrayOf(scheduleId, onOrAfter.toString(), onOrBefore.toString()),
     ).use { it.moveToFirst() && it.getInt(0) != 0 }
 
     /** Inclusive schedule-list projection: malformed linked rows remain visible and repairable. */

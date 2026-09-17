@@ -91,7 +91,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   management, and tap-a-tag transaction discovery, synced from Actual's tag dataset; see
   [docs/tags.md](docs/tags.md)
 - Timezone-free schedule day math, upcoming windows, lifecycle status, and
-  transaction occurrence matching
+  transaction occurrence matching; see
+  [docs/SCHEDULED_TRANSACTIONS_PARITY.md](docs/SCHEDULED_TRANSACTIONS_PARITY.md) for the
+  itemized upstream parity audit
 - Searchable Scheduled Transactions UI with new-schedule creation,
   paid/due/upcoming/missed/completed status, completed-history visibility,
   recurrence skipping, restart/completion, deletion, and linked transaction

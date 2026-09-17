@@ -635,6 +635,34 @@ class ActualBudgetReadModelTest {
         assertEquals(0, poster.runIfNeeded(budgetId, com.azimulkabir.actua.data.schedules.DayDate(2026,9,5)))
     }
 
+    /**
+     * Regression for #286: `hasScheduleTransaction`'s dedup check must be bounded above by the
+     * occurrence date, matching upstream's `isScheduleOccurrencePosted`. An unbounded "any
+     * transaction on/after this date" check would let a later, unrelated linked transaction mask
+     * an earlier due occurrence and silently skip posting it.
+     */
+    @Test
+    fun schedulePosterDedupDoesNotSkipAnEarlierOccurrenceBecauseOfALaterLinkedTransaction() = withDatabase { database ->
+        val schedule = database.fetchSchedules().single()
+        assertEquals(20260905, schedule.nextDate.yyyymmdd)
+        ActualTransactionWriter(database, "eeeeeeeeeeeeeeee").createTransaction(
+            transaction("future-linked", "checking", -1_500, 20261005, "store", "rent")
+                .copy(scheduleId = schedule.id), applyRules = false)
+        assertTrue(!database.hasScheduleTransaction(schedule.id, 20260905))
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val poster = com.azimulkabir.actua.data.schedules.SchedulePoster(
+            context, database,
+            ActualTransactionWriter(database, "ffffffffffffffff", idFactory = { "posted-earlier" }),
+            com.azimulkabir.actua.data.schedules.ActualScheduleWriter(database, "abababababababab"),
+            idFactory = { "posted-earlier" },
+        )
+        assertEquals(1, poster.runIfNeeded("poster-${UUID.randomUUID()}", com.azimulkabir.actua.data.schedules.DayDate(2026, 9, 5)))
+        val posted = requireNotNull(database.fetchTransaction("posted-earlier"))
+        assertEquals(20260905, posted.date)
+        assertEquals("rent-schedule", posted.scheduleId)
+    }
+
     @Test
     fun scheduleListIncludesLifecycleAndComputesPaidState() = withDatabase { database ->
         val summary = database.fetchScheduleSummaries().single()
