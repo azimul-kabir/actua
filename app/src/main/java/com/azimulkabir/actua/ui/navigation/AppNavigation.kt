@@ -320,6 +320,7 @@ fun AppNavigation(
     var showBottomNavigationLabels by remember { mutableStateOf(displayPreferences.showBottomNavigationLabels) }
     var showCurrentBalanceSummary by remember { mutableStateOf(displayPreferences.showCurrentBalanceSummary) }
     var showRunningBalance by remember { mutableStateOf(displayPreferences.showRunningBalance) }
+    var showNotes by remember { mutableStateOf(displayPreferences.showNotes) }
     BalanceVisibility.hidden = hideBalances
     CurrencyDisplay.code = currencyCode
     CurrencyDisplay.symbolOnly = currencySymbolOnly
@@ -774,6 +775,7 @@ fun AppNavigation(
                     displayPreferences.showRunningBalance = it
                     showRunningBalance = it
                 },
+                showNotes = showNotes,
                 onReconcileVisibilityChange = { reconcileOpen = it },
             )
             DetailDestination.EditTransaction -> AddTransactionScreen(
@@ -1490,6 +1492,7 @@ fun AppNavigation(
                         if (category == reopenBudgetCategory) reopenBudgetCategory = null
                     },
                     returnToRootRequest = rootRequests[MainDestination.Budget] ?: 0,
+                    showNotes = showNotes,
                 )
                 MainDestination.Accounts -> AccountsScreen(
                     modifier = contentModifier,
@@ -1615,6 +1618,11 @@ fun AppNavigation(
                         displayPreferences.hideDecimalPlaces = it
                         hideDecimalPlaces = it
                         WidgetUpdater.requestAll(context)
+                    },
+                    showNotes = showNotes,
+                    onShowNotesChange = {
+                        displayPreferences.showNotes = it
+                        showNotes = it
                     },
                     currencyCode = currencyCode,
                     onCurrencyCodeChange = {

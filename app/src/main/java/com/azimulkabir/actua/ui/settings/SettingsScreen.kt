@@ -69,6 +69,8 @@ fun SettingsScreen(
     onConnectionClick: () -> Unit = {},
     hideDecimalPlaces: Boolean = true,
     onHideDecimalPlacesChange: (Boolean) -> Unit = {},
+    showNotes: Boolean = true,
+    onShowNotesChange: (Boolean) -> Unit = {},
     currencyCode: String = "",
     onCurrencyCodeChange: (String) -> Unit = {},
     currencySymbolOnly: Boolean = false,
@@ -335,6 +337,8 @@ fun SettingsScreen(
                     ) { onShowBottomNavigationLabelsChange(it == "Icons and names") }
                     SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
                         hideDecimalPlaces, onHideDecimalPlacesChange)
+                    SettingsToggle("Notes", "Show the Notes field on accounts and budget categories",
+                        showNotes, onShowNotesChange)
                 }
                 SettingsPage.Privacy -> {
                     SettingsToggle("Hide balances", "Mask budget, account and transaction amounts",

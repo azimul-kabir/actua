@@ -191,6 +191,7 @@ fun BudgetScreen(
     requestedCategoryDetails: String? = null,
     onCategoryDetailsChange: (String?) -> Unit = {},
     returnToRootRequest: Int = 0,
+    showNotes: Boolean = true,
 ) {
     val context = LocalContext.current
     val budgetUiPreferences = remember(context) {
@@ -554,6 +555,7 @@ fun BudgetScreen(
             onEditTransaction = onEditTransaction,
             onDeleteTransaction = onDeleteTransaction,
             scheduleFunding = scheduleFunding,
+            showNotes = showNotes,
         )
     }
     movingBudget?.let { (group, category) ->
@@ -1836,6 +1838,7 @@ private fun CategoryDetailsScreen(
     onEditTransaction: (Transaction) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
+    showNotes: Boolean = true,
 ) {
     var note by remember(category) { mutableStateOf(category.note) }
     var noteEditorOpen by remember(category) { mutableStateOf(false) }
@@ -1922,22 +1925,24 @@ private fun CategoryDetailsScreen(
                 )
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
                     Column {
-                        Row(
-                            Modifier.fillMaxWidth().clickable { noteEditorOpen = true }
-                                .padding(horizontal = 16.dp, vertical = 13.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text("Note", fontWeight = FontWeight.SemiBold)
-                                Text(note.ifBlank { "Add note" }, style = MaterialTheme.typography.bodySmall,
-                                    color = if (note.isBlank()) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        if (showNotes) {
+                            Row(
+                                Modifier.fillMaxWidth().clickable { noteEditorOpen = true }
+                                    .padding(horizontal = 16.dp, vertical = 13.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("Note", fontWeight = FontWeight.SemiBold)
+                                    Text(note.ifBlank { "Add note" }, style = MaterialTheme.typography.bodySmall,
+                                        color = if (note.isBlank()) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                }
+                                Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null,
+                                    modifier = Modifier.rotate(-90f))
                             }
-                            Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null,
-                                modifier = Modifier.rotate(-90f))
+                            HorizontalDivider()
                         }
-                        HorizontalDivider()
                         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 11.dp),
                             verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {

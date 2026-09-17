@@ -121,6 +121,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_RUNNING_BALANCE, false)
         set(value) { preferences.edit().putBoolean(SHOW_RUNNING_BALANCE, value).apply() }
 
+    var showNotes: Boolean
+        get() = preferences.getBoolean(SHOW_NOTES, true)
+        set(value) { preferences.edit().putBoolean(SHOW_NOTES, value).apply() }
+
     private companion object {
         const val HIDE_DECIMAL_PLACES = "hide_decimal_places"
         const val CURRENCY_CODE = "currency_code"
@@ -150,5 +154,6 @@ class DisplayPreferences(context: Context) {
         const val SHOW_BOTTOM_NAVIGATION_LABELS = "show_bottom_navigation_labels"
         const val SHOW_CURRENT_BALANCE_SUMMARY = "show_current_balance_summary"
         const val SHOW_RUNNING_BALANCE = "show_running_balance"
+        const val SHOW_NOTES = "show_notes"
     }
 }
