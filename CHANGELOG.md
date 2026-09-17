@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added a "Copy last month's budget" action to the Budget screen's overflow menu, which copies the previous month's budgeted amounts for visible expense categories (plus visible income categories for tracking budgets) into the selected month; hidden categories and groups are left unchanged
+
 ## [1.0.0-beta.27] - 2026-09-17
 
 ### Changed
