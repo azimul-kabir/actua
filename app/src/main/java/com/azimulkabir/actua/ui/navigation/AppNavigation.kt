@@ -313,6 +313,7 @@ fun AppNavigation(
     var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
     var showBottomNavigationLabels by remember { mutableStateOf(displayPreferences.showBottomNavigationLabels) }
     var showCurrentBalanceSummary by remember { mutableStateOf(displayPreferences.showCurrentBalanceSummary) }
+    var showRunningBalance by remember { mutableStateOf(displayPreferences.showRunningBalance) }
     BalanceVisibility.hidden = hideBalances
     CurrencyDisplay.code = currencyCode
     CurrencyDisplay.symbolOnly = currencySymbolOnly
@@ -678,6 +679,7 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
                 transactions = filteredTransactions,
+                allTransactions = transactions,
                 searchTransactions = searchTransactions,
                 transactionStatusFilter = transactionStatusFilter,
                 onTransactionStatusFilterChange = { transactionStatusFilter = it },
@@ -753,6 +755,11 @@ fun AppNavigation(
                 onShowCurrentBalanceSummaryChange = {
                     displayPreferences.showCurrentBalanceSummary = it
                     showCurrentBalanceSummary = it
+                },
+                showRunningBalance = showRunningBalance,
+                onShowRunningBalanceChange = {
+                    displayPreferences.showRunningBalance = it
+                    showRunningBalance = it
                 },
                 onReconcileVisibilityChange = { reconcileOpen = it },
             )
