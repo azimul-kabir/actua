@@ -4,6 +4,24 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.29] - 2026-09-17
+
+### Changed
+
+- Modernized the entire app onto a shared design system: a new brand color palette (light/dark) derived from Actua's launcher icon, a consistent spacing/shape/typography scale, and shared components (screen headers, list rows, monetary text, bottom-sheet titles) applied across Accounts, Settings, Budget, Transactions, the transaction editor, Reports, Manage/Settings sub-screens, dialogs, sheets, and a final sweep of remaining shape and hardcoded status-color inconsistencies
+- Added a "Material You colors" toggle in Settings > Display (Android 12+) to opt into wallpaper-derived dynamic color instead of Actua's own palette, which remains the default
+- Removed "New category"/"New category group" from the Budget tab's + menu and the "Manage Categories" section from the Manage tab (both already reachable via Manage Categories); removed "Hide cleared transactions"/"Hide reconciled transactions" from the transactions dropdown menu, redundant with the existing status filter chips
+
+### Added
+
+- Added credit card statement history: a history icon on each credit card row opens the last 3 closed statements with their due amounts, and each statement opens to its own transaction list
+
+### Fixed
+
+- Fixed schedule-owned rules never matching through `RulesEngine`: a posted or edited schedule transaction now always applies its own linked rule's actions and never another schedule's rule
+- Fixed the scheduled-transaction catch-up dedup check only bounding by a lower date, which could let an out-of-order or future-dated linked transaction mask and skip an earlier due/missed occurrence
+- Fixed transaction row alignment: the running balance line now has proper spacing from the amount, and the amount column top-aligns with the payee text instead of centering against the taller stack
+
 ## [1.0.0-beta.28] - 2026-09-17
 
 ### Changed

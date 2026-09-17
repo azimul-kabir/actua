@@ -38,7 +38,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Global search
 - Automatic local backups and restore
 - Home-screen widgets and launcher shortcuts
-- Configurable currency, dates, numbers and appearance
+- Configurable currency, dates, numbers and appearance, with an optional Material You dynamic-color mode (Android 12+)
 - Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering
 - Built-in local demo budget
 

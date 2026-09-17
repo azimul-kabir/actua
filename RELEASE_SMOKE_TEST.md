@@ -70,12 +70,15 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Reconcile an account using a known bank balance and verify the resulting locked/reconciled rows.
 - [ ] Reconciled-transaction filtering works in account and all-transactions views.
 - [ ] Credit-card limit, cycle spending and due-date information render correctly when configured.
+- [ ] Tap a credit card's history icon and verify the last 3 closed statements list with correct due amounts; opening a statement shows the correct transactions for that billing cycle.
 
 ## Rules, schedules and reports
 
 - [ ] Existing supported Actual rules load and can be edited without corrupting their JSON/conditions.
 - [ ] Create/edit/delete a supported rule and confirm it syncs correctly.
 - [ ] Create a transfer with a rule configured to match its destination account; selecting the destination applies the rule's Notes/Cleared/etc. in the editor, and the saved transfer stays correctly linked.
+- [ ] Post or edit a schedule's linked transaction: its own schedule-linked rule still applies, and an unrelated rule linked to a different schedule does not; a rule with a recurring-date condition matching the schedule's own recurrence evaluates correctly instead of never matching.
+- [ ] Create a schedule occurrence out of order or with a future-dated linked transaction, then let the catch-up loop run; verify an earlier due/missed occurrence still posts instead of being masked.
 - [ ] Scheduled Transactions list opens and status/date/amount alignment is correct.
 - [ ] Create/edit a recurring schedule and verify recurrence preview.
 - [ ] Exercise Post, Post today, Skip next date and linked-history/unlink flows on test data.
@@ -108,6 +111,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Android Back behaves correctly from details, search, preferences and transaction flows.
 - [ ] Add/edit transaction Save button, keypad and selectors remain usable with the software keyboard open.
 - [ ] Light/dark/system appearance and Material You rendering remain legible.
+- [ ] On Android 12+, Settings > Display "Material You colors" toggle switches between the app's own brand palette and wallpaper-derived dynamic color, in both light and dark mode; the setting persists across relaunch and the toggle is hidden/inert below Android 12.
+- [ ] Spot-check Budget, Transactions, Reports, Manage/Settings sub-screens, and common dialogs/bottom sheets after the design-system pass: consistent corner rounding and spacing, no visual regressions from the previous release, and paid/cleared/due-soon status colors remain legible in both themes.
 - [ ] No obvious clipping, blank space, overlapping text or inaccessible actions on the primary test device.
 
 ## Release/distribution
