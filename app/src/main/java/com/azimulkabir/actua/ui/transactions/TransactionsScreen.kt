@@ -73,6 +73,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -781,14 +783,14 @@ private fun formatReconciliationMoney(cents: Long, hideDecimalPlaces: Boolean): 
     formatMoneyCents(cents, hideDecimalPlaces, respectBalanceVisibility = false)
 
 @Composable
-private fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
+internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
     onSaveNote: (String) -> Unit, hideDecimals: Boolean, showSummary: Boolean, showNotes: Boolean) {
     val context = LocalContext.current
     val detailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("account_detail_preferences", android.content.Context.MODE_PRIVATE)
     }
     var balanceExpanded by remember(account.id) {
-        mutableStateOf(detailPreferences.getBoolean("balance_expanded_${account.id}", true))
+        mutableStateOf(detailPreferences.getBoolean("balance_expanded_${account.id}", false))
     }
     var noteEditorOpen by remember(account.id) { mutableStateOf(false) }
     var noteDraft by remember(account.id, noteEditorOpen) { mutableStateOf(note) }
@@ -804,27 +806,29 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showSummary) Surface(
-            onClick = toggleBalance,
             color = MaterialTheme.colorScheme.surfaceContainer,
             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
         ) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Outlined.ExpandMore,
-                        contentDescription = if (balanceExpanded) "Collapse balance details" else "Expand balance details",
-                        modifier = Modifier.padding(end = 8.dp).size(20.dp).rotate(balanceArrowRotation),
-                    )
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    BalanceColumn("Cleared", account.clearedCents, hideDecimals, Modifier.weight(1f))
+                    BalanceColumn("Balance", account.balanceCents, hideDecimals, Modifier.weight(1f), emphasized = true)
+                    BalanceColumn("Uncleared", account.unclearedCents, hideDecimals, Modifier.weight(1f))
+                }
+                Row(
+                    Modifier.fillMaxWidth().clickable(onClick = toggleBalance),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
-                        "Current balance",
+                        "Reconciled",
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Text(
-                        formatMoneyCents(account.balanceCents, hideDecimals),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
+                    Icon(
+                        Icons.Outlined.ExpandMore,
+                        contentDescription = if (balanceExpanded) "Collapse reconciled details" else "Show reconciled details",
+                        modifier = Modifier.padding(start = 8.dp).size(20.dp).rotate(balanceArrowRotation),
                     )
                 }
                 AnimatedVisibility(
@@ -834,11 +838,9 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         card?.availableCreditCents?.let { DetailAmount("Available credit", it, hideDecimals) }
-                        HorizontalDivider()
-                        DetailAmount("Cleared", account.clearedCents, hideDecimals)
-                        DetailAmount("Uncleared", account.unclearedCents, hideDecimals)
-                        DetailAmount("Reconciled", account.reconciledCents, hideDecimals)
                         card?.config?.limitCents?.let { DetailAmount("Credit limit", it, hideDecimals) }
+                        if (card != null) HorizontalDivider()
+                        DetailAmount("Reconciled", account.reconciledCents, hideDecimals)
                     }
                 }
             }
@@ -892,6 +894,26 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
             },
             dismissButton = {
                 TextButton(onClick = { noteEditorOpen = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+@Composable
+private fun BalanceColumn(label: String, amountCents: Long, hideDecimals: Boolean,
+    modifier: Modifier = Modifier, emphasized: Boolean = false) {
+    val formatted = formatMoneyCents(amountCents, hideDecimals)
+    Column(
+        modifier = modifier.clearAndSetSemantics { contentDescription = "$label $formatted" },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            formatted,
+            style = if (emphasized) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
