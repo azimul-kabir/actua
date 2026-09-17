@@ -992,15 +992,7 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
                 Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
             } ?: Spacer(Modifier.height(7.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                CategoryChip(presentation.categoryLabel, transaction.type == Type.TRANSFER)
-                presentation.accountLabel?.let {
-                    Spacer(Modifier.weight(1f))
-                    Text(it, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-                        overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
-                }
-            }
+            CategoryChip(presentation.categoryLabel, transaction.type == Type.TRANSFER)
             if (transaction.notes.isNotBlank()) {
                 Text(coloredTagText(transaction.notes, effectiveTagColors), style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 7.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -1008,14 +1000,16 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
         }
         Column(horizontalAlignment = Alignment.End) {
             Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
-            runningBalanceCents?.let {
+            val secondaryLine = runningBalanceCents?.let { formatMoneyCents(it, hideDecimalPlaces) }
+                ?: presentation.accountLabel
+            secondaryLine?.let {
                 Spacer(Modifier.height(6.dp))
-                Text(formatMoneyCents(it, hideDecimalPlaces), style = MaterialTheme.typography.labelMedium,
+                Text(it, style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.tertiary, maxLines = 1,
                     overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
             } ?: Spacer(Modifier.height(7.dp))
             if (showDate) {
-                Spacer(Modifier.height(if (runningBalanceCents != null) 5.dp else 0.dp))
+                Spacer(Modifier.height(if (secondaryLine != null) 5.dp else 0.dp))
                 Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End)
             }
