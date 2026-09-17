@@ -38,6 +38,50 @@ class BudgetTargetGoalDefRoundTripTest {
         assertEquals("Rent", redecoded.supported.single().scheduleName)
     }
 
+    @Test fun scheduleAdjustmentRoundTripsThroughGoalDef() {
+        val target = BudgetTarget(
+            BudgetTarget.Type.SCHEDULE, priority = 1, scheduleId = "sched-1",
+            adjustmentType = BudgetTarget.AdjustmentType.PERCENT, adjustmentPercent = -10.0,
+        )
+        val parsed = BudgetTarget.fromGoalDef(target.toGoalDef(), "ui")
+        assertNotNull(parsed)
+        assertEquals(BudgetTarget.AdjustmentType.PERCENT, parsed!!.adjustmentType)
+        assertEquals(-10.0, parsed.adjustmentPercent!!, 0.0001)
+        assertEquals(null, parsed.adjustmentAmountCents)
+    }
+
+    @Test fun averageAdjustmentRoundTripsThroughGoalDef() {
+        val target = BudgetTarget(
+            BudgetTarget.Type.HISTORICAL, priority = 1, historicalMode = BudgetTarget.HistoricalMode.AVERAGE,
+            adjustmentType = BudgetTarget.AdjustmentType.FIXED, adjustmentAmountCents = 2_500,
+        )
+        val parsed = BudgetTarget.fromGoalDef(target.toGoalDef(), "ui")
+        assertNotNull(parsed)
+        assertEquals(BudgetTarget.AdjustmentType.FIXED, parsed!!.adjustmentType)
+        assertEquals(2_500L, parsed.adjustmentAmountCents)
+        assertEquals(null, parsed.adjustmentPercent)
+    }
+
+    @Test fun copyModeDropsAnyAdjustmentUpstreamDoesNotSupport() {
+        val target = BudgetTarget(
+            BudgetTarget.Type.HISTORICAL, priority = 1, historicalMode = BudgetTarget.HistoricalMode.COPY,
+            adjustmentType = BudgetTarget.AdjustmentType.PERCENT, adjustmentPercent = 5.0,
+        )
+        val parsed = BudgetTarget.fromGoalDef(target.toGoalDef(), "ui")
+        assertNotNull(parsed)
+        assertEquals(null, parsed!!.adjustmentType)
+    }
+
+    @Test fun percentageTargetRoundTripsACustomIncomeCategorySource() {
+        val target = BudgetTarget(
+            BudgetTarget.Type.PERCENTAGE, priority = 1, percentage = 25, percentageSource = "Freelance income",
+        )
+        val percentageSources = setOf("available funds", "all income", "Freelance income")
+        val parsed = BudgetTarget.fromGoalDef(target.toGoalDef(), "ui", percentageSources)
+        assertNotNull(parsed)
+        assertEquals("Freelance income", parsed!!.percentageSource)
+    }
+
     @Test fun automationDocumentRoundTripsAClearedScheduleLinkAsRemoval() {
         val original = BudgetAutomationDocument.decode(
             """[{"directive":"template","type":"schedule","priority":1,"scheduleId":"old-id"}]""",

@@ -130,6 +130,26 @@ class BudgetTemplatePlannerTest {
         assertEquals(listOf("Plan · Fixed"), preview.limitedCategories)
     }
 
+    @Test fun scheduleFundingAppliesAPercentDecreaseAdjustment() {
+        val schedule = category("schedule", "Scheduled bill", assigned = 0, automations = listOf(
+            BudgetTarget(
+                BudgetTarget.Type.SCHEDULE, priority = 1, scheduleId = "bill-1",
+                adjustmentType = BudgetTarget.AdjustmentType.PERCENT, adjustmentPercent = -10.0,
+            ),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Plan", listOf(schedule))),
+            "2026-09",
+            schedules = listOf(BudgetScheduleFunding(
+                id = "bill-1", name = "Rent", amountCents = 50_000,
+                occurrencesInMonth = 1, monthsUntilNextOccurrence = 0,
+            )),
+        )
+
+        assertEquals(listOf(45_000L), preview.changes.map { it.proposedCents })
+    }
+
     @Test fun scheduleFundingSupportsCrossYearMonthDistance() {
         val funding = BudgetScheduleFunding(
             id = "annual", name = "Annual bill", amountCents = 120_000,

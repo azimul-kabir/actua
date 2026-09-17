@@ -1065,6 +1065,8 @@ fun AppNavigation(
                     month = budgetMonth,
                     hideDecimalPlaces = hideDecimalPlaces,
                     scheduleFunding = budgetScheduleFunding,
+                    incomeCategories = budgetGroups.filter { it.isIncome }.flatMap { it.categories }
+                        .map { it.name }.filter { it.isNotBlank() }.distinct(),
                     onBack = {
                         reopenBudgetCategory = editingAutomationCategory
                         editingAutomationCategory = null

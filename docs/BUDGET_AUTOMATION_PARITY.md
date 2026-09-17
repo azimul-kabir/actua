@@ -73,10 +73,17 @@ Remainder distribution uses integer-cent quotient/remainder allocation in stable
 so repeated previews and applications are deterministic.
 
 Percentage sources now support current-month `available funds`, `all income`, and exact income
-category IDs/names present in the downloaded budget. Previous-month sources remain unsupported;
-their stored definitions remain untouched and the preview names affected categories. Percentage
-automations use their source value at the start of the priority and are clamped by the same
-available-funds rules as other positive-priority contributions.
+category IDs/names present in the downloaded budget, editable from the automation editor's
+"Income source" picker (previously limited to `available funds` in the UI, though the codec
+always accepted an arbitrary source). Previous-month sources remain unsupported; their stored
+definitions remain untouched and the preview names affected categories. Percentage automations
+use their source value at the start of the priority and are clamped by the same available-funds
+rules as other positive-priority contributions.
+
+Cover-schedule and from-history (average) automations expose Actual's `adjustment`/`adjustmentType`
+"increase"/"decrease" modifier: a signed percentage scales the computed amount, a signed fixed
+amount is added to it, and the result is clamped at zero. From-history's copy mode carries no
+adjustment upstream, so the editor hides it there and any stored value is dropped on encode.
 
 Schedule-template rows have an exact, lossless UI codec for their stable `scheduleId`/`name`
 reference. The repository projects active schedules into recurrence-aware funding facts, including

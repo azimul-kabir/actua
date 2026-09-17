@@ -50,6 +50,13 @@ data class BudgetTarget(
     val percentageSource: String = "available funds",
     val percentagePrevious: Boolean = false,
 
+    // Adjustment ("increase"/"decrease" modifier) - SCHEDULE and HISTORICAL(AVERAGE) only,
+    // matching upstream's `modifiers` grammar rule. adjustmentPercent/adjustmentAmountCents
+    // is signed: positive means increase, negative means decrease.
+    val adjustmentType: AdjustmentType? = null,
+    val adjustmentPercent: Double? = null,
+    val adjustmentAmountCents: Long? = null,
+
     // REMAINDER ("Whatever is left")
     val weight: Int = 1,
 
@@ -104,6 +111,8 @@ data class BudgetTarget(
     }
 
     enum class HistoricalMode { AVERAGE, COPY }
+
+    enum class AdjustmentType(val jsonValue: String) { PERCENT("percent"), FIXED("fixed") }
 
     enum class LimitPeriod(val jsonValue: String) {
         DAILY("daily"),
@@ -170,7 +179,8 @@ data class BudgetTarget(
             HistoricalMode.AVERAGE -> {
                 val values = category.history.take(historicalMonths.coerceIn(1, 24))
                     .map { kotlin.math.abs(minOf(it.spentCents, 0L)) }
-                if (values.isEmpty()) 0L else (values.sum().toDouble() / values.size).toLong()
+                val average = if (values.isEmpty()) 0L else (values.sum().toDouble() / values.size).toLong()
+                max(0L, applyAdjustment(average))
             }
             HistoricalMode.COPY -> {
                 val selected = runCatching { YearMonth.parse(month) }.getOrNull() ?: return 0L
@@ -203,6 +213,13 @@ data class BudgetTarget(
             Period.WEEK -> amountCents * countQualifyingDates(selected, every) { it.plusWeeks(1) }
             Period.DAY -> amountCents * countQualifyingDates(selected, every) { it.plusDays(1) }
         }
+    }
+
+    /** Applies an "increase"/"decrease" [adjustmentType] modifier, matching upstream `runAverage`. */
+    internal fun applyAdjustment(amountCents: Long): Long = when (adjustmentType) {
+        AdjustmentType.PERCENT -> Math.round(amountCents * (1.0 + (adjustmentPercent ?: 0.0) / 100.0))
+        AdjustmentType.FIXED -> amountCents + (adjustmentAmountCents ?: 0L)
+        null -> amountCents
     }
 
     private fun countQualifyingDates(selected: YearMonth, every: Int, advance: (LocalDate) -> LocalDate): Long {
@@ -249,11 +266,13 @@ data class BudgetTarget(
                 scheduleId?.takeIf(String::isNotBlank)?.let { row.put("scheduleId", it) }
                 scheduleName?.takeIf(String::isNotBlank)?.let { row.put("name", it) }
                 if (scheduleFull) row.put("full", true)
+                putAdjustment(row)
             }
             Type.PERCENTAGE -> row.put("type", "percentage").put("percent", percentage)
                 .put("category", percentageSource).put("previous", percentagePrevious)
             Type.HISTORICAL -> when (historicalMode) {
                 HistoricalMode.AVERAGE -> row.put("type", "average").put("numMonths", historicalMonths.coerceIn(1, 24))
+                    .also { putAdjustment(row) }
                 HistoricalMode.COPY -> row.put("type", "copy").put("lookBack", historicalMonths.coerceIn(1, 24))
             }
             Type.REFILL -> row.put("type", "refill")
@@ -279,6 +298,14 @@ data class BudgetTarget(
             ).toString()
         }
         return JSONArray().put(row).toString()
+    }
+
+    private fun putAdjustment(row: JSONObject) {
+        when (adjustmentType) {
+            AdjustmentType.PERCENT -> row.put("adjustmentType", "percent").put("adjustment", adjustmentPercent ?: 0.0)
+            AdjustmentType.FIXED -> row.put("adjustmentType", "fixed").put("adjustment", units(adjustmentAmountCents ?: 0L))
+            null -> Unit
+        }
     }
 
     companion object {
@@ -321,17 +348,23 @@ data class BudgetTarget(
                     it.optString("directive") == "template" &&
                         (it.optString("scheduleId").isNotBlank() || it.optString("name").isNotBlank())
                 }?.let {
+                    val (adjType, adjPercent, adjCents) = parseAdjustment(it)
                     BudgetTarget(
                         Type.SCHEDULE, priority = priority, note = note,
                         scheduleId = it.optString("scheduleId").ifBlank { null },
                         scheduleName = it.optString("name").ifBlank { null },
                         scheduleFull = it.optBoolean("full", false),
+                        adjustmentType = adjType, adjustmentPercent = adjPercent, adjustmentAmountCents = adjCents,
                     )
                 }
-                "average" -> BudgetTarget(
-                    Type.HISTORICAL, priority = priority, note = note,
-                    historicalMode = HistoricalMode.AVERAGE, historicalMonths = row.optInt("numMonths", 3),
-                )
+                "average" -> {
+                    val (adjType, adjPercent, adjCents) = parseAdjustment(row)
+                    BudgetTarget(
+                        Type.HISTORICAL, priority = priority, note = note,
+                        historicalMode = HistoricalMode.AVERAGE, historicalMonths = row.optInt("numMonths", 3),
+                        adjustmentType = adjType, adjustmentPercent = adjPercent, adjustmentAmountCents = adjCents,
+                    )
+                }
                 "copy" -> row.takeIf { it.optString("directive") == "template" }?.let {
                     BudgetTarget(
                         Type.HISTORICAL, priority = priority, note = note,
@@ -347,6 +380,7 @@ data class BudgetTarget(
                     BudgetTarget(
                         Type.PERCENTAGE, priority = priority, note = note,
                         percentage = it.optInt("percent"),
+                        percentageSource = it.optString("category"),
                         percentagePrevious = it.optBoolean("previous", false),
                     )
                 }
@@ -400,6 +434,22 @@ data class BudgetTarget(
         }
 
         private fun units(cents: Long): Any = if (cents % 100L == 0L) cents / 100L else cents / 100.0
+
+        /** Parses an "increase"/"decrease" [AdjustmentType] modifier, matching upstream `modifiers`. */
+        private fun parseAdjustment(row: JSONObject): Triple<AdjustmentType?, Double?, Long?> {
+            val type = when (row.optString("adjustmentType")) {
+                "percent" -> AdjustmentType.PERCENT
+                "fixed" -> AdjustmentType.FIXED
+                else -> null
+            }
+            if (type == null || !row.has("adjustment")) return Triple(null, null, null)
+            val value = row.optDouble("adjustment", Double.NaN)
+            if (!value.isFinite()) return Triple(null, null, null)
+            return when (type) {
+                AdjustmentType.PERCENT -> Triple(type, value, null)
+                AdjustmentType.FIXED -> Triple(type, null, (value * 100.0).toLong())
+            }
+        }
     }
 }
 
@@ -663,8 +713,9 @@ object BudgetTemplatePlanner {
                 targetReference(target) in it.referenceNames &&
                     (it.categoryId == null || it.categoryId == category.id)
             } ?: return@sumOf 0L
-            if (target.scheduleFull) funding.amountCents * funding.occurrencesInMonth
-            else funding.requestedBudget(category.carryoverCents)
+            val base = if (target.scheduleFull) funding.amountCents * funding.occurrencesInMonth
+                else funding.requestedBudget(category.carryoverCents)
+            max(0L, target.applyAdjustment(base))
         }
         val percentage = targets.filter { it.type == BudgetTarget.Type.PERCENTAGE }
             .sumOf { target ->

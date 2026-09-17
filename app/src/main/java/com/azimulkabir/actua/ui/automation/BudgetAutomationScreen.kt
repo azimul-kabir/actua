@@ -80,6 +80,7 @@ fun BudgetAutomationScreen(
     month: String,
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
+    incomeCategories: List<String> = emptyList(),
     onBack: () -> Unit,
     onSave: (List<BudgetTarget>) -> Unit,
     modifier: Modifier = Modifier,
@@ -106,6 +107,7 @@ fun BudgetAutomationScreen(
             month = month,
             hideDecimalPlaces = hideDecimalPlaces,
             scheduleFunding = scheduleFunding,
+            incomeCategories = incomeCategories,
             usedSingletonTypes = usedSingletons,
             onBack = { editingIndex = null; addingType = null },
             onDelete = if (existing != null) {
@@ -242,10 +244,10 @@ private fun automationSummary(target: BudgetTarget, hideDecimalPlaces: Boolean):
         "${formatMoneyCents(target.amountCents, hideDecimalPlaces)} $cadence"
     }
     BudgetTarget.Type.BY_DATE -> "${formatMoneyCents(target.amountCents, hideDecimalPlaces)} by ${target.targetMonth}"
-    BudgetTarget.Type.SCHEDULE -> target.scheduleName ?: "Linked schedule"
+    BudgetTarget.Type.SCHEDULE -> (target.scheduleName ?: "Linked schedule") + adjustmentSuffix(target)
     BudgetTarget.Type.PERCENTAGE -> "${target.percentage}% of ${if (target.percentagePrevious) "last" else "this"} month's ${target.percentageSource}"
     BudgetTarget.Type.HISTORICAL -> when (target.historicalMode) {
-        BudgetTarget.HistoricalMode.AVERAGE -> "Average of ${target.historicalMonths} recent months"
+        BudgetTarget.HistoricalMode.AVERAGE -> "Average of ${target.historicalMonths} recent months" + adjustmentSuffix(target)
         BudgetTarget.HistoricalMode.COPY -> "Copy from ${target.historicalMonths} months ago"
     }
     BudgetTarget.Type.REFILL -> "Refills to the balance cap"
@@ -272,6 +274,7 @@ private fun AutomationEntryEditor(
     month: String,
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding>,
+    incomeCategories: List<String>,
     usedSingletonTypes: Set<BudgetTarget.Type>,
     onBack: () -> Unit,
     onDelete: (() -> Unit)?,
@@ -282,7 +285,8 @@ private fun AutomationEntryEditor(
         BudgetTarget.Type.LIMIT -> LimitEditor(initial, onBack, onDelete, onSave, modifier)
         BudgetTarget.Type.GOAL -> GoalEditor(initial, onBack, onDelete, onSave, modifier)
         else -> ContributionEditor(
-            initial, initialType, month, hideDecimalPlaces, scheduleFunding, usedSingletonTypes, onBack, onDelete, onSave, modifier,
+            initial, initialType, month, hideDecimalPlaces, scheduleFunding, incomeCategories,
+            usedSingletonTypes, onBack, onDelete, onSave, modifier,
         )
     }
 }
@@ -441,6 +445,7 @@ private fun ContributionEditor(
     month: String,
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding>,
+    incomeCategories: List<String>,
     usedSingletonTypes: Set<BudgetTarget.Type>,
     onBack: () -> Unit,
     onDelete: (() -> Unit)?,
@@ -479,8 +484,33 @@ private fun ContributionEditor(
 
     // PERCENTAGE
     var percentage by remember { mutableStateOf(initial?.percentage ?: 10) }
+    var percentageSource by remember { mutableStateOf(initial?.percentageSource ?: "available funds") }
     var percentagePrevious by remember { mutableStateOf(initial?.percentagePrevious ?: false) }
     var percentageOfMenu by remember { mutableStateOf(false) }
+    var percentageSourceMenu by remember { mutableStateOf(false) }
+
+    // Adjustment ("increase"/"decrease" modifier) - SCHEDULE and HISTORICAL(AVERAGE) only
+    var adjustmentEnabled by remember { mutableStateOf(initial?.adjustmentType != null) }
+    var adjustmentType by remember { mutableStateOf(initial?.adjustmentType ?: BudgetTarget.AdjustmentType.PERCENT) }
+    var adjustmentIncrease by remember {
+        mutableStateOf(
+            when (initial?.adjustmentType) {
+                BudgetTarget.AdjustmentType.PERCENT -> (initial.adjustmentPercent ?: 0.0) >= 0.0
+                BudgetTarget.AdjustmentType.FIXED -> (initial.adjustmentAmountCents ?: 0L) >= 0L
+                null -> true
+            },
+        )
+    }
+    var adjustmentMagnitude by remember {
+        mutableStateOf(
+            when (initial?.adjustmentType) {
+                BudgetTarget.AdjustmentType.PERCENT -> initial.adjustmentPercent?.let { kotlin.math.abs(it) }
+                    ?.let { java.math.BigDecimal(it).stripTrailingZeros().toPlainString() } ?: ""
+                BudgetTarget.AdjustmentType.FIXED -> initial.adjustmentAmountCents?.let { plainAmount(kotlin.math.abs(it)) } ?: ""
+                null -> ""
+            },
+        )
+    }
 
     // REMAINDER
     var weight by remember { mutableStateOf(initial?.weight ?: 1) }
@@ -511,6 +541,11 @@ private fun ContributionEditor(
         else -> false
     } && validStartingDate && validLimitStartDate
 
+    val adjustmentApplicable = type == BudgetTarget.Type.SCHEDULE ||
+        (type == BudgetTarget.Type.HISTORICAL && historicalMode == BudgetTarget.HistoricalMode.AVERAGE)
+    val adjustmentMagnitudeValue = adjustmentMagnitude.toDoubleOrNull()?.takeIf { it > 0.0 }
+    val adjustmentActive = adjustmentApplicable && adjustmentEnabled && adjustmentMagnitudeValue != null
+
     fun buildTarget(): BudgetTarget = BudgetTarget(
         type = type,
         amountCents = amountCents ?: 0L,
@@ -526,7 +561,17 @@ private fun ContributionEditor(
         scheduleName = if (type == BudgetTarget.Type.SCHEDULE) scheduleName else null,
         scheduleFull = scheduleFull,
         historicalMode = historicalMode, historicalMonths = historicalMonths.coerceIn(1, 24),
-        percentage = percentage.coerceIn(1, 100), percentagePrevious = percentagePrevious,
+        percentage = percentage.coerceIn(1, 100), percentageSource = percentageSource, percentagePrevious = percentagePrevious,
+        adjustmentType = if (adjustmentActive) adjustmentType else null,
+        adjustmentPercent = if (adjustmentActive && adjustmentType == BudgetTarget.AdjustmentType.PERCENT) {
+            (if (adjustmentIncrease) 1.0 else -1.0) * (adjustmentMagnitudeValue ?: 0.0)
+        } else null,
+        adjustmentAmountCents = if (adjustmentActive && adjustmentType == BudgetTarget.AdjustmentType.FIXED) {
+            val magnitudeCents = runCatching {
+                java.math.BigDecimal(adjustmentMagnitude).movePointRight(2).longValueExact()
+            }.getOrDefault(0L)
+            (if (adjustmentIncrease) 1L else -1L) * magnitudeCents
+        } else null,
         weight = weight.coerceAtLeast(1),
         limitPeriod = if (type == BudgetTarget.Type.REMAINDER) limitPeriod else null,
         limitAmountCents = if (type == BudgetTarget.Type.REMAINDER) limitAmountCents else null,
@@ -637,10 +682,17 @@ private fun ContributionEditor(
                         DropdownMenuItem(text = { Text("Last month") }, onClick = { percentagePrevious = true; percentageOfMenu = false })
                     }
                 }
-                Text(
-                    "Uses income from Available Funds. Choosing a specific income category isn't supported yet.",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Box {
+                    ChoiceField("Income source", percentageSourceLabel(percentageSource)) { percentageSourceMenu = true }
+                    DropdownMenu(expanded = percentageSourceMenu, onDismissRequest = { percentageSourceMenu = false }) {
+                        (listOf("available funds", "all income") + incomeCategories).distinct().forEach { source ->
+                            DropdownMenuItem(
+                                text = { Text(percentageSourceLabel(source)) },
+                                onClick = { percentageSource = source; percentageSourceMenu = false },
+                            )
+                        }
+                    }
+                }
             }
             BudgetTarget.Type.HISTORICAL -> {
                 Box {
@@ -712,6 +764,45 @@ private fun ContributionEditor(
                 }
             }
             else -> Unit
+        }
+
+        if (adjustmentApplicable) {
+            SectionTitle("Adjustment")
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Increase or decrease the computed amount")
+                    Text(
+                        "Matches Actual's \"increase\"/\"decrease\" modifier.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = adjustmentEnabled, onCheckedChange = { adjustmentEnabled = it })
+            }
+            if (adjustmentEnabled) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(true to "Increase", false to "Decrease").forEach { (increase, label) ->
+                        FilledTonalButton(
+                            onClick = { adjustmentIncrease = increase }, modifier = Modifier.weight(1f),
+                            colors = if (adjustmentIncrease == increase) ButtonDefaults.filledTonalButtonColors()
+                                else ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        ) { Text(label) }
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = adjustmentMagnitude, onValueChange = { adjustmentMagnitude = it }, modifier = Modifier.weight(1f),
+                        label = { Text(if (adjustmentType == BudgetTarget.AdjustmentType.PERCENT) "Percent" else "Amount") },
+                        singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+                    TextButton(onClick = {
+                        adjustmentType = if (adjustmentType == BudgetTarget.AdjustmentType.PERCENT) {
+                            BudgetTarget.AdjustmentType.FIXED
+                        } else {
+                            BudgetTarget.AdjustmentType.PERCENT
+                        }
+                    }) { Text(if (adjustmentType == BudgetTarget.AdjustmentType.PERCENT) "%" else "Fixed") }
+                }
+            }
         }
 
         if (type.hasPriority) NumberStepper("Priority", priority, 1..30) { priority = it }
@@ -882,3 +973,19 @@ private fun simpleDatePicker(open: Boolean, current: String, onDismiss: () -> Un
 }
 
 private fun plainAmount(cents: Long): String = java.math.BigDecimal.valueOf(cents, 2).stripTrailingZeros().toPlainString()
+
+private fun adjustmentSuffix(target: BudgetTarget): String = when (target.adjustmentType) {
+    BudgetTarget.AdjustmentType.PERCENT -> target.adjustmentPercent?.let {
+        " · ${if (it >= 0) "+" else ""}${java.math.BigDecimal(it).stripTrailingZeros().toPlainString()}%"
+    } ?: ""
+    BudgetTarget.AdjustmentType.FIXED -> target.adjustmentAmountCents?.let {
+        " · ${if (it >= 0) "+" else ""}${plainAmount(it)}"
+    } ?: ""
+    null -> ""
+}
+
+private fun percentageSourceLabel(source: String): String = when (source.lowercase()) {
+    "available funds" -> "Available funds"
+    "all income" -> "All income"
+    else -> source
+}

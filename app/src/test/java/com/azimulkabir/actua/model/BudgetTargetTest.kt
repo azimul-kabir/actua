@@ -61,6 +61,38 @@ class BudgetTargetTest {
         )
     }
 
+    @Test fun historicalAveragePercentAdjustmentScalesTheAverage() {
+        val category = category().copy(history = listOf(
+            BudgetHistory("2026-08", 0, -10_000),
+            BudgetHistory("2026-07", 0, -20_000),
+        ))
+        assertEquals(
+            16_500,
+            BudgetTarget(
+                BudgetTarget.Type.HISTORICAL, historicalMode = BudgetTarget.HistoricalMode.AVERAGE, historicalMonths = 2,
+                adjustmentType = BudgetTarget.AdjustmentType.PERCENT, adjustmentPercent = 10.0,
+            ).suggestedBudget(category, "2026-09"),
+        )
+    }
+
+    @Test fun historicalAverageFixedAdjustmentAddsToTheAverageAndClampsAtZero() {
+        val category = category().copy(history = listOf(BudgetHistory("2026-08", 0, -10_000)))
+        assertEquals(
+            12_000,
+            BudgetTarget(
+                BudgetTarget.Type.HISTORICAL, historicalMode = BudgetTarget.HistoricalMode.AVERAGE, historicalMonths = 1,
+                adjustmentType = BudgetTarget.AdjustmentType.FIXED, adjustmentAmountCents = 2_000,
+            ).suggestedBudget(category, "2026-09"),
+        )
+        assertEquals(
+            0,
+            BudgetTarget(
+                BudgetTarget.Type.HISTORICAL, historicalMode = BudgetTarget.HistoricalMode.AVERAGE, historicalMonths = 1,
+                adjustmentType = BudgetTarget.AdjustmentType.FIXED, adjustmentAmountCents = -20_000,
+            ).suggestedBudget(category, "2026-09"),
+        )
+    }
+
     @Test fun historicalCopyUsesAssignedBudgetFromTheRequestedPriorMonth() {
         val category = category().copy(history = listOf(
             BudgetHistory("2026-08", 42_500, -10_000),
