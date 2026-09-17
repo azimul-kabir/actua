@@ -130,6 +130,20 @@ fun ActuaListRow(
 }
 
 /**
+ * Shared title for bottom sheets and similar transient surfaces (action
+ * sheets, pickers), so every sheet's heading uses the same type/padding
+ * instead of a one-off Text() at each call site.
+ */
+@Composable
+fun ActuaSheetTitle(title: String, modifier: Modifier = Modifier) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleLarge,
+        modifier = modifier.padding(horizontal = Spacing.xl, vertical = Spacing.md),
+    )
+}
+
+/**
  * Consistent monetary text: tabular figures so amounts don't jitter in
  * lists, and the same positive/negative/zero coloring used everywhere an
  * amount is shown.

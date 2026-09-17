@@ -12,7 +12,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +28,7 @@ fun NewCategoryDialog(groups: List<String>, onDismiss: () -> Unit, onSave: (Stri
     var expanded by remember { mutableStateOf(false) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("New category") }, text = {
         Column {
-            TextField(name, { name = it }, label = { Text("Name") }, singleLine = true)
+            OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true)
             TextButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(group.ifBlank { "Select group" }) }
             DropdownMenu(expanded, { expanded = false }) { groups.forEach { option ->
                 DropdownMenuItem(text = { Text(option) }, onClick = { group = option; expanded = false })
@@ -72,8 +72,8 @@ fun NewAccountDialog(onDismiss: () -> Unit, onSave: (String, Boolean, String) ->
     var offBudget by remember { mutableStateOf(false) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Add account") }, text = {
         Column {
-            TextField(name, { name = it }, label = { Text("Name") }, singleLine = true)
-            TextField(balance, { balance = it.filter { char -> char.isDigit() || char in ".-" } },
+            OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true)
+            OutlinedTextField(balance, { balance = it.filter { char -> char.isDigit() || char in ".-" } },
                 label = { Text("Starting balance") }, singleLine = true)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Off budget", modifier = Modifier.weight(1f)); Switch(offBudget, { offBudget = it })

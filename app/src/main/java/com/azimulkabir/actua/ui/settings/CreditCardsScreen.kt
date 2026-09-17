@@ -26,7 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -170,7 +170,7 @@ private fun CardEditorDialog(
                     DropdownMenuItem(text = { Text(option.name) }, onClick = { accountId = option.id; accountsExpanded = false })
                 } }
             } else Text("Account  ${card.accountName}")
-            TextField(day, { day = it.filter(Char::isDigit).take(2) }, label = { Text("Statement closing day (1–31)") }, singleLine = true)
+            OutlinedTextField(day, { day = it.filter(Char::isDigit).take(2) }, label = { Text("Statement closing day (1–31)") }, singleLine = true)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = !useFixedDueDay,
@@ -186,11 +186,11 @@ private fun CardEditorDialog(
                 )
             }
             if (useFixedDueDay) {
-                TextField(dueDay, { dueDay = it.filter(Char::isDigit).take(2) }, label = { Text("Payment due day (1–31)") }, singleLine = true)
+                OutlinedTextField(dueDay, { dueDay = it.filter(Char::isDigit).take(2) }, label = { Text("Payment due day (1–31)") }, singleLine = true)
             } else {
-                TextField(offset, { offset = it.filter(Char::isDigit).take(2) }, label = { Text("Payment due after (1–60 days)") }, singleLine = true)
+                OutlinedTextField(offset, { offset = it.filter(Char::isDigit).take(2) }, label = { Text("Payment due after (1–60 days)") }, singleLine = true)
             }
-            TextField(limit, { value -> limit = value.filter { it.isDigit() || it == '.' } }, label = { Text("Credit limit (optional)") }, singleLine = true)
+            OutlinedTextField(limit, { value -> limit = value.filter { it.isDigit() || it == '.' } }, label = { Text("Credit limit (optional)") }, singleLine = true)
             Text(if (useFixedDueDay) "The due date uses the issuer’s fixed calendar day, clamped for shorter months."
                 else "The due date is the statement closing date plus the issuer’s payment period.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -104,6 +104,7 @@ import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
+import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
@@ -2173,8 +2174,7 @@ private fun CategoryActionsSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 24.dp)) {
-            Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+            ActuaSheetTitle(category.name)
             SheetAction("Rename category", onRename)
             if (!category.isIncome) {
                 SheetAction(when {
@@ -2205,12 +2205,7 @@ private fun FundingActionsSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 24.dp)) {
-            Text(
-                category.name,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-            )
+            ActuaSheetTitle(category.name)
             SheetAction("Edit budgeted amount", onEditAssigned)
             SheetAction(
                 if (category.balanceCents < 0L) "Cover overspending" else "Move money",
@@ -2226,8 +2221,7 @@ private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRenam
     hidden: Boolean, onSetHidden: (Boolean) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 24.dp)) {
-            Text(group.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+            ActuaSheetTitle(group.name)
             SheetAction("Rename group", onRename)
             if (!group.isIncome || hidden) {
                 SheetAction(if (hidden) "Unhide group" else "Hide group", { onSetHidden(!hidden) }, destructive = !hidden)
@@ -2242,8 +2236,7 @@ private fun AddBudgetSheet(onDismiss: () -> Unit,
     onApplyTemplate: (Boolean) -> Unit, onPreviewCleanup: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 28.dp)) {
-            Text("Add to budget", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+            ActuaSheetTitle("Add to budget")
             SheetAction("Apply budget templates", onClick = { onApplyTemplate(false) })
             SheetAction("Overwrite budget templates", onClick = { onApplyTemplate(true) })
             SheetAction("Month-end cleanup", onClick = onPreviewCleanup)

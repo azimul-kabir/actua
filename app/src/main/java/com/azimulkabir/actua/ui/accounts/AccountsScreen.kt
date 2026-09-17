@@ -59,6 +59,7 @@ import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.NewAccountDialog
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.components.MonetaryText
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.AmountTypography
@@ -352,8 +353,7 @@ private fun AccountActionsSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 24.dp)) {
-            Text(account.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+            ActuaSheetTitle(account.name)
             AccountSheetAction("View transactions", onViewTransactions)
             AccountSheetAction("Rename account", onRename)
             AccountSheetAction(if (account.closed) "Reopen account" else "Close account", onClose, destructive = !account.closed)
@@ -366,8 +366,7 @@ private fun AccountActionsSheet(
 private fun AddAccountSheet(onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 28.dp)) {
-            Text("Add account", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+            ActuaSheetTitle("Add account")
             AccountSheetAction("Bank account", onDismiss)
             AccountSheetAction("Cash account", onDismiss)
             AccountSheetAction("Credit card", onDismiss)

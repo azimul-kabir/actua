@@ -90,6 +90,7 @@ import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import com.azimulkabir.actua.ui.components.coloredTagText
 import com.azimulkabir.actua.ui.components.rememberActualTagColors
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.ui.theme.Spacing
 import java.text.NumberFormat
@@ -521,8 +522,7 @@ fun TransactionsScreen(
     selected?.let { transaction ->
         ModalBottomSheet(onDismissRequest = { selected = null }) {
             Column(modifier = Modifier.padding(bottom = 24.dp)) {
-                Text(transaction.payee, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                ActuaSheetTitle(transaction.payee)
                 Action("Edit transaction") { selected = null; onEdit(transaction) }
                 Action("Duplicate transaction") { selected = null; onDuplicate(transaction) }
                 Action(if (transaction.cleared) "Mark uncleared" else "Mark cleared") {
@@ -560,8 +560,7 @@ fun TransactionsScreen(
     if (showLinkSchedulePicker) {
         ModalBottomSheet(onDismissRequest = { showLinkSchedulePicker = false }) {
             Column(modifier = Modifier.padding(bottom = 24.dp)) {
-                Text("Link to schedule", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                ActuaSheetTitle("Link to schedule")
                 if (linkableSchedules.isEmpty()) {
                     Text("No schedules available", color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
