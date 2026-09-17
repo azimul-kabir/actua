@@ -981,9 +981,11 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     Row(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
         .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md), verticalAlignment = Alignment.Top) {
         if (selectionMode) {
-            Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
+            Checkbox(checked = selected, onCheckedChange = null,
+                modifier = Modifier.align(Alignment.CenterVertically).padding(end = 4.dp))
         }
-        ClearedIndicator(transaction.cleared, onClearedClick, modifier = Modifier.padding(end = 10.dp, top = 2.dp))
+        ClearedIndicator(transaction.cleared, onClearedClick,
+            modifier = Modifier.align(Alignment.CenterVertically).padding(end = 10.dp))
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(presentation.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1000,13 +1002,14 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
         }
         Column(horizontalAlignment = Alignment.End) {
             Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
-            val secondaryLine = runningBalanceCents?.let { formatMoneyCents(it, hideDecimalPlaces) }
-                ?: presentation.accountLabel
+            val runningBalanceLabel = runningBalanceCents?.let { formatMoneyCents(it, hideDecimalPlaces) }
+            val secondaryLine = runningBalanceLabel ?: presentation.accountLabel
             secondaryLine?.let {
                 Spacer(Modifier.height(6.dp))
                 Text(it, style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.tertiary, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
+                    color = if (runningBalanceLabel != null) MaterialTheme.colorScheme.tertiary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
             } ?: Spacer(Modifier.height(7.dp))
             if (showDate) {
                 Spacer(Modifier.height(if (secondaryLine != null) 5.dp else 0.dp))
