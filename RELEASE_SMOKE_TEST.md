@@ -36,6 +36,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] A category with an active budget-automation goal shows its progress bar filling toward the goal as it's funded, and dropping when the goal amount is spent; a category without a goal still shows plain spend-down progress.
 - [ ] Fund a multi-month "Have amount by a date" or "Cover scheduled transaction" target partway and verify the progress bar reflects overall goal progress, not just the current month's installment; verify the progress bar reflects the goal immediately after saving, without needing a whole-budget "Apply Templates" run first.
 - [ ] Budget toolbar filter chips (Overspent, Underfunded, Overfunded, Money Available) narrow the category list correctly and the selection persists after navigating away and back.
+- [ ] The budget month selector shows the month label with a small down-chevron (no separate step arrows); tapping anywhere on the row opens the month/year picker, and the tap ripple hugs the label instead of stretching across the toolbar.
+- [ ] Switching between "Move to Category"/"Hold for Next Month" and between "Auto-Assign"/"Move Money" in the budget action sheet animates height and content together with no flicker or instant snap; tapping "Details" plays the sheet's hide animation before opening category details.
 - [ ] Tap the Ready/To Budget amount (Plan or classic view) and verify the Budget Summary sheet opens already expanded showing "Move to Category" (category selector, amount field, calculator) with no extra tap needed; "Hold for Next Month" and "Reset Hold" remain reachable; on an envelope budget, use "Hold for Next Month" to buffer part or all of the amount, verify it carries to next month, then "Reset Hold" and confirm it's cleared; the hold/reset tiles are unavailable on non-envelope budgets.
 - [ ] Manage → Categories → Manage Categories: create/rename/hide a group and a category, delete a category, and move a category to another group; drag a category within its group using the handle (no long-press needed) and verify it persists once on drop (not on every row crossed) and auto-scrolls near the list edges; verify a failed persist reverts the drag.
 - [ ] Manage → Categories → Reorder Groups: drag a group to a new position with the up/down buttons as a non-drag alternative; verify the new order persists and syncs, and the income group's position stays fixed.
@@ -65,12 +67,16 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Typing `#` in a transaction note offers matching/creatable tag suggestions; selecting one inserts it correctly and syncs.
 - [ ] Manage → Tags: create, edit (color/hidden), rename and delete a tag; renaming updates matching transaction-note hashtags.
 - [ ] Tapping a managed tag opens its matching transactions, including parent/split notes, with the active filter clearly shown and clearable.
-- [ ] Cleared/uncleared/reconciled balances agree with the source budget; account detail shows an always-visible Cleared / Balance / Uncleared row, with Reconciled (and, for credit cards, Available credit / Credit limit) behind the collapsible toggle.
-- [ ] Enable "Running balance" from an account's transaction register overflow menu and verify each row shows the correct balance after that transaction, including across transfers, splits and the opening balance, and that the setting persists after navigating away and relaunching.
+- [ ] Cleared/uncleared/reconciled balances agree with the source budget; account detail shows an always-visible Cleared / Balance / Uncleared row (left/center/right aligned), with Reconciled (and, for credit cards, Available credit / Credit limit) behind the collapsible toggle.
+- [ ] Enable "Running balance" from an account's transaction register overflow menu and verify each row shows the correct balance after that transaction (now on the category row, not stacked under the amount), including across transfers, splits and the opening balance, and that the setting persists after navigating away and relaunching.
+- [ ] In a transaction row: the cleared/selection indicator sits left of the payee and top-aligns with it; the category chip and notes sit flush left under the payee; the right side shows amount, then running balance (or, in the cross-account Transactions tab, the account name colored like the category chip), then date; the cleared checkmark uses the theme's primary color.
+- [ ] Open a transaction's details sheet and verify spacing between the amount and the cleared tick in the header.
 - [ ] Reconcile an account using a known bank balance and verify the resulting locked/reconciled rows.
 - [ ] Reconciled-transaction filtering works in account and all-transactions views.
-- [ ] Credit-card limit, cycle spending and due-date information render correctly when configured.
-- [ ] Tap a credit card's history icon and verify the last 3 closed statements list with correct due amounts; opening a statement shows the correct transactions for that billing cycle.
+- [ ] Credit-card limit, cycle spending and due-date information render correctly when configured; the account's Billing cycle card shows the current cycle's date range and a "Statement history" link.
+- [ ] Tap a credit card's history icon (or the Billing cycle card's "Statement history" link) and verify the last 3 closed statements list with correct due amounts; opening a statement shows the correct transactions for that billing cycle; use the system back gesture/button from the statements list and from a statement's transaction list and verify it returns to the account page instead of skipping to Main.
+- [ ] Open an account's dropdown menu and toggle "Show credit card section" off/on; verify the billing cycle/statement history section hides/shows accordingly.
+- [ ] Toggle the global "Notes" setting under Display off and verify the notes field is hidden on accounts and budget categories; toggle it back on and verify notes reappear unchanged.
 
 ## Rules, schedules and reports
 
@@ -113,6 +119,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Light/dark/system appearance and Material You rendering remain legible.
 - [ ] On Android 12+, Settings > Display "Material You colors" toggle switches between the app's own brand palette and wallpaper-derived dynamic color, in both light and dark mode; the setting persists across relaunch and the toggle is hidden/inert below Android 12.
 - [ ] Spot-check Budget, Transactions, Reports, Manage/Settings sub-screens, and common dialogs/bottom sheets after the design-system pass: consistent corner rounding and spacing, no visual regressions from the previous release, and paid/cleared/due-soon status colors remain legible in both themes.
+- [ ] Confirm the default (non-Material You) theme shows the brighter violet/orchid palette in both light and dark mode, with success/warning accent colors still legible against it.
 - [ ] No obvious clipping, blank space, overlapping text or inaccessible actions on the primary test device.
 
 ## Release/distribution

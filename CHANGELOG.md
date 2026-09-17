@@ -4,9 +4,29 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.30] - 2026-09-18
+
+### Changed
+
+- Brightened the default theme with a higher-chroma violet/orchid palette (light and dark) and matching success/warning accents
+- Replaced the budget month stepper's uneven left/right step arrows with a single YNAB-style control: the month label plus a small down-chevron opening the existing month/year picker, making the whole row one large tap target
+- Redesigned the transaction row layout to match Actual Budget's PWA: the cleared/selection indicator moves to the left of the payee and top-aligns with it; the category chip and notes sit directly under the payee flush left; the right side is a single right-aligned column holding the amount, then running balance (or, in the cross-account Transactions tab, the account name in the category chip's color), then the date; added spacing between the amount and cleared tick in the transaction details sheet header
+- Moved the running balance onto the category row instead of stacking it under the payee's amount, so enabling it no longer adds extra row height
+- Realigned the account summary card's Cleared/Balance/Uncleared values to left/center/right instead of all centered
+- Used the theme's primary color for the cleared checkmark instead of a fixed green
+
+### Added
+
+- Added the current billing cycle's date range and a "Statement history" link on a credit card account's Billing cycle card
+- Added a per-account "Show credit card section" toggle in the account dropdown menu to hide the billing cycle/statement history section
+- Added a global "Notes" toggle under Display settings to hide the notes field on accounts and budget categories
+
 ### Fixed
 
 - Fixed progress bars still reading as fully funded for non-monthly "Cover scheduled transaction" and "Save by a date" goals: a locally-known target definition now always wins over Actual's server-synced goal cell, since that cell can be left over from before an automation was last (re-)applied and represent only the current month's installment rather than the true end goal; "Cover scheduled transaction" goals also now resolve their full occurrence amount from the linked schedule directly, instead of only falling back to month-to-month spend progress when no server goal was synced
+- Fixed the system back button skipping past credit card statement screens instead of returning to the account page
+- Fixed the budget month selector's tap ripple stretching across the full toolbar width instead of hugging the month label
+- Fixed budget action sheet transitions (Move to Category/Hold for Next Month, Auto-Assign/Move Money) snapping height instantly while content faded; the whole switch now animates together
 
 ## [1.0.0-beta.29] - 2026-09-17
 
