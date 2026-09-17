@@ -99,6 +99,20 @@ data class CreditCardCycle(
 
     fun daysUntilDue(today: DayDate = DayDate.today()) = maxOf(0, today.daysUntil(upcomingDueDate(today)))
 
+    /** The last three closed billing statement cycles, ordered newest to oldest. */
+    fun recentStatementCycles(today: DayDate = DayDate.today()): List<StatementCycle> {
+        val cycles = mutableListOf<StatementCycle>()
+        var currentEnd = previousStatementDate(today)
+        repeat(3) {
+            val prevEnd = previousStatementDate(currentEnd)
+            val start = prevEnd.addingDays(1)
+            val due = dueDate(currentEnd)
+            cycles += StatementCycle(start, currentEnd, due)
+            currentEnd = prevEnd
+        }
+        return cycles
+    }
+
     fun dueSummary(today: DayDate = DayDate.today()): String = when (val days = daysUntilDue(today)) {
         0 -> "Due today"
         1 -> "Due tomorrow"
@@ -115,9 +129,54 @@ data class CreditCardCycle(
         return if (days <= 1) dueSummary(today) else "Due in ${days}d"
     }
 
+    /** A closed billing cycle's date range and the payment due date for its statement. */
+    data class StatementCycle(val start: DayDate, val end: DayDate, val dueDate: DayDate)
+
+    /** Status of the payment due for a credit card statement. */
+    data class StatementDue(
+        /** Balance in cents owed when the statement closed (positive). */
+        val statementBalance: Long,
+        /** Payments/credits in cents received since the statement closed (positive). */
+        val paymentsSince: Long,
+        /** Remaining balance in cents to pay for this statement (positive). */
+        val remainingDue: Long,
+        /** Payment due date for this statement. */
+        val dueDate: DayDate,
+    ) {
+        val isPaid: Boolean get() = remainingDue == 0L && statementBalance > 0L
+    }
+
+    /** Record of a closed credit card billing statement with spend, due, and transaction metrics. */
+    data class StatementRecord(
+        val startDate: DayDate,
+        val endDate: DayDate,
+        val dueDate: DayDate,
+        val statementBalance: Long,
+        val paymentsSince: Long,
+        val remainingDue: Long,
+        /** Outflow spend in cents during the billing cycle (positive). */
+        val totalSpend: Long,
+    ) {
+        val id: Int get() = endDate.yyyymmdd
+        val isPaid: Boolean get() = remainingDue == 0L && statementBalance > 0L
+    }
+
     companion object {
         const val DEFAULT_DUE_OFFSET_DAYS = 15
         const val MAX_DUE_OFFSET_DAYS = 60
+
+        /** Computes the statement payment status given raw balances and payments. */
+        fun calculateStatementDue(
+            statementRawBalance: Long,
+            paymentsSince: Long,
+            liveBalance: Long,
+            dueDate: DayDate,
+        ): StatementDue {
+            val statementOwed = maxOf(0L, -statementRawBalance)
+            val unpaid = maxOf(0L, statementOwed - paymentsSince)
+            val remaining = minOf(unpaid, maxOf(0L, -liveBalance))
+            return StatementDue(statementOwed, paymentsSince, remaining, dueDate)
+        }
     }
 }
 

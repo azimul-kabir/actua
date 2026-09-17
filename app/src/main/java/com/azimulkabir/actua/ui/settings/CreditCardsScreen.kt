@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -54,6 +55,7 @@ fun CreditCardsScreen(
     onRemove: (String) -> Unit,
     notificationsEnabled: Boolean = false,
     onNotificationsEnabledChange: (Boolean) -> Unit = {},
+    onViewStatements: (CreditCardStatus) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var editing by remember { mutableStateOf<CreditCardStatus?>(null) }
@@ -91,7 +93,9 @@ fun CreditCardsScreen(
                     modifier = Modifier.padding(20.dp))
             }
             items(cards, key = { it.accountId }) { card ->
-                CreditCardRow(card, hideDecimalPlaces, Modifier.padding(horizontal = 16.dp).clickable { editing = card })
+                CreditCardRow(card, hideDecimalPlaces,
+                    Modifier.padding(horizontal = 16.dp).clickable { editing = card },
+                    onViewStatements = { onViewStatements(card) })
             }
         }
     }
@@ -105,11 +109,14 @@ fun CreditCardsScreen(
 }
 
 @Composable
-private fun CreditCardRow(card: CreditCardStatus, hideDecimals: Boolean, modifier: Modifier = Modifier) {
+private fun CreditCardRow(
+    card: CreditCardStatus, hideDecimals: Boolean, modifier: Modifier = Modifier,
+    onViewStatements: () -> Unit = {},
+) {
     val days = card.cycle.daysUntilDue()
     val urgency = when { days <= 3 -> MaterialTheme.colorScheme.error; days <= 7 -> Color(0xFFF57C00); else -> Color(0xFFF9A825) }
     Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
-        Row {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.padding(vertical = 0.dp).align(Alignment.CenterVertically)) {
                 Surface(color = urgency, modifier = Modifier.padding(0.dp)) { Box(Modifier.padding(horizontal = 2.dp, vertical = 34.dp)) }
             }
@@ -129,6 +136,9 @@ private fun CreditCardRow(card: CreditCardStatus, hideDecimals: Boolean, modifie
                     Text("Available credit ${formatMoneyCents(it, hideDecimals)}", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+            IconButton(onClick = onViewStatements) {
+                Icon(Icons.Outlined.History, "View recent statements")
             }
         }
     }

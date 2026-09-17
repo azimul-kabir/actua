@@ -91,4 +91,53 @@ class CreditCardCycleTest {
         val balance = -23_450L
         assertEquals(76_550L, limit + balance)
     }
+
+    @Test fun recentStatementCyclesReturnsLastThreeClosedCyclesNewestFirst() {
+        val cycle = CreditCardCycle(statementDay = 15, dueOffsetDays = 25)
+        val cycles = cycle.recentStatementCycles(DayDate(2026, 2, 20))
+
+        assertEquals(3, cycles.size)
+        assertEquals(DayDate(2026, 1, 16), cycles[0].start)
+        assertEquals(DayDate(2026, 2, 15), cycles[0].end)
+        assertEquals(DayDate(2026, 3, 12), cycles[0].dueDate)
+        assertEquals(DayDate(2025, 12, 16), cycles[1].start)
+        assertEquals(DayDate(2026, 1, 15), cycles[1].end)
+        assertEquals(DayDate(2025, 11, 16), cycles[2].start)
+        assertEquals(DayDate(2025, 12, 15), cycles[2].end)
+    }
+
+    @Test fun calculateStatementDueTracksUnpaidBalanceAgainstLiveBalance() {
+        // Statement closed $250 owed (raw balance -25000), no payments since, still owed live.
+        val unpaid = CreditCardCycle.calculateStatementDue(
+            statementRawBalance = -25_000L, paymentsSince = 0L, liveBalance = -25_000L,
+            dueDate = DayDate(2026, 3, 1),
+        )
+        assertEquals(25_000L, unpaid.statementBalance)
+        assertEquals(0L, unpaid.paymentsSince)
+        assertEquals(25_000L, unpaid.remainingDue)
+        assertEquals(false, unpaid.isPaid)
+    }
+
+    @Test fun calculateStatementDueMarksPaidWhenPaymentsCoverTheStatement() {
+        val paid = CreditCardCycle.calculateStatementDue(
+            statementRawBalance = -25_000L, paymentsSince = 25_000L, liveBalance = 0L,
+            dueDate = DayDate(2026, 3, 1),
+        )
+        assertEquals(25_000L, paid.statementBalance)
+        assertEquals(0L, paid.remainingDue)
+        assertEquals(true, paid.isPaid)
+    }
+
+    @Test fun calculateStatementDueClampsRemainingToCurrentLiveDebt() {
+        // Statement owed $250, no payments recorded since, but new spend has already
+        // been added to the live balance rather than paid off, so remaining due should
+        // not exceed what's actually owed live.
+        val due = CreditCardCycle.calculateStatementDue(
+            statementRawBalance = -25_000L, paymentsSince = 0L, liveBalance = -10_000L,
+            dueDate = DayDate(2026, 3, 1),
+        )
+        assertEquals(25_000L, due.statementBalance)
+        assertEquals(10_000L, due.remainingDue)
+        assertEquals(false, due.isPaid)
+    }
 }

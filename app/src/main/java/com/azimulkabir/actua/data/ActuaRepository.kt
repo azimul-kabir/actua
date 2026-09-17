@@ -645,46 +645,67 @@ class ActuaRepository(context: Context) {
             // an in-memory Compose list, so explicitly load the complete history; otherwise
             // older synced transactions exist locally but silently disappear from Accounts.
             return db.fetchTransactions(limit = limit, offset = offset, query = query,
-                unclearedOnly = unclearedOnly, hideReconciled = hideReconciled, statusFilter = statusFilter).map {
-                val isTransfer = it.transferId != null
-                Transaction(
-                    id = it.id,
-                    date = it.date.toString(),
-                    payee = it.payeeName ?: if (it.isParent) "Split" else "",
-                    category = when {
-                        isTransfer -> ""
-                        it.isParent -> "Split"
-                        else -> it.categoryName ?: "Uncategorized"
-                    },
-                    account = accountNames[it.accountId] ?: "Unknown",
-                    amount = centsToDisplayUnits(it.amountCents),
-                    cleared = it.cleared,
-                    reconciled = it.reconciled,
-                    amountCents = it.amountCents,
-                    type = when {
-                        isTransfer -> Type.TRANSFER
-                        it.amountCents >= 0 -> Type.INCOME
-                        else -> Type.EXPENSE
-                    },
-                    transferAccount = it.transferAccountId?.let(accountNames::get),
-                    notes = it.notes.orEmpty(),
-                    categoryIsIncome = it.categoryIsIncome,
-                    scheduleId = it.scheduleId,
-                    splits = it.splitPortions.map { part ->
-                        SplitLine(
-                            category = part.categoryName.orEmpty(),
-                            amountCents = kotlin.math.abs(part.amountCents),
-                            notes = part.notes.orEmpty(),
-                            payee = part.payeeName.takeUnless { name -> name == it.payeeName }.orEmpty(),
-                            isOpposite = (part.amountCents < 0) != (it.amountCents < 0),
-                            childId = part.id,
-                            categoryIsIncome = part.categoryIsIncome,
-                        )
-                    },
-                )
-            }
+                unclearedOnly = unclearedOnly, hideReconciled = hideReconciled, statusFilter = statusFilter)
+                .map { toTransaction(it, accountNames) }
         }
         return emptyList()
+    }
+
+    private fun toTransaction(it: ActualTransaction, accountNames: Map<String, String>): Transaction {
+        val isTransfer = it.transferId != null
+        return Transaction(
+            id = it.id,
+            date = it.date.toString(),
+            payee = it.payeeName ?: if (it.isParent) "Split" else "",
+            category = when {
+                isTransfer -> ""
+                it.isParent -> "Split"
+                else -> it.categoryName ?: "Uncategorized"
+            },
+            account = accountNames[it.accountId] ?: "Unknown",
+            amount = centsToDisplayUnits(it.amountCents),
+            cleared = it.cleared,
+            reconciled = it.reconciled,
+            amountCents = it.amountCents,
+            type = when {
+                isTransfer -> Type.TRANSFER
+                it.amountCents >= 0 -> Type.INCOME
+                else -> Type.EXPENSE
+            },
+            transferAccount = it.transferAccountId?.let(accountNames::get),
+            notes = it.notes.orEmpty(),
+            categoryIsIncome = it.categoryIsIncome,
+            scheduleId = it.scheduleId,
+            splits = it.splitPortions.map { part ->
+                SplitLine(
+                    category = part.categoryName.orEmpty(),
+                    amountCents = kotlin.math.abs(part.amountCents),
+                    notes = part.notes.orEmpty(),
+                    payee = part.payeeName.takeUnless { name -> name == it.payeeName }.orEmpty(),
+                    isOpposite = (part.amountCents < 0) != (it.amountCents < 0),
+                    childId = part.id,
+                    categoryIsIncome = part.categoryIsIncome,
+                )
+            },
+        )
+    }
+
+    /** Closed statements for a credit card account (up to 3), newest first. */
+    fun fetchRecentStatements(accountId: String): List<CreditCardCycle.StatementRecord> {
+        val db = actualDatabase ?: return emptyList()
+        val config = db.fetchCreditCardConfigs()[accountId] ?: return emptyList()
+        val account = db.fetchAccounts().firstOrNull { it.id == accountId } ?: return emptyList()
+        val cycle = CreditCardCycle(config.statementDay, config.paymentDue)
+        return db.fetchRecentStatements(accountId, cycle.recentStatementCycles(), account.balanceCents)
+    }
+
+    /** Transactions within a credit card billing statement date range [startDate, endDate]. */
+    fun fetchStatementTransactions(accountId: String, startDate: Int, endDate: Int): List<Transaction> {
+        val db = actualDatabase ?: return emptyList()
+        val accountNames = db.fetchAccounts().associate { it.id to it.name }
+        return db.fetchTransactions(accountId = accountId, limit = Int.MAX_VALUE)
+            .filter { it.date in startDate..endDate }
+            .map { toTransaction(it, accountNames) }
     }
 
     fun importDuplicateKeys(accountId: String): Set<String> {
