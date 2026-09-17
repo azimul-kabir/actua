@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -635,20 +636,28 @@ private fun BudgetToolbar(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { onMonthChange(shiftMonth(month, -1)) }) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Previous month")
-            }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f)
+                .clip(MaterialTheme.shapes.medium)
+                .clickable { monthPickerOpen = true }
+                .padding(horizontal = 6.dp, vertical = 8.dp),
+        ) {
             Text(
                 formatMonth(month),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(MaterialTheme.shapes.medium)
-                    .clickable { monthPickerOpen = true }
-                    .padding(horizontal = 6.dp, vertical = 8.dp),
             )
-            IconButton(onClick = { onMonthChange(shiftMonth(month, 1)) }) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Next month")
+            Spacer(modifier = Modifier.width(4.dp))
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ) {
+                Icon(
+                    Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = "Choose month",
+                    modifier = Modifier.padding(4.dp).size(18.dp),
+                )
             }
         }
         Box {
@@ -804,9 +813,6 @@ private fun BudgetMonthPicker(
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
-
-private fun shiftMonth(month: String, amount: Long): String =
-    java.time.YearMonth.parse(month).plusMonths(amount).toString()
 
 private fun formatMonth(month: String): String = java.time.YearMonth.parse(month)
     .format(java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.getDefault()))
