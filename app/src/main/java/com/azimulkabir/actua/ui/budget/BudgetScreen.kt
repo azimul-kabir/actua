@@ -1,7 +1,10 @@
 package com.azimulkabir.actua.ui.budget
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
@@ -77,6 +80,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -113,6 +117,7 @@ import com.azimulkabir.actua.ui.transactions.TransactionDetailsSheet
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
+import kotlinx.coroutines.launch
 
 private val sampleGroups = listOf(
     BudgetGroup("Monthly bills", listOf(
@@ -191,6 +196,7 @@ fun BudgetScreen(
     requestedCategoryDetails: String? = null,
     onCategoryDetailsChange: (String?) -> Unit = {},
     returnToRootRequest: Int = 0,
+    showNotes: Boolean = true,
 ) {
     val context = LocalContext.current
     val budgetUiPreferences = remember(context) {
@@ -554,6 +560,7 @@ fun BudgetScreen(
             onEditTransaction = onEditTransaction,
             onDeleteTransaction = onDeleteTransaction,
             scheduleFunding = scheduleFunding,
+            showNotes = showNotes,
         )
     }
     movingBudget?.let { (group, category) ->
@@ -638,8 +645,7 @@ private fun BudgetToolbar(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.weight(1f)
-                .clip(MaterialTheme.shapes.medium)
+            modifier = Modifier.clip(MaterialTheme.shapes.medium)
                 .clickable { monthPickerOpen = true }
                 .padding(horizontal = 6.dp, vertical = 8.dp),
         ) {
@@ -660,6 +666,7 @@ private fun BudgetToolbar(
                 )
             }
         }
+        Spacer(modifier = Modifier.weight(1f))
         Box {
             Surface(
                 shape = MaterialTheme.shapes.extraLarge,
@@ -1296,6 +1303,8 @@ private fun CategoryRow(
     }
 }
 
+private enum class EditBudgetMode { NONE, AUTO_ASSIGN, MOVE }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBudgetAmountSheet(
@@ -1341,6 +1350,7 @@ private fun EditBudgetAmountSheet(
         mutableStateOf(if (moveMode) 0L else category.assignedCents)
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
         Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
@@ -1367,85 +1377,97 @@ private fun EditBudgetAmountSheet(
                     },
                     selected = moveMode,
                 )
-                BudgetEntryAction(Icons.Outlined.MoreHoriz, "Details", Modifier.weight(1f), onDetails)
+                BudgetEntryAction(
+                    Icons.Outlined.MoreHoriz,
+                    "Details",
+                    Modifier.weight(1f),
+                    onClick = {
+                        coroutineScope.launch { sheetState.hide() }.invokeOnCompletion { onDetails() }
+                    },
+                )
             }
-            AnimatedVisibility(
-                visible = autoAssignMode,
-                enter = slideInVertically(tween(220)) { it / 2 } + fadeIn(tween(160)),
-                exit = slideOutVertically(tween(160)) { it / 2 } + fadeOut(tween(100)),
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    if (autoAssignChoices.isEmpty()) {
-                        Text(
-                            "No suggestions available",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 12.dp),
-                        )
-                    }
-                    autoAssignChoices.forEach { (label, amount) ->
-                        Surface(
-                            onClick = { onSave(amount) },
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = MaterialTheme.shapes.large,
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+            val entryMode = when {
+                autoAssignMode -> EditBudgetMode.AUTO_ASSIGN
+                moveMode -> EditBudgetMode.MOVE
+                else -> EditBudgetMode.NONE
+            }
+            AnimatedContent(
+                targetState = entryMode,
+                transitionSpec = {
+                    (fadeIn(tween(200)) + slideInVertically(tween(220)) { it / 6 }) togetherWith
+                        fadeOut(tween(120)) using SizeTransform(clip = false)
+                },
+                label = "Budget entry mode",
+            ) { currentMode ->
+                when (currentMode) {
+                    EditBudgetMode.AUTO_ASSIGN -> Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        if (autoAssignChoices.isEmpty()) {
+                            Text(
+                                "No suggestions available",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 12.dp),
+                            )
+                        }
+                        autoAssignChoices.forEach { (label, amount) ->
+                            Surface(
+                                onClick = { onSave(amount) },
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                shape = MaterialTheme.shapes.large,
                             ) {
-                                Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                Text(
-                                    formatMoneyCents(amount, hideDecimalPlaces),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                    Text(
+                                        formatMoneyCents(amount, hideDecimalPlaces),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
                             }
                         }
                     }
-                }
-            }
-            AnimatedVisibility(
-                visible = moveMode,
-                enter = slideInVertically(tween(220)) { it / 2 } + fadeIn(tween(160)),
-                exit = slideOutVertically(tween(160)) { it / 2 } + fadeOut(tween(100)),
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    MoveEndpointSelector(
-                        label = "From",
-                        selected = from,
-                        options = options.filterNot { it.group == to.group && it.category == to.category },
-                        hideDecimalPlaces = hideDecimalPlaces,
-                        onSelect = { from = it },
-                    )
-                    IconButton(
-                        onClick = { val oldFrom = from; from = to; to = oldFrom },
-                        modifier = Modifier.align(Alignment.CenterHorizontally).height(30.dp),
+                    EditBudgetMode.MOVE -> Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Icon(
-                            Icons.Outlined.SwapHoriz,
-                            contentDescription = "Swap source and destination",
-                            modifier = Modifier.height(20.dp),
+                        MoveEndpointSelector(
+                            label = "From",
+                            selected = from,
+                            options = options.filterNot { it.group == to.group && it.category == to.category },
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            onSelect = { from = it },
+                        )
+                        IconButton(
+                            onClick = { val oldFrom = from; from = to; to = oldFrom },
+                            modifier = Modifier.align(Alignment.CenterHorizontally).height(30.dp),
+                        ) {
+                            Icon(
+                                Icons.Outlined.SwapHoriz,
+                                contentDescription = "Swap source and destination",
+                                modifier = Modifier.height(20.dp),
+                            )
+                        }
+                        MoveEndpointSelector(
+                            label = "To",
+                            selected = to,
+                            options = options.filterNot { it.group == from.group && it.category == from.category },
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            onSelect = { to = it },
+                        )
+                        Text(
+                            "Available to move: ${formatMoneyCents(from.balanceCents.coerceAtLeast(0L), hideDecimalPlaces)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                         )
                     }
-                    MoveEndpointSelector(
-                        label = "To",
-                        selected = to,
-                        options = options.filterNot { it.group == from.group && it.category == from.category },
-                        hideDecimalPlaces = hideDecimalPlaces,
-                        onSelect = { to = it },
-                    )
-                    Text(
-                        "Available to move: ${formatMoneyCents(from.balanceCents.coerceAtLeast(0L), hideDecimalPlaces)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                    )
+                    EditBudgetMode.NONE -> Box(Modifier.fillMaxWidth())
                 }
             }
             InlineCalculatorAmount(
@@ -1676,71 +1698,71 @@ private fun BudgetSummarySheet(
                     )
                 }
             }
-            AnimatedVisibility(
-                visible = action == BudgetSummaryAction.MOVE,
-                enter = slideInVertically(tween(220)) { it / 2 } + fadeIn(tween(160)),
-                exit = slideOutVertically(tween(160)) { it / 2 } + fadeOut(tween(100)),
-            ) {
-                Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
-                    Text(
-                        if (covering) "Choose a category to move money from"
-                        else "Choose a category to fund from To Budget",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 10.dp),
-                    )
-                    Box(Modifier.fillMaxWidth()) {
-                        Button(
-                            onClick = { categoryPickerExpanded = true },
-                            enabled = options.isNotEmpty(),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(selectedCategory?.let { "${it.first} · ${it.second}" } ?: "No categories available")
-                        }
-                        DropdownMenu(expanded = categoryPickerExpanded, onDismissRequest = { categoryPickerExpanded = false }) {
-                            options.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text("${option.first} · ${option.second}") },
-                                    onClick = { selectedCategory = option; categoryPickerExpanded = false },
-                                )
+            AnimatedContent(
+                targetState = action,
+                transitionSpec = {
+                    (fadeIn(tween(200)) + slideInVertically(tween(220)) { it / 6 }) togetherWith
+                        fadeOut(tween(120)) using SizeTransform(clip = false)
+                },
+                label = "Budget summary action",
+            ) { currentAction ->
+                when (currentAction) {
+                    BudgetSummaryAction.MOVE -> Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
+                        Text(
+                            if (covering) "Choose a category to move money from"
+                            else "Choose a category to fund from To Budget",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 10.dp),
+                        )
+                        Box(Modifier.fillMaxWidth()) {
+                            Button(
+                                onClick = { categoryPickerExpanded = true },
+                                enabled = options.isNotEmpty(),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(selectedCategory?.let { "${it.first} · ${it.second}" } ?: "No categories available")
+                            }
+                            DropdownMenu(expanded = categoryPickerExpanded, onDismissRequest = { categoryPickerExpanded = false }) {
+                                options.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text("${option.first} · ${option.second}") },
+                                        onClick = { selectedCategory = option; categoryPickerExpanded = false },
+                                    )
+                                }
                             }
                         }
+                        InlineCalculatorAmount("Amount", moveAmount, Modifier.padding(top = 10.dp))
+                        CompactCalculatorPad(
+                            calculator = moveCalculator,
+                            horizontalPadding = 0.dp,
+                            showDisplay = false,
+                            onValueChange = { moveAmount = it },
+                            onDone = {
+                                selectedCategory?.let { target ->
+                                    moveCalculator.finish().takeIf { it > 0L }
+                                        ?.let { onMoveToCategory(target.first, target.second, it) }
+                                }
+                            },
+                        )
                     }
-                    InlineCalculatorAmount("Amount", moveAmount, Modifier.padding(top = 10.dp))
-                    CompactCalculatorPad(
-                        calculator = moveCalculator,
-                        horizontalPadding = 0.dp,
-                        showDisplay = false,
-                        onValueChange = { moveAmount = it },
-                        onDone = {
-                            selectedCategory?.let { target ->
-                                moveCalculator.finish().takeIf { it > 0L }
-                                    ?.let { onMoveToCategory(target.first, target.second, it) }
-                            }
-                        },
-                    )
-                }
-            }
-            AnimatedVisibility(
-                visible = action == BudgetSummaryAction.HOLD,
-                enter = slideInVertically(tween(220)) { it / 2 } + fadeIn(tween(160)),
-                exit = slideOutVertically(tween(160)) { it / 2 } + fadeOut(tween(100)),
-            ) {
-                Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
-                    Text(
-                        "Set aside part or all of To Budget instead of budgeting it now",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 10.dp),
-                    )
-                    InlineCalculatorAmount("Amount", holdAmount)
-                    CompactCalculatorPad(
-                        calculator = holdCalculator,
-                        horizontalPadding = 0.dp,
-                        showDisplay = false,
-                        onValueChange = { holdAmount = it },
-                        onDone = { onHoldForNextMonth(holdCalculator.finish().coerceIn(0L, maxHoldable)) },
-                    )
+                    BudgetSummaryAction.HOLD -> Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
+                        Text(
+                            "Set aside part or all of To Budget instead of budgeting it now",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 10.dp),
+                        )
+                        InlineCalculatorAmount("Amount", holdAmount)
+                        CompactCalculatorPad(
+                            calculator = holdCalculator,
+                            horizontalPadding = 0.dp,
+                            showDisplay = false,
+                            onValueChange = { holdAmount = it },
+                            onDone = { onHoldForNextMonth(holdCalculator.finish().coerceIn(0L, maxHoldable)) },
+                        )
+                    }
+                    null -> Box(Modifier.fillMaxWidth())
                 }
             }
         }
@@ -1836,6 +1858,7 @@ private fun CategoryDetailsScreen(
     onEditTransaction: (Transaction) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
+    showNotes: Boolean = true,
 ) {
     var note by remember(category) { mutableStateOf(category.note) }
     var noteEditorOpen by remember(category) { mutableStateOf(false) }
@@ -1922,22 +1945,24 @@ private fun CategoryDetailsScreen(
                 )
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
                     Column {
-                        Row(
-                            Modifier.fillMaxWidth().clickable { noteEditorOpen = true }
-                                .padding(horizontal = 16.dp, vertical = 13.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text("Note", fontWeight = FontWeight.SemiBold)
-                                Text(note.ifBlank { "Add note" }, style = MaterialTheme.typography.bodySmall,
-                                    color = if (note.isBlank()) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        if (showNotes) {
+                            Row(
+                                Modifier.fillMaxWidth().clickable { noteEditorOpen = true }
+                                    .padding(horizontal = 16.dp, vertical = 13.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("Note", fontWeight = FontWeight.SemiBold)
+                                    Text(note.ifBlank { "Add note" }, style = MaterialTheme.typography.bodySmall,
+                                        color = if (note.isBlank()) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                }
+                                Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null,
+                                    modifier = Modifier.rotate(-90f))
                             }
-                            Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null,
-                                modifier = Modifier.rotate(-90f))
+                            HorizontalDivider()
                         }
-                        HorizontalDivider()
                         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 11.dp),
                             verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {

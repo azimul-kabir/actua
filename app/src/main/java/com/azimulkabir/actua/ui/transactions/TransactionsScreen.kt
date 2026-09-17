@@ -71,7 +71,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -143,6 +142,7 @@ fun TransactionsScreen(
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
     showRunningBalance: Boolean = false,
     onShowRunningBalanceChange: (Boolean) -> Unit = {},
+    showNotes: Boolean = true,
     allTransactions: List<Transaction> = transactions,
     onReconcileVisibilityChange: (Boolean) -> Unit = {},
     returnToRootRequest: Int = 0,
@@ -191,6 +191,11 @@ fun TransactionsScreen(
     var showAccountNotes by remember(account?.id) {
         mutableStateOf(account?.let {
             accountDetailPreferences.getBoolean("show_notes_${it.id}", true)
+        } ?: true)
+    }
+    var showCreditCardSection by remember(account?.id) {
+        mutableStateOf(account?.let {
+            accountDetailPreferences.getBoolean("show_credit_card_section_${it.id}", true)
         } ?: true)
     }
 
@@ -303,10 +308,19 @@ fun TransactionsScreen(
                                     showRunningBalance,
                                     onShowRunningBalanceChange,
                                 )
-                                ToggleItem("Show notes", showAccountNotes) { show ->
-                                    showAccountNotes = show
-                                    accountDetailPreferences.edit()
-                                        .putBoolean("show_notes_${selectedAccount.id}", show).apply()
+                                if (showNotes) {
+                                    ToggleItem("Show notes", showAccountNotes) { show ->
+                                        showAccountNotes = show
+                                        accountDetailPreferences.edit()
+                                            .putBoolean("show_notes_${selectedAccount.id}", show).apply()
+                                    }
+                                }
+                                if (creditCard != null) {
+                                    ToggleItem("Show credit card section", showCreditCardSection) { show ->
+                                        showCreditCardSection = show
+                                        accountDetailPreferences.edit()
+                                            .putBoolean("show_credit_card_section_${selectedAccount.id}", show).apply()
+                                    }
                                 }
                             }
                         }
@@ -442,8 +456,9 @@ fun TransactionsScreen(
                         { savedNote -> accountNote = savedNote; onSaveAccountNote(savedNote) },
                         hideDecimalPlaces,
                         showCurrentBalanceSummary,
-                        showAccountNotes,
+                        showNotes && showAccountNotes,
                         onViewStatements,
+                        showCreditCardSection,
                     )
                 }
             }
@@ -781,7 +796,7 @@ private fun com.azimulkabir.actua.data.schedules.DayDate.formatted(): String =
 @Composable
 internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
     onSaveNote: (String) -> Unit, hideDecimals: Boolean, showSummary: Boolean, showNotes: Boolean,
-    onViewStatements: (() -> Unit)? = null) {
+    onViewStatements: (() -> Unit)? = null, showCreditCardSection: Boolean = true) {
     val context = LocalContext.current
     val detailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("account_detail_preferences", android.content.Context.MODE_PRIVATE)
@@ -808,9 +823,9 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
         ) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    BalanceColumn("Cleared", account.clearedCents, hideDecimals, Modifier.weight(1f))
-                    BalanceColumn("Balance", account.balanceCents, hideDecimals, Modifier.weight(1f), emphasized = true)
-                    BalanceColumn("Uncleared", account.unclearedCents, hideDecimals, Modifier.weight(1f))
+                    BalanceColumn("Cleared", account.clearedCents, hideDecimals, Modifier.weight(1f), alignment = Alignment.Start)
+                    BalanceColumn("Balance", account.balanceCents, hideDecimals, Modifier.weight(1f), emphasized = true, alignment = Alignment.CenterHorizontally)
+                    BalanceColumn("Uncleared", account.unclearedCents, hideDecimals, Modifier.weight(1f), alignment = Alignment.End)
                 }
                 Row(
                     Modifier.fillMaxWidth().clickable(onClick = toggleBalance),
@@ -842,7 +857,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                 }
             }
         }
-        card?.let {
+        if (showCreditCardSection) card?.let {
             Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Billing cycle", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
@@ -920,11 +935,11 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
 
 @Composable
 private fun BalanceColumn(label: String, amountCents: Long, hideDecimals: Boolean,
-    modifier: Modifier = Modifier, emphasized: Boolean = false) {
+    modifier: Modifier = Modifier, emphasized: Boolean = false, alignment: Alignment.Horizontal = Alignment.CenterHorizontally) {
     val formatted = formatMoneyCents(amountCents, hideDecimals)
     Column(
         modifier = modifier.clearAndSetSemantics { contentDescription = "$label $formatted" },
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = alignment,
     ) {
         Text(label, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -971,14 +986,8 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
             }
             Text(presentation.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f).padding(end = 12.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 8.dp)) {
-                Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
-                runningBalanceCents?.let {
-                    Spacer(Modifier.height(3.dp))
-                    Text(formatMoneyCents(it, hideDecimalPlaces), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End)
-                }
-            }
+            Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces,
+                modifier = Modifier.padding(end = 8.dp))
             ClearedIndicator(transaction.cleared, onClearedClick)
         }
         presentation.transferContext?.let {
@@ -989,6 +998,12 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             CategoryChip(presentation.categoryLabel, transaction.type == Type.TRANSFER)
             Spacer(Modifier.weight(1f))
+            runningBalanceCents?.let {
+                Text(formatMoneyCents(it, hideDecimalPlaces), style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
+                    modifier = Modifier.padding(start = 12.dp))
+            }
             presentation.accountLabel?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
@@ -1071,12 +1086,12 @@ private fun ClearedIndicator(cleared: Boolean, onClick: (() -> Unit)? = null) {
         modifier = Modifier.padding(start = 7.dp).size(18.dp)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         shape = CircleShape,
-        color = if (cleared) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.surfaceContainerHighest,
+        color = if (cleared) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Icon(
             Icons.Rounded.Check,
             contentDescription = if (cleared) "Cleared" else "Uncleared",
-            tint = if (cleared) Color.White else MaterialTheme.colorScheme.outline,
+            tint = if (cleared) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.outline,
             modifier = Modifier.padding(3.dp),
         )
     }
@@ -1160,9 +1175,10 @@ internal fun formatTransactionDate(value: String): String {
 }
 
 @Composable
-private fun Amount(value: Long, weight: FontWeight, hideDecimalPlaces: Boolean) {
+private fun Amount(value: Long, weight: FontWeight, hideDecimalPlaces: Boolean, modifier: Modifier = Modifier) {
     Text(formatMoneyCents(value, hideDecimalPlaces, showPositiveSign = true), style = AmountTypography.rowAmount.copy(fontWeight = weight), textAlign = TextAlign.End,
-        color = if (value >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+        color = if (value >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        modifier = modifier)
 }
 
 @Composable
