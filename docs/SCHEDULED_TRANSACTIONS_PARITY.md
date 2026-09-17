@@ -106,7 +106,10 @@ matches it closely:
 - **Posting** (`SchedulePoster.kt`, `ActuaRepository.postScheduleTransaction`/
   `skipScheduleNextDate`): automatic posting is gated once per budget per day and backfills every
   missed/due occurrence in sequence, posting a transaction and advancing `next_date` for each one,
-  matching `advanceSchedulesService`'s catch-up loop. Manual posting creates one linked transaction
+  matching `advanceSchedulesService`'s catch-up loop, with the per-occurrence dedup check
+  (`ActualBudgetDatabase.hasScheduleTransaction`) bounded on both ends of the occurrence date,
+  matching upstream's `isScheduleOccurrencePosted` window rather than an unbounded lower-bound-only
+  existence query. Manual posting creates one linked transaction
   without advancing `next_date`, exactly as upstream's `postTransactionForSchedule`. Skip-next-date
   advances past the current occurrence via the same weekend-aware search logic used for recurrence.
   Deleting a schedule tombstones it and its owned rule but always preserves already-posted
@@ -139,15 +142,18 @@ matches it closely:
 
 ## Deliberate deviations and known gaps
 
-- **Dedup check is a coarser existence query, not an exact-date match.** Upstream's automatic
-  catch-up loop asks, per occurrence, "is there a transaction dated within `[matchStartDate,
-  occurrenceDate]` for this schedule?" (`isScheduleOccurrencePosted`, bounded both above and
-  below). Actua's `ActualBudgetDatabase.hasScheduleTransaction(scheduleId, onOrAfter)` only checks
-  "is there a transaction dated `>= onOrAfter` for this schedule?" (no upper bound). In normal
-  sequential catch-up processing this still prevents duplicate posts, but it is not a faithful port
-  of the occurrence-scoped window upstream uses, and a schedule with an out-of-order or
-  future-dated linked transaction could cause the catch-up loop to skip an occurrence it should
-  post. Filed as a follow-up: [#286](https://github.com/azimul-kabir/actua/issues/286).
+- **Fixed during this audit:** the automatic catch-up dedup check
+  (`ActualBudgetDatabase.hasScheduleTransaction`) originally only bounded the match date from
+  below (`date >= onOrAfter`), unlike upstream's `isScheduleOccurrencePosted`, which bounds both
+  above and below (`matchStartDate <= tx.date <= occurrenceDate`). Since `SchedulePoster` only
+  processes auto-posting schedules, where upstream's lower bound always equals the occurrence date
+  exactly, the correct check for Actua's catch-up loop is an exact-date match. A schedule with an
+  out-of-order or future-dated linked transaction could previously cause the catch-up loop to treat
+  an unrelated later transaction as satisfying an earlier due/missed occurrence and silently skip
+  posting it. `hasScheduleTransaction` now takes an `onOrBefore` bound (defaulting to `onOrAfter`,
+  i.e. an exact match) and `SchedulePoster` relies on that default. Tracked as
+  [#286](https://github.com/azimul-kabir/actua/issues/286), with regression coverage in
+  `ActualBudgetReadModelTest.schedulePosterDedupDoesNotSkipAnEarlierOccurrenceBecauseOfALaterLinkedTransaction`.
 - **No date-based "before/after due-date" prompt/notification UX.** Upstream's `schedules.ts`
   itself has no notification concept either (Actual's desktop/web client surfaces due schedules
   passively in its Bills UI, the same pattern Actua's Bills & Calendar screen follows); this is not
