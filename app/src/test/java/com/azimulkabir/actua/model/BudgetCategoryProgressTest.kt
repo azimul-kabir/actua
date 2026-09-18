@@ -4,12 +4,23 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class BudgetCategoryProgressTest {
-    @Test fun `no goal uses spent of assigned`() {
+    @Test fun `no goal uses balance of assigned`() {
         assertEquals(0.5f, category(assignedCents = 10_000, spentCents = 5_000).progressFraction())
     }
 
     @Test fun `no goal with nothing assigned is zero`() {
         assertEquals(0f, category(assignedCents = 0, spentCents = 0).progressFraction())
+    }
+
+    @Test fun `no goal fully overspent past assigned clamps to empty, not full`() {
+        // Issue #363: a category with no goal but carryover can have spent exceed assigned
+        // while still holding a positive balance, or have balance run negative once fully
+        // spent. Either way the bar must read off the remaining balance, not raw spend.
+        val fullySpentWithCarryover = category(assignedCents = 3_524, spentCents = 3_695, balanceCents = 1_305)
+        assertEquals(0.3703178f, fullySpentWithCarryover.progressFraction(), 0.0001f)
+
+        val overspentNegativeBalance = category(assignedCents = 5_000, spentCents = 6_000, balanceCents = -1_000)
+        assertEquals(0f, overspentNegativeBalance.progressFraction())
     }
 
     @Test fun `goal underfunded tracks balance toward goal`() {
@@ -67,7 +78,7 @@ class BudgetCategoryProgressTest {
         assertEquals(0.25f, category.progressFraction())
     }
 
-    @Test fun `schedule-linked target without resolvable schedule data falls back to spend-down progress`() {
+    @Test fun `schedule-linked target without resolvable schedule data falls back to balance-of-assigned progress`() {
         val target = BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = "bill-1")
         val category = category(
             assignedCents = 10_000, spentCents = 5_000, balanceCents = 5_000, goalCents = null,
