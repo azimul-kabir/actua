@@ -1532,8 +1532,11 @@ fun AppNavigation(
                     onRenameAccount = { account, name ->
                         mutate("Renaming account") { repository.renameAccount(account.name, name) }
                     },
-                    onCreateAccount = { name, offBudget, balance ->
-                        mutate("Creating account") { repository.createAccount(name, offBudget, balance) }
+                    onChangeAccountType = { account, type ->
+                        mutate("Changing account type") { repository.setAccountType(account.name, type) }
+                    },
+                    onCreateAccount = { name, offBudget, balance, type ->
+                        mutate("Creating account") { repository.createAccount(name, offBudget, balance, type) }
                     },
                     onSearch = { detail = DetailDestination.Search },
                     scrollToTopRequest = rootRequests[MainDestination.Accounts] ?: 0,
