@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "Actua"
 include(":app")
 include(":baselineprofile")
+include(":macrobenchmark")
