@@ -5,6 +5,8 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
 
 data class LoginMethod(val method: String, val displayName: String, val active: Boolean)
 data class RemoteBudgetFile(val fileId: String, val groupId: String?, val name: String, val encryptedKeyId: String?)
@@ -38,9 +40,26 @@ data class ActualHttpRequest(
 data class ActualHttpResponse(val status: Int, val body: ByteArray)
 fun interface ActualHttpTransport { fun execute(request: ActualHttpRequest): ActualHttpResponse }
 
-class UrlConnectionTransport : ActualHttpTransport {
+class UrlConnectionTransport(
+    private val certificateStore: TrustedCertificateStore? = null,
+) : ActualHttpTransport {
     override fun execute(request: ActualHttpRequest): ActualHttpResponse {
         val connection = request.url.openConnection() as HttpURLConnection
+        if (connection is HttpsURLConnection) {
+            certificateStore?.fingerprint(request.url.host)?.let { fingerprint ->
+                val trustManager = PinnedCertificateTrustManager(
+                    system = systemTrustManager(),
+                    host = request.url.host,
+                    expectedFingerprint = fingerprint,
+                )
+                val sslContext = SSLContext.getInstance("TLS").apply {
+                    init(null, arrayOf(trustManager), null)
+                }
+                connection.sslSocketFactory = sslContext.socketFactory
+                // Keep HttpsURLConnection's default hostname verifier. The pin only supplements
+                // certificate-chain trust; it never disables hostname verification.
+            }
+        }
         return try {
             connection.requestMethod = request.method
             connection.connectTimeout = 15_000
