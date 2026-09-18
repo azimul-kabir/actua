@@ -260,13 +260,15 @@ fun AppNavigation(
     }
     val categoryNames = remember(dataVersion) { repository.categoryNames() }
     val payeeNames = remember(dataVersion) { repository.payeeNames() }
-    val reportSnapshot = remember(dataVersion) { repository.reports() }
     val creditCards = remember(dataVersion) { repository.creditCards() }
-    val rules = remember(dataVersion) { repository.rules() }
-    val reorderCategoryGroups = remember(dataVersion) { repository.categoryGroupsForReorder() }
-    val rulesSupported = remember(dataVersion) { repository.rulesSupported() }
-    val scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() }
-    val ruleEditorData = remember(dataVersion) { repository.ruleEditorData() }
+    // reportSnapshot, rules/rulesSupported/scheduleOwnedRuleIds/ruleEditorData, and
+    // reorderCategoryGroups are each read by exactly one destination (Reports, Rules,
+    // ManageCategories/ReorderGroups) that isn't always on screen, unlike the values above. Per
+    // #325 ("small mutations should produce correspondingly small UI/data work"), they're
+    // remember()ed at their point of use instead of unconditionally here, so e.g. marking a
+    // transaction cleared while on the Budget tab no longer also recomputes Reports' aggregation
+    // or refetches rule-editor data (accounts/categories/payees) that nothing is currently
+    // showing — matching the existing pattern `payeeLocations` already used below.
     val schedules = remember(dataVersion) { repository.schedules() }
     val linkableSchedules = remember(schedules) {
         schedules.filterNot { it.schedule.completed }.map {
@@ -1166,17 +1168,17 @@ fun AppNavigation(
                 }
             }
             DetailDestination.Rules -> RulesScreen(
-                rules = rules,
-                supported = rulesSupported,
-                scheduleOwnedRuleIds = scheduleOwnedRuleIds,
-                editorData = ruleEditorData,
+                rules = remember(dataVersion) { repository.rules() },
+                supported = remember(dataVersion) { repository.rulesSupported() },
+                scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() },
+                editorData = remember(dataVersion) { repository.ruleEditorData() },
                 onBack = { detail = DetailDestination.Main },
                 onSave = { rule -> mutate("Saving rule") { repository.saveRule(rule) } },
                 onDelete = { ruleId -> mutate("Deleting rule") { repository.deleteRule(ruleId) } },
                 modifier = contentModifier,
             )
             DetailDestination.ManageCategories -> ManageCategoriesScreen(
-                groups = reorderCategoryGroups,
+                groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
                 onBack = { detail = DetailDestination.Main },
                 onReorderGroupsClick = { detail = DetailDestination.ReorderGroups },
                 onCreateGroup = { name -> mutate("Creating group") { repository.createCategoryGroup(name) } },
@@ -1198,7 +1200,7 @@ fun AppNavigation(
                 modifier = contentModifier,
             )
             DetailDestination.ReorderGroups -> ReorderGroupsScreen(
-                groups = reorderCategoryGroups,
+                groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
                 onBack = { detail = DetailDestination.ManageCategories },
                 onMoveGroup = { move -> mutate("Reordering category group") { repository.moveCategoryGroup(move) } },
                 modifier = contentModifier,
@@ -1670,7 +1672,9 @@ fun AppNavigation(
                     showBackButton = false,
                     returnToRootRequest = rootRequests[MainDestination.Transactions] ?: 0,
                 )
-                MainDestination.Reports -> ReportsScreen(reportSnapshot, hideDecimalPlaces, contentModifier,
+                MainDestination.Reports -> ReportsScreen(
+                    remember(dataVersion) { repository.reports() },
+                    hideDecimalPlaces, contentModifier,
                     onSearch = { detail = DetailDestination.Search },
                     scrollToTopRequest = rootRequests[MainDestination.Reports] ?: 0)
                 MainDestination.Manage -> SettingsScreen(
