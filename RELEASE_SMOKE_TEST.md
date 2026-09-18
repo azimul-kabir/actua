@@ -7,6 +7,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Android CI is green for the exact release commit.
 - [ ] Release APK is produced from the intended commit/tag and has the expected version name/code.
 - [ ] Since release builds are now R8-minified: exercise PDF statement import/export (pdfbox-android), background sync (WorkManager), and general Compose navigation on the installed release APK, and confirm no `ClassNotFoundException`/`NoSuchMethodException` crashes from shrinking or obfuscation.
+- [ ] Release builds now embed a baseline profile: confirm the release APK's cold start and initial navigation feel at least as fast as the previous release's on the primary test device (no regression); a real-device Macrobenchmark run per `docs/PERFORMANCE_BASELINE.md` is preferred where available.
 - [ ] APK installs as an update over the previous production-signed Actua build without removing app data.
 - [ ] `Actua Test` still installs side-by-side with production Actua and keeps separate app data.
 - [ ] Fresh install launches successfully on Android 9+ and the current target Android version.
@@ -15,6 +16,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 ## Safety and data
 
 - [ ] Create an independent Actual backup before testing against a real budget.
+- [ ] Add a custom HTTP header (e.g. `CF-Access-Client-Id`/`Secret`) on the Connection screen and verify sync/login succeeds against a server that requires it; verify removing the header still works against a server that doesn't.
 - [ ] Download/select a real self-hosted Actual budget and verify opening balances/category values against Actual.
 - [ ] Manual Sync Now completes and the sync status/last-success state updates.
 - [ ] Make one harmless edit in Actua, sync, and confirm it appears correctly in Actual.
@@ -48,6 +50,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 ## Transactions and accounts
 
 - [ ] Add expense, income and transfer transactions.
+- [ ] Create a new account and pick a non-default type from the picker; verify it syncs with the correct type. Use "Change account type" on an existing account and verify the change persists and syncs.
 - [ ] Add and edit a split transaction.
 - [ ] Typing `#` (or deleting characters) in a transaction note while suggestions are showing keeps the on-screen keyboard open without flicker.
 - [ ] In Transactions, enable multi-select, select several transactions, and verify bulk mark cleared/uncleared, delete (with confirmation naming the count), link to schedule, unlink schedule, and (single selection) view schedule.
@@ -121,6 +124,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Spot-check Budget, Transactions, Reports, Manage/Settings sub-screens, and common dialogs/bottom sheets after the design-system pass: consistent corner rounding and spacing, no visual regressions from the previous release, and paid/cleared/due-soon status colors remain legible in both themes.
 - [ ] Confirm the default (non-Material You) theme shows the brighter violet/orchid palette in both light and dark mode, with success/warning accent colors still legible against it.
 - [ ] No obvious clipping, blank space, overlapping text or inaccessible actions on the primary test device.
+- [ ] Typing in the Transactions search field and toggling row selection feel responsive with no visible lag on a large transaction list; switching Budget between Plan/Table view and scrolling through many category groups feels smooth with no stutter at income/Plan/Table section boundaries.
+- [ ] Budget category details, Accounts list scrolling (including a budget with many credit-card accounts), and opening Add/Edit Transaction's payee/category/account pickers all remain responsive while typing.
 
 ## Release/distribution
 

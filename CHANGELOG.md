@@ -4,6 +4,20 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.31] - 2026-09-18
+
+### Added
+
+- Added support for custom HTTP headers (e.g. `CF-Access-Client-Id`/`Secret`) sent with every request to the Actual server, configurable from the Connection screen for servers behind an auth proxy like Cloudflare Access
+- Added a type picker to the new-account dialog and a "Change account type" action to the account menu; every account previously showed as "Checking" regardless of its actual type
+- Release builds now ship an AOT-compiled baseline profile covering startup, tab switching, and core Budget/Accounts/Transactions scroll paths, reducing reliance on JIT warm-up
+
+### Fixed
+
+- Fixed the Transactions search/filter list and its date-grouping, Budget's category-visibility filtering and a category's recent-transactions list, Accounts' section filtering and per-row credit-card lookups, and the Add/Edit Transaction payee/category/account picker all recomputing on every recomposition (e.g. every keystroke or row-selection tap) instead of only when the underlying data actually changes
+- Fixed the Budget list re-diffing incompatible row layouts while scrolling between income/Plan/Table sections, reallocating a copy of each group on every header recomposition, and animating the whole Table-view sticky header instead of just the totals row that resizes; money amounts no longer construct a new number formatter on every render
+- Fixed loading a budget month's or the accounts list's notes with one synchronous database round-trip per category/account (plus a repeated table-existence check on each one) instead of a single batched query
+
 ## [1.0.0-beta.30] - 2026-09-18
 
 ### Changed
