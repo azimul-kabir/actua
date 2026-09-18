@@ -6,6 +6,7 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
+import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
@@ -67,6 +68,7 @@ internal class PinnedCertificateTrustManager(
             return
         } catch (platformFailure: CertificateException) {
             val leaf = chain.firstOrNull() ?: throw platformFailure
+            leaf.checkValidity()
             if (!certificateFingerprint(leaf).equals(expectedFingerprint, ignoreCase = true)) {
                 throw CertificateException(
                     "The certificate presented by $host no longer matches the certificate trusted in Actua.",
@@ -104,6 +106,9 @@ fun inspectServerCertificate(serverUrl: String): ServerCertificateInfo {
         it.soTimeout = 15_000
         it.sslParameters = it.sslParameters.apply { endpointIdentificationAlgorithm = "HTTPS" }
         it.startHandshake()
+        if (!HttpsURLConnection.getDefaultHostnameVerifier().verify(host, it.session)) {
+            throw CertificateException("The server certificate does not match $host.")
+        }
         val certificate = it.session.peerCertificates.firstOrNull() as? X509Certificate
             ?: throw CertificateException("The server did not present an X.509 certificate.")
         ServerCertificateInfo(
