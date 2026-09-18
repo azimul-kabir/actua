@@ -40,13 +40,19 @@ fun formatMoneyCents(
     return "$sign${currencyInputPrefix()}$whole$decimals"
 }
 
+// NumberFormat construction does a locale resource lookup and isn't cheap; this path is hit
+// once or more per budget/transaction row, per recomposition, so a fresh instance per call adds
+// up while scrolling. Cached per-thread (NumberFormat instances aren't thread-safe to share)
+// rather than per-call.
+private val integerFormatCache = ThreadLocal.withInitial { mutableMapOf<Locale, NumberFormat>() }
+
 internal fun formatWholeNumber(value: Long, format: String, locale: Locale = Locale.getDefault()): String = when (format) {
     "1,234.56" -> grouped(value, 3, ",")
     "1.234,56" -> grouped(value, 3, ".")
     "1 234,56" -> grouped(value, 3, " ")
     "1234.56" -> value.toString()
     "1,23,456.78" -> grouped(value, 3, ",", secondarySize = 2)
-    else -> NumberFormat.getIntegerInstance(locale).format(value)
+    else -> integerFormatCache.get().getOrPut(locale) { NumberFormat.getIntegerInstance(locale) }.format(value)
 }
 
 private fun grouped(value: Long, primarySize: Int, separator: String, secondarySize: Int = primarySize): String {
