@@ -18,8 +18,8 @@ private const val TIMEOUT_MS = 5_000L
  * Drives the app's main journeys (launch, tab switches, list scrolling) so
  * `./gradlew :baselineprofile:pixel8Api34BenchmarkAndroidTest` (or the module's
  * default connected-device task) can record a Human Readable Profile. The
- * result is copied into app/src/main/baselineProfiles/baseline-prof.txt and
- * consumed by profileinstaller/R8 to AOT-compile these paths on install,
+ * result is copied into app/src/release/generated/baselineProfiles/baseline-prof.txt
+ * and consumed by profileinstaller/R8 to AOT-compile these paths on install,
  * instead of relying on the JIT to warm them up during real use.
  *
  * This module only *generates* the profile; regenerate it after any change
@@ -52,13 +52,19 @@ class BaselineProfileGenerator {
     }
 
     private fun MacrobenchmarkScope.navigateToTab(label: String) {
-        val tab = device.wait(Until.findObject(By.desc(label)), TIMEOUT_MS) ?: return
+        val tab = checkNotNull(device.wait(Until.findObject(By.desc(label)), TIMEOUT_MS)) {
+            "Bottom nav tab \"$label\" was not found; the generated profile would silently " +
+                "skip this journey"
+        }
         tab.click()
         device.waitForIdle()
     }
 
     private fun MacrobenchmarkScope.scrollMainList() {
-        val scrollable = device.wait(Until.findObject(By.scrollable(true)), TIMEOUT_MS) ?: return
+        val scrollable = checkNotNull(device.wait(Until.findObject(By.scrollable(true)), TIMEOUT_MS)) {
+            "No scrollable container was found; the generated profile would silently skip " +
+                "this journey"
+        }
         repeat(3) {
             scrollable.fling(Direction.DOWN)
             device.waitForIdle()
