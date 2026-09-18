@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.navigation
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -229,6 +230,16 @@ fun AppNavigation(
         mutableStateOf(java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date()))
     }
     val budgetGroups = remember(dataVersion, budgetMonth) { repository.budgetGroups(budgetMonth) }
+    // Marks the first frame where the landing (Budget) screen has real data to show, so
+    // Macrobenchmark's StartupTimingMetric can capture time-to-full-display instead of only
+    // time-to-initial-display (which fires on the first empty/placeholder frame).
+    var reportedFullyDrawn by remember { mutableStateOf(false) }
+    LaunchedEffect(repository.isUsingActualBudget, budgetGroups) {
+        if (!reportedFullyDrawn && repository.isUsingActualBudget) {
+            reportedFullyDrawn = true
+            (context as? Activity)?.reportFullyDrawn()
+        }
+    }
     val budgetScheduleFunding = remember(dataVersion, budgetMonth) {
         repository.budgetScheduleFunding(budgetMonth)
     }

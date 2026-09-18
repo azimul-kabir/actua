@@ -52,10 +52,17 @@ class BaselineProfileGenerator {
     }
 
     private fun MacrobenchmarkScope.navigateToTab(label: String) {
-        val tab = checkNotNull(device.wait(Until.findObject(By.desc(label)), TIMEOUT_MS)) {
-            "Bottom nav tab \"$label\" was not found; the generated profile would silently " +
-                "skip this journey"
-        }
+        // The bottom nav item's Icon carries `contentDescription = item.label`, but when labels
+        // are visible (the default; see AppNavigation.kt's `showBottomNavigationLabels`)
+        // Compose's semantics merging drops that description in favor of the sibling Text, so
+        // the merged node ends up with an empty content-desc and the label only reachable as
+        // text. Try text first since that's the common case, and fall back to desc for
+        // icon-only mode.
+        val tab = device.wait(Until.findObject(By.text(label)), TIMEOUT_MS)
+            ?: checkNotNull(device.wait(Until.findObject(By.desc(label)), TIMEOUT_MS)) {
+                "Bottom nav tab \"$label\" was not found; the generated profile would silently " +
+                    "skip this journey"
+            }
         tab.click()
         device.waitForIdle()
     }
