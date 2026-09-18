@@ -88,7 +88,7 @@ private fun isIpLiteral(value: String): Boolean {
     if (parts.size != 4) return false
     return parts.all { part ->
         part.isNotEmpty() &&
-            part.all(Char::isDigit) &&
+            part.all { it in '0'..'9' } &&
             part.length <= 3 &&
             (part.length == 1 || part[0] != '0') &&
             part.toIntOrNull()?.let { it in 0..255 } == true
