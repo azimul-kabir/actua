@@ -18,7 +18,7 @@ Binaries: https://github.com/azimul-kabir/actua/releases/download/v%v/Actua-v%v.
 Builds:
   - versionName: 1.0.0-beta.30
     versionCode: 47
-    commit: ce2e765e6a87a83f0230df961fc78cb811be6ed6
+    commit: a7937d4a0716447927fbc2f23411e3142b216966
     subdir: app
     gradle:
       - yes
