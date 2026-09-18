@@ -60,6 +60,10 @@ import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.network.ActualServerException
 import com.azimulkabir.actua.data.network.OidcCallbackServer
 import com.azimulkabir.actua.data.network.RemoteBudgetFile
+import com.azimulkabir.actua.data.network.ServerCertificateInfo
+import com.azimulkabir.actua.data.network.TrustedCertificateStore
+import com.azimulkabir.actua.data.network.UrlConnectionTransport
+import com.azimulkabir.actua.data.network.inspectServerCertificate
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetDownloadException
 import com.azimulkabir.actua.data.budget.BudgetDownloadService
@@ -85,6 +89,14 @@ private data class PendingOpenIdLogin(
     val activeUrl: String,
     val authorizationUrl: String,
     val callbackServer: OidcCallbackServer,
+)
+
+private enum class CertificateRetryAction { PASSWORD, OPEN_ID }
+
+private data class PendingCertificateTrust(
+    val info: ServerCertificateInfo,
+    val action: CertificateRetryAction,
+    val replacingExistingTrust: Boolean,
 )
 
 private data class CompletedOpenIdLogin(
@@ -114,14 +126,18 @@ internal fun formatSyncDuration(durationMillis: Long): String = when {
  *    trusted (see https://discuss.grapheneos.org/d/13339-is-there-no-lets-encrypt-ca-integrated).
  *    That side is a server/reverse-proxy misconfiguration no client-side change can fix.
  */
-internal fun connectionErrorMessage(error: Throwable, fallback: String): String {
+internal fun isCertificateTrustFailure(error: Throwable): Boolean {
     val causes = generateSequence(error) { it.cause }.toList()
-    val isUntrustedCertificate = causes.any { it is java.security.cert.CertPathValidatorException } ||
+    return causes.any { it is java.security.cert.CertPathValidatorException } ||
         causes.any {
             it is java.security.cert.CertificateException &&
-                it.message?.contains("trust anchor", ignoreCase = true) == true
+                (it.message?.contains("trust anchor", ignoreCase = true) == true ||
+                    it.message?.contains("no longer matches the certificate trusted in Actua", ignoreCase = true) == true)
         }
-    return if (isUntrustedCertificate) {
+}
+
+internal fun connectionErrorMessage(error: Throwable, fallback: String): String {
+    return if (isCertificateTrustFailure(error)) {
         "Server certificate isn't trusted. Actua couldn't verify this server's TLS certificate. " +
             "Check that the server provides a valid certificate chain. If you use a private or " +
             "self-signed CA, install that CA as a trusted certificate on this device."
@@ -168,7 +184,12 @@ fun ConnectionScreen(
 ) {
     val context = LocalContext.current
     val credentials = remember { CredentialStore(context) }
-    val client = remember { ActualServerClient().apply { customHeaders = credentials.customHeaders } }
+    val certificateStore = remember { TrustedCertificateStore(context) }
+    val client = remember {
+        ActualServerClient(UrlConnectionTransport(certificateStore)).apply {
+            customHeaders = credentials.customHeaders
+        }
+    }
     val files = remember { BudgetFileManager(context) }
     val activeBudget = remember { ActiveBudgetStore(context) }
     val downloader = remember { BudgetDownloadService(client, files, BudgetEncryptionKeyStore(context)) }
@@ -202,6 +223,7 @@ fun ConnectionScreen(
     var pendingDelete by remember { mutableStateOf<RemoteBudgetFile?>(null) }
     var deleteConfirmation by remember { mutableStateOf("") }
     var confirmQuickBackup by remember { mutableStateOf(false) }
+    var pendingCertificateTrust by remember { mutableStateOf<PendingCertificateTrust?>(null) }
     val demoActive = DemoBudgetManager.isDemoBudget(activeBudget.budgetId)
 
     fun refreshBackups() {
@@ -229,6 +251,30 @@ fun ConnectionScreen(
         }
     }
 
+    fun requestCertificateTrust(error: Throwable, action: CertificateRetryAction) {
+        if (!isCertificateTrustFailure(error)) {
+            message = connectionErrorMessage(error, "Could not connect to the server.")
+            return
+        }
+        scope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    val normalized = client.normalizeServerUrl(serverUrl)
+                    inspectServerCertificate(normalized)
+                }
+            }.onSuccess { info ->
+                pendingCertificateTrust = PendingCertificateTrust(
+                    info = info,
+                    action = action,
+                    replacingExistingTrust = certificateStore.hasTrust(info.host),
+                )
+                message = null
+            }.onFailure { inspectionError ->
+                message = inspectionError.message ?: connectionErrorMessage(error, "Could not inspect the server certificate.")
+            }
+        }
+    }
+
     fun connectWithPassword() {
         loading = true
         message = null
@@ -252,7 +298,13 @@ fun ConnectionScreen(
                 connected = true
                 message = "Connected"
                 loadBudgets()
-            }.onFailure { message = connectionErrorMessage(it, "Could not connect to the server.") }
+            }.onFailure { error ->
+                if (isCertificateTrustFailure(error)) {
+                    requestCertificateTrust(error, CertificateRetryAction.PASSWORD)
+                } else {
+                    message = connectionErrorMessage(error, "Could not connect to the server.")
+                }
+            }
             loading = false
         }
     }
@@ -315,7 +367,14 @@ fun ConnectionScreen(
             }.onFailure { error ->
                 message = when (error.message) {
                     "invalid-password" -> "Actual requires the current server password for this first OpenID sign-in. Enter it above and try again."
-                    else -> connectionErrorMessage(error, "Could not complete OpenID sign-in.")
+                    else -> {
+                        if (isCertificateTrustFailure(error)) {
+                            requestCertificateTrust(error, CertificateRetryAction.OPEN_ID)
+                            null
+                        } else {
+                            connectionErrorMessage(error, "Could not complete OpenID sign-in.")
+                        }
+                    }
                 }
             }
             callbackServer?.close()
@@ -385,6 +444,50 @@ fun ConnectionScreen(
             modifier = modifier,
         )
         return
+    }
+
+    pendingCertificateTrust?.let { pending ->
+        AlertDialog(
+            onDismissRequest = { pendingCertificateTrust = null },
+            title = {
+                Text(if (pending.replacingExistingTrust) "Server certificate changed" else "Server certificate isn't trusted")
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        if (pending.replacingExistingTrust) {
+                            "The certificate presented by this server is different from the one you previously trusted. Verify the new fingerprint before continuing."
+                        } else {
+                            "Actua can't verify this server with Android's trusted certificate authorities. Only continue if you recognize this server and have verified its fingerprint."
+                        },
+                    )
+                    Text("Host: ${pending.info.host}", fontWeight = FontWeight.SemiBold)
+                    Text("Issuer: ${pending.info.issuer}", style = MaterialTheme.typography.bodySmall)
+                    Text("Valid from: ${pending.info.validFrom}", style = MaterialTheme.typography.bodySmall)
+                    Text("Valid until: ${pending.info.validUntil}", style = MaterialTheme.typography.bodySmall)
+                    Text("SHA-256 fingerprint", fontWeight = FontWeight.SemiBold)
+                    Text(pending.info.sha256Fingerprint, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "This trust applies only to ${pending.info.host} in Actua. Hostname verification remains enabled.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    certificateStore.trust(pending.info.host, pending.info.sha256Fingerprint)
+                    pendingCertificateTrust = null
+                    when (pending.action) {
+                        CertificateRetryAction.PASSWORD -> connectWithPassword()
+                        CertificateRetryAction.OPEN_ID -> connectWithOpenId()
+                    }
+                }) { Text(if (pending.replacingExistingTrust) "Trust new certificate" else "Trust certificate") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingCertificateTrust = null }) { Text("Cancel") }
+            },
+        )
     }
 
     if (showAddHeader) AlertDialog(
