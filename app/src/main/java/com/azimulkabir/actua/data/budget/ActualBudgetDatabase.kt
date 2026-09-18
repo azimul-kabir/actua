@@ -1445,6 +1445,12 @@ class ActualBudgetDatabase private constructor(
             validate(file)
             val flags = if (readOnly) SQLiteDatabase.OPEN_READONLY else SQLiteDatabase.OPEN_READWRITE
             val database = SQLiteDatabase.openDatabase(file.absolutePath, null, flags)
+            // WAL lets a writer connection (e.g. the sync worker) commit without blocking readers on
+            // another connection (e.g. the UI's repository), so concurrent access doesn't stall the UI.
+            if (!readOnly) database.enableWriteAheadLogging()
+            // PRAGMA busy_timeout returns the applied value as a result row, which execSQL()
+            // (update/delete only) rejects; rawQuery consumes that row instead.
+            database.rawQuery("PRAGMA busy_timeout=5000", null).use { it.moveToFirst() }
             if (!readOnly) runMigrations(database)
             return ActualBudgetDatabase(database)
         }
