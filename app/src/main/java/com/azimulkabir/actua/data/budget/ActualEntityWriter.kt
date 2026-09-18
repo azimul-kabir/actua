@@ -30,6 +30,7 @@ class ActualEntityWriter(
 
     fun renameAccount(id: String, name: String) = update("accounts", id, mapOf("name" to requiredName(name)))
     fun setAccountClosed(id: String, closed: Boolean) = update("accounts", id, mapOf("closed" to flag(closed)))
+    fun setAccountType(id: String, type: String) = update("accounts", id, mapOf("type" to type))
     fun renameCategory(id: String, name: String) = update("categories", id, mapOf("name" to requiredName(name)))
     fun setCategoryHidden(id: String, hidden: Boolean) = update("categories", id, mapOf("hidden" to flag(hidden)))
     fun setCategoryTarget(id: String, goalDef: String?) = update("categories", id, mapOf(
@@ -173,12 +174,12 @@ class ActualEntityWriter(
 
     /** PWA/iOS local-account shape: account + transfer payee + optional opening transaction. */
     @Synchronized
-    fun createAccount(name: String, offBudget: Boolean, startingBalanceCents: Long): String {
+    fun createAccount(name: String, offBudget: Boolean, startingBalanceCents: Long, type: String = "checking"): String {
         val clean = requiredName(name)
         require(database.fetchAccounts().none { it.name.equals(clean, true) }) { "An account named \"$clean\" already exists" }
         val accountId = idFactory(); val transferPayeeId = idFactory()
         val messages = mutableListOf<CrdtMessage>()
-        messages += fields("accounts", accountId, linkedMapOf("name" to clean, "type" to "checking",
+        messages += fields("accounts", accountId, linkedMapOf("name" to clean, "type" to type,
             "offbudget" to flag(offBudget), "closed" to 0, "tombstone" to 0, "sort_order" to nowMillis()))
         messages += fields("payees", transferPayeeId, linkedMapOf("name" to "", "transfer_acct" to accountId, "tombstone" to 0))
         messages += fields("payee_mapping", transferPayeeId, linkedMapOf("targetId" to transferPayeeId))
@@ -243,7 +244,7 @@ class ActualEntityWriter(
 
     companion object {
         private val allowedFields = mapOf(
-            "accounts" to setOf("name", "closed", "offbudget", "tombstone", "sort_order"),
+            "accounts" to setOf("name", "type", "closed", "offbudget", "tombstone", "sort_order"),
             "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order", "goal_def", "template_settings", "cleanup_def"),
             "category_groups" to setOf("name", "hidden", "tombstone", "sort_order"),
             "cleanup_groups" to setOf("name", "tombstone"),

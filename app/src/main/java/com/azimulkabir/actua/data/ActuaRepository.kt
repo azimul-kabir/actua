@@ -12,6 +12,7 @@ import com.azimulkabir.actua.data.budget.ActualSplitLineForm
 import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
+import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.BudgetFileManager
@@ -954,6 +955,14 @@ class ActuaRepository(context: Context) {
         actualEntities!!.renameAccount(account.id, newName); return true
     }
 
+    fun setAccountType(name: String, type: String): Boolean {
+        val db = actualDatabase ?: return false
+        val account = db.fetchAccounts().firstOrNull { it.name == name } ?: return false
+        val normalized = ActualAccountType.entries.firstOrNull { it.name.equals(type, ignoreCase = true) } ?: return false
+        actualEntities!!.setAccountType(account.id, normalized.name.lowercase())
+        return true
+    }
+
     fun renameCategory(groupName: String, oldName: String, newName: String): Boolean {
         val category = actualDatabase?.fetchCategoryGroups()?.firstOrNull { it.name == groupName }
             ?.categories?.firstOrNull { it.name == oldName } ?: return false
@@ -965,9 +974,10 @@ class ActuaRepository(context: Context) {
         actualEntities!!.renameCategoryGroup(group.id, newName); return true
     }
 
-    fun createAccount(name: String, offBudget: Boolean, startingBalance: String): Boolean {
+    fun createAccount(name: String, offBudget: Boolean, startingBalance: String, type: String = "Checking"): Boolean {
         val cents = ActualTransactionFormService.cents(startingBalance.ifBlank { "0" }) ?: return false
-        actualEntities?.createAccount(name, offBudget, cents) ?: return false
+        val normalized = ActualAccountType.entries.firstOrNull { it.name.equals(type, ignoreCase = true) } ?: return false
+        actualEntities?.createAccount(name, offBudget, cents, normalized.name.lowercase()) ?: return false
         return true
     }
 

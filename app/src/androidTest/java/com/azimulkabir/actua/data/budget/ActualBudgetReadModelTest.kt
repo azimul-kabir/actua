@@ -399,6 +399,7 @@ class ActualBudgetReadModelTest {
         val writer = ActualEntityWriter(database, nodeId = "bbbbbbbbbbbbbbbb")
         writer.renameAccount("checking", "Daily")
         writer.setAccountClosed("checking", true)
+        writer.setAccountType("checking", "savings")
         writer.renameCategory("grocery", "Food")
         writer.setCategoryHidden("grocery", true)
         writer.renameCategoryGroup("essential", "Needs")
@@ -407,6 +408,8 @@ class ActualBudgetReadModelTest {
 
         assertEquals("Daily", database.fetchAccounts().first { it.id == "checking" }.name)
         assertTrue(database.fetchAccounts().first { it.id == "checking" }.closed)
+        assertEquals(com.azimulkabir.actua.data.budget.model.ActualAccountType.SAVINGS,
+            database.fetchAccounts().first { it.id == "checking" }.type)
         val group = database.fetchCategoryGroups().single()
         assertEquals("Needs", group.name)
         assertTrue(group.hidden)
@@ -415,6 +418,7 @@ class ActualBudgetReadModelTest {
         assertEquals("Market", database.fetchPayees().first { it.id == "store" }.name)
         val messages = database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString())
         assertTrue(messages.any { it.dataset == "accounts" && it.row == "checking" && it.column == "closed" })
+        assertTrue(messages.any { it.dataset == "accounts" && it.row == "checking" && it.column == "type" })
         assertTrue(messages.any { it.dataset == "categories" && it.row == "grocery" && it.column == "hidden" })
     }
 

@@ -58,6 +58,7 @@ import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.NewAccountDialog
+import com.azimulkabir.actua.ui.components.ChangeAccountTypeDialog
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.components.MonetaryText
@@ -99,7 +100,8 @@ fun AccountsScreen(
     onAllAccountsClick: () -> Unit = {},
     onCloseAccount: (Account) -> Unit = {},
     onRenameAccount: (Account, String) -> Unit = { _, _ -> },
-    onCreateAccount: (String, Boolean, String) -> Unit = { _, _, _ -> },
+    onChangeAccountType: (Account, String) -> Unit = { _, _ -> },
+    onCreateAccount: (String, Boolean, String, String) -> Unit = { _, _, _, _ -> },
     onSearch: () -> Unit = {},
     scrollToTopRequest: Int = 0,
 ) {
@@ -112,6 +114,7 @@ fun AccountsScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     var accountMenuExpanded by remember { mutableStateOf(false) }
     var renamingAccount by remember { mutableStateOf<Account?>(null) }
+    var changingTypeAccount by remember { mutableStateOf<Account?>(null) }
     val accountSections = listOf(
         AccountSection("On budget", accounts.filter { !it.offBudget && !it.closed }),
         AccountSection("Off budget", accounts.filter { it.offBudget && !it.closed }),
@@ -219,14 +222,18 @@ fun AccountsScreen(
             onDismiss = { selectedAccount = null },
             onViewTransactions = { selectedAccount = null; onAccountClick(account.name) },
             onRename = { selectedAccount = null; renamingAccount = account },
+            onChangeType = { selectedAccount = null; changingTypeAccount = account },
             onClose = { selectedAccount = null; onCloseAccount(account) },
         )
     }
-    if (showAddSheet) NewAccountDialog(onDismiss = { showAddSheet = false }) { name, offBudget, balance ->
-        onCreateAccount(name, offBudget, balance); showAddSheet = false
+    if (showAddSheet) NewAccountDialog(onDismiss = { showAddSheet = false }) { name, offBudget, balance, type ->
+        onCreateAccount(name, offBudget, balance, type); showAddSheet = false
     }
     renamingAccount?.let { account -> RenameDialog("Rename account", account.name,
         onDismiss = { renamingAccount = null }, onSave = { name -> onRenameAccount(account, name); renamingAccount = null }) }
+    changingTypeAccount?.let { account -> ChangeAccountTypeDialog(account.name, account.type,
+        onDismiss = { changingTypeAccount = null },
+        onSave = { type -> onChangeAccountType(account, type); changingTypeAccount = null }) }
 }
 
 @Composable
@@ -349,6 +356,7 @@ private fun AccountActionsSheet(
     onDismiss: () -> Unit,
     onViewTransactions: () -> Unit,
     onRename: () -> Unit,
+    onChangeType: () -> Unit,
     onClose: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -356,6 +364,7 @@ private fun AccountActionsSheet(
             ActuaSheetTitle(account.name)
             AccountSheetAction("View transactions", onViewTransactions)
             AccountSheetAction("Rename account", onRename)
+            AccountSheetAction("Change account type", onChangeType)
             AccountSheetAction(if (account.closed) "Reopen account" else "Close account", onClose, destructive = !account.closed)
         }
     }
