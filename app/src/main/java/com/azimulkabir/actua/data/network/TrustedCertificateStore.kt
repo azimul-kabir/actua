@@ -1,7 +1,6 @@
 package com.azimulkabir.actua.data.network
 
 import android.content.Context
-import android.util.Patterns
 import java.net.IDN
 import java.net.InetAddress
 import java.net.URI
@@ -9,7 +8,6 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
-import javax.naming.ldap.LdapName
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
@@ -56,7 +54,7 @@ internal fun certificateMatchesHost(
     commonName: String? = null,
 ): Boolean {
     val normalizedHost = host.trim().trimEnd('.')
-    val isIpAddress = Patterns.IP_ADDRESS.matcher(normalizedHost).matches()
+    val isIpAddress = isIpLiteral(normalizedHost)
 
     if (isIpAddress) {
         val hostBytes = runCatching { InetAddress.getByName(normalizedHost).address }.getOrNull()
@@ -73,6 +71,75 @@ internal fun certificateMatchesHost(
         return dnsNames.any { dnsNameMatches(asciiHost, it) }
     }
     return commonName?.let { dnsNameMatches(asciiHost, it) } == true
+}
+
+private fun isIpLiteral(value: String): Boolean {
+    if (value.contains(':')) {
+        // IPv6 literals contain ':'; reject non-address characters before using InetAddress so
+        // malformed hostnames can never trigger DNS resolution.
+        if (!value.matches(Regex("""[0-9A-Fa-f:.%]+"""))) return false
+        return runCatching { InetAddress.getByName(value.substringBefore('%')).address.size == 16 }
+            .getOrDefault(false)
+    }
+
+    val parts = value.split('.')
+    if (parts.size != 4) return false
+    return parts.all { part ->
+        part.isNotEmpty() &&
+            part.all(Char::isDigit) &&
+            part.length <= 3 &&
+            part.toIntOrNull()?.let { it in 0..255 } == true
+    }
+}
+
+internal fun commonNameFromRfc2253(distinguishedName: String): String? {
+    var start = 0
+    while (start < distinguishedName.length) {
+        var end = start
+        var escaped = false
+        var quoted = false
+        while (end < distinguishedName.length) {
+            val ch = distinguishedName[end]
+            if (escaped) {
+                escaped = false
+            } else {
+                when (ch) {
+                    '\\' -> escaped = true
+                    '"' -> quoted = !quoted
+                    ',' -> if (!quoted) break
+                }
+            }
+            end++
+        }
+
+        val rdn = distinguishedName.substring(start, end).trim()
+        val separator = rdn.indexOf('=')
+        if (separator > 0 && rdn.substring(0, separator).trim().equals("CN", ignoreCase = true)) {
+            return unescapeRfc2253Value(rdn.substring(separator + 1).trim())
+        }
+        start = end + 1
+    }
+    return null
+}
+
+private fun unescapeRfc2253Value(value: String): String {
+    val unquoted = if (value.length >= 2 && value.first() == '"' && value.last() == '"') {
+        value.substring(1, value.length - 1)
+    } else {
+        value
+    }
+    val result = StringBuilder(unquoted.length)
+    var index = 0
+    while (index < unquoted.length) {
+        if (unquoted[index] == '\\' && index + 1 < unquoted.length) {
+            result.append(unquoted[index + 1])
+            index += 2
+        } else {
+            result.append(unquoted[index])
+            index++
+        }
+    }
+    return result.toString()
 }
 
 private fun dnsNameMatches(asciiHost: String, certificateName: String): Boolean {
@@ -104,11 +171,7 @@ private fun verifyCertificateHost(host: String, certificate: X509Certificate) {
             7 -> value?.let(ipAddresses::add)
         }
     }
-    val commonName = runCatching {
-        LdapName(certificate.subjectX500Principal.name).rdns
-            .firstOrNull { it.type.equals("CN", ignoreCase = true) }
-            ?.value?.toString()
-    }.getOrNull()
+    val commonName = commonNameFromRfc2253(certificate.subjectX500Principal.name)
 
     if (!certificateMatchesHost(host, dnsNames, ipAddresses, commonName)) {
         throw CertificateException("The server certificate does not match $host.")
