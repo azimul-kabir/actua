@@ -7,7 +7,18 @@
   that single chokepoint, so this config previously hardcoding one developer's LAN IP
   (192.168.68.109) blocked every other user's local server instead of adding any real
   restriction Android could enforce (network-security-config can't express CIDR ranges).
+
+  Trust anchors include the user CA store (in addition to the system store, which is the
+  implicit default) because self-hosted Actual servers commonly run behind a self-signed or
+  private-CA certificate with no public CA, and a manually installed user CA is the only way
+  a non-rooted Android user can trust one. Without this, HTTPS connections to such servers
+  fail with CertPathValidatorException regardless of Android build (see #354).
 -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>
