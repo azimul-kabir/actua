@@ -796,7 +796,24 @@ fun AppNavigation(
                 showNotes = showNotes,
                 onReconcileVisibilityChange = { reconcileOpen = it },
             )
-            DetailDestination.EditTransaction -> AddTransactionScreen(
+            DetailDestination.EditTransaction -> {
+            // Otherwise these are rebuilt from the whole account/payee lists on every
+            // recomposition of this (very broad) composable while the editor is open, e.g. on
+            // every keystroke/amount-entry change, instead of only when the underlying data or
+            // display toggles actually change.
+            val nonClosedAccounts = remember(accounts) { accounts.filterNot { it.closed } }
+            val accountOptions = remember(nonClosedAccounts) { nonClosedAccounts.map { it.name } }
+            val offBudgetAccountOptions = remember(nonClosedAccounts) {
+                nonClosedAccounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.name }
+            }
+            val accountBalanceLabels = remember(nonClosedAccounts, hideBalances, hideDecimalPlaces) {
+                if (hideBalances) emptyMap() else nonClosedAccounts
+                    .associate { it.name to formatMoneyCents(it.balanceCents, hideDecimalPlaces) }
+            }
+            val payeeOptions = remember(payeeNames, nonClosedAccounts) {
+                (payeeNames + nonClosedAccounts.map { "Transfer: ${it.name}" }).distinct()
+            }
+            AddTransactionScreen(
                 editing = editingTransaction,
                 defaultType = newTransactionType,
                 onBack = {
@@ -880,14 +897,11 @@ fun AppNavigation(
                     }
                 },
                 modifier = contentModifier,
-                    accountOptions = accounts.filter { !it.closed }.map { it.name },
-                    offBudgetAccountOptions = accounts.filter { !it.closed && it.offBudget }
-                        .mapTo(mutableSetOf()) { it.name },
-                    accountBalanceLabels = if (hideBalances) emptyMap() else accounts
-                        .filterNot { it.closed }
-                        .associate { it.name to formatMoneyCents(it.balanceCents, hideDecimalPlaces) },
+                    accountOptions = accountOptions,
+                    offBudgetAccountOptions = offBudgetAccountOptions,
+                    accountBalanceLabels = accountBalanceLabels,
                     categoryOptions = categoryNames,
-                    payeeOptions = (payeeNames + accounts.filterNot { it.closed }.map { "Transfer: ${it.name}" }).distinct(),
+                    payeeOptions = payeeOptions,
                     defaultAccount = if (editingTransaction == null && editorReturnsToTransactions) {
                         transactionAccount ?: defaultAccount
                     } else {
@@ -988,6 +1002,7 @@ fun AppNavigation(
                         null
                     },
             )
+            }
             DetailDestination.Search -> GlobalSearchScreen(
                 transactions = filteredTransactions,
                 searchTransactions = remember(repository, hideReconciledTransactions, transactionStatusFilter) {

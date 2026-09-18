@@ -302,19 +302,28 @@ fun BudgetScreen(
             }
         }
 
+        val selectedView = BudgetCategoryView.fromLabel(categoryView)
+        // Otherwise this filters every group and category on every recomposition of
+        // BudgetScreen (e.g. opening/closing any sheet), not just when the budget or these
+        // display toggles actually change. Must live outside the LazyColumn content lambda,
+        // which isn't a @Composable context.
+        val visibleGroups = remember(groups, showHidden, hideFullySpent, selectedView, scheduleFunding) {
+            groups.filter { showHidden || !it.hidden }.map { group ->
+                group to group.categories.filter { category ->
+                    (showHidden || !category.hidden) &&
+                        (!hideFullySpent || category.available != 0) &&
+                        (category.isIncome || selectedView.matches(category, scheduleFunding))
+                }
+            }
+        }
+
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
         ) {
-            val selectedView = BudgetCategoryView.fromLabel(categoryView)
-            groups.filter { showHidden || !it.hidden }.forEach { group ->
+            visibleGroups.forEach { (group, visibleCategories) ->
                 val collapsed = group.name in collapsedGroups
-                val visibleCategories = group.categories.filter { category ->
-                    (showHidden || !category.hidden) &&
-                        (!hideFullySpent || category.available != 0) &&
-                        (category.isIncome || selectedView.matches(category, scheduleFunding))
-                }
                 stickyHeader(key = "header-${group.name}") {
                     val onGroupClick = {
                             saveCollapsedGroups(if (collapsed) {
@@ -529,6 +538,12 @@ fun BudgetScreen(
         )
     }
     categoryDetails?.let { (group, category) ->
+        // Otherwise this filters and sorts the whole transaction list on every recomposition
+        // of BudgetScreen while the details sheet is open, to keep only the top 3.
+        val recentCategoryTransactions = remember(transactions, category.name) {
+            transactions.filter { it.category == category.name }
+                .sortedByDescending { it.date }.take(3)
+        }
         CategoryDetailsScreen(
             modifier = modifier,
             category = category,
@@ -541,8 +556,7 @@ fun BudgetScreen(
             onMoveMoney = { categoryDetails = null; movingBudget = group to category },
             onAutoAssign = { categoryDetails = null; autoAssignBudget = group to category },
             onEditTarget = { onEditAutomations(group, category) },
-            transactions = transactions.filter { it.category == category.name }
-                .sortedByDescending { it.date }.take(3),
+            transactions = recentCategoryTransactions,
             onRename = { categoryDetails = null; renamingCategory = group to category },
             onTransactionsThisMonth = {
                 categoryDetails = null; onShowCategoryTransactions(category.name, true, true)

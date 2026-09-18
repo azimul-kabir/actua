@@ -4,6 +4,12 @@ plugins {
     alias(libs.plugins.androidx.baselineprofile)
 }
 
+composeCompiler {
+    val composeMetricsDir = layout.buildDirectory.dir("compose_metrics")
+    metricsDestination = composeMetricsDir
+    reportsDestination = composeMetricsDir
+}
+
 val releaseKeystorePath = providers.environmentVariable("ACTUA_KEYSTORE_PATH").orNull
 val releaseStorePassword = providers.environmentVariable("ACTUA_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ACTUA_KEY_ALIAS").orNull

@@ -221,16 +221,24 @@ fun TransactionsScreen(
     val candidates = if (searchingDatabase) {
         if (completedQuery == search) searchResults else emptyList()
     } else transactions
-    val visible = candidates.filter {
-        (accountName == null || it.account == accountName) &&
-            (categoryName == null || it.category == categoryName) &&
-            (month == null || it.date.filter(Char::isDigit).startsWith(month.replace("-", ""))) &&
-            (!hideReconciledTransactions || !it.reconciled) &&
-            (searchingDatabase || search.isBlank() ||
-                (listOf(it.payee, it.category, it.account, it.notes, it.transferAccount.orEmpty()) +
-                    it.splits.flatMap { split -> listOf(split.payee, split.notes, split.category) })
-                    .any { text -> text.contains(search, ignoreCase = true) })
+    // `candidates`/filters change far less often than this composable recomposes (e.g. every
+    // row tap in selection mode), so this needs its own remember rather than recomputing the
+    // filter over the whole transaction list on every recomposition.
+    val visible = remember(candidates, accountName, categoryName, month, hideReconciledTransactions, searchingDatabase, search) {
+        candidates.filter {
+            (accountName == null || it.account == accountName) &&
+                (categoryName == null || it.category == categoryName) &&
+                (month == null || it.date.filter(Char::isDigit).startsWith(month.replace("-", ""))) &&
+                (!hideReconciledTransactions || !it.reconciled) &&
+                (searchingDatabase || search.isBlank() ||
+                    (listOf(it.payee, it.category, it.account, it.notes, it.transferAccount.orEmpty()) +
+                        it.splits.flatMap { split -> listOf(split.payee, split.notes, split.category) })
+                        .any { text -> text.contains(search, ignoreCase = true) })
+        }
     }
+    // Otherwise re-grouped inside the LazyColumn content block on every recomposition of this
+    // screen (e.g. every selection-mode tap), not just when `visible` actually changes.
+    val groupedByDate = remember(visible) { visible.groupBy { it.date } }
     val runningBalances = remember(allTransactions, accountName, showRunningBalance) {
         if (showRunningBalance && accountName != null) accountRunningBalances(allTransactions, accountName)
         else emptyMap()
@@ -482,7 +490,7 @@ fun TransactionsScreen(
                 )
             }
             if (groupTransactionsByDate) {
-                visible.groupBy { it.date }.forEach { (date, transactions) ->
+                groupedByDate.forEach { (date, transactions) ->
                     stickyHeader(key = date) {
                         Text(formatTransactionDate(date), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
