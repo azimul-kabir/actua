@@ -55,7 +55,7 @@ data class BudgetCategory(
     fun progressFraction(schedules: List<BudgetScheduleFunding> = emptyList()): Float {
         val goal = effectiveGoalCents(schedules)
         if (goal != null && goal > 0L) return (balanceCents.toFloat() / goal).coerceIn(0f, 1f)
-        return if (assignedCents <= 0L) 0f else (spentCents.toFloat() / assignedCents).coerceIn(0f, 1f)
+        return if (assignedCents <= 0L) 0f else (balanceCents.toFloat() / assignedCents).coerceIn(0f, 1f)
     }
 }
 
