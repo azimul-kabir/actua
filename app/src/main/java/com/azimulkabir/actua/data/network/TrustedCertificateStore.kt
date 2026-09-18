@@ -1,11 +1,14 @@
 package com.azimulkabir.actua.data.network
 
 import android.content.Context
+import java.net.IDN
+import java.net.InetAddress
 import java.net.URI
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
+import javax.naming.ldap.LdapName
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
@@ -44,6 +47,67 @@ internal fun certificateFingerprint(certificate: X509Certificate): String =
     MessageDigest.getInstance("SHA-256")
         .digest(certificate.encoded)
         .joinToString(":") { "%02X".format(it.toInt() and 0xff) }
+
+internal fun certificateMatchesHost(
+    host: String,
+    dnsNames: List<String>,
+    ipAddresses: List<String>,
+    commonName: String? = null,
+): Boolean {
+    val normalizedHost = host.trim().trimEnd('.')
+    val isIpAddress = normalizedHost.contains(':') ||
+        normalizedHost.matches(Regex("""\d{1,3}(?:\.\d{1,3}){3}"""))
+
+    if (isIpAddress) {
+        val hostBytes = runCatching { InetAddress.getByName(normalizedHost).address }.getOrNull()
+            ?: return false
+        return ipAddresses.any { candidate ->
+            runCatching { InetAddress.getByName(candidate).address.contentEquals(hostBytes) }
+                .getOrDefault(false)
+        }
+    }
+
+    val asciiHost = runCatching { IDN.toASCII(normalizedHost).lowercase() }.getOrNull()
+        ?: return false
+    if (dnsNames.isNotEmpty()) {
+        return dnsNames.any { dnsNameMatches(asciiHost, it) }
+    }
+    return commonName?.let { dnsNameMatches(asciiHost, it) } == true
+}
+
+private fun dnsNameMatches(asciiHost: String, certificateName: String): Boolean {
+    val name = runCatching { IDN.toASCII(certificateName.trim().trimEnd('.')).lowercase() }
+        .getOrNull() ?: return false
+    if (!name.contains('*')) return asciiHost == name
+    if (!name.startsWith("*.") || name.indexOf('*', startIndex = 1) >= 0) return false
+
+    val suffix = name.substring(1) // includes the leading dot
+    if (!asciiHost.endsWith(suffix)) return false
+    val prefix = asciiHost.removeSuffix(suffix)
+    return prefix.isNotEmpty() && !prefix.contains('.')
+}
+
+private fun verifyCertificateHost(host: String, certificate: X509Certificate) {
+    val dnsNames = mutableListOf<String>()
+    val ipAddresses = mutableListOf<String>()
+    certificate.subjectAlternativeNames?.forEach { entry ->
+        val type = entry.getOrNull(0) as? Int
+        val value = entry.getOrNull(1) as? String
+        when (type) {
+            2 -> value?.let(dnsNames::add)
+            7 -> value?.let(ipAddresses::add)
+        }
+    }
+    val commonName = runCatching {
+        LdapName(certificate.subjectX500Principal.name).rdns
+            .firstOrNull { it.type.equals("CN", ignoreCase = true) }
+            ?.value?.toString()
+    }.getOrNull()
+
+    if (!certificateMatchesHost(host, dnsNames, ipAddresses, commonName)) {
+        throw CertificateException("The server certificate does not match $host.")
+    }
+}
 
 internal fun systemTrustManager(): X509TrustManager {
     val factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
@@ -103,13 +167,14 @@ fun inspectServerCertificate(serverUrl: String): ServerCertificateInfo {
     val socket = context.socketFactory.createSocket(host, port) as SSLSocket
     return socket.use {
         it.soTimeout = 15_000
-        it.sslParameters = it.sslParameters.apply { endpointIdentificationAlgorithm = "HTTPS" }
-        // endpointIdentificationAlgorithm performs HTTPS hostname verification as part of
-        // the handshake. Do not run HttpsURLConnection's HostnameVerifier a second time against
-        // this raw SSLSocket session; doing so can falsely reject an already-verified hostname.
+        // This probe intentionally bypasses CA-chain trust so Actua can show an unknown
+        // certificate to the user. Verify the requested host explicitly against the leaf
+        // certificate before offering trust; certificate trust must never bypass server identity.
         it.startHandshake()
         val certificate = it.session.peerCertificates.firstOrNull() as? X509Certificate
             ?: throw CertificateException("The server did not present an X.509 certificate.")
+        certificate.checkValidity()
+        verifyCertificateHost(host, certificate)
         ServerCertificateInfo(
             host = host,
             issuer = certificate.issuerX500Principal.name,
