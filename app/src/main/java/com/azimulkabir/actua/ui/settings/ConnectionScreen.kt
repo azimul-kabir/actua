@@ -100,6 +100,35 @@ internal fun formatSyncDuration(durationMillis: Long): String = when {
     else -> String.format(java.util.Locale.US, "%.1f s", durationMillis / 1_000.0)
 }
 
+/**
+ * The raw exception message for an untrusted server certificate is a cryptic Java stack-trace
+ * line (e.g. "Trust anchor for certification path not found"), which just repeats the error
+ * shown before this fix without telling the user what to actually do about it. Two distinct
+ * setups produce this same exception:
+ *  - A self-signed/private-CA cert: the CA needs installing as a user CA certificate, scoped to
+ *    "VPN and apps" — the install flow also offers a "Wi-Fi" only scope that leaves apps still
+ *    untrusting it, reproducing this exact error even after "installing" the certificate.
+ *  - A publicly-issued cert (e.g. Let's Encrypt via Tailscale) whose server sends only the leaf
+ *    certificate instead of the full chain: unlike browsers, Android's TLS stack doesn't fetch
+ *    missing intermediates on the fly, so the trust path fails even though the root is already
+ *    trusted (see https://discuss.grapheneos.org/d/13339-is-there-no-lets-encrypt-ca-integrated).
+ *    That side is a server/reverse-proxy misconfiguration no client-side change can fix.
+ */
+internal fun connectionErrorMessage(error: Throwable, fallback: String): String {
+    val isUntrustedCertificate = generateSequence(error) { it.cause }
+        .any { it is java.security.cert.CertPathValidatorException || it is javax.net.ssl.SSLHandshakeException }
+    return if (isUntrustedCertificate) {
+        "This device doesn't trust the server's certificate. If it's self-signed or from a " +
+            "private CA, install it under Settings → Security → Encryption & credentials → " +
+            "Install a certificate → CA certificate, making sure it's used by \"VPN and apps\" " +
+            "(not just Wi-Fi). If it's from a public CA (e.g. Let's Encrypt), the server may be " +
+            "sending only its own certificate instead of the full chain — check that it serves " +
+            "fullchain.pem (or equivalent), not just cert.pem. Then try again."
+    } else {
+        error.message ?: fallback
+    }
+}
+
 @Composable
 internal fun ManualSyncButtonContent(
     syncing: Boolean,
@@ -194,7 +223,7 @@ fun ConnectionScreen(
                 activeServerUrl = usedUrl; remoteBudgets = budgets
                 message = if (budgets.isEmpty()) "No budgets found." else null
             }
-                .onFailure { message = it.message ?: "Could not load budgets." }
+                .onFailure { message = connectionErrorMessage(it, "Could not load budgets.") }
             loading = false
         }
     }
@@ -222,7 +251,7 @@ fun ConnectionScreen(
                 connected = true
                 message = "Connected"
                 loadBudgets()
-            }.onFailure { message = it.message ?: "Could not connect to the server." }
+            }.onFailure { message = connectionErrorMessage(it, "Could not connect to the server.") }
             loading = false
         }
     }
@@ -285,7 +314,7 @@ fun ConnectionScreen(
             }.onFailure { error ->
                 message = when (error.message) {
                     "invalid-password" -> "Actual requires the current server password for this first OpenID sign-in. Enter it above and try again."
-                    else -> error.message ?: "Could not complete OpenID sign-in."
+                    else -> connectionErrorMessage(error, "Could not complete OpenID sign-in.")
                 }
             }
             callbackServer?.close()
