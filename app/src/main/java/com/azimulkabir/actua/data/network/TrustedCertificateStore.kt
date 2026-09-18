@@ -60,8 +60,10 @@ internal fun certificateMatchesHost(
         val hostBytes = runCatching { InetAddress.getByName(normalizedHost).address }.getOrNull()
             ?: return false
         return ipAddresses.any { candidate ->
-            runCatching { InetAddress.getByName(candidate).address.contentEquals(hostBytes) }
-                .getOrDefault(false)
+            isIpLiteral(candidate) &&
+                runCatching {
+                    InetAddress.getByName(candidate.substringBefore('%')).address.contentEquals(hostBytes)
+                }.getOrDefault(false)
         }
     }
 
@@ -88,6 +90,7 @@ private fun isIpLiteral(value: String): Boolean {
         part.isNotEmpty() &&
             part.all(Char::isDigit) &&
             part.length <= 3 &&
+            (part.length == 1 || part[0] != '0') &&
             part.toIntOrNull()?.let { it in 0..255 } == true
     }
 }
@@ -154,6 +157,8 @@ private fun dnsNameMatches(asciiHost: String, certificateName: String): Boolean 
     if (!trimmedName.startsWith("*.") || trimmedName.indexOf('*', startIndex = 1) >= 0) return false
     val asciiSuffix = runCatching { IDN.toASCII(trimmedName.substring(2)).lowercase() }
         .getOrNull() ?: return false
+    // Never allow a wildcard directly below a TLD (for example, *.com).
+    if (!asciiSuffix.contains('.')) return false
     val suffix = ".$asciiSuffix"
     if (!asciiHost.endsWith(suffix)) return false
     val prefix = asciiHost.removeSuffix(suffix)
