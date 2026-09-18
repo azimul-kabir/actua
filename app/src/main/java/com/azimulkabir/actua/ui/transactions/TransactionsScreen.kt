@@ -224,12 +224,15 @@ fun TransactionsScreen(
     // `candidates`/filters change far less often than this composable recomposes (e.g. every
     // row tap in selection mode), so this needs its own remember rather than recomputing the
     // filter over the whole transaction list on every recomposition.
-    val visible = remember(candidates, accountName, categoryName, month, hideReconciledTransactions, searchingDatabase, search) {
+    val visible = remember(candidates, accountName, categoryName, month, hideReconciledTransactions, transactionStatusFilter, searchingDatabase, search) {
+        // transactionStatusFilter (e.g. "Reconciled") supersedes the hideReconciledTransactions
+        // preference, matching ActualBudgetDatabase.fetchTransactions — otherwise picking the
+        // "Reconciled" chip while "hide reconciled" is on would filter every result back out.
         candidates.filter {
             (accountName == null || it.account == accountName) &&
                 (categoryName == null || it.category == categoryName) &&
                 (month == null || it.date.filter(Char::isDigit).startsWith(month.replace("-", ""))) &&
-                (!hideReconciledTransactions || !it.reconciled) &&
+                (transactionStatusFilter != TransactionStatusFilter.ALL || !hideReconciledTransactions || !it.reconciled) &&
                 (searchingDatabase || search.isBlank() ||
                     (listOf(it.payee, it.category, it.account, it.notes, it.transferAccount.orEmpty()) +
                         it.splits.flatMap { split -> listOf(split.payee, split.notes, split.category) })
@@ -482,6 +485,10 @@ fun TransactionsScreen(
                 Text(
                     when {
                         search.isNotBlank() -> "No matching transactions"
+                        transactionStatusFilter == TransactionStatusFilter.UNCATEGORIZED -> "No uncategorized transactions"
+                        transactionStatusFilter == TransactionStatusFilter.UNCLEARED -> "No uncleared transactions"
+                        transactionStatusFilter == TransactionStatusFilter.CLEARED -> "No cleared transactions"
+                        transactionStatusFilter == TransactionStatusFilter.RECONCILED -> "No reconciled transactions"
                         hideReconciledTransactions -> "No unreconciled transactions"
                         else -> "No transactions"
                     },
