@@ -103,11 +103,16 @@ internal fun formatSyncDuration(durationMillis: Long): String = when {
 /**
  * The raw exception message for an untrusted server certificate is a cryptic Java stack-trace
  * line (e.g. "Trust anchor for certification path not found"), which just repeats the error
- * shown before this fix without telling the user what to actually do about it: the server's
- * certificate (self-signed or from a private CA) needs to be installed as a user CA certificate
- * on the device, since that's the only way a non-rooted Android user can trust one. The install
- * flow lets the user scope that certificate to "Wi-Fi" only, which leaves apps still untrusting
- * it and reproduces this exact error — "VPN and apps" is the scope that matters here.
+ * shown before this fix without telling the user what to actually do about it. Two distinct
+ * setups produce this same exception:
+ *  - A self-signed/private-CA cert: the CA needs installing as a user CA certificate, scoped to
+ *    "VPN and apps" — the install flow also offers a "Wi-Fi" only scope that leaves apps still
+ *    untrusting it, reproducing this exact error even after "installing" the certificate.
+ *  - A publicly-issued cert (e.g. Let's Encrypt via Tailscale) whose server sends only the leaf
+ *    certificate instead of the full chain: unlike browsers, Android's TLS stack doesn't fetch
+ *    missing intermediates on the fly, so the trust path fails even though the root is already
+ *    trusted (see https://discuss.grapheneos.org/d/13339-is-there-no-lets-encrypt-ca-integrated).
+ *    That side is a server/reverse-proxy misconfiguration no client-side change can fix.
  */
 internal fun connectionErrorMessage(error: Throwable, fallback: String): String {
     val isUntrustedCertificate = generateSequence(error) { it.cause }
@@ -116,7 +121,9 @@ internal fun connectionErrorMessage(error: Throwable, fallback: String): String 
         "This device doesn't trust the server's certificate. If it's self-signed or from a " +
             "private CA, install it under Settings → Security → Encryption & credentials → " +
             "Install a certificate → CA certificate, making sure it's used by \"VPN and apps\" " +
-            "(not just Wi-Fi), then try again."
+            "(not just Wi-Fi). If it's from a public CA (e.g. Let's Encrypt), the server may be " +
+            "sending only its own certificate instead of the full chain — check that it serves " +
+            "fullchain.pem (or equivalent), not just cert.pem. Then try again."
     } else {
         error.message ?: fallback
     }
