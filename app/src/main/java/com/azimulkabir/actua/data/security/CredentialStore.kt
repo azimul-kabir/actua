@@ -6,6 +6,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import com.azimulkabir.actua.DisconnectResetActivity
+import org.json.JSONObject
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -23,6 +24,18 @@ class CredentialStore(context: Context) {
     var fallbackServerUrl: String
         get() = preferences.getString("fallback_server_url", "").orEmpty()
         private set(value) { preferences.edit().putString("fallback_server_url", value).apply() }
+
+    /** Sent with every request to the server, e.g. Cloudflare Access service-token headers. */
+    var customHeaders: Map<String, String>
+        get() {
+            val raw = preferences.getString("custom_headers", null) ?: return emptyMap()
+            val json = JSONObject(raw)
+            return json.keys().asSequence().associateWith { json.getString(it) }
+        }
+        set(value) {
+            val json = JSONObject().apply { value.forEach { (name, headerValue) -> put(name, headerValue) } }
+            preferences.edit().putString("custom_headers", json.toString()).apply()
+        }
 
     fun saveConnection(url: String, token: String, fallbackUrl: String = "") {
         val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, secretKey()) }

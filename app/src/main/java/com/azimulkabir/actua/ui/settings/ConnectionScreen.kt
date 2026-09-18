@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
@@ -38,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -129,7 +131,7 @@ fun ConnectionScreen(
 ) {
     val context = LocalContext.current
     val credentials = remember { CredentialStore(context) }
-    val client = remember { ActualServerClient() }
+    val client = remember { ActualServerClient().apply { customHeaders = credentials.customHeaders } }
     val files = remember { BudgetFileManager(context) }
     val activeBudget = remember { ActiveBudgetStore(context) }
     val downloader = remember { BudgetDownloadService(client, files, BudgetEncryptionKeyStore(context)) }
@@ -138,6 +140,10 @@ fun ConnectionScreen(
     var serverUrl by remember { mutableStateOf(credentials.serverUrl) }
     var fallbackServerUrl by remember { mutableStateOf(credentials.fallbackServerUrl) }
     var activeServerUrl by remember { mutableStateOf(credentials.serverUrl) }
+    var headerEntries by remember { mutableStateOf(credentials.customHeaders.toList()) }
+    var showAddHeader by remember { mutableStateOf(false) }
+    var headerNameInput by remember { mutableStateOf("") }
+    var headerValueInput by remember { mutableStateOf("") }
     var editingConnection by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -200,6 +206,7 @@ fun ConnectionScreen(
                 }
             }.onSuccess { (url, fallback, token) ->
                 credentials.saveConnection(url, token, fallback)
+                credentials.customHeaders = headerEntries.toMap()
                 serverUrl = url
                 fallbackServerUrl = fallback
                 activeServerUrl = url
@@ -259,6 +266,7 @@ fun ConnectionScreen(
                 )
             }.onSuccess { result ->
                 credentials.saveConnection(result.primaryUrl, result.token, result.fallbackUrl)
+                credentials.customHeaders = headerEntries.toMap()
                 serverUrl = result.primaryUrl
                 fallbackServerUrl = result.fallbackUrl
                 activeServerUrl = result.activeUrl
@@ -318,6 +326,7 @@ fun ConnectionScreen(
         else message = "Local network access is required because this server resolves to a private network address."
     }
 
+    LaunchedEffect(headerEntries) { client.customHeaders = headerEntries.toMap() }
     LaunchedEffect(connected) {
         if (connected && remoteBudgets.isEmpty()) loadBudgets()
         refreshBackups()
@@ -339,6 +348,32 @@ fun ConnectionScreen(
         )
         return
     }
+
+    if (showAddHeader) AlertDialog(
+        onDismissRequest = { showAddHeader = false; headerNameInput = ""; headerValueInput = "" },
+        title = { Text("Add HTTP header") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = headerNameInput, onValueChange = { headerNameInput = it },
+                    label = { Text("Header name") }, placeholder = { Text("CF-Access-Client-Id") }, singleLine = true,
+                )
+                OutlinedTextField(
+                    value = headerValueInput, onValueChange = { headerValueInput = it },
+                    label = { Text("Header value") }, singleLine = true,
+                )
+            }
+        },
+        confirmButton = { TextButton(
+            enabled = headerNameInput.isNotBlank() && headerValueInput.isNotBlank(),
+            onClick = {
+                val name = headerNameInput.trim()
+                headerEntries = headerEntries.filterNot { it.first.equals(name, ignoreCase = true) } + (name to headerValueInput.trim())
+                showAddHeader = false; headerNameInput = ""; headerValueInput = ""
+            },
+        ) { Text("Add") } },
+        dismissButton = { TextButton(onClick = { showAddHeader = false; headerNameInput = ""; headerValueInput = "" }) { Text("Cancel") } },
+    )
 
     if (showCreateBudget) AlertDialog(
         onDismissRequest = { if (!loading) showCreateBudget = false },
@@ -495,6 +530,31 @@ fun ConnectionScreen(
                 enabled = (!connected || editingConnection) && !loading, modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
             )
+            if (!connected || editingConnection) {
+                Text("Custom HTTP headers (optional)", style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                headerEntries.forEachIndexed { index, (name, value) ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(value, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        IconButton(
+                            enabled = !loading,
+                            onClick = { headerEntries = headerEntries.filterIndexed { i, _ -> i != index } },
+                        ) { Icon(Icons.Outlined.Delete, contentDescription = "Remove $name header") }
+                    }
+                }
+                OutlinedButton(
+                    onClick = { showAddHeader = true }, enabled = !loading, modifier = Modifier.fillMaxWidth(),
+                ) { Text("Add header") }
+                Text(
+                    "Sent with every request to this server, such as Cloudflare Access service-token headers.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (!connected) {
                 OutlinedTextField(
                     value = password, onValueChange = { password = it }, label = { Text("Server password") },
@@ -552,6 +612,7 @@ fun ConnectionScreen(
                     OutlinedButton(onClick = {
                         serverUrl = credentials.serverUrl
                         fallbackServerUrl = credentials.fallbackServerUrl
+                        headerEntries = credentials.customHeaders.toList()
                         editingConnection = false
                     }, modifier = Modifier.weight(1f)) { Text("Cancel") }
                     Button(onClick = {
@@ -564,6 +625,7 @@ fun ConnectionScreen(
                                 primary to fallback
                             } }.onSuccess { (primary, fallback) ->
                                 credentials.updateServerUrls(primary, fallback)
+                                credentials.customHeaders = headerEntries.toMap()
                                 serverUrl = primary; fallbackServerUrl = fallback; activeServerUrl = primary
                                 editingConnection = false; message = "Server addresses updated. Downloaded budgets were kept."
                             }.onFailure { message = it.message ?: "Could not reach the new primary server." }
