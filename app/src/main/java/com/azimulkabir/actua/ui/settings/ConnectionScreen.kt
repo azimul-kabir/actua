@@ -8,6 +8,10 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
@@ -42,7 +47,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -159,6 +166,7 @@ fun ConnectionScreen(
     var backups by remember { mutableStateOf<List<BackupItem>>(emptyList()) }
     var backupBusy by remember { mutableStateOf(false) }
     var showBackups by remember { mutableStateOf(false) }
+    var budgetsExpanded by remember { mutableStateOf(true) }
     var showCreateBudget by remember { mutableStateOf(false) }
     var newBudgetName by remember { mutableStateOf("") }
     var pendingDelete by remember { mutableStateOf<RemoteBudgetFile?>(null) }
@@ -715,84 +723,103 @@ fun ConnectionScreen(
                     }) {
                     ManualSyncButtonContent(syncing = syncing, demoActive = demoActive)
                 }
-                Text("Budgets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                OutlinedButton(
-                    onClick = { showCreateBudget = true; newBudgetName = "" },
-                    enabled = !loading && downloadingId == null,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Create new budget") }
-                if (remoteBudgets.any { it.encryptedKeyId != null }) {
-                    OutlinedTextField(
-                        value = encryptionPassword,
-                        onValueChange = { encryptionPassword = it },
-                        label = { Text("Budget encryption password") },
-                        singleLine = true,
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
+                val budgetsChevronRotation by animateFloatAsState(
+                    if (budgetsExpanded) 0f else -90f, tween(220), label = "budgets section",
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .clickable(role = Role.Button, onClick = { budgetsExpanded = !budgetsExpanded }),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Budgets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f))
+                    Icon(
+                        Icons.Outlined.KeyboardArrowDown,
+                        contentDescription = if (budgetsExpanded) "Collapse Budgets" else "Expand Budgets",
+                        modifier = Modifier.rotate(budgetsChevronRotation),
                     )
                 }
-                remoteBudgets.forEach { remote ->
-                    val local = files.listLocalBudgets().firstOrNull { it.cloudFileId == remote.fileId }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(remote.name, fontWeight = FontWeight.Medium)
-                            Text(
-                                when {
-                                    activeBudget.budgetId == local?.id -> "Active"
-                                    local != null -> "Downloaded"
-                                    remote.encryptedKeyId != null -> "Encrypted"
-                                    else -> "Available"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                AnimatedVisibility(visible = budgetsExpanded) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        OutlinedButton(
+                            onClick = { showCreateBudget = true; newBudgetName = "" },
+                            enabled = !loading && downloadingId == null,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Create new budget") }
+                        if (remoteBudgets.any { it.encryptedKeyId != null }) {
+                            OutlinedTextField(
+                                value = encryptionPassword,
+                                onValueChange = { encryptionPassword = it },
+                                label = { Text("Budget encryption password") },
+                                singleLine = true,
+                                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
-                        OutlinedButton(
-                            enabled = downloadingId == null,
-                            onClick = {
-                                val token = credentials.token() ?: return@OutlinedButton
-                                onBeforeBudgetReplacement()
-                                downloadingId = remote.fileId
-                                message = null
-                                scope.launch {
-                                    runCatching {
-                                        withContext(Dispatchers.IO) {
-                                            if (remote.encryptedKeyId != null) {
-                                                if (encryptionPassword.isNotBlank()) {
-                                                    downloader.unlock(activeServerUrl, token, remote.fileId, encryptionPassword)
-                                                }
-                                            }
-                                            downloader.download(activeServerUrl, token, remote)
-                                        }
-                                    }.onSuccess { metadata ->
-                                        activeBudget.budgetId = metadata.id
-                                        message = "${remote.name} is downloaded and active."
-                                        onBudgetInstalled()
-                                    }.onFailure { error ->
-                                        message = when (error) {
-                                            BudgetDownloadException.EncryptionPasswordRequired -> "Enter the budget encryption password."
-                                            else -> error.message ?: "Could not download the budget."
-                                        }
-                                        onBudgetInstalled()
-                                    }
-                                    downloadingId = null
+                        remoteBudgets.forEach { remote ->
+                            val local = files.listLocalBudgets().firstOrNull { it.cloudFileId == remote.fileId }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(remote.name, fontWeight = FontWeight.Medium)
+                                    Text(
+                                        when {
+                                            activeBudget.budgetId == local?.id -> "Active"
+                                            local != null -> "Downloaded"
+                                            remote.encryptedKeyId != null -> "Encrypted"
+                                            else -> "Available"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
-                            },
-                        ) {
-                            if (downloadingId == remote.fileId) CircularProgressIndicator(Modifier.padding(end = 8.dp))
-                            Text(if (local == null) "Download" else if (activeBudget.budgetId == local.id) "Refresh" else "Use")
+                                OutlinedButton(
+                                    enabled = downloadingId == null,
+                                    onClick = {
+                                        val token = credentials.token() ?: return@OutlinedButton
+                                        onBeforeBudgetReplacement()
+                                        downloadingId = remote.fileId
+                                        message = null
+                                        scope.launch {
+                                            runCatching {
+                                                withContext(Dispatchers.IO) {
+                                                    if (remote.encryptedKeyId != null) {
+                                                        if (encryptionPassword.isNotBlank()) {
+                                                            downloader.unlock(activeServerUrl, token, remote.fileId, encryptionPassword)
+                                                        }
+                                                    }
+                                                    downloader.download(activeServerUrl, token, remote)
+                                                }
+                                            }.onSuccess { metadata ->
+                                                activeBudget.budgetId = metadata.id
+                                                message = "${remote.name} is downloaded and active."
+                                                onBudgetInstalled()
+                                            }.onFailure { error ->
+                                                message = when (error) {
+                                                    BudgetDownloadException.EncryptionPasswordRequired -> "Enter the budget encryption password."
+                                                    else -> error.message ?: "Could not download the budget."
+                                                }
+                                                onBudgetInstalled()
+                                            }
+                                            downloadingId = null
+                                        }
+                                    },
+                                ) {
+                                    if (downloadingId == remote.fileId) CircularProgressIndicator(Modifier.padding(end = 8.dp))
+                                    Text(if (local == null) "Download" else if (activeBudget.budgetId == local.id) "Refresh" else "Use")
+                                }
+                                TextButton(
+                                    enabled = downloadingId == null && !loading,
+                                    onClick = { pendingDelete = remote; deleteConfirmation = "" },
+                                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                            }
                         }
-                        TextButton(
-                            enabled = downloadingId == null && !loading,
-                            onClick = { pendingDelete = remote; deleteConfirmation = "" },
-                        ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                        OutlinedButton(onClick = { loadBudgets() }, enabled = !loading && downloadingId == null,
+                            modifier = Modifier.fillMaxWidth()) { Text("Refresh budget list") }
                     }
                 }
-                OutlinedButton(onClick = { loadBudgets() }, enabled = !loading && downloadingId == null,
-                    modifier = Modifier.fillMaxWidth()) { Text("Refresh budget list") }
             }
 
             activeBudget.budgetId?.let { budgetId ->
