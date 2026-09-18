@@ -91,7 +91,7 @@ object ActualSyncRunner {
         status.started(trigger)
         return try {
             val result = ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { database ->
-                val server = ActualServerClient()
+                val server = ActualServerClient().apply { customHeaders = credentials.customHeaders }
                 fun syncAt(url: String) = ActualSyncClient(url, token, server, database, fileId, groupId,
                     loadedKey?.keyId, loadedKey?.let { ActualMessageCipher(it.key) }).sync()
                 var outcome = try { syncAt(serverUrl) } catch (primary: Exception) {

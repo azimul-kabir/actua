@@ -60,6 +60,9 @@ class UrlConnectionTransport : ActualHttpTransport {
 }
 
 class ActualServerClient(private val transport: ActualHttpTransport = UrlConnectionTransport()) {
+    /** Sent with every request, e.g. Cloudflare Access service-token headers. Never overrides a protocol header. */
+    var customHeaders: Map<String, String> = emptyMap()
+
     fun normalizeServerUrl(value: String): String {
         val trimmed = value.trim().trimEnd('/')
         val withScheme = if ("://" in trimmed) trimmed else "https://$trimmed"
@@ -247,7 +250,10 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         headers: Map<String, String> = emptyMap(),
         body: ByteArray? = null,
     ): ActualHttpResponse = transport.execute(
-        ActualHttpRequest(URL(normalizeServerUrl(serverUrl) + path), method, mapOf("Accept" to "application/json") + headers, body),
+        ActualHttpRequest(
+            URL(normalizeServerUrl(serverUrl) + path), method,
+            mapOf("Accept" to "application/json") + customHeaders + headers, body,
+        ),
     )
 
     private fun actualHeaders(token: String) = mapOf("X-ACTUAL-TOKEN" to token)
