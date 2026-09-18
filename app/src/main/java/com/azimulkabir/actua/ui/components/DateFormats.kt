@@ -6,21 +6,31 @@ import java.util.Locale
 
 private val legacyDateFormatter = DateTimeFormatter.ofPattern("dd-MMM-yy", Locale.ENGLISH)
 
+// DateTimeFormatter/Pattern construction isn't free, and this path runs once per transaction
+// row, per recomposition, while scrolling. Both are immutable/thread-safe, so hoisting them to
+// module-level vals (instead of rebuilding on every formatDate/parseStoredDate call) is safe —
+// same fix as MoneyFormatter's NumberFormat caching (#323).
+private val ddMmYyyyFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+private val mmDdYyyyFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+private val mediumDateFormatter = DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+private val basicIsoDatePattern = Regex("\\d{8}")
+private val isoLocalDatePattern = Regex("\\d{4}-\\d{2}-\\d{2}")
+
 object DateDisplay {
     @Volatile var format: String = "System default"
 }
 
 fun formatDate(date: LocalDate): String = date.format(when (DateDisplay.format) {
-    "DD/MM/YYYY" -> DateTimeFormatter.ofPattern("dd/MM/yyyy")
-    "MM/DD/YYYY" -> DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    "DD/MM/YYYY" -> ddMmYyyyFormatter
+    "MM/DD/YYYY" -> mmDdYyyyFormatter
     "YYYY-MM-DD" -> DateTimeFormatter.ISO_LOCAL_DATE
-    else -> DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+    else -> mediumDateFormatter
 })
 
 fun parseStoredDate(value: String): LocalDate? = runCatching {
     when {
-        value.matches(Regex("\\d{8}")) -> LocalDate.parse(value, DateTimeFormatter.BASIC_ISO_DATE)
-        value.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) -> LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE)
+        value.matches(basicIsoDatePattern) -> LocalDate.parse(value, DateTimeFormatter.BASIC_ISO_DATE)
+        value.matches(isoLocalDatePattern) -> LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE)
         else -> LocalDate.parse(value, legacyDateFormatter)
     }
 }.getOrNull()

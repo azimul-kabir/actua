@@ -64,6 +64,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -264,7 +265,9 @@ fun TransactionsScreen(
         ReconcileAccountScreen(
             modifier = modifier,
             account = account,
-            transactions = transactions.filter { it.account == account.name },
+            // Otherwise re-filtered on every recomposition of this AnimatedContent branch, not
+            // just when `transactions`/`account` actually change.
+            transactions = remember(transactions, account.name) { transactions.filter { it.account == account.name } },
             // Reconciliation always shows exact cents, even when normal lists hide decimals.
             hideDecimalPlaces = false,
             conventionalAmountEntry = conventionalAmountEntry,
@@ -505,6 +508,11 @@ fun TransactionsScreen(
                                 .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm))
                     }
                     items(transactions, key = { it.id }) { transaction ->
+                        // Every visible row reads the same `selectedIds` set, so a plain
+                        // `transaction.id in selectedIds` recomposes every visible row on any
+                        // selection toggle. derivedStateOf only reports a change (and thus only
+                        // recomposes) the row(s) whose membership actually flipped.
+                        val isSelected by remember(transaction.id) { derivedStateOf { transaction.id in selectedIds } }
                         TransactionRow(transaction, hideDecimalPlaces, showDate = false,
                             onClick = {
                                 if (selectionModeOn) {
@@ -517,12 +525,13 @@ fun TransactionsScreen(
                                 else selected = transaction
                             },
                             onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
-                            selectionMode = selectionModeOn, selected = transaction.id in selectedIds,
+                            selectionMode = selectionModeOn, selected = isSelected,
                             runningBalanceCents = runningBalances[transaction.id])
                     }
                 }
             } else {
                 items(visible, key = { it.id }) { transaction ->
+                    val isSelected by remember(transaction.id) { derivedStateOf { transaction.id in selectedIds } }
                     TransactionRow(transaction, hideDecimalPlaces, showDate = true,
                         onClick = {
                             if (selectionModeOn) {
@@ -535,7 +544,7 @@ fun TransactionsScreen(
                             else selected = transaction
                         },
                         onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
-                        selectionMode = selectionModeOn, selected = transaction.id in selectedIds,
+                        selectionMode = selectionModeOn, selected = isSelected,
                         runningBalanceCents = runningBalances[transaction.id])
                 }
             }
@@ -637,7 +646,9 @@ private fun ReconcileAccountScreen(
     }
     var reviewExpanded by remember(account.id) { mutableStateOf(false) }
     var adjustmentConfirmation by remember { mutableStateOf<Long?>(null) }
-    val uncleared = transactions.filter { !it.cleared && !it.reconciled }
+    // Otherwise re-filtered on every recomposition of this screen, including every digit typed
+    // into the bank-balance calculator and every reviewExpanded toggle.
+    val uncleared = remember(transactions) { transactions.filter { !it.cleared && !it.reconciled } }
     val difference = bankBalance?.minus(account.clearedCents)
     BackHandler(onBack = onBack)
 
