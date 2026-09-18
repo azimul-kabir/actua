@@ -4,10 +4,23 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.32] - 2026-09-18
+
+### Added
+
+- Made the Budgets section on the Connection & data screen collapsible (tap-to-toggle chevron), since the budget list can grow long and push Backups and other settings far down the screen
+
 ### Fixed
 
 - Fixed saving or deleting a transaction running its local database write on the main thread; it now runs off the main thread so the editor dismisses as soon as the transaction is durably committed locally, without any extra wait for (already-asynchronous) server sync
 - Fixed connecting to a self-hosted Actual server over plain HTTP on a local/private network: Android's network security config only allowlisted one developer's hardcoded test IP (`192.168.68.109`) for cleartext traffic, so every other private/local HTTP server was rejected with "Cleartext HTTP traffic not permitted" even though the app's own connection validation already restricts HTTP to localhost/`.local`/RFC1918/link-local/ULA addresses and requires HTTPS everywhere else
+- Enabled WAL mode (with a busy timeout) on the local budget database so the background sync worker's connection no longer contends with the UI's connection, reducing SQLITE_BUSY stalls and the app feeling unresponsive while syncing
+- Fixed the Accounts view's status filter chips: selecting the "Reconciled" chip (or any status chip) while "hide reconciled transactions" was on left the list empty, because the client-side hide-reconciled filter re-stripped the reconciled transactions the server-side query had already returned; the selected status chip now supersedes the hide-reconciled preference, and the empty-state message reflects whichever chip is active instead of always blaming hide-reconciled
+- Fixed HTTPS connections to self-hosted Actual servers using a self-signed or private-CA certificate: the network security config only trusted the system CA store, so a manually installed user CA — the only option for a private certificate on a non-rooted device, including GrapheneOS — was rejected with `Trust anchor for certification path not found`; user-installed CAs are now trusted too
+- Fixed `formatDate`/`parseStoredDate` allocating a fresh date formatter and regexes on every call (once per transaction row, per recomposition, while scrolling); hoisted to module-level constants
+- Fixed toggling one transaction's checkbox in multi-select recomposing every visible row instead of just the row(s) whose selection state actually changed
+- Fixed `ReconcileAccountScreen`'s uncleared-transaction filter re-running unmemoized on every recomposition, including every keystroke of the reconciliation calculator
+- Fixed several single-destination reads (Reports' report snapshot, Rules' rule list/support/schedule-ownership lookups, and Reorder Groups' category-group ordering) recomputing on every data change regardless of which screen was visible, instead of only when their own destination is on screen
 
 ## [1.0.0-beta.31] - 2026-09-18
 
