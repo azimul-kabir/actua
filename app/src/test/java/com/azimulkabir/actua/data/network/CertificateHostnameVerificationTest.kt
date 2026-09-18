@@ -58,6 +58,21 @@ class CertificateHostnameVerificationTest {
     }
 
     @Test
+    fun rejectsWildcardDirectlyBelowTld() {
+        assertFalse(certificateMatchesHost("example.com", listOf("*.com"), emptyList()))
+    }
+
+    @Test
+    fun rejectsLeadingZeroIpv4Literal() {
+        assertFalse(certificateMatchesHost("127.0.0.010", emptyList(), listOf("127.0.0.010")))
+    }
+
+    @Test
+    fun ignoresMalformedIpSanCandidate() {
+        assertFalse(certificateMatchesHost("100.64.0.10", emptyList(), listOf("not-an-ip.example")))
+    }
+
+    @Test
     fun rejectsInvalidIpv4LookingHostWithoutTreatingItAsAnIp() {
         assertFalse(certificateMatchesHost("999.64.0.10", emptyList(), listOf("999.64.0.10")))
     }
