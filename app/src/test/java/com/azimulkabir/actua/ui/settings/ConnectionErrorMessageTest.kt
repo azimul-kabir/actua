@@ -15,8 +15,18 @@ class ConnectionErrorMessageTest {
         val messageFromCause = connectionErrorMessage(handshakeError, "Could not connect to the server.")
         val messageFromDirectException = connectionErrorMessage(certPathError, "Could not connect to the server.")
 
-        assertTrue(messageFromCause.contains("CA certificate"))
-        assertTrue(messageFromDirectException.contains("CA certificate"))
+        assertTrue(messageFromCause.contains("certificate isn't trusted"))
+        assertTrue(messageFromDirectException.contains("certificate isn't trusted"))
+        assertTrue(messageFromCause.contains("private or self-signed CA"))
+    }
+
+    @Test
+    fun doesNotMisclassifyGenericTlsHandshakeFailureAsCertificateTrustFailure() {
+        val error = SSLHandshakeException("TLS protocol negotiation failed")
+        assertEquals(
+            "TLS protocol negotiation failed",
+            connectionErrorMessage(error, "Could not connect to the server."),
+        )
     }
 
     @Test
