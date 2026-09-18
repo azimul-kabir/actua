@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.31] - 2026-09-18
+
 ### Added
 
 - Added support for custom HTTP headers (e.g. `CF-Access-Client-Id`/`Secret`) sent with every request to the Actual server, configurable from the Connection screen for servers behind an auth proxy like Cloudflare Access
