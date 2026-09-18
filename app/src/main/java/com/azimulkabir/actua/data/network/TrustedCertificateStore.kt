@@ -6,7 +6,6 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
-import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
@@ -105,10 +104,10 @@ fun inspectServerCertificate(serverUrl: String): ServerCertificateInfo {
     return socket.use {
         it.soTimeout = 15_000
         it.sslParameters = it.sslParameters.apply { endpointIdentificationAlgorithm = "HTTPS" }
+        // endpointIdentificationAlgorithm performs HTTPS hostname verification as part of
+        // the handshake. Do not run HttpsURLConnection's HostnameVerifier a second time against
+        // this raw SSLSocket session; doing so can falsely reject an already-verified hostname.
         it.startHandshake()
-        if (!HttpsURLConnection.getDefaultHostnameVerifier().verify(host, it.session)) {
-            throw CertificateException("The server certificate does not match $host.")
-        }
         val certificate = it.session.peerCertificates.firstOrNull() as? X509Certificate
             ?: throw CertificateException("The server did not present an X.509 certificate.")
         ServerCertificateInfo(
