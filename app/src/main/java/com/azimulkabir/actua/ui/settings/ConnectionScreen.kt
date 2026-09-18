@@ -115,15 +115,16 @@ internal fun formatSyncDuration(durationMillis: Long): String = when {
  *    That side is a server/reverse-proxy misconfiguration no client-side change can fix.
  */
 internal fun connectionErrorMessage(error: Throwable, fallback: String): String {
-    val isUntrustedCertificate = generateSequence(error) { it.cause }
-        .any { it is java.security.cert.CertPathValidatorException || it is javax.net.ssl.SSLHandshakeException }
+    val causes = generateSequence(error) { it.cause }.toList()
+    val isUntrustedCertificate = causes.any { it is java.security.cert.CertPathValidatorException } ||
+        causes.any {
+            it is java.security.cert.CertificateException &&
+                it.message?.contains("trust anchor", ignoreCase = true) == true
+        }
     return if (isUntrustedCertificate) {
-        "This device doesn't trust the server's certificate. If it's self-signed or from a " +
-            "private CA, install it under Settings → Security → Encryption & credentials → " +
-            "Install a certificate → CA certificate, making sure it's used by \"VPN and apps\" " +
-            "(not just Wi-Fi). If it's from a public CA (e.g. Let's Encrypt), the server may be " +
-            "sending only its own certificate instead of the full chain — check that it serves " +
-            "fullchain.pem (or equivalent), not just cert.pem. Then try again."
+        "Server certificate isn't trusted. Actua couldn't verify this server's TLS certificate. " +
+            "Check that the server provides a valid certificate chain. If you use a private or " +
+            "self-signed CA, install that CA as a trusted certificate on this device."
     } else {
         error.message ?: fallback
     }
