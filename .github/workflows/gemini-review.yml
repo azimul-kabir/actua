@@ -125,7 +125,7 @@ jobs:
               "contents": [{"parts": [{"text": prompt}]}],
           }).encode("utf-8")
 
-          url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+          url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent"
           req = urllib.request.Request(
               url,
               data=body,
