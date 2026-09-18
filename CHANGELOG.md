@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed saving or deleting a transaction running its local database write on the main thread; it now runs off the main thread so the editor dismisses as soon as the transaction is durably committed locally, without any extra wait for (already-asynchronous) server sync
+
 ## [1.0.0-beta.31] - 2026-09-18
 
 ### Added

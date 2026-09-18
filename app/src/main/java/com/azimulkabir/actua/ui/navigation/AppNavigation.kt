@@ -351,6 +351,29 @@ fun AppNavigation(
         },
     )
 
+    // Same contract as [mutate], but the (disk I/O) mutation runs off the main thread and
+    // [onChanged] fires afterwards on the main thread once the local write has durably
+    // completed. Use this for mutations on interaction-critical paths (e.g. dismissing an
+    // editor) so local DB work never blocks the UI thread.
+    fun mutateAsync(label: String, action: () -> Boolean, onChanged: () -> Unit) {
+        coroutineScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching(action) }
+            result.fold(
+                onSuccess = { changed ->
+                    if (changed) {
+                        dataVersion += 1
+                        onChanged()
+                    } else {
+                        errorMessage = "$label could not be completed."
+                    }
+                },
+                onFailure = { error ->
+                    errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
+                },
+            )
+        }
+    }
+
     fun returnFromEditSchedule() {
         when {
             scheduleReturnsToTransactionsTab -> {
@@ -831,57 +854,61 @@ fun AppNavigation(
                     editorReturnsToCategory = false
                     editorReturnsToStatementDetail = false
                 },
-                onSave = {
+                onSave = { savedTransaction ->
                     val wasEditing = editingTransaction != null
-                    if (runCatching { repository.saveTransaction(it) }.fold(
-                            onSuccess = { true },
-                            onFailure = { error ->
-                                errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Saving transaction failed."
-                                false
-                            },
-                        )) {
-                        dataVersion += 1
-                        WidgetUpdater.requestAll(context)
-                        if (!wasEditing &&
-                            it.type != com.azimulkabir.actua.model.Type.TRANSFER &&
-                            it.payee.isNotBlank() &&
-                            locationPreferences.recordPayeeLocations &&
-                            repository.payeeLocationWritesSupported()
-                        ) {
-                            coroutineScope.launch {
+                    coroutineScope.launch {
+                        // The local CRDT write is disk I/O; keep it off the main thread so the
+                        // editor dismisses as soon as the transaction is durably saved locally,
+                        // without waiting on anything network-related (sync is scheduled
+                        // separately and runs fully asynchronously).
+                        val result = withContext(Dispatchers.IO) {
+                            runCatching { repository.saveTransaction(savedTransaction) }
+                        }
+                        result.onFailure { error ->
+                            errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Saving transaction failed."
+                        }
+                        if (result.isSuccess) {
+                            dataVersion += 1
+                            WidgetUpdater.requestAll(context)
+                            if (!wasEditing &&
+                                savedTransaction.type != com.azimulkabir.actua.model.Type.TRANSFER &&
+                                savedTransaction.payee.isNotBlank() &&
+                                locationPreferences.recordPayeeLocations &&
+                                repository.payeeLocationWritesSupported()
+                            ) {
                                 val location = AndroidLocationProvider(context).currentCoordinates()
                                 if (location is CurrentLocationResult.Success) {
                                     withContext(Dispatchers.IO) {
-                                        repository.recordPayeeLocation(it.payee, location.coordinates)
+                                        repository.recordPayeeLocation(savedTransaction.payee, location.coordinates)
                                     }
                                 }
                             }
-                        }
-                        editingTransaction = null
-                        if (editorReturnsToCategory) {
-                            reopenBudgetCategory = transactionCategory
-                            destination = MainDestination.Budget
-                            detail = DetailDestination.Main
-                            editorReturnsToCategory = false
-                        } else if (editorReturnsToStatementDetail) {
-                            detail = DetailDestination.CreditCardStatementDetail
-                            editorReturnsToStatementDetail = false
-                        } else if (editorReturnsToTransactions) {
-                            detail = DetailDestination.Transactions
-                        } else if (wasEditing) {
-                            detail = DetailDestination.Main
-                        } else {
-                            destination = MainDestination.Transactions
-                            transactionAccount = null
-                            transactionCategory = null
-                            transactionMonth = null
-                            transactionSearch = ""
-                            detail = DetailDestination.Main
+                            editingTransaction = null
+                            if (editorReturnsToCategory) {
+                                reopenBudgetCategory = transactionCategory
+                                destination = MainDestination.Budget
+                                detail = DetailDestination.Main
+                                editorReturnsToCategory = false
+                            } else if (editorReturnsToStatementDetail) {
+                                detail = DetailDestination.CreditCardStatementDetail
+                                editorReturnsToStatementDetail = false
+                            } else if (editorReturnsToTransactions) {
+                                detail = DetailDestination.Transactions
+                            } else if (wasEditing) {
+                                detail = DetailDestination.Main
+                            } else {
+                                destination = MainDestination.Transactions
+                                transactionAccount = null
+                                transactionCategory = null
+                                transactionMonth = null
+                                transactionSearch = ""
+                                detail = DetailDestination.Main
+                            }
                         }
                     }
                 },
                 onDelete = { transaction ->
-                    if (mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }) {
+                    mutateAsync("Deleting transaction", { repository.deleteTransaction(transaction.id) }) {
                         editingTransaction = null
                         detail = when {
                             editorReturnsToStatementDetail -> {
