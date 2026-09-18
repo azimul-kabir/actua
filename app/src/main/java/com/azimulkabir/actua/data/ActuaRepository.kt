@@ -459,6 +459,12 @@ class ActuaRepository(context: Context) {
                 (budget.incomeCategories + budget.hiddenIncomeCategories).flatMap {
                     listOfNotNull(it.categoryId, it.categoryName)
                 }
+            // One query for every category's note instead of one query (plus a hasTable check)
+            // per category — this ran synchronously during composition on every dataVersion or
+            // month change, so an O(categories) round-trip count mattered.
+            val allCategoryIds = (budget.categories + budget.hiddenCategories).map { it.categoryId } +
+                (budget.incomeCategories + budget.hiddenIncomeCategories).map { it.categoryId }
+            val notes = db.fetchNotes(allCategoryIds)
             val expenseGroups = (budget.categories + budget.hiddenCategories).groupBy { it.groupId }.values
                 .sortedBy { it.first().groupSortOrder }
                 .map { rows ->
@@ -478,7 +484,7 @@ class ActuaRepository(context: Context) {
                             it.hidden,
                             -it.spentCents,
                             it.carryoverEnabled,
-                            db.fetchNote(it.categoryId),
+                            notes[it.categoryId].orEmpty(),
                             histories.mapNotNull { historyMonth ->
                                 (historyMonth.categories + historyMonth.hiddenCategories)
                                     .firstOrNull { row -> row.categoryId == it.categoryId }
@@ -513,7 +519,7 @@ class ActuaRepository(context: Context) {
                                 availableCents = it.receivedCents,
                                 hidden = it.hidden,
                                 spentCents = -it.receivedCents,
-                                note = db.fetchNote(it.categoryId),
+                                note = notes[it.categoryId].orEmpty(),
                                 isIncome = true,
                             )
                         },
@@ -578,7 +584,9 @@ class ActuaRepository(context: Context) {
 
     fun accounts(): List<Account> {
         actualDatabase?.let { db ->
-            return db.fetchAccounts().map {
+            val fetched = db.fetchAccounts()
+            val notes = db.fetchNotes(fetched.map { "account-${it.id}" })
+            return fetched.map {
                 Account(
                     name = it.name,
                     balance = centsToDisplayUnits(it.balanceCents),
@@ -590,7 +598,7 @@ class ActuaRepository(context: Context) {
                     clearedCents = it.clearedCents,
                     unclearedCents = it.unclearedCents,
                     reconciledCents = it.reconciledCents,
-                    note = db.fetchNote("account-${it.id}"),
+                    note = notes["account-${it.id}"].orEmpty(),
                 )
             }
         }

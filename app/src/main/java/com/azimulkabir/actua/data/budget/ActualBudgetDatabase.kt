@@ -111,6 +111,28 @@ class ActualBudgetDatabase private constructor(
         }
     }
 
+    /**
+     * Batched [fetchNote]: a single query (and a single `hasTable` check) instead of one query
+     * per id. Callers that need notes for many categories/accounts at once — e.g. building the
+     * whole budget for a month — should use this rather than calling [fetchNote] in a loop,
+     * which was previously N+1 round-trips run synchronously during Compose composition.
+     */
+    @Synchronized
+    fun fetchNotes(ids: Collection<String>): Map<String, String> {
+        if (ids.isEmpty() || !hasTable("notes")) return emptyMap()
+        val placeholders = ids.joinToString(",") { "?" }
+        return database.rawQuery(
+            "SELECT id, note FROM notes WHERE id IN ($placeholders)",
+            ids.toTypedArray(),
+        ).use { cursor ->
+            val result = mutableMapOf<String, String>()
+            while (cursor.moveToNext()) {
+                result[cursor.getString(0)] = cursor.stringOrNull(1).orEmpty()
+            }
+            result
+        }
+    }
+
     /** Actuali's cross-platform card metadata stored in Actual's synced preferences table. */
     @Synchronized
     fun fetchCreditCardConfigs(): Map<String, CreditCardConfig> {
