@@ -189,3 +189,4 @@ third-party automation is necessary.
 When porting behavior from Actuali, compare product concepts and server-visible
 semantics rather than copying Swift/iOS implementation details. Android lifecycle,
 navigation and Material behavior should remain native to Android.
+
