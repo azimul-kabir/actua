@@ -775,6 +775,10 @@ fun ConnectionScreen(
                     }, enabled = serverUrl.isNotBlank() && !loading, modifier = Modifier.weight(1f)) { Text("Save") }
                 }
                 OutlinedButton(onClick = {
+                    listOf(serverUrl, fallbackServerUrl).filter(String::isNotBlank).forEach { url ->
+                        runCatching { java.net.URI(client.normalizeServerUrl(url)).host }
+                            .getOrNull()?.let(certificateStore::forget)
+                    }
                     credentials.clear()
                     connected = false
                     remoteBudgets = emptyList()
