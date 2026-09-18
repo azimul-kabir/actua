@@ -307,13 +307,17 @@ fun BudgetScreen(
         // BudgetScreen (e.g. opening/closing any sheet), not just when the budget or these
         // display toggles actually change. Must live outside the LazyColumn content lambda,
         // which isn't a @Composable context.
+        // `headerGroup` is precomputed here (once per data/toggle change) rather than via
+        // `group.copy(categories = visibleCategories)` inline at each header call site, which
+        // would otherwise allocate a new BudgetGroup on every recomposition of this screen.
         val visibleGroups = remember(groups, showHidden, hideFullySpent, selectedView, scheduleFunding) {
             groups.filter { showHidden || !it.hidden }.map { group ->
-                group to group.categories.filter { category ->
+                val visibleCategories = group.categories.filter { category ->
                     (showHidden || !category.hidden) &&
                         (!hideFullySpent || category.available != 0) &&
                         (category.isIncome || selectedView.matches(category, scheduleFunding))
                 }
+                Triple(group, visibleCategories, group.copy(categories = visibleCategories))
             }
         }
 
@@ -322,9 +326,18 @@ fun BudgetScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
         ) {
-            visibleGroups.forEach { (group, visibleCategories) ->
+            visibleGroups.forEach { (group, visibleCategories, headerGroup) ->
                 val collapsed = group.name in collapsedGroups
-                stickyHeader(key = "header-${group.name}") {
+                stickyHeader(
+                    key = "header-${group.name}",
+                    // Lets Compose reuse composition slots across the group-header type
+                    // boundaries a scroll crosses, instead of diffing incompatible shapes.
+                    contentType = when {
+                        group.isIncome -> "income-header"
+                        budgetView == "Plan" -> "plan-header"
+                        else -> "table-header"
+                    },
+                ) {
                     val onGroupClick = {
                             saveCollapsedGroups(if (collapsed) {
                                 collapsedGroups - group.name
@@ -334,7 +347,7 @@ fun BudgetScreen(
                         }
                     if (group.isIncome) {
                         IncomeBudgetGroupHeader(
-                            group = group.copy(categories = visibleCategories),
+                            group = headerGroup,
                             collapsed = collapsed,
                             hideDecimalPlaces = hideDecimalPlaces,
                             onClick = onGroupClick,
@@ -342,7 +355,7 @@ fun BudgetScreen(
                         )
                     } else if (budgetView == "Plan") {
                         PlanBudgetGroupHeader(
-                            group = group.copy(categories = visibleCategories),
+                            group = headerGroup,
                             collapsed = collapsed,
                             showTotals = showGroupTotals,
                             hideDecimalPlaces = hideDecimalPlaces,
@@ -351,7 +364,7 @@ fun BudgetScreen(
                         )
                     } else {
                         BudgetGroupHeader(
-                            group = group.copy(categories = visibleCategories),
+                            group = headerGroup,
                             collapsed = collapsed,
                             showSpent = showSpent,
                             showTotals = showGroupTotals,
@@ -364,6 +377,13 @@ fun BudgetScreen(
                 itemsIndexed(
                     visibleCategories,
                     key = { _, category -> "${group.name}-${category.name}" },
+                    contentType = { _, category ->
+                        when {
+                            category.isIncome -> "income-row"
+                            budgetView == "Plan" -> "plan-row"
+                            else -> "table-row"
+                        }
+                    },
                 ) { index, category ->
                     AnimatedVisibility(
                         visible = !collapsed,
@@ -1208,7 +1228,7 @@ private fun BudgetGroupHeader(
         Row(
             modifier = Modifier.fillMaxWidth().combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = onLongClick,
-            ).animateContentSize().padding(horizontal = 16.dp, vertical = 9.dp),
+            ).padding(horizontal = 16.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(modifier = Modifier.weight(1.35f), verticalAlignment = Alignment.CenterVertically) {
@@ -1222,12 +1242,20 @@ private fun BudgetGroupHeader(
                     color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            if (showTotals) {
-                AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
-                if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
-            } else {
-                Spacer(Modifier.weight(if (showSpent) 3f else 2f))
+            // Scoped to just the part that actually changes size (totals shown/hidden) instead
+            // of the whole sticky-header row, so the icon/name on the left — which never
+            // resizes — doesn't pay for an extra measure/layout pass on every scroll frame.
+            Row(
+                modifier = Modifier.weight(if (showSpent) 3f else 2f).animateContentSize(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (showTotals) {
+                    AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
+                    if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
+                    AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
+                } else {
+                    Spacer(Modifier.weight(if (showSpent) 3f else 2f))
+                }
             }
         }
     }
