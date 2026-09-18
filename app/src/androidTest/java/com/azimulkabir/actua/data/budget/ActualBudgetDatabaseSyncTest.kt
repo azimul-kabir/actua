@@ -121,6 +121,20 @@ class ActualBudgetDatabaseSyncTest {
         }
     }
 
+    @Test
+    fun openEnablesWalSoConcurrentSyncAndUiConnectionsDoNotBlockEachOther() {
+        // The sync worker and the UI repository each open their own connection to the same
+        // db.sqlite. WAL lets a writer commit without blocking readers on another connection,
+        // instead of contending under the default rollback-journal mode (issue #348).
+        val file = createDatabaseFile()
+        try {
+            ActualBudgetDatabase.open(file).close()
+            assertEquals("wal", queryString(file, "PRAGMA journal_mode")?.lowercase())
+        } finally {
+            file.delete()
+        }
+    }
+
     private fun message(
         millis: Long,
         node: String = "aaaaaaaaaaaaaaaa",
