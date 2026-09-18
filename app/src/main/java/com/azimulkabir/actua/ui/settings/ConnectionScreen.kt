@@ -105,15 +105,18 @@ internal fun formatSyncDuration(durationMillis: Long): String = when {
  * line (e.g. "Trust anchor for certification path not found"), which just repeats the error
  * shown before this fix without telling the user what to actually do about it: the server's
  * certificate (self-signed or from a private CA) needs to be installed as a user CA certificate
- * on the device, since that's the only way a non-rooted Android user can trust one.
+ * on the device, since that's the only way a non-rooted Android user can trust one. The install
+ * flow lets the user scope that certificate to "Wi-Fi" only, which leaves apps still untrusting
+ * it and reproduces this exact error — "VPN and apps" is the scope that matters here.
  */
 internal fun connectionErrorMessage(error: Throwable, fallback: String): String {
     val isUntrustedCertificate = generateSequence(error) { it.cause }
         .any { it is java.security.cert.CertPathValidatorException || it is javax.net.ssl.SSLHandshakeException }
     return if (isUntrustedCertificate) {
         "This device doesn't trust the server's certificate. If it's self-signed or from a " +
-            "private CA, install it as a CA certificate under Settings → Security → " +
-            "Encryption & credentials → Install a certificate, then try again."
+            "private CA, install it under Settings → Security → Encryption & credentials → " +
+            "Install a certificate → CA certificate, making sure it's used by \"VPN and apps\" " +
+            "(not just Wi-Fi), then try again."
     } else {
         error.message ?: fallback
     }

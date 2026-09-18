@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
-- Fixed the Connection screen showing the raw `Trust anchor for certification path not found` Java exception message on a failed connection (password or OpenID) instead of telling the user what to do about it; an untrusted server certificate now shows guidance to install it as a user CA certificate in Android Settings
+- Fixed the Connection screen showing the raw `Trust anchor for certification path not found` Java exception message on a failed connection (password or OpenID) instead of telling the user what to do about it; an untrusted server certificate now shows guidance to install it as a user CA certificate scoped to "VPN and apps" (not just Wi-Fi) in Android Settings — a certificate scoped to Wi-Fi only reproduces this exact error even after installing it
 
 ## [1.0.0-beta.32] - 2026-09-18
 
