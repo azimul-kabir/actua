@@ -857,13 +857,17 @@ private fun SearchableTransactionPicker(
     }
     val uniqueOptions = remember(options) { options.distinct() }
     val searchResults = remember(query, uniqueOptions) { filterPickerOptions(uniqueOptions, query) }
-    val transferOptions = alphabetizePickerOptions(
-        uniqueOptions.filter { it.startsWith("Transfer: ") },
-    )
-    val regularOptions = uniqueOptions.filterNot { it.startsWith("Transfer: ") }
-    val grouped = regularOptions
-        .sortedWith(String.CASE_INSENSITIVE_ORDER)
-        .groupBy { it.firstOrNull()?.uppercaseChar()?.takeIf(Char::isLetterOrDigit)?.toString() ?: "#" }
+    // Only `grouped` (query.isBlank()) or `transferOptions` (also query.isBlank()) are ever
+    // shown at once, but both were being sorted/grouped on every keystroke regardless of which
+    // (if either) is actually visible; remember them keyed on the option list instead.
+    val transferOptions = remember(uniqueOptions) {
+        alphabetizePickerOptions(uniqueOptions.filter { it.startsWith("Transfer: ") })
+    }
+    val grouped = remember(uniqueOptions) {
+        uniqueOptions.filterNot { it.startsWith("Transfer: ") }
+            .sortedWith(String.CASE_INSENSITIVE_ORDER)
+            .groupBy { it.firstOrNull()?.uppercaseChar()?.takeIf(Char::isLetterOrDigit)?.toString() ?: "#" }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,

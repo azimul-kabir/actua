@@ -115,11 +115,15 @@ fun AccountsScreen(
     var accountMenuExpanded by remember { mutableStateOf(false) }
     var renamingAccount by remember { mutableStateOf<Account?>(null) }
     var changingTypeAccount by remember { mutableStateOf<Account?>(null) }
-    val accountSections = listOf(
-        AccountSection("On budget", accounts.filter { !it.offBudget && !it.closed }),
-        AccountSection("Off budget", accounts.filter { it.offBudget && !it.closed }),
-        AccountSection("Closed accounts", accounts.filter { it.closed }),
-    ).filter { it.accounts.isNotEmpty() }
+    // Otherwise this re-filters the whole account list on every recomposition of this screen
+    // (e.g. opening the overflow menu or selecting an account), not just when `accounts` changes.
+    val accountSections = remember(accounts) {
+        listOf(
+            AccountSection("On budget", accounts.filter { !it.offBudget && !it.closed }),
+            AccountSection("Off budget", accounts.filter { it.offBudget && !it.closed }),
+            AccountSection("Closed accounts", accounts.filter { it.closed }),
+        ).filter { it.accounts.isNotEmpty() }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         ActuaScreenHeader(title = "Accounts") {
@@ -176,6 +180,10 @@ fun AccountsScreen(
             }
         }
 
+        // Otherwise this is a linear scan repeated per visible row, per recomposition
+        // (O(accounts x creditCards) overall), instead of a single O(creditCards) pass.
+        val creditCardByAccountId = remember(creditCards) { creditCards.associateBy { it.accountId } }
+
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
@@ -203,7 +211,7 @@ fun AccountsScreen(
                     ) {
                         AccountRow(
                             account = account,
-                            creditCard = creditCards.firstOrNull { it.accountId == account.id },
+                            creditCard = creditCardByAccountId[account.id],
                             showTopDivider = index > 0,
                             onClick = { onAccountClick(account.name) },
                         onLongClick = { selectedAccount = account },
@@ -246,9 +254,16 @@ private fun AccountsSummary(
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val total = accounts.sumOf { it.balanceCents }
-    val monthKey = java.text.SimpleDateFormat("yyyyMM", java.util.Locale.US).format(java.util.Date())
-    val monthTransactions = transactions.filter { it.date.filter(Char::isDigit).startsWith(monthKey) }
-    val summary = AccountMonthlySummaryCalculator.calculate(monthTransactions)
+    // Skip the full-transaction-list scan and calculator entirely when the summary isn't shown,
+    // and otherwise only recompute it when `transactions` actually changes, not on every
+    // recomposition of this row (e.g. opening the overflow menu elsewhere on the screen).
+    val summary = if (showMonthlySummary) {
+        remember(transactions) {
+            val monthKey = java.text.SimpleDateFormat("yyyyMM", java.util.Locale.US).format(java.util.Date())
+            val monthTransactions = transactions.filter { it.date.filter(Char::isDigit).startsWith(monthKey) }
+            AccountMonthlySummaryCalculator.calculate(monthTransactions)
+        }
+    } else null
     Surface(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = {}),
         color = MaterialTheme.colorScheme.surface,
@@ -261,7 +276,7 @@ private fun AccountsSummary(
                 MonetaryText(total, hideDecimalPlaces, style = AmountTypography.rowAmount.copy(fontWeight = FontWeight.Bold))
                 Icon(Icons.Outlined.ChevronRight, contentDescription = "View all transactions")
             }
-            if (showMonthlySummary) {
+            if (summary != null) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.md),
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
                 Text(java.text.SimpleDateFormat("MMMM yyyy", locale).format(java.util.Date()), style = MaterialTheme.typography.labelMedium,
