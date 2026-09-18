@@ -8,8 +8,11 @@ class ActualServerUrlTest {
     private val client = ActualServerClient()
 
     @Test
-    fun allowsConfiguredPrivateLanHttpFallback() {
+    fun allowsAnyPrivateLanHttpFallback() {
         assertEquals("http://192.168.68.109", client.normalizeServerUrl("http://192.168.68.109/"))
+        assertEquals("http://192.168.1.50", client.normalizeServerUrl("http://192.168.1.50/"))
+        assertEquals("http://10.0.0.5", client.normalizeServerUrl("http://10.0.0.5/"))
+        assertEquals("http://localhost", client.normalizeServerUrl("http://localhost/"))
     }
 
     @Test

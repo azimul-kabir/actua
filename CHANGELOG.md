@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Fixed saving or deleting a transaction running its local database write on the main thread; it now runs off the main thread so the editor dismisses as soon as the transaction is durably committed locally, without any extra wait for (already-asynchronous) server sync
+- Fixed connecting to a self-hosted Actual server over plain HTTP on a local/private network: Android's network security config only allowlisted one developer's hardcoded test IP (`192.168.68.109`) for cleartext traffic, so every other private/local HTTP server was rejected with "Cleartext HTTP traffic not permitted" even though the app's own connection validation already restricts HTTP to localhost/`.local`/RFC1918/link-local/ULA addresses and requires HTTPS everywhere else
 
 ## [1.0.0-beta.31] - 2026-09-18
 
