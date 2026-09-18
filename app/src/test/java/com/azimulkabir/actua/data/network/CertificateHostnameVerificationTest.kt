@@ -58,6 +58,26 @@ class CertificateHostnameVerificationTest {
     }
 
     @Test
+    fun rejectsInvalidIpv4LookingHostWithoutTreatingItAsAnIp() {
+        assertFalse(certificateMatchesHost("999.64.0.10", emptyList(), listOf("999.64.0.10")))
+    }
+
+    @Test
+    fun extractsEscapedCommaFromCommonName() {
+        assertTrue(commonNameFromRfc2253("""CN=budget\,server.example.com,O=Example,C=US""") == "budget,server.example.com")
+    }
+
+    @Test
+    fun extractsQuotedCommonNameContainingComma() {
+        assertTrue(commonNameFromRfc2253("""CN="budget,server.example.com",O=Example,C=US""") == "budget,server.example.com")
+    }
+
+    @Test
+    fun findsCommonNameAfterAnotherRdn() {
+        assertTrue(commonNameFromRfc2253("O=Example,CN=legacy.example.com,C=US") == "legacy.example.com")
+    }
+
+    @Test
     fun rejectsUnrelatedDnsName() {
         assertFalse(certificateMatchesHost("machine.tailnet.ts.net", listOf("attacker.example"), emptyList()))
     }
