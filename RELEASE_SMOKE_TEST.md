@@ -17,6 +17,9 @@ Use this checklist for release candidates before promoting a beta or stable buil
 
 - [ ] Create an independent Actual backup before testing against a real budget.
 - [ ] Add a custom HTTP header (e.g. `CF-Access-Client-Id`/`Secret`) on the Connection screen and verify sync/login succeeds against a server that requires it; verify removing the header still works against a server that doesn't.
+- [ ] Connect to a self-hosted server over plain HTTP on a private/local address (e.g. `192.168.x.x`, `10.x.x.x`, `localhost`) other than the old hardcoded test IP and verify it succeeds instead of "Cleartext HTTP traffic not permitted".
+- [ ] Install a self-signed CA as a user certificate (Settings > Security > Encryption & credentials > Install a certificate, including on GrapheneOS) and connect to a self-hosted server using a certificate issued by it over HTTPS; verify the connection succeeds instead of `Trust anchor for certification path not found`.
+- [ ] On Connection & data, tap the Budgets section header and verify the budget list collapses/expands with the chevron animating, and other sections (Backups, etc.) are unaffected.
 - [ ] Download/select a real self-hosted Actual budget and verify opening balances/category values against Actual.
 - [ ] Manual Sync Now completes and the sync status/last-success state updates.
 - [ ] Make one harmless edit in Actua, sync, and confirm it appears correctly in Actual.
@@ -57,6 +60,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Long-press a transaction to enter multi-select mode with it pre-selected; use "Duplicate" from the transaction sheet, details sheet, and bulk-actions menu and verify an unlinked copy is created immediately without opening the editor.
 - [ ] From the multi-select bulk menu, open "View schedule" on a linked transaction, then back/save/delete on the schedule and verify you return to Transactions rather than Schedules or Bills calendar.
 - [ ] Transactions screen status filter chips (Uncategorized, Uncleared, Cleared, Reconciled) each narrow the list correctly and can be combined/cleared.
+- [ ] Enable "hide reconciled transactions", then select the Reconciled status chip in an account's transaction list and verify reconciled transactions appear (not an empty "No unreconciled transactions" state); verify the empty-state message matches whichever status chip is active.
 - [ ] Pick an explicit category in Add Transaction before typing a payee that matches a rule setting a different category, and verify the explicit choice is preserved; leave the category empty and verify the rule still fills it in.
 - [ ] Payee search filters character-by-character across normal payees and transfer accounts.
 - [ ] Find nearby payees requests foreground permission only after explicit use and normal search remains available on denial/failure.
@@ -99,6 +103,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 ## Android integrations
 
 - [ ] Foreground/manual sync works with network available and reports failures visibly.
+- [ ] While a manual sync is in progress, scrolling Transactions/Budget and saving a new transaction remain responsive with no visible stall or SQLITE_BUSY-style hang.
 - [ ] Periodic/background sync is scheduled and does not create duplicate schedule postings.
 - [ ] Backup WorkManager job remains configured after relaunch.
 - [ ] Credit-card reminder permission flow behaves correctly and reminders can be enabled/disabled.

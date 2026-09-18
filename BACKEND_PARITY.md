@@ -45,7 +45,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Demo seed coverage for checking, savings, credit-card and off-budget investment accounts;
   six months of transactions; paired card-payment transfers; cleared/uncleared/reconciled
   states; category targets; rules; scheduled transactions; notes; and dashboard report data
-- Editable primary/fallback server addresses with explicitly scoped private-LAN HTTP support and automatic failover without replacing local budgets
+- Editable primary/fallback server addresses with explicitly scoped private-LAN HTTP support and automatic failover without replacing local budgets; HTTPS connections trust manually installed user CAs (not just the system store), so a self-signed/private-CA certificate on a self-hosted server works without rooting the device
 - User-defined custom HTTP headers (e.g. `CF-Access-Client-Id`/`Secret`) sent with every
   request to the Actual server, configurable from the Connection screen for servers behind
   an auth proxy
