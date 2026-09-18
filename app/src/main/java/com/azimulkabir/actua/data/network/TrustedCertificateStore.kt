@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.network
 
 import android.content.Context
+import android.util.Patterns
 import java.net.IDN
 import java.net.InetAddress
 import java.net.URI
@@ -55,8 +56,7 @@ internal fun certificateMatchesHost(
     commonName: String? = null,
 ): Boolean {
     val normalizedHost = host.trim().trimEnd('.')
-    val isIpAddress = normalizedHost.contains(':') ||
-        normalizedHost.matches(Regex("""\d{1,3}(?:\.\d{1,3}){3}"""))
+    val isIpAddress = Patterns.IP_ADDRESS.matcher(normalizedHost).matches()
 
     if (isIpAddress) {
         val hostBytes = runCatching { InetAddress.getByName(normalizedHost).address }.getOrNull()
@@ -76,12 +76,18 @@ internal fun certificateMatchesHost(
 }
 
 private fun dnsNameMatches(asciiHost: String, certificateName: String): Boolean {
-    val name = runCatching { IDN.toASCII(certificateName.trim().trimEnd('.')).lowercase() }
-        .getOrNull() ?: return false
-    if (!name.contains('*')) return asciiHost == name
-    if (!name.startsWith("*.") || name.indexOf('*', startIndex = 1) >= 0) return false
+    val trimmedName = certificateName.trim().trimEnd('.')
+    if (!trimmedName.contains('*')) {
+        val name = runCatching { IDN.toASCII(trimmedName).lowercase() }.getOrNull() ?: return false
+        return asciiHost == name
+    }
 
-    val suffix = name.substring(1) // includes the leading dot
+    // Wildcards are certificate syntax rather than IDN input. Validate the wildcard first, then
+    // convert only the suffix to ASCII so internationalized suffixes are handled consistently.
+    if (!trimmedName.startsWith("*.") || trimmedName.indexOf('*', startIndex = 1) >= 0) return false
+    val asciiSuffix = runCatching { IDN.toASCII(trimmedName.substring(2)).lowercase() }
+        .getOrNull() ?: return false
+    val suffix = ".$asciiSuffix"
     if (!asciiHost.endsWith(suffix)) return false
     val prefix = asciiHost.removeSuffix(suffix)
     return prefix.isNotEmpty() && !prefix.contains('.')
