@@ -30,6 +30,17 @@ class CertificateHostnameVerificationTest {
     }
 
     @Test
+    fun wildcardCertificateNameDoesNotGoThroughIdnWithAsterisk() {
+        assertTrue(certificateMatchesHost("budget.example.com", listOf("*.example.com"), emptyList()))
+    }
+
+    @Test
+    fun rejectsMalformedWildcardPatterns() {
+        assertFalse(certificateMatchesHost("budget.example.com", listOf("*budget.example.com"), emptyList()))
+        assertFalse(certificateMatchesHost("budget.example.com", listOf("*.*.example.com"), emptyList()))
+    }
+
+    @Test
     fun fallsBackToCommonNameOnlyWhenDnsSansAreAbsent() {
         assertTrue(certificateMatchesHost("legacy.example.com", emptyList(), emptyList(), "legacy.example.com"))
     }
