@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext (HTTP) traffic is permitted at the OS level for every destination because the
+  app itself is the real gate: ActualServerClient.normalizeServerUrl()/isPrivateHost() only
+  ever build an http:// URL for localhost/.local/RFC1918/link-local/ULA addresses and require
+  https:// for everything else. All network calls to a user's Actual server funnel through
+  that single chokepoint, so this config previously hardcoding one developer's LAN IP
+  (192.168.68.109) blocked every other user's local server instead of adding any real
+  restriction Android could enforce (network-security-config can't express CIDR ranges).
+-->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">192.168.68.109</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>
