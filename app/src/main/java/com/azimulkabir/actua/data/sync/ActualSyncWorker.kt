@@ -20,6 +20,8 @@ import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
 import com.azimulkabir.actua.data.network.ActualServerClient
+import com.azimulkabir.actua.data.network.TrustedCertificateStore
+import com.azimulkabir.actua.data.network.UrlConnectionTransport
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 import com.azimulkabir.actua.data.schedules.ActualScheduleWriter
 import com.azimulkabir.actua.data.schedules.SchedulePoster
@@ -91,7 +93,7 @@ object ActualSyncRunner {
         status.started(trigger)
         return try {
             val result = ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { database ->
-                val server = ActualServerClient().apply { customHeaders = credentials.customHeaders }
+                val server = ActualServerClient(UrlConnectionTransport(TrustedCertificateStore(context))).apply { customHeaders = credentials.customHeaders }
                 fun syncAt(url: String) = ActualSyncClient(url, token, server, database, fileId, groupId,
                     loadedKey?.keyId, loadedKey?.let { ActualMessageCipher(it.key) }).sync()
                 var outcome = try { syncAt(serverUrl) } catch (primary: Exception) {
