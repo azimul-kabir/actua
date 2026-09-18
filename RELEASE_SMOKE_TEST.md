@@ -15,6 +15,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 ## Safety and data
 
 - [ ] Create an independent Actual backup before testing against a real budget.
+- [ ] Add a custom HTTP header (e.g. `CF-Access-Client-Id`/`Secret`) on the Connection screen and verify sync/login succeeds against a server that requires it; verify removing the header still works against a server that doesn't.
 - [ ] Download/select a real self-hosted Actual budget and verify opening balances/category values against Actual.
 - [ ] Manual Sync Now completes and the sync status/last-success state updates.
 - [ ] Make one harmless edit in Actua, sync, and confirm it appears correctly in Actual.
@@ -48,6 +49,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 ## Transactions and accounts
 
 - [ ] Add expense, income and transfer transactions.
+- [ ] Create a new account and pick a non-default type from the picker; verify it syncs with the correct type. Use "Change account type" on an existing account and verify the change persists and syncs.
 - [ ] Add and edit a split transaction.
 - [ ] Typing `#` (or deleting characters) in a transaction note while suggestions are showing keeps the on-screen keyboard open without flicker.
 - [ ] In Transactions, enable multi-select, select several transactions, and verify bulk mark cleared/uncleared, delete (with confirmation naming the count), link to schedule, unlink schedule, and (single selection) view schedule.

@@ -46,6 +46,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   six months of transactions; paired card-payment transfers; cleared/uncleared/reconciled
   states; category targets; rules; scheduled transactions; notes; and dashboard report data
 - Editable primary/fallback server addresses with explicitly scoped private-LAN HTTP support and automatic failover without replacing local budgets
+- User-defined custom HTTP headers (e.g. `CF-Access-Client-Id`/`Secret`) sent with every
+  request to the Actual server, configurable from the Connection screen for servers behind
+  an auth proxy
 - HLC, CRDT values/messages, protobuf sync protocol, Merkle tree, encryption
 - Sync convergence loop and Android Keystore-backed credentials/keys
 - Stored sync clock validation and legacy/epoch recovery from the message-log
@@ -123,7 +126,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Category deletion through Actual-compatible tombstone mutations, with existing
   transactions safely falling back to uncategorized
 - Account/category/group creation with Actual transfer-payee, opening-balance,
-  mapping, duplicate-name, and sort-order behavior
+  mapping, duplicate-name, and sort-order behavior, including a type picker on
+  account creation and a "Change account type" action allowing `type` in the
+  accounts CRDT field allowlist
 - Entity mutation core completed for account deletion, category-group deletion,
   ordinary-payee deletion/merge, category reorder, and category-group reorder. All
   writes use synced CRDT messages; payee merges redirect `payee_mapping` before
@@ -204,7 +209,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   disclosure for unresolved rows; resolved schedule funding now uses the existing recurrence
   projection, completed/past handling, amount-range midpoint, priority validation, Ready to Budget
   clamping, preview-first review, and atomic confirmation path
-- Account details with notes and an always-visible three-column Cleared / Balance / Uncleared
+- Account details with notes (hideable app-wide, along with category notes, via a global
+  "Notes" toggle under Display settings) and an always-visible three-column Cleared / Balance / Uncleared
   balance header matching the Actual PWA layout, with Reconciled (and, for credit cards,
   Available credit / Credit limit) behind a collapsible toggle
 - Optional per-account "Running balance" register display computed from the account's full
@@ -213,12 +219,14 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   uncleared-transaction review, optional cleared adjustment, and atomic CRDT locking
   of every cleared stored row including split parents and children
 - Collapsible account balance details with compact Budget-tab typography
-- Credit-card account details with limit, available credit, current billing cycle,
-  cycle spending, and calculated payment due date using either a fixed due day or
-  a legacy days-after-statement offset
-- Credit card statement history: the last 3 closed billing-cycle statements with
-  their due amounts, each opening to its own transaction list, ported 1:1 from
-  Actuali's `CreditCardCycle`
+- Credit-card account details with limit, available credit, current billing cycle
+  (including its date range), cycle spending, and calculated payment due date using
+  either a fixed due day or a legacy days-after-statement offset
+- Credit card statement history: a "Statement history" link on the Billing cycle card
+  opens the last 3 closed billing-cycle statements with their due amounts, each opening
+  to its own transaction list, ported 1:1 from Actuali's `CreditCardCycle`; a per-account
+  "Show credit card section" toggle in the account dropdown menu hides the billing
+  cycle/statement history section entirely
 - Opt-in Android credit-card payment reminders at 7, 5, 3, and 1 days before
   due, with permission handling, stale-work cancellation, delivery-time balance
   validation, and unpaid-first stable due-date sorting

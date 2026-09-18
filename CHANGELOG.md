@@ -4,6 +4,11 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added support for custom HTTP headers (e.g. `CF-Access-Client-Id`/`Secret`) sent with every request to the Actual server, configurable from the Connection screen for servers behind an auth proxy like Cloudflare Access
+- Added a type picker to the new-account dialog and a "Change account type" action to the account menu; every account previously showed as "Checking" regardless of its actual type
+
 ## [1.0.0-beta.30] - 2026-09-18
 
 ### Changed
