@@ -54,6 +54,8 @@ import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -175,6 +177,10 @@ fun BudgetScreen(
     onCategoryViewChange: (String) -> Unit = {},
     showCategoryFilters: Boolean = true,
     onShowCategoryFiltersChange: (Boolean) -> Unit = {},
+    favoritesOnly: Boolean = false,
+    onFavoritesOnlyChange: (Boolean) -> Unit = {},
+    favoriteCategoryIds: Set<String> = emptySet(),
+    onFavoriteCategoryChange: (String, Boolean) -> Unit = { _, _ -> },
     onSetCategoryHidden: (String, String, Boolean) -> Boolean = { _, _, _ -> false },
     onSetGroupHidden: (String, Boolean) -> Boolean = { _, _ -> false },
     onRenameCategory: (String, String, String) -> Unit = { _, _, _ -> },
@@ -292,7 +298,8 @@ fun BudgetScreen(
             enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
             exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
         ) {
-            BudgetCategoryFilterRow(selected = categoryView, onSelect = onCategoryViewChange)
+            BudgetCategoryFilterRow(selected = categoryView, onSelect = onCategoryViewChange,
+                favoritesOnly = favoritesOnly, onFavoritesOnlyChange = onFavoritesOnlyChange)
         }
         AnimatedVisibility(
             visible = showOverview,
@@ -323,12 +330,13 @@ fun BudgetScreen(
         // `headerGroup` is precomputed here (once per data/toggle change) rather than via
         // `group.copy(categories = visibleCategories)` inline at each header call site, which
         // would otherwise allocate a new BudgetGroup on every recomposition of this screen.
-        val visibleGroups = remember(groups, showHidden, hideFullySpent, selectedView, scheduleFunding) {
+        val visibleGroups = remember(groups, showHidden, hideFullySpent, selectedView, scheduleFunding, favoritesOnly, favoriteCategoryIds) {
             groups.filter { showHidden || !it.hidden }.map { group ->
                 val visibleCategories = group.categories.filter { category ->
                     (showHidden || !category.hidden) &&
                         (!hideFullySpent || category.available != 0) &&
-                        (category.isIncome || selectedView.matches(category, scheduleFunding))
+                        (category.isIncome || selectedView.matches(category, scheduleFunding)) &&
+                        (!favoritesOnly || category.id in favoriteCategoryIds)
                 }
                 Triple(group, visibleCategories, group.copy(categories = visibleCategories))
             }
@@ -598,6 +606,8 @@ fun BudgetScreen(
                 categoryDetails = null; onShowCategoryTransactions(category.name, false, true)
             },
             hidden = category.hidden,
+            favorite = category.id in favoriteCategoryIds,
+            onFavoriteChange = { favorite -> category.id?.let { onFavoriteCategoryChange(it, favorite) } },
             onSetHidden = { hidden ->
                 if (onSetCategoryHidden(group.name, category.name, hidden)) categoryDetails = null
             },
@@ -780,6 +790,8 @@ private fun BudgetToolbar(
 private fun BudgetCategoryFilterRow(
     selected: String,
     onSelect: (String) -> Unit,
+    favoritesOnly: Boolean,
+    onFavoritesOnlyChange: (Boolean) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -797,6 +809,12 @@ private fun BudgetCategoryFilterRow(
                 label = { Text(view.label) },
             )
         }
+        FilterChip(
+            selected = favoritesOnly,
+            onClick = { onFavoritesOnlyChange(!favoritesOnly) },
+            label = { Text("Favorites") },
+            leadingIcon = { Icon(if (favoritesOnly) Icons.Filled.Star else Icons.Outlined.StarBorder, null) },
+        )
     }
 }
 
@@ -1942,6 +1960,8 @@ private fun CategoryDetailsScreen(
     onAllTransactions: () -> Unit,
     hidden: Boolean,
     onSetHidden: (Boolean) -> Unit,
+    favorite: Boolean,
+    onFavoriteChange: (Boolean) -> Unit,
     onDelete: () -> Unit,
     onEditTransaction: (Transaction) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
@@ -1975,6 +1995,11 @@ private fun CategoryDetailsScreen(
                         Icon(Icons.Outlined.MoreVert, contentDescription = "Category options")
                     }
                     DropdownMenu(expanded = overflowOpen, onDismissRequest = { overflowOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(if (favorite) "Remove from favorites" else "Add to favorites") },
+                            leadingIcon = { Icon(if (favorite) Icons.Filled.Star else Icons.Outlined.StarBorder, null) },
+                            onClick = { overflowOpen = false; onFavoriteChange(!favorite) },
+                        )
                         DropdownMenuItem(text = { Text("Transactions this month") }, onClick = {
                             overflowOpen = false; onTransactionsThisMonth()
                         })

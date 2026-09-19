@@ -167,6 +167,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   restore, and one-shot pre-restore revert
 - Foreground sync refresh and visible mutation failure reporting through Android snackbars
 - Persistent app-wide decimal-place display preference
+- Per-budget device-local quick-access favorites for categories, accounts, and report dashboards;
+  these are intentionally not synced because Actual has no favorite fields. Budget's Favorites
+  filter composes with the other category filters, and the Favorites widget reads the same
+  category pins while safely omitting hidden or deleted rows.
 - Reversible category/group hiding with explicit unhide actions while hidden rows are shown
 - Exact-cent account, category, transaction, summary, and transaction-entry presentation;
   hiding decimals never changes stored values

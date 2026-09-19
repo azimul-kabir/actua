@@ -39,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.azimulkabir.actua.data.ActuaRepository
+import com.azimulkabir.actua.data.budget.ActiveBudgetStore
+import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import com.azimulkabir.actua.ui.theme.ActuaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -109,6 +111,11 @@ class WidgetConfigurationActivity : ComponentActivity() {
     }
 
     private fun save(kind: WidgetKind, selected: Set<String>) {
+        if (kind == WidgetKind.Categories) {
+            val budgetId = ActiveBudgetStore(this).budgetId ?: "no-budget"
+            val favorites = FavoritePreferences(this)
+            selected.forEach { favorites.set(budgetId, FavoritePreferences.Type.CATEGORY, it, true) }
+        }
         WidgetPreferences(this).save(kind, widgetId, selected)
         lifecycleScope.launch(Dispatchers.IO) {
             val manager = AppWidgetManager.getInstance(this@WidgetConfigurationActivity)
@@ -169,7 +176,8 @@ private fun WidgetConfigurationScreen(
             LazyColumn(Modifier.fillMaxSize().padding(padding)) {
                 item {
                     Text(
-                        "Choose up to four ${if (kind == WidgetKind.Categories) "categories" else "accounts"}.",
+                        if (kind == WidgetKind.Categories) "Choose up to four categories to add to your shared favorites."
+                        else "Choose up to four accounts.",
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                         style = MaterialTheme.typography.bodyMedium,
                     )
