@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -188,7 +189,9 @@ fun SettingsScreen(
             } else {
                 (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { -it / 5 }) togetherWith
                     (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { it / 10 })
-            }.using(SizeTransform(clip = false))
+            // Settings pages may have very different scrollable heights. Preserve directional
+            // motion without animating the layout bounds of two complete page trees.
+            }.using(SizeTransform(sizeAnimationSpec = { _, _ -> snap() }, clip = false))
         },
         label = "Settings navigation motion",
     ) { shownPage ->

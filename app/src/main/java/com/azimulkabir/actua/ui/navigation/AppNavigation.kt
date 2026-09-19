@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -751,7 +752,9 @@ fun AppNavigation(
                         (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { it / 10 })
                     else -> (fadeIn(tween(220)) + scaleIn(tween(260), initialScale = 0.985f)) togetherWith
                         (fadeOut(tween(140)) + scaleOut(tween(180), targetScale = 1.015f))
-                }.using(SizeTransform(clip = false))
+                // Detail destinations can differ radically in height. Animating their bounds
+                // repeatedly measures both full-screen trees; keep the motion on layers instead.
+                }.using(SizeTransform(sizeAnimationSpec = { _, _ -> snap() }, clip = false))
             },
             label = "Main navigation motion",
         ) { (shownDetail, shownDestination) ->
