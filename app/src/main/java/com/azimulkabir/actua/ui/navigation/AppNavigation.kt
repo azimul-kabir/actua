@@ -462,9 +462,14 @@ fun AppNavigation(
         if (destination == MainDestination.Reports && detail == DetailDestination.Main &&
             reportSnapshotVersion != dataVersion
         ) {
-            val loaded = withContext(Dispatchers.IO) { repository.reports() }
-            reportSnapshot = loaded
-            reportSnapshotVersion = dataVersion
+            try {
+                val loaded = withContext(Dispatchers.IO) { repository.reports() }
+                reportSnapshot = loaded
+                reportSnapshotVersion = dataVersion
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                errorMessage = "Failed to load reports: ${e.localizedMessage}"
+            }
         }
     }
 
