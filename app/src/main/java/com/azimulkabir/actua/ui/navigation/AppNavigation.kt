@@ -215,7 +215,6 @@ fun AppNavigation(
     val locationPreferences = remember { LocationPreferences(context) }
     val displayPreferences = remember { DisplayPreferences(context) }
     val favoritePreferences = remember { FavoritePreferences(context) }
-    val favoriteBudgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
     val creditCardNotificationSettings = remember { CreditCardNotificationSettings(context) }
     var creditCardNotificationsEnabled by remember {
         mutableStateOf(creditCardNotificationSettings.isEnabled)
@@ -228,6 +227,7 @@ fun AppNavigation(
         CreditCardDueNotificationScheduler.refresh(context)
     }
     var repositoryVersion by remember { mutableStateOf(0) }
+    val favoriteBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
     var sharedImportText by remember { mutableStateOf<String?>(null) }

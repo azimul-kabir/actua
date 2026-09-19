@@ -113,8 +113,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
     private fun save(kind: WidgetKind, selected: Set<String>) {
         if (kind == WidgetKind.Categories) {
             val budgetId = ActiveBudgetStore(this).budgetId ?: "no-budget"
-            val favorites = FavoritePreferences(this)
-            selected.forEach { favorites.set(budgetId, FavoritePreferences.Type.CATEGORY, it, true) }
+            FavoritePreferences(this).replace(budgetId, FavoritePreferences.Type.CATEGORY, selected)
         }
         WidgetPreferences(this).save(kind, widgetId, selected)
         lifecycleScope.launch(Dispatchers.IO) {
@@ -143,8 +142,14 @@ private fun WidgetConfigurationScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var choices by remember { mutableStateOf<List<WidgetChoice>?>(null) }
-    var selected by remember {
-        mutableStateOf(WidgetPreferences(context).selected(kind, widgetId))
+    var selected by remember(kind, widgetId) {
+        val existing = if (kind == WidgetKind.Categories) {
+            val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
+            FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY)
+        } else {
+            WidgetPreferences(context).selected(kind, widgetId)
+        }
+        mutableStateOf(existing)
     }
     LaunchedEffect(kind) { choices = loadChoices() }
 

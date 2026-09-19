@@ -28,4 +28,15 @@ class FavoritePreferencesTest {
         preferences.set("budget-a", FavoritePreferences.Type.CATEGORY, "groceries", false)
         assertFalse(preferences.contains("budget-a", FavoritePreferences.Type.CATEGORY, "groceries"))
     }
+
+    @Test fun replaceRemovesDeselectedFavorites() {
+        val preferences = FavoritePreferences(context)
+        preferences.set("budget-a", FavoritePreferences.Type.CATEGORY, "groceries", true)
+        preferences.set("budget-a", FavoritePreferences.Type.CATEGORY, "rent", true)
+
+        preferences.replace("budget-a", FavoritePreferences.Type.CATEGORY, setOf("rent"))
+
+        assertFalse(preferences.contains("budget-a", FavoritePreferences.Type.CATEGORY, "groceries"))
+        assertTrue(preferences.contains("budget-a", FavoritePreferences.Type.CATEGORY, "rent"))
+    }
 }

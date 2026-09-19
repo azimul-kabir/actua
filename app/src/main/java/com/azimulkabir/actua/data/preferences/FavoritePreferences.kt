@@ -18,6 +18,11 @@ class FavoritePreferences(context: Context) {
         values.edit().putStringSet(key(budgetId, type), updated).apply()
     }
 
+    /** Replaces one favorite type in a single preference write, e.g. from a picker. */
+    fun replace(budgetId: String, type: Type, ids: Set<String>) {
+        values.edit().putStringSet(key(budgetId, type), ids.toSet()).apply()
+    }
+
     enum class Type { CATEGORY, ACCOUNT, REPORT }
 
     private fun key(budgetId: String, type: Type) = "${type.name.lowercase()}_$budgetId"
