@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.ReportDashboardPage
@@ -58,6 +60,7 @@ fun ReportsScreen(
     snapshot: ReportSnapshot,
     hideDecimalPlaces: Boolean,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
     onSearch: () -> Unit = {},
     scrollToTopRequest: Int = 0,
 ) {
@@ -96,7 +99,16 @@ fun ReportsScreen(
                 }
             }
         }
-        if (selected == null) {
+        if (isLoading && selected == null) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(Modifier.testTag("reportsLoadingIndicator"))
+                }
+            }
+        } else if (selected == null) {
             item { EmptyReports() }
         } else {
             item {

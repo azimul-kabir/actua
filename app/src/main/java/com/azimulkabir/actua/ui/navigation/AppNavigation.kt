@@ -62,6 +62,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -79,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
@@ -104,6 +106,7 @@ import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.TransactionStatusFilter
+import com.azimulkabir.actua.model.ReportSnapshot
 import com.azimulkabir.actua.model.asDuplicate
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.location.AndroidLocationProvider
@@ -281,6 +284,11 @@ fun AppNavigation(
         mutableStateOf(MainDestination.entries.firstOrNull { it.label == displayPreferences.startPage }
             ?: MainDestination.Accounts)
     }
+    // Bottom navigation selection is deliberately separate from the displayed destination. A
+    // tap can then draw its selected state before the next destination starts composing. This is
+    // particularly important for destinations whose local cached data still needs preparation.
+    var selectedTab by rememberSaveable { mutableStateOf(destination) }
+    var tabSwitchJob by remember { mutableStateOf<Job?>(null) }
     var detail by rememberSaveable { mutableStateOf(DetailDestination.Main) }
     var transactionAccount by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionCategory by rememberSaveable { mutableStateOf<String?>(null) }
@@ -296,6 +304,8 @@ fun AppNavigation(
     val tabSnapshots = remember { mutableStateMapOf<MainDestination, TabSnapshot>() }
     val rootRequests = remember { mutableStateMapOf<MainDestination, Int>() }
     val tabStateHolder = rememberSaveableStateHolder()
+    var reportSnapshot by remember(repository) { mutableStateOf<ReportSnapshot?>(null) }
+    var reportSnapshotVersion by remember(repository) { mutableStateOf(-1) }
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var reconcileOpen by remember { mutableStateOf(false) }
@@ -442,6 +452,20 @@ fun AppNavigation(
 
     LaunchedEffect(syncDataGeneration) {
         if (syncDataGeneration > 0) dataVersion += 1
+    }
+
+    LaunchedEffect(destination) {
+        if (tabSwitchJob?.isActive != true) selectedTab = destination
+    }
+
+    LaunchedEffect(destination, detail, dataVersion, repository) {
+        if (destination == MainDestination.Reports && detail == DetailDestination.Main &&
+            reportSnapshotVersion != dataVersion
+        ) {
+            val loaded = withContext(Dispatchers.IO) { repository.reports() }
+            reportSnapshot = loaded
+            reportSnapshotVersion = dataVersion
+        }
     }
 
     LaunchedEffect(foregroundGeneration) {
@@ -626,14 +650,18 @@ fun AppNavigation(
             ) {
                 MainDestination.entries.forEach { item ->
                     NavigationBarItem(
-                        selected = destination == item,
+                        selected = selectedTab == item,
                         onClick = {
                             if (item != MainDestination.Manage && !repository.isUsingActualBudget) {
+                                tabSwitchJob?.cancel()
+                                selectedTab = MainDestination.Manage
                                 destination = MainDestination.Manage
                                 detail = DetailDestination.Connection
                                 return@NavigationBarItem
                             }
                             if (item == destination) {
+                                tabSwitchJob?.cancel()
+                                selectedTab = destination
                                 if (detail != DetailDestination.Main) {
                                     detail = DetailDestination.Main
                                     editingTransaction = null
@@ -646,6 +674,7 @@ fun AppNavigation(
                                     rootRequests[item] = (rootRequests[item] ?: 0) + 1
                                 }
                             } else {
+                                tabSwitchJob?.cancel()
                                 tabSnapshots[destination] = TabSnapshot(
                                     detail = detail.takeUnless {
                                         it == DetailDestination.Search || it == DetailDestination.EditTransaction
@@ -658,15 +687,22 @@ fun AppNavigation(
                                     transactionsReturnCategory = transactionsReturnCategory,
                                 )
                                 val restored = tabSnapshots[item] ?: TabSnapshot()
-                                destination = item
-                                detail = restored.detail
-                                transactionAccount = restored.transactionAccount
-                                transactionCategory = restored.transactionCategory
-                                transactionMonth = restored.transactionMonth
-                                transactionSearch = restored.transactionSearch
-                                activeBudgetCategory = restored.activeBudgetCategory
-                                reopenBudgetCategory = restored.activeBudgetCategory
-                                transactionsReturnCategory = restored.transactionsReturnCategory
+                                selectedTab = item
+                                tabSwitchJob = coroutineScope.launch {
+                                    // Let the navigation indicator render before composing the
+                                    // target. No artificial delay is introduced: this resumes on
+                                    // the very next frame.
+                                    withFrameNanos { }
+                                    destination = item
+                                    detail = restored.detail
+                                    transactionAccount = restored.transactionAccount
+                                    transactionCategory = restored.transactionCategory
+                                    transactionMonth = restored.transactionMonth
+                                    transactionSearch = restored.transactionSearch
+                                    activeBudgetCategory = restored.activeBudgetCategory
+                                    reopenBudgetCategory = restored.activeBudgetCategory
+                                    transactionsReturnCategory = restored.transactionsReturnCategory
+                                }
                             }
                             transactionFabExpanded = true
                         },
@@ -1673,8 +1709,9 @@ fun AppNavigation(
                     returnToRootRequest = rootRequests[MainDestination.Transactions] ?: 0,
                 )
                 MainDestination.Reports -> ReportsScreen(
-                    remember(dataVersion) { repository.reports() },
+                    reportSnapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
                     hideDecimalPlaces, contentModifier,
+                    isLoading = reportSnapshot == null || reportSnapshotVersion != dataVersion,
                     onSearch = { detail = DetailDestination.Search },
                     scrollToTopRequest = rootRequests[MainDestination.Reports] ?: 0)
                 MainDestination.Manage -> SettingsScreen(
