@@ -18,16 +18,6 @@ class AccountsScreenBenchmark {
     val benchmarkRule = MacrobenchmarkRule()
 
     @Test
-    fun scroll() = benchmarkRule.measureRepeated(
-        packageName = PACKAGE_NAME,
-        metrics = listOf(FrameTimingMetric()),
-        iterations = 5,
-        setupBlock = { launchToBudget(); navigateToTab("Accounts") },
-    ) {
-        scrollMainList()
-    }
-
-    @Test
     fun expandCollapseSection() = benchmarkRule.measureRepeated(
         packageName = PACKAGE_NAME,
         metrics = listOf(FrameTimingMetric()),

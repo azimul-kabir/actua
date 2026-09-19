@@ -75,11 +75,16 @@ summarized in Android Studio's "App Insights" / a `BenchmarkResult` json in that
 
 ## Baseline measurements
 
-**Not yet captured.** Frame-timing and startup numbers are only meaningful on real hardware —
-emulator perf counters are unreliable and explicitly suppressed above just to prove the tests
-run — so this section stays empty until someone runs
-`./gradlew :macrobenchmark:connectedBenchmarkAndroidTest` against a real Pixel 8 (and ideally a
-representative lower-end device, per #330) with production release signing.
+Frame-timing and startup numbers are only meaningful on real hardware — emulator perf counters
+are unreliable and explicitly suppressed below only to prove the journeys execute. No valid
+#330 result is recorded yet: the suite still needs every journey, manual stress passes, and a
+lower-end-device run.
+
+The device-validation run found that the compact top-level Accounts list is not a meaningful
+scroll journey. Its benchmark has been removed; the Accounts benchmark instead opens an account
+and scrolls its transaction register, while transaction-list scrolling is covered by
+`TransactionsScreenBenchmark`. A first launch can also need more than the normal per-action
+timeout, so the harness grants only the unmeasured first-run setup a 30-second allowance.
 
 When that run happens, record here per journey: median/p90 frame duration, janky-frame count and
 percentage, and (for `StartupBenchmark`) time-to-initial-display and time-to-full-display across
