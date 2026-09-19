@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
-- Fixed the budget group summary row's balance pill getting its right edge clipped off: the perf change that scoped `animateContentSize` to just the totals row (beta.32) clips its content to the row's own bounds, and the balance pill was deliberately offset 8dp past that boundary to visually align with the category rows below, so it lost that sliver on every group header
+- Fixed the budget group summary row's balance pill no longer lining up with the category rows below it: the perf change that scoped `animateContentSize` to just the totals row (beta.32) clips content that overflows the row's own bounds, so the previous fix for that clipping simply dropped the pill's 8dp alignment offset instead of keeping it — reserving that 8dp as padding on the balance column keeps the offset inside the row's measured bounds, so the totals row's digits land flush with the category rows' again without reintroducing the clipping
 - Fixed the Connection screen showing the raw `Trust anchor for certification path not found` Java exception message on a failed connection (password or OpenID) instead of telling the user what to do about it; an untrusted server certificate now shows guidance for both causes: a self-signed/private-CA cert needs installing as a user CA certificate scoped to "VPN and apps" (a certificate scoped to Wi-Fi only reproduces this exact error even after installing it), and a publicly-issued cert (e.g. Let's Encrypt via Tailscale) hitting this error usually means the server is sending only its own certificate instead of the full chain, which Android — unlike browsers — won't complete on its own
 
 ## [1.0.0-beta.32] - 2026-09-18
