@@ -1245,22 +1245,25 @@ private fun BudgetGroupHeader(
             // Scoped to just the part that actually changes size (totals shown/hidden) instead
             // of the whole sticky-header row, so the icon/name on the left — which never
             // resizes — doesn't pay for an extra measure/layout pass on every scroll frame.
+            // The Balance pill lives outside this node deliberately: it's nudged past its own
+            // column's edge (see AmountColumn) to keep its pill background symmetric while its
+            // digits land flush with Budgeted/Spent above, and animateContentSize clips anything
+            // placed past its own measured bounds.
             Row(
-                modifier = Modifier.weight(if (showSpent) 3f else 2f).animateContentSize(),
+                modifier = Modifier.weight(if (showSpent) 2f else 1f).animateContentSize(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (showTotals) {
                     AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
                     if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                    // The balance pill visually pads its text 8dp inside its own background, so
-                    // the pill itself is offset 8dp right to land the digits flush with the
-                    // Budgeted/Spent columns above. That offset must stay inside this row's own
-                    // measured bounds (not just its column's) or animateContentSize clips it, so
-                    // reserve the 8dp here instead of letting the offset overflow the row.
-                    AmountColumn("Balance", balance, Modifier.weight(1f).padding(end = 8.dp), hideDecimalPlaces, balance = true)
                 } else {
-                    Spacer(Modifier.weight(if (showSpent) 3f else 2f))
+                    Spacer(Modifier.weight(if (showSpent) 2f else 1f))
                 }
+            }
+            if (showTotals) {
+                AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
+            } else {
+                Spacer(Modifier.weight(1f))
             }
         }
     }
