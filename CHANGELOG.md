@@ -4,10 +4,19 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.33] - 2026-09-19
+
+### Added
+
+- Added per-server certificate trust on the Connection screen: when a server's certificate can't be verified against Android's trusted authorities, Actua shows the host, issuer, validity dates and SHA-256 fingerprint and lets you explicitly trust that one certificate for that one host (scoped to Actua, with hostname verification still enforced); if the server later presents a different certificate, Actua warns that it changed and asks you to verify the new fingerprint before trusting it
+
 ### Fixed
 
 - Fixed the budget group summary row's balance pill not lining up with the category rows below it: the pill compensates for its own centered text padding by offsetting itself past its column's edge, which only stayed on-screen because nothing clipped the overflow — once the totals row's `animateContentSize` (beta.32) started clipping content to its own bounds, that offset got cut off. The first attempted fix dropped the offset, which un-clipped the pill but left its digits sitting inset instead of flush; the second attempt dropped the pill's own text padding instead, which realigned the digits but made the pill's background look lopsided (no breathing room on the trailing side) compared to the nicely padded pill elsewhere on the screen. The actual fix moves the balance pill out of the totals row's `animateContentSize` scope (which now only wraps Budgeted/Spent, the part that actually needs it) so the original offset — and its normal, symmetric padding — works exactly as it does in the category rows below, with nothing left to clip
 - Fixed the Connection screen showing the raw `Trust anchor for certification path not found` Java exception message on a failed connection (password or OpenID) instead of telling the user what to do about it; an untrusted server certificate now shows guidance for both causes: a self-signed/private-CA cert needs installing as a user CA certificate scoped to "VPN and apps" (a certificate scoped to Wi-Fi only reproduces this exact error even after installing it), and a publicly-issued cert (e.g. Let's Encrypt via Tailscale) hitting this error usually means the server is sending only its own certificate instead of the full chain, which Android — unlike browsers — won't complete on its own
+- Hardened the trusted-certificate hostname check: SANs are verified explicitly during trust inspection, wildcard matching is limited to a single leftmost label, IP-address certificates only match IP hosts, and IPv4 parsing accepts ASCII digits only
+- Fixed ordinary budget category progress bars (Plan, table and details) ignoring spending: they now show spent / (absolute spending + positive available balance), including carryover, with shared status colors and accessible spending labels; goal-only, save-by-date, cover-schedule and synced long-goal targets keep their balance-funded progress
+- Improved navigation responsiveness: the selected bottom-navigation tab updates immediately, each tab retains its scroll and detail state when you switch away, and Reports now loads off the main thread, appearing at once with a loading state and keeping its last snapshot while a newer one is prepared
 
 ## [1.0.0-beta.32] - 2026-09-18
 
