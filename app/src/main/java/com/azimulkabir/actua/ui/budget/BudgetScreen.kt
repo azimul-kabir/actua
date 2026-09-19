@@ -1277,7 +1277,6 @@ private fun AmountColumn(
             BalancePill(
                 amount,
                 hideDecimalPlaces,
-                modifier = Modifier.offset(x = 8.dp),
                 textStyle = MaterialTheme.typography.bodyMedium,
             )
         } else {
