@@ -1245,17 +1245,25 @@ private fun BudgetGroupHeader(
             // Scoped to just the part that actually changes size (totals shown/hidden) instead
             // of the whole sticky-header row, so the icon/name on the left — which never
             // resizes — doesn't pay for an extra measure/layout pass on every scroll frame.
+            // The Balance pill lives outside this node deliberately: it's nudged past its own
+            // column's edge (see AmountColumn) to keep its pill background symmetric while its
+            // digits land flush with Budgeted/Spent above, and animateContentSize clips anything
+            // placed past its own measured bounds.
             Row(
-                modifier = Modifier.weight(if (showSpent) 3f else 2f).animateContentSize(),
+                modifier = Modifier.weight(if (showSpent) 2f else 1f).animateContentSize(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (showTotals) {
                     AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
                     if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                    AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
                 } else {
-                    Spacer(Modifier.weight(if (showSpent) 3f else 2f))
+                    Spacer(Modifier.weight(if (showSpent) 2f else 1f))
                 }
+            }
+            if (showTotals) {
+                AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
+            } else {
+                Spacer(Modifier.weight(1f))
             }
         }
     }
@@ -1277,8 +1285,8 @@ private fun AmountColumn(
             BalancePill(
                 amount,
                 hideDecimalPlaces,
+                modifier = Modifier.offset(x = 8.dp),
                 textStyle = MaterialTheme.typography.bodyMedium,
-                flushEnd = true,
             )
         } else {
             Text(formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
@@ -1324,11 +1332,11 @@ private fun CategoryRow(
                 BalancePill(
                     category.balanceCents,
                     hideDecimalPlaces,
+                    modifier = Modifier.offset(x = 10.dp),
                     textStyle = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     horizontalPadding = 10.dp,
                     verticalPadding = 3.dp,
-                    flushEnd = true,
                 )
             }
         }
@@ -1615,13 +1623,6 @@ private fun BalancePill(
     fontWeight: FontWeight = FontWeight.SemiBold,
     horizontalPadding: androidx.compose.ui.unit.Dp = 8.dp,
     verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
-    // When true, drops the pill's trailing inset so the amount's own last digit sits flush
-    // against the pill's right edge instead of centered inside it. Used wherever this pill's
-    // right edge must line up with a plain-text amount column's right edge in the row above or
-    // below it (e.g. category balances vs. their group's totals row) — nudging the pill out past
-    // its column with an offset to compensate for symmetric padding doesn't work inside an
-    // animateContentSize ancestor, since it clips anything placed past its own measured bounds.
-    flushEnd: Boolean = false,
 ) {
     val positive = amount > 0
     val negative = amount < 0
@@ -1643,12 +1644,7 @@ private fun BalancePill(
                 negative -> MaterialTheme.colorScheme.onErrorContainer
                 else -> MaterialTheme.colorScheme.onSurfaceVariant
             },
-            modifier = Modifier.padding(
-                start = horizontalPadding,
-                end = if (flushEnd) 0.dp else horizontalPadding,
-                top = verticalPadding,
-                bottom = verticalPadding,
-            ),
+            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
             maxLines = 1,
         )
     }
