@@ -30,7 +30,7 @@ class ReportsScreenLoadingTest {
 
         compose.onNodeWithText("Reports").assertExists()
         compose.onNodeWithTag("reportsLoadingIndicator").assertExists()
-        compose.onNodeWithText("No report data yet").assertDoesNotExist()
+        compose.onNodeWithText("No dashboard widgets").assertDoesNotExist()
     }
 
     @Test
