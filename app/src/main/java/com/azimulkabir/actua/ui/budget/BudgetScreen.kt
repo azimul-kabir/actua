@@ -1252,12 +1252,7 @@ private fun BudgetGroupHeader(
                 if (showTotals) {
                     AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
                     if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                    // The balance pill visually pads its text 8dp inside its own background, so
-                    // the pill itself is offset 8dp right to land the digits flush with the
-                    // Budgeted/Spent columns above. That offset must stay inside this row's own
-                    // measured bounds (not just its column's) or animateContentSize clips it, so
-                    // reserve the 8dp here instead of letting the offset overflow the row.
-                    AmountColumn("Balance", balance, Modifier.weight(1f).padding(end = 8.dp), hideDecimalPlaces, balance = true)
+                    AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
                 } else {
                     Spacer(Modifier.weight(if (showSpent) 3f else 2f))
                 }
@@ -1282,8 +1277,8 @@ private fun AmountColumn(
             BalancePill(
                 amount,
                 hideDecimalPlaces,
-                modifier = Modifier.offset(x = 8.dp),
                 textStyle = MaterialTheme.typography.bodyMedium,
+                flushEnd = true,
             )
         } else {
             Text(formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
@@ -1329,11 +1324,11 @@ private fun CategoryRow(
                 BalancePill(
                     category.balanceCents,
                     hideDecimalPlaces,
-                    modifier = Modifier.offset(x = 10.dp),
                     textStyle = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     horizontalPadding = 10.dp,
                     verticalPadding = 3.dp,
+                    flushEnd = true,
                 )
             }
         }
@@ -1620,6 +1615,13 @@ private fun BalancePill(
     fontWeight: FontWeight = FontWeight.SemiBold,
     horizontalPadding: androidx.compose.ui.unit.Dp = 8.dp,
     verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
+    // When true, drops the pill's trailing inset so the amount's own last digit sits flush
+    // against the pill's right edge instead of centered inside it. Used wherever this pill's
+    // right edge must line up with a plain-text amount column's right edge in the row above or
+    // below it (e.g. category balances vs. their group's totals row) — nudging the pill out past
+    // its column with an offset to compensate for symmetric padding doesn't work inside an
+    // animateContentSize ancestor, since it clips anything placed past its own measured bounds.
+    flushEnd: Boolean = false,
 ) {
     val positive = amount > 0
     val negative = amount < 0
@@ -1641,7 +1643,12 @@ private fun BalancePill(
                 negative -> MaterialTheme.colorScheme.onErrorContainer
                 else -> MaterialTheme.colorScheme.onSurfaceVariant
             },
-            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
+            modifier = Modifier.padding(
+                start = horizontalPadding,
+                end = if (flushEnd) 0.dp else horizontalPadding,
+                top = verticalPadding,
+                bottom = verticalPadding,
+            ),
             maxLines = 1,
         )
     }
