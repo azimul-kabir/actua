@@ -1,4 +1,4 @@
-# Performance instrumentation and baseline (#321)
+# Performance instrumentation, baselines, and regression protection (#321, #331)
 
 Part of the [performance & UI smoothness initiative](https://github.com/azimul-kabir/actua/issues/316).
 This slice adds repeatable Macrobenchmark coverage for the app's core journeys so later
@@ -87,6 +87,40 @@ the 5 iterations each test performs, plus the device model, Android version and 
 tested. Re-run and update this table after any change called out in #316's sub-issues so
 regressions or improvements are visible against a fixed point, per the "performance changes can
 be compared against the baseline" acceptance criterion on #321.
+
+## Regression-protection workflow
+
+Macrobenchmarks are retained as representative, repeatable journeys; they are not a shared-runner
+performance gate. Frame timings on GitHub-hosted emulators are too variable to make a reliable
+pass/fail threshold, and running the full suite in every PR would add cost without producing
+actionable signal. Existing CI continues to provide the deterministic protection: it builds,
+unit-tests, and lints Android-impacting changes.
+
+For a PR that changes rendering, Compose state, navigation, input responsiveness, database work
+on an interactive path, or benchmark code itself:
+
+1. State the affected journey(s) in the PR description and run the matching Macrobenchmark class
+   before and after the change on the same physical device, Android version, app variant, and
+   device condition. Prefer a charged device with no foreground workload, and allow it to cool
+   between runs when necessary.
+2. Keep the raw `BenchmarkResult` JSON files with the PR's local review material or attach a
+   small redacted summary to the PR. Do not commit device-specific raw results to the repository
+   unless they establish or intentionally replace the documented baseline.
+3. Record the comparison using this compact template, including an explanation for a meaningful
+   regression or for why device measurement was not possible:
+
+   | Journey | Device / Android | Commit | Median / p90 | Janky frames | Notes |
+   | --- | --- | --- | --- | --- | --- |
+   | `Class#method` | model, API | before / after | before → after | before → after | thermal state, data shape, interpretation |
+
+4. Treat the numbers as investigation evidence, not a target to game. Re-run a surprising result,
+   check the relevant trace/profile, and preserve functional, accessibility, offline, and Actual
+   sync correctness before accepting a trade-off.
+
+Reviewers should request this comparison when the change is performance-sensitive. Documentation-
+only changes and ordinary localized behavior changes do not need a Macrobenchmark run. If timing
+data is unavailable, record that limitation in the PR rather than substituting emulator numbers
+or adding a hard CI threshold.
 
 ## Known limitations / follow-ups
 
