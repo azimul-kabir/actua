@@ -18,9 +18,9 @@ on:
         required: true
         default: false
   issues:
-    types: [opened, reopened]
+    types: [opened]
   pull_request:
-    types: [opened, reopened, ready_for_review, closed]
+    types: [opened, closed]
   release:
     types: [published]
 
@@ -54,25 +54,22 @@ jobs:
 
           if event_name == "issues":
               item = event["issue"]
-              title = f"Issue #{item['number']} {action}: {item['title']}"
-              description = f"Opened by **{item['user']['login']}**"
-              labels = [label["name"] for label in item.get("labels", [])]
-              if labels:
-                  description += "\nLabels: " + ", ".join(f"`{x}`" for x in labels)
+              symbol = "○"
+              state = "Issue opened"
               color = 0xD29922
           else:
               item = event["pull_request"]
               merged = action == "closed" and bool(item.get("merged"))
               if action == "closed" and not merged:
-                  # Do not announce ordinary closed/unmerged PRs.
+                  # Keep the activity feed focused on opened and merged PRs.
                   raise SystemExit(0)
-              state = "merged" if merged else action.replace("_", " ")
-              title = f"PR #{item['number']} {state}: {item['title']}"
-              description = (
-                  f"By **{item['user']['login']}**\n"
-                  f"`{item['head']['ref']}` → `{item['base']['ref']}`"
-              )
+              symbol = "●" if merged else "◆"
+              state = "PR merged" if merged else "PR opened"
               color = 0x8250DF if merged else 0x2F81F7
+
+          # Compact, scan-friendly activity card: one clickable title and author only.
+          title = f"{symbol} {state}: #{item['number']} {item['title']}"
+          description = f"by {item['user']['login']}"
 
           payload = {
               "username": "Actua GitHub",
@@ -80,9 +77,8 @@ jobs:
               "embeds": [{
                   "title": title[:256],
                   "url": item["html_url"],
-                  "description": description[:4096],
-                  "color": color,
-                  "footer": {"text": "azimul-kabir/actua"}
+                  "description": description,
+                  "color": color
               }]
           }
 
