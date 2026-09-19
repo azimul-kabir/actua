@@ -1252,7 +1252,12 @@ private fun BudgetGroupHeader(
                 if (showTotals) {
                     AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
                     if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                    AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
+                    // The balance pill visually pads its text 8dp inside its own background, so
+                    // the pill itself is offset 8dp right to land the digits flush with the
+                    // Budgeted/Spent columns above. That offset must stay inside this row's own
+                    // measured bounds (not just its column's) or animateContentSize clips it, so
+                    // reserve the 8dp here instead of letting the offset overflow the row.
+                    AmountColumn("Balance", balance, Modifier.weight(1f).padding(end = 8.dp), hideDecimalPlaces, balance = true)
                 } else {
                     Spacer(Modifier.weight(if (showSpent) 3f else 2f))
                 }
@@ -1277,6 +1282,7 @@ private fun AmountColumn(
             BalancePill(
                 amount,
                 hideDecimalPlaces,
+                modifier = Modifier.offset(x = 8.dp),
                 textStyle = MaterialTheme.typography.bodyMedium,
             )
         } else {
