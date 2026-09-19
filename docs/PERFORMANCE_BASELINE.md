@@ -1,4 +1,4 @@
-# Performance instrumentation and baseline (#321)
+# Performance instrumentation, baselines, and regression protection (#321, #331)
 
 Part of the [performance & UI smoothness initiative](https://github.com/azimul-kabir/actua/issues/316).
 This slice adds repeatable Macrobenchmark coverage for the app's core journeys so later
@@ -75,11 +75,16 @@ summarized in Android Studio's "App Insights" / a `BenchmarkResult` json in that
 
 ## Baseline measurements
 
-**Not yet captured.** Frame-timing and startup numbers are only meaningful on real hardware —
-emulator perf counters are unreliable and explicitly suppressed above just to prove the tests
-run — so this section stays empty until someone runs
-`./gradlew :macrobenchmark:connectedBenchmarkAndroidTest` against a real Pixel 8 (and ideally a
-representative lower-end device, per #330) with production release signing.
+Frame-timing and startup numbers are only meaningful on real hardware — emulator perf counters
+are unreliable and explicitly suppressed below only to prove the journeys execute. No valid
+#330 result is recorded yet: the suite still needs every journey, manual stress passes, and a
+lower-end-device run.
+
+The device-validation run found that the compact top-level Accounts list is not a meaningful
+scroll journey. Its benchmark has been removed; the Accounts benchmark instead opens an account
+and scrolls its transaction register, while transaction-list scrolling is covered by
+`TransactionsScreenBenchmark`. A first launch can also need more than the normal per-action
+timeout, so the harness grants only the unmeasured first-run setup a 30-second allowance.
 
 When that run happens, record here per journey: median/p90 frame duration, janky-frame count and
 percentage, and (for `StartupBenchmark`) time-to-initial-display and time-to-full-display across
@@ -87,6 +92,40 @@ the 5 iterations each test performs, plus the device model, Android version and 
 tested. Re-run and update this table after any change called out in #316's sub-issues so
 regressions or improvements are visible against a fixed point, per the "performance changes can
 be compared against the baseline" acceptance criterion on #321.
+
+## Regression-protection workflow
+
+Macrobenchmarks are retained as representative, repeatable journeys; they are not a shared-runner
+performance gate. Frame timings on GitHub-hosted emulators are too variable to make a reliable
+pass/fail threshold, and running the full suite in every PR would add cost without producing
+actionable signal. Existing CI continues to provide the deterministic protection: it builds,
+unit-tests, and lints Android-impacting changes.
+
+For a PR that changes rendering, Compose state, navigation, input responsiveness, database work
+on an interactive path, or benchmark code itself:
+
+1. State the affected journey(s) in the PR description and run the matching Macrobenchmark class
+   before and after the change on the same physical device, Android version, app variant, and
+   device condition. Prefer a charged device with no foreground workload, and allow it to cool
+   between runs when necessary.
+2. Keep the raw `BenchmarkResult` JSON files with the PR's local review material or attach a
+   small redacted summary to the PR. Do not commit device-specific raw results to the repository
+   unless they establish or intentionally replace the documented baseline.
+3. Record the comparison using this compact template, including an explanation for a meaningful
+   regression or for why device measurement was not possible:
+
+   | Journey | Device / Android | Commit | Median / p90 | Janky frames | Notes |
+   | --- | --- | --- | --- | --- | --- |
+   | `Class#method` | model, API | before / after | before → after | before → after | thermal state, data shape, interpretation |
+
+4. Treat the numbers as investigation evidence, not a target to game. Re-run a surprising result,
+   check the relevant trace/profile, and preserve functional, accessibility, offline, and Actual
+   sync correctness before accepting a trade-off.
+
+Reviewers should request this comparison when the change is performance-sensitive. Documentation-
+only changes and ordinary localized behavior changes do not need a Macrobenchmark run. If timing
+data is unavailable, record that limitation in the PR rather than substituting emulator numbers
+or adding a hard CI threshold.
 
 ## Known limitations / follow-ups
 

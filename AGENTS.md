@@ -87,6 +87,16 @@ exercise API 28 for platform/SQLite compatibility changes. Report exact checks
 and limitations in the PR. Documentation-only changes need format/link checks,
 not a full device suite.
 
+For performance-sensitive UI, navigation, or interactive data-path changes, run
+the matching retained Macrobenchmark journey before and after on the same
+physical device when practical. Record the comparison (device/API, commits,
+median/p90, janky frames, and interpretation) in the PR; use
+`docs/PERFORMANCE_BASELINE.md` for commands and the reporting template. Do not
+add hard Macrobenchmark timing thresholds on shared GitHub runners: retain
+deterministic build/test/lint CI and treat real-device measurements as review
+evidence. If physical-device measurement is unavailable, explicitly report that
+limitation rather than presenting emulator timing as a baseline.
+
 ## Contribution and workflow safety
 
 Every development change must start with a GitHub issue that defines the problem,
