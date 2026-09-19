@@ -207,6 +207,7 @@ fun AppNavigation(
     onUseDynamicColorChange: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val appContext = context.applicationContext
     val coroutineScope = rememberCoroutineScope()
     val locationPreferences = remember { LocationPreferences(context) }
     val displayPreferences = remember { DisplayPreferences(context) }
@@ -491,8 +492,13 @@ fun AppNavigation(
         }
         when (result) {
             is SyncRunResult.Success -> {
-                CreditCardDueNotificationScheduler.refresh(context)
-                WidgetUpdater.requestAll(context)
+                // Reminder planning opens the selected budget and widget discovery crosses
+                // Binder; the successful sync has already refreshed visible data, so defer
+                // this non-critical maintenance work from the main thread.
+                withContext(Dispatchers.IO) {
+                    CreditCardDueNotificationScheduler.refresh(appContext)
+                    WidgetUpdater.requestAll(appContext)
+                }
             }
             SyncRunResult.NotConfigured -> Unit
             SyncRunResult.EncryptionKeyUnavailable -> {

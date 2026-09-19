@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
@@ -19,6 +20,8 @@ import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 import com.azimulkabir.actua.widget.WidgetActions
 import com.azimulkabir.actua.widget.WidgetUpdater
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 data class AppLaunchRequest(val action: String, val target: String?, val nonce: Long = System.nanoTime())
 const val SHARED_IMPORT_ACTION = "com.azimulkabir.actua.IMPORT_SHARED_TEXT"
@@ -29,8 +32,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ActualSyncScheduler.schedulePeriodic(this)
-        CreditCardDueNotificationScheduler.refresh(this)
         launchRequest = intent.toLaunchRequest()
         enableEdgeToEdge()
         setContent {
@@ -47,12 +48,24 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+        // Both operations can initialise WorkManager, and refreshing card reminders opens the
+        // selected SQLite budget. They maintain background work only, so never make the first
+        // Compose frame wait for them. The app-open sync in AppNavigation refreshes reminders
+        // again after it has incorporated server changes.
+        lifecycleScope.launch(Dispatchers.IO) {
+            ActualSyncScheduler.schedulePeriodic(applicationContext)
+            CreditCardDueNotificationScheduler.refresh(applicationContext)
+        }
     }
 
     override fun onStart() {
         super.onStart()
         foregroundGeneration += 1
-        WidgetUpdater.requestAll(this)
+        // Looking up widget instances crosses Binder. Keep it off the input/render thread just
+        // like the per-widget database reads triggered by the resulting broadcast.
+        lifecycleScope.launch(Dispatchers.IO) {
+            WidgetUpdater.requestAll(applicationContext)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
