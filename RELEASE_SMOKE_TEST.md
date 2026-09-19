@@ -19,6 +19,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Add a custom HTTP header (e.g. `CF-Access-Client-Id`/`Secret`) on the Connection screen and verify sync/login succeeds against a server that requires it; verify removing the header still works against a server that doesn't.
 - [ ] Connect to a self-hosted server over plain HTTP on a private/local address (e.g. `192.168.x.x`, `10.x.x.x`, `localhost`) other than the old hardcoded test IP and verify it succeeds instead of "Cleartext HTTP traffic not permitted".
 - [ ] Install a self-signed CA as a user certificate (Settings > Security > Encryption & credentials > Install a certificate, including on GrapheneOS) and connect to a self-hosted server using a certificate issued by it over HTTPS; verify the connection succeeds instead of `Trust anchor for certification path not found`.
+- [ ] Connect to a self-hosted HTTPS server whose certificate isn't trusted by Android and verify the "Server certificate isn't trusted" dialog shows host, issuer, validity and SHA-256 fingerprint; trust it and confirm the connection succeeds, then swap the server's certificate and confirm the "Server certificate changed" warning appears before anything is re-trusted.
 - [ ] On Connection & data, tap the Budgets section header and verify the budget list collapses/expands with the chevron animating, and other sections (Backups, etc.) are unaffected.
 - [ ] Download/select a real self-hosted Actual budget and verify opening balances/category values against Actual.
 - [ ] Manual Sync Now completes and the sync status/last-success state updates.
@@ -33,6 +34,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 
 - [ ] Budget opens in the configured default Plan/Table view and month navigation works.
 - [ ] Ready to Budget/To Budget, Budgeted and Balance values agree with Actual for the test month.
+- [ ] Verify ordinary category progress bars show spending (including carryover) and match Actual/Actuali for a category with carryover, and that goal-only/save-by-date targets still show balance-funded progress.
+- [ ] Rapidly switch bottom-navigation tabs and confirm the selection indicator updates immediately, each tab keeps its scroll position, and Reports shows a loading state then data without freezing the UI.
 - [ ] Edit a category budget amount with the keypad and verify exact-cent persistence.
 - [ ] Move money category-to-category and category-to-budget and verify both sides.
 - [ ] Category details show notes, recent activity, rollover setting and target information correctly.
