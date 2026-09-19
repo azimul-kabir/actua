@@ -88,6 +88,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -111,6 +113,9 @@ import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.components.RenameDialog
+import com.azimulkabir.actua.model.BudgetProgressState
+import com.azimulkabir.actua.ui.theme.success
+import com.azimulkabir.actua.ui.theme.warning
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.transactions.TransactionDetailsSheet
@@ -1005,19 +1010,13 @@ private fun PlanBudgetCategoryRow(
                 verticalPadding = 3.dp,
             )
         }
-        if (showProgressBar) {
-            LinearProgressIndicator(
-                progress = { category.progressFraction(scheduleFunding) },
-                modifier = Modifier.fillMaxWidth().padding(top = 9.dp).height(5.dp)
-                    .clip(PillShape),
-                color = if (category.balanceCents < 0) MaterialTheme.colorScheme.error
-                else MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            )
+        if (showProgressBar && category.showsProgressBar) {
+            CategoryProgressBar(category, scheduleFunding,
+                Modifier.fillMaxWidth().padding(top = 9.dp).height(5.dp))
         }
             if (showSpendingDetails) {
                 Row(
-                    modifier = Modifier.padding(top = if (showProgressBar) 2.dp else 1.dp),
+                    modifier = Modifier.padding(top = if (showProgressBar && category.showsProgressBar) 2.dp else 1.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -1340,17 +1339,43 @@ private fun CategoryRow(
                 )
             }
         }
-        AnimatedVisibility(visible = showProgressBar) {
-            LinearProgressIndicator(
-                progress = { category.progressFraction(scheduleFunding) },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(4.dp)
-                    .clip(PillShape),
-                color = if (category.available < 0) MaterialTheme.colorScheme.error
-                else MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            )
+        AnimatedVisibility(visible = showProgressBar && category.showsProgressBar) {
+            CategoryProgressBar(category, scheduleFunding,
+                Modifier.fillMaxWidth().padding(top = 8.dp).height(4.dp))
         }
     }
+}
+
+@Composable
+private fun CategoryProgressBar(
+    category: BudgetCategory,
+    scheduleFunding: List<BudgetScheduleFunding>,
+    modifier: Modifier = Modifier,
+) {
+    val fraction = category.progressFraction(scheduleFunding)
+    val colors = MaterialTheme.colorScheme
+    val color = if (category.usesGoalProgress) {
+        if (category.balanceCents < 0L) colors.error else colors.primary
+    } else when (category.progressState) {
+        BudgetProgressState.OVERSPENT -> colors.error
+        BudgetProgressState.SPENT -> colors.warning
+        BudgetProgressState.SPENDING -> colors.primary
+        BudgetProgressState.FUNDED -> colors.success
+        BudgetProgressState.UNASSIGNED -> colors.onSurfaceVariant
+    }
+    val percent = kotlin.math.round(fraction * 100).toInt()
+    val description = if (category.usesGoalProgress) {
+        "$percent percent funded toward goal"
+    } else "${category.progressState.label}, spent $percent percent of available"
+    LinearProgressIndicator(
+        progress = { fraction },
+        modifier = modifier.clip(PillShape).semantics { stateDescription = description },
+        color = color,
+        trackColor = if (!category.usesGoalProgress && category.progressState == BudgetProgressState.FUNDED)
+            colors.success.copy(alpha = 0.25f) else colors.surfaceContainerHighest,
+        gapSize = 0.dp,
+        drawStopIndicator = {},
+    )
 }
 
 private enum class EditBudgetMode { NONE, AUTO_ASSIGN, MOVE }
@@ -1916,7 +1941,6 @@ private fun CategoryDetailsScreen(
     var deleteConfirmOpen by remember(category) { mutableStateOf(false) }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     var overflowOpen by remember(category) { mutableStateOf(false) }
-    val progress = category.progressFraction(scheduleFunding)
     BackHandler(onBack = onDismiss)
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
@@ -1968,13 +1992,10 @@ private fun CategoryDetailsScreen(
                         Text(formatMoneyCents(category.balanceCents, hideDecimalPlaces),
                             style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier.fillMaxWidth().height(5.dp).clip(PillShape),
-                            color = if (category.balanceCents < 0L) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        )
+                        if (category.showsProgressBar) {
+                            CategoryProgressBar(category, scheduleFunding,
+                                Modifier.fillMaxWidth().height(5.dp))
+                        }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                             SummaryValue("Budgeted", category.assignedCents, hideDecimalPlaces, Modifier.weight(1f))
                             SummaryValue("Spent", -category.spentCents, hideDecimalPlaces, Modifier.weight(1f))

@@ -175,6 +175,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Actual income/source-of-funds categories rendered as the final Budget section,
   with received totals and income-safe contextual actions
 - Persistent table and availability-focused Plan budget presentations
+- Ordinary category bars show spent / (absolute spending + positive available balance),
+  including carryover, with shared status colors and accessible spending labels across Plan,
+  table, and details. This follows [Actuali `ffd527a6`](https://github.com/MattFaz/actuali/blob/ffd527a6c27c3dbc7a8e32f55ec1650106f0dba5/Actuali/Actuali/Models/Budget.swift#L154-L185).
+  Actua deliberately retains balance-funded progress for goal-only, save-by-date, cover-schedule,
+  and synced long-goal targets; monthly goal cells do not change ordinary spending progress.
 - Budget category view filters (Overspent, Underfunded, Overfunded, Money Available) as a
   persisted FilterChip row alongside the existing hide-fully-spent and show-hidden filters
 - Working previous/next budget month navigation, with reads and budget writes scoped to the selected month

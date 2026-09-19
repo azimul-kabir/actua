@@ -51,12 +51,45 @@ data class BudgetCategory(
         return goalCents?.takeIf { it > 0L }
     }
 
-    // With an active goal, progress tracks balance funded toward it rather than spend-down.
+    val usesGoalProgress: Boolean
+        get() = longGoal || automations.ifEmpty { target?.let(::listOf).orEmpty() }.any {
+            it.type == BudgetTarget.Type.GOAL || it.type == BudgetTarget.Type.BY_DATE ||
+                it.type == BudgetTarget.Type.SCHEDULE
+        }
+
+    val showsProgressBar: Boolean
+        get() = usesGoalProgress || assignedCents != 0L || spentCents != 0L
+
+    val progressState: BudgetProgressState
+        get() = when {
+            balanceCents < 0L -> BudgetProgressState.OVERSPENT
+            balanceCents == 0L && spentCents != 0L -> BudgetProgressState.SPENT
+            balanceCents == 0L && assignedCents == 0L && carryoverCents == 0L -> BudgetProgressState.UNASSIGNED
+            spentCents != 0L -> BudgetProgressState.SPENDING
+            else -> BudgetProgressState.FUNDED
+        }
+
     fun progressFraction(schedules: List<BudgetScheduleFunding> = emptyList()): Float {
-        val goal = effectiveGoalCents(schedules)
-        if (goal != null && goal > 0L) return (balanceCents.toFloat() / goal).coerceIn(0f, 1f)
-        return if (assignedCents <= 0L) 0f else (balanceCents.toFloat() / assignedCents).coerceIn(0f, 1f)
+        // Preserve Actua's long-term targets, including unresolved schedule fallback.
+        if (usesGoalProgress) {
+            val goal = effectiveGoalCents(schedules)
+            if (goal != null && goal > 0L) return (balanceCents.toFloat() / goal).coerceIn(0f, 1f)
+            return if (assignedCents <= 0L) 0f else (balanceCents.toFloat() / assignedCents).coerceIn(0f, 1f)
+        }
+        // Actuali spending capacity includes carryover. Convert before abs/addition to
+        // avoid Long overflow; these floating-point values are presentation-only.
+        val spentAmount = kotlin.math.abs(spentCents.toDouble())
+        val capacity = spentAmount + balanceCents.coerceAtLeast(0L).toDouble()
+        return if (capacity > 0.0) (spentAmount / capacity).toFloat().coerceIn(0f, 1f) else 0f
     }
+}
+
+enum class BudgetProgressState(val label: String) {
+    UNASSIGNED("No money assigned"),
+    FUNDED("Funded"),
+    SPENDING("Partially spent"),
+    SPENT("Fully spent"),
+    OVERSPENT("Overspent"),
 }
 
 enum class BudgetCategoryView(val label: String) {

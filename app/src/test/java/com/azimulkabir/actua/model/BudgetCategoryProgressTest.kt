@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class BudgetCategoryProgressTest {
-    @Test fun `no goal uses balance of assigned`() {
+    @Test fun `no goal measures spending capacity`() {
         assertEquals(0.5f, category(assignedCents = 10_000, spentCents = 5_000).progressFraction())
     }
 
@@ -12,15 +12,13 @@ class BudgetCategoryProgressTest {
         assertEquals(0f, category(assignedCents = 0, spentCents = 0).progressFraction())
     }
 
-    @Test fun `no goal fully overspent past assigned clamps to empty, not full`() {
-        // Issue #363: a category with no goal but carryover can have spent exceed assigned
-        // while still holding a positive balance, or have balance run negative once fully
-        // spent. Either way the bar must read off the remaining balance, not raw spend.
+    @Test fun `ordinary spending includes carryover and overspending fills the bar`() {
+        // Actuali's spending bar uses all available funds, including carryover.
         val fullySpentWithCarryover = category(assignedCents = 3_524, spentCents = 3_695, balanceCents = 1_305)
-        assertEquals(0.3703178f, fullySpentWithCarryover.progressFraction(), 0.0001f)
+        assertEquals(0.739f, fullySpentWithCarryover.progressFraction(), 0.0001f)
 
         val overspentNegativeBalance = category(assignedCents = 5_000, spentCents = 6_000, balanceCents = -1_000)
-        assertEquals(0f, overspentNegativeBalance.progressFraction())
+        assertEquals(1f, overspentNegativeBalance.progressFraction())
     }
 
     @Test fun `goal underfunded tracks balance toward goal`() {
@@ -43,7 +41,7 @@ class BudgetCategoryProgressTest {
         assertEquals(1f, category.progressFraction())
     }
 
-    @Test fun `zero or negative goal falls back to spent of assigned`() {
+    @Test fun `zero or negative goal falls back to spending capacity`() {
         val zeroGoal = category(assignedCents = 10_000, spentCents = 5_000, balanceCents = 5_000, goalCents = 0)
         assertEquals(0.5f, zeroGoal.progressFraction())
 
@@ -103,6 +101,60 @@ class BudgetCategoryProgressTest {
         assertEquals(0.4166667f, category.progressFraction(schedules), 0.0001f)
     }
 
+    @Test fun `ordinary monthly goal does not replace spending capacity`() {
+        val groceries = category(60_000, 30_200, 139_000, 60_000).copy(
+            longGoal = false, target = BudgetTarget(BudgetTarget.Type.FIXED, 60_000),
+        )
+        assertEquals(30_200f / 169_200f, groceries.progressFraction(), 0.0001f)
+        assertEquals(false, groceries.usesGoalProgress)
+        assertEquals(BudgetProgressState.SPENDING, groceries.progressState)
+        assertEquals(true, groceries.showsProgressBar)
+    }
+
+    @Test fun `demo utilities measures spent share of total available funds`() {
+        assertEquals(90f / 195f, category(12_000, 9_000, 10_500).progressFraction(), 0.0001f)
+    }
+
+    @Test fun `carryover spending works without monthly allocation`() {
+        val category = category(0, 5_000, 5_000)
+        assertEquals(0.5f, category.progressFraction())
+        assertEquals(true, category.showsProgressBar)
+    }
+
+    @Test fun `ordinary category states and visibility match spending`() {
+        val funded = category(10_000, 0)
+        assertEquals(0f, funded.progressFraction())
+        assertEquals(BudgetProgressState.FUNDED, funded.progressState)
+        assertEquals(true, funded.showsProgressBar)
+        val spent = category(10_000, 10_000)
+        assertEquals(1f, spent.progressFraction())
+        assertEquals(BudgetProgressState.SPENT, spent.progressState)
+        val overspent = category(0, 3_000)
+        assertEquals(1f, overspent.progressFraction())
+        assertEquals(BudgetProgressState.OVERSPENT, overspent.progressState)
+        val empty = category(0, 0)
+        assertEquals(false, empty.showsProgressBar)
+        assertEquals(BudgetProgressState.UNASSIGNED, empty.progressState)
+        assertEquals(false, category(0, 0, 5_000).showsProgressBar)
+    }
+
+    @Test fun `net inflow uses absolute activity matching Actuali`() {
+        assertEquals(0.2f, category(0, -1_000, 4_000).progressFraction())
+    }
+
+    @Test fun `large amounts do not overflow presentation capacity`() {
+        assertEquals(0.5f, category(0, Long.MIN_VALUE, Long.MAX_VALUE).progressFraction())
+    }
+
+    @Test fun `long-term target is visible without allocation or spending`() {
+        val category = category(0, 0, 120_000).copy(
+            target = BudgetTarget(BudgetTarget.Type.BY_DATE, 180_000, "2027-03"),
+        )
+        assertEquals(true, category.usesGoalProgress)
+        assertEquals(true, category.showsProgressBar)
+        assertEquals(2f / 3f, category.progressFraction(), 0.0001f)
+    }
+
     private fun category(
         assignedCents: Long,
         spentCents: Long,
@@ -111,6 +163,6 @@ class BudgetCategoryProgressTest {
     ) = BudgetCategory(
         name = "Groceries", assigned = 0, spent = 0,
         actualAssignedCents = assignedCents, spentCents = spentCents,
-        availableCents = balanceCents, goalCents = goalCents,
+        availableCents = balanceCents, goalCents = goalCents, longGoal = goalCents != null,
     )
 }
