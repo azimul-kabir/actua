@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,6 +64,8 @@ fun ReportsScreen(
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
     onSearch: () -> Unit = {},
+    favoriteReportIds: Set<String> = emptySet(),
+    onFavoriteReportChange: (String, Boolean) -> Unit = { _, _ -> },
     scrollToTopRequest: Int = 0,
 ) {
     val listState = rememberLazyListState()
@@ -112,7 +116,8 @@ fun ReportsScreen(
             item { EmptyReports() }
         } else {
             item {
-                DashboardPicker(selected, snapshot.dashboards, pickerOpen, onOpenChange = { pickerOpen = it }) {
+                DashboardPicker(selected, snapshot.dashboards, pickerOpen, selected.id in favoriteReportIds,
+                    onFavoriteChange = { onFavoriteReportChange(selected.id, it) }, onOpenChange = { pickerOpen = it }) {
                     selectedPageId = it; pickerOpen = false
                 }
             }
@@ -139,6 +144,8 @@ private fun DashboardPicker(
     selected: ReportDashboardPage,
     pages: List<ReportDashboardPage>,
     expanded: Boolean,
+    favorite: Boolean,
+    onFavoriteChange: (Boolean) -> Unit,
     onOpenChange: (Boolean) -> Unit,
     onSelect: (String) -> Unit,
 ) {
@@ -150,6 +157,10 @@ private fun DashboardPicker(
             Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(selected.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f))
+                IconButton(onClick = { onFavoriteChange(!favorite) }) {
+                    Icon(if (favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                        contentDescription = if (favorite) "Remove ${selected.name} from favorites" else "Add ${selected.name} to favorites")
+                }
                 if (pages.size > 1) Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Switch dashboard")
             }
         }

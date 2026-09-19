@@ -120,6 +120,8 @@ import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.sync.SyncStatus
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.preferences.FavoritePreferences
+import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 import com.azimulkabir.actua.data.notifications.CreditCardNotificationSettings
@@ -212,6 +214,7 @@ fun AppNavigation(
     val coroutineScope = rememberCoroutineScope()
     val locationPreferences = remember { LocationPreferences(context) }
     val displayPreferences = remember { DisplayPreferences(context) }
+    val favoritePreferences = remember { FavoritePreferences(context) }
     val creditCardNotificationSettings = remember { CreditCardNotificationSettings(context) }
     var creditCardNotificationsEnabled by remember {
         mutableStateOf(creditCardNotificationSettings.isEnabled)
@@ -224,6 +227,7 @@ fun AppNavigation(
         CreditCardDueNotificationScheduler.refresh(context)
     }
     var repositoryVersion by remember { mutableStateOf(0) }
+    val favoriteBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
     var sharedImportText by remember { mutableStateOf<String?>(null) }
@@ -334,6 +338,16 @@ fun AppNavigation(
     var hideFullySpentCategories by remember { mutableStateOf(displayPreferences.hideFullySpentCategories) }
     var budgetCategoryView by remember { mutableStateOf(displayPreferences.budgetCategoryView) }
     var showCategoryFilters by remember { mutableStateOf(displayPreferences.showCategoryFilters) }
+    var favoritesOnly by remember { mutableStateOf(displayPreferences.favoritesOnly) }
+    var favoriteCategoryIds by remember(favoriteBudgetId) {
+        mutableStateOf(favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.CATEGORY))
+    }
+    var favoriteAccountIds by remember(favoriteBudgetId) {
+        mutableStateOf(favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT))
+    }
+    var favoriteReportIds by remember(favoriteBudgetId) {
+        mutableStateOf(favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT))
+    }
     var hideBalances by remember { mutableStateOf(displayPreferences.hideBalances) }
     var appearance by remember { mutableStateOf(displayPreferences.appearance) }
     var useDynamicColor by remember { mutableStateOf(displayPreferences.useDynamicColor) }
@@ -1519,6 +1533,17 @@ fun AppNavigation(
                         displayPreferences.showCategoryFilters = it
                         showCategoryFilters = it
                     },
+                    favoritesOnly = favoritesOnly,
+                    onFavoritesOnlyChange = {
+                        displayPreferences.favoritesOnly = it
+                        favoritesOnly = it
+                    },
+                    favoriteCategoryIds = favoriteCategoryIds,
+                    onFavoriteCategoryChange = { id, favorite ->
+                        favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.CATEGORY, id, favorite)
+                        favoriteCategoryIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.CATEGORY)
+                        WidgetUpdater.requestAll(context)
+                    },
                     onSetCategoryHidden = { group, category, hidden ->
                         mutate(if (hidden) "Hiding category" else "Showing category") {
                             repository.setCategoryHidden(group, category, hidden)
@@ -1644,6 +1669,11 @@ fun AppNavigation(
                         mutate("Creating account") { repository.createAccount(name, offBudget, balance, type) }
                     },
                     onSearch = { detail = DetailDestination.Search },
+                    favoriteAccountIds = favoriteAccountIds,
+                    onFavoriteAccountChange = { id, favorite ->
+                        favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT, id, favorite)
+                        favoriteAccountIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT)
+                    },
                     scrollToTopRequest = rootRequests[MainDestination.Accounts] ?: 0,
                 )
                 MainDestination.Transactions -> TransactionsScreen(
@@ -1727,6 +1757,11 @@ fun AppNavigation(
                     hideDecimalPlaces, contentModifier,
                     isLoading = reportSnapshot == null || reportSnapshotVersion != dataVersion,
                     onSearch = { detail = DetailDestination.Search },
+                    favoriteReportIds = favoriteReportIds,
+                    onFavoriteReportChange = { id, favorite ->
+                        favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.REPORT, id, favorite)
+                        favoriteReportIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT)
+                    },
                     scrollToTopRequest = rootRequests[MainDestination.Reports] ?: 0)
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,

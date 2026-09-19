@@ -39,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.azimulkabir.actua.data.ActuaRepository
+import com.azimulkabir.actua.data.budget.ActiveBudgetStore
+import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import com.azimulkabir.actua.ui.theme.ActuaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -109,6 +111,10 @@ class WidgetConfigurationActivity : ComponentActivity() {
     }
 
     private fun save(kind: WidgetKind, selected: Set<String>) {
+        if (kind == WidgetKind.Categories) {
+            val budgetId = ActiveBudgetStore(this).budgetId ?: "no-budget"
+            FavoritePreferences(this).replace(budgetId, FavoritePreferences.Type.CATEGORY, selected)
+        }
         WidgetPreferences(this).save(kind, widgetId, selected)
         lifecycleScope.launch(Dispatchers.IO) {
             val manager = AppWidgetManager.getInstance(this@WidgetConfigurationActivity)
@@ -136,8 +142,14 @@ private fun WidgetConfigurationScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var choices by remember { mutableStateOf<List<WidgetChoice>?>(null) }
-    var selected by remember {
-        mutableStateOf(WidgetPreferences(context).selected(kind, widgetId))
+    var selected by remember(kind, widgetId) {
+        val existing = if (kind == WidgetKind.Categories) {
+            val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
+            FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY)
+        } else {
+            WidgetPreferences(context).selected(kind, widgetId)
+        }
+        mutableStateOf(existing)
     }
     LaunchedEffect(kind) { choices = loadChoices() }
 
@@ -169,7 +181,8 @@ private fun WidgetConfigurationScreen(
             LazyColumn(Modifier.fillMaxSize().padding(padding)) {
                 item {
                     Text(
-                        "Choose up to four ${if (kind == WidgetKind.Categories) "categories" else "accounts"}.",
+                        if (kind == WidgetKind.Categories) "Choose up to four categories to add to your shared favorites."
+                        else "Choose up to four accounts.",
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                         style = MaterialTheme.typography.bodyMedium,
                     )

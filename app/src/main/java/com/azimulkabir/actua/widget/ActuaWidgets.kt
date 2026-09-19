@@ -13,6 +13,8 @@ import com.azimulkabir.actua.MainActivity
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.preferences.FavoritePreferences
+import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
@@ -233,8 +235,9 @@ object WidgetUpdater {
                 .flatMap { it.categories.asSequence() }
                 .filterNot { it.hidden }
                 .toList()
-            val selected = WidgetPreferences(context).selected(WidgetKind.Categories, widgetId)
-            val rows = if (selected.isEmpty()) all.take(4) else all.filter { it.id in selected }.take(4)
+            val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
+            val favorites = FavoritePreferences(context).ids(budgetId, FavoritePreferences.Type.CATEGORY)
+            val rows = all.filter { it.id in favorites }.take(4)
             bindRows(
                 context, views, rows.map { row ->
                     val spent = row.spentCents.coerceAtLeast(0)

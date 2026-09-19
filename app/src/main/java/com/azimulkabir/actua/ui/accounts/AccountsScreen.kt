@@ -103,6 +103,8 @@ fun AccountsScreen(
     onChangeAccountType: (Account, String) -> Unit = { _, _ -> },
     onCreateAccount: (String, Boolean, String, String) -> Unit = { _, _, _, _ -> },
     onSearch: () -> Unit = {},
+    favoriteAccountIds: Set<String> = emptySet(),
+    onFavoriteAccountChange: (String, Boolean) -> Unit = { _, _ -> },
     scrollToTopRequest: Int = 0,
 ) {
     val listState = rememberLazyListState()
@@ -232,6 +234,8 @@ fun AccountsScreen(
             onRename = { selectedAccount = null; renamingAccount = account },
             onChangeType = { selectedAccount = null; changingTypeAccount = account },
             onClose = { selectedAccount = null; onCloseAccount(account) },
+            favorite = account.id in favoriteAccountIds,
+            onFavoriteChange = { onFavoriteAccountChange(account.id, it) },
         )
     }
     if (showAddSheet) NewAccountDialog(onDismiss = { showAddSheet = false }) { name, offBudget, balance, type ->
@@ -373,10 +377,13 @@ private fun AccountActionsSheet(
     onRename: () -> Unit,
     onChangeType: () -> Unit,
     onClose: () -> Unit,
+    favorite: Boolean,
+    onFavoriteChange: (Boolean) -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 24.dp)) {
             ActuaSheetTitle(account.name)
+            AccountSheetAction(if (favorite) "Remove from favorites" else "Add to favorites", onClick = { onFavoriteChange(!favorite) })
             AccountSheetAction("View transactions", onViewTransactions)
             AccountSheetAction("Rename account", onRename)
             AccountSheetAction("Change account type", onChangeType)

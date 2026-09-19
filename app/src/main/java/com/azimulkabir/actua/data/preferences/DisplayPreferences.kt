@@ -61,6 +61,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_CATEGORY_FILTERS, true)
         set(value) { preferences.edit().putBoolean(SHOW_CATEGORY_FILTERS, value).apply() }
 
+    var favoritesOnly: Boolean
+        get() = preferences.getBoolean(FAVORITES_ONLY, false)
+        set(value) { preferences.edit().putBoolean(FAVORITES_ONLY, value).apply() }
+
     var hideBalances: Boolean
         get() = preferences.getBoolean(HIDE_BALANCES, false)
         set(value) { preferences.edit().putBoolean(HIDE_BALANCES, value).apply() }
@@ -140,6 +144,7 @@ class DisplayPreferences(context: Context) {
         const val HIDE_FULLY_SPENT_CATEGORIES = "hide_fully_spent_categories"
         const val BUDGET_CATEGORY_VIEW = "budget_category_view"
         const val SHOW_CATEGORY_FILTERS = "show_category_filters"
+        const val FAVORITES_ONLY = "favorites_only"
         const val HIDE_BALANCES = "hide_balances"
         const val APPEARANCE = "appearance"
         const val USE_DYNAMIC_COLOR = "use_dynamic_color"
