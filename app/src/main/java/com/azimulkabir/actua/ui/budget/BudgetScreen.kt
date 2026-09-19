@@ -5,12 +5,12 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -287,10 +287,18 @@ fun BudgetScreen(
             onSearch = onSearch,
             onManageCategories = onManageCategories,
         )
-        AnimatedVisibility(visible = showCategoryFilters) {
+        AnimatedVisibility(
+            visible = showCategoryFilters,
+            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+        ) {
             BudgetCategoryFilterRow(selected = categoryView, onSelect = onCategoryViewChange)
         }
-        AnimatedVisibility(visible = showOverview) {
+        AnimatedVisibility(
+            visible = showOverview,
+            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+        ) {
             if (budgetView == "Plan") {
                 PlanBudgetOverview(
                     overview = overview,
@@ -1246,10 +1254,13 @@ private fun BudgetGroupHeader(
             // resizes — doesn't pay for an extra measure/layout pass on every scroll frame.
             // The Balance pill lives outside this node deliberately: it's nudged past its own
             // column's edge (see AmountColumn) to keep its pill background symmetric while its
-            // digits land flush with Budgeted/Spent above, and animateContentSize clips anything
+            // digits land flush with Budgeted/Spent above, and the weighted column clips anything
             // placed past its own measured bounds.
             Row(
-                modifier = Modifier.weight(if (showSpent) 2f else 1f).animateContentSize(),
+                // This is repeated for every visible category row. Toggling the optional
+                // Spent column should update its width once rather than animate remeasurement
+                // of the whole LazyColumn.
+                modifier = Modifier.weight(if (showSpent) 2f else 1f),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (showTotals) {
@@ -1470,7 +1481,8 @@ private fun EditBudgetAmountSheet(
                 targetState = entryMode,
                 transitionSpec = {
                     (fadeIn(tween(200)) + slideInVertically(tween(220)) { it / 6 }) togetherWith
-                        fadeOut(tween(120)) using SizeTransform(clip = false)
+                        fadeOut(tween(120)) using
+                            SizeTransform(sizeAnimationSpec = { _, _ -> snap() }, clip = false)
                 },
                 label = "Budget entry mode",
             ) { currentMode ->
@@ -1777,7 +1789,8 @@ private fun BudgetSummarySheet(
                 targetState = action,
                 transitionSpec = {
                     (fadeIn(tween(200)) + slideInVertically(tween(220)) { it / 6 }) togetherWith
-                        fadeOut(tween(120)) using SizeTransform(clip = false)
+                        fadeOut(tween(120)) using
+                            SizeTransform(sizeAnimationSpec = { _, _ -> snap() }, clip = false)
                 },
                 label = "Budget summary action",
             ) { currentAction ->

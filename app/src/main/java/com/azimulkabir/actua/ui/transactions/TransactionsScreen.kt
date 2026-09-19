@@ -56,12 +56,15 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.derivedStateOf
@@ -257,7 +260,9 @@ fun TransactionsScreen(
             } else {
                 (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { -it / 5 }) togetherWith
                     (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { it / 10 })
-            }.using(SizeTransform(clip = false))
+            // Reconciliation and the register are both large trees. Only their layers should
+            // move during navigation; interpolating bounds causes avoidable list remeasurement.
+            }.using(SizeTransform(sizeAnimationSpec = { _, _ -> snap() }, clip = false))
         },
         label = "Reconcile navigation motion",
     ) { showingReconcile ->
@@ -344,8 +349,8 @@ fun TransactionsScreen(
         }
         AnimatedVisibility(
             visible = showSearch,
-            enter = fadeIn(tween(180)) + expandVertically(tween(240)),
-            exit = fadeOut(tween(120)) + shrinkVertically(tween(200)),
+            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
         ) {
             OutlinedTextField(
                 value = search, onValueChange = { search = it },
@@ -355,8 +360,8 @@ fun TransactionsScreen(
         }
         AnimatedVisibility(
             visible = selectionModeOn,
-            enter = fadeIn(tween(180)) + expandVertically(tween(240)),
-            exit = fadeOut(tween(120)) + shrinkVertically(tween(200)),
+            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
         ) {
             val selectedTransactions = visible.filter { it.id in selectedIds }
             Surface(
