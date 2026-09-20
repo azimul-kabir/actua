@@ -101,7 +101,8 @@ class TagAutocompleteFieldTest {
 
         compose.onNode(hasSetTextAction()).performTextInput("#long")
 
-        val height = compose.onNodeWithTag("tagSuggestion-t4").fetchSemanticsNode().boundsInRoot.height
+        val height = compose.onNodeWithTag("tagSuggestion-t4", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot.height
         assertTrue("Underscored tag suggestions must not wrap vertically", height <= with(compose.density) { 48.dp.toPx() })
     }
 }
