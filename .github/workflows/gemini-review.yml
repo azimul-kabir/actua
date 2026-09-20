@@ -45,7 +45,7 @@ jobs:
         run: echo "number=${{ github.event.pull_request.number || github.event.issue.number }}" >> "$GITHUB_OUTPUT"
 
       # Only reads repo-root docs for conventions context; no PR-head checkout.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: |
             AGENTS.md
