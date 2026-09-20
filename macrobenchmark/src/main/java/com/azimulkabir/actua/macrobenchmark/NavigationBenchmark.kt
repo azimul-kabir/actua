@@ -31,7 +31,7 @@ class NavigationBenchmark {
     ) {
         navigateToTab("Accounts")
         navigateToTab("Transactions")
-        navigateToTab("Reports")
+        navigateToTab("Home")
         navigateToTab("Manage")
         navigateToTab("Budget")
     }
