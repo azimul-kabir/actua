@@ -99,7 +99,7 @@ fun HomeScreen(
         modifier = modifier.fillMaxSize().testTag("homeList"),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-        contentPadding = PaddingValues(bottom = 104.dp),
+        contentPadding = PaddingValues(bottom = 160.dp),
     ) {
         item(key = "home-header") {
             ActuaScreenHeader(title = "Home") {
