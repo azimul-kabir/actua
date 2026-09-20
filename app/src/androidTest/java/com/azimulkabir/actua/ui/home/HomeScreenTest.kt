@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -24,7 +25,7 @@ class HomeScreenTest {
         }
 
         compose.onNodeWithText("Home").assertExists()
-        compose.onNodeWithText("Dashboards and financial insights").performClick()
+        compose.onNodeWithText("Dashboards and financial insights").performScrollTo().performClick()
         compose.runOnIdle { assertTrue(reportsOpened.value) }
     }
 
@@ -44,10 +45,10 @@ class HomeScreenTest {
             }
         }
 
-        compose.onNodeWithText("No favorite categories yet").performClick()
-        compose.onNodeWithText("No favorite accounts yet").performClick()
-        compose.onNodeWithText("No upcoming bills or schedules").performClick()
-        compose.onNodeWithText("No recent activity").performClick()
+        compose.onNodeWithText("No favorite categories yet").performScrollTo().performClick()
+        compose.onNodeWithText("No favorite accounts yet").performScrollTo().performClick()
+        compose.onNodeWithText("No upcoming bills or schedules").performScrollTo().performClick()
+        compose.onNodeWithText("No recent activity").performScrollTo().performClick()
         compose.runOnIdle {
             assertTrue(budgetOpened.value)
             assertTrue(accountsOpened.value)
