@@ -37,7 +37,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Budget archive validation, import, download, active selection, and export
 - Password and OpenID/OIDC login through Actual's `/account/login` flow, including explicit
   login-method selection, browser authorization, a localhost-only callback listener,
-  Actual session-token capture, and preservation of password login on mixed-mode servers
+  Actual session-token capture, recovery from an incomplete browser return without leaving the
+  connection UI loading, and preservation of password login on mixed-mode servers
 - Server file lifecycle endpoints, including Actual-compatible blank-budget creation/upload
   and exact-name confirmed server deletion with local cleanup
 - Local-only demo-budget lifecycle with fixed `demo` identity, current-schema recreation,
@@ -68,7 +69,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion
 - Transaction form planning and atomic transaction mutations, including split
   creation, child-preserving edits, opposite-direction lines, and collapse to a
-  standard transaction
+  standard transaction; transfer drafts can reverse their source/destination
+  accounts before save, and post-save feedback includes the saved category's
+  current available balance
 - Multi-select mode in Transactions with bulk mark cleared/uncleared, delete,
   link to schedule, unlink schedule, and single-selection view schedule
 - Query-level transaction status filters (Uncategorized, Uncleared, Cleared,
@@ -110,7 +113,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Postable/forecast schedule database projection, effective next-date selection,
   payee mapping, closed-account filtering, duplicate-row defense, and payment dedup query
 - Automatic schedule posting, catch-up loop, linked-transaction deduplication,
-  recurring next-date CRDT advancement, daily per-budget gate, and dirty-pass retry
+  recurring next-date CRDT advancement (including manual posting on the due date),
+  daily per-budget gate, and dirty-pass retry
 - Inclusive schedule list projection (including broken/completed/manual rows),
   custom-rule detection, paid-state lookup, and unique-name checks
 - Schedule create/update/delete/next-date/complete write planning and generic
@@ -179,6 +183,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   retention, archive export, optional Storage Access Framework folder mirroring,
   restore, and one-shot pre-restore revert
 - Foreground sync refresh and visible mutation failure reporting through Android snackbars
+- Explicit pull-to-refresh for the Transactions view, plus a loading state while switching
+  budgets so stale content is not presented as the newly selected budget; both remain
+  read-only refresh paths until an existing writer is invoked
 - Persistent app-wide decimal-place display preference
 - Per-budget device-local quick-access favorites for categories, accounts, and report dashboards;
   these are intentionally not synced because Actual has no favorite fields. Budget's Favorites
