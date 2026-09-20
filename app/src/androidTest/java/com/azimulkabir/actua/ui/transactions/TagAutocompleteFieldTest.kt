@@ -3,10 +3,13 @@ package com.azimulkabir.actua.ui.transactions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.model.ActualTag
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -85,5 +88,21 @@ class TagAutocompleteFieldTest {
 
         compose.onNodeWithText("#school").assertDoesNotExist()
         compose.onNodeWithText("Create #school").assertDoesNotExist()
+    }
+
+    @Test
+    fun underscoredTagSuggestionStaysOnOneLine() {
+        val underscored = ActualTag("t4", "long_tag_name", "#0080FF", "A lengthy description", hidden = false)
+        compose.setContent {
+            MaterialTheme {
+                TagAutocompleteField(value = "", tags = tags + underscored, onValueChange = {}, onCreateTag = { null })
+            }
+        }
+
+        compose.onNode(hasSetTextAction()).performTextInput("#long")
+
+        val height = compose.onNodeWithTag("tagSuggestion-t4", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot.height
+        assertTrue("Underscored tag suggestions must not wrap vertically", height <= with(compose.density) { 48.dp.toPx() })
     }
 }
