@@ -1,9 +1,13 @@
 package com.azimulkabir.actua.ui.budget
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
@@ -75,5 +79,39 @@ class BudgetSummarySheetTest {
         compose.onNodeWithText("Bills · Rent").assertExists()
         compose.onNodeWithText("Choose a category to fund from To Budget").assertExists()
         compose.onNodeWithText("Amount").assertExists()
+    }
+
+    @Test
+    fun categoryLongPressAddsAndRemovesFavoritesUsingTheSharedCallback() {
+        val category = BudgetCategory(name = "Groceries", assigned = 0, spent = 0, id = "groceries")
+        var change: Pair<String, Boolean>? = null
+        var favoriteIds by mutableStateOf(emptySet<String>())
+        compose.setContent {
+            MaterialTheme {
+                BudgetScreen(
+                    groups = listOf(BudgetGroup(name = "Bills", categories = listOf(category))),
+                    overview = overview(toBudgetCents = 1_200L),
+                    favoriteCategoryIds = favoriteIds,
+                    onFavoriteCategoryChange = { id, favorite ->
+                        change = id to favorite
+                        favoriteIds = if (favorite) favoriteIds + id else favoriteIds - id
+                    },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Groceries").performTouchInput {
+            down(center); advanceEventTime(1_000); up()
+        }
+        compose.onNodeWithText("Add to favorites").performClick()
+
+        org.junit.Assert.assertEquals("groceries" to true, change)
+
+        compose.onNodeWithText("Groceries").performTouchInput {
+            down(center); advanceEventTime(1_000); up()
+        }
+        compose.onNodeWithText("Remove from favorites").performClick()
+
+        org.junit.Assert.assertEquals("groceries" to false, change)
     }
 }
