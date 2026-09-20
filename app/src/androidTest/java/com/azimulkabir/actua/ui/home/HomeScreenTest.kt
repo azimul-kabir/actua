@@ -1,12 +1,21 @@
 package com.azimulkabir.actua.ui.home
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
@@ -255,5 +264,37 @@ class HomeScreenTest {
         compose.onNodeWithText("No favorite accounts yet").assertExists()
         compose.onNodeWithText("No upcoming bills or schedules").assertExists()
         compose.onNodeWithText("No recent activity").assertExists()
+    }
+
+    @Test fun lastHomeSectionScrollsAboveTheTransactionFab() {
+        val projection = HomeDashboardProjection.empty().copy(
+            recentTransactions = List(5) { index ->
+                Transaction("t$index", "20260920", "Last activity ${index + 1}", "Dining", "Checking", -500, false)
+            },
+        )
+        compose.setContent {
+            MaterialTheme {
+                Scaffold(
+                    floatingActionButton = {
+                        ExtendedFloatingActionButton(
+                            onClick = {},
+                            modifier = Modifier.testTag("transactionFab"),
+                        ) { androidx.compose.material3.Text("Transaction") }
+                    },
+                ) { padding ->
+                    HomeScreen(
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                        sections = HomeSection.entries.toList(),
+                        projection = projection,
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("homeList").performScrollToNode(hasText("Last activity 5"))
+
+        val activityBounds = compose.onNodeWithText("Last activity 5").fetchSemanticsNode().boundsInRoot
+        val fabBounds = compose.onNodeWithTag("transactionFab").fetchSemanticsNode().boundsInRoot
+        assertTrue("The final Home row must not be covered by the transaction FAB", activityBounds.bottom <= fabBounds.top)
     }
 }
