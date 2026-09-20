@@ -17,8 +17,9 @@ class HomeDashboardProjectionTest {
         val hidden = BudgetCategory("Hidden", 0, 0, id = "hidden", hidden = true)
         val checking = Account("Checking", 0, "checking", id = "checking")
         val closed = Account("Old", 0, "checking", id = "old", closed = true)
-        val september = Transaction("sep", "2026-09-20", "Shop", "Groceries", "Checking", -20, false)
-        val august = september.copy(id = "aug", date = "2026-08-31")
+        // Repository transaction dates use Actual's undashed yyyyMMdd encoding.
+        val september = Transaction("sep", "20260920", "Shop", "Groceries", "Checking", -20, false)
+        val august = september.copy(id = "aug", date = "20260831")
         val overview = BudgetOverview(500, 200, 100, 400)
 
         val favoriteReport = ReportDashboardPage("net-worth", "Net Worth", emptyList())
