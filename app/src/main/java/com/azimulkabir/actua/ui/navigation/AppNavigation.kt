@@ -1532,6 +1532,14 @@ fun AppNavigation(
                             month = budgetMonth,
                         )
                     },
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    onBudgetClick = { destination = MainDestination.Budget },
+                    onAccountsClick = { destination = MainDestination.Accounts },
+                    onSchedulesClick = {
+                        destination = MainDestination.Manage
+                        detail = DetailDestination.Schedules
+                    },
+                    onTransactionsClick = { destination = MainDestination.Transactions },
                     onReportsClick = { detail = DetailDestination.Reports },
                     returnToRootRequest = rootRequests[MainDestination.Home] ?: 0,
                 )

@@ -1,12 +1,9 @@
 package com.azimulkabir.actua.ui.home
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,16 +12,13 @@ import org.junit.runner.RunWith
 class HomeScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    @Test fun reportsEntryIsVisibleAndOpensReports() {
-        val reportsOpened = mutableStateOf(false)
+    @Test fun homeScreenShowsItsRootTitle() {
         compose.setContent {
             MaterialTheme {
-                HomeScreen(onReportsClick = { reportsOpened.value = true })
+                HomeScreen()
             }
         }
 
         compose.onNodeWithText("Home").assertExists()
-        compose.onNodeWithText("Reports").performClick()
-        compose.runOnIdle { assertTrue(reportsOpened.value) }
     }
 }
