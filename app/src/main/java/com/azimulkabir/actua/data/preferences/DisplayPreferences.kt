@@ -80,14 +80,23 @@ class DisplayPreferences(context: Context) {
     var startPage: String
         get() {
             val stored = preferences.getString(START_PAGE, "Budget") ?: "Budget"
-            if (stored != LEGACY_MORE_PAGE) return stored
-            preferences.edit().putString(START_PAGE, MANAGE_PAGE).apply()
-            return MANAGE_PAGE
+            val migrated = when (stored) {
+                LEGACY_MORE_PAGE -> MANAGE_PAGE
+                LEGACY_REPORTS_PAGE -> HOME_PAGE
+                else -> stored
+            }
+            if (migrated == stored) return stored
+            preferences.edit().putString(START_PAGE, migrated).apply()
+            return migrated
         }
         set(value) {
             preferences.edit().putString(
                 START_PAGE,
-                if (value == LEGACY_MORE_PAGE) MANAGE_PAGE else value,
+                when (value) {
+                    LEGACY_MORE_PAGE -> MANAGE_PAGE
+                    LEGACY_REPORTS_PAGE -> HOME_PAGE
+                    else -> value
+                },
             ).apply()
         }
 
@@ -150,7 +159,9 @@ class DisplayPreferences(context: Context) {
         const val USE_DYNAMIC_COLOR = "use_dynamic_color"
         const val START_PAGE = "start_page"
         const val LEGACY_MORE_PAGE = "More"
+        const val LEGACY_REPORTS_PAGE = "Reports"
         const val MANAGE_PAGE = "Manage"
+        const val HOME_PAGE = "Home"
         const val DEFAULT_ACCOUNT = "default_account"
         const val GROUP_TRANSACTIONS_BY_DATE = "group_transactions_by_date"
         const val HIDE_RECONCILED_TRANSACTIONS = "hide_reconciled_transactions"
