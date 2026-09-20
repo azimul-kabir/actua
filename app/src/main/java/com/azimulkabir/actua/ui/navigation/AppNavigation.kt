@@ -1210,6 +1210,7 @@ fun AppNavigation(
             )
             DetailDestination.Connection -> ConnectionScreen(
                 onBack = { detail = DetailDestination.Main },
+                foregroundGeneration = foregroundGeneration,
                 onBeforeBudgetReplacement = { repository.close() },
                 onBudgetInstalled = {
                     repositoryVersion += 1
