@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.home
 
+import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
@@ -56,7 +57,9 @@ class HomeDashboardProjectionTest {
         assertEquals(transactions.take(10), projection.recentTransactions)
     }
 
-    @Test fun keeps_the_agreed_home_section_order() {
+    // Section order is user-customizable via HomeLayout; the enum's declaration order is only the
+    // default a fresh install (or a restored layout) starts from.
+    @Test fun keeps_the_agreed_default_home_section_order() {
         assertEquals(
             listOf("Ready to Budget", "Favorite Categories", "Favorite Accounts", "Upcoming", "This Month", "Reports", "Recent Activity"),
             HomeSection.entries.map { it.title },
