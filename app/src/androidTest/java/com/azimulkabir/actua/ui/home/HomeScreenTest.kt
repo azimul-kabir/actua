@@ -27,4 +27,32 @@ class HomeScreenTest {
         compose.onNodeWithText("Reports").performClick()
         compose.runOnIdle { assertTrue(reportsOpened.value) }
     }
+
+    @Test fun dashboardSectionsRouteToTheirAuthoritativeDestinations() {
+        val budgetOpened = mutableStateOf(false)
+        val accountsOpened = mutableStateOf(false)
+        val schedulesOpened = mutableStateOf(false)
+        val transactionsOpened = mutableStateOf(false)
+        compose.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    onBudgetClick = { budgetOpened.value = true },
+                    onAccountsClick = { accountsOpened.value = true },
+                    onSchedulesClick = { schedulesOpened.value = true },
+                    onTransactionsClick = { transactionsOpened.value = true },
+                )
+            }
+        }
+
+        compose.onNodeWithText("No favorite categories yet").performClick()
+        compose.onNodeWithText("No favorite accounts yet").performClick()
+        compose.onNodeWithText("No upcoming bills or schedules").performClick()
+        compose.onNodeWithText("No recent activity").performClick()
+        compose.runOnIdle {
+            assertTrue(budgetOpened.value)
+            assertTrue(accountsOpened.value)
+            assertTrue(schedulesOpened.value)
+            assertTrue(transactionsOpened.value)
+        }
+    }
 }
