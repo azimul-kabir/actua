@@ -76,7 +76,12 @@ fun ReportsScreen(
     val selected = snapshot.dashboards.firstOrNull { it.id == selectedPageId }
         ?: snapshot.dashboards.firstOrNull()
     LaunchedEffect(snapshot.dashboards.map { it.id }) {
-        if (snapshot.dashboards.none { it.id == selectedPageId }) selectedPageId = snapshot.dashboards.firstOrNull()?.id
+        // Dashboards load asynchronously and start empty, including right after process/config
+        // recreation restores selectedPageId; skip the reset until there's something to check
+        // against, or it would immediately discard the restored (or just-requested) selection.
+        if (snapshot.dashboards.isNotEmpty() && snapshot.dashboards.none { it.id == selectedPageId }) {
+            selectedPageId = snapshot.dashboards.firstOrNull()?.id
+        }
     }
     LaunchedEffect(initialPageRequest) {
         if (initialPageRequest > 0) selectedPageId = initialPageId

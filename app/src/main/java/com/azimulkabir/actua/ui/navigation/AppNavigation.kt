@@ -491,6 +491,15 @@ fun AppNavigation(
         if (tabSwitchJob?.isActive != true) selectedTab = destination
     }
 
+    LaunchedEffect(detail) {
+        // Otherwise a later plain visit to Reports (bottom tab, Manage) would replay this stale
+        // request and force the view back to whatever favorite was last opened from Home.
+        if (detail != DetailDestination.Reports) {
+            requestedReportPageId = null
+            requestedReportPageRequest = 0
+        }
+    }
+
     LaunchedEffect(destination, detail, dataVersion, repository) {
         val needsReportSnapshot = detail == DetailDestination.Reports ||
             (destination == MainDestination.Home && detail == DetailDestination.Main)
