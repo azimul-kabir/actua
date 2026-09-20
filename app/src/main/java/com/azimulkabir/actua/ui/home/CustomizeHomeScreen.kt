@@ -28,7 +28,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,11 +44,12 @@ import com.azimulkabir.actua.data.home.HomeLayoutPlanner
 import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.dragReorderHandle
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 private const val ROW_HEIGHT_DP = 64
 private const val EDGE_SCROLL_ZONE_PX = 100f
 private const val EDGE_SCROLL_SPEED_PX = 14f
+private const val EDGE_SCROLL_POLL_DELAY_MS = 16L
 
 /**
  * Show/hide and reorder the optional Home sections. Ready to Budget is pinned first and always
@@ -79,7 +79,6 @@ fun CustomizeHomeScreen(
     }
 
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val rowHeightPx = with(density) { ROW_HEIGHT_DP.dp.toPx() }
 
@@ -95,14 +94,7 @@ fun CustomizeHomeScreen(
         }
     }
 
-    fun onDragStart(section: HomeSection) {
-        draggingSection = section
-        dragStartOrder = localOrder
-        dragOffsetPx = 0f
-    }
-
-    fun onDrag(section: HomeSection, deltaY: Float) {
-        dragOffsetPx += deltaY
+    fun checkSwaps(section: HomeSection) {
         while (dragOffsetPx > rowHeightPx / 2) {
             val stepped = HomeLayoutPlanner.moveSectionDown(localOrder, section)
             if (stepped != null) { localOrder = stepped; dragOffsetPx -= rowHeightPx } else { dragOffsetPx = rowHeightPx / 2; break }
@@ -111,8 +103,17 @@ fun CustomizeHomeScreen(
             val stepped = HomeLayoutPlanner.moveSectionUp(localOrder, section)
             if (stepped != null) { localOrder = stepped; dragOffsetPx += rowHeightPx } else { dragOffsetPx = -rowHeightPx / 2; break }
         }
-        val direction = autoScrollDirection(section)
-        if (direction != 0) scope.launch { listState.scrollBy(direction * EDGE_SCROLL_SPEED_PX) }
+    }
+
+    fun onDragStart(section: HomeSection) {
+        draggingSection = section
+        dragStartOrder = localOrder
+        dragOffsetPx = 0f
+    }
+
+    fun onDrag(section: HomeSection, deltaY: Float) {
+        dragOffsetPx += deltaY
+        checkSwaps(section)
     }
 
     fun onDragEnd(section: HomeSection) {
@@ -121,6 +122,24 @@ fun CustomizeHomeScreen(
         }
         draggingSection = null
         dragOffsetPx = 0f
+    }
+
+    // A single continuous loop (rather than a scrollBy launched per drag delta, which would flood
+    // the dispatcher with concurrent coroutines) so the list keeps scrolling and the dragged row
+    // keeps swapping with its new neighbors even while the finger holds still at the edge. Feeding
+    // the actual scrolled amount back into dragOffsetPx keeps the row glued to the finger instead
+    // of drifting as the list's item offsets shift underneath it.
+    LaunchedEffect(draggingSection) {
+        val section = draggingSection ?: return@LaunchedEffect
+        while (true) {
+            val direction = autoScrollDirection(section)
+            if (direction != 0) {
+                val scrolled = listState.scrollBy(direction * EDGE_SCROLL_SPEED_PX)
+                dragOffsetPx += scrolled
+                checkSwaps(section)
+            }
+            delay(EDGE_SCROLL_POLL_DELAY_MS)
+        }
     }
 
     fun stepByButton(section: HomeSection, direction: Int) {
@@ -156,8 +175,7 @@ fun CustomizeHomeScreen(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
         LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-            items(localOrder.size, key = { index -> localOrder[index].name }) { index ->
-                val section = localOrder[index]
+            items(localOrder, key = { it.name }) { section ->
                 val isDragging = draggingSection == section
                 val reorderIndex = reorderable.indexOf(section)
                 HomeSectionRow(
