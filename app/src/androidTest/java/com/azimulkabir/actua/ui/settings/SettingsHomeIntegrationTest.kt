@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.ComponentActivity
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -25,7 +26,9 @@ class SettingsHomeIntegrationTest {
     fun manageScreenReportsRowRoutesToTheSharedReportsDestination() {
         var reportsClicked = false
         composeRule.setContent {
-            SettingsScreen(onReportsClick = { reportsClicked = true })
+            MaterialTheme {
+                SettingsScreen(onReportsClick = { reportsClicked = true })
+            }
         }
 
         composeRule.onNodeWithText("Reports").performScrollTo().performClick()
@@ -37,7 +40,9 @@ class SettingsHomeIntegrationTest {
     fun startPageOffersHomeAsAnOption() {
         var selectedStartPage: String? = null
         composeRule.setContent {
-            SettingsScreen(startPage = "Budget", onStartPageChange = { selectedStartPage = it })
+            MaterialTheme {
+                SettingsScreen(startPage = "Budget", onStartPageChange = { selectedStartPage = it })
+            }
         }
 
         composeRule.onNodeWithContentDescription("Settings").performClick()
