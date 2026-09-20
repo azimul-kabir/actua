@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.home
 
+import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
@@ -54,15 +55,4 @@ data class HomeDashboardProjection(
             recentTransactions = transactions.take(10),
         )
     }
-}
-
-/** Stable section keys and the agreed V1 display order for the Home dashboard. */
-enum class HomeSection(val title: String) {
-    READY_TO_BUDGET("Ready to Budget"),
-    FAVORITE_CATEGORIES("Favorite Categories"),
-    FAVORITE_ACCOUNTS("Favorite Accounts"),
-    UPCOMING("Upcoming"),
-    THIS_MONTH("This Month"),
-    REPORTS("Reports"),
-    RECENT_ACTIVITY("Recent Activity"),
 }

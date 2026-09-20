@@ -98,6 +98,7 @@ import com.azimulkabir.actua.ui.settings.ImportTransactionsScreen
 import com.azimulkabir.actua.ui.settings.PayeeLocationsScreen
 import com.azimulkabir.actua.ui.categories.ManageCategoriesScreen
 import com.azimulkabir.actua.ui.categories.ReorderGroupsScreen
+import com.azimulkabir.actua.ui.home.CustomizeHomeScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeOption
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeSearchResult
@@ -121,8 +122,10 @@ import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.sync.SyncStatus
 import com.azimulkabir.actua.data.sync.SyncStatusStore
+import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
+import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
@@ -148,7 +151,7 @@ private enum class MainDestination(
     Manage("Manage", Icons.Outlined.Tune),
 }
 
-private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation }
+private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation, CustomizeHome }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -217,6 +220,8 @@ fun AppNavigation(
     val locationPreferences = remember { LocationPreferences(context) }
     val displayPreferences = remember { DisplayPreferences(context) }
     val favoritePreferences = remember { FavoritePreferences(context) }
+    val homePreferences = remember { HomePreferences(context) }
+    var homeLayout by remember { mutableStateOf(homePreferences.layout()) }
     val creditCardNotificationSettings = remember { CreditCardNotificationSettings(context) }
     var creditCardNotificationsEnabled by remember {
         mutableStateOf(creditCardNotificationSettings.isEnabled)
@@ -617,6 +622,9 @@ fun AppNavigation(
             }
             detail == DetailDestination.ReorderGroups -> {
                 detail = DetailDestination.ManageCategories
+            }
+            detail == DetailDestination.CustomizeHome -> {
+                detail = DetailDestination.Main
             }
             detail == DetailDestination.BudgetAutomation -> {
                 reopenBudgetCategory = editingAutomationCategory
@@ -1301,6 +1309,15 @@ fun AppNavigation(
                 onMoveGroup = { move -> mutate("Reordering category group") { repository.moveCategoryGroup(move) } },
                 modifier = contentModifier,
             )
+            DetailDestination.CustomizeHome -> CustomizeHomeScreen(
+                layout = homeLayout,
+                onBack = { detail = DetailDestination.Main },
+                onLayoutChange = { updated ->
+                    homePreferences.save(updated)
+                    homeLayout = updated
+                },
+                modifier = contentModifier,
+            )
             DetailDestination.BudgetAutomation -> budgetGroups.firstNotNullOfOrNull { g ->
                 g.categories.firstOrNull { it.name == editingAutomationCategory }?.let { g to it }
             }?.let { (group, category) ->
@@ -1532,6 +1549,7 @@ fun AppNavigation(
                             month = budgetMonth,
                         )
                     },
+                    sections = homeLayout.visibleSections,
                     hideDecimalPlaces = hideDecimalPlaces,
                     onBudgetClick = { destination = MainDestination.Budget },
                     onAccountsClick = { destination = MainDestination.Accounts },
@@ -1541,6 +1559,7 @@ fun AppNavigation(
                     },
                     onTransactionsClick = { destination = MainDestination.Transactions },
                     onReportsClick = { detail = DetailDestination.Reports },
+                    onCustomizeClick = { detail = DetailDestination.CustomizeHome },
                     returnToRootRequest = rootRequests[MainDestination.Home] ?: 0,
                 )
                 MainDestination.Budget -> BudgetScreen(
@@ -1903,6 +1922,7 @@ fun AppNavigation(
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
                     onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },
                     onReportsClick = { detail = DetailDestination.Reports },
+                    onCustomizeHomeClick = { detail = DetailDestination.CustomizeHome },
                     conventionalAmountEntry = conventionalAmountEntry,
                     onConventionalAmountEntryChange = {
                         displayPreferences.conventionalAmountEntry = it

@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added Home customization: reorder Home's sections with a drag handle or the accessible up/down arrows, show or hide any optional section (Favorite Categories, Favorite Accounts, Upcoming, This Month, Reports, Recent Activity), and restore the default layout, from a new "Customize Home" entry on the Home app bar and Settings → Home. Ready to Budget stays pinned first and can't be hidden, since it's Home's primary purpose. The layout is a device-local UI preference (not synced budget data), persisted once per committed change rather than on every drag step, and newly introduced sections are appended deterministically instead of disturbing a saved layout
+
 ## [1.0.0-beta.33] - 2026-09-19
 
 ### Added

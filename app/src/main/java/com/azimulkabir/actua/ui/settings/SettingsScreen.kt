@@ -102,6 +102,7 @@ fun SettingsScreen(
     onImportTransactionsClick: () -> Unit = {},
     onPayeeLocationsClick: () -> Unit = {},
     onReportsClick: () -> Unit = {},
+    onCustomizeHomeClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = true,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
     showBottomNavigationLabels: Boolean = true,
@@ -259,6 +260,9 @@ fun SettingsScreen(
                 }
                 SettingsPage.General -> {
                     SettingsSection("Preferences")
+                    SettingsRow("Home", "Show, hide and reorder the sections on Home", true) {
+                        openFullScreen(onCustomizeHomeClick)
+                    }
                     SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists and account summaries", true) {
                         page = SettingsPage.Transactions
                     }

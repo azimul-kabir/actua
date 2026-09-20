@@ -15,10 +15,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.PieChartOutline
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
@@ -47,12 +50,14 @@ import com.azimulkabir.actua.ui.theme.Spacing
 fun HomeScreen(
     modifier: Modifier = Modifier,
     projection: HomeDashboardProjection = HomeDashboardProjection.empty(),
+    sections: List<HomeSection> = HomeSection.entries,
     hideDecimalPlaces: Boolean = false,
     onBudgetClick: () -> Unit = {},
     onAccountsClick: () -> Unit = {},
     onSchedulesClick: () -> Unit = {},
     onTransactionsClick: () -> Unit = {},
     onReportsClick: () -> Unit = {},
+    onCustomizeClick: () -> Unit = {},
     returnToRootRequest: Int = 0,
 ) {
     val listState = rememberLazyListState()
@@ -60,14 +65,29 @@ fun HomeScreen(
         if (returnToRootRequest > 0) listState.animateScrollToItem(0)
     }
     LazyColumn(modifier = modifier.fillMaxSize(), state = listState) {
-        item(key = "home-header") { ActuaScreenHeader(title = "Home") }
-        item(key = HomeSection.READY_TO_BUDGET.name) { Column { HomeSectionHeader(HomeSection.READY_TO_BUDGET.title); ReadyToBudgetCard(projection.budgetOverview, hideDecimalPlaces, onBudgetClick) } }
-        item(key = HomeSection.FAVORITE_CATEGORIES.name) { Column { HomeSectionHeader(HomeSection.FAVORITE_CATEGORIES.title); CategoryRows(projection.favoriteCategories, hideDecimalPlaces, onBudgetClick) } }
-        item(key = HomeSection.FAVORITE_ACCOUNTS.name) { Column { HomeSectionHeader(HomeSection.FAVORITE_ACCOUNTS.title); AccountRows(projection.favoriteAccounts, hideDecimalPlaces, onAccountsClick) } }
-        item(key = HomeSection.UPCOMING.name) { Column { HomeSectionHeader(HomeSection.UPCOMING.title); ScheduleRows(projection.upcomingSchedules, hideDecimalPlaces, onSchedulesClick) } }
-        item(key = HomeSection.THIS_MONTH.name) { Column { HomeSectionHeader(HomeSection.THIS_MONTH.title); ThisMonthCard(projection.monthTransactions, hideDecimalPlaces, onTransactionsClick) } }
-        item(key = HomeSection.REPORTS.name) { Column { HomeSectionHeader(HomeSection.REPORTS.title); HomeDestinationRow("Dashboards and financial insights", Icons.Outlined.BarChart, onReportsClick) } }
-        item(key = HomeSection.RECENT_ACTIVITY.name) { Column { HomeSectionHeader(HomeSection.RECENT_ACTIVITY.title); TransactionRows(projection.recentTransactions, hideDecimalPlaces, onTransactionsClick) } }
+        item(key = "home-header") {
+            ActuaScreenHeader(title = "Home") {
+                IconButton(onClick = onCustomizeClick) {
+                    Icon(Icons.Outlined.Tune, contentDescription = "Customize Home")
+                }
+            }
+        }
+        sections.forEach { section ->
+            item(key = section.name) {
+                Column {
+                    HomeSectionHeader(section.title)
+                    when (section) {
+                        HomeSection.READY_TO_BUDGET -> ReadyToBudgetCard(projection.budgetOverview, hideDecimalPlaces, onBudgetClick)
+                        HomeSection.FAVORITE_CATEGORIES -> CategoryRows(projection.favoriteCategories, hideDecimalPlaces, onBudgetClick)
+                        HomeSection.FAVORITE_ACCOUNTS -> AccountRows(projection.favoriteAccounts, hideDecimalPlaces, onAccountsClick)
+                        HomeSection.UPCOMING -> ScheduleRows(projection.upcomingSchedules, hideDecimalPlaces, onSchedulesClick)
+                        HomeSection.THIS_MONTH -> ThisMonthCard(projection.monthTransactions, hideDecimalPlaces, onTransactionsClick)
+                        HomeSection.REPORTS -> HomeDestinationRow("Dashboards and financial insights", Icons.Outlined.BarChart, onReportsClick)
+                        HomeSection.RECENT_ACTIVITY -> TransactionRows(projection.recentTransactions, hideDecimalPlaces, onTransactionsClick)
+                    }
+                }
+            }
+        }
     }
 }
 
