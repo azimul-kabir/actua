@@ -40,6 +40,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -347,6 +348,18 @@ fun AddTransactionScreen(
                 },
             )
             if (transactionType == Type.TRANSFER.displayName) {
+                IconButton(
+                    onClick = {
+                        val from = account
+                        account = transferAccount
+                        transferAccount = from
+                        rulesApplied = false
+                    },
+                    enabled = account.isNotBlank() && transferAccount.isNotBlank(),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ) {
+                    Icon(Icons.Outlined.SwapVert, contentDescription = "Reverse transfer accounts")
+                }
                 PickerTextField(
                     label = "To", value = transferAccount,
                     options = accountOptions.filterNot { it == account },
