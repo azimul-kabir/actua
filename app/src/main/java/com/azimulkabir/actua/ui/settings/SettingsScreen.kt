@@ -101,6 +101,7 @@ fun SettingsScreen(
     onSchedulesClick: () -> Unit = {},
     onImportTransactionsClick: () -> Unit = {},
     onPayeeLocationsClick: () -> Unit = {},
+    onReportsClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = true,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
     showBottomNavigationLabels: Boolean = true,
@@ -227,6 +228,10 @@ fun SettingsScreen(
             }
             when (shownPage) {
                 SettingsPage.Manage -> {
+                    SettingsSection("Insights")
+                    SettingsRow("Reports", "View dashboards and financial reports", true) {
+                        openFullScreen(onReportsClick)
+                    }
                     SettingsSection("Automation")
                     SettingsRow("Bills & Calendar", "Upcoming schedules and credit-card due dates", true) {
                         openFullScreen(onBillsCalendarClick)
@@ -330,7 +335,7 @@ fun SettingsScreen(
                     SettingsChoice(
                         "Start page",
                         startPage,
-                        listOf("Budget", "Accounts", "Transactions", "Reports", "Manage"),
+                        listOf("Home", "Budget", "Transactions", "Accounts", "Manage"),
                         onStartPageChange,
                     )
                     SettingsChoice(
