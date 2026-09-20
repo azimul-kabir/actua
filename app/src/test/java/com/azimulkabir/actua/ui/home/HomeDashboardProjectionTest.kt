@@ -37,6 +37,25 @@ class HomeDashboardProjectionTest {
         assertEquals(listOf(september, august), projection.recentTransactions)
     }
 
+    @Test fun bounds_recent_activity_to_ten_transactions() {
+        val transactions = (1..12).map { day ->
+            Transaction("id-$day", "2026-09-${day.toString().padStart(2, '0')}", "Payee", "", "Checking", -1, false)
+        }
+
+        val projection = HomeDashboardProjection.from(
+            budgetOverview = BudgetOverview(null, 0, 0, 0),
+            budgetGroups = emptyList(),
+            accounts = emptyList(),
+            schedules = emptyList(),
+            transactions = transactions,
+            favoriteCategoryIds = emptySet(),
+            favoriteAccountIds = emptySet(),
+            month = "2026-09",
+        )
+
+        assertEquals(transactions.take(10), projection.recentTransactions)
+    }
+
     @Test fun keeps_the_agreed_home_section_order() {
         assertEquals(
             listOf("Ready to Budget", "Favorite Categories", "Favorite Accounts", "Upcoming", "This Month", "Reports", "Recent Activity"),

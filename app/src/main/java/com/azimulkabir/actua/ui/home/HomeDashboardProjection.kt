@@ -51,7 +51,7 @@ data class HomeDashboardProjection(
             favoriteAccounts = accounts.filter { !it.closed && it.id in favoriteAccountIds },
             upcomingSchedules = schedules,
             monthTransactions = transactions.filter { it.date.startsWith(month) },
-            recentTransactions = transactions,
+            recentTransactions = transactions.take(10),
         )
     }
 }

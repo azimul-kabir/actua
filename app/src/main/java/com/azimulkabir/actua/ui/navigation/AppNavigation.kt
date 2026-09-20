@@ -1516,11 +1516,7 @@ fun AppNavigation(
                 MainDestination.Home -> HomeScreen(
                     modifier = contentModifier,
                     projection = remember(
-                        budgetOverview,
-                        budgetGroups,
-                        accounts,
-                        schedules,
-                        transactions,
+                        dataVersion,
                         favoriteCategoryIds,
                         favoriteAccountIds,
                         budgetMonth,
