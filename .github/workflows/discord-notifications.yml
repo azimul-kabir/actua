@@ -72,7 +72,7 @@ jobs:
           description = f"by {item['user']['login']}"
 
           payload = {
-              "username": "Actua GitHub",
+              "username": "GitHub",
               "allowed_mentions": {"parse": []},
               "embeds": [{
                   "title": title[:256],
