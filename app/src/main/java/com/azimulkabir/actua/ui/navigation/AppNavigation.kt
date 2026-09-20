@@ -37,7 +37,7 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.PieChartOutline
 import androidx.compose.material.icons.outlined.ReceiptLong
@@ -105,6 +105,7 @@ import com.azimulkabir.actua.ui.transactions.PayeeLocationSaveResult
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
+import com.azimulkabir.actua.ui.home.HomeScreen
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.model.ReportSnapshot
@@ -139,14 +140,14 @@ private enum class MainDestination(
     val label: String,
     val icon: ImageVector,
 ) {
+    Home("Home", Icons.Outlined.Home),
     Budget("Budget", Icons.Outlined.PieChartOutline),
-    Accounts("Accounts", Icons.Outlined.AccountBalanceWallet),
     Transactions("Transactions", Icons.Outlined.ReceiptLong),
-    Reports("Reports", Icons.Outlined.BarChart),
+    Accounts("Accounts", Icons.Outlined.AccountBalanceWallet),
     Manage("Manage", Icons.Outlined.Tune),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation }
+private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -300,6 +301,14 @@ fun AppNavigation(
     var transactionCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionMonth by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionSearch by rememberSaveable { mutableStateOf("") }
+    var searchReturnsToReports by rememberSaveable { mutableStateOf(false) }
+    // Search may be entered from Reports, but a tab switch must not leave that return target
+    // behind for a later search started elsewhere.
+    LaunchedEffect(selectedTab, destination, detail) {
+        if (detail != DetailDestination.Search || selectedTab != destination) {
+            searchReturnsToReports = false
+        }
+    }
     var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
     var newTransactionType by remember { mutableStateOf(com.azimulkabir.actua.model.Type.EXPENSE) }
     var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
@@ -475,7 +484,7 @@ fun AppNavigation(
     }
 
     LaunchedEffect(destination, detail, dataVersion, repository) {
-        if (destination == MainDestination.Reports && detail == DetailDestination.Main &&
+        if (detail == DetailDestination.Reports &&
             reportSnapshotVersion != dataVersion
         ) {
             try {
@@ -613,6 +622,10 @@ fun AppNavigation(
                 editingAutomationCategory = null
                 detail = DetailDestination.Main
             }
+            detail == DetailDestination.Search && searchReturnsToReports -> {
+                searchReturnsToReports = false
+                detail = DetailDestination.Reports
+            }
             detail != DetailDestination.Main -> {
                 if (detail == DetailDestination.Transactions && transactionsReturnCategory != null) {
                     reopenBudgetCategory = transactionsReturnCategory
@@ -639,7 +652,6 @@ fun AppNavigation(
                 MainDestination.Budget,
                 MainDestination.Accounts,
                 MainDestination.Transactions,
-                MainDestination.Reports,
             )
             val inAccount = detail == DetailDestination.Transactions && transactionAccount != null
             val inBudgetCategory = detail == DetailDestination.Main &&
@@ -689,6 +701,7 @@ fun AppNavigation(
                                 tabSwitchJob?.cancel()
                                 selectedTab = destination
                                 if (detail != DetailDestination.Main) {
+                                    searchReturnsToReports = false
                                     detail = DetailDestination.Main
                                     editingTransaction = null
                                     transactionAccount = null
@@ -774,6 +787,21 @@ fun AppNavigation(
         ) { (shownDetail, shownDestination) ->
         tabStateHolder.SaveableStateProvider("${shownDestination.name}:${shownDetail.name}") {
         when (shownDetail) {
+            DetailDestination.Reports -> ReportsScreen(
+                reportSnapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
+                hideDecimalPlaces, contentModifier,
+                isLoading = reportSnapshot == null || reportSnapshotVersion != dataVersion,
+                onSearch = {
+                    searchReturnsToReports = true
+                    detail = DetailDestination.Search
+                },
+                favoriteReportIds = favoriteReportIds,
+                onFavoriteReportChange = { id, favorite ->
+                    favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.REPORT, id, favorite)
+                    favoriteReportIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT)
+                },
+                scrollToTopRequest = 0,
+            )
             DetailDestination.Transactions -> TransactionsScreen(
                 accountName = transactionAccount,
                 categoryName = transactionCategory,
@@ -1111,7 +1139,10 @@ fun AppNavigation(
                 payees = payeeNames,
                 categories = categoryNames,
                 hideDecimalPlaces = hideDecimalPlaces,
-                onBack = { detail = DetailDestination.Main },
+                onBack = {
+                    detail = if (searchReturnsToReports) DetailDestination.Reports else DetailDestination.Main
+                    searchReturnsToReports = false
+                },
                 onTransactionEdit = {
                     addOrigin = destination
                     editingTransaction = it
@@ -1481,6 +1512,11 @@ fun AppNavigation(
                     detail = DetailDestination.Connection
                 }
             } else when (shownDestination) {
+                MainDestination.Home -> HomeScreen(
+                    modifier = contentModifier,
+                    onReportsClick = { detail = DetailDestination.Reports },
+                    returnToRootRequest = rootRequests[MainDestination.Home] ?: 0,
+                )
                 MainDestination.Budget -> BudgetScreen(
                     contentModifier,
                     groups = budgetGroups,
@@ -1752,17 +1788,6 @@ fun AppNavigation(
                     showBackButton = false,
                     returnToRootRequest = rootRequests[MainDestination.Transactions] ?: 0,
                 )
-                MainDestination.Reports -> ReportsScreen(
-                    reportSnapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
-                    hideDecimalPlaces, contentModifier,
-                    isLoading = reportSnapshot == null || reportSnapshotVersion != dataVersion,
-                    onSearch = { detail = DetailDestination.Search },
-                    favoriteReportIds = favoriteReportIds,
-                    onFavoriteReportChange = { id, favorite ->
-                        favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.REPORT, id, favorite)
-                        favoriteReportIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT)
-                    },
-                    scrollToTopRequest = rootRequests[MainDestination.Reports] ?: 0)
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,
                     onConnectionClick = { detail = DetailDestination.Connection },
@@ -1851,6 +1876,7 @@ fun AppNavigation(
                     onSchedulesClick = { detail = DetailDestination.Schedules },
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
                     onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },
+                    onReportsClick = { detail = DetailDestination.Reports },
                     conventionalAmountEntry = conventionalAmountEntry,
                     onConventionalAmountEntryChange = {
                         displayPreferences.conventionalAmountEntry = it

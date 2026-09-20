@@ -45,4 +45,21 @@ class DisplayPreferencesTest {
         assertEquals("DD/MM/YYYY", restored.dateFormat)
         assertEquals("1,23,456.78", restored.numberFormat)
     }
+
+    @Test fun legacyReportsStartPageMigratesToHome() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        context.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
+            .edit().putString("start_page", "Reports").commit()
+
+        val preferences = DisplayPreferences(context)
+        assertEquals("Home", preferences.startPage)
+        assertEquals(
+            "Home",
+            context.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
+                .getString("start_page", null),
+        )
+
+        preferences.startPage = "Reports"
+        assertEquals("Home", preferences.startPage)
+    }
 }
