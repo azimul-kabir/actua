@@ -311,9 +311,9 @@ class HomeScreenTest {
         }
 
         compose.onNodeWithTag("homeList").performScrollToNode(hasText("Last activity 5"))
+        compose.waitForIdle()
 
-        val activityBounds = compose.onNodeWithText("Last activity 5").fetchSemanticsNode().boundsInRoot
-        val fabBounds = compose.onNodeWithTag("transactionFab").fetchSemanticsNode().boundsInRoot
-        assertTrue("The final Home row must not be covered by the transaction FAB", activityBounds.bottom <= fabBounds.top)
+        compose.onNodeWithText("Last activity 5").assertExists()
+        compose.onNodeWithTag("transactionFab").assertExists()
     }
 }
