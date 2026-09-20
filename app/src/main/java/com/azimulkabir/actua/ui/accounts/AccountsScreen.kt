@@ -119,8 +119,9 @@ fun AccountsScreen(
     var changingTypeAccount by remember { mutableStateOf<Account?>(null) }
     // Otherwise this re-filters the whole account list on every recomposition of this screen
     // (e.g. opening the overflow menu or selecting an account), not just when `accounts` changes.
-    val accountSections = remember(accounts) {
+    val accountSections = remember(accounts, favoriteAccountIds) {
         listOf(
+            AccountSection("Favorites", accounts.filter { it.id in favoriteAccountIds && !it.closed }),
             AccountSection("On budget", accounts.filter { !it.offBudget && !it.closed }),
             AccountSection("Off budget", accounts.filter { it.offBudget && !it.closed }),
             AccountSection("Closed accounts", accounts.filter { it.closed }),
