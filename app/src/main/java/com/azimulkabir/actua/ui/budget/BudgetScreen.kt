@@ -461,6 +461,11 @@ fun BudgetScreen(
             onTransactionsThisMonth = { selectedCategory = null; onShowCategoryTransactions(category.name, true, false) },
             onAllTransactions = { selectedCategory = null; onShowCategoryTransactions(category.name, false, false) },
             onMoveMoney = { selectedCategory = null; movingBudget = parent to category },
+            favorite = category.id in favoriteCategoryIds,
+            onFavoriteChange = { favorite ->
+                category.id?.let { onFavoriteCategoryChange(it, favorite) }
+                selectedCategory = null
+            },
             hidden = category.hidden,
             onSetHidden = { hidden ->
                 if (onSetCategoryHidden(parent.name, category.name, hidden)) selectedCategory = null
@@ -2313,6 +2318,8 @@ private fun CategoryActionsSheet(
     onTransactionsThisMonth: () -> Unit,
     onAllTransactions: () -> Unit,
     onMoveMoney: () -> Unit,
+    favorite: Boolean,
+    onFavoriteChange: (Boolean) -> Unit,
     hidden: Boolean,
     onSetHidden: (Boolean) -> Unit,
 ) {
@@ -2320,6 +2327,10 @@ private fun CategoryActionsSheet(
         Column(modifier = Modifier.padding(bottom = 24.dp)) {
             ActuaSheetTitle(category.name)
             SheetAction("Rename category", onRename)
+            SheetAction(
+                if (favorite) "Remove from favorites" else "Add to favorites",
+                onClick = { onFavoriteChange(!favorite) },
+            )
             if (!category.isIncome) {
                 SheetAction(when {
                     category.hasUnsupportedTarget -> "View target"
