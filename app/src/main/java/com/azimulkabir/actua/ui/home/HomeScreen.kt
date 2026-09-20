@@ -23,7 +23,7 @@ import com.azimulkabir.actua.ui.components.ActuaSectionHeader
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    projection: HomeDashboardProjection,
+    projection: HomeDashboardProjection = HomeDashboardProjection.empty(),
     onReportsClick: () -> Unit = {},
     returnToRootRequest: Int = 0,
 ) {

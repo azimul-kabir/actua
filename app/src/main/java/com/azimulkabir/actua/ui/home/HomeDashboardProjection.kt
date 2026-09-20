@@ -21,6 +21,15 @@ data class HomeDashboardProjection(
     val recentTransactions: List<Transaction>,
 ) {
     companion object {
+        fun empty(): HomeDashboardProjection = HomeDashboardProjection(
+            budgetOverview = BudgetOverview(null, 0, 0, 0),
+            favoriteCategories = emptyList(),
+            favoriteAccounts = emptyList(),
+            upcomingSchedules = emptyList(),
+            monthTransactions = emptyList(),
+            recentTransactions = emptyList(),
+        )
+
         fun from(
             budgetOverview: BudgetOverview,
             budgetGroups: List<BudgetGroup>,
