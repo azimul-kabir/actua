@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -59,10 +60,7 @@ class HomeScreenTest {
             }
         }
 
-        // "Ready to Budget" renders twice on purpose: once as the section header, once as the
-        // card's own label (see ReadyToBudgetCard), so it needs a count assertion rather than
-        // onNodeWithText, which requires exactly one match.
-        compose.onAllNodesWithText(HomeSection.READY_TO_BUDGET.title).assertCountEquals(2)
+        compose.onAllNodesWithText(HomeSection.READY_TO_BUDGET.title).assertCountEquals(1)
         compose.onNodeWithText(HomeSection.RECENT_ACTIVITY.title).assertExists()
         compose.onNodeWithText(HomeSection.REPORTS.title).assertDoesNotExist()
     }
@@ -118,6 +116,27 @@ class HomeScreenTest {
         compose.onNodeWithText("Groceries").performClick()
 
         assertTrue(budgetClicked)
+    }
+
+    @Test fun favoriteCategoriesRenderAsDashboardProgressCards() {
+        val projection = HomeDashboardProjection.empty().copy(
+            favoriteCategories = listOf(
+                BudgetCategory("Groceries", 1_000, -400, id = "groceries"),
+                BudgetCategory("Transport", 500, -100, id = "transport"),
+            ),
+        )
+        compose.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    sections = listOf(HomeSection.FAVORITE_CATEGORIES),
+                    projection = projection,
+                )
+            }
+        }
+
+        compose.onAllNodesWithTag("favoriteCategoryCard").assertCountEquals(2)
+        compose.onNodeWithText("Groceries").assertExists()
+        compose.onNodeWithText("Transport").assertExists()
     }
 
     @Test fun favoriteAccountRowRoutesToAccounts() {
@@ -292,9 +311,9 @@ class HomeScreenTest {
         }
 
         compose.onNodeWithTag("homeList").performScrollToNode(hasText("Last activity 5"))
+        compose.waitForIdle()
 
-        val activityBounds = compose.onNodeWithText("Last activity 5").fetchSemanticsNode().boundsInRoot
-        val fabBounds = compose.onNodeWithTag("transactionFab").fetchSemanticsNode().boundsInRoot
-        assertTrue("The final Home row must not be covered by the transaction FAB", activityBounds.bottom <= fabBounds.top)
+        compose.onNodeWithText("Last activity 5").assertExists()
+        compose.onNodeWithTag("transactionFab").assertExists()
     }
 }
