@@ -1,7 +1,9 @@
 package com.azimulkabir.actua.ui.home
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -33,7 +35,10 @@ class HomeScreenTest {
             }
         }
 
-        compose.onNodeWithText(HomeSection.READY_TO_BUDGET.title).assertExists()
+        // "Ready to Budget" renders twice on purpose: once as the section header, once as the
+        // card's own label (see ReadyToBudgetCard), so it needs a count assertion rather than
+        // onNodeWithText, which requires exactly one match.
+        compose.onAllNodesWithText(HomeSection.READY_TO_BUDGET.title).assertCountEquals(2)
         compose.onNodeWithText(HomeSection.RECENT_ACTIVITY.title).assertExists()
         compose.onNodeWithText(HomeSection.REPORTS.title).assertDoesNotExist()
     }
