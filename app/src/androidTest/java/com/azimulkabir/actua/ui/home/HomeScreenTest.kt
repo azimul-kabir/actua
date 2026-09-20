@@ -24,7 +24,7 @@ class HomeScreenTest {
         }
 
         compose.onNodeWithText("Home").assertExists()
-        compose.onNodeWithText("Reports").performClick()
+        compose.onNodeWithText("Dashboards and financial insights").performClick()
         compose.runOnIdle { assertTrue(reportsOpened.value) }
     }
 
