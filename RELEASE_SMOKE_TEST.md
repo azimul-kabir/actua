@@ -26,6 +26,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Make one harmless edit in Actua, sync, and confirm it appears correctly in Actual.
 - [ ] Make one harmless edit in Actual, sync Actua, and confirm it appears correctly in Actua.
 - [ ] Verify a transfer remains a paired transfer and balances stay symmetric after sync.
+- [ ] Start an OpenID browser authorization, return without completing it, and verify Connection & Data leaves its loading state and remains usable for another attempt.
 - [ ] Verify split transaction create/edit and sync on a disposable/test transaction.
 - [ ] Confirm demo budget never attempts server sync and can be reset.
 - [ ] Create a local backup, export it, restore it, and verify the pre-restore revert path.
@@ -57,6 +58,9 @@ Use this checklist for release candidates before promoting a beta or stable buil
 ## Transactions and accounts
 
 - [ ] Add expense, income and transfer transactions.
+- [ ] In an unsaved transfer draft, use Reverse and verify its source and destination accounts swap; save it and verify the resulting paired transfer remains balanced after sync.
+- [ ] After saving a categorized transaction, verify the confirmation cue shows that category's current available balance.
+- [ ] Pull down on Transactions and verify the list refreshes without leaving the tab or changing any transaction.
 - [ ] Create a new account and pick a non-default type from the picker; verify it syncs with the correct type. Use "Change account type" on an existing account and verify the change persists and syncs.
 - [ ] Add and edit a split transaction.
 - [ ] Typing `#` (or deleting characters) in a transaction note while suggestions are showing keeps the on-screen keyboard open without flicker.
@@ -95,6 +99,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Create/edit/delete a supported rule and confirm it syncs correctly.
 - [ ] Create a transfer with a rule configured to match its destination account; selecting the destination applies the rule's Notes/Cleared/etc. in the editor, and the saved transfer stays correctly linked.
 - [ ] Post or edit a schedule's linked transaction: its own schedule-linked rule still applies, and an unrelated rule linked to a different schedule does not; a rule with a recurring-date condition matching the schedule's own recurrence evaluates correctly instead of never matching.
+- [ ] Manually post a recurring schedule on its due date and verify its next occurrence advances exactly once.
 - [ ] Create a schedule occurrence out of order or with a future-dated linked transaction, then let the catch-up loop run; verify an earlier due/missed occurrence still posts instead of being masked.
 - [ ] Scheduled Transactions list opens and status/date/amount alignment is correct.
 - [ ] Create/edit a recurring schedule and verify recurrence preview.
@@ -126,6 +131,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Manage → Settings and Settings → preference pages animate forward; header Back and Android Back animate in reverse through the same hierarchy.
 - [ ] An upgrade with **More** stored as the start page opens **Manage** and persists the migrated value.
 - [ ] Bottom navigation preserves per-tab state and root reselect/scroll-to-top behavior.
+- [ ] Switch between two local budgets and verify a loading state remains visible until the newly selected budget's data is ready; no rows from the previous budget are presented as the new budget.
 - [ ] Bottom navigation is Home | Budget | Transactions | Accounts | Manage (Reports is not a bottom tab); Home shows Ready to Budget, Favorite Categories, Favorite Accounts, Upcoming, This Month, Reports and Recent Activity, each tapping through to its full screen; tapping a favorited report shortcut opens Reports with that report selected; the Add Transaction button is available from Home; a device previously set to start on Reports opens Home instead after upgrading.
 - [ ] From Home's app bar, open Customize Home: hide/show an optional section, reorder sections via drag or the up/down arrows, and Restore Defaults; verify the layout survives navigating away and an app relaunch.
 - [ ] Android Back behaves correctly from details, search, preferences and transaction flows.

@@ -4,6 +4,28 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.35] - 2026-09-21
+
+### Added
+
+- Refreshed the Home dashboard with a more compact visual treatment, clearer section hierarchy, and reliable spacing above the floating Add Transaction button; its This Month activity now consistently reflects the selected budget month
+- Added pull-to-refresh to Transactions, so a downward swipe refreshes the visible transaction data without leaving the tab
+- Added a reverse control to transfer entry, letting you swap the source and destination accounts before saving
+- Added the saved category's current available balance to the transaction confirmation cue, making the immediate effect of a categorized transaction easier to see
+- Added a `make debug-apk` convenience target for local debug builds
+
+### Fixed
+
+- Fixed recurring schedules manually posted on their due date not advancing to their next occurrence
+- Fixed the connection screen remaining in its OpenID loading state after returning from a browser authorization flow that does not complete successfully
+- Fixed budget changes appearing unresponsive while the newly selected budget opens; a loader now remains visible until its data is ready
+- Fixed tag suggestions with underscores wrapping onto multiple lines instead of remaining readable as one tag
+
+### Safety
+
+- Pull-to-refresh and budget-switch loading only reload local/synchronized views; neither path changes a budget or bypasses the existing CRDT mutation and sync pipeline
+- Reversing a transfer changes only the draft before save; saved transfers retain the normal paired-transfer write path
+
 ## [1.0.0-beta.34] - 2026-09-20
 
 ### Added
