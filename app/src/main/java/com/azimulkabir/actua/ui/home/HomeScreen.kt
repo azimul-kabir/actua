@@ -60,13 +60,13 @@ fun HomeScreen(
     }
     LazyColumn(modifier = modifier.fillMaxSize(), state = listState) {
         item(key = "home-header") { ActuaScreenHeader(title = "Home") }
-        item(key = HomeSection.READY_TO_BUDGET.name) { HomeSectionHeader(HomeSection.READY_TO_BUDGET.title); ReadyToBudgetCard(projection.budgetOverview, hideDecimalPlaces, onBudgetClick) }
-        item(key = HomeSection.FAVORITE_CATEGORIES.name) { HomeSectionHeader(HomeSection.FAVORITE_CATEGORIES.title); CategoryRows(projection.favoriteCategories, hideDecimalPlaces, onBudgetClick) }
-        item(key = HomeSection.FAVORITE_ACCOUNTS.name) { HomeSectionHeader(HomeSection.FAVORITE_ACCOUNTS.title); AccountRows(projection.favoriteAccounts, hideDecimalPlaces, onAccountsClick) }
-        item(key = HomeSection.UPCOMING.name) { HomeSectionHeader(HomeSection.UPCOMING.title); ScheduleRows(projection.upcomingSchedules, hideDecimalPlaces, onSchedulesClick) }
-        item(key = HomeSection.THIS_MONTH.name) { HomeSectionHeader(HomeSection.THIS_MONTH.title); ThisMonthCard(projection.monthTransactions, hideDecimalPlaces, onTransactionsClick) }
-        item(key = HomeSection.REPORTS.name) { HomeSectionHeader(HomeSection.REPORTS.title); HomeDestinationRow("Dashboards and financial insights", Icons.Outlined.BarChart, onReportsClick) }
-        item(key = HomeSection.RECENT_ACTIVITY.name) { HomeSectionHeader(HomeSection.RECENT_ACTIVITY.title); TransactionRows(projection.recentTransactions, hideDecimalPlaces, onTransactionsClick) }
+        item(key = HomeSection.READY_TO_BUDGET.name) { Column { HomeSectionHeader(HomeSection.READY_TO_BUDGET.title); ReadyToBudgetCard(projection.budgetOverview, hideDecimalPlaces, onBudgetClick) } }
+        item(key = HomeSection.FAVORITE_CATEGORIES.name) { Column { HomeSectionHeader(HomeSection.FAVORITE_CATEGORIES.title); CategoryRows(projection.favoriteCategories, hideDecimalPlaces, onBudgetClick) } }
+        item(key = HomeSection.FAVORITE_ACCOUNTS.name) { Column { HomeSectionHeader(HomeSection.FAVORITE_ACCOUNTS.title); AccountRows(projection.favoriteAccounts, hideDecimalPlaces, onAccountsClick) } }
+        item(key = HomeSection.UPCOMING.name) { Column { HomeSectionHeader(HomeSection.UPCOMING.title); ScheduleRows(projection.upcomingSchedules, hideDecimalPlaces, onSchedulesClick) } }
+        item(key = HomeSection.THIS_MONTH.name) { Column { HomeSectionHeader(HomeSection.THIS_MONTH.title); ThisMonthCard(projection.monthTransactions, hideDecimalPlaces, onTransactionsClick) } }
+        item(key = HomeSection.REPORTS.name) { Column { HomeSectionHeader(HomeSection.REPORTS.title); HomeDestinationRow("Dashboards and financial insights", Icons.Outlined.BarChart, onReportsClick) } }
+        item(key = HomeSection.RECENT_ACTIVITY.name) { Column { HomeSectionHeader(HomeSection.RECENT_ACTIVITY.title); TransactionRows(projection.recentTransactions, hideDecimalPlaces, onTransactionsClick) } }
     }
 }
 
@@ -93,7 +93,14 @@ private fun HomeSectionHeader(title: String) = ActuaSectionHeader(title = title)
     if (visible.isEmpty()) HomeEmptyRow("No upcoming bills or schedules", onClick) else visible.forEach { HomeValueRow(it.title, scheduleLabel(it), it.schedule.postAmount, hideDecimals, onClick) }
 }
 @Composable private fun ThisMonthCard(transactions: List<Transaction>, hideDecimals: Boolean, onClick: () -> Unit) {
-    val income = transactions.filter { it.amountCents > 0L }.sumOf { it.amountCents }; val spending = transactions.filter { it.amountCents < 0L }.sumOf { -it.amountCents }
+    var income = 0L
+    var spending = 0L
+    transactions.forEach {
+        when {
+            it.amountCents > 0L -> income += it.amountCents
+            it.amountCents < 0L -> spending -= it.amountCents
+        }
+    }
     Card(Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm).clickable(onClick = onClick)) { Row(Modifier.fillMaxWidth().padding(Spacing.lg), horizontalArrangement = Arrangement.SpaceBetween) { SummaryValue("Income", income, hideDecimals); SummaryValue("Spent", spending, hideDecimals); Column { Text("Activity", style = MaterialTheme.typography.labelMedium); Text(transactions.size.toString(), fontWeight = FontWeight.SemiBold) } } }
 }
 @Composable private fun SummaryValue(label: String, amount: Long, hideDecimals: Boolean) { Column { Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(formatMoneyCents(amount, hideDecimals), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) } }
@@ -110,5 +117,5 @@ private fun scheduleLabel(item: ScheduleListItem): String {
             else -> "Due ${date.iso}"
         }
     } ?: "Scheduled"
-    return listOfNotNull(due, item.accountName).joinToString(" · ")
+    return listOfNotNull(due, item.accountName?.takeIf { it.isNotBlank() }).joinToString(" · ")
 }
