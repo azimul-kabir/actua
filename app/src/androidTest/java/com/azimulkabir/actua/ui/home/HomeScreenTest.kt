@@ -55,4 +55,24 @@ class HomeScreenTest {
 
         assertTrue(clicked)
     }
+
+    @Test fun reportsSectionRoutesToTheSharedReportsDestination() {
+        var reportsClicked = false
+        compose.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    sections = listOf(HomeSection.REPORTS),
+                    onReportsClick = { reportsClicked = true },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Dashboards and financial insights").performClick()
+
+        assertTrue(
+            "Home's Reports shortcut must route into the same Reports destination used " +
+                "elsewhere in the app, not a duplicate implementation",
+            reportsClicked,
+        )
+    }
 }
