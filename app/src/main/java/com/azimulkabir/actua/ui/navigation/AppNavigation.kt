@@ -986,6 +986,22 @@ fun AppNavigation(
                         }
                         if (result.isSuccess) {
                             dataVersion += 1
+                            if (!wasEditing &&
+                                savedTransaction.type != com.azimulkabir.actua.model.Type.TRANSFER &&
+                                savedTransaction.category.isNotBlank() &&
+                                savedTransaction.category != "Uncategorized"
+                            ) {
+                                val balance = withContext(Dispatchers.IO) {
+                                    repository.budgetGroups()
+                                        .asSequence()
+                                        .flatMap { it.categories.asSequence() }
+                                        .firstOrNull { it.name == savedTransaction.category }
+                                        ?.available
+                                }
+                                balance?.let {
+                                    errorMessage = "${savedTransaction.category} available: ${formatMoneyCents(it.toLong(), hideDecimalPlaces)}"
+                                }
+                            }
                             WidgetUpdater.requestAll(context)
                             if (!wasEditing &&
                                 savedTransaction.type != com.azimulkabir.actua.model.Type.TRANSFER &&
