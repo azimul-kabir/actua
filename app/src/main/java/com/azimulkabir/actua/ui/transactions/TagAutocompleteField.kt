@@ -25,7 +25,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
@@ -81,8 +83,22 @@ internal fun TagAutocompleteField(
                 DropdownMenuItem(
                     leadingIcon = { Box(Modifier.size(14.dp).background(parseTagSuggestionColor(tag.color), CircleShape)) },
                     text = { Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("#${tag.tag}", modifier = Modifier.weight(1f))
-                        tag.description?.takeIf(String::isNotBlank)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                        Text(
+                            "#${tag.tag}",
+                            modifier = Modifier.weight(1f).testTag("tagSuggestion-${tag.id}"),
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        tag.description?.takeIf(String::isNotBlank)?.let {
+                            Text(
+                                it,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     } },
                     onClick = {
                         val current = activeTagToken(fieldValue.text, fieldValue.selection.end) ?: return@DropdownMenuItem
