@@ -403,7 +403,7 @@ fun AppNavigation(
         coroutineScope.launch {
             try {
                 when (withContext(Dispatchers.IO) {
-                    ActualSyncRunner.run(context, trigger = "Pull to refresh")
+                    ActualSyncRunner.run(appContext, trigger = "Pull to refresh")
                 }) {
                     is SyncRunResult.Success -> Unit
                     SyncRunResult.NotConfigured -> dataVersion += 1
