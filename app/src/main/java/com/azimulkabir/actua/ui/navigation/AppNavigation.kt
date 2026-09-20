@@ -302,6 +302,13 @@ fun AppNavigation(
     var transactionMonth by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionSearch by rememberSaveable { mutableStateOf("") }
     var searchReturnsToReports by rememberSaveable { mutableStateOf(false) }
+    // Search may be entered from Reports, but a tab switch must not leave that return target
+    // behind for a later search started elsewhere.
+    LaunchedEffect(selectedTab, destination, detail) {
+        if (detail != DetailDestination.Search || selectedTab != destination) {
+            searchReturnsToReports = false
+        }
+    }
     var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
     var newTransactionType by remember { mutableStateOf(com.azimulkabir.actua.model.Type.EXPENSE) }
     var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
