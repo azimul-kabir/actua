@@ -55,6 +55,7 @@ import com.azimulkabir.actua.data.rules.RuleEditorData
 import com.azimulkabir.actua.data.rules.RulePreviewChoices
 import com.azimulkabir.actua.data.rules.TransactionRulePreview
 import com.azimulkabir.actua.data.schedules.ActualScheduleWriter
+import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.schedules.ScheduleLinkedTransaction
@@ -354,7 +355,7 @@ class ActuaRepository(context: Context) {
         return true
     }
 
-    /** Post one linked transaction without advancing the schedule, matching Actual/Actuali. */
+    /** Posts one linked transaction. An early "today" post completes the current recurring occurrence. */
     fun postScheduleTransaction(scheduleId: String, today: Boolean): Boolean {
         val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
             ?: return false
@@ -385,7 +386,21 @@ class ActuaRepository(context: Context) {
             ),
             applyRules = true,
         )
+        if (today) advanceRecurringScheduleAfterTodayPost(schedule)
         return true
+    }
+
+    private fun advanceRecurringScheduleAfterTodayPost(schedule: ActualScheduleSummary) {
+        val current = schedule.nextDate ?: return
+        val recurring = schedule.dateCondition as? com.azimulkabir.actua.data.schedules.ScheduleDateCondition.Recurring
+            ?: return
+        val next = ScheduleRecurrence.nextOccurrence(
+            recurring.config, ScheduleRecurrence.skipSearchStart(current, recurring.config),
+        ) ?: return
+        if (next > current) {
+            ScheduleWriteBuilder.nextDate(schedule, next, reset = false, now = System.currentTimeMillis())
+                ?.let(actualSchedules!!::apply)
+        }
     }
 
     fun deleteSchedule(scheduleId: String): Boolean {

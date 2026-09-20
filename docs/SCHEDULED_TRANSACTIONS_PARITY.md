@@ -159,6 +159,10 @@ matches it closely:
   passively in its Bills UI, the same pattern Actua's Bills & Calendar screen follows); this is not
   a gap versus the audited upstream source, only versus a plausible mobile-specific extension. No
   action needed to match upstream.
+- **Android early-post convenience.** Actual leaves every manual post at the current `next_date`.
+  In Actua only, **Post Transaction Today** advances a recurring schedule past its current
+  occurrence after creating the linked transaction, so an early payment immediately moves the
+  Bills view to the next due date. **Post Transaction** retains upstream manual-post behavior.
 - **`RecurConfig.parse` is strict about `interval`'s JSON type** (only a bare JSON integer is
   accepted; a string-encoded interval is rejected as `Unsupported` rather than coerced). Upstream's
   `recurConfigToRSchedule` does not itself validate `config.interval`'s type before using it
