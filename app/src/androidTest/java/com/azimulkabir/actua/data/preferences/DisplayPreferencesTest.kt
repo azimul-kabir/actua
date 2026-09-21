@@ -46,6 +46,15 @@ class DisplayPreferencesTest {
         assertEquals("1,23,456.78", restored.numberFormat)
     }
 
+    @Test fun categoryStatusDotsDefaultOnAndPersistWhenDisabled() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(true, DisplayPreferences(context).showCategoryStatusDots)
+
+        DisplayPreferences(context).showCategoryStatusDots = false
+
+        assertEquals(false, DisplayPreferences(context).showCategoryStatusDots)
+    }
+
     @Test fun legacyReportsStartPageMigratesToHome() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         context.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)

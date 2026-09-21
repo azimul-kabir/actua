@@ -29,6 +29,26 @@ class CategoryStatusColorStateTest {
     }
 
     @Test
+    fun showDotsDefaultsOnAndTogglePersistsAcrossInstances() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
+            .edit().remove("show_category_status_dots").commit()
+
+        val state = CategoryStatusColorState(context)
+        assertEquals(true, state.showDots)
+
+        state.setShowDots(false)
+        assertEquals(false, state.showDots)
+
+        val reloaded = CategoryStatusColorState(context)
+        assertEquals(false, reloaded.showDots)
+
+        // Leave the shared display_preferences store as found for other tests.
+        context.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
+            .edit().remove("show_category_status_dots").commit()
+    }
+
+    @Test
     fun resetToDefaultsClearsEveryOverride() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         context.getSharedPreferences("category_status_color_preferences", Context.MODE_PRIVATE)

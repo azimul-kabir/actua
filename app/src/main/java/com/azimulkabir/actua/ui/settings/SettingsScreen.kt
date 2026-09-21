@@ -50,6 +50,7 @@ import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSectionHeader
+import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 
 internal enum class SettingsPage(val title: String, val depth: Int) {
     Manage("Manage", 0),
@@ -394,6 +395,12 @@ fun SettingsScreen(
                     )
                 }
                 SettingsPage.Budget -> {
+                    val categoryStatusColors = LocalCategoryStatusColors.current
+                    SettingsToggle(
+                        "Category status dot",
+                        "Show a status dot next to category names on Budget and Home",
+                        categoryStatusColors?.showDots ?: true,
+                    ) { categoryStatusColors?.setShowDots(it) }
                     SettingsRow(
                         "Category status colors",
                         "Retint the unassigned, funded, spending, spent and overspent status colors",

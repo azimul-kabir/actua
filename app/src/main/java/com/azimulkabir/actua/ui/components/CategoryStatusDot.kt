@@ -13,12 +13,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.BudgetProgressState
+import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
 
 /**
  * A small dot reflecting a category's [BudgetProgressState], colored through the shared
  * [categoryStatusColor] resolver so it always matches the category's progress bar. The state's
- * label is exposed via semantics so status is never conveyed by color alone.
+ * label is exposed via semantics so status is never conveyed by color alone. Composes nothing
+ * (not even the space its modifier would reserve) when the user has turned status dots off from
+ * Settings > Budget.
  */
 @Composable
 fun CategoryStatusDot(
@@ -27,6 +30,8 @@ fun CategoryStatusDot(
     color: Color = categoryStatusColor(status),
     size: Dp = 8.dp,
 ) {
+    val visible = LocalCategoryStatusColors.current?.showDots ?: true
+    if (!visible) return
     Box(
         modifier = modifier
             .size(size)

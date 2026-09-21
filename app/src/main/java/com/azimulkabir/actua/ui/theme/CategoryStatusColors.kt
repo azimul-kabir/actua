@@ -4,11 +4,15 @@ import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.azimulkabir.actua.data.preferences.CategoryStatusColorPreferences
+import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.model.BudgetProgressState
 
 /**
@@ -20,11 +24,15 @@ import com.azimulkabir.actua.model.BudgetProgressState
 @Stable
 class CategoryStatusColorState(context: Context) {
     private val preferences = CategoryStatusColorPreferences(context.applicationContext)
+    private val displayPreferences = DisplayPreferences(context.applicationContext)
     private val overrides = mutableStateMapOf<BudgetProgressState, Color>().apply {
         BudgetProgressState.entries.forEach { status ->
             preferences.colorOverride(status)?.let { put(status, Color(it)) }
         }
     }
+
+    var showDots by mutableStateOf(displayPreferences.showCategoryStatusDots)
+        private set
 
     fun overrideOrNull(status: BudgetProgressState): Color? = overrides[status]
 
@@ -36,6 +44,11 @@ class CategoryStatusColorState(context: Context) {
     fun resetToDefaults() {
         overrides.clear()
         preferences.resetToDefaults()
+    }
+
+    fun setShowDots(show: Boolean) {
+        showDots = show
+        displayPreferences.showCategoryStatusDots = show
     }
 }
 
