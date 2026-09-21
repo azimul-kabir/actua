@@ -50,6 +50,7 @@ import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSectionHeader
+import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 
 internal enum class SettingsPage(val title: String, val depth: Int) {
     Manage("Manage", 0),
@@ -58,6 +59,8 @@ internal enum class SettingsPage(val title: String, val depth: Int) {
     Transactions("Transactions & Accounts", 2),
     Display("Display", 2),
     Privacy("Privacy", 2),
+    Budget("Budget", 2),
+    CategoryColors("Category status colors", 3),
     About("About", 2),
 }
 
@@ -163,8 +166,10 @@ fun SettingsScreen(
     val scrollState = rememberScrollState()
     fun parentPage(current: SettingsPage): SettingsPage = when (current) {
         SettingsPage.Tags -> SettingsPage.Manage
-        SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.About ->
-            SettingsPage.General
+        SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.Budget,
+        SettingsPage.About,
+        -> SettingsPage.General
+        SettingsPage.CategoryColors -> SettingsPage.Budget
         SettingsPage.General -> SettingsPage.Manage
         SettingsPage.Manage -> SettingsPage.Manage
     }
@@ -276,6 +281,9 @@ fun SettingsScreen(
                     SettingsRow("Privacy", "Balances and optional location-aware payee controls", true) {
                         page = SettingsPage.Privacy
                     }
+                    SettingsRow("Budget", "Category status dot and progress bar colors", true) {
+                        page = SettingsPage.Budget
+                    }
                     SettingsSection("About")
                     SettingsRow("About Actua", "Version, project information, credits and license", true) {
                         page = SettingsPage.About
@@ -385,6 +393,22 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
+                }
+                SettingsPage.Budget -> {
+                    val categoryStatusColors = LocalCategoryStatusColors.current
+                    SettingsToggle(
+                        "Category status dot",
+                        "Show a status dot next to category names on Budget and Home",
+                        categoryStatusColors?.showDots ?: true,
+                    ) { categoryStatusColors?.updateShowDots(it) }
+                    SettingsRow(
+                        "Category status colors",
+                        "Retint the unassigned, funded, spending, spent and overspent status colors",
+                        true,
+                    ) { page = SettingsPage.CategoryColors }
+                }
+                SettingsPage.CategoryColors -> {
+                    CategoryStatusColorSettings()
                 }
                 SettingsPage.About -> {
                     ListItem(

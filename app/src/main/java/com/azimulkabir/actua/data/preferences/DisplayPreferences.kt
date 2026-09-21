@@ -37,6 +37,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_BUDGET_PROGRESS_BARS, true)
         set(value) { preferences.edit().putBoolean(SHOW_BUDGET_PROGRESS_BARS, value).apply() }
 
+    var showCategoryStatusDots: Boolean
+        get() = preferences.getBoolean(SHOW_CATEGORY_STATUS_DOTS, true)
+        set(value) { preferences.edit().putBoolean(SHOW_CATEGORY_STATUS_DOTS, value).apply() }
+
     var budgetView: String
         get() = preferences.getString(BUDGET_VIEW, "Plan") ?: "Plan"
         set(value) { preferences.edit().putString(BUDGET_VIEW, value).apply() }
@@ -147,6 +151,7 @@ class DisplayPreferences(context: Context) {
         const val SHOW_HIDDEN_CATEGORIES = "show_hidden_categories"
         const val SHOW_SPENT_COLUMN = "show_spent_column"
         const val SHOW_BUDGET_PROGRESS_BARS = "show_budget_progress_bars"
+        const val SHOW_CATEGORY_STATUS_DOTS = "show_category_status_dots"
         const val BUDGET_VIEW = "budget_view"
         const val SHOW_BUDGET_OVERVIEW = "show_budget_overview"
         const val SHOW_GROUP_TOTALS = "show_group_totals"

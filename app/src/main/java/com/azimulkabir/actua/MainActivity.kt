@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -15,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.azimulkabir.actua.ui.navigation.AppNavigation
 import com.azimulkabir.actua.ui.theme.ActuaTheme
+import com.azimulkabir.actua.ui.theme.CategoryStatusColorState
+import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
@@ -37,15 +40,18 @@ class MainActivity : ComponentActivity() {
         setContent {
             var appearance by remember { mutableStateOf(DisplayPreferences(this).appearance) }
             var useDynamicColor by remember { mutableStateOf(DisplayPreferences(this).useDynamicColor) }
+            val categoryStatusColorState = remember { CategoryStatusColorState(this) }
             ActuaTheme(appearance = appearance, dynamicColor = useDynamicColor) {
-                AppNavigation(
-                    modifier = Modifier.fillMaxSize(),
-                    foregroundGeneration = foregroundGeneration,
-                    launchRequest = launchRequest,
-                    onLaunchRequestConsumed = { launchRequest = null },
-                    onAppearanceChange = { appearance = it },
-                    onUseDynamicColorChange = { useDynamicColor = it },
-                )
+                CompositionLocalProvider(LocalCategoryStatusColors provides categoryStatusColorState) {
+                    AppNavigation(
+                        modifier = Modifier.fillMaxSize(),
+                        foregroundGeneration = foregroundGeneration,
+                        launchRequest = launchRequest,
+                        onLaunchRequestConsumed = { launchRequest = null },
+                        onAppearanceChange = { appearance = it },
+                        onUseDynamicColorChange = { useDynamicColor = it },
+                    )
+                }
             }
         }
         // Both operations can initialise WorkManager, and refreshing card reminders opens the

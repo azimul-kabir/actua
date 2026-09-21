@@ -12,6 +12,8 @@ class SettingsNavigationMotionTest {
         assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Display))
         assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Privacy))
         assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.About))
+        assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Budget))
+        assertTrue(isForwardSettingsNavigation(SettingsPage.Budget, SettingsPage.CategoryColors))
     }
 
     @Test
@@ -21,5 +23,6 @@ class SettingsNavigationMotionTest {
         assertFalse(isForwardSettingsNavigation(SettingsPage.Privacy, SettingsPage.General))
         assertFalse(isForwardSettingsNavigation(SettingsPage.About, SettingsPage.General))
         assertFalse(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Manage))
+        assertFalse(isForwardSettingsNavigation(SettingsPage.CategoryColors, SettingsPage.Budget))
     }
 }
