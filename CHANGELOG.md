@@ -9,6 +9,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Added
 
 - Added read-only viewing of saved Actual custom reports, with a donut chart for category/group breakdowns, a viewer-side date and account filter, per-interval (daily/weekly/monthly/yearly) charts with tappable bars, and drill-down from a report segment to its contributing transactions; report calculations share one Actual-compatible aggregator (see `docs/REPORTS_PARITY.md`)
+- Added an Income vs expenses report card leading the reports overview: tappable grouped monthly bars (income, expenses, net) that respect the shared date/account filter, with Income and Expenses rows drilling down to contributing transactions; refunds net against their side and same-side transfers and off-budget accounts are excluded
 - Report trend charts are now touch-interactive: tap or drag to read the exact value at a point
 - Scheduled transactions now appear as upcoming rows in the Transactions tab and inside each account, styled distinctly (italic title, "Upcoming" caption, muted amount, repeat icon) and excluded from balances, running balances and search; a "Show upcoming transactions" toggle in the overflow menu controls them
 - Add Transaction now auto-focuses the amount and chains the payee/category/account pickers, and Settings → Budget has a new switch to hide the income group in Budget
