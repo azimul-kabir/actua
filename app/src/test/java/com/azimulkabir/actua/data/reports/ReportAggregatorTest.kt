@@ -107,3 +107,20 @@ class ReportAggregatorTest {
         assertEquals(aggregator.select(rows, f).map { it.id }, totals.flatMap { it.transactionIds })
     }
 }
+
+class ReportAggregatorScaleTest {
+    @Test fun `large ledger totals reconcile with drill-down ids`() {
+        val accounts = listOf(ActualAccount("a", "A", ActualAccountType.CHECKING, false, false, 0, 0))
+        val groups = listOf(ActualCategoryGroup("g", "G", false, false, 1.0,
+            (0 until 50).map { ActualCategory("c$it", "C$it", "g", false, false, it.toDouble()) }))
+        val rows = (0 until 200_000).map { i ->
+            ActualTransaction("t$i", "a", 20260101 + i % 28, -(i % 997 + 1).toLong(), null, null, "c${i % 50}", null, null,
+                false, false, null, false, null, false, null, null, null, null)
+        }
+        val aggregator = ReportAggregator(accounts, groups)
+        val filter = ReportFilter(20260101, 20260131)
+        val totals = aggregator.groupTotals(rows, filter, ReportGrouping.CATEGORY)
+        assertEquals(rows.sumOf { it.amountCents }, totals.sumOf { it.totalCents })
+        assertEquals(rows.size, totals.sumOf { it.transactionIds.size })
+    }
+}

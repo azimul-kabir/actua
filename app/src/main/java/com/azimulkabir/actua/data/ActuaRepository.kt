@@ -885,23 +885,44 @@ class ActuaRepository(context: Context) {
             .map { toTransaction(it, accountNames) }
     }
 
-    /** Saved Actual reports evaluated with an optional viewer-side date/account override. */
-    fun savedReportWidgets(view: com.azimulkabir.actua.model.ReportViewFilter): List<com.azimulkabir.actua.model.ReportWidget> {
-        val db = actualDatabase ?: return emptyList()
-        val accounts = db.fetchAccounts()
-        val groups = db.fetchCategoryGroups()
-        val rows = db.fetchTransactionsForReports()
-        return db.fetchSavedReports().map {
-            com.azimulkabir.actua.data.reports.SavedReportEngine.compute(it, rows, accounts, groups, view = view)
-        }
+    private class ReportInputs(
+        val version: Int,
+        val database: Any,
+        val accounts: List<com.azimulkabir.actua.data.budget.model.ActualAccount>,
+        val groups: List<com.azimulkabir.actua.data.budget.model.ActualCategoryGroup>,
+        val rows: List<ActualTransaction>,
+    )
+
+    @Volatile private var reportInputs: ReportInputs? = null
+
+    /** Report inputs are read once per data version so filter changes don't reload the whole ledger. */
+    private fun reportInputs(db: ActualBudgetDatabase, version: Int): ReportInputs {
+        reportInputs?.takeIf { it.version == version && it.database === db }?.let { return it }
+        return ReportInputs(version, db, db.fetchAccounts(), db.fetchCategoryGroups(), db.fetchTransactionsForReports())
+            .also { reportInputs = it }
     }
 
-    fun reports(): ReportSnapshot {
+    /** Saved Actual reports evaluated with an optional viewer-side date/account override. */
+    fun savedReportWidgets(
+        view: com.azimulkabir.actua.model.ReportViewFilter,
+        dataVersion: Int = -1,
+    ): List<com.azimulkabir.actua.model.ReportWidget> {
+        val db = actualDatabase ?: return emptyList()
+        val inputs = if (dataVersion < 0) ReportInputs(-1, db, db.fetchAccounts(), db.fetchCategoryGroups(),
+            db.fetchTransactionsForReports()) else reportInputs(db, dataVersion)
+        return com.azimulkabir.actua.data.reports.SavedReportEngine.computeAll(
+            db.fetchSavedReports(), inputs.rows, inputs.accounts, inputs.groups, view,
+        )
+    }
+
+    fun reports(dataVersion: Int = -1): ReportSnapshot {
         val db = actualDatabase ?: return ReportSnapshot(emptyList(), emptyList(), 0)
-        val accounts = db.fetchAccounts()
-        val groups = db.fetchCategoryGroups()
+        val inputs = if (dataVersion < 0) ReportInputs(-1, db, db.fetchAccounts(), db.fetchCategoryGroups(),
+            db.fetchTransactionsForReports()) else reportInputs(db, dataVersion)
+        val accounts = inputs.accounts
+        val groups = inputs.groups
         val onBudgetIds = accounts.filter { !it.offBudget && !it.closed }.mapTo(mutableSetOf()) { it.id }
-        val allRows = db.fetchTransactionsForReports()
+        val allRows = inputs.rows
         val rows = allRows.filter { it.accountId in onBudgetIds }
         val currentMonth = currentMonth()
         val monthRows = rows.filter { it.transferId == null }.groupBy { dateMonth(it.date) }
@@ -937,9 +958,9 @@ class ActuaRepository(context: Context) {
                 }
             },
         )
-        val savedWidgets = db.fetchSavedReports().map {
-            com.azimulkabir.actua.data.reports.SavedReportEngine.compute(it, allRows, accounts, groups)
-        }
+        val savedWidgets = com.azimulkabir.actua.data.reports.SavedReportEngine.computeAll(
+            db.fetchSavedReports(), allRows, accounts, groups,
+        )
         val pages = if (savedWidgets.isEmpty()) dashboards else
             dashboards + com.azimulkabir.actua.model.ReportDashboardPage("saved-reports", "Saved reports", savedWidgets)
         return ReportSnapshot(

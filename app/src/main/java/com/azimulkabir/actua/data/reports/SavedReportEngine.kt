@@ -18,6 +18,27 @@ import java.time.YearMonth
 
 /** Read-only evaluation of Actual's saved custom reports using the shared [ReportAggregator]. */
 object SavedReportEngine {
+    /** Lookups that are identical for every saved report; build once per evaluation pass. */
+    class Shared(transactions: List<ActualTransaction>, accounts: List<ActualAccount>, groups: List<ActualCategoryGroup>) {
+        val aggregator = ReportAggregator(accounts, groups)
+        val context = RuleContext(
+            offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id },
+            accountNames = accounts.associate { it.id to it.name },
+            categoryNames = groups.flatMap { it.categories }.associate { it.id to it.name },
+            categoryGroupIds = groups.flatMap { it.categories }.associate { it.id to it.groupId },
+            categoryGroupNames = groups.associate { it.id to it.name },
+            payeeNames = transactions.mapNotNull { tx -> tx.payeeId?.let { it to tx.payeeName.orEmpty() } }.toMap(),
+        )
+    }
+
+    fun computeAll(
+        rows: List<SavedReportRow>, transactions: List<ActualTransaction>, accounts: List<ActualAccount>,
+        groups: List<ActualCategoryGroup>, view: ReportViewFilter = ReportViewFilter(),
+    ): List<ReportWidget> {
+        val shared = Shared(transactions, accounts, groups)
+        return rows.map { compute(it, transactions, accounts, groups, view = view, shared = shared) }
+    }
+
     fun compute(
         row: SavedReportRow,
         transactions: List<ActualTransaction>,
@@ -25,8 +46,9 @@ object SavedReportEngine {
         groups: List<ActualCategoryGroup>,
         today: LocalDate = LocalDate.now(),
         view: ReportViewFilter = ReportViewFilter(),
+        shared: Shared = Shared(transactions, accounts, groups),
     ): ReportWidget {
-        val aggregator = ReportAggregator(accounts, groups)
+        val aggregator = shared.aggregator
         val (start, end) = dateRange(
             view.datePreset?.let { row.copy(dateStatic = false, dateRange = it) } ?: row, today,
         )
@@ -42,14 +64,7 @@ object SavedReportEngine {
             balanceType = balanceType(row.balanceType),
         )
         val conditions = parseConditions(row)
-        val context = RuleContext(
-            offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id },
-            accountNames = accounts.associate { it.id to it.name },
-            categoryNames = groups.flatMap { it.categories }.associate { it.id to it.name },
-            categoryGroupIds = groups.flatMap { it.categories }.associate { it.id to it.groupId },
-            categoryGroupNames = groups.associate { it.id to it.name },
-            payeeNames = transactions.mapNotNull { tx -> tx.payeeId?.let { it to tx.payeeName.orEmpty() } }.toMap(),
-        )
+        val context = shared.context
         val scoped = if (conditions.first.isEmpty()) transactions else transactions.filter {
             RulesEngine.matches(it, conditions.first, conditions.second, context)
         }
