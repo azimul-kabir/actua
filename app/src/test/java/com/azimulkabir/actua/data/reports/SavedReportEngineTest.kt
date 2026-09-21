@@ -53,3 +53,21 @@ class SavedReportViewFilterTest {
         assertEquals(-157L, w.valueCents)
     }
 }
+
+class IntervalPointsTest {
+    private fun tx(date: Int, amount: Long) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        "t$date", "a", date, amount, null, null, null, null, null, false, false, null, false, null, false, null, null, null, null)
+    private val today = LocalDate.of(2026, 3, 15)
+
+    @Test fun `monthly buckets fill gaps and sum cents`() {
+        val pts = SavedReportEngine.intervalPoints(listOf(tx(20260105, -100), tx(20260120, -1), tx(20260310, -5)),
+            "Monthly", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 31), today)
+        assertEquals(listOf("2026-01" to -101L, "2026-02" to 0L, "2026-03" to -5L), pts.map { it.period to it.primaryCents })
+    }
+
+    @Test fun `weekly buckets start on Sunday`() {
+        val pts = SavedReportEngine.intervalPoints(listOf(tx(20260304, -10), tx(20260308, -20)),
+            "Weekly", LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 14), today)
+        assertEquals(listOf("2026-03-01" to -10L, "2026-03-08" to -20L), pts.map { it.period to it.primaryCents })
+    }
+}

@@ -41,6 +41,8 @@ data class ReportWidget(
     /** Saved-report presentation hint (`DonutGraph`, `BarGraph`, ...). */
     val graphType: String? = null,
     val subtitle: String? = null,
+    /** Saved report charts value per interval rather than per group. */
+    val timeMode: Boolean = false,
 )
 
 /** Viewer-side override applied on top of a saved report's own settings; never written back. */

@@ -449,6 +449,44 @@ private fun Formula(widget: ReportWidget, hideDecimals: Boolean) {
     } ?: Text(widget.markdown ?: "Formula unavailable", color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
+@Composable
+private fun IntervalBars(points: List<ReportPoint>, hideDecimals: Boolean) {
+    val color = MaterialTheme.colorScheme.primary
+    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
+    val active = selected?.takeIf { it in points.indices }
+    val maximum = points.maxOf { it.primaryCents.absoluteValue }.coerceAtLeast(1)
+    Text(
+        active?.let { "${points[it].period} · ${formatMoneyCents(points[it].primaryCents, hideDecimals)}" }
+            ?: "Tap a bar for details",
+        style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Canvas(
+        Modifier.fillMaxWidth().height(140.dp)
+            .semantics { contentDescription = "Bar chart with ${points.size} periods. Tap a bar to read its value." }
+            .pointerInput(points) {
+                detectTapGestures { tap ->
+                    val i = (tap.x / size.width * points.size).toInt().coerceIn(0, points.size - 1)
+                    selected = i.takeIf { it != selected }
+                }
+            },
+    ) {
+        val slot = size.width / points.size
+        val barWidth = (slot * 0.7f).coerceAtLeast(1f)
+        points.forEachIndexed { i, p ->
+            val h = p.primaryCents.absoluteValue.toFloat() / maximum * size.height
+            drawRect(if (i == active) color else color.copy(alpha = 0.6f),
+                Offset(slot * i + (slot - barWidth) / 2, size.height - h),
+                androidx.compose.ui.geometry.Size(barWidth, h))
+        }
+    }
+    Row(Modifier.fillMaxWidth()) {
+        Text(points.first().period, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(points.last().period, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
 private val donutHues = floatArrayOf(210f, 20f, 140f, 280f, 50f, 350f, 175f, 320f, 100f, 240f)
 
 @Composable
@@ -461,6 +499,8 @@ private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
     val segments = widget.categories.filter { it.spentCents != 0L }
     when {
         widget.graphType == "DonutGraph" && segments.isNotEmpty() -> DonutSegments(segments, hideDecimals, onDrillDown)
+        widget.timeMode && (widget.graphType == "BarGraph" || widget.graphType == "StackedBarGraph") &&
+            widget.points.isNotEmpty() -> IntervalBars(widget.points, hideDecimals)
         (widget.graphType == "LineGraph" || widget.graphType == "AreaGraph") && widget.points.size > 1 -> {
             TrendChart(widget.points, hideDecimals)
             PointLabels(widget.points, hideDecimals)

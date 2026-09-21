@@ -21,4 +21,6 @@ data class SavedReportRow(
     val conditions: String?,
     val conditionsOp: String?,
     val interval: String,
+    /** `total` (one bar per group) or `time` (one bar per interval). */
+    val mode: String = "total",
 )
