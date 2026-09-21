@@ -111,7 +111,10 @@ fun AddTransactionScreen(
     onForgetPayeeLocation: (suspend (String) -> Boolean)? = null,
 ) {
     var amountCents by remember(editing) { mutableStateOf(abs(editing?.amountCents ?: 0L)) }
-    var showCalculator by remember { mutableStateOf(false) }
+    // A new transaction opens straight into the amount calculator, then walks the user through
+    // the payee, category and account pickers; each step is skipped if it isn't shown.
+    var showCalculator by remember(editing) { mutableStateOf(editing == null) }
+    var autoStep by remember(editing) { mutableStateOf<AddStep?>(null) }
     var amountExpression by remember(editing) { mutableStateOf<String?>(null) }
     var confirmDelete by remember(editing) { mutableStateOf(false) }
     var payee by remember(editing) { mutableStateOf(editing?.payee ?: "") }
@@ -165,6 +168,16 @@ fun AddTransactionScreen(
     } && splitTotal == amountCents)
     val canSave = amountCents > 0 && account.isNotBlank() &&
         (transactionType != Type.TRANSFER.displayName || transferAccount.isNotBlank()) && splitIsValid
+    val isTransferType = transactionType == Type.TRANSFER.displayName
+    val showsCategory = !isTransferType && !isSplit && !isOffBudget
+    LaunchedEffect(autoStep, isTransferType, showsCategory) {
+        autoStep = when (autoStep) {
+            AddStep.Payee -> if (isTransferType) AddStep.Account else AddStep.Payee
+            AddStep.Category -> if (showsCategory) AddStep.Category else AddStep.Account
+            AddStep.To -> if (isTransferType) AddStep.To else null
+            else -> autoStep
+        }
+    }
     val cursorTransition = rememberInfiniteTransition(label = "Amount cursor")
     val cursorAlpha by cursorTransition.animateFloat(
         initialValue = 1f,
@@ -323,6 +336,9 @@ fun AddTransactionScreen(
                         }
                     },
                     allowCustom = true,
+                    autoOpen = autoStep == AddStep.Payee,
+                    onAutoOpenHandled = { autoStep = null },
+                    onPicked = { if (editing == null) autoStep = AddStep.Category },
                     onFindNearby = onFindNearbyPayees,
                     onSavePayeeLocation = onSavePayeeLocation,
                     onForgetPayeeLocation = onForgetPayeeLocation,
@@ -332,6 +348,9 @@ fun AddTransactionScreen(
                 PickerTextField(
                     label = "Category", value = category, options = categoryOptions,
                     onValueChange = { category = it; categoryIsExplicit = it.isNotBlank() },
+                    autoOpen = autoStep == AddStep.Category,
+                    onAutoOpenHandled = { autoStep = null },
+                    onPicked = { if (editing == null) autoStep = AddStep.Account },
                 )
             }
             PickerTextField(
@@ -346,6 +365,9 @@ fun AddTransactionScreen(
                     }
                     if (transferAccount == it) { transferAccount = ""; rulesApplied = false }
                 },
+                autoOpen = autoStep == AddStep.Account,
+                onAutoOpenHandled = { autoStep = null },
+                onPicked = { if (editing == null) autoStep = AddStep.To },
             )
             if (transactionType == Type.TRANSFER.displayName) {
                 IconButton(
@@ -388,6 +410,8 @@ fun AddTransactionScreen(
                             rulesApplied = preview.rulesApplied
                         }
                     },
+                    autoOpen = autoStep == AddStep.To,
+                    onAutoOpenHandled = { autoStep = null },
                 )
             } else {
                 if (!isSplit) {
@@ -580,6 +604,7 @@ fun AddTransactionScreen(
         },
         onApply = { amountCents = it },
         onExpressionChange = { amountExpression = it },
+        onDone = { if (editing == null) autoStep = AddStep.Payee },
     )
     splitCalculatorIndex?.let { index ->
         val line = splitLines.getOrNull(index)
@@ -632,6 +657,8 @@ fun AddTransactionScreen(
     }
 }
 
+private enum class AddStep { Payee, Category, Account, To }
+
 private val Type.displayName: String get() = name.lowercase().replaceFirstChar(Char::uppercase)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -663,8 +690,17 @@ internal fun PickerTextField(
     onFindNearby: (suspend () -> NearbyPayeeSearchResult)? = null,
     onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
     onForgetPayeeLocation: (suspend (String) -> Boolean)? = null,
+    autoOpen: Boolean = false,
+    onAutoOpenHandled: () -> Unit = {},
+    onPicked: () -> Unit = {},
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    LaunchedEffect(autoOpen) {
+        if (autoOpen) {
+            showPicker = true
+            onAutoOpenHandled()
+        }
+    }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var knownNearbyPayees by remember { mutableStateOf<Set<String>?>(null) }
@@ -782,6 +818,7 @@ internal fun PickerTextField(
         onSelect = {
             onValueChange(it)
             showPicker = false
+            onPicked()
         },
     )
     if (showPermissionExplanation) {

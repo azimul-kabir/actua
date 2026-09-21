@@ -142,6 +142,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_NOTES, true)
         set(value) { preferences.edit().putBoolean(SHOW_NOTES, value).apply() }
 
+    var hideIncomeGroupInBudget: Boolean
+        get() = preferences.getBoolean(HIDE_INCOME_GROUP_IN_BUDGET, false)
+        set(value) { preferences.edit().putBoolean(HIDE_INCOME_GROUP_IN_BUDGET, value).apply() }
+
     var showUpcomingTransactions: Boolean
         get() = preferences.getBoolean(SHOW_UPCOMING_TRANSACTIONS, true)
         set(value) { preferences.edit().putBoolean(SHOW_UPCOMING_TRANSACTIONS, value).apply() }
@@ -180,6 +184,7 @@ class DisplayPreferences(context: Context) {
         const val SHOW_CURRENT_BALANCE_SUMMARY = "show_current_balance_summary"
         const val SHOW_RUNNING_BALANCE = "show_running_balance"
         const val SHOW_NOTES = "show_notes"
+        const val HIDE_INCOME_GROUP_IN_BUDGET = "hide_income_group_in_budget"
         const val SHOW_UPCOMING_TRANSACTIONS = "show_upcoming_transactions"
     }
 }

@@ -432,6 +432,7 @@ fun AppNavigation(
     var showCurrentBalanceSummary by remember { mutableStateOf(displayPreferences.showCurrentBalanceSummary) }
     var showRunningBalance by remember { mutableStateOf(displayPreferences.showRunningBalance) }
     var showNotes by remember { mutableStateOf(displayPreferences.showNotes) }
+    var hideIncomeGroupInBudget by remember { mutableStateOf(displayPreferences.hideIncomeGroupInBudget) }
     BalanceVisibility.hidden = hideBalances
     CurrencyDisplay.code = currencyCode
     CurrencyDisplay.symbolOnly = currencySymbolOnly
@@ -2054,6 +2055,7 @@ fun AppNavigation(
                     },
                     returnToRootRequest = rootRequests[MainDestination.Budget] ?: 0,
                     showNotes = showNotes,
+                    hideIncomeGroup = hideIncomeGroupInBudget,
                 )
                 MainDestination.Accounts -> AccountsScreen(
                     modifier = contentModifier,
@@ -2200,6 +2202,11 @@ fun AppNavigation(
                     onShowNotesChange = {
                         displayPreferences.showNotes = it
                         showNotes = it
+                    },
+                    hideIncomeGroupInBudget = hideIncomeGroupInBudget,
+                    onHideIncomeGroupInBudgetChange = {
+                        displayPreferences.hideIncomeGroupInBudget = it
+                        hideIncomeGroupInBudget = it
                     },
                     currencyCode = currencyCode,
                     onCurrencyCodeChange = {

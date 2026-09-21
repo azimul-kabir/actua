@@ -208,6 +208,7 @@ fun BudgetScreen(
     onCategoryDetailsChange: (String?) -> Unit = {},
     returnToRootRequest: Int = 0,
     showNotes: Boolean = true,
+    hideIncomeGroup: Boolean = false,
 ) {
     val context = LocalContext.current
     val budgetUiPreferences = remember(context) {
@@ -330,8 +331,8 @@ fun BudgetScreen(
         // `headerGroup` is precomputed here (once per data/toggle change) rather than via
         // `group.copy(categories = visibleCategories)` inline at each header call site, which
         // would otherwise allocate a new BudgetGroup on every recomposition of this screen.
-        val visibleGroups = remember(groups, showHidden, hideFullySpent, selectedView, scheduleFunding, favoritesOnly, favoriteCategoryIds) {
-            groups.filter { showHidden || !it.hidden }.map { group ->
+        val visibleGroups = remember(groups, showHidden, hideFullySpent, selectedView, scheduleFunding, favoritesOnly, favoriteCategoryIds, hideIncomeGroup) {
+            groups.filter { (showHidden || !it.hidden) && !(hideIncomeGroup && it.isIncome) }.map { group ->
                 val visibleCategories = group.categories.filter { category ->
                     (showHidden || !category.hidden) &&
                         (!hideFullySpent || category.available != 0) &&
@@ -1020,12 +1021,15 @@ private fun PlanBudgetCategoryRow(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(
-                    if (category.hidden) "${category.name} · Hidden" else category.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CategoryStatusDot(category.progressState, modifier = Modifier.padding(end = 8.dp))
+                    Text(
+                        if (category.hidden) "${category.name} · Hidden" else category.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 category.target?.let {
                     Text(it.type.label, style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary, maxLines = 1,
