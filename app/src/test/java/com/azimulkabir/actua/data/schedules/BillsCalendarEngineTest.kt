@@ -42,6 +42,52 @@ class BillsCalendarEngineTest {
         assertEquals("Subscriptions", items.first().categoryName)
     }
 
+    @Test fun earlyTodayPostMarksOccurrencePaidAfterScheduleAdvances() {
+        val schedule = schedule(
+            nextDate = DayDate(2026, 10, 5),
+            condition = ScheduleDateCondition.Recurring(
+                RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2026, 1, 5)),
+            ),
+            status = ScheduleStatus.UPCOMING,
+            postsTransaction = true,
+        )
+
+        val items = BillsCalendarEngine.itemsForSchedules(
+            listOf(schedule),
+            mapOf("schedule" to setOf(DayDate(2026, 9, 1))),
+            emptyMap(),
+            2026,
+            9,
+            today,
+        )
+
+        assertEquals(listOf(DayDate(2026, 9, 5)), items.map(BillCalendarItem::date))
+        assertEquals(listOf(ScheduleStatus.PAID), items.map(BillCalendarItem::status))
+        assertTrue(items.none(BillCalendarItem::isCurrentOccurrence))
+    }
+
+    @Test fun oldPaymentDoesNotMarkAdvancedOccurrencePaid() {
+        val schedule = schedule(
+            nextDate = DayDate(2026, 10, 5),
+            condition = ScheduleDateCondition.Recurring(
+                RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2026, 1, 5)),
+            ),
+            status = ScheduleStatus.UPCOMING,
+            postsTransaction = true,
+        )
+
+        val items = BillsCalendarEngine.itemsForSchedules(
+            listOf(schedule),
+            mapOf("schedule" to setOf(DayDate(2026, 8, 5))),
+            emptyMap(),
+            2026,
+            9,
+            today,
+        )
+
+        assertEquals(listOf(ScheduleStatus.MISSED), items.map(BillCalendarItem::status))
+    }
+
     @Test fun summaryAndFiltersSeparateUpcomingOverdueAndPaid() {
         val items = listOf(
             item("future", 20, -1_000, ScheduleStatus.UPCOMING),
@@ -64,11 +110,12 @@ class BillsCalendarEngineTest {
         nextDate: DayDate,
         condition: ScheduleDateCondition,
         status: ScheduleStatus,
+        postsTransaction: Boolean = false,
     ) = ScheduleListItem(
         ActualScheduleSummary(
             "schedule", "Rent", null, nextDate, null, null, "account", null,
             ScheduledAmount.Fixed(-125_000), ScheduleAmountOp.APPROXIMATE, "isapprox", condition,
-            false, false, null, null, false, null, null, "category",
+            postsTransaction, false, null, null, false, null, null, "category",
         ),
         status,
         "Checking",
