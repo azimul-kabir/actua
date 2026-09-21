@@ -56,7 +56,7 @@ object SavedReportEngine {
             else -> ReportGrouping.CATEGORY
         }
         val segments = if (row.groupBy == "Interval") emptyList() else
-            aggregator.groupTotals(scoped, filter, grouping).map { ReportCategory(it.name, it.totalCents) }
+            aggregator.groupTotals(scoped, filter, grouping).map { ReportCategory(it.name, it.totalCents, it.transactionIds) }
         val points = included.groupBy { YearMonth.of(it.date / 10000, it.date / 100 % 100) }.toSortedMap()
             .map { (month, rows) -> ReportPoint(month.toString(), rows.sumOf { it.amountCents }) }
         return ReportWidget(

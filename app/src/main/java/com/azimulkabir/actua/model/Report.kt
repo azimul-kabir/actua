@@ -6,7 +6,12 @@ data class ReportMonth(
     val expenseCents: Long,
 ) { val netCents: Long get() = incomeCents - expenseCents }
 
-data class ReportCategory(val name: String, val spentCents: Long)
+data class ReportCategory(
+    val name: String,
+    val spentCents: Long,
+    /** Ids of the transactions that make up [spentCents], for read-only drill-down. */
+    val transactionIds: List<String> = emptyList(),
+)
 
 data class ReportPoint(val period: String, val primaryCents: Long, val secondaryCents: Long = 0)
 

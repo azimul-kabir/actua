@@ -876,6 +876,15 @@ class ActuaRepository(context: Context) {
         return rows.size
     }
 
+    /** Read-only drill-down: the transactions behind a report segment, newest first. */
+    fun reportTransactions(ids: List<String>): List<Transaction> {
+        val db = actualDatabase ?: return emptyList()
+        val accountNames = db.fetchAccounts().associate { it.id to it.name }
+        return ids.mapNotNull(db::fetchTransaction).filterNot { it.tombstone }
+            .sortedWith(compareByDescending<ActualTransaction> { it.date }.thenBy { it.id })
+            .map { toTransaction(it, accountNames) }
+    }
+
     fun reports(): ReportSnapshot {
         val db = actualDatabase ?: return ReportSnapshot(emptyList(), emptyList(), 0)
         val accounts = db.fetchAccounts()
