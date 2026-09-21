@@ -26,3 +26,30 @@ class SavedReportEngineTest {
         assertEquals(ReportBalanceType.NET_ASSETS, SavedReportEngine.balanceType("Net"))
     }
 }
+
+class SavedReportViewFilterTest {
+    private val accounts = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("b", "B", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 1, 0),
+    )
+    private val groups = listOf(com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("g", "G", false, false, 1.0,
+        listOf(com.azimulkabir.actua.data.budget.model.ActualCategory("c", "C", "g", false, false, 1.0))))
+    private fun tx(id: String, acct: String, date: Int, amount: Long) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        id, acct, date, amount, null, null, "c", null, null, false, false, null, false, null, false, null, null, null, null)
+    private val saved = SavedReportRow("r", "R", "2026-01", "2026-01", true, null, "Category", "Payment", false, false, true,
+        null, "DonutGraph", null, "and", "Monthly")
+    private val rows = listOf(tx("1", "a", 20260110, -100), tx("2", "b", 20260111, -50), tx("3", "a", 20250601, -7))
+    private val today = LocalDate.of(2026, 9, 22)
+
+    @Test fun `account override narrows totals`() {
+        val w = SavedReportEngine.compute(saved, rows, accounts, groups, today,
+            com.azimulkabir.actua.model.ReportViewFilter(accountIds = setOf("a")))
+        assertEquals(-100L, w.valueCents)
+    }
+
+    @Test fun `date preset overrides saved range`() {
+        val w = SavedReportEngine.compute(saved, rows, accounts, groups, today,
+            com.azimulkabir.actua.model.ReportViewFilter(datePreset = "All time"))
+        assertEquals(-157L, w.valueCents)
+    }
+}
