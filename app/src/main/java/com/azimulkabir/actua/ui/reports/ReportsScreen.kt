@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
@@ -62,6 +63,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import kotlin.math.absoluteValue
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 @Composable
 fun ReportsScreen(
@@ -201,7 +203,7 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean) {
                 ReportWidgetKind.NET_WORTH -> {
                     Text(formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
                         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    TrendChart(widget.points)
+                    TrendChart(widget.points, hideDecimals)
                     PointLabels(widget.points, hideDecimals)
                 }
                 ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals)
@@ -217,7 +219,7 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean) {
                 ReportWidgetKind.BALANCE_FORECAST -> {
                     Text(formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
                         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    TrendChart(widget.points)
+                    TrendChart(widget.points, hideDecimals)
                     PointLabels(widget.points, hideDecimals)
                 }
                 ReportWidgetKind.MONTE_CARLO -> {
@@ -234,18 +236,45 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean) {
 }
 
 @Composable
-private fun TrendChart(points: List<ReportPoint>) {
+private fun TrendChart(points: List<ReportPoint>, hideDecimals: Boolean = false, isMoney: Boolean = true) {
     val color = MaterialTheme.colorScheme.primary
     if (points.isEmpty()) return
+    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
+    val active = selected?.takeIf { it in points.indices }
     val minimum = points.minOf { it.primaryCents }
     val maximum = points.maxOf { it.primaryCents }
     val span = (maximum - minimum).coerceAtLeast(1)
-    Canvas(Modifier.fillMaxWidth().height(130.dp)) {
+    active?.let {
+        val point = points[it]
+        Text(
+            "${point.period.take(10)} · " + if (isMoney) formatMoneyCents(point.primaryCents, hideDecimals) else "${point.primaryCents} days",
+            style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+        )
+    }
+    Canvas(
+        Modifier.fillMaxWidth().height(130.dp)
+            .semantics { contentDescription = "Trend chart with ${points.size} points. Touch to read a value." }
+            .pointerInput(points) {
+                fun index(x: Float) = if (points.size <= 1) 0 else
+                    (x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
+                detectTapGestures { selected = index(it.x).takeIf { i -> i != selected } }
+            }
+            .pointerInput(points) {
+                detectHorizontalDragGestures { change, _ ->
+                    selected = if (points.size <= 1) 0 else
+                        (change.position.x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
+                }
+            },
+    ) {
         val step = if (points.size <= 1) 0f else size.width / (points.size - 1)
+        fun y(value: Long) = size.height - ((value - minimum).toFloat() / span * size.height)
         points.zipWithNext().forEachIndexed { index, pair ->
-            fun y(value: Long) = size.height - ((value - minimum).toFloat() / span * size.height)
             drawLine(color, Offset(step * index, y(pair.first.primaryCents)),
                 Offset(step * (index + 1), y(pair.second.primaryCents)), strokeWidth = 5f, cap = StrokeCap.Round)
+        }
+        active?.let {
+            drawLine(color.copy(alpha = 0.4f), Offset(step * it, 0f), Offset(step * it, size.height), strokeWidth = 2f)
+            drawCircle(color, 8.dp.toPx() / 1.5f, Offset(step * it, y(points[it].primaryCents)))
         }
     }
 }
@@ -302,7 +331,7 @@ private fun AgeOfMoney(widget: ReportWidget) {
     Text(if (days == null) "No age available" else "$days days",
         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary)
-    TrendChart(widget.points)
+    TrendChart(widget.points, isMoney = false)
     if (widget.points.isNotEmpty()) Row(Modifier.fillMaxWidth()) {
         Text(widget.points.first().period.take(7), style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
@@ -332,7 +361,7 @@ private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean) {
     when {
         widget.graphType == "DonutGraph" && segments.isNotEmpty() -> DonutSegments(segments, hideDecimals)
         (widget.graphType == "LineGraph" || widget.graphType == "AreaGraph") && widget.points.size > 1 -> {
-            TrendChart(widget.points)
+            TrendChart(widget.points, hideDecimals)
             PointLabels(widget.points, hideDecimals)
         }
         else -> CategoryBars(widget, hideDecimals)
