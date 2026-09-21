@@ -144,8 +144,9 @@ class HomeScreenTest {
         compose.onNodeWithText("Transport").assertExists()
     }
 
-    @Test fun favoriteAccountRowRoutesToAccounts() {
+    @Test fun favoriteAccountRowRoutesToItsTransactions() {
         var accountsClicked = false
+        var clickedAccount: String? = null
         val projection = HomeDashboardProjection.empty().copy(
             favoriteAccounts = listOf(Account("Checking", 0, "savings", id = "checking")),
         )
@@ -155,13 +156,17 @@ class HomeScreenTest {
                     sections = listOf(HomeSection.FAVORITE_ACCOUNTS),
                     projection = projection,
                     onAccountsClick = { accountsClicked = true },
+                    onAccountClick = { clickedAccount = it },
                 )
             }
         }
 
         compose.onNodeWithText("Checking").performClick()
 
-        assertTrue(accountsClicked)
+        assertTrue(
+            "Tapping a favorite account should open that account's transactions, not the generic Accounts overview",
+            clickedAccount == "Checking" && !accountsClicked,
+        )
     }
 
     @Test fun upcomingRowRoutesToSchedules() {

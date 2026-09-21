@@ -87,6 +87,7 @@ fun HomeScreen(
     onBudgetClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
     onAccountsClick: () -> Unit = {},
+    onAccountClick: (String) -> Unit = {},
     onSchedulesClick: () -> Unit = {},
     onTransactionsClick: () -> Unit = {},
     onReportsClick: () -> Unit = {},
@@ -119,7 +120,7 @@ fun HomeScreen(
                     HomeSection.FAVORITE_CATEGORIES -> FavoriteCategoriesSection(
                         projection.favoriteCategories, hideDecimalPlaces, onBudgetClick, onCategoryClick)
                     HomeSection.FAVORITE_ACCOUNTS -> FavoriteAccountsSection(
-                        projection.favoriteAccounts, hideDecimalPlaces, onAccountsClick)
+                        projection.favoriteAccounts, hideDecimalPlaces, onAccountsClick, onAccountClick)
                     HomeSection.UPCOMING -> UpcomingSection(
                         projection.upcomingSchedules, hideDecimalPlaces, onSchedulesClick)
                     HomeSection.THIS_MONTH -> ThisMonthSection(
@@ -234,10 +235,11 @@ private fun CategoryProgressCard(category: BudgetCategory, hideDecimals: Boolean
 }
 
 @Composable
-private fun FavoriteAccountsSection(accounts: List<Account>, hideDecimals: Boolean, onClick: () -> Unit) {
-    DashboardSectionHeader(HomeSection.FAVORITE_ACCOUNTS.title, "View accounts", onClick)
+private fun FavoriteAccountsSection(accounts: List<Account>, hideDecimals: Boolean, onViewAccountsClick: () -> Unit,
+    onAccountClick: (String) -> Unit) {
+    DashboardSectionHeader(HomeSection.FAVORITE_ACCOUNTS.title, "View accounts", onViewAccountsClick)
     if (accounts.isEmpty()) {
-        DashboardEmptyCard("No favorite accounts yet", onClick)
+        DashboardEmptyCard("No favorite accounts yet", onViewAccountsClick)
         return
     }
     val singleColumn = LocalConfiguration.current.screenWidthDp < 360 || LocalDensity.current.fontScale >= 1.3f
@@ -246,7 +248,7 @@ private fun FavoriteAccountsSection(accounts: List<Account>, hideDecimals: Boole
         accounts.take(5).chunked(if (singleColumn) 1 else 2).forEach { pair ->
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 pair.forEach { account ->
-                    AccountCard(account, hideDecimals, onClick, Modifier.weight(1f))
+                    AccountCard(account, hideDecimals, { onAccountClick(account.name) }, Modifier.weight(1f))
                 }
                 if (!singleColumn && pair.size == 1) Spacer(Modifier.weight(1f))
             }
