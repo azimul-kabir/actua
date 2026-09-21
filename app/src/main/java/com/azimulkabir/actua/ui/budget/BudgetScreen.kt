@@ -114,10 +114,10 @@ import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
+import com.azimulkabir.actua.ui.components.CategoryStatusDot
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.model.BudgetProgressState
-import com.azimulkabir.actua.ui.theme.success
-import com.azimulkabir.actua.ui.theme.warning
+import com.azimulkabir.actua.ui.theme.categoryStatusColor
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.transactions.TransactionDetailsSheet
@@ -1350,10 +1350,13 @@ private fun CategoryRow(
             .padding(horizontal = 16.dp, vertical = 11.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(if (category.hidden) "${category.name} · Hidden" else category.name,
-                style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1.35f),
-                color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(modifier = Modifier.weight(1.35f), verticalAlignment = Alignment.CenterVertically) {
+                CategoryStatusDot(category.progressState, modifier = Modifier.padding(end = 6.dp))
+                Text(if (category.hidden) "${category.name} · Hidden" else category.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             CategoryAmount(category.assignedCents, Modifier.weight(1f), hideDecimalPlaces)
             if (showSpent) CategoryAmount(
                 -category.spentCents,
@@ -1390,13 +1393,7 @@ private fun CategoryProgressBar(
     val colors = MaterialTheme.colorScheme
     val color = if (category.usesGoalProgress) {
         if (category.balanceCents < 0L) colors.error else colors.primary
-    } else when (category.progressState) {
-        BudgetProgressState.OVERSPENT -> colors.error
-        BudgetProgressState.SPENT -> colors.warning
-        BudgetProgressState.SPENDING -> colors.primary
-        BudgetProgressState.FUNDED -> colors.success
-        BudgetProgressState.UNASSIGNED -> colors.onSurfaceVariant
-    }
+    } else categoryStatusColor(category.progressState)
     val percent = kotlin.math.round(fraction * 100).toInt()
     val description = if (category.usesGoalProgress) {
         "$percent percent funded toward goal"
@@ -1406,7 +1403,7 @@ private fun CategoryProgressBar(
         modifier = modifier.clip(PillShape).semantics { stateDescription = description },
         color = color,
         trackColor = if (!category.usesGoalProgress && category.progressState == BudgetProgressState.FUNDED)
-            colors.success.copy(alpha = 0.25f) else colors.surfaceContainerHighest,
+            color.copy(alpha = 0.25f) else colors.surfaceContainerHighest,
         gapSize = 0.dp,
         drawStopIndicator = {},
     )

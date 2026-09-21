@@ -61,14 +61,15 @@ import com.azimulkabir.actua.data.schedules.ScheduleStatus
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetOverview
-import com.azimulkabir.actua.model.BudgetProgressState
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.accounts.AccountMonthlySummaryCalculator
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.CategoryStatusDot
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
+import com.azimulkabir.actua.ui.theme.categoryStatusColor
 import com.azimulkabir.actua.ui.theme.success
 import com.azimulkabir.actua.ui.theme.warning
 import kotlin.math.round
@@ -201,8 +202,11 @@ private fun CategoryProgressCard(category: BudgetCategory, hideDecimals: Boolean
         Column(Modifier.heightIn(min = if (largeText) 188.dp else 164.dp).padding(Spacing.lg),
             verticalArrangement = Arrangement.SpaceBetween) {
             Column {
-                Text(category.name, style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CategoryStatusDot(category.progressState, modifier = Modifier.padding(end = 6.dp))
+                    Text(category.name, style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
                 Spacer(Modifier.height(Spacing.xs))
                 Text("${formatMoneyCents(category.balanceCents, hideDecimals)} available",
                     style = MaterialTheme.typography.bodyMedium,
@@ -503,13 +507,7 @@ private fun categoryProgressColor(category: BudgetCategory): Color {
     val colors = MaterialTheme.colorScheme
     return if (category.usesGoalProgress) {
         if (category.balanceCents < 0L) colors.error else colors.primary
-    } else when (category.progressState) {
-        BudgetProgressState.OVERSPENT -> colors.error
-        BudgetProgressState.SPENT -> colors.warning
-        BudgetProgressState.SPENDING -> colors.primary
-        BudgetProgressState.FUNDED -> colors.success
-        BudgetProgressState.UNASSIGNED -> colors.onSurfaceVariant
-    }
+    } else categoryStatusColor(category.progressState)
 }
 
 private fun categoryProgressLabel(category: BudgetCategory, percent: Int): String =
