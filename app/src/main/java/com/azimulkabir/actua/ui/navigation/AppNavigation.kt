@@ -857,7 +857,7 @@ fun AppNavigation(
         onLaunchRequestConsumed()
     }
 
-    BackHandler(enabled = detail != DetailDestination.Main || destination != MainDestination.Budget) {
+    BackHandler(enabled = detail != DetailDestination.Main || destination != MainDestination.Home) {
         when {
             detail == DetailDestination.EditTransaction && editorReturnsToCategory -> {
                 reopenBudgetCategory = transactionCategory
@@ -905,7 +905,7 @@ fun AppNavigation(
                 detail = DetailDestination.Main
                 editingTransaction = null
             }
-            else -> destination = MainDestination.Budget
+            else -> destination = MainDestination.Home
         }
     }
 
@@ -1875,6 +1875,11 @@ fun AppNavigation(
                         destination = MainDestination.Budget
                     },
                     onAccountsClick = { destination = MainDestination.Accounts },
+                    onAccountClick = { account ->
+                        transactionAccount = account; transactionCategory = null; transactionMonth = null
+                        transactionSearch = ""
+                        destination = MainDestination.Accounts; detail = DetailDestination.Transactions
+                    },
                     onSchedulesClick = {
                         destination = MainDestination.Manage
                         detail = DetailDestination.Schedules
