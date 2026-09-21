@@ -75,6 +75,8 @@ fun SettingsScreen(
     onHideDecimalPlacesChange: (Boolean) -> Unit = {},
     showNotes: Boolean = true,
     onShowNotesChange: (Boolean) -> Unit = {},
+    hideIncomeGroupInBudget: Boolean = false,
+    onHideIncomeGroupInBudgetChange: (Boolean) -> Unit = {},
     currencyCode: String = "",
     onCurrencyCodeChange: (String) -> Unit = {},
     currencySymbolOnly: Boolean = false,
@@ -281,7 +283,7 @@ fun SettingsScreen(
                     SettingsRow("Privacy", "Balances and optional location-aware payee controls", true) {
                         page = SettingsPage.Privacy
                     }
-                    SettingsRow("Budget", "Category status dot and progress bar colors", true) {
+                    SettingsRow("Budget", "Category status dot, progress bar colors and income group", true) {
                         page = SettingsPage.Budget
                     }
                     SettingsSection("About")
@@ -401,6 +403,12 @@ fun SettingsScreen(
                         "Show a status dot next to category names on Budget and Home",
                         categoryStatusColors?.showDots ?: true,
                     ) { categoryStatusColors?.updateShowDots(it) }
+                    SettingsToggle(
+                        "Hide income group",
+                        "Hide the income category group on the Budget tab",
+                        hideIncomeGroupInBudget,
+                        onHideIncomeGroupInBudgetChange,
+                    )
                     SettingsRow(
                         "Category status colors",
                         "Retint the unassigned, funded, spending, spent and overspent status colors",

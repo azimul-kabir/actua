@@ -41,6 +41,7 @@ fun CalculatorAmountSheet(
     onDismiss: () -> Unit,
     onApply: (Long) -> Unit,
     onExpressionChange: (String) -> Unit = {},
+    onDone: () -> Unit = {},
 ) {
     val calculator = remember(conventionalAmountEntry) {
         CalculatorAmountState(initialCents, conventionalAmountEntry = conventionalAmountEntry)
@@ -61,7 +62,7 @@ fun CalculatorAmountSheet(
                 showDisplay = false,
                 onValueChange = onApply,
                 onExpressionChange = onExpressionChange,
-                onDone = { onApply(calculator.finish()); onDismiss() },
+                onDone = { onApply(calculator.finish()); onDismiss(); onDone() },
             )
         }
     }
