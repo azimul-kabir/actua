@@ -968,6 +968,7 @@ class ActuaRepository(context: Context) {
             accounts.filterNot { it.closed }.sumOf { it.balanceCents },
             pages,
             accounts.filterNot { it.closed }.map { com.azimulkabir.actua.model.ReportAccountOption(it.id, it.name) },
+            groups.filterNot { it.hidden }.map { com.azimulkabir.actua.model.ReportAccountOption(it.id, it.name) },
         )
     }
 

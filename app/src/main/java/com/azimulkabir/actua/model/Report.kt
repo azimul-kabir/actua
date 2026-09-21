@@ -46,8 +46,15 @@ data class ReportWidget(
 )
 
 /** Viewer-side override applied on top of a saved report's own settings; never written back. */
-data class ReportViewFilter(val datePreset: String? = null, val accountIds: Set<String> = emptySet()) {
-    val isDefault: Boolean get() = datePreset == null && accountIds.isEmpty()
+data class ReportViewFilter(
+    val datePreset: String? = null,
+    val accountIds: Set<String> = emptySet(),
+    val categoryGroupIds: Set<String> = emptySet(),
+    /** Adds off-budget accounts on top of what the report itself includes. */
+    val includeOffBudget: Boolean = false,
+) {
+    val isDefault: Boolean get() =
+        datePreset == null && accountIds.isEmpty() && categoryGroupIds.isEmpty() && !includeOffBudget
 
     companion object {
         val datePresets = listOf(
@@ -65,6 +72,7 @@ data class ReportSnapshot(
     val netWorthCents: Long,
     val dashboards: List<ReportDashboardPage> = emptyList(),
     val accountOptions: List<ReportAccountOption> = emptyList(),
+    val groupOptions: List<ReportAccountOption> = emptyList(),
 ) {
     val current: ReportMonth? get() = months.lastOrNull()
 }

@@ -59,8 +59,9 @@ object SavedReportEngine {
         val filter = ReportFilter(
             startDate = start.toYmd(), endDate = end.toYmd(),
             accountIds = view.accountIds.takeIf { it.isNotEmpty() },
+            categoryGroupIds = view.categoryGroupIds.takeIf { it.isNotEmpty() },
             categoryIds = selected.takeIf { it.isNotEmpty() },
-            showOffBudget = row.showOffBudget, showHiddenCategories = row.showHidden,
+            showOffBudget = row.showOffBudget || view.includeOffBudget, showHiddenCategories = row.showHidden,
             showUncategorized = row.showUncategorized,
             balanceType = balanceType(row.balanceType),
         )
@@ -135,7 +136,8 @@ object SavedReportEngine {
         val filter = ReportFilter(
             startDate = start.toYmd(), endDate = end.toYmd(),
             accountIds = view.accountIds.takeIf { it.isNotEmpty() },
-            showHiddenCategories = true, balanceType = ReportBalanceType.NET_ASSETS,
+            categoryGroupIds = view.categoryGroupIds.takeIf { it.isNotEmpty() },
+            showOffBudget = view.includeOffBudget, showHiddenCategories = true, balanceType = ReportBalanceType.NET_ASSETS,
         )
         val included = shared.aggregator.select(transactions, filter)
         val (income, expenses) = included.partition { shared.aggregator.categoryIsIncome(it.categoryId) }

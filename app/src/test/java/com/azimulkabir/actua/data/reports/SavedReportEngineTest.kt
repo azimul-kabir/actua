@@ -102,3 +102,11 @@ class IncomeExpenseTest {
         assertEquals(300000L to 97500L, w.points.single().primaryCents to w.points.single().secondaryCents)
     }
 }
+
+class ViewFilterGroupTest {
+    @Test fun `default only when nothing is overridden`() {
+        assertEquals(true, com.azimulkabir.actua.model.ReportViewFilter().isDefault)
+        assertEquals(false, com.azimulkabir.actua.model.ReportViewFilter(categoryGroupIds = setOf("g")).isDefault)
+        assertEquals(false, com.azimulkabir.actua.model.ReportViewFilter(includeOffBudget = true).isDefault)
+    }
+}
