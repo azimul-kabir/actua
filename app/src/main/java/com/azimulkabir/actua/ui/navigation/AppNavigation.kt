@@ -2,7 +2,9 @@ package com.azimulkabir.actua.ui.navigation
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -112,6 +114,7 @@ import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.ui.home.HomeScreen
 import com.azimulkabir.actua.ui.home.HomeDashboardProjection
+import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.model.ReportSnapshot
@@ -155,7 +158,7 @@ private enum class MainDestination(
     Manage("Manage", Icons.Outlined.Tune),
 }
 
-private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation, CustomizeHome }
+private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation, CustomizeHome, BankSync }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -368,7 +371,14 @@ fun AppNavigation(
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var transactionsRefreshing by remember { mutableStateOf(false) }
-    var bankSyncing by remember { mutableStateOf(false) }
+    var accountsRefreshing by remember { mutableStateOf(false) }
+    var simpleFinConfigured by remember { mutableStateOf(false) }
+    var goCardlessConfigured by remember { mutableStateOf(false) }
+    var simpleFinDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
+    var goCardlessDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
+    var goCardlessInstitutions by remember { mutableStateOf<List<com.azimulkabir.actua.ui.banksync.GoCardlessInstitutionUi>>(emptyList()) }
+    var goCardlessInstitutionsLoading by remember { mutableStateOf(false) }
+    var goCardlessRequisitionId by remember { mutableStateOf<String?>(null) }
     var reconcileOpen by remember { mutableStateOf(false) }
     var scheduleReturnsToBills by rememberSaveable { mutableStateOf(false) }
     var scheduleReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
@@ -467,22 +477,163 @@ fun AppNavigation(
         }
     }
 
-    fun syncBanks(accountId: String? = null) {
-        if (bankSyncing) return
-        bankSyncing = true
+    fun refreshAccounts() {
+        if (accountsRefreshing) return
+        accountsRefreshing = true
         coroutineScope.launch {
             try {
-                val result = withContext(Dispatchers.IO) { repository.syncBanks(accountId) }
-                dataVersion += 1
-                snackbarHostState.showSnackbar(result.summary)
+                if (accounts.any { it.bankSyncSource != null }) {
+                    val bankResult = withContext(Dispatchers.IO) { repository.syncBanks() }
+                    snackbarHostState.showSnackbar(bankResult.summary)
+                }
+                when (withContext(Dispatchers.IO) {
+                    ActualSyncRunner.run(appContext, trigger = "Pull to refresh")
+                }) {
+                    is SyncRunResult.Success -> Unit
+                    SyncRunResult.NotConfigured -> dataVersion += 1
+                    SyncRunResult.EncryptionKeyUnavailable -> {
+                        errorMessage = "Unlock this encrypted budget before syncing."
+                    }
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Bank sync failed."
+                errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Sync failed."
             } finally {
-                bankSyncing = false
+                accountsRefreshing = false
             }
         }
+    }
+
+    fun loadBankSyncProviderStatus() {
+        coroutineScope.launch {
+            simpleFinConfigured = withContext(Dispatchers.IO) {
+                runCatching { repository.bankSyncProviderConfigured("simpleFin") }.getOrDefault(false)
+            }
+            goCardlessConfigured = withContext(Dispatchers.IO) {
+                runCatching { repository.bankSyncProviderConfigured("goCardless") }.getOrDefault(false)
+            }
+        }
+    }
+
+    fun saveSimpleFinToken(token: String) {
+        coroutineScope.launch {
+            runCatching { withContext(Dispatchers.IO) { repository.setSimpleFinToken(token) } }
+                .onSuccess { loadBankSyncProviderStatus(); snackbarHostState.showSnackbar("SimpleFIN token saved.") }
+                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: "Could not save the SimpleFIN token." }
+        }
+    }
+
+    fun saveGoCardlessCredentials(secretId: String, secretKey: String) {
+        coroutineScope.launch {
+            runCatching { withContext(Dispatchers.IO) { repository.setGoCardlessCredentials(secretId, secretKey) } }
+                .onSuccess { loadBankSyncProviderStatus(); snackbarHostState.showSnackbar("GoCardless credentials saved.") }
+                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: "Could not save GoCardless credentials." }
+        }
+    }
+
+    fun discoverSimpleFinAccounts() {
+        simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
+        coroutineScope.launch {
+            simpleFinDiscovery = runCatching { withContext(Dispatchers.IO) { repository.discoverSimpleFinAccounts() } }.fold(
+                onSuccess = { result ->
+                    when (result) {
+                        is com.azimulkabir.actua.data.network.SimpleFinAccountsResult.Available -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Available(
+                            result.accounts.map { com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount(it.id, it.name, it.orgName) },
+                        )
+                        is com.azimulkabir.actua.data.network.SimpleFinAccountsResult.Error ->
+                            com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(result.reason)
+                    }
+                },
+                onFailure = { error ->
+                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(error.message ?: "Could not load SimpleFIN accounts.")
+                },
+            )
+        }
+    }
+
+    fun loadGoCardlessInstitutions(country: String) {
+        goCardlessInstitutionsLoading = true
+        coroutineScope.launch {
+            goCardlessInstitutions = runCatching { withContext(Dispatchers.IO) { repository.discoverGoCardlessInstitutions(country) } }
+                .getOrElse { error ->
+                    errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Could not load banks for $country."
+                    emptyList()
+                }.map { com.azimulkabir.actua.ui.banksync.GoCardlessInstitutionUi(it.id, it.name) }
+            goCardlessInstitutionsLoading = false
+        }
+    }
+
+    fun startGoCardlessAuthorization(institutionId: String) {
+        coroutineScope.launch {
+            runCatching { withContext(Dispatchers.IO) { repository.startGoCardlessAuthorization(institutionId) } }
+                .onSuccess { webToken ->
+                    goCardlessRequisitionId = webToken.requisitionId
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webToken.link)))
+                }
+                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: "Could not start GoCardless authorization." }
+        }
+    }
+
+    fun checkGoCardlessAccounts() {
+        val requisitionId = goCardlessRequisitionId
+        if (requisitionId == null) {
+            goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(
+                "Choose a bank to link first.",
+            )
+            return
+        }
+        goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
+        coroutineScope.launch {
+            goCardlessDiscovery = runCatching { withContext(Dispatchers.IO) { repository.goCardlessAccountsForRequisition(requisitionId) } }.fold(
+                onSuccess = { result ->
+                    when (result) {
+                        is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Available -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Available(
+                            result.accounts.map {
+                                com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount(
+                                    "$requisitionId::${it.id}", it.name ?: it.iban ?: it.id, it.iban,
+                                )
+                            },
+                        )
+                        is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Pending ->
+                            com.azimulkabir.actua.ui.banksync.DiscoveryState.Pending("Still waiting on bank authorization (${result.status}). Finish it in the browser, then check again.")
+                        is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Error ->
+                            com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(result.reason)
+                    }
+                },
+                onFailure = { error ->
+                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(error.message ?: "Could not check GoCardless accounts.")
+                },
+            )
+        }
+    }
+
+    /** GoCardless ids are packed as "requisitionId::accountId" by [checkGoCardlessAccounts]; other providers use the bare id. */
+    fun splitGoCardlessId(discoveredId: String): Pair<String?, String> {
+        val parts = discoveredId.split("::", limit = 2)
+        return if (parts.size == 2) parts[0] to parts[1] else null to discoveredId
+    }
+
+    fun linkBankAccount(discovered: com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount, account: Account, source: String) {
+        val (requisitionId, externalId) = if (source == "goCardless") splitGoCardlessId(discovered.id) else null to discovered.id
+        if (mutate("Linking account") { repository.linkBankAccount(account.id, externalId, source, requisitionId) }) {
+            goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+            simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+        }
+    }
+
+    fun createAndLinkBankAccount(
+        discovered: com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount, name: String, offBudget: Boolean, source: String,
+    ) {
+        val (requisitionId, externalId) = if (source == "goCardless") splitGoCardlessId(discovered.id) else null to discovered.id
+        if (mutate("Creating account") { repository.createLinkedAccount(name, offBudget, externalId, source, requisitionId) }) {
+            goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+            simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+        }
+    }
+
+    fun unlinkBankAccount(account: Account) {
+        mutate("Unlinking account") { repository.unlinkBankAccount(account.id) }
     }
 
     // Same contract as [mutate], but the (disk I/O) mutation runs off the main thread and
@@ -1413,6 +1564,27 @@ fun AppNavigation(
                     )
                 }
             }
+            DetailDestination.BankSync -> com.azimulkabir.actua.ui.banksync.BankSyncScreen(
+                modifier = contentModifier,
+                onBack = { detail = DetailDestination.Main },
+                simpleFinConfigured = simpleFinConfigured,
+                goCardlessConfigured = goCardlessConfigured,
+                linkedAccounts = accounts.filter { it.bankSyncSource != null },
+                linkableAccounts = accounts.filter { it.bankSyncSource == null && !it.closed },
+                onSaveSimpleFinToken = ::saveSimpleFinToken,
+                simpleFinDiscovery = simpleFinDiscovery,
+                onDiscoverSimpleFin = ::discoverSimpleFinAccounts,
+                onSaveGoCardlessCredentials = ::saveGoCardlessCredentials,
+                goCardlessInstitutions = goCardlessInstitutions,
+                goCardlessInstitutionsLoading = goCardlessInstitutionsLoading,
+                onLoadGoCardlessInstitutions = ::loadGoCardlessInstitutions,
+                onStartGoCardlessAuthorization = ::startGoCardlessAuthorization,
+                goCardlessDiscovery = goCardlessDiscovery,
+                onCheckGoCardlessAccounts = ::checkGoCardlessAccounts,
+                onLinkExisting = { discovered, account, source -> linkBankAccount(discovered, account, source) },
+                onCreateAndLink = { discovered, name, offBudget, source -> createAndLinkBankAccount(discovered, name, offBudget, source) },
+                onUnlink = ::unlinkBankAccount,
+            )
             DetailDestination.Rules -> RulesScreen(
                 rules = remember(dataVersion) { repository.rules() },
                 supported = remember(dataVersion) { repository.rulesSupported() },
@@ -1905,8 +2077,9 @@ fun AppNavigation(
                         mutate("Creating account") { repository.createAccount(name, offBudget, balance, type) }
                     },
                     onSearch = { detail = DetailDestination.Search },
-                    isBankSyncing = bankSyncing,
-                    onBankSync = { syncBanks() },
+                    onSetUpBankSync = { loadBankSyncProviderStatus(); detail = DetailDestination.BankSync },
+                    isRefreshing = accountsRefreshing,
+                    onRefresh = ::refreshAccounts,
                     favoriteAccountIds = favoriteAccountIds,
                     onFavoriteAccountChange = { id, favorite ->
                         favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT, id, favorite)
@@ -2075,6 +2248,10 @@ fun AppNavigation(
                     onCreditCardsClick = {
                         creditCardsReturnToBills = false
                         detail = DetailDestination.CreditCards
+                    },
+                    onBankSyncClick = {
+                        loadBankSyncProviderStatus()
+                        detail = DetailDestination.BankSync
                     },
                     onRulesClick = { detail = DetailDestination.Rules },
                     onSchedulesClick = { detail = DetailDestination.Schedules },

@@ -1,6 +1,5 @@
 package com.azimulkabir.actua.ui.accounts
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -29,7 +28,6 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +39,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -104,8 +103,9 @@ fun AccountsScreen(
     onChangeAccountType: (Account, String) -> Unit = { _, _ -> },
     onCreateAccount: (String, Boolean, String, String) -> Unit = { _, _, _, _ -> },
     onSearch: () -> Unit = {},
-    isBankSyncing: Boolean = false,
-    onBankSync: () -> Unit = {},
+    onSetUpBankSync: () -> Unit = {},
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     favoriteAccountIds: Set<String> = emptySet(),
     onFavoriteAccountChange: (String, Boolean) -> Unit = { _, _ -> },
     scrollToTopRequest: Int = 0,
@@ -117,6 +117,7 @@ fun AccountsScreen(
     var collapsedSections by remember { mutableStateOf(setOf("Closed accounts")) }
     var selectedAccount by remember { mutableStateOf<Account?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
+    var showNewAccountDialog by remember { mutableStateOf(false) }
     var accountMenuExpanded by remember { mutableStateOf(false) }
     var renamingAccount by remember { mutableStateOf<Account?>(null) }
     var changingTypeAccount by remember { mutableStateOf<Account?>(null) }
@@ -139,9 +140,6 @@ fun AccountsScreen(
                 tonalElevation = 2.dp,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBankSync, enabled = !isBankSyncing) {
-                        Icon(Icons.Outlined.Sync, contentDescription = "Sync linked bank accounts")
-                    }
                     IconButton(onClick = onSearch) {
                         Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
                     }
@@ -193,43 +191,45 @@ fun AccountsScreen(
         // (O(accounts x creditCards) overall), instead of a single O(creditCards) pass.
         val creditCardByAccountId = remember(creditCards) { creditCards.associateBy { it.accountId } }
 
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
-        ) {
-            item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary) }
-            accountSections.forEach { section ->
-                val collapsed = section.title in collapsedSections
-                stickyHeader(key = "account-header-${section.title}") {
-                    AccountSectionHeader(
-                        section = section,
-                        collapsed = collapsed,
-                        hideDecimalPlaces = hideDecimalPlaces,
-                        onClick = {
-                            collapsedSections = if (collapsed) collapsedSections - section.title
-                            else collapsedSections + section.title
-                        },
-                    )
-                }
-                itemsIndexed(section.accounts, key = { _, account -> "${section.title}-${account.name}" }) { index, account ->
-                    AnimatedVisibility(
-                        visible = !collapsed,
-                        enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
-                        exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
-                    ) {
-                        AccountRow(
-                            account = account,
-                            creditCard = creditCardByAccountId[account.id],
-                            showTopDivider = index > 0,
-                            onClick = { onAccountClick(account.name) },
-                        onLongClick = { selectedAccount = account },
+        PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
+            ) {
+                item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary) }
+                accountSections.forEach { section ->
+                    val collapsed = section.title in collapsedSections
+                    stickyHeader(key = "account-header-${section.title}") {
+                        AccountSectionHeader(
+                            section = section,
+                            collapsed = collapsed,
                             hideDecimalPlaces = hideDecimalPlaces,
+                            onClick = {
+                                collapsedSections = if (collapsed) collapsedSections - section.title
+                                else collapsedSections + section.title
+                            },
                         )
                     }
+                    itemsIndexed(section.accounts, key = { _, account -> "${section.title}-${account.name}" }) { index, account ->
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = !collapsed,
+                            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+                            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+                        ) {
+                            AccountRow(
+                                account = account,
+                                creditCard = creditCardByAccountId[account.id],
+                                showTopDivider = index > 0,
+                                onClick = { onAccountClick(account.name) },
+                            onLongClick = { selectedAccount = account },
+                                hideDecimalPlaces = hideDecimalPlaces,
+                            )
+                        }
+                    }
                 }
+                item { Spacer(Modifier.height(20.dp)) }
             }
-            item { Spacer(Modifier.height(20.dp)) }
         }
     }
 
@@ -245,8 +245,13 @@ fun AccountsScreen(
             onFavoriteChange = { onFavoriteAccountChange(account.id, it) },
         )
     }
-    if (showAddSheet) NewAccountDialog(onDismiss = { showAddSheet = false }) { name, offBudget, balance, type ->
-        onCreateAccount(name, offBudget, balance, type); showAddSheet = false
+    if (showAddSheet) AddAccountSheet(
+        onDismiss = { showAddSheet = false },
+        onCreateLocal = { showAddSheet = false; showNewAccountDialog = true },
+        onSetUpBankSync = { showAddSheet = false; onSetUpBankSync() },
+    )
+    if (showNewAccountDialog) NewAccountDialog(onDismiss = { showNewAccountDialog = false }) { name, offBudget, balance, type ->
+        onCreateAccount(name, offBudget, balance, type); showNewAccountDialog = false
     }
     renamingAccount?.let { account -> RenameDialog("Rename account", account.name,
         onDismiss = { renamingAccount = null }, onSave = { name -> onRenameAccount(account, name); renamingAccount = null }) }
@@ -401,15 +406,12 @@ private fun AccountActionsSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddAccountSheet(onDismiss: () -> Unit) {
+private fun AddAccountSheet(onDismiss: () -> Unit, onCreateLocal: () -> Unit, onSetUpBankSync: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 28.dp)) {
             ActuaSheetTitle("Add account")
-            AccountSheetAction("Bank account", onDismiss)
-            AccountSheetAction("Cash account", onDismiss)
-            AccountSheetAction("Credit card", onDismiss)
-            AccountSheetAction("Savings account", onDismiss)
-            AccountSheetAction("Off-budget account", onDismiss)
+            AccountSheetAction("Create a local account", onCreateLocal)
+            AccountSheetAction("Set up bank sync", onSetUpBankSync)
         }
     }
 }

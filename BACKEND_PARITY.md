@@ -64,10 +64,16 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   configurable delimiter/column/date/sign mapping, reusable local profiles, bounded import
   history, review/edit/reject/bulk approval, normalized payee matching, malformed-row exclusion,
   explained existing/within-file duplicate warnings, and batched Actual-compatible writes
-- Server-hosted SimpleFIN transaction download for accounts already linked by Actual, triggered
-  from Accounts or by pulling down a linked account register. Imports preserve provider IDs,
-  pending/cleared state, integer cents, rules, CRDT mutation logging, status fields, and exact-ID
-  deduplication. Provider setup/linking and non-SimpleFIN providers remain deferred.
+- Dedicated Bank Sync management page (Accounts "+" → Set up bank sync, and Manage → Bank Sync):
+  SimpleFIN setup token and GoCardless Secret ID/Key configuration, account discovery, linking a
+  discovered account to an existing or newly created Actual account, and unlinking. GoCardless
+  authorization opens the bank's consent flow in the browser; the user returns and taps "check
+  accounts" to finish linking. Pluggy.ai is not yet implemented (server-side credential storage
+  only; no account discovery/linking/download).
+- Server-hosted SimpleFIN and GoCardless transaction download for linked accounts, triggered by
+  pulling down the Accounts list (all linked accounts) or a single linked account's register.
+  Imports preserve provider IDs, pending/cleared state, integer cents, rules, CRDT mutation
+  logging, per-account status/last-sync fields, and exact-ID deduplication.
 - On-device financial-message parsing for explicitly pasted/shared text and opt-in future
   notifications from an explicit allowed-app list, with configurable debit/credit terms, amount/date/reference/payee extraction,
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion
@@ -306,8 +312,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   repeated recategorization (see [docs/RULES_PARITY.md](docs/RULES_PARITY.md))
 - Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
   cleanup source/sink groups already shipped
-- SimpleFIN setup/linking, fuzzy reconciliation with manually entered transactions, and bank-feed
-  pending-import approval; non-SimpleFIN provider downloads
+- Pluggy.ai account discovery, linking, and transaction download; fuzzy reconciliation of imported
+  bank rows with manually entered transactions; and bank-feed pending-import approval
 - Broader country/bank parser templates beyond configurable financial-message keywords
 - General Android transaction notifications and new-transaction detection beyond
   the credit-card payment reminders already shipped

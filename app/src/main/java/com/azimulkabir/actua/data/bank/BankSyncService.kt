@@ -13,14 +13,14 @@ data class BankSyncResult(val accountsSynced: Int, val imported: Int, val proble
     val summary: String get() = buildList {
         if (imported > 0) add("Imported $imported ${if (imported == 1) "transaction" else "transactions"}.")
         if (imported == 0 && problems.isEmpty()) add(
-            if (accountsSynced == 0) "No linked SimpleFIN accounts to sync."
+            if (accountsSynced == 0) "No linked bank accounts to sync."
             else "Everything is already up to date.",
         )
         addAll(problems)
     }.joinToString("\n\n")
 }
 
-/** Imports server-hosted SimpleFIN rows through the same CRDT writers as manual edits. */
+/** Imports server-hosted bank-sync rows (SimpleFIN, GoCardless) through the same CRDT writers as manual edits. */
 class BankSyncService(
     private val database: ActualBudgetDatabase,
     private val transactions: ActualTransactionWriter,
@@ -32,21 +32,49 @@ class BankSyncService(
     fun sync(serverUrl: String, token: String, accountId: String? = null): BankSyncResult {
         val accounts = database.fetchBankSyncAccounts().filter { !it.closed && (accountId == null || it.id == accountId) }
         if (accounts.isEmpty()) return BankSyncResult(0, 0, emptyList())
-        val starts = accounts.map { account ->
-            val oldest = database.oldestTransactionDate(account.id)
-            val floor = today().minusDays(89).format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
+        val floor = today().minusDays(89).format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
+        fun startDateFor(id: String): String {
+            val oldest = database.oldestTransactionDate(id)
             val day = oldest?.coerceAtLeast(floor) ?: floor
-            "%04d-%02d-%02d".format(day / 10000, day / 100 % 100, day % 100)
+            return "%04d-%02d-%02d".format(day / 10000, day / 100 % 100, day % 100)
         }
-        val downloads = server.downloadSimpleFinTransactions(
-            serverUrl, token, accounts.map { it.externalId }, starts,
+        val today = today().format(DateTimeFormatter.ISO_LOCAL_DATE)
+
+        val simpleFin = accounts.filter { it.source == "simpleFin" }
+        val simpleFinDownloads = if (simpleFin.isEmpty()) emptyMap() else server.downloadSimpleFinTransactions(
+            serverUrl, token, simpleFin.map { it.externalId }, simpleFin.map { startDateFor(it.id) },
         ).associateBy { it.externalAccountId }
-        var imported = 0
+
         val problems = mutableListOf<String>()
+        val reported = mutableSetOf<String>()
+        val downloads = accounts.associate { account ->
+            val download = when (account.source) {
+                "simpleFin" -> simpleFinDownloads[account.externalId]
+                "goCardless" -> {
+                    val requisitionId = account.requisitionId
+                    if (requisitionId == null) {
+                        problems += "${account.name}: this account is missing its GoCardless connection."
+                        reported += account.id
+                        null
+                    } else runCatching {
+                        server.downloadGoCardlessTransactions(
+                            serverUrl, token, requisitionId, account.externalId, startDateFor(account.id), today,
+                        )
+                    }.getOrElse {
+                        problems += "${account.name}: ${it.message ?: "GoCardless sync failed."}"
+                        reported += account.id
+                        null
+                    }
+                }
+                else -> null
+            }
+            account.id to download
+        }
+        var imported = 0
         accounts.forEach { account ->
-            val download = downloads[account.externalId]
+            val download = downloads[account.id]
             if (download == null) {
-                problems += "${account.name}: the bank did not return this account."
+                if (account.id !in reported) problems += "${account.name}: the bank did not return this account."
                 entities.recordBankSyncStatus(account.id, "account-missing")
                 return@forEach
             }
