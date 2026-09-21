@@ -24,6 +24,22 @@ data class FileEncryptionMetadata(
     val authTagBase64: String?,
 )
 
+data class BankSyncTransaction(
+    val financialId: String,
+    val date: Int,
+    val amountCents: Long,
+    val payeeName: String,
+    val notes: String?,
+    val booked: Boolean,
+)
+
+data class BankSyncDownload(
+    val externalAccountId: String,
+    val transactions: List<BankSyncTransaction>,
+    val status: String,
+    val problem: String? = null,
+)
+
 sealed class ActualServerException(message: String) : Exception(message) {
     data object Unauthorized : ActualServerException("Unauthorized")
     data object FileNotFound : ActualServerException("Budget file not found")
@@ -255,6 +271,30 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         return response.body
     }
 
+    /** Downloads Actual's normalized server-hosted SimpleFIN feed. */
+    fun downloadSimpleFinTransactions(
+        serverUrl: String,
+        token: String,
+        accountIds: List<String>,
+        startDates: List<String>,
+    ): List<BankSyncDownload> {
+        require(accountIds.isNotEmpty() && accountIds.size == startDates.size)
+        val body = JSONObject()
+            .put("accountId", org.json.JSONArray(accountIds))
+            .put("startDate", org.json.JSONArray(startDates))
+            .toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/simplefin/transactions", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        if (response.status in setOf(404, 405, 501)) {
+            throw IllegalStateException("This Actual server does not support SimpleFIN bank sync.")
+        }
+        requireSuccess(response)
+        return parseSimpleFinDownloads(response.json(), accountIds)
+    }
+
     private fun authenticatedGet(serverUrl: String, path: String, token: String): ActualHttpResponse {
         val response = request(serverUrl, path, "GET", actualHeaders(token))
         checkAuthorization(response)
@@ -276,6 +316,52 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
     )
 
     private fun actualHeaders(token: String) = mapOf("X-ACTUAL-TOKEN" to token)
+
+    internal fun parseSimpleFinDownloads(root: JSONObject, accountIds: List<String>): List<BankSyncDownload> {
+        val data = root.optJSONObject("data") ?: throw ActualServerException.InvalidResponse
+        data.optString("error_code").takeIf(String::isNotBlank)?.let {
+            error(data.optString("reason", "Bank sync failed ($it)."))
+        }
+        val errors = data.optJSONObject("errors")
+        return accountIds.mapNotNull { accountId ->
+            val account = data.optJSONObject(accountId)
+            val accountErrors = errors?.optJSONArray(accountId)
+            val firstError = accountErrors?.optJSONObject(0)
+            if (account == null && firstError == null) return@mapNotNull null
+            val status = firstError?.optString("error_code")?.let(::bankSyncStatus) ?: "ok"
+            val all = account?.optJSONObject("transactions")?.optJSONArray("all")
+            val transactions = buildList {
+                if (all != null) for (index in 0 until all.length()) {
+                    val item = all.optJSONObject(index) ?: continue
+                    val id = item.optString("transactionId").takeIf(String::isNotBlank) ?: continue
+                    val date = item.optString("date").replace("-", "").toIntOrNull() ?: continue
+                    val amount = item.optJSONObject("transactionAmount")?.optString("amount")
+                        ?.toBigDecimalOrNull()?.movePointRight(2)?.let {
+                            runCatching { it.longValueExact() }.getOrNull()
+                        } ?: continue
+                    add(BankSyncTransaction(
+                        financialId = id,
+                        date = date,
+                        amountCents = amount,
+                        payeeName = item.optString("payeeName").ifBlank { "Unknown" },
+                        notes = item.optString("notes").takeIf(String::isNotBlank),
+                        booked = item.optBoolean("booked", true),
+                    ))
+                }
+            }
+            BankSyncDownload(accountId, transactions, status,
+                firstError?.optString("reason")?.takeIf(String::isNotBlank))
+        }
+    }
+
+    private fun bankSyncStatus(code: String): String = when (code) {
+        "ITEM_LOGIN_REQUIRED", "INVALID_ACCESS_TOKEN" -> "reauth-required"
+        "ACCOUNT_NEEDS_ATTENTION" -> "attention-required"
+        "RATE_LIMIT_EXCEEDED" -> "rate-limit-exceeded"
+        "TIMED_OUT" -> "timed-out"
+        "ACCOUNT_MISSING" -> "account-missing"
+        else -> "failed"
+    }
     private fun checkAuthorization(response: ActualHttpResponse) {
         if (response.status == 401 || response.status == 403) throw ActualServerException.Unauthorized
     }

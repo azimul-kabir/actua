@@ -368,6 +368,7 @@ fun AppNavigation(
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var transactionsRefreshing by remember { mutableStateOf(false) }
+    var bankSyncing by remember { mutableStateOf(false) }
     var reconcileOpen by remember { mutableStateOf(false) }
     var scheduleReturnsToBills by rememberSaveable { mutableStateOf(false) }
     var scheduleReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
@@ -440,6 +441,13 @@ fun AppNavigation(
         transactionsRefreshing = true
         coroutineScope.launch {
             try {
+                val linkedAccount = accounts.firstOrNull {
+                    it.name == transactionAccount && it.bankSyncSource != null
+                }
+                if (linkedAccount != null) {
+                    val bankResult = withContext(Dispatchers.IO) { repository.syncBanks(linkedAccount.id) }
+                    snackbarHostState.showSnackbar(bankResult.summary)
+                }
                 when (withContext(Dispatchers.IO) {
                     ActualSyncRunner.run(appContext, trigger = "Pull to refresh")
                 }) {
@@ -455,6 +463,24 @@ fun AppNavigation(
                 errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Sync failed."
             } finally {
                 transactionsRefreshing = false
+            }
+        }
+    }
+
+    fun syncBanks(accountId: String? = null) {
+        if (bankSyncing) return
+        bankSyncing = true
+        coroutineScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) { repository.syncBanks(accountId) }
+                dataVersion += 1
+                snackbarHostState.showSnackbar(result.summary)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Bank sync failed."
+            } finally {
+                bankSyncing = false
             }
         }
     }
@@ -1879,6 +1905,8 @@ fun AppNavigation(
                         mutate("Creating account") { repository.createAccount(name, offBudget, balance, type) }
                     },
                     onSearch = { detail = DetailDestination.Search },
+                    isBankSyncing = bankSyncing,
+                    onBankSync = { syncBanks() },
                     favoriteAccountIds = favoriteAccountIds,
                     onFavoriteAccountChange = { id, favorite ->
                         favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT, id, favorite)
