@@ -18,6 +18,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.azimulkabir.actua.model.ReportAccountOption
 import com.azimulkabir.actua.model.ReportCategory
@@ -89,9 +90,20 @@ fun ReportsScreen(
     val listState = rememberLazyListState()
     var datePreset by rememberSaveable { mutableStateOf<String?>(null) }
     var accountIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
-    val view = ReportViewFilter(datePreset, accountIds.toSet())
+    var groupIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var includeOffBudget by rememberSaveable { mutableStateOf(false) }
+    val view = ReportViewFilter(datePreset, accountIds.toSet(), groupIds.toSet(), includeOffBudget)
+    var filterFailed by remember { mutableStateOf(false) }
     val filteredSaved by produceState<List<ReportWidget>?>(null, view, snapshot.dashboards.size) {
-        value = if (view.isDefault) null else loadSavedReports(view)
+        filterFailed = false
+        value = if (view.isDefault) null else try {
+            loadSavedReports(view)
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            filterFailed = true
+            null
+        }
     }
     var drill by remember { mutableStateOf<Pair<ReportCategory, String>?>(null) }
     var selectedPageId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -166,8 +178,13 @@ fun ReportsScreen(
                 }
             }
             if (selected.id == SAVED_PAGE_ID) item {
-                ViewFilterBar(view, snapshot.accountOptions,
-                    onPreset = { datePreset = it }, onAccounts = { accountIds = it.toList() })
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ViewFilterBar(view, snapshot.accountOptions, snapshot.groupOptions,
+                        onPreset = { datePreset = it }, onAccounts = { accountIds = it.toList() },
+                        onGroups = { groupIds = it.toList() }, onOffBudget = { includeOffBudget = it })
+                    if (filterFailed) Text("Couldn't apply the filter. Showing the reports as saved.",
+                        color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
             }
             val shownWidgets = if (selected.id == SAVED_PAGE_ID && !view.isDefault) filteredSaved ?: selected.widgets
                 else selected.widgets
@@ -282,12 +299,17 @@ private const val SAVED_PAGE_ID = "saved-reports"
 private fun ViewFilterBar(
     view: ReportViewFilter,
     accounts: List<ReportAccountOption>,
+    groups: List<ReportAccountOption>,
     onPreset: (String?) -> Unit,
     onAccounts: (Set<String>) -> Unit,
+    onGroups: (Set<String>) -> Unit,
+    onOffBudget: (Boolean) -> Unit,
 ) {
     var dateOpen by remember { mutableStateOf(false) }
     var accountOpen by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    var groupOpen by remember { mutableStateOf(false) }
+    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+    androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box {
             androidx.compose.material3.FilterChip(
                 selected = view.datePreset != null, onClick = { dateOpen = true },
@@ -319,6 +341,30 @@ private fun ViewFilterBar(
                 }
             }
         }
+        Box {
+            androidx.compose.material3.FilterChip(
+                selected = view.categoryGroupIds.isNotEmpty(), onClick = { groupOpen = true },
+                label = { Text(if (view.categoryGroupIds.isEmpty()) "All groups" else "${view.categoryGroupIds.size} groups") },
+            )
+            DropdownMenu(groupOpen, { groupOpen = false }) {
+                DropdownMenuItem(text = { Text("All groups") }, onClick = { onGroups(emptySet()); groupOpen = false })
+                groups.forEach { group ->
+                    val checked = group.id in view.categoryGroupIds
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                            androidx.compose.material3.Checkbox(checked, null)
+                            Text(group.name)
+                        } },
+                        onClick = { onGroups(if (checked) view.categoryGroupIds - group.id else view.categoryGroupIds + group.id) },
+                    )
+                }
+            }
+        }
+        androidx.compose.material3.FilterChip(
+            selected = view.includeOffBudget, onClick = { onOffBudget(!view.includeOffBudget) },
+            label = { Text("Off-budget") },
+            modifier = Modifier.semantics { contentDescription = "Include off-budget accounts" },
+        )
     }
 }
 
@@ -357,7 +403,8 @@ private fun DashboardPicker(
 private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(widget.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(widget.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() })
             when (widget.kind) {
                 ReportWidgetKind.SUMMARY -> Text(
                     widget.percentage?.let { "${"%.2f".format(it)}%" }
@@ -562,6 +609,10 @@ private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
     Text(formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     val segments = widget.categories.filter { it.spentCents != 0L }
+    if (segments.isEmpty() && widget.points.all { it.primaryCents == 0L }) {
+        Text("No transactions match this report's filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
     when {
         widget.graphType == "DonutGraph" && segments.isNotEmpty() -> DonutSegments(segments, hideDecimals, onDrillDown)
         widget.timeMode && (widget.graphType == "BarGraph" || widget.graphType == "StackedBarGraph") &&
