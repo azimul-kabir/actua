@@ -4,6 +4,22 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.37] - 2026-09-22
+
+### Added
+
+- Added read-only viewing of saved Actual custom reports, with a donut chart for category/group breakdowns, a viewer-side date, account, category-group and off-budget filter, per-interval (daily/weekly/monthly/yearly) charts with tappable bars, and drill-down from a report segment to its contributing transactions; report calculations share one Actual-compatible aggregator (see `docs/REPORTS_PARITY.md`)
+- Added an Income vs expenses report card leading the reports overview: tappable grouped monthly bars (income, expenses, net) that respect the shared date/account filter, with Income and Expenses rows drilling down to contributing transactions; refunds net against their side and same-side transfers and off-budget accounts are excluded
+- Report trend charts are now touch-interactive: tap or drag to read the exact value at a point
+- Scheduled transactions now appear as upcoming rows in the Transactions tab and inside each account, styled distinctly (italic title, "Upcoming" caption, muted amount, repeat icon) and excluded from balances, running balances and search; a "Show upcoming transactions" toggle in the overflow menu controls them
+- Add Transaction now auto-focuses the amount and chains the payee/category/account pickers, and Settings → Budget has a new switch to hide the income group in Budget
+- Category status dots now also appear in the Budget Plan view
+
+### Changed
+
+- Saved reports show an explicit empty message when nothing matches, filter chips wrap instead of scrolling horizontally and keep their selection across rotation, a failing filter now shows an inline message and falls back to the report as saved instead of crashing, and report card titles and the off-budget chip are exposed to screen readers
+- Saved-report inputs are cached per data version and lookups are shared across saved reports, so reopening reports no longer recomputes unchanged data
+
 ## [1.0.0-beta.36] - 2026-09-21
 
 ### Added
