@@ -62,13 +62,42 @@ object SavedReportEngine {
         }
         val segments = if (row.groupBy == "Interval") emptyList() else
             aggregator.groupTotals(scoped, filter, grouping).map { ReportCategory(it.name, it.totalCents, it.transactionIds) }
-        val points = included.groupBy { YearMonth.of(it.date / 10000, it.date / 100 % 100) }.toSortedMap()
-            .map { (month, rows) -> ReportPoint(month.toString(), rows.sumOf { it.amountCents }) }
+        val points = intervalPoints(included, row.interval, start, end, today)
         return ReportWidget(
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
-            valueCents = included.sumOf { it.amountCents }, categories = segments, points = points,
+            valueCents = included.sumOf { it.amountCents }, categories = segments, points = points, timeMode = row.mode == "time" || row.groupBy == "Interval",
             graphType = row.graphType, subtitle = "$start – $end · ${row.groupBy}",
         )
+    }
+
+    /** Sums per interval bucket; gaps are zero-filled when the range is small enough to chart. */
+    internal fun intervalPoints(
+        rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
+    ): List<ReportPoint> {
+        fun date(tx: ActualTransaction) = LocalDate.of(tx.date / 10000, tx.date / 100 % 100, tx.date % 100)
+        fun bucket(d: LocalDate): LocalDate = when (interval) {
+            "Daily" -> d
+            "Weekly" -> d.minusDays((d.dayOfWeek.value % 7).toLong())
+            "Yearly" -> d.withDayOfYear(1)
+            else -> d.withDayOfMonth(1)
+        }
+        fun next(d: LocalDate): LocalDate = when (interval) {
+            "Daily" -> d.plusDays(1)
+            "Weekly" -> d.plusWeeks(1)
+            "Yearly" -> d.plusYears(1)
+            else -> d.plusMonths(1)
+        }
+        fun label(d: LocalDate) = when (interval) {
+            "Yearly" -> d.year.toString()
+            "Daily", "Weekly" -> d.toString()
+            else -> YearMonth.from(d).toString()
+        }
+        val sums = rows.groupBy { bucket(date(it)) }.mapValues { (_, v) -> v.sumOf { it.amountCents } }
+        val last = minOf(end, maxOf(today, sums.keys.maxOrNull() ?: today))
+        val keys = generateSequence(bucket(maxOf(start, LocalDate.of(1900, 1, 1)))) { next(it) }
+            .takeWhile { !it.isAfter(last) }.take(401).toList()
+        val filled = if (keys.size <= 400) keys else sums.keys.sorted()
+        return filled.map { ReportPoint(label(it), sums[it] ?: 0L) }
     }
 
     internal fun balanceType(value: String): ReportBalanceType = when (value) {
