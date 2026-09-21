@@ -20,6 +20,9 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Connect to a self-hosted server over plain HTTP on a private/local address (e.g. `192.168.x.x`, `10.x.x.x`, `localhost`) other than the old hardcoded test IP and verify it succeeds instead of "Cleartext HTTP traffic not permitted".
 - [ ] Install a self-signed CA as a user certificate (Settings > Security > Encryption & credentials > Install a certificate, including on GrapheneOS) and connect to a self-hosted server using a certificate issued by it over HTTPS; verify the connection succeeds instead of `Trust anchor for certification path not found`.
 - [ ] Connect to a self-hosted HTTPS server whose certificate isn't trusted by Android and verify the "Server certificate isn't trusted" dialog shows host, issuer, validity and SHA-256 fingerprint; trust it and confirm the connection succeeds, then swap the server's certificate and confirm the "Server certificate changed" warning appears before anything is re-trusted.
+- [ ] Configure a primary server URL and a fallback server URL where only the fallback's certificate is untrusted; verify the trust prompt shows the fallback server's host/certificate (not the primary's) and trusting it lets login/sync succeed.
+- [ ] From Manage → Bank Sync (or Accounts "+" → Set up bank sync), configure a SimpleFIN setup token or GoCardless Secret ID/Key, discover provider accounts, and link one to a new and to an existing account; verify GoCardless's browser consent flow and "check accounts" return correctly, and that Pluggy.ai is shown as not yet supported.
+- [ ] Pull down on Accounts and verify all linked bank accounts sync; pull down on a single linked account's register and verify only that account syncs.
 - [ ] On Connection & data, tap the Budgets section header and verify the budget list collapses/expands with the chevron animating, and other sections (Backups, etc.) are unaffected.
 - [ ] Download/select a real self-hosted Actual budget and verify opening balances/category values against Actual.
 - [ ] Manual Sync Now completes and the sync status/last-success state updates.
@@ -36,6 +39,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Budget opens in the configured default Plan/Table view and month navigation works.
 - [ ] Ready to Budget/To Budget, Budgeted and Balance values agree with Actual for the test month.
 - [ ] Verify ordinary category progress bars show spending (including carryover) and match Actual/Actuali for a category with carryover, and that goal-only/save-by-date targets still show balance-funded progress.
+- [ ] Category rows/cards show a status dot matching the progress bar's color; customize a status color (and reset to defaults) from Settings → Budget → Category status colors and verify it updates everywhere immediately; toggle the "Category status dot" switch off/on and verify the dot stops/resumes composing.
 - [ ] Rapidly switch bottom-navigation tabs and confirm the selection indicator updates immediately, each tab keeps its scroll position, and Reports shows a loading state then data without freezing the UI.
 - [ ] Edit a category budget amount with the keypad and verify exact-cent persistence.
 - [ ] Move money category-to-category and category-to-budget and verify both sides.
@@ -100,6 +104,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Create a transfer with a rule configured to match its destination account; selecting the destination applies the rule's Notes/Cleared/etc. in the editor, and the saved transfer stays correctly linked.
 - [ ] Post or edit a schedule's linked transaction: its own schedule-linked rule still applies, and an unrelated rule linked to a different schedule does not; a rule with a recurring-date condition matching the schedule's own recurrence evaluates correctly instead of never matching.
 - [ ] Manually post a recurring schedule on its due date and verify its next occurrence advances exactly once.
+- [ ] Use "Post Transaction Today" early (before the due date) and verify the schedule advances to its next due date and the just-completed occurrence still shows as paid on the Bills calendar, rather than looking due again.
 - [ ] Create a schedule occurrence out of order or with a future-dated linked transaction, then let the catch-up loop run; verify an earlier due/missed occurrence still posts instead of being masked.
 - [ ] Scheduled Transactions list opens and status/date/amount alignment is correct.
 - [ ] Create/edit a recurring schedule and verify recurrence preview.
@@ -132,7 +137,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] An upgrade with **More** stored as the start page opens **Manage** and persists the migrated value.
 - [ ] Bottom navigation preserves per-tab state and root reselect/scroll-to-top behavior.
 - [ ] Switch between two local budgets and verify a loading state remains visible until the newly selected budget's data is ready; no rows from the previous budget are presented as the new budget.
-- [ ] Bottom navigation is Home | Budget | Transactions | Accounts | Manage (Reports is not a bottom tab); Home shows Ready to Budget, Favorite Categories, Favorite Accounts, Upcoming, This Month, Reports and Recent Activity, each tapping through to its full screen; tapping a favorited report shortcut opens Reports with that report selected; the Add Transaction button is available from Home; a device previously set to start on Reports opens Home instead after upgrading.
+- [ ] Bottom navigation is Home | Budget | Transactions | Accounts | Manage (Reports is not a bottom tab); Home shows Ready to Budget, Favorite Categories, Favorite Accounts, Upcoming, This Month, Reports and Recent Activity, each tapping through to its full screen; tapping a favorited category card on Home opens that category's Budget details directly (not just the Budget overview); tapping a favorited report shortcut opens Reports with that report selected; the Add Transaction button is available from Home; a device previously set to start on Reports opens Home instead after upgrading.
+- [ ] Record a transfer between two on-budget accounts and verify Home's This Month card doesn't count it as income or spending, matching Accounts' cash-flow totals for the same period.
 - [ ] From Home's app bar, open Customize Home: hide/show an optional section, reorder sections via drag or the up/down arrows, and Restore Defaults; verify the layout survives navigating away and an app relaunch.
 - [ ] Android Back behaves correctly from details, search, preferences and transaction flows.
 - [ ] Add/edit transaction Save button, keypad and selectors remain usable with the software keyboard open.
