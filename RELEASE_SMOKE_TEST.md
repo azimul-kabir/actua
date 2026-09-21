@@ -112,6 +112,9 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Manage → Automation exposes separate Bills & Calendar and Scheduled Transactions entries.
 - [ ] Bills & Calendar loads scheduled/card-bill entries and filters/actions work; Back returns to the correct origin.
 - [ ] Reports dashboard loads its saved ordering and representative report cards render without crashes.
+- [ ] Open a saved Actual custom report and verify its donut/interval charts, tapping a bar or segment shows exact values, the date/account filter narrows results, and drilling into a segment lists the contributing transactions and matches Actual.
+- [ ] With a schedule due or upcoming, verify Transactions and an account's register show it as an italic "Upcoming" row that is excluded from balances, and that the "Show upcoming transactions" overflow toggle hides/shows it.
+- [ ] Add Transaction auto-focuses the amount and advances through the payee/category/account pickers; verify Settings → Budget's hide-income-group switch hides the income group in Budget, and the category status dot shows in the Plan view.
 - [ ] Check Summary, Net Worth, Cash Flow, Spending and at least one advanced report card against known data.
 
 ## Android integrations

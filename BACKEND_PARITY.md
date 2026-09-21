@@ -142,6 +142,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   category cards open their category details directly, and This Month shares Accounts' category-aware
   cash-flow calculation so on-budget transfers and uncategorized rows are excluded. Reports remains a
   full destination, reachable from Home and Manage
+- Saved Actual custom reports shown read-only through a shared Actual-compatible aggregator (donut and per-interval charts, viewer-side date/account filter, drill-down to transactions); see `docs/REPORTS_PARITY.md`
+- Scheduled transactions projected as unposted upcoming rows in the Transactions tab and account registers, excluded from balances and search, matching Actual's mobile PWA
 - Home section customization (show/hide optional sections, drag-to-reorder, restore defaults) as a
   versioned, migration-safe local UI preference; reordering mutates in-memory state during the
   gesture and persists once on drop, not per row crossed
