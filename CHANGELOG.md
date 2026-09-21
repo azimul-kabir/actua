@@ -4,6 +4,14 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Favorite category cards on Home now open that category's Budget details directly instead of only opening the Budget overview
+
+### Fixed
+
+- Fixed Home's This Month card counting transfers between on-budget accounts as income and spending; it now uses the same category-aware cash-flow calculation as Accounts
+
 ## [1.0.0-beta.35] - 2026-09-21
 
 ### Added

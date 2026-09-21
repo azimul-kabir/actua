@@ -64,6 +64,7 @@ import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetProgressState
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.ui.accounts.AccountMonthlySummaryCalculator
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.PillShape
@@ -83,6 +84,7 @@ fun HomeScreen(
     sections: List<HomeSection> = HomeSection.entries,
     hideDecimalPlaces: Boolean = false,
     onBudgetClick: () -> Unit = {},
+    onCategoryClick: (String) -> Unit = {},
     onAccountsClick: () -> Unit = {},
     onSchedulesClick: () -> Unit = {},
     onTransactionsClick: () -> Unit = {},
@@ -114,7 +116,7 @@ fun HomeScreen(
                     HomeSection.READY_TO_BUDGET -> ReadyToBudgetHero(
                         projection.budgetOverview, hideDecimalPlaces, onBudgetClick)
                     HomeSection.FAVORITE_CATEGORIES -> FavoriteCategoriesSection(
-                        projection.favoriteCategories, hideDecimalPlaces, onBudgetClick)
+                        projection.favoriteCategories, hideDecimalPlaces, onBudgetClick, onCategoryClick)
                     HomeSection.FAVORITE_ACCOUNTS -> FavoriteAccountsSection(
                         projection.favoriteAccounts, hideDecimalPlaces, onAccountsClick)
                     HomeSection.UPCOMING -> UpcomingSection(
@@ -169,16 +171,17 @@ private fun ReadyToBudgetHero(overview: BudgetOverview, hideDecimals: Boolean, o
 }
 
 @Composable
-private fun FavoriteCategoriesSection(categories: List<BudgetCategory>, hideDecimals: Boolean, onClick: () -> Unit) {
-    DashboardSectionHeader(HomeSection.FAVORITE_CATEGORIES.title, "View budget", onClick)
+private fun FavoriteCategoriesSection(categories: List<BudgetCategory>, hideDecimals: Boolean,
+    onViewBudgetClick: () -> Unit, onCategoryClick: (String) -> Unit) {
+    DashboardSectionHeader(HomeSection.FAVORITE_CATEGORIES.title, "View budget", onViewBudgetClick)
     if (categories.isEmpty()) {
-        DashboardEmptyCard("No favorite categories yet", onClick)
+        DashboardEmptyCard("No favorite categories yet", onViewBudgetClick)
         return
     }
     LazyRow(contentPadding = PaddingValues(horizontal = Spacing.screenHorizontal),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         items(categories.take(5), key = { it.id ?: it.name }) { category ->
-            CategoryProgressCard(category, hideDecimals, onClick)
+            CategoryProgressCard(category, hideDecimals) { onCategoryClick(category.name) }
         }
     }
 }
@@ -309,14 +312,9 @@ private fun UpcomingRow(item: ScheduleListItem, hideDecimals: Boolean, onClick: 
 
 @Composable
 private fun ThisMonthSection(transactions: List<Transaction>, hideDecimals: Boolean, onClick: () -> Unit) {
-    var income = 0L
-    var spending = 0L
-    transactions.forEach {
-        when {
-            it.amountCents > 0L -> income += it.amountCents
-            it.amountCents < 0L -> spending -= it.amountCents
-        }
-    }
+    val summary = homeMonthActivity(transactions)
+    val income = summary.incomeCents
+    val spending = summary.expenseCents
     val net = income - spending
     val scale = maxOf(income, spending, 1L).toFloat()
     DashboardSectionHeader(HomeSection.THIS_MONTH.title, "View activity", onClick)
@@ -347,6 +345,10 @@ private fun ThisMonthSection(transactions: List<Transaction>, hideDecimals: Bool
         }
     }
 }
+
+/** Uses the same category-aware calculation as Accounts so transfers do not become cash flow. */
+internal fun homeMonthActivity(transactions: List<Transaction>) =
+    AccountMonthlySummaryCalculator.calculate(transactions)
 
 @Composable
 private fun MonthMetric(label: String, amount: Long, hideDecimals: Boolean, color: Color,

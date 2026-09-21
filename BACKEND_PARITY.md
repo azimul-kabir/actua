@@ -128,8 +128,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - **Home** first-class root destination (`Home | Budget | Transactions | Accounts | Manage`) replacing
   Reports' former bottom-tab slot; a financial command center with Ready to Budget, Favorite
   Categories, Favorite Accounts, Upcoming, This Month, Reports and Recent Activity sections, each
-  routing into the existing authoritative screen/calculation rather than duplicating it. Reports
-  remains a full destination, reachable from Home and Manage
+  routing into the existing authoritative screen/calculation rather than duplicating it. Favorite
+  category cards open their category details directly, and This Month shares Accounts' category-aware
+  cash-flow calculation so on-budget transfers and uncategorized rows are excluded. Reports remains a
+  full destination, reachable from Home and Manage
 - Home section customization (show/hide optional sections, drag-to-reorder, restore defaults) as a
   versioned, migration-safe local UI preference; reordering mutates in-memory state during the
   gesture and persists once on drop, not per row crossed
