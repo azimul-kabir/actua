@@ -46,7 +46,7 @@ class CategoryStatusColorState(context: Context) {
         preferences.resetToDefaults()
     }
 
-    fun setShowDots(show: Boolean) {
+    fun updateShowDots(show: Boolean) {
         showDots = show
         displayPreferences.showCategoryStatusDots = show
     }

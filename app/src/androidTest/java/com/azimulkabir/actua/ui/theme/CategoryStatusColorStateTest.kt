@@ -37,7 +37,7 @@ class CategoryStatusColorStateTest {
         val state = CategoryStatusColorState(context)
         assertEquals(true, state.showDots)
 
-        state.setShowDots(false)
+        state.updateShowDots(false)
         assertEquals(false, state.showDots)
 
         val reloaded = CategoryStatusColorState(context)

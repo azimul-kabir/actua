@@ -400,7 +400,7 @@ fun SettingsScreen(
                         "Category status dot",
                         "Show a status dot next to category names on Budget and Home",
                         categoryStatusColors?.showDots ?: true,
-                    ) { categoryStatusColors?.setShowDots(it) }
+                    ) { categoryStatusColors?.updateShowDots(it) }
                     SettingsRow(
                         "Category status colors",
                         "Retint the unassigned, funded, spending, spent and overspent status colors",
