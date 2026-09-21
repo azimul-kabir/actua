@@ -4,6 +4,13 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.36] - 2026-09-21
+
+### Added
+
+- Added a dedicated Bank Sync management page (Accounts "+" → Set up bank sync, and Manage → Bank Sync): configure SimpleFIN (setup token) or GoCardless (Secret ID/Key), discover provider accounts, and link them to an existing or newly created account; Accounts now fetches all linked bank accounts via pull-to-refresh, and a single linked account's register can also be refreshed individually. Pluggy.ai is surfaced as not yet supported rather than partially implemented
+- Added status dots to category rows and cards, sharing the same color logic as the category progress bar; status colors can be customized per status (or reset to defaults) from Settings → Budget → Category status colors, and the dot itself can be hidden with a new "Category status dot" switch above it
+
 ### Changed
 
 - Favorite category cards on Home now open that category's Budget details directly instead of only opening the Budget overview
@@ -14,6 +21,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Fixed Home's This Month card counting transfers between on-budget accounts as income and spending; it now uses the same category-aware cash-flow calculation as Accounts
 - Fixed the certificate trust prompt inspecting and pinning the primary server URL even when a fallback server URL was the one whose connection attempt actually failed with an untrusted certificate
+- Fixed Post Transaction Today leaving a just-completed recurring schedule occurrence looking due after it advanced the schedule to its next date; the Bills calendar now still shows that occurrence as paid
 
 ## [1.0.0-beta.35] - 2026-09-21
 
