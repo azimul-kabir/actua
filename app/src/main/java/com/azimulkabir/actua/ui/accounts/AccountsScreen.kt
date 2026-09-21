@@ -1,6 +1,5 @@
 package com.azimulkabir.actua.ui.accounts
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -213,7 +212,7 @@ fun AccountsScreen(
                         )
                     }
                     itemsIndexed(section.accounts, key = { _, account -> "${section.title}-${account.name}" }) { index, account ->
-                        AnimatedVisibility(
+                        androidx.compose.animation.AnimatedVisibility(
                             visible = !collapsed,
                             enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
                             exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
