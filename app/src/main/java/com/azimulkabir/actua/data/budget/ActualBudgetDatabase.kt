@@ -934,6 +934,26 @@ class ActualBudgetDatabase private constructor(
         return rows
     }
 
+    @Synchronized
+    fun fetchSavedReports(): List<com.azimulkabir.actua.data.reports.SavedReportRow> {
+        if (!hasTable("custom_reports")) return emptyList()
+        val rows = mutableListOf<com.azimulkabir.actua.data.reports.SavedReportRow>()
+        database.rawQuery(
+            "SELECT id, COALESCE(name, ''), start_date, end_date, date_static, date_range, group_by, balance_type, " +
+                "show_offbudget, show_hidden, show_uncategorized, selected_categories, graph_type, conditions, " +
+                "conditions_op, interval FROM custom_reports WHERE tombstone = 0 OR tombstone IS NULL ORDER BY name",
+            null,
+        ).use { c ->
+            while (c.moveToNext()) rows += com.azimulkabir.actua.data.reports.SavedReportRow(
+                c.getString(0), c.getString(1), c.stringOrNull(2), c.stringOrNull(3), c.longOrZero(4) == 1L,
+                c.stringOrNull(5), c.stringOrNull(6) ?: "Category", c.stringOrNull(7) ?: "Expense",
+                c.longOrZero(8) == 1L, c.longOrZero(9) == 1L, c.longOrZero(10) == 1L, c.stringOrNull(11),
+                c.stringOrNull(12) ?: "BarGraph", c.stringOrNull(13), c.stringOrNull(14), c.stringOrNull(15) ?: "Monthly",
+            )
+        }
+        return rows
+    }
+
     data class BudgetCell(
         val table: String,
         val rowId: String,

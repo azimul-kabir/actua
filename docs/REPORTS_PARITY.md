@@ -45,3 +45,10 @@ Reference: Actual `packages/loot-core/src/server/reports` and
 - Transfers to closed accounts follow the same boundary rule using the stored account row.
 
 Fixtures: `app/src/test/.../data/reports/ReportAggregatorTest.kt`.
+
+## Scope decision
+
+Actua only *displays* reports that exist in the Actual budget (dashboard cards and saved
+`custom_reports` rows); it does not create or edit them. Saved reports appear on a
+"Saved reports" page, evaluated by `SavedReportEngine` on top of `ReportAggregator`, and
+render as donut (`DonutGraph`), line/area, or ranked bars (other graph types).
