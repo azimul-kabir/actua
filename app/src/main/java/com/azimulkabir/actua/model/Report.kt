@@ -43,11 +43,26 @@ data class ReportWidget(
     val subtitle: String? = null,
 )
 
+/** Viewer-side override applied on top of a saved report's own settings; never written back. */
+data class ReportViewFilter(val datePreset: String? = null, val accountIds: Set<String> = emptySet()) {
+    val isDefault: Boolean get() = datePreset == null && accountIds.isEmpty()
+
+    companion object {
+        val datePresets = listOf(
+            "This month", "Last month", "Last 3 months", "Last 6 months", "Last 12 months",
+            "Year to date", "Last year", "All time",
+        )
+    }
+}
+
+data class ReportAccountOption(val id: String, val name: String)
+
 data class ReportSnapshot(
     val months: List<ReportMonth>,
     val categories: List<ReportCategory>,
     val netWorthCents: Long,
     val dashboards: List<ReportDashboardPage> = emptyList(),
+    val accountOptions: List<ReportAccountOption> = emptyList(),
 ) {
     val current: ReportMonth? get() = months.lastOrNull()
 }

@@ -8,6 +8,7 @@ import com.azimulkabir.actua.data.rules.RuleContext
 import com.azimulkabir.actua.data.rules.RulesEngine
 import com.azimulkabir.actua.model.ReportCategory
 import com.azimulkabir.actua.model.ReportPoint
+import com.azimulkabir.actua.model.ReportViewFilter
 import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
 import org.json.JSONArray
@@ -23,14 +24,18 @@ object SavedReportEngine {
         accounts: List<ActualAccount>,
         groups: List<ActualCategoryGroup>,
         today: LocalDate = LocalDate.now(),
+        view: ReportViewFilter = ReportViewFilter(),
     ): ReportWidget {
         val aggregator = ReportAggregator(accounts, groups)
-        val (start, end) = dateRange(row, today)
+        val (start, end) = dateRange(
+            view.datePreset?.let { row.copy(dateStatic = false, dateRange = it) } ?: row, today,
+        )
         val selected = row.selectedCategories?.let { runCatching { JSONArray(it) }.getOrNull() }?.let { array ->
             (0 until array.length()).mapNotNull { array.optJSONObject(it)?.optString("id")?.takeIf(String::isNotBlank) }
         }.orEmpty().toSet()
         val filter = ReportFilter(
             startDate = start.toYmd(), endDate = end.toYmd(),
+            accountIds = view.accountIds.takeIf { it.isNotEmpty() },
             categoryIds = selected.takeIf { it.isNotEmpty() },
             showOffBudget = row.showOffBudget, showHiddenCategories = row.showHidden,
             showUncategorized = row.showUncategorized,

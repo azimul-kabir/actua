@@ -19,7 +19,9 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.azimulkabir.actua.model.ReportAccountOption
 import com.azimulkabir.actua.model.ReportCategory
+import com.azimulkabir.actua.model.ReportViewFilter
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.transactions.TransactionRow
 import androidx.compose.foundation.lazy.LazyColumn
@@ -78,12 +80,19 @@ fun ReportsScreen(
     onSearch: () -> Unit = {},
     favoriteReportIds: Set<String> = emptySet(),
     onFavoriteReportChange: (String, Boolean) -> Unit = { _, _ -> },
+    loadSavedReports: suspend (ReportViewFilter) -> List<ReportWidget> = { emptyList() },
     loadTransactions: suspend (List<String>) -> List<Transaction> = { emptyList() },
     scrollToTopRequest: Int = 0,
     initialPageId: String? = null,
     initialPageRequest: Int = 0,
 ) {
     val listState = rememberLazyListState()
+    var datePreset by rememberSaveable { mutableStateOf<String?>(null) }
+    var accountIds by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    val view = ReportViewFilter(datePreset, accountIds.toSet())
+    val filteredSaved by produceState<List<ReportWidget>?>(null, view, snapshot.dashboards.size) {
+        value = if (view.isDefault) null else loadSavedReports(view)
+    }
     var drill by remember { mutableStateOf<Pair<ReportCategory, String>?>(null) }
     var selectedPageId by rememberSaveable { mutableStateOf<String?>(null) }
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
@@ -156,7 +165,13 @@ fun ReportsScreen(
                     )
                 }
             }
-            val visible = selected.widgets.filterNot { it.kind == ReportWidgetKind.UNSUPPORTED }
+            if (selected.id == SAVED_PAGE_ID) item {
+                ViewFilterBar(view, snapshot.accountOptions,
+                    onPreset = { datePreset = it }, onAccounts = { accountIds = it.toList() })
+            }
+            val shownWidgets = if (selected.id == SAVED_PAGE_ID && !view.isDefault) filteredSaved ?: selected.widgets
+                else selected.widgets
+            val visible = shownWidgets.filterNot { it.kind == ReportWidgetKind.UNSUPPORTED }
             if (visible.isEmpty()) item { EmptyReports() }
             items(visible, key = { it.id }) { widget -> WidgetCard(widget, hideDecimalPlaces, onDrillDown = { drill = it to widget.name }) }
         }
@@ -192,6 +207,52 @@ private fun DrillDownSheet(
         } else LazyColumn(Modifier.fillMaxWidth()) {
             items(loaded, key = { it.id }) { tx ->
                 TransactionRow(tx, hideDecimals, showDate = true, showAccount = true, onClick = {}, onLongClick = {})
+            }
+        }
+    }
+}
+
+private const val SAVED_PAGE_ID = "saved-reports"
+
+@Composable
+private fun ViewFilterBar(
+    view: ReportViewFilter,
+    accounts: List<ReportAccountOption>,
+    onPreset: (String?) -> Unit,
+    onAccounts: (Set<String>) -> Unit,
+) {
+    var dateOpen by remember { mutableStateOf(false) }
+    var accountOpen by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box {
+            androidx.compose.material3.FilterChip(
+                selected = view.datePreset != null, onClick = { dateOpen = true },
+                label = { Text(view.datePreset ?: "As saved") },
+            )
+            DropdownMenu(dateOpen, { dateOpen = false }) {
+                DropdownMenuItem(text = { Text("As saved") }, onClick = { onPreset(null); dateOpen = false })
+                ReportViewFilter.datePresets.forEach { preset ->
+                    DropdownMenuItem(text = { Text(preset) }, onClick = { onPreset(preset); dateOpen = false })
+                }
+            }
+        }
+        Box {
+            androidx.compose.material3.FilterChip(
+                selected = view.accountIds.isNotEmpty(), onClick = { accountOpen = true },
+                label = { Text(if (view.accountIds.isEmpty()) "All accounts" else "${view.accountIds.size} accounts") },
+            )
+            DropdownMenu(accountOpen, { accountOpen = false }) {
+                DropdownMenuItem(text = { Text("All accounts") }, onClick = { onAccounts(emptySet()); accountOpen = false })
+                accounts.forEach { account ->
+                    val checked = account.id in view.accountIds
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                            androidx.compose.material3.Checkbox(checked, null)
+                            Text(account.name)
+                        } },
+                        onClick = { onAccounts(if (checked) view.accountIds - account.id else view.accountIds + account.id) },
+                    )
+                }
             }
         }
     }

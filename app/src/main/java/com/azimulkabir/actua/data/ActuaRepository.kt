@@ -885,6 +885,17 @@ class ActuaRepository(context: Context) {
             .map { toTransaction(it, accountNames) }
     }
 
+    /** Saved Actual reports evaluated with an optional viewer-side date/account override. */
+    fun savedReportWidgets(view: com.azimulkabir.actua.model.ReportViewFilter): List<com.azimulkabir.actua.model.ReportWidget> {
+        val db = actualDatabase ?: return emptyList()
+        val accounts = db.fetchAccounts()
+        val groups = db.fetchCategoryGroups()
+        val rows = db.fetchTransactionsForReports()
+        return db.fetchSavedReports().map {
+            com.azimulkabir.actua.data.reports.SavedReportEngine.compute(it, rows, accounts, groups, view = view)
+        }
+    }
+
     fun reports(): ReportSnapshot {
         val db = actualDatabase ?: return ReportSnapshot(emptyList(), emptyList(), 0)
         val accounts = db.fetchAccounts()
@@ -936,6 +947,7 @@ class ActuaRepository(context: Context) {
             categories,
             accounts.filterNot { it.closed }.sumOf { it.balanceCents },
             pages,
+            accounts.filterNot { it.closed }.map { com.azimulkabir.actua.model.ReportAccountOption(it.id, it.name) },
         )
     }
 
