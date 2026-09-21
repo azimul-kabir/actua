@@ -113,6 +113,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Bills & Calendar loads scheduled/card-bill entries and filters/actions work; Back returns to the correct origin.
 - [ ] Reports dashboard loads its saved ordering and representative report cards render without crashes.
 - [ ] Open a saved Actual custom report and verify its donut/interval charts, tapping a bar or segment shows exact values, the date/account filter narrows results, and drilling into a segment lists the contributing transactions and matches Actual.
+- [ ] In Reports, filter by category group and toggle include-off-budget; verify saved reports and Income vs expenses update, chips wrap without horizontal scrolling and survive rotation, and a filter matching nothing shows the empty message.
 - [ ] Open the Reports overview and verify the Income vs expenses card's monthly in/out/net bars respond to taps and the date/account filter, and that the Income and Expenses rows drill down to transactions that sum to the card's totals in Actual.
 - [ ] With a schedule due or upcoming, verify Transactions and an account's register show it as an italic "Upcoming" row that is excluded from balances, and that the "Show upcoming transactions" overflow toggle hides/shows it.
 - [ ] Add Transaction auto-focuses the amount and advances through the payee/category/account pickers; verify Settings → Budget's hide-income-group switch hides the income group in Budget, and the category status dot shows in the Plan view.
