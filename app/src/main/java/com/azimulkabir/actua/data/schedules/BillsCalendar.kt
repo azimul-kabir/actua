@@ -172,6 +172,23 @@ object BillsCalendarEngine {
         val nextStart = nextDate?.let {
             ScheduleStatusCalculator.occurrenceMatchStartDate(it, schedule.dateOp, schedule.postsTransaction)
         }
-        return payments.any { it >= start && (nextStart == null || it < nextStart) }
+        if (payments.any { it >= start && (nextStart == null || it < nextStart) }) return true
+
+        // "Post transaction today" can link an early payment and advance next_date. For an
+        // auto-posting schedule, the normal matching window starts on the due date, so that
+        // transaction would otherwise leave the just-completed calendar occurrence looking due.
+        // Only widen the window for the occurrence immediately before the persisted next_date;
+        // this prevents an older linked payment from satisfying every later occurrence.
+        val recurring = schedule.dateCondition as? ScheduleDateCondition.Recurring ?: return false
+        val persistedNext = schedule.nextDate ?: return false
+        if (ScheduleRecurrence.nextOccurrence(
+                recurring.config,
+                ScheduleRecurrence.skipSearchStart(date, recurring.config),
+            ) != persistedNext
+        ) return false
+        val previous = ScheduleRecurrence.previousOccurrence(recurring.config, date)
+        return payments.any { payment ->
+            (previous == null || payment > previous) && payment < persistedNext
+        }
     }
 }

@@ -87,6 +87,20 @@ object ScheduleRecurrence {
     /** Whether `date` is itself an occurrence of `config`. */
     fun occursOn(config: RecurConfig, date: DayDate): Boolean = nextOccurrence(config, date) == date
 
+    /** The recurrence immediately before [date], or null when [date] is the first occurrence. */
+    fun previousOccurrence(config: RecurConfig, date: DayDate): DayDate? {
+        var previous: DayDate? = null
+        var cursor = config.start
+        repeat(PERIOD_CAP) {
+            val occurrence = nextOccurrence(config, cursor) ?: return previous
+            if (occurrence >= date) return previous
+            if (previous?.let { occurrence <= it } == true) return previous
+            previous = occurrence
+            cursor = occurrence.addingDays(1)
+        }
+        return previous
+    }
+
     /** Whether `date` falls within `days` of an occurrence of `config` (upstream's `isapprox`). */
     fun occursApprox(config: RecurConfig, date: DayDate, days: Int = 2): Boolean {
         val occurrence = nextOccurrence(config, date.addingDays(-days)) ?: return false
