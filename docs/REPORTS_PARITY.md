@@ -38,11 +38,19 @@ Reference: Actual `packages/loot-core/src/server/reports` and
 - **Drill-down**: each group total carries the ids of its contributing transactions, and
   totals equal the sum of those rows by construction (tested).
 
+## Income vs expenses
+
+The "Overview" page opens with an income-vs-expenses card (default: last 12 months, monthly).
+Income is every transaction in an income category; expenses are every other in-scope
+transaction (uncategorized included), so refunds net against their own side and sign alone
+never decides. Transfers within the same side of the budget are excluded, off-budget accounts
+are excluded, and Income/Expenses rows drill down to the contributing transactions.
+
 ## Known gaps
 
-- Payee, account, day/week/year interval grouping and custom conditions beyond
-  category/account filters are not part of the shared filter yet.
-- Transfers to closed accounts follow the same boundary rule using the stored account row.
+- Custom conditions on saved reports use the rules engine, not upstream's query builder;
+  unsupported operators fall back to no condition.
+- Uncategorized positive amounts count against expenses (upstream may treat them as income).
 
 Fixtures: `app/src/test/.../data/reports/ReportAggregatorTest.kt`.
 
