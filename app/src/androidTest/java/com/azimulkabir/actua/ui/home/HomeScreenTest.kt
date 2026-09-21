@@ -98,7 +98,8 @@ class HomeScreenTest {
         )
     }
 
-    @Test fun favoriteCategoryRowRoutesToBudget() {
+    @Test fun favoriteCategoryRowRoutesToCategory() {
+        var clickedCategory: String? = null
         var budgetClicked = false
         val projection = HomeDashboardProjection.empty().copy(
             favoriteCategories = listOf(BudgetCategory("Groceries", 0, 0, id = "groceries")),
@@ -109,13 +110,17 @@ class HomeScreenTest {
                     sections = listOf(HomeSection.FAVORITE_CATEGORIES),
                     projection = projection,
                     onBudgetClick = { budgetClicked = true },
+                    onCategoryClick = { clickedCategory = it },
                 )
             }
         }
 
         compose.onNodeWithText("Groceries").performClick()
 
-        assertTrue(budgetClicked)
+        assertTrue(
+            "Tapping a favorite category should open that category, not the generic Budget overview",
+            clickedCategory == "Groceries" && !budgetClicked,
+        )
     }
 
     @Test fun favoriteCategoriesRenderAsDashboardProgressCards() {

@@ -1672,6 +1672,10 @@ fun AppNavigation(
                     sections = homeLayout.visibleSections,
                     hideDecimalPlaces = hideDecimalPlaces,
                     onBudgetClick = { destination = MainDestination.Budget },
+                    onCategoryClick = { category ->
+                        reopenBudgetCategory = category
+                        destination = MainDestination.Budget
+                    },
                     onAccountsClick = { destination = MainDestination.Accounts },
                     onSchedulesClick = {
                         destination = MainDestination.Manage
