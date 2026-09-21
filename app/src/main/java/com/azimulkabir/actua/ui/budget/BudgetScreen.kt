@@ -1021,12 +1021,15 @@ private fun PlanBudgetCategoryRow(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(
-                    if (category.hidden) "${category.name} · Hidden" else category.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CategoryStatusDot(category.progressState, modifier = Modifier.padding(end = 8.dp))
+                    Text(
+                        if (category.hidden) "${category.name} · Hidden" else category.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 category.target?.let {
                     Text(it.type.label, style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary, maxLines = 1,
