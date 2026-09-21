@@ -96,6 +96,7 @@ fun SettingsScreen(
     showAccountsMonthlySummary: Boolean = true,
     onShowAccountsMonthlySummaryChange: (Boolean) -> Unit = {},
     onCreditCardsClick: () -> Unit = {},
+    onBankSyncClick: () -> Unit = {},
     onBillsCalendarClick: () -> Unit = {},
     onRulesClick: () -> Unit = {},
     onSchedulesClick: () -> Unit = {},
@@ -254,6 +255,9 @@ fun SettingsScreen(
                         openFullScreen(onConnectionClick)
                     }
                     SettingsSection("Financial setup")
+                    SettingsRow("Bank Sync", "Connect SimpleFIN or GoCardless and link accounts", true) {
+                        openFullScreen(onBankSyncClick)
+                    }
                     SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true) {
                         openFullScreen(onCreditCardsClick)
                     }

@@ -55,6 +55,9 @@ class ActualBudgetDatabase private constructor(
         val externalId: String,
         val source: String,
         val closed: Boolean,
+        val requisitionId: String? = null,
+        val status: String? = null,
+        val lastSync: String? = null,
     )
 
     override fun close() = database.close()
@@ -113,9 +116,10 @@ class ActualBudgetDatabase private constructor(
 
     @Synchronized
     fun fetchBankSyncAccounts(): List<BankSyncAccount> = database.rawQuery(
-        """SELECT id, name, account_id, account_sync_source, closed FROM accounts
+        """SELECT id, name, account_id, account_sync_source, closed, gocardless_requisition_id,
+                  bank_sync_status, last_sync FROM accounts
             WHERE account_id IS NOT NULL AND account_id != ''
-              AND account_sync_source = 'simpleFin'
+              AND account_sync_source IS NOT NULL AND account_sync_source != ''
               AND (tombstone = 0 OR tombstone IS NULL)""",
         null,
     ).use { cursor -> buildList {
@@ -125,6 +129,9 @@ class ActualBudgetDatabase private constructor(
             externalId = cursor.getString(2),
             source = cursor.getString(3),
             closed = cursor.intOrZero(4) == 1,
+            requisitionId = cursor.stringOrNull(5),
+            status = cursor.stringOrNull(6),
+            lastSync = cursor.stringOrNull(7),
         ))
     } }
 
@@ -1471,6 +1478,7 @@ class ActualBudgetDatabase private constructor(
             ColumnMigration(1780606215004, "accounts", "last_sync", "TEXT"),
             ColumnMigration(1783004650757, "schedules", "sort_order", "REAL DEFAULT 0"),
             ColumnMigration(1787013118115, "accounts", "account_group_id", "TEXT DEFAULT NULL"),
+            ColumnMigration(1787013118200, "accounts", "gocardless_requisition_id", "TEXT DEFAULT NULL"),
         )
         private val internalTables = setOf("messages_crdt", "messages_clock", "migrations", "__migrations__")
         private val requiredTables = setOf(

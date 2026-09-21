@@ -14,6 +14,10 @@ import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.bank.BankSyncResult
 import com.azimulkabir.actua.data.bank.BankSyncService
 import com.azimulkabir.actua.data.network.ActualServerClient
+import com.azimulkabir.actua.data.network.GoCardlessAccountsResult
+import com.azimulkabir.actua.data.network.GoCardlessInstitution
+import com.azimulkabir.actua.data.network.GoCardlessWebToken
+import com.azimulkabir.actua.data.network.SimpleFinAccountsResult
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
 import com.azimulkabir.actua.data.network.UrlConnectionTransport
 import com.azimulkabir.actua.data.security.CredentialStore
@@ -622,6 +626,8 @@ class ActuaRepository(context: Context) {
                     reconciledCents = it.reconciledCents,
                     note = notes["account-${it.id}"].orEmpty(),
                     bankSyncSource = bankLinks[it.id]?.source,
+                    bankSyncStatus = bankLinks[it.id]?.status,
+                    bankSyncLastSync = bankLinks[it.id]?.lastSync,
                 )
             }
         }
@@ -630,16 +636,88 @@ class ActuaRepository(context: Context) {
 
     fun syncBanks(accountId: String? = null): BankSyncResult {
         val database = actualDatabase ?: error("Open an Actual budget before syncing banks.")
-        val credentials = CredentialStore(appContext)
-        val token = credentials.token() ?: error("Connect to your Actual server before syncing banks.")
-        val serverUrl = credentials.serverUrl.takeIf(String::isNotBlank)
-            ?: error("Connect to your Actual server before syncing banks.")
-        val server = ActualServerClient(
-            UrlConnectionTransport(TrustedCertificateStore(appContext)),
-        ).apply { customHeaders = credentials.customHeaders }
+        val (server, serverUrl, token) = bankSyncClient()
         return BankSyncService(
             database, requireNotNull(actualWriter), requireNotNull(actualEntities), server,
         ).sync(serverUrl, token, accountId)
+    }
+
+    private data class BankSyncClient(val server: ActualServerClient, val serverUrl: String, val token: String)
+
+    private fun bankSyncClient(): BankSyncClient {
+        val credentials = CredentialStore(appContext)
+        val token = credentials.token() ?: error("Connect to your Actual server before configuring bank sync.")
+        val serverUrl = credentials.serverUrl.takeIf(String::isNotBlank)
+            ?: error("Connect to your Actual server before configuring bank sync.")
+        val server = ActualServerClient(
+            UrlConnectionTransport(TrustedCertificateStore(appContext)),
+        ).apply { customHeaders = credentials.customHeaders }
+        return BankSyncClient(server, serverUrl, token)
+    }
+
+    /** `simpleFin` or `goCardless` — whether the server has that provider's credentials configured. */
+    fun bankSyncProviderConfigured(provider: String): Boolean {
+        val (server, serverUrl, token) = bankSyncClient()
+        return when (provider) {
+            "simpleFin" -> server.simpleFinStatus(serverUrl, token)
+            "goCardless" -> server.goCardlessStatus(serverUrl, token)
+            else -> false
+        }
+    }
+
+    fun setSimpleFinToken(setupToken: String) {
+        val (server, serverUrl, token) = bankSyncClient()
+        server.setSecret(serverUrl, token, "simplefin_token", setupToken)
+    }
+
+    fun setGoCardlessCredentials(secretId: String, secretKey: String) {
+        val (server, serverUrl, token) = bankSyncClient()
+        server.setSecret(serverUrl, token, "gocardless_secretId", secretId)
+        server.setSecret(serverUrl, token, "gocardless_secretKey", secretKey)
+    }
+
+    fun discoverSimpleFinAccounts(): SimpleFinAccountsResult {
+        val (server, serverUrl, token) = bankSyncClient()
+        return server.simpleFinAccounts(serverUrl, token)
+    }
+
+    fun discoverGoCardlessInstitutions(country: String): List<GoCardlessInstitution> {
+        val (server, serverUrl, token) = bankSyncClient()
+        return server.goCardlessInstitutions(serverUrl, token, country)
+    }
+
+    /** Starts a GoCardless bank authorization; open the returned link in a browser. */
+    fun startGoCardlessAuthorization(institutionId: String): GoCardlessWebToken {
+        val (server, serverUrl, token) = bankSyncClient()
+        return server.goCardlessCreateWebToken(serverUrl, token, institutionId, serverUrl)
+    }
+
+    fun goCardlessAccountsForRequisition(requisitionId: String): GoCardlessAccountsResult {
+        val (server, serverUrl, token) = bankSyncClient()
+        return server.goCardlessAccounts(serverUrl, token, requisitionId)
+    }
+
+    /** Links an existing Actual account to a discovered provider account. */
+    fun linkBankAccount(accountId: String, externalAccountId: String, source: String, requisitionId: String? = null): Boolean {
+        val entities = actualEntities ?: return false
+        entities.linkBankAccount(accountId, externalAccountId, source, requisitionId)
+        return true
+    }
+
+    fun unlinkBankAccount(accountId: String): Boolean {
+        val entities = actualEntities ?: return false
+        entities.unlinkBankAccount(accountId)
+        return true
+    }
+
+    /** Creates a new local Actual account and immediately links it to a discovered provider account. */
+    fun createLinkedAccount(
+        name: String, offBudget: Boolean, externalAccountId: String, source: String, requisitionId: String? = null,
+    ): Boolean {
+        val entities = actualEntities ?: return false
+        val accountId = entities.createAccount(name, offBudget, 0L, ActualAccountType.CHECKING.name.lowercase())
+        entities.linkBankAccount(accountId, externalAccountId, source, requisitionId)
+        return true
     }
 
     fun creditCards(includeClosed: Boolean = false): List<CreditCardStatus> {

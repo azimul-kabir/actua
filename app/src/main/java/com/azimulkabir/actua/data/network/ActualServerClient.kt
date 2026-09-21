@@ -40,6 +40,25 @@ data class BankSyncDownload(
     val problem: String? = null,
 )
 
+data class SimpleFinAccount(val id: String, val name: String, val orgName: String?)
+data class GoCardlessInstitution(val id: String, val name: String, val transactionTotalDays: Int?)
+data class GoCardlessWebToken(val link: String, val requisitionId: String)
+data class GoCardlessAccount(val id: String, val iban: String?, val name: String?, val institutionId: String?)
+
+/** A discovered SimpleFIN account, or why none could be listed. */
+sealed class SimpleFinAccountsResult {
+    data class Available(val accounts: List<SimpleFinAccount>) : SimpleFinAccountsResult()
+    data class Error(val reason: String) : SimpleFinAccountsResult()
+}
+
+/** Discovered GoCardless accounts for a requisition, or why none are available yet. */
+sealed class GoCardlessAccountsResult {
+    data class Available(val accounts: List<GoCardlessAccount>) : GoCardlessAccountsResult()
+    /** The requisition exists but the user has not finished authorizing it at their bank yet. */
+    data class Pending(val status: String) : GoCardlessAccountsResult()
+    data class Error(val reason: String) : GoCardlessAccountsResult()
+}
+
 sealed class ActualServerException(message: String) : Exception(message) {
     data object Unauthorized : ActualServerException("Unauthorized")
     data object FileNotFound : ActualServerException("Budget file not found")
@@ -295,6 +314,132 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         return parseSimpleFinDownloads(response.json(), accountIds)
     }
 
+    /** Stores an admin-managed provider secret (e.g. `simplefin_token`, `gocardless_secretId`) on the server. */
+    fun setSecret(serverUrl: String, token: String, name: String, value: String) {
+        val body = JSONObject().put("name", name).put("value", value).toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/secret/", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        if (response.status == 403) error("You must be an admin on this server to configure bank sync.")
+        requireSuccess(response)
+    }
+
+    fun simpleFinStatus(serverUrl: String, token: String): Boolean =
+        providerConfigured(serverUrl, token, "/simplefin/status")
+
+    fun goCardlessStatus(serverUrl: String, token: String): Boolean =
+        providerConfigured(serverUrl, token, "/gocardless/status")
+
+    private fun providerConfigured(serverUrl: String, token: String, path: String): Boolean {
+        val response = request(serverUrl, path, "POST", actualHeaders(token))
+        checkAuthorization(response)
+        if (response.status in setOf(404, 405, 501)) return false
+        requireSuccess(response)
+        return response.json().optJSONObject("data")?.optBoolean("configured", false) ?: false
+    }
+
+    fun simpleFinAccounts(serverUrl: String, token: String): SimpleFinAccountsResult {
+        val response = request(serverUrl, "/simplefin/accounts", "POST", actualHeaders(token))
+        checkAuthorization(response)
+        requireSuccess(response)
+        val data = response.json().optJSONObject("data") ?: throw ActualServerException.InvalidResponse
+        data.optString("error_code").takeIf(String::isNotBlank)?.let {
+            return SimpleFinAccountsResult.Error(data.optString("reason", "SimpleFIN error ($it)."))
+        }
+        val accounts = data.optJSONArray("accounts") ?: return SimpleFinAccountsResult.Available(emptyList())
+        return SimpleFinAccountsResult.Available(buildList {
+            for (index in 0 until accounts.length()) {
+                val item = accounts.optJSONObject(index) ?: continue
+                val id = item.optString("id").takeIf(String::isNotBlank) ?: continue
+                add(SimpleFinAccount(id, item.optString("name", id), item.optJSONObject("org")?.optString("name")))
+            }
+        })
+    }
+
+    fun goCardlessInstitutions(serverUrl: String, token: String, country: String): List<GoCardlessInstitution> {
+        val body = JSONObject().put("country", country).toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/gocardless/get-banks", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        requireSuccess(response)
+        val data = response.json().optJSONArray("data") ?: return emptyList()
+        return buildList {
+            for (index in 0 until data.length()) {
+                val item = data.optJSONObject(index) ?: continue
+                val id = item.optString("id").takeIf(String::isNotBlank) ?: continue
+                add(GoCardlessInstitution(id, item.optString("name", id), item.optInt("transaction_total_days", 0).takeIf { it > 0 }))
+            }
+        }
+    }
+
+    /** Starts a GoCardless bank authorization. Open [GoCardlessWebToken.link] in a browser for the user to complete it. */
+    fun goCardlessCreateWebToken(serverUrl: String, token: String, institutionId: String, origin: String): GoCardlessWebToken {
+        val body = JSONObject().put("institutionId", institutionId).put("origin", origin).toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/gocardless/create-web-token", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        requireSuccess(response)
+        val data = response.json().optJSONObject("data") ?: throw ActualServerException.InvalidResponse
+        val link = data.optString("link").takeIf(String::isNotBlank) ?: throw ActualServerException.InvalidResponse
+        val requisitionId = data.optString("requisitionId").takeIf(String::isNotBlank) ?: throw ActualServerException.InvalidResponse
+        return GoCardlessWebToken(link, requisitionId)
+    }
+
+    /** Call after the user returns from authorizing their bank, to check whether accounts are ready to link. */
+    fun goCardlessAccounts(serverUrl: String, token: String, requisitionId: String): GoCardlessAccountsResult {
+        val body = JSONObject().put("requisitionId", requisitionId).toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/gocardless/get-accounts", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        requireSuccess(response)
+        val root = response.json()
+        root.optString("requisitionStatus").takeIf(String::isNotBlank)?.let {
+            return GoCardlessAccountsResult.Pending(it)
+        }
+        val data = root.optJSONObject("data") ?: throw ActualServerException.InvalidResponse
+        data.optString("error_code").takeIf(String::isNotBlank)?.let {
+            return GoCardlessAccountsResult.Error(data.optString("reason", "GoCardless error ($it)."))
+        }
+        val accounts = data.optJSONArray("accounts") ?: return GoCardlessAccountsResult.Available(emptyList())
+        return GoCardlessAccountsResult.Available(buildList {
+            for (index in 0 until accounts.length()) {
+                val item = accounts.optJSONObject(index) ?: continue
+                val id = item.optString("account_id", item.optString("id")).takeIf(String::isNotBlank) ?: continue
+                add(GoCardlessAccount(
+                    id, item.optionalString("iban"), item.optionalString("name") ?: item.optionalString("displayName"),
+                    item.optionalString("institution_id"),
+                ))
+            }
+        })
+    }
+
+    /** Downloads Actual's normalized GoCardless feed for a single linked account. */
+    fun downloadGoCardlessTransactions(
+        serverUrl: String, token: String, requisitionId: String, accountId: String,
+        startDate: String, endDate: String,
+    ): BankSyncDownload {
+        val body = JSONObject().put("requisitionId", requisitionId).put("accountId", accountId)
+            .put("startDate", startDate).put("endDate", endDate).toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/gocardless/transactions", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        if (response.status in setOf(404, 405, 501)) {
+            throw IllegalStateException("This Actual server does not support GoCardless bank sync.")
+        }
+        requireSuccess(response)
+        return parseSingleBankSyncDownload(response.json(), accountId)
+    }
+
     private fun authenticatedGet(serverUrl: String, path: String, token: String): ActualHttpResponse {
         val response = request(serverUrl, path, "GET", actualHeaders(token))
         checkAuthorization(response)
@@ -329,28 +474,39 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
             val firstError = accountErrors?.optJSONObject(0)
             if (account == null && firstError == null) return@mapNotNull null
             val status = firstError?.optString("error_code")?.let(::bankSyncStatus) ?: "ok"
-            val all = account?.optJSONObject("transactions")?.optJSONArray("all")
-            val transactions = buildList {
-                if (all != null) for (index in 0 until all.length()) {
-                    val item = all.optJSONObject(index) ?: continue
-                    val id = item.optString("transactionId").takeIf(String::isNotBlank) ?: continue
-                    val date = item.optString("date").replace("-", "").toIntOrNull() ?: continue
-                    val amount = item.optJSONObject("transactionAmount")?.optString("amount")
-                        ?.toBigDecimalOrNull()?.movePointRight(2)?.let {
-                            runCatching { it.longValueExact() }.getOrNull()
-                        } ?: continue
-                    add(BankSyncTransaction(
-                        financialId = id,
-                        date = date,
-                        amountCents = amount,
-                        payeeName = item.optString("payeeName").ifBlank { "Unknown" },
-                        notes = item.optString("notes").takeIf(String::isNotBlank),
-                        booked = item.optBoolean("booked", true),
-                    ))
-                }
-            }
+            val transactions = parseBankSyncRows(account?.optJSONObject("transactions")?.optJSONArray("all"))
             BankSyncDownload(accountId, transactions, status,
                 firstError?.optString("reason")?.takeIf(String::isNotBlank))
+        }
+    }
+
+    /** A single-account normalized bank-sync response, e.g. GoCardless's `/transactions`. */
+    internal fun parseSingleBankSyncDownload(root: JSONObject, accountId: String): BankSyncDownload {
+        val data = root.optJSONObject("data") ?: throw ActualServerException.InvalidResponse
+        data.optString("error_code").takeIf(String::isNotBlank)?.let {
+            return BankSyncDownload(accountId, emptyList(), bankSyncStatus(it), data.optString("reason", "Bank sync failed ($it)."))
+        }
+        return BankSyncDownload(accountId, parseBankSyncRows(data.optJSONObject("transactions")?.optJSONArray("all")), "ok")
+    }
+
+    private fun parseBankSyncRows(all: org.json.JSONArray?): List<BankSyncTransaction> = buildList {
+        if (all == null) return@buildList
+        for (index in 0 until all.length()) {
+            val item = all.optJSONObject(index) ?: continue
+            val id = item.optString("transactionId").takeIf(String::isNotBlank) ?: continue
+            val date = item.optString("date").replace("-", "").toIntOrNull() ?: continue
+            val amount = item.optJSONObject("transactionAmount")?.optString("amount")
+                ?.toBigDecimalOrNull()?.movePointRight(2)?.let {
+                    runCatching { it.longValueExact() }.getOrNull()
+                } ?: continue
+            add(BankSyncTransaction(
+                financialId = id,
+                date = date,
+                amountCents = amount,
+                payeeName = item.optString("payeeName").ifBlank { "Unknown" },
+                notes = item.optString("notes").takeIf(String::isNotBlank),
+                booked = item.optBoolean("booked", true),
+            ))
         }
     }
 

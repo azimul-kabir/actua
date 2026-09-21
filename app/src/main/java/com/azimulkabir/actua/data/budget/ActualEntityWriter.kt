@@ -37,6 +37,22 @@ class ActualEntityWriter(
             if (syncedAt != null) put("last_sync", syncedAt)
         },
     )
+
+    /** Links an existing Actual account to a discovered provider account. */
+    fun linkBankAccount(id: String, externalAccountId: String, source: String, requisitionId: String? = null) = update(
+        "accounts", id, buildMap {
+            put("account_id", externalAccountId)
+            put("account_sync_source", source)
+            put("gocardless_requisition_id", requisitionId)
+        },
+    )
+
+    fun unlinkBankAccount(id: String) = update(
+        "accounts", id, mapOf(
+            "account_id" to null, "account_sync_source" to null,
+            "gocardless_requisition_id" to null, "bank_sync_status" to null, "last_sync" to null,
+        ),
+    )
     fun renameCategory(id: String, name: String) = update("categories", id, mapOf("name" to requiredName(name)))
     fun setCategoryHidden(id: String, hidden: Boolean) = update("categories", id, mapOf("hidden" to flag(hidden)))
     fun setCategoryTarget(id: String, goalDef: String?) = update("categories", id, mapOf(
@@ -251,7 +267,7 @@ class ActualEntityWriter(
     companion object {
         private val allowedFields = mapOf(
             "accounts" to setOf("name", "type", "closed", "offbudget", "tombstone", "sort_order",
-                "bank_sync_status", "last_sync"),
+                "bank_sync_status", "last_sync", "account_id", "account_sync_source", "gocardless_requisition_id"),
             "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order", "goal_def", "template_settings", "cleanup_def"),
             "category_groups" to setOf("name", "hidden", "tombstone", "sort_order"),
             "cleanup_groups" to setOf("name", "tombstone"),
