@@ -212,6 +212,70 @@ private fun DrillDownSheet(
     }
 }
 
+@Composable
+private fun IncomeExpense(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
+    val income = MaterialTheme.colorScheme.primary
+    val expense = MaterialTheme.colorScheme.error
+    val points = widget.points
+    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
+    val active = selected?.takeIf { it in points.indices }
+    widget.subtitle?.let {
+        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    Text("Net ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
+        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+    if (points.isEmpty() || widget.categories.all { it.spentCents == 0L }) {
+        Text("No income or expenses in this period.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    Text(
+        active?.let {
+            val p = points[it]
+            "${p.period} · In ${formatMoneyCents(p.primaryCents, hideDecimals)} · Out ${formatMoneyCents(p.secondaryCents, hideDecimals)} · Net ${formatMoneyCents(p.primaryCents - p.secondaryCents, hideDecimals)}"
+        } ?: "Tap a month for details",
+        style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    val maximum = points.maxOf { max(it.primaryCents.absoluteValue, it.secondaryCents.absoluteValue) }.coerceAtLeast(1)
+    Canvas(
+        Modifier.fillMaxWidth().height(140.dp)
+            .semantics { contentDescription = "Income and expenses by month, ${points.size} months. Tap a month for details." }
+            .pointerInput(points) {
+                detectTapGestures { tap ->
+                    val i = (tap.x / size.width * points.size).toInt().coerceIn(0, points.size - 1)
+                    selected = i.takeIf { it != selected }
+                }
+            },
+    ) {
+        val slot = size.width / points.size
+        val bar = (slot * 0.36f).coerceAtLeast(1f)
+        points.forEachIndexed { i, p ->
+            val alpha = if (active == null || active == i) 1f else 0.45f
+            val inH = p.primaryCents.absoluteValue.toFloat() / maximum * size.height
+            val outH = p.secondaryCents.absoluteValue.toFloat() / maximum * size.height
+            val x = slot * i + slot * 0.1f
+            drawRect(income.copy(alpha = alpha), Offset(x, size.height - inH), androidx.compose.ui.geometry.Size(bar, inH))
+            drawRect(expense.copy(alpha = alpha), Offset(x + bar + 1f, size.height - outH), androidx.compose.ui.geometry.Size(bar, outH))
+        }
+    }
+    Row(Modifier.fillMaxWidth()) {
+        Text(points.first().period, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(points.last().period, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    widget.categories.forEach { category ->
+        Row(Modifier.fillMaxWidth().clickable(enabled = category.transactionIds.isNotEmpty(),
+            onClickLabel = "View transactions") { onDrillDown(category) }.padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Spacer(Modifier.size(10.dp).background(if (category.name == "Income") income else expense,
+                androidx.compose.foundation.shape.CircleShape))
+            Spacer(Modifier.width(8.dp))
+            Text(category.name, modifier = Modifier.weight(1f))
+            Text(formatMoneyCents(category.spentCents, hideDecimals), fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
 private const val SAVED_PAGE_ID = "saved-reports"
 
 @Composable
@@ -308,6 +372,7 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown:
                     PointLabels(widget.points, hideDecimals)
                 }
                 ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals)
+                ReportWidgetKind.INCOME_EXPENSE -> IncomeExpense(widget, hideDecimals, onDrillDown)
                 ReportWidgetKind.SPENDING -> Spending(widget, hideDecimals)
                 ReportWidgetKind.MARKDOWN -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)

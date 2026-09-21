@@ -36,7 +36,8 @@ object SavedReportEngine {
         groups: List<ActualCategoryGroup>, view: ReportViewFilter = ReportViewFilter(),
     ): List<ReportWidget> {
         val shared = Shared(transactions, accounts, groups)
-        return rows.map { compute(it, transactions, accounts, groups, view = view, shared = shared) }
+        return listOf(incomeExpense(transactions, view, shared = shared)) +
+            rows.map { compute(it, transactions, accounts, groups, view = view, shared = shared) }
     }
 
     fun compute(
@@ -113,6 +114,46 @@ object SavedReportEngine {
             .takeWhile { !it.isAfter(last) }.take(401).toList()
         val filled = if (keys.size <= 400) keys else sums.keys.sorted()
         return filled.map { ReportPoint(label(it), sums[it] ?: 0L) }
+    }
+
+    /**
+     * Income vs expenses as Actual's cash flow report defines it: classified by category
+     * (income categories vs everything else), transfers and off-budget excluded, refunds net
+     * against their side. Points are (income, expenses as a positive amount).
+     */
+    fun incomeExpense(
+        transactions: List<ActualTransaction>,
+        view: ReportViewFilter,
+        today: LocalDate = LocalDate.now(),
+        shared: Shared,
+    ): ReportWidget {
+        val preset = view.datePreset ?: "Last 12 months"
+        val (start, end) = dateRange(
+            SavedReportRow("", "", null, null, false, preset, "Category", "Net", false, false, true, null,
+                "BarGraph", null, "and", "Monthly"), today,
+        )
+        val filter = ReportFilter(
+            startDate = start.toYmd(), endDate = end.toYmd(),
+            accountIds = view.accountIds.takeIf { it.isNotEmpty() },
+            showHiddenCategories = true, balanceType = ReportBalanceType.NET_ASSETS,
+        )
+        val included = shared.aggregator.select(transactions, filter)
+        val (income, expenses) = included.partition { shared.aggregator.categoryIsIncome(it.categoryId) }
+        val incomeCents = income.sumOf { it.amountCents }
+        val expenseCents = -expenses.sumOf { it.amountCents }
+        val periods = intervalPoints(included, "Monthly", start, end, today).map { it.period }
+        val incomeByPeriod = intervalPoints(income, "Monthly", start, end, today).associate { it.period to it.primaryCents }
+        val expenseByPeriod = intervalPoints(expenses, "Monthly", start, end, today).associate { it.period to -it.primaryCents }
+        return ReportWidget(
+            id = "income-expense", kind = ReportWidgetKind.INCOME_EXPENSE, name = "Income vs expenses",
+            valueCents = incomeCents - expenseCents,
+            categories = listOf(
+                ReportCategory("Income", incomeCents, income.map { it.id }),
+                ReportCategory("Expenses", expenseCents, expenses.map { it.id }),
+            ),
+            points = periods.map { ReportPoint(it, incomeByPeriod[it] ?: 0L, expenseByPeriod[it] ?: 0L) },
+            subtitle = "$start – $end",
+        )
     }
 
     internal fun balanceType(value: String): ReportBalanceType = when (value) {

@@ -71,3 +71,34 @@ class IntervalPointsTest {
         assertEquals(listOf("2026-03-01" to -10L, "2026-03-08" to -20L), pts.map { it.period to it.primaryCents })
     }
 }
+
+class IncomeExpenseTest {
+    private val accounts = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("b", "B", com.azimulkabir.actua.data.budget.model.ActualAccountType.SAVINGS, false, false, 1, 0),
+    )
+    private val groups = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("gi", "Income", true, false, 1.0,
+            listOf(com.azimulkabir.actua.data.budget.model.ActualCategory("pay", "Pay", "gi", true, false, 1.0))),
+        com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("ge", "Bills", false, false, 2.0,
+            listOf(com.azimulkabir.actua.data.budget.model.ActualCategory("rent", "Rent", "ge", false, false, 1.0))),
+    )
+    private fun tx(id: String, date: Int, amount: Long, cat: String?, transferTo: String? = null) =
+        com.azimulkabir.actua.data.budget.model.ActualTransaction(id, "a", date, amount, null, null, cat, null, null, false, false,
+            transferTo?.let { "x" }, false, null, false, null, null, null, transferTo)
+
+    @Test fun `classifies by category, nets refunds and ignores transfers`() {
+        val rows = listOf(
+            tx("1", 20260105, 300000, "pay"), tx("2", 20260106, -100000, "rent"), tx("3", 20260107, 2500, "rent"),
+            tx("4", 20260108, -50000, null, transferTo = "b"),
+        )
+        val today = LocalDate.of(2026, 1, 20)
+        val w = SavedReportEngine.incomeExpense(rows, com.azimulkabir.actua.model.ReportViewFilter("This month"), today,
+            SavedReportEngine.Shared(rows, accounts, groups))
+        assertEquals(300000L, w.categories[0].spentCents)
+        assertEquals(97500L, w.categories[1].spentCents)
+        assertEquals(202500L, w.valueCents)
+        assertEquals(listOf("1"), w.categories[0].transactionIds)
+        assertEquals(300000L to 97500L, w.points.single().primaryCents to w.points.single().secondaryCents)
+    }
+}

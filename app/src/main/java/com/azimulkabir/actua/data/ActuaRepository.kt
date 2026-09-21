@@ -961,8 +961,7 @@ class ActuaRepository(context: Context) {
         val savedWidgets = com.azimulkabir.actua.data.reports.SavedReportEngine.computeAll(
             db.fetchSavedReports(), allRows, accounts, groups,
         )
-        val pages = if (savedWidgets.isEmpty()) dashboards else
-            dashboards + com.azimulkabir.actua.model.ReportDashboardPage("saved-reports", "Saved reports", savedWidgets)
+        val pages = dashboards + com.azimulkabir.actua.model.ReportDashboardPage("saved-reports", "Overview", savedWidgets)
         return ReportSnapshot(
             months,
             categories,
