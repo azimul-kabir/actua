@@ -49,6 +49,14 @@ import java.io.File
 class ActualBudgetDatabase private constructor(
     private val database: SQLiteDatabase,
 ) : Closeable {
+    data class BankSyncAccount(
+        val id: String,
+        val name: String,
+        val externalId: String,
+        val source: String,
+        val closed: Boolean,
+    )
+
     override fun close() = database.close()
 
     /** Live accounts and their Actual-compatible, split-aware balances. */
@@ -101,6 +109,42 @@ class ActualBudgetDatabase private constructor(
             }
         }
         return result
+    }
+
+    @Synchronized
+    fun fetchBankSyncAccounts(): List<BankSyncAccount> = database.rawQuery(
+        """SELECT id, name, account_id, account_sync_source, closed FROM accounts
+            WHERE account_id IS NOT NULL AND account_id != ''
+              AND account_sync_source = 'simpleFin'
+              AND (tombstone = 0 OR tombstone IS NULL)""",
+        null,
+    ).use { cursor -> buildList {
+        while (cursor.moveToNext()) add(BankSyncAccount(
+            id = cursor.getString(0),
+            name = cursor.stringOrNull(1) ?: "Account",
+            externalId = cursor.getString(2),
+            source = cursor.getString(3),
+            closed = cursor.intOrZero(4) == 1,
+        ))
+    } }
+
+    @Synchronized
+    fun oldestTransactionDate(accountId: String): Int? = database.rawQuery(
+        """SELECT MIN(date) FROM transactions WHERE acct = ? AND date IS NOT NULL
+            AND (tombstone = 0 OR tombstone IS NULL)""",
+        arrayOf(accountId),
+    ).use { cursor ->
+        if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getInt(0) else null
+    }
+
+    @Synchronized
+    fun existingFinancialIds(accountId: String, ids: Set<String>): Set<String> {
+        if (ids.isEmpty()) return emptySet()
+        val placeholders = ids.joinToString(",") { "?" }
+        return database.rawQuery(
+            "SELECT financial_id FROM transactions WHERE acct = ? AND financial_id IN ($placeholders)",
+            (listOf(accountId) + ids).toTypedArray(),
+        ).use { cursor -> buildSet { while (cursor.moveToNext()) cursor.stringOrNull(0)?.let(::add) } }
     }
 
     @Synchronized

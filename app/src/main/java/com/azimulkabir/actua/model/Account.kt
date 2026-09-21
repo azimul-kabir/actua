@@ -12,4 +12,5 @@ data class Account(
     val unclearedCents: Long = 0,
     val reconciledCents: Long = 0,
     val note: String = "",
+    val bankSyncSource: String? = null,
 )

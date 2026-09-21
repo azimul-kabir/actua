@@ -31,6 +31,12 @@ class ActualEntityWriter(
     fun renameAccount(id: String, name: String) = update("accounts", id, mapOf("name" to requiredName(name)))
     fun setAccountClosed(id: String, closed: Boolean) = update("accounts", id, mapOf("closed" to flag(closed)))
     fun setAccountType(id: String, type: String) = update("accounts", id, mapOf("type" to type))
+    fun recordBankSyncStatus(id: String, status: String, syncedAt: String? = null) = update(
+        "accounts", id, buildMap {
+            put("bank_sync_status", status)
+            if (syncedAt != null) put("last_sync", syncedAt)
+        },
+    )
     fun renameCategory(id: String, name: String) = update("categories", id, mapOf("name" to requiredName(name)))
     fun setCategoryHidden(id: String, hidden: Boolean) = update("categories", id, mapOf("hidden" to flag(hidden)))
     fun setCategoryTarget(id: String, goalDef: String?) = update("categories", id, mapOf(
@@ -244,7 +250,8 @@ class ActualEntityWriter(
 
     companion object {
         private val allowedFields = mapOf(
-            "accounts" to setOf("name", "type", "closed", "offbudget", "tombstone", "sort_order"),
+            "accounts" to setOf("name", "type", "closed", "offbudget", "tombstone", "sort_order",
+                "bank_sync_status", "last_sync"),
             "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order", "goal_def", "template_settings", "cleanup_def"),
             "category_groups" to setOf("name", "hidden", "tombstone", "sort_order"),
             "cleanup_groups" to setOf("name", "tombstone"),

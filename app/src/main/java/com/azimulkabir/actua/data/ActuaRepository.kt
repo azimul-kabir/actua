@@ -11,6 +11,12 @@ import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.ActualSplitLineForm
 import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
+import com.azimulkabir.actua.data.bank.BankSyncResult
+import com.azimulkabir.actua.data.bank.BankSyncService
+import com.azimulkabir.actua.data.network.ActualServerClient
+import com.azimulkabir.actua.data.network.TrustedCertificateStore
+import com.azimulkabir.actua.data.network.UrlConnectionTransport
+import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
@@ -600,6 +606,7 @@ class ActuaRepository(context: Context) {
     fun accounts(): List<Account> {
         actualDatabase?.let { db ->
             val fetched = db.fetchAccounts()
+            val bankLinks = db.fetchBankSyncAccounts().associateBy { it.id }
             val notes = db.fetchNotes(fetched.map { "account-${it.id}" })
             return fetched.map {
                 Account(
@@ -614,10 +621,25 @@ class ActuaRepository(context: Context) {
                     unclearedCents = it.unclearedCents,
                     reconciledCents = it.reconciledCents,
                     note = notes["account-${it.id}"].orEmpty(),
+                    bankSyncSource = bankLinks[it.id]?.source,
                 )
             }
         }
         return emptyList()
+    }
+
+    fun syncBanks(accountId: String? = null): BankSyncResult {
+        val database = actualDatabase ?: error("Open an Actual budget before syncing banks.")
+        val credentials = CredentialStore(appContext)
+        val token = credentials.token() ?: error("Connect to your Actual server before syncing banks.")
+        val serverUrl = credentials.serverUrl.takeIf(String::isNotBlank)
+            ?: error("Connect to your Actual server before syncing banks.")
+        val server = ActualServerClient(
+            UrlConnectionTransport(TrustedCertificateStore(appContext)),
+        ).apply { customHeaders = credentials.customHeaders }
+        return BankSyncService(
+            database, requireNotNull(actualWriter), requireNotNull(actualEntities), server,
+        ).sync(serverUrl, token, accountId)
     }
 
     fun creditCards(includeClosed: Boolean = false): List<CreditCardStatus> {

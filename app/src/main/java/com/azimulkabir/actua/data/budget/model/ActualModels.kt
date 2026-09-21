@@ -84,6 +84,9 @@ data class ActualTransaction(
     val startingBalance: Boolean = false,
     val splitPortions: List<SplitPortion> = emptyList(),
     val categoryIsIncome: Boolean? = null,
+    val financialId: String? = null,
+    val pending: Boolean = false,
+    val rawSyncedData: String? = null,
 ) {
     data class SplitPortion(
         val id: String,

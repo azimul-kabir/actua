@@ -64,6 +64,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   configurable delimiter/column/date/sign mapping, reusable local profiles, bounded import
   history, review/edit/reject/bulk approval, normalized payee matching, malformed-row exclusion,
   explained existing/within-file duplicate warnings, and batched Actual-compatible writes
+- Server-hosted SimpleFIN transaction download for accounts already linked by Actual, triggered
+  from Accounts or by pulling down a linked account register. Imports preserve provider IDs,
+  pending/cleared state, integer cents, rules, CRDT mutation logging, status fields, and exact-ID
+  deduplication. Provider setup/linking and non-SimpleFIN providers remain deferred.
 - On-device financial-message parsing for explicitly pasted/shared text and opt-in future
   notifications from an explicit allowed-app list, with configurable debit/credit terms, amount/date/reference/payee extraction,
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion
@@ -302,7 +306,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   repeated recategorization (see [docs/RULES_PARITY.md](docs/RULES_PARITY.md))
 - Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
   cleanup source/sink groups already shipped
-- SimpleFIN linking, download, reconciliation, and bank-feed pending-import approval
+- SimpleFIN setup/linking, fuzzy reconciliation with manually entered transactions, and bank-feed
+  pending-import approval; non-SimpleFIN provider downloads
 - Broader country/bank parser templates beyond configurable financial-message keywords
 - General Android transaction notifications and new-transaction detection beyond
   the credit-card payment reminders already shipped

@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -103,6 +104,8 @@ fun AccountsScreen(
     onChangeAccountType: (Account, String) -> Unit = { _, _ -> },
     onCreateAccount: (String, Boolean, String, String) -> Unit = { _, _, _, _ -> },
     onSearch: () -> Unit = {},
+    isBankSyncing: Boolean = false,
+    onBankSync: () -> Unit = {},
     favoriteAccountIds: Set<String> = emptySet(),
     onFavoriteAccountChange: (String, Boolean) -> Unit = { _, _ -> },
     scrollToTopRequest: Int = 0,
@@ -136,6 +139,9 @@ fun AccountsScreen(
                 tonalElevation = 2.dp,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBankSync, enabled = !isBankSyncing) {
+                        Icon(Icons.Outlined.Sync, contentDescription = "Sync linked bank accounts")
+                    }
                     IconButton(onClick = onSearch) {
                         Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
                     }

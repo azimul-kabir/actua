@@ -161,7 +161,7 @@ class ActualTransactionWriter(
     private fun fieldsForInsert(transaction: ActualTransaction) =
         fields("transactions", transaction.id, transactionFields(transaction))
 
-    private fun transactionFields(transaction: ActualTransaction): LinkedHashMap<String, Any?> = linkedMapOf(
+    private fun transactionFields(transaction: ActualTransaction): LinkedHashMap<String, Any?> = linkedMapOf<String, Any?>(
         "acct" to transaction.accountId,
         "date" to transaction.date,
         "description" to transaction.payeeId,
@@ -179,7 +179,15 @@ class ActualTransactionWriter(
         "imported_description" to transaction.importedPayee,
         "schedule" to transaction.scheduleId,
         "starting_balance_flag" to if (transaction.startingBalance) 1 else 0,
-    )
+    ).apply {
+        // These fields belong to provider imports. Omitting them for manual rows preserves the
+        // established CRDT message shape instead of publishing redundant null/default writes.
+        if (transaction.financialId != null || transaction.rawSyncedData != null || transaction.pending) {
+            put("financial_id", transaction.financialId)
+            put("pending", if (transaction.pending) 1 else 0)
+            put("raw_synced_data", transaction.rawSyncedData)
+        }
+    }
 
     private fun fields(dataset: String, row: String, values: Map<String, Any?>): List<CrdtMessage> =
         values.map { (column, value) -> message(dataset, row, column, value) }
