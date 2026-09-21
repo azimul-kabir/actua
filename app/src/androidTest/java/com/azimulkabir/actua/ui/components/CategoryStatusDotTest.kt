@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.components
 
 import android.content.Context
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -18,13 +19,18 @@ import org.junit.runner.RunWith
 class CategoryStatusDotTest {
     @get:Rule val compose = createComposeRule()
 
+    // ComposeContentTestRule.setContent can only be called once per test, so every status is
+    // rendered together rather than looping setContent per status.
     @Test fun eachStatusExposesItsLabelForAccessibility() {
-        BudgetProgressState.entries.forEach { status ->
-            compose.setContent {
-                MaterialTheme {
-                    CategoryStatusDot(status)
+        compose.setContent {
+            MaterialTheme {
+                Column {
+                    BudgetProgressState.entries.forEach { status -> CategoryStatusDot(status) }
                 }
             }
+        }
+
+        BudgetProgressState.entries.forEach { status ->
             compose.onNodeWithContentDescription(status.label).assertExists()
         }
     }
