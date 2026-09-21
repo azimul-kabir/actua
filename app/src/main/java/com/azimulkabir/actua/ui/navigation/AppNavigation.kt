@@ -857,7 +857,7 @@ fun AppNavigation(
         onLaunchRequestConsumed()
     }
 
-    BackHandler(enabled = detail != DetailDestination.Main || destination != MainDestination.Budget) {
+    BackHandler(enabled = detail != DetailDestination.Main || destination != MainDestination.Home) {
         when {
             detail == DetailDestination.EditTransaction && editorReturnsToCategory -> {
                 reopenBudgetCategory = transactionCategory
@@ -905,7 +905,7 @@ fun AppNavigation(
                 detail = DetailDestination.Main
                 editingTransaction = null
             }
-            else -> destination = MainDestination.Budget
+            else -> destination = MainDestination.Home
         }
     }
 

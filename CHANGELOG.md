@@ -8,6 +8,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Favorite category cards on Home now open that category's Budget details directly instead of only opening the Budget overview
 - Favorite account cards on Home now open that account's transactions directly instead of only opening the Accounts overview
+- Repeated back presses/gestures now collapse to the Home tab before exiting the app, instead of stopping on Budget
 
 ### Fixed
 
