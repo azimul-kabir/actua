@@ -1,0 +1,109 @@
+package com.azimulkabir.actua.data.reports
+
+import com.azimulkabir.actua.data.budget.model.ActualAccount
+import com.azimulkabir.actua.data.budget.model.ActualAccountType
+import com.azimulkabir.actua.data.budget.model.ActualCategory
+import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
+import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class ReportAggregatorTest {
+    private fun account(id: String, offBudget: Boolean = false) =
+        ActualAccount(id, id, ActualAccountType.CHECKING, offBudget, false, 0, 0)
+
+    private val groups = listOf(
+        ActualCategoryGroup("g-food", "Food", false, false, 1.0, listOf(
+            ActualCategory("groceries", "Groceries", "g-food", false, false, 1.0),
+            ActualCategory("dining", "Dining", "g-food", false, false, 2.0),
+            ActualCategory("old", "Old", "g-food", false, true, 3.0),
+        )),
+        ActualCategoryGroup("g-inc", "Income", true, false, 2.0, listOf(
+            ActualCategory("salary", "Salary", "g-inc", true, false, 1.0),
+        )),
+    )
+    private val accounts = listOf(account("chk"), account("sav"), account("house", offBudget = true))
+    private val aggregator = ReportAggregator(accounts, groups)
+    private var n = 0
+
+    private fun tx(
+        amount: Long, category: String? = null, account: String = "chk", date: Int = 20260115,
+        transferTo: String? = null, tombstone: Boolean = false, parent: Boolean = false,
+        cleared: Boolean = false, reconciled: Boolean = false,
+    ) = ActualTransaction(
+        id = "t${n++}", accountId = account, date = date, amountCents = amount, payeeId = null, payeeName = null,
+        categoryId = category, categoryName = null, notes = null, cleared = cleared, reconciled = reconciled,
+        transferId = transferTo?.let { "x" }, isParent = parent, parentId = null, tombstone = tombstone,
+        sortOrder = null, importedPayee = null, scheduleId = null, transferAccountId = transferTo,
+    )
+
+    private val jan = ReportFilter(20260101, 20260131)
+
+    @Test fun `sums debts per category in integer cents without drift`() {
+        val rows = List(10) { tx(-10, "groceries") } + tx(-5, "dining")
+        val totals = aggregator.groupTotals(rows, jan, ReportGrouping.CATEGORY)
+        assertEquals(listOf("Groceries" to -100L, "Dining" to -5L), totals.map { it.name to it.totalCents })
+    }
+
+    @Test fun `debts ignore refunds while net debts subtract them`() {
+        val rows = listOf(tx(-1000, "groceries"), tx(300, "groceries"))
+        assertEquals(-1000L, aggregator.total(rows, jan))
+        assertEquals(-700L, aggregator.total(rows, jan.copy(balanceType = ReportBalanceType.NET_DEBTS)))
+    }
+
+    @Test fun `transfers between budget accounts are excluded but budget to off-budget counts`() {
+        val rows = listOf(
+            tx(-500, transferTo = "sav"),
+            tx(-700, transferTo = "house"),
+        )
+        assertEquals(-700L, aggregator.total(rows, jan))
+    }
+
+    @Test fun `off-budget accounts need opt-in`() {
+        val rows = listOf(tx(-100, "groceries"), tx(-900, account = "house"))
+        assertEquals(-100L, aggregator.total(rows, jan))
+        assertEquals(-1000L, aggregator.total(rows, jan.copy(showOffBudget = true)))
+    }
+
+    @Test fun `tombstones split parents and date range are excluded`() {
+        val rows = listOf(
+            tx(-100, "groceries"), tx(-200, "groceries", tombstone = true),
+            tx(-300, parent = true), tx(-50, "groceries", date = 20260201),
+            tx(-40, "dining", date = 20260101), tx(-30, "dining", date = 20260131),
+        )
+        assertEquals(-170L, aggregator.total(rows, jan))
+    }
+
+    @Test fun `split children land in their own categories`() {
+        val rows = listOf(tx(-600, "groceries"), tx(-400, "dining"), tx(-1000, parent = true))
+        val totals = aggregator.groupTotals(rows, jan, ReportGrouping.CATEGORY_GROUP)
+        assertEquals(listOf("Food" to -1000L), totals.map { it.name to it.totalCents })
+    }
+
+    @Test fun `hidden categories and uncategorized follow toggles`() {
+        val rows = listOf(tx(-100, "old"), tx(-50), tx(-25, "groceries"))
+        assertEquals(-75L, aggregator.total(rows, jan))
+        assertEquals(-175L, aggregator.total(rows, jan.copy(showHiddenCategories = true)))
+        assertEquals(-25L, aggregator.total(rows, jan.copy(showUncategorized = false)))
+    }
+
+    @Test fun `category account and group filters combine`() {
+        val rows = listOf(tx(-100, "groceries"), tx(-200, "dining"), tx(-300, "groceries", account = "sav"))
+        assertEquals(-400L, aggregator.total(rows, jan.copy(categoryIds = setOf("groceries"))))
+        assertEquals(-100L, aggregator.total(rows, jan.copy(categoryIds = setOf("groceries"), accountIds = setOf("chk"))))
+        assertEquals(-600L, aggregator.total(rows, jan.copy(categoryGroupIds = setOf("g-food"))))
+    }
+
+    @Test fun `cleared and reconciled status does not alter totals`() {
+        val rows = listOf(tx(-100, "groceries"), tx(-100, "groceries", cleared = true), tx(-100, "groceries", reconciled = true))
+        assertEquals(-300L, aggregator.total(rows, jan))
+    }
+
+    @Test fun `income assets and transaction ids reconcile with totals`() {
+        val rows = listOf(tx(200000, "salary"), tx(-100, "groceries"))
+        val f = jan.copy(balanceType = ReportBalanceType.ASSETS)
+        val totals = aggregator.groupTotals(rows, f, ReportGrouping.CATEGORY)
+        assertEquals(200000L, totals.single().totalCents)
+        assertEquals(aggregator.select(rows, f).map { it.id }, totals.flatMap { it.transactionIds })
+    }
+}
