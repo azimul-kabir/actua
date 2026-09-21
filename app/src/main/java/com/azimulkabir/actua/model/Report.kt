@@ -33,6 +33,9 @@ data class ReportWidget(
     val categories: List<ReportCategory> = emptyList(),
     val markdown: String? = null,
     val sourceType: String? = null,
+    /** Saved-report presentation hint (`DonutGraph`, `BarGraph`, ...). */
+    val graphType: String? = null,
+    val subtitle: String? = null,
 )
 
 data class ReportSnapshot(

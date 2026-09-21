@@ -12,7 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.azimulkabir.actua.model.ReportCategory
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -203,7 +209,7 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean) {
                 ReportWidgetKind.MARKDOWN -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
                 ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
-                ReportWidgetKind.CUSTOM_REPORT -> CategoryBars(widget, hideDecimals)
+                ReportWidgetKind.CUSTOM_REPORT -> CustomReport(widget, hideDecimals)
                 ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals)
                 ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
                 ReportWidgetKind.BUDGET_ANALYSIS -> ComparisonSeries(widget.points, "Budgeted", "Spent", hideDecimals)
@@ -311,6 +317,87 @@ private fun Formula(widget: ReportWidget, hideDecimals: Boolean) {
         Text(formatMoneyCents(it, hideDecimals), style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold)
     } ?: Text(widget.markdown ?: "Formula unavailable", color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+private val donutHues = floatArrayOf(210f, 20f, 140f, 280f, 50f, 350f, 175f, 320f, 100f, 240f)
+
+@Composable
+private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean) {
+    widget.subtitle?.let {
+        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    Text(formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
+        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+    val segments = widget.categories.filter { it.spentCents != 0L }
+    when {
+        widget.graphType == "DonutGraph" && segments.isNotEmpty() -> DonutSegments(segments, hideDecimals)
+        (widget.graphType == "LineGraph" || widget.graphType == "AreaGraph") && widget.points.size > 1 -> {
+            TrendChart(widget.points)
+            PointLabels(widget.points, hideDecimals)
+        }
+        else -> CategoryBars(widget, hideDecimals)
+    }
+}
+
+@Composable
+private fun DonutSegments(segments: List<ReportCategory>, hideDecimals: Boolean) {
+    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    val colors = segments.indices.map {
+        androidx.compose.ui.graphics.Color.hsl(donutHues[it % donutHues.size], 0.55f, if (dark) 0.62f else 0.48f)
+    }
+    val magnitudes = segments.map { it.spentCents.absoluteValue }
+    val total = magnitudes.sum().coerceAtLeast(1)
+    var selected by rememberSaveable { mutableStateOf<Int?>(null) }
+    val active = selected?.takeIf { it in segments.indices }
+    Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+        Canvas(
+            Modifier.size(200.dp)
+                .semantics { contentDescription = "Donut chart with ${segments.size} segments" }
+                .pointerInput(segments) {
+                    detectTapGestures { tap ->
+                        val c = Offset(size.width / 2f, size.height / 2f)
+                        val dx = tap.x - c.x; val dy = tap.y - c.y
+                        var angle = Math.toDegrees(kotlin.math.atan2(dy, dx).toDouble()) + 90.0
+                        if (angle < 0) angle += 360.0
+                        var acc = 0.0
+                        val hit = magnitudes.indexOfFirst { m -> acc += m * 360.0 / total; angle <= acc }
+                        selected = if (hit == selected) null else hit.takeIf { it >= 0 }
+                    }
+                },
+        ) {
+            val stroke = 34.dp.toPx()
+            val inset = stroke / 2
+            var start = -90f
+            magnitudes.forEachIndexed { i, m ->
+                val sweep = m * 360f / total
+                drawArc(colors[i], start, (sweep - 1f).coerceAtLeast(0.5f), false,
+                    topLeft = Offset(inset, inset), size = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(if (i == active) stroke + 8.dp.toPx() else stroke))
+                start += sweep
+            }
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(active?.let { segments[it].name } ?: "Total", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            Text(formatMoneyCents(active?.let { segments[it].spentCents } ?: segments.sumOf { it.spentCents }, hideDecimals),
+                fontWeight = FontWeight.SemiBold)
+            if (active != null) Text("${"%.1f".format(magnitudes[active] * 100.0 / total)}%",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+    segments.forEachIndexed { i, segment ->
+        Row(Modifier.fillMaxWidth().clickable { selected = if (selected == i) null else i }.padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Spacer(Modifier.size(10.dp).background(colors[i], androidx.compose.foundation.shape.CircleShape))
+            Spacer(Modifier.width(8.dp))
+            Text(segment.name, maxLines = 1, modifier = Modifier.weight(1f),
+                fontWeight = if (i == active) FontWeight.Bold else FontWeight.Normal)
+            Text("${"%.1f".format(magnitudes[i] * 100.0 / total)}%", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.width(10.dp))
+            Text(formatMoneyCents(segment.spentCents, hideDecimals), fontWeight = FontWeight.SemiBold)
+        }
+    }
 }
 
 @Composable

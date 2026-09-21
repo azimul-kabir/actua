@@ -10,7 +10,7 @@ import com.azimulkabir.actua.data.budget.model.ActualTransaction
  */
 enum class ReportBalanceType { DEBTS, ASSETS, NET_ASSETS, NET_DEBTS }
 
-enum class ReportGrouping { CATEGORY, CATEGORY_GROUP }
+enum class ReportGrouping { CATEGORY, CATEGORY_GROUP, PAYEE, ACCOUNT }
 
 /** Shared filter for every report; dates are Actual YYYYMMDD day integers, inclusive. */
 data class ReportFilter(
@@ -92,13 +92,17 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
             when (grouping) {
                 ReportGrouping.CATEGORY -> entry?.first?.id
                 ReportGrouping.CATEGORY_GROUP -> entry?.second?.id
+                ReportGrouping.PAYEE -> tx.payeeId
+                ReportGrouping.ACCOUNT -> tx.accountId
             }
         }
         .map { (id, rows) ->
             val name = when (grouping) {
                 ReportGrouping.CATEGORY -> id?.let { categoriesById[it]?.first?.name }
                 ReportGrouping.CATEGORY_GROUP -> id?.let { groupsById[it]?.name }
-            } ?: "Uncategorized"
+                ReportGrouping.PAYEE -> rows.firstNotNullOfOrNull { it.payeeName?.takeIf(String::isNotBlank) }
+                ReportGrouping.ACCOUNT -> id?.let { accountsById[it]?.name }
+            } ?: if (grouping == ReportGrouping.PAYEE) "Unknown" else "Uncategorized"
             ReportGroupTotal(id, name, rows.sumOf { it.amountCents }, rows.map { it.id })
         }
         .sortedWith(compareByDescending<ReportGroupTotal> { kotlin.math.abs(it.totalCents) }.thenBy { it.name })
