@@ -33,7 +33,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Category targets and budget automations
 - Scheduled transactions and Bills calendar
 - Accounts, credit cards and payment reminders
-- Actual dashboard and reports
+- Actual dashboard and saved custom reports (read-only), with donut and per-interval charts, date/account filtering and drill-down to transactions
 - Rules and automatic categorization
 - CSV, XLSX, PDF, SMS and notification imports
 - Location-aware payee suggestions
