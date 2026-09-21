@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Changed
 
 - Favorite category cards on Home now open that category's Budget details directly instead of only opening the Budget overview
+- Favorite account cards on Home now open that account's transactions directly instead of only opening the Accounts overview
 
 ### Fixed
 
