@@ -20,6 +20,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.azimulkabir.actua.model.ReportCategory
+import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.ui.transactions.TransactionRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -41,6 +43,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -74,11 +78,13 @@ fun ReportsScreen(
     onSearch: () -> Unit = {},
     favoriteReportIds: Set<String> = emptySet(),
     onFavoriteReportChange: (String, Boolean) -> Unit = { _, _ -> },
+    loadTransactions: suspend (List<String>) -> List<Transaction> = { emptyList() },
     scrollToTopRequest: Int = 0,
     initialPageId: String? = null,
     initialPageRequest: Int = 0,
 ) {
     val listState = rememberLazyListState()
+    var drill by remember { mutableStateOf<Pair<ReportCategory, String>?>(null) }
     var selectedPageId by rememberSaveable { mutableStateOf<String?>(null) }
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
     val selected = snapshot.dashboards.firstOrNull { it.id == selectedPageId }
@@ -152,7 +158,41 @@ fun ReportsScreen(
             }
             val visible = selected.widgets.filterNot { it.kind == ReportWidgetKind.UNSUPPORTED }
             if (visible.isEmpty()) item { EmptyReports() }
-            items(visible, key = { it.id }) { widget -> WidgetCard(widget, hideDecimalPlaces) }
+            items(visible, key = { it.id }) { widget -> WidgetCard(widget, hideDecimalPlaces, onDrillDown = { drill = it to widget.name }) }
+        }
+    }
+    drill?.let { (segment, reportName) ->
+        DrillDownSheet(segment, reportName, hideDecimalPlaces, loadTransactions) { drill = null }
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun DrillDownSheet(
+    segment: ReportCategory,
+    reportName: String,
+    hideDecimals: Boolean,
+    load: suspend (List<String>) -> List<Transaction>,
+    onDismiss: () -> Unit,
+) {
+    val limit = 200
+    val rows by produceState<List<Transaction>?>(null, segment) { value = load(segment.transactionIds.take(limit)) }
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+            Text(segment.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("$reportName · ${segment.transactionIds.size} transactions · " +
+                formatMoneyCents(segment.spentCents, hideDecimals),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (segment.transactionIds.size > limit) Text("Showing the first $limit.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        val loaded = rows
+        if (loaded == null) {
+            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        } else LazyColumn(Modifier.fillMaxWidth()) {
+            items(loaded, key = { it.id }) { tx ->
+                TransactionRow(tx, hideDecimals, showDate = true, showAccount = true, onClick = {}, onLongClick = {})
+            }
         }
     }
 }
@@ -189,7 +229,7 @@ private fun DashboardPicker(
 }
 
 @Composable
-private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean) {
+private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(widget.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -211,7 +251,7 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean) {
                 ReportWidgetKind.MARKDOWN -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
                 ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
-                ReportWidgetKind.CUSTOM_REPORT -> CustomReport(widget, hideDecimals)
+                ReportWidgetKind.CUSTOM_REPORT -> CustomReport(widget, hideDecimals, onDrillDown)
                 ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals)
                 ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
                 ReportWidgetKind.BUDGET_ANALYSIS -> ComparisonSeries(widget.points, "Budgeted", "Spent", hideDecimals)
@@ -351,7 +391,7 @@ private fun Formula(widget: ReportWidget, hideDecimals: Boolean) {
 private val donutHues = floatArrayOf(210f, 20f, 140f, 280f, 50f, 350f, 175f, 320f, 100f, 240f)
 
 @Composable
-private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean) {
+private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
     widget.subtitle?.let {
         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -359,17 +399,17 @@ private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean) {
         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     val segments = widget.categories.filter { it.spentCents != 0L }
     when {
-        widget.graphType == "DonutGraph" && segments.isNotEmpty() -> DonutSegments(segments, hideDecimals)
+        widget.graphType == "DonutGraph" && segments.isNotEmpty() -> DonutSegments(segments, hideDecimals, onDrillDown)
         (widget.graphType == "LineGraph" || widget.graphType == "AreaGraph") && widget.points.size > 1 -> {
             TrendChart(widget.points, hideDecimals)
             PointLabels(widget.points, hideDecimals)
         }
-        else -> CategoryBars(widget, hideDecimals)
+        else -> CategoryBars(widget, hideDecimals, onDrillDown)
     }
 }
 
 @Composable
-private fun DonutSegments(segments: List<ReportCategory>, hideDecimals: Boolean) {
+private fun DonutSegments(segments: List<ReportCategory>, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
     val dark = androidx.compose.foundation.isSystemInDarkTheme()
     val colors = segments.indices.map {
         androidx.compose.ui.graphics.Color.hsl(donutHues[it % donutHues.size], 0.55f, if (dark) 0.62f else 0.48f)
@@ -415,7 +455,7 @@ private fun DonutSegments(segments: List<ReportCategory>, hideDecimals: Boolean)
         }
     }
     segments.forEachIndexed { i, segment ->
-        Row(Modifier.fillMaxWidth().clickable { selected = if (selected == i) null else i }.padding(vertical = 4.dp),
+        Row(Modifier.fillMaxWidth().clickable(onClickLabel = "View transactions") { selected = i; onDrillDown(segment) }.padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.size(10.dp).background(colors[i], androidx.compose.foundation.shape.CircleShape))
             Spacer(Modifier.width(8.dp))
@@ -430,14 +470,15 @@ private fun DonutSegments(segments: List<ReportCategory>, hideDecimals: Boolean)
 }
 
 @Composable
-private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean) {
+private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: ((ReportCategory) -> Unit)? = null) {
     if (widget.categories.isEmpty()) {
         Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
     val maximum = widget.categories.maxOf { it.spentCents.absoluteValue }.coerceAtLeast(1)
     widget.categories.take(10).forEach { category ->
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(Modifier.clickable(enabled = onDrillDown != null && category.transactionIds.isNotEmpty(),
+            onClickLabel = "View transactions") { onDrillDown?.invoke(category) }, verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(Modifier.fillMaxWidth()) {
                 Text(category.name, maxLines = 1, modifier = Modifier.weight(1f))
                 Text(formatMoneyCents(category.spentCents, hideDecimals), fontWeight = FontWeight.SemiBold)

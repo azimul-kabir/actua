@@ -1080,6 +1080,7 @@ fun AppNavigation(
                     favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.REPORT, id, favorite)
                     favoriteReportIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT)
                 },
+                loadTransactions = { ids -> withContext(Dispatchers.IO) { repository.reportTransactions(ids) } },
                 scrollToTopRequest = 0,
                 initialPageId = requestedReportPageId,
                 initialPageRequest = requestedReportPageRequest,
