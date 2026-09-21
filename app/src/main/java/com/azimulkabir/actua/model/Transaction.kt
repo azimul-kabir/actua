@@ -19,6 +19,8 @@ data class Transaction(
     val scheduleId: String? = null,
     /** True when [category] was explicitly picked by the user, so a matching rule must not overwrite it. */
     val categoryIsExplicit: Boolean = false,
+    /** True for a synthetic row projecting a schedule's next occurrence — not a posted transaction. */
+    val isUpcoming: Boolean = false,
 )
 
 data class SplitLine(

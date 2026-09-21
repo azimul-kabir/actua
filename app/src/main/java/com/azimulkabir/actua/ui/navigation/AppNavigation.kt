@@ -110,6 +110,7 @@ import com.azimulkabir.actua.ui.transactions.NearbyPayeeOption
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeSearchResult
 import com.azimulkabir.actua.ui.transactions.PayeeLocationSaveResult
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
+import com.azimulkabir.actua.ui.transactions.upcomingTransactionsFrom
 import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.ui.home.HomeScreen
@@ -305,6 +306,9 @@ fun AppNavigation(
     var hideReconciledTransactions by remember {
         mutableStateOf(displayPreferences.hideReconciledTransactions)
     }
+    var showUpcomingTransactions by remember {
+        mutableStateOf(displayPreferences.showUpcomingTransactions)
+    }
     var transactionStatusFilter by rememberSaveable { mutableStateOf(TransactionStatusFilter.ALL) }
     val transactions = remember(dataVersion) { repository.transactions() }
     val filteredTransactions = remember(dataVersion, hideReconciledTransactions, transactionStatusFilter) {
@@ -327,6 +331,7 @@ fun AppNavigation(
     // or refetches rule-editor data (accounts/categories/payees) that nothing is currently
     // showing — matching the existing pattern `payeeLocations` already used below.
     val schedules = remember(dataVersion) { repository.schedules() }
+    val upcomingTransactions = remember(schedules) { upcomingTransactionsFrom(schedules) }
     val linkableSchedules = remember(schedules) {
         schedules.filterNot { it.schedule.completed }.map {
             com.azimulkabir.actua.ui.transactions.ScheduleOption(it.schedule.id, it.title)
@@ -1190,6 +1195,12 @@ fun AppNavigation(
                 onReconcileVisibilityChange = { reconcileOpen = it },
                 isRefreshing = transactionsRefreshing,
                 onRefresh = ::refreshTransactions,
+                upcomingTransactions = upcomingTransactions,
+                showUpcomingTransactions = showUpcomingTransactions,
+                onShowUpcomingTransactionsChange = {
+                    displayPreferences.showUpcomingTransactions = it
+                    showUpcomingTransactions = it
+                },
             )
             DetailDestination.EditTransaction -> {
             // Otherwise these are rebuilt from the whole account/payee lists on every
@@ -2169,6 +2180,12 @@ fun AppNavigation(
                     returnToRootRequest = rootRequests[MainDestination.Transactions] ?: 0,
                     isRefreshing = transactionsRefreshing,
                     onRefresh = ::refreshTransactions,
+                    upcomingTransactions = upcomingTransactions,
+                    showUpcomingTransactions = showUpcomingTransactions,
+                    onShowUpcomingTransactionsChange = {
+                        displayPreferences.showUpcomingTransactions = it
+                        showUpcomingTransactions = it
+                    },
                 )
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,

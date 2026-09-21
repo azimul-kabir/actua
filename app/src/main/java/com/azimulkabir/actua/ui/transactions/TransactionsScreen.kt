@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
@@ -79,6 +80,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -159,6 +161,9 @@ fun TransactionsScreen(
     onViewStatements: (() -> Unit)? = null,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
+    upcomingTransactions: List<Transaction> = emptyList(),
+    showUpcomingTransactions: Boolean = true,
+    onShowUpcomingTransactionsChange: (Boolean) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
@@ -228,14 +233,22 @@ fun TransactionsScreen(
     val candidates = if (searchingDatabase) {
         if (completedQuery == search) searchResults else emptyList()
     } else transactions
-    // `candidates`/filters change far less often than this composable recomposes (e.g. every
-    // row tap in selection mode), so this needs its own remember rather than recomputing the
-    // filter over the whole transaction list on every recomposition.
-    val visible = remember(candidates, accountName, categoryName, month, hideReconciledTransactions, transactionStatusFilter, searchingDatabase, search) {
+    // Upcoming rows are a display-only projection: they're merged in here (and re-sorted, since
+    // `transactions` is already newest-first) rather than upstream, so search results, the
+    // reconciliation register, and running-balance folds never see synthetic rows.
+    val candidatesWithUpcoming = remember(candidates, showUpcomingTransactions, upcomingTransactions, searchingDatabase, transactionStatusFilter) {
+        if (!searchingDatabase && showUpcomingTransactions && transactionStatusFilter == TransactionStatusFilter.ALL && upcomingTransactions.isNotEmpty()) {
+            (candidates + upcomingTransactions).sortedByDescending { it.date }
+        } else candidates
+    }
+    // `candidatesWithUpcoming`/filters change far less often than this composable recomposes
+    // (e.g. every row tap in selection mode), so this needs its own remember rather than
+    // recomputing the filter over the whole transaction list on every recomposition.
+    val visible = remember(candidatesWithUpcoming, accountName, categoryName, month, hideReconciledTransactions, transactionStatusFilter, searchingDatabase, search) {
         // transactionStatusFilter (e.g. "Reconciled") supersedes the hideReconciledTransactions
         // preference, matching ActualBudgetDatabase.fetchTransactions — otherwise picking the
         // "Reconciled" chip while "hide reconciled" is on would filter every result back out.
-        candidates.filter {
+        candidatesWithUpcoming.filter {
             (accountName == null || it.account == accountName) &&
                 (categoryName == null || it.category == categoryName) &&
                 (month == null || it.date.filter(Char::isDigit).startsWith(month.replace("-", ""))) &&
@@ -311,6 +324,7 @@ fun TransactionsScreen(
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             ToggleItem("Group by date", groupTransactionsByDate, onGroupTransactionsByDateChange)
+                            ToggleItem("Show upcoming transactions", showUpcomingTransactions, onShowUpcomingTransactionsChange)
                             account?.let { selectedAccount ->
                                 if (!selectedAccount.closed) {
                                     DropdownMenuItem(
@@ -490,9 +504,10 @@ fun TransactionsScreen(
                     }
                 }
                 item("transaction-total") {
-                    val total = visible.sumOf { it.amountCents }
+                    val posted = visible.filterNot { it.isUpcoming }
+                    val total = posted.sumOf { it.amountCents }
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = 10.dp)) {
-                        Text("${visible.size} transactions", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${posted.size} transactions", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.weight(1f))
                         Amount(total, FontWeight.Bold, hideDecimalPlaces)
                     }
@@ -528,14 +543,18 @@ fun TransactionsScreen(
                             val isSelected by remember(transaction.id) { derivedStateOf { transaction.id in selectedIds } }
                             TransactionRow(transaction, hideDecimalPlaces, showDate = false,
                                 onClick = {
-                                    if (selectionModeOn) {
+                                    if (transaction.isUpcoming) {
+                                        transaction.scheduleId?.let(onViewSchedule)
+                                    } else if (selectionModeOn) {
                                         selectedIds = selectedIds.toggle(transaction.id)
                                     } else viewed = transaction
                                 },
                                 showAccount = accountName == null,
                                 onLongClick = {
-                                    if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
-                                    else selected = transaction
+                                    if (!transaction.isUpcoming) {
+                                        if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
+                                        else selected = transaction
+                                    }
                                 },
                                 onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
                                 selectionMode = selectionModeOn, selected = isSelected,
@@ -547,14 +566,18 @@ fun TransactionsScreen(
                         val isSelected by remember(transaction.id) { derivedStateOf { transaction.id in selectedIds } }
                         TransactionRow(transaction, hideDecimalPlaces, showDate = true,
                             onClick = {
-                                if (selectionModeOn) {
+                                if (transaction.isUpcoming) {
+                                    transaction.scheduleId?.let(onViewSchedule)
+                                } else if (selectionModeOn) {
                                     selectedIds = selectedIds.toggle(transaction.id)
                                 } else viewed = transaction
                             },
                             showAccount = accountName == null,
                             onLongClick = {
-                                if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
-                                else selected = transaction
+                                if (!transaction.isUpcoming) {
+                                    if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
+                                    else selected = transaction
+                                }
                             },
                             onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
                             selectionMode = selectionModeOn, selected = isSelected,
@@ -1018,28 +1041,44 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     selectionMode: Boolean = false, selected: Boolean = false, runningBalanceCents: Long? = null) {
     val presentation = transactionRowPresentation(transaction, showAccount)
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
+    val upcoming = transaction.isUpcoming
     Row(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
         .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md), verticalAlignment = Alignment.Top) {
-        if (selectionMode) {
+        if (selectionMode && !upcoming) {
             Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
         }
-        ClearedIndicator(transaction.cleared, onClearedClick, modifier = Modifier.padding(end = 10.dp, top = 2.dp))
+        if (upcoming) {
+            Icon(Icons.Outlined.Repeat, contentDescription = "Upcoming",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 10.dp, top = 2.dp).size(18.dp))
+        } else {
+            ClearedIndicator(transaction.cleared, onClearedClick, modifier = Modifier.padding(end = 10.dp, top = 2.dp))
+        }
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(presentation.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
+            Text(presentation.title,
+                style = MaterialTheme.typography.bodyLarge.copy(fontStyle = if (upcoming) FontStyle.Italic else FontStyle.Normal),
+                fontWeight = FontWeight.SemiBold,
+                color = if (upcoming) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            presentation.transferContext?.let {
+            if (upcoming) {
                 Spacer(Modifier.height(6.dp))
-                Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis)
-            } ?: Spacer(Modifier.height(7.dp))
-            CategoryChip(presentation.categoryLabel, transaction.type == Type.TRANSFER)
+                Text("Upcoming", style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            } else {
+                presentation.transferContext?.let {
+                    Spacer(Modifier.height(6.dp))
+                    Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis)
+                } ?: Spacer(Modifier.height(7.dp))
+                CategoryChip(presentation.categoryLabel, transaction.type == Type.TRANSFER)
+            }
             if (transaction.notes.isNotBlank()) {
                 Text(coloredTagText(transaction.notes, effectiveTagColors), style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 7.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
         Column(horizontalAlignment = Alignment.End) {
-            Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
+            Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces, muted = upcoming)
             val runningBalanceLabel = runningBalanceCents?.let { formatMoneyCents(it, hideDecimalPlaces) }
             val secondaryLine = runningBalanceLabel ?: presentation.accountLabel
             secondaryLine?.let {
@@ -1208,9 +1247,12 @@ internal fun formatTransactionDate(value: String): String {
 }
 
 @Composable
-private fun Amount(value: Long, weight: FontWeight, hideDecimalPlaces: Boolean, modifier: Modifier = Modifier) {
-    Text(formatMoneyCents(value, hideDecimalPlaces, showPositiveSign = true), style = AmountTypography.rowAmount.copy(fontWeight = weight), textAlign = TextAlign.End,
-        color = if (value >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+private fun Amount(value: Long, weight: FontWeight, hideDecimalPlaces: Boolean, modifier: Modifier = Modifier, muted: Boolean = false) {
+    val baseColor = if (value >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    Text(formatMoneyCents(value, hideDecimalPlaces, showPositiveSign = true),
+        style = AmountTypography.rowAmount.copy(fontWeight = weight, fontStyle = if (muted) FontStyle.Italic else FontStyle.Normal),
+        textAlign = TextAlign.End,
+        color = if (muted) baseColor.copy(alpha = 0.7f) else baseColor,
         modifier = modifier)
 }
 
