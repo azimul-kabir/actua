@@ -254,17 +254,14 @@ fun ConnectionScreen(
         }
     }
 
-    fun requestCertificateTrust(error: Throwable, action: CertificateRetryAction) {
+    fun requestCertificateTrust(error: Throwable, action: CertificateRetryAction, failedUrl: String) {
         if (!isCertificateTrustFailure(error)) {
             message = connectionErrorMessage(error, "Could not connect to the server.")
             return
         }
         scope.launch {
             runCatching {
-                withContext(Dispatchers.IO) {
-                    val normalized = client.normalizeServerUrl(serverUrl)
-                    inspectServerCertificate(normalized)
-                }
+                withContext(Dispatchers.IO) { inspectServerCertificate(failedUrl) }
             }.onSuccess { info ->
                 pendingCertificateTrust = PendingCertificateTrust(
                     info = info,
@@ -282,12 +279,18 @@ fun ConnectionScreen(
         loading = true
         message = null
         scope.launch {
+            // Tracks whichever URL the most recent login attempt targeted, so a certificate
+            // trust prompt triggered by the fallback's failure inspects the fallback's
+            // certificate rather than always re-probing the primary URL.
+            var attemptedUrl = serverUrl
             runCatching {
                 withContext(Dispatchers.IO) {
                     val normalized = client.normalizeServerUrl(serverUrl)
+                    attemptedUrl = normalized
                     val fallback = fallbackServerUrl.trim().takeIf(String::isNotEmpty)?.let(client::normalizeServerUrl).orEmpty()
                     runCatching { Triple(normalized, fallback, client.login(normalized, password)) }.getOrElse { primary ->
                         if (fallback.isEmpty() || fallback == normalized) throw primary
+                        attemptedUrl = fallback
                         Triple(normalized, fallback, client.login(fallback, password))
                     }
                 }
@@ -303,7 +306,7 @@ fun ConnectionScreen(
                 loadBudgets()
             }.onFailure { error ->
                 if (isCertificateTrustFailure(error)) {
-                    requestCertificateTrust(error, CertificateRetryAction.PASSWORD)
+                    requestCertificateTrust(error, CertificateRetryAction.PASSWORD, attemptedUrl)
                 } else {
                     message = connectionErrorMessage(error, "Could not connect to the server.")
                 }
@@ -317,9 +320,13 @@ fun ConnectionScreen(
         message = "Preparing OpenID sign-in…"
         scope.launch {
             var callbackServer: OidcCallbackServer? = null
+            // Tracks whichever URL the most recent OpenID step targeted, so a certificate trust
+            // prompt inspects the certificate that actually failed rather than always the primary.
+            var attemptedUrl = serverUrl
             runCatching {
                 val pending = withContext(Dispatchers.IO) {
                     val primary = client.normalizeServerUrl(serverUrl)
+                    attemptedUrl = primary
                     val fallback = fallbackServerUrl.trim().takeIf(String::isNotEmpty)?.let(client::normalizeServerUrl).orEmpty()
                     val candidates = listOf(primary, fallback)
                         .filter(String::isNotBlank)
@@ -327,6 +334,7 @@ fun ConnectionScreen(
                     var lastError: Throwable? = null
                     var activeUrl: String? = null
                     for (candidate in candidates) {
+                        attemptedUrl = candidate
                         val methods = runCatching { client.loginMethods(candidate) }
                             .onFailure { lastError = it }
                             .getOrNull() ?: continue
@@ -338,6 +346,7 @@ fun ConnectionScreen(
                     }
                     val selectedUrl = activeUrl ?: throw (lastError
                         ?: IllegalStateException("Could not find an OpenID-enabled Actual server."))
+                    attemptedUrl = selectedUrl
                     val callback = OidcCallbackServer()
                     callbackServer = callback
                     try {
@@ -379,7 +388,7 @@ fun ConnectionScreen(
                     "invalid-password" -> "Actual requires the current server password for this first OpenID sign-in. Enter it above and try again."
                     else -> {
                         if (isCertificateTrustFailure(error)) {
-                            requestCertificateTrust(error, CertificateRetryAction.OPEN_ID)
+                            requestCertificateTrust(error, CertificateRetryAction.OPEN_ID, attemptedUrl)
                             null
                         } else {
                             connectionErrorMessage(error, "Could not complete OpenID sign-in.")

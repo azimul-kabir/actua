@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Fixed Home's This Month card counting transfers between on-budget accounts as income and spending; it now uses the same category-aware cash-flow calculation as Accounts
+- Fixed the certificate trust prompt inspecting and pinning the primary server URL even when a fallback server URL was the one whose connection attempt actually failed with an untrusted certificate
 
 ## [1.0.0-beta.35] - 2026-09-21
 
