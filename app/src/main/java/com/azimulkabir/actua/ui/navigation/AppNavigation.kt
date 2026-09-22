@@ -40,6 +40,7 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.PieChartOutline
@@ -131,9 +132,11 @@ import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.sync.SyncStatus
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.home.HomeLayout
+import com.azimulkabir.actua.data.navigation.TabItem
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import com.azimulkabir.actua.data.preferences.HomePreferences
+import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
@@ -158,7 +161,23 @@ private enum class MainDestination(
     Budget("Budget", Icons.Outlined.PieChartOutline),
     Transactions("Transactions", Icons.Outlined.ReceiptLong),
     Accounts("Accounts", Icons.Outlined.AccountBalanceWallet),
+    Reports("Reports", Icons.Outlined.BarChart),
     Manage("Manage", Icons.Outlined.Tune),
+}
+
+/**
+ * Maps a configured [TabItem] to the root destination it drives. [TabItem.ADD] is a pseudo-tab
+ * (an action shortcut to the add-transaction flow, wired in a later slice) and never resolves to a
+ * navigable [MainDestination].
+ */
+private fun TabItem.toMainDestination(): MainDestination? = when (this) {
+    TabItem.HOME -> MainDestination.Home
+    TabItem.BUDGET -> MainDestination.Budget
+    TabItem.TRANSACTIONS -> MainDestination.Transactions
+    TabItem.ACCOUNTS -> MainDestination.Accounts
+    TabItem.REPORTS -> MainDestination.Reports
+    TabItem.MANAGE -> MainDestination.Manage
+    TabItem.ADD -> null
 }
 
 private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation, CustomizeHome, BankSync }
@@ -264,6 +283,13 @@ fun AppNavigation(
     val favoritePreferences = remember { FavoritePreferences(context) }
     val homePreferences = remember { HomePreferences(context) }
     var homeLayout by remember { mutableStateOf(homePreferences.layout()) }
+    val tabBarPreferences = remember { TabBarPreferences(context) }
+    var tabBarLayout by remember { mutableStateOf(tabBarPreferences.layout()) }
+    // The bottom bar's rendered destinations, in configured order. The "+ Add" pseudo-tab isn't a
+    // navigable destination (its tap behavior is wired in a later slice), so it's excluded here.
+    val visibleMainDestinations = remember(tabBarLayout) {
+        tabBarLayout.visibleTabs.mapNotNull { it.toMainDestination() }
+    }
     val creditCardNotificationSettings = remember { CreditCardNotificationSettings(context) }
     var creditCardNotificationsEnabled by remember {
         mutableStateOf(creditCardNotificationSettings.isEnabled)
@@ -342,8 +368,11 @@ fun AppNavigation(
     var editingScheduleId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingAutomationCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var destination by rememberSaveable {
-        mutableStateOf(MainDestination.entries.firstOrNull { it.label == displayPreferences.startPage }
-            ?: MainDestination.Accounts)
+        mutableStateOf(
+            visibleMainDestinations.firstOrNull { it.label == displayPreferences.startPage }
+                ?: visibleMainDestinations.firstOrNull()
+                ?: MainDestination.Accounts,
+        )
     }
     // Bottom navigation selection is deliberately separate from the displayed destination. A
     // tap can then draw its selected state before the next destination starts composing. This is
@@ -761,7 +790,7 @@ fun AppNavigation(
 
     LaunchedEffect(destination, detail, dataVersion, repository) {
         val needsReportSnapshot = detail == DetailDestination.Reports ||
-            (destination == MainDestination.Home && detail == DetailDestination.Main)
+            (detail == DetailDestination.Main && destination in setOf(MainDestination.Home, MainDestination.Reports))
         if (needsReportSnapshot && reportSnapshotVersion != dataVersion) {
             try {
                 val loaded = withContext(Dispatchers.IO) { repository.reports(dataVersion) }
@@ -935,6 +964,7 @@ fun AppNavigation(
                 MainDestination.Budget,
                 MainDestination.Accounts,
                 MainDestination.Transactions,
+                MainDestination.Reports,
             )
             val inAccount = detail == DetailDestination.Transactions && transactionAccount != null
             val inBudgetCategory = detail == DetailDestination.Main &&
@@ -969,7 +999,7 @@ fun AppNavigation(
                     WindowInsets(0, 0, 0, 0)
                 },
             ) {
-                MainDestination.entries.forEach { item ->
+                visibleMainDestinations.forEach { item ->
                     NavigationBarItem(
                         selected = selectedTab == item,
                         onClick = {
@@ -2212,6 +2242,22 @@ fun AppNavigation(
                         displayPreferences.showUpcomingTransactions = it
                         showUpcomingTransactions = it
                     },
+                )
+                MainDestination.Reports -> ReportsScreen(
+                    reportSnapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
+                    hideDecimalPlaces, contentModifier,
+                    isLoading = reportSnapshot == null || reportSnapshotVersion != dataVersion,
+                    onSearch = { detail = DetailDestination.Search },
+                    favoriteReportIds = favoriteReportIds,
+                    onFavoriteReportChange = { id, favorite ->
+                        favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.REPORT, id, favorite)
+                        favoriteReportIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT)
+                    },
+                    loadSavedReports = { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } },
+                    loadTransactions = { ids -> withContext(Dispatchers.IO) { repository.reportTransactions(ids) } },
+                    scrollToTopRequest = rootRequests[MainDestination.Reports] ?: 0,
+                    initialPageId = null,
+                    initialPageRequest = 0,
                 )
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,
