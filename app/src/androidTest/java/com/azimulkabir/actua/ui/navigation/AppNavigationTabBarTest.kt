@@ -93,7 +93,9 @@ class AppNavigationTabBarTest {
         tabBarPreferences.restoreDefaults()
         composeRule.setContent { MaterialTheme { AppNavigation() } }
 
-        composeRule.onNodeWithText("Transaction").assertExists() // the FAB's label
+        // ExtendedFloatingActionButton merges its icon/text semantics into one node, like
+        // NavigationBarItem does (see the other tests in this file), so this needs unmerged too.
+        composeRule.onNodeWithText("Transaction", useUnmergedTree = true).assertExists() // the FAB's label
         composeRule.onNodeWithContentDescription("+ Add", useUnmergedTree = true).assertDoesNotExist()
     }
 
@@ -110,7 +112,7 @@ class AppNavigationTabBarTest {
         )
         composeRule.setContent { MaterialTheme { AppNavigation() } }
 
-        composeRule.onNodeWithText("Transaction").assertDoesNotExist() // FAB is gone
+        composeRule.onNodeWithText("Transaction", useUnmergedTree = true).assertDoesNotExist() // FAB is gone
         composeRule.onNodeWithContentDescription("+ Add", useUnmergedTree = true).assertExists()
 
         composeRule.onNodeWithContentDescription("+ Add", useUnmergedTree = true).performClick()
