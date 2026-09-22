@@ -1,5 +1,5 @@
 # Submission template for fdroiddata/metadata/com.azimulkabir.actua.yml.
-# Actua 1.0.0-beta.38 is built from source at the release commit pinned below.
+# Actua 1.0.0-beta.39 is built from source at the release commit pinned below.
 
 Categories:
   - Finance Manager
@@ -16,9 +16,9 @@ Repo: https://github.com/azimul-kabir/actua.git
 Binaries: https://github.com/azimul-kabir/actua/releases/download/v%v/Actua-v%v.apk
 
 Builds:
-  - versionName: 1.0.0-beta.38
-    versionCode: 55
-    commit: c727008c48e97a1b3fa02f72e882a95c535356e6
+  - versionName: 1.0.0-beta.39
+    versionCode: 56
+    commit: dc2b1ae02fd1e803eef70ce12896e60fc65a8b4e
     subdir: app
     gradle:
       - yes
@@ -28,5 +28,5 @@ AllowedAPKSigningKeys: 2a37719a0770ce4e03f3c080bd9d780c22300e28db678823b5595c9ad
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.0.0-beta.38
-CurrentVersionCode: 55
+CurrentVersion: 1.0.0-beta.39
+CurrentVersionCode: 56
