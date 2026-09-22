@@ -141,4 +141,6 @@ private fun statusSubtitle(status: BudgetProgressState): String = when (status) 
     BudgetProgressState.SPENDING -> "Funded and partially spent"
     BudgetProgressState.SPENT -> "Fully spent, balance at zero"
     BudgetProgressState.OVERSPENT -> "Spent more than available"
+    BudgetProgressState.GOAL_IN_PROGRESS -> "Goal, by-date or schedule target still being funded"
+    BudgetProgressState.GOAL_REACHED -> "Goal, by-date or schedule target fully funded"
 }

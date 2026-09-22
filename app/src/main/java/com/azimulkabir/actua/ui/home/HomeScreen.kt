@@ -506,12 +506,8 @@ private fun DashboardDivider() {
 }
 
 @Composable
-private fun categoryProgressColor(category: BudgetCategory): Color {
-    val colors = MaterialTheme.colorScheme
-    return if (category.usesGoalProgress) {
-        if (category.balanceCents < 0L) colors.error else colors.primary
-    } else categoryStatusColor(category.progressState)
-}
+private fun categoryProgressColor(category: BudgetCategory): Color =
+    categoryStatusColor(category.progressBarState())
 
 private fun categoryProgressLabel(category: BudgetCategory, percent: Int): String =
     if (category.usesGoalProgress) "$percent% funded toward goal"

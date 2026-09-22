@@ -155,6 +155,46 @@ class BudgetCategoryProgressTest {
         assertEquals(2f / 3f, category.progressFraction(), 0.0001f)
     }
 
+    @Test fun `ordinary category bar state matches its status`() {
+        val category = category(assignedCents = 10_000, spentCents = 5_000)
+        assertEquals(BudgetProgressState.SPENDING, category.progressBarState())
+    }
+
+    @Test fun `by-date target funded for this month but not in full is still in progress`() {
+        // Issue #491: this month's installment is funded, but the bar only reads as reached
+        // once the whole target balance is.
+        val target = BudgetTarget(BudgetTarget.Type.BY_DATE, amountCents = 40_000, targetMonth = "2026-12")
+        val category = category(assignedCents = 5_000, spentCents = 0, balanceCents = 10_000)
+            .copy(target = target)
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.progressBarState())
+    }
+
+    @Test fun `goal fully funded reads as reached`() {
+        val category = category(assignedCents = 20_000, spentCents = 0, balanceCents = 20_000, goalCents = 20_000)
+        assertEquals(BudgetProgressState.GOAL_REACHED, category.progressBarState())
+    }
+
+    @Test fun `goal overfunded reads as reached`() {
+        val category = category(assignedCents = 25_000, spentCents = 0, balanceCents = 25_000, goalCents = 20_000)
+        assertEquals(BudgetProgressState.GOAL_REACHED, category.progressBarState())
+    }
+
+    @Test fun `goal with negative balance reads as overspent`() {
+        val category = category(assignedCents = 5_000, spentCents = 6_000, balanceCents = -1_000, goalCents = 20_000)
+        assertEquals(BudgetProgressState.OVERSPENT, category.progressBarState())
+    }
+
+    @Test fun `unresolved schedule target with nothing assigned is in progress`() {
+        val target = BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = "bill-1")
+        val category = category(assignedCents = 0, spentCents = 0, balanceCents = 0).copy(target = target)
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.progressBarState())
+    }
+
+    @Test fun `goal bar states never drive the category status dot`() {
+        val category = category(assignedCents = 5_000, spentCents = 0, balanceCents = 5_000, goalCents = 20_000)
+        assertEquals(BudgetProgressState.FUNDED, category.progressState)
+    }
+
     private fun category(
         assignedCents: Long,
         spentCents: Long,

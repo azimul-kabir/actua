@@ -8,6 +8,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - The transaction balance-impact card now shows the affected budget category's available balance (before, the transaction's impact, and after) instead of the account balance, uses a solid background instead of a low-alpha tint for legibility, and stays up longer before auto-dismissing; it now also appears after editing, deleting or duplicating a transaction (not just creating one), and shows one card per category when a split transaction or a category change on edit touches more than one
 
+### Fixed
+
+- Progress bars for categories with a goal, by-date or cover-schedule target now use customizable colors instead of always drawing in the theme's primary color: Settings → Category status colors gains "Goal in progress" (defaults to the previous primary color) and "Goal reached" (defaults to the Funded green) entries, and a goal only reads as reached once the full target balance is funded, not just this month's installment (#491)
+
 ## [1.0.0-beta.38] - 2026-09-22
 
 ### Added
