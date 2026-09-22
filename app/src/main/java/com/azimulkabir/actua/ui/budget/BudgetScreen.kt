@@ -209,6 +209,7 @@ fun BudgetScreen(
     returnToRootRequest: Int = 0,
     showNotes: Boolean = true,
     hideIncomeGroup: Boolean = false,
+    hasFab: Boolean = true,
 ) {
     val context = LocalContext.current
     val budgetUiPreferences = remember(context) {
@@ -346,7 +347,7 @@ fun BudgetScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
         ) {
             visibleGroups.forEach { (group, visibleCategories, headerGroup) ->
                 val collapsed = group.name in collapsedGroups

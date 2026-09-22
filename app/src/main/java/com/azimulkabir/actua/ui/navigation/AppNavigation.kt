@@ -949,6 +949,22 @@ fun AppNavigation(
 
     BackHandler(enabled = budgetReplacementInProgress) { }
 
+    val onMainTab = detail == DetailDestination.Main && destination in setOf(
+        MainDestination.Home,
+        MainDestination.Budget,
+        MainDestination.Accounts,
+        MainDestination.Transactions,
+        MainDestination.Reports,
+    )
+    val inAccount = detail == DetailDestination.Transactions && transactionAccount != null
+    val inBudgetCategory = detail == DetailDestination.Main &&
+        destination == MainDestination.Budget && activeBudgetCategory != null
+    // When the configured tab bar includes the "+ Add" pseudo-tab, it replaces the floating
+    // Transaction button entirely (see Slice 3, #481): no FAB on any screen, and the bottom
+    // scroll padding each screen otherwise reserves to clear the FAB collapses to zero.
+    val showAddTab = TabItem.ADD in tabBarLayout.visibleTabs
+    val hasFab = repository.isUsingActualBudget && !reconcileOpen && (onMainTab || inAccount) && !showAddTab
+
     Box(modifier = modifier.fillMaxSize()) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -959,17 +975,7 @@ fun AppNavigation(
             }
         },
         floatingActionButton = {
-            val onMainTab = detail == DetailDestination.Main && destination in setOf(
-                MainDestination.Home,
-                MainDestination.Budget,
-                MainDestination.Accounts,
-                MainDestination.Transactions,
-                MainDestination.Reports,
-            )
-            val inAccount = detail == DetailDestination.Transactions && transactionAccount != null
-            val inBudgetCategory = detail == DetailDestination.Main &&
-                destination == MainDestination.Budget && activeBudgetCategory != null
-            if (repository.isUsingActualBudget && !reconcileOpen && (onMainTab || inAccount)) {
+            if (hasFab) {
                 ExtendedFloatingActionButton(
                     onClick = when {
                         inBudgetCategory -> ::openAddTransactionForCategory
@@ -999,7 +1005,32 @@ fun AppNavigation(
                     WindowInsets(0, 0, 0, 0)
                 },
             ) {
-                visibleMainDestinations.forEach { item ->
+                tabBarLayout.visibleTabs.forEach { tabItem ->
+                    if (tabItem == TabItem.ADD) {
+                        NavigationBarItem(
+                            selected = false,
+                            onClick = {
+                                openAddTransaction()
+                                transactionFabExpanded = true
+                            },
+                            icon = { Icon(Icons.Outlined.Add, contentDescription = tabItem.label) },
+                            label = if (showBottomNavigationLabels) {
+                                {
+                                    Text(
+                                        text = tabItem.label,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        autoSize = TextAutoSize.StepBased(
+                                            minFontSize = 8.sp,
+                                            maxFontSize = 12.sp,
+                                        ),
+                                    )
+                                }
+                            } else null,
+                        )
+                        return@forEach
+                    }
+                    val item = tabItem.toMainDestination() ?: return@forEach
                     NavigationBarItem(
                         selected = selectedTab == item,
                         onClick = {
@@ -1118,6 +1149,7 @@ fun AppNavigation(
                 scrollToTopRequest = 0,
                 initialPageId = requestedReportPageId,
                 initialPageRequest = requestedReportPageRequest,
+                hasFab = hasFab,
             )
             DetailDestination.Transactions -> TransactionsScreen(
                 accountName = transactionAccount,
@@ -1237,6 +1269,7 @@ fun AppNavigation(
                     displayPreferences.showUpcomingTransactions = it
                     showUpcomingTransactions = it
                 },
+                hasFab = hasFab,
             )
             DetailDestination.EditTransaction -> {
             // Otherwise these are rebuilt from the whole account/payee lists on every
@@ -1959,6 +1992,7 @@ fun AppNavigation(
                     },
                     onCustomizeClick = { detail = DetailDestination.CustomizeHome },
                     returnToRootRequest = rootRequests[MainDestination.Home] ?: 0,
+                    hasFab = hasFab,
                 )
                 MainDestination.Budget -> BudgetScreen(
                     contentModifier,
@@ -2110,6 +2144,7 @@ fun AppNavigation(
                     returnToRootRequest = rootRequests[MainDestination.Budget] ?: 0,
                     showNotes = showNotes,
                     hideIncomeGroup = hideIncomeGroupInBudget,
+                    hasFab = hasFab,
                 )
                 MainDestination.Accounts -> AccountsScreen(
                     modifier = contentModifier,
@@ -2158,6 +2193,7 @@ fun AppNavigation(
                         favoriteAccountIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.ACCOUNT)
                     },
                     scrollToTopRequest = rootRequests[MainDestination.Accounts] ?: 0,
+                    hasFab = hasFab,
                 )
                 MainDestination.Transactions -> TransactionsScreen(
                     accountName = null,
@@ -2242,6 +2278,7 @@ fun AppNavigation(
                         displayPreferences.showUpcomingTransactions = it
                         showUpcomingTransactions = it
                     },
+                    hasFab = hasFab,
                 )
                 MainDestination.Reports -> ReportsScreen(
                     reportSnapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
@@ -2258,6 +2295,7 @@ fun AppNavigation(
                     scrollToTopRequest = rootRequests[MainDestination.Reports] ?: 0,
                     initialPageId = null,
                     initialPageRequest = 0,
+                    hasFab = hasFab,
                 )
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,

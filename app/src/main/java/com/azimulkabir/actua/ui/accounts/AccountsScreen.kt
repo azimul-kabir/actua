@@ -109,6 +109,7 @@ fun AccountsScreen(
     favoriteAccountIds: Set<String> = emptySet(),
     onFavoriteAccountChange: (String, Boolean) -> Unit = { _, _ -> },
     scrollToTopRequest: Int = 0,
+    hasFab: Boolean = true,
 ) {
     val listState = rememberLazyListState()
     LaunchedEffect(scrollToTopRequest) {
@@ -195,7 +196,7 @@ fun AccountsScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
             ) {
                 item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary) }
                 accountSections.forEach { section ->

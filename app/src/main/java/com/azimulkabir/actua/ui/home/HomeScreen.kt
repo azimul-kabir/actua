@@ -94,6 +94,7 @@ fun HomeScreen(
     onReportClick: (String) -> Unit = {},
     onCustomizeClick: () -> Unit = {},
     returnToRootRequest: Int = 0,
+    hasFab: Boolean = true,
 ) {
     val listState = rememberLazyListState()
     LaunchedEffect(returnToRootRequest) {
@@ -103,7 +104,7 @@ fun HomeScreen(
         modifier = modifier.fillMaxSize().testTag("homeList"),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-        contentPadding = PaddingValues(bottom = 160.dp),
+        contentPadding = PaddingValues(bottom = if (hasFab) 160.dp else 0.dp),
     ) {
         item(key = "home-header") {
             ActuaScreenHeader(title = "Home") {

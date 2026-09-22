@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.platform.app.InstrumentationRegistry
@@ -85,5 +86,37 @@ class AppNavigationTabBarTest {
 
         pressBack()
         composeRule.onNodeWithContentDescription("Customize Home", useUnmergedTree = true).assertExists()
+    }
+
+    @Test fun defaultLayoutShowsFabAndNoAddTab() {
+        // Tab bar Slice 3 (#481): the FAB-based layout is the default, unchanged by this slice.
+        tabBarPreferences.restoreDefaults()
+        composeRule.setContent { MaterialTheme { AppNavigation() } }
+
+        // ExtendedFloatingActionButton merges its icon/text semantics into one node, like
+        // NavigationBarItem does (see the other tests in this file), so this needs unmerged too.
+        composeRule.onNodeWithText("Transaction", useUnmergedTree = true).assertExists() // the FAB's label
+        composeRule.onNodeWithContentDescription("+ Add", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test fun addTabLayoutHidesFabAndOpensAddTransactionEditor() {
+        // Tab bar Slice 3 (#481): configuring "+ Add" as a tab replaces the FAB entirely.
+        tabBarPreferences.save(
+            TabBarLayout(
+                order = listOf(
+                    TabItem.HOME, TabItem.BUDGET, TabItem.ACCOUNTS, TabItem.ADD,
+                    TabItem.REPORTS, TabItem.MANAGE, TabItem.TRANSACTIONS,
+                ),
+                hidden = setOf(TabItem.REPORTS, TabItem.TRANSACTIONS),
+            ),
+        )
+        composeRule.setContent { MaterialTheme { AppNavigation() } }
+
+        composeRule.onNodeWithText("Transaction", useUnmergedTree = true).assertDoesNotExist() // FAB is gone
+        composeRule.onNodeWithContentDescription("+ Add", useUnmergedTree = true).assertExists()
+
+        composeRule.onNodeWithContentDescription("+ Add", useUnmergedTree = true).performClick()
+        // The add-transaction editor's top bar has a "Cancel" close action unique to that screen.
+        composeRule.onNodeWithContentDescription("Cancel", useUnmergedTree = true).assertExists()
     }
 }

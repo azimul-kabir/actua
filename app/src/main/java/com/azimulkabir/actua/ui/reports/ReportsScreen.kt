@@ -88,6 +88,7 @@ fun ReportsScreen(
     scrollToTopRequest: Int = 0,
     initialPageId: String? = null,
     initialPageRequest: Int = 0,
+    hasFab: Boolean = true,
 ) {
     val listState = rememberLazyListState()
     var datePreset by rememberSaveable { mutableStateOf<String?>(null) }
@@ -131,7 +132,8 @@ fun ReportsScreen(
         state = listState,
         modifier = modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            Spacing.screenHorizontal, Spacing.screenHorizontal, Spacing.screenHorizontal, 96.dp,
+            Spacing.screenHorizontal, Spacing.screenHorizontal, Spacing.screenHorizontal,
+            if (hasFab) 96.dp else 0.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

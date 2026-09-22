@@ -164,6 +164,7 @@ fun TransactionsScreen(
     upcomingTransactions: List<Transaction> = emptyList(),
     showUpcomingTransactions: Boolean = true,
     onShowUpcomingTransactionsChange: (Boolean) -> Unit = {},
+    hasFab: Boolean = true,
 ) {
     val listState = rememberLazyListState()
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
@@ -486,7 +487,7 @@ fun TransactionsScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
             ) {
                 account?.let { selectedAccount ->
                     item("account-details") {
