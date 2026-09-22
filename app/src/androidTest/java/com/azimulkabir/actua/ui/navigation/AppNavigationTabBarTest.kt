@@ -119,4 +119,33 @@ class AppNavigationTabBarTest {
         // The add-transaction editor's top bar has a "Cancel" close action unique to that screen.
         composeRule.onNodeWithContentDescription("Cancel", useUnmergedTree = true).assertExists()
     }
+
+    @Test fun customizingFromSettingsUpdatesTheBottomBarImmediately() {
+        // Tab bar Slice 4 (#483): the Customize Tab Bar screen, reached from Settings, is the only
+        // way a real user can reach any of the non-default layouts the earlier slices/tests above
+        // construct directly via TabBarPreferences.
+        tabBarPreferences.restoreDefaults()
+        composeRule.setContent { MaterialTheme { AppNavigation() } }
+
+        composeRule.onNodeWithContentDescription("Manage", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithContentDescription("Settings", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText("Display").performClick()
+        composeRule.onNodeWithText("Tab Bar").performClick()
+
+        composeRule.onNodeWithContentDescription(
+            "Show ${TabItem.TRANSACTIONS.label} in the bottom bar",
+            useUnmergedTree = true,
+        ).performClick()
+        composeRule.onNodeWithContentDescription(
+            "Show ${TabItem.REPORTS.label} in the bottom bar",
+            useUnmergedTree = true,
+        ).performClick()
+
+        // Leaving the (full-screen) Customize Tab Bar destination returns straight to Manage; no
+        // app restart or explicit save step is needed for the bottom bar to reflect the change.
+        pressBack()
+
+        composeRule.onNodeWithContentDescription("Reports", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithContentDescription("Transactions", useUnmergedTree = true).assertDoesNotExist()
+    }
 }
