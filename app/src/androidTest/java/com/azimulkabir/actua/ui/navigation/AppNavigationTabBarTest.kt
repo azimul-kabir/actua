@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
@@ -129,17 +130,17 @@ class AppNavigationTabBarTest {
 
         composeRule.onNodeWithContentDescription("Manage", useUnmergedTree = true).performClick()
         composeRule.onNodeWithContentDescription("Settings", useUnmergedTree = true).performClick()
-        composeRule.onNodeWithText("Display").performClick()
-        composeRule.onNodeWithText("Tab Bar").performClick()
+        composeRule.onNodeWithText("Display").performScrollTo().performClick()
+        composeRule.onNodeWithText("Tab Bar").performScrollTo().performClick()
 
         composeRule.onNodeWithContentDescription(
             "Show ${TabItem.TRANSACTIONS.label} in the bottom bar",
             useUnmergedTree = true,
-        ).performClick()
+        ).performScrollTo().performClick()
         composeRule.onNodeWithContentDescription(
             "Show ${TabItem.REPORTS.label} in the bottom bar",
             useUnmergedTree = true,
-        ).performClick()
+        ).performScrollTo().performClick()
 
         // Leaving the (full-screen) Customize Tab Bar destination returns straight to Manage; no
         // app restart or explicit save step is needed for the bottom bar to reflect the change.
