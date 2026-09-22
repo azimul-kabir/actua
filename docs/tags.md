@@ -4,7 +4,7 @@ Actua uses Actual Budget's canonical tag metadata and keeps tag behavior compati
 
 ## Notes and autocomplete
 
-In a transaction note, type `#` to search managed tags. Suggestions update as the active hashtag token changes. Hidden tags are excluded from autocomplete. `##` is treated as a literal hash escape and is not a tag token.
+In a transaction note, type `#` to search managed tags. Suggestions update as the active hashtag token changes. Hidden tags are excluded from autocomplete. `##` is treated as a literal hash escape and is not a tag token. Recognized `#tag` tokens are colored in the notes field as you type, matching the tag's color once the transaction is saved.
 
 Tag discovery is case-insensitive, while canonical rename follows Actual's case-sensitive rename semantics. A tag filter matches an exact hashtag token, so `#travel` does not match `#travel2026`.
 
