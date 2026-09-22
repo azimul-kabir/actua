@@ -93,6 +93,7 @@ fun SettingsScreen(
     onUseDynamicColorChange: (Boolean) -> Unit = {},
     startPage: String = "Budget",
     onStartPageChange: (String) -> Unit = {},
+    startPageOptions: List<String> = listOf("Home", "Budget", "Transactions", "Accounts", "Manage"),
     accountOptions: List<String> = emptyList(),
     defaultAccount: String? = null,
     onDefaultAccountChange: (String?) -> Unit = {},
@@ -109,6 +110,7 @@ fun SettingsScreen(
     onPayeeLocationsClick: () -> Unit = {},
     onReportsClick: () -> Unit = {},
     onCustomizeHomeClick: () -> Unit = {},
+    onCustomizeTabBarClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = true,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
     showBottomNavigationLabels: Boolean = true,
@@ -353,7 +355,7 @@ fun SettingsScreen(
                     SettingsChoice(
                         "Start page",
                         startPage,
-                        listOf("Home", "Budget", "Transactions", "Accounts", "Manage"),
+                        startPageOptions,
                         onStartPageChange,
                     )
                     SettingsChoice(
@@ -361,6 +363,9 @@ fun SettingsScreen(
                         if (showBottomNavigationLabels) "Icons and names" else "Icons only",
                         listOf("Icons and names", "Icons only"),
                     ) { onShowBottomNavigationLabelsChange(it == "Icons and names") }
+                    SettingsRow("Tab Bar", "Show, hide and reorder the bottom navigation tabs", true) {
+                        openFullScreen(onCustomizeTabBarClick)
+                    }
                     SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
                         hideDecimalPlaces, onHideDecimalPlacesChange)
                     SettingsToggle("Notes", "Show the Notes field on accounts and budget categories",

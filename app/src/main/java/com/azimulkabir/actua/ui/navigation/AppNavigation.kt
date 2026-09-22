@@ -180,7 +180,7 @@ private fun TabItem.toMainDestination(): MainDestination? = when (this) {
     TabItem.ADD -> null
 }
 
-private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation, CustomizeHome, BankSync }
+private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -923,6 +923,9 @@ fun AppNavigation(
                 detail = DetailDestination.ManageCategories
             }
             detail == DetailDestination.CustomizeHome -> {
+                detail = DetailDestination.Main
+            }
+            detail == DetailDestination.CustomizeTabBar -> {
                 detail = DetailDestination.Main
             }
             detail == DetailDestination.BudgetAutomation -> {
@@ -1731,6 +1734,15 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
             )
+            DetailDestination.CustomizeTabBar -> CustomizeTabBarScreen(
+                layout = tabBarLayout,
+                onBack = { detail = DetailDestination.Main },
+                onLayoutChange = { updated ->
+                    tabBarPreferences.save(updated)
+                    tabBarLayout = updated
+                },
+                modifier = contentModifier,
+            )
             DetailDestination.BudgetAutomation -> budgetGroups.firstNotNullOfOrNull { g ->
                 g.categories.firstOrNull { it.name == editingAutomationCategory }?.let { g to it }
             }?.let { (group, category) ->
@@ -2362,6 +2374,7 @@ fun AppNavigation(
                         displayPreferences.startPage = it
                         startPage = it
                     },
+                    startPageOptions = visibleMainDestinations.map { it.label },
                     accountOptions = accounts.filterNot { it.closed }.map { it.name },
                     defaultAccount = defaultAccount,
                     onDefaultAccountChange = {
@@ -2396,6 +2409,7 @@ fun AppNavigation(
                     onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },
                     onReportsClick = { detail = DetailDestination.Reports },
                     onCustomizeHomeClick = { detail = DetailDestination.CustomizeHome },
+                    onCustomizeTabBarClick = { detail = DetailDestination.CustomizeTabBar },
                     conventionalAmountEntry = conventionalAmountEntry,
                     onConventionalAmountEntryChange = {
                         displayPreferences.conventionalAmountEntry = it
