@@ -68,9 +68,9 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Create a new account and pick a non-default type from the picker; verify it syncs with the correct type. Use "Change account type" on an existing account and verify the change persists and syncs.
 - [ ] Add and edit a split transaction.
 - [ ] Typing `#` (or deleting characters) in a transaction note while suggestions are showing keeps the on-screen keyboard open without flicker.
-- [ ] In Transactions, enable multi-select, select several transactions, and verify bulk mark cleared/uncleared, delete (with confirmation naming the count), link to schedule, unlink schedule, and (single selection) view schedule.
-- [ ] Long-press a transaction to enter multi-select mode with it pre-selected; use "Duplicate" from the transaction sheet, details sheet, and bulk-actions menu and verify an unlinked copy is created immediately without opening the editor.
-- [ ] From the multi-select bulk menu, open "View schedule" on a linked transaction, then back/save/delete on the schedule and verify you return to Transactions rather than Schedules or Bills calendar.
+- [ ] Long-press a transaction to enter selection mode with it pre-selected (there is no separate app-bar Select button); select several more and verify the floating selection bar's always-visible Categorize and Label icon actions apply to every selected transaction, and that Edit (single selection), Mark cleared/uncleared, Delete (with confirmation naming the count), Move, Link to schedule and Unlink schedule are available from the 3-dot overflow menu.
+- [ ] From the overflow menu, use "Duplicate" and verify an unlinked copy is created immediately without opening the editor.
+- [ ] From the overflow menu, open "View schedule" on a linked transaction, then back/save/delete on the schedule and verify you return to Transactions rather than Schedules or Bills calendar.
 - [ ] Transactions screen status filter chips (Uncategorized, Uncleared, Cleared, Reconciled) each narrow the list correctly and can be combined/cleared.
 - [ ] Enable "hide reconciled transactions", then select the Reconciled status chip in an account's transaction list and verify reconciled transactions appear (not an empty "No unreconciled transactions" state); verify the empty-state message matches whichever status chip is active.
 - [ ] Pick an explicit category in Add Transaction before typing a payee that matches a rule setting a different category, and verify the explicit choice is preserved; leave the category empty and verify the rule still fills it in.
@@ -84,6 +84,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Global search finds transactions, accounts, payees, categories, notes and transfers.
 - [ ] `#tag` renders with its configured Actual color consistently across the main Transactions tab, account lists, transaction detail, search results and category recent-activity.
 - [ ] Typing `#` in a transaction note offers matching/creatable tag suggestions; selecting one inserts it correctly and syncs.
+- [ ] Type a recognized `#tag` directly into a transaction's notes field (without using the suggestion list) and verify it highlights in its configured color as you type, before the transaction is saved.
 - [ ] Manage → Tags: create, edit (color/hidden), rename and delete a tag; renaming updates matching transaction-note hashtags.
 - [ ] Tapping a managed tag opens its matching transactions, including parent/split notes, with the active filter clearly shown and clearable.
 - [ ] Cleared/uncleared/reconciled balances agree with the source budget; account detail shows an always-visible Cleared / Balance / Uncleared row (left/center/right aligned), with Reconciled (and, for credit cards, Available credit / Credit limit) behind the collapsible toggle.
@@ -106,7 +107,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Manually post a recurring schedule on its due date and verify its next occurrence advances exactly once.
 - [ ] Use "Post Transaction Today" early (before the due date) and verify the schedule advances to its next due date and the just-completed occurrence still shows as paid on the Bills calendar, rather than looking due again.
 - [ ] Create a schedule occurrence out of order or with a future-dated linked transaction, then let the catch-up loop run; verify an earlier due/missed occurrence still posts instead of being masked.
-- [ ] Scheduled Transactions list opens and status/date/amount alignment is correct.
+- [ ] Scheduled Transactions list opens and status/date/amount alignment is correct; the status badge sits on its own second row with the account name and repeat/date text (not inline with the title), and the amount stays right-aligned regardless of badge width.
 - [ ] Create/edit a recurring schedule and verify recurrence preview.
 - [ ] Exercise Post, Post today, Skip next date and linked-history/unlink flows on test data.
 - [ ] Manage → Automation exposes separate Bills & Calendar and Scheduled Transactions entries.
@@ -118,6 +119,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] With a schedule due or upcoming, verify Transactions and an account's register show it as an italic "Upcoming" row that is excluded from balances, and that the "Show upcoming transactions" overflow toggle hides/shows it.
 - [ ] Add Transaction auto-focuses the amount and advances through the payee/category/account pickers; verify Settings → Budget's hide-income-group switch hides the income group in Budget, and the category status dot shows in the Plan view.
 - [ ] Check Summary, Net Worth, Cash Flow, Spending and at least one advanced report card against known data.
+- [ ] Open a synced dashboard (e.g. "Main") and verify Net Worth/Balance Forecast/Age of Money show a gradient area fill, gridlines and Y-axis labels, and that tapping/dragging shows a tooltip bubble with the value at that point; verify Crossover/Budget Analysis/Monte Carlo behave the same way.
+- [ ] On a synced dashboard, verify Cash Flow renders as a tappable grouped income/expense bar chart with a legend (not static text rows), and Calendar supports month navigation, tap-to-reveal per-day tooltips and magnitude-scaled day bars, with each visible month's totals computed from that month alone; verify the app's own Overview page (income vs expenses + saved reports) is unchanged.
 
 ## Android integrations
 
