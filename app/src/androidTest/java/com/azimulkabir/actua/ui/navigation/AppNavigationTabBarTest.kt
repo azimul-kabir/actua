@@ -53,8 +53,10 @@ class AppNavigationTabBarTest {
         tabBarPreferences.restoreDefaults()
         composeRule.setContent { MaterialTheme { AppNavigation() } }
 
+        // NavigationBarItem merges its icon/label/selection-state semantics into one node, so the
+        // icon's contentDescription is only visible in the unmerged tree.
         for (label in listOf("Home", "Budget", "Transactions", "Accounts", "Manage")) {
-            composeRule.onNodeWithContentDescription(label).assertExists()
+            composeRule.onNodeWithContentDescription(label, useUnmergedTree = true).assertExists()
         }
     }
 
@@ -70,17 +72,18 @@ class AppNavigationTabBarTest {
         )
         composeRule.setContent { MaterialTheme { AppNavigation() } }
 
-        // Reports is now a visible tab; Transactions was hidden by the layout above.
-        composeRule.onNodeWithContentDescription("Reports").assertExists()
-        composeRule.onNodeWithContentDescription("Transactions").assertDoesNotExist()
+        // Reports is now a visible tab; Transactions was hidden by the layout above. (See
+        // defaultLayoutRendersTodaysFixedFiveTabBottomBarUnchanged for why useUnmergedTree is needed.)
+        composeRule.onNodeWithContentDescription("Reports", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithContentDescription("Transactions", useUnmergedTree = true).assertDoesNotExist()
 
-        composeRule.onNodeWithContentDescription("Reports").performClick()
+        composeRule.onNodeWithContentDescription("Reports", useUnmergedTree = true).performClick()
         // "Customize Home" only exists on Home's root content, so its absence confirms the tab
         // actually switched away from Home; the Reports screen renders its own "Reports" title.
-        composeRule.onNodeWithContentDescription("Customize Home").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Customize Home", useUnmergedTree = true).assertDoesNotExist()
         composeRule.onAllNodesWithText("Reports").onFirst().assertExists()
 
         pressBack()
-        composeRule.onNodeWithContentDescription("Customize Home").assertExists()
+        composeRule.onNodeWithContentDescription("Customize Home", useUnmergedTree = true).assertExists()
     }
 }
