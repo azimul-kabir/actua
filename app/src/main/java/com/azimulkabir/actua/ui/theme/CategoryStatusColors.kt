@@ -16,7 +16,7 @@ import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.model.BudgetProgressState
 
 /**
- * Holds the user's configured overrides for the five [BudgetProgressState] colors, backed by
+ * Holds the user's configured overrides for the [BudgetProgressState] colors, backed by
  * [CategoryStatusColorPreferences]. This is the single source of truth the status dot and the
  * category progress bar both read through [categoryStatusColor], so a color change is reflected
  * everywhere it's shown without those surfaces needing to know about each other.
@@ -67,6 +67,8 @@ fun defaultCategoryStatusColor(status: BudgetProgressState): Color {
         BudgetProgressState.SPENDING -> colors.primary
         BudgetProgressState.FUNDED -> colors.success
         BudgetProgressState.UNASSIGNED -> colors.onSurfaceVariant
+        BudgetProgressState.GOAL_IN_PROGRESS -> colors.primary
+        BudgetProgressState.GOAL_REACHED -> colors.success
     }
 }
 

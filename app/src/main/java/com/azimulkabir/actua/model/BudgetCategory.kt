@@ -69,6 +69,20 @@ data class BudgetCategory(
             else -> BudgetProgressState.FUNDED
         }
 
+    /**
+     * The state that colors this category's progress bar. Ordinary categories use
+     * [progressState]; goal, by-date and cover-schedule targets measure the balance against the
+     * full target instead, so they get their own customizable goal states (issue #491). A goal
+     * only reads as reached once the whole target balance is funded, matching [progressFraction].
+     */
+    fun progressBarState(schedules: List<BudgetScheduleFunding> = emptyList()): BudgetProgressState {
+        if (!usesGoalProgress) return progressState
+        if (balanceCents < 0L) return BudgetProgressState.OVERSPENT
+        val goal = effectiveGoalCents(schedules)?.takeIf { it > 0L } ?: assignedCents.takeIf { it > 0L }
+        return if (goal != null && balanceCents >= goal) BudgetProgressState.GOAL_REACHED
+        else BudgetProgressState.GOAL_IN_PROGRESS
+    }
+
     fun progressFraction(schedules: List<BudgetScheduleFunding> = emptyList()): Float {
         // Preserve Actua's long-term targets, including unresolved schedule fallback.
         if (usesGoalProgress) {
@@ -90,6 +104,8 @@ enum class BudgetProgressState(val label: String) {
     SPENDING("Partially spent"),
     SPENT("Fully spent"),
     OVERSPENT("Overspent"),
+    GOAL_IN_PROGRESS("Goal in progress"),
+    GOAL_REACHED("Goal reached"),
 }
 
 enum class BudgetCategoryView(val label: String) {

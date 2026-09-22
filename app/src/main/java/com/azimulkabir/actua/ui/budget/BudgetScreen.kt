@@ -1396,9 +1396,7 @@ private fun CategoryProgressBar(
 ) {
     val fraction = category.progressFraction(scheduleFunding)
     val colors = MaterialTheme.colorScheme
-    val color = if (category.usesGoalProgress) {
-        if (category.balanceCents < 0L) colors.error else colors.primary
-    } else categoryStatusColor(category.progressState)
+    val color = categoryStatusColor(category.progressBarState(scheduleFunding))
     val percent = kotlin.math.round(fraction * 100).toInt()
     val description = if (category.usesGoalProgress) {
         "$percent percent funded toward goal"

@@ -4,7 +4,7 @@ import android.content.Context
 import com.azimulkabir.actua.model.BudgetProgressState
 
 /**
- * Local/device-level overrides for the five category status colors (status dot and progress
+ * Local/device-level overrides for the category status colors (status dot and progress
  * bar). Stored as ARGB ints; a missing or invalid entry falls back to Actua's theme-derived
  * default for that status rather than a fixed value, so the picker only needs to hold what the
  * user actually customized.
