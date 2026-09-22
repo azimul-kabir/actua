@@ -82,8 +82,13 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   standard transaction; transfer drafts can reverse their source/destination
   accounts before save, and post-save feedback is an animated balance-impact card showing the
   saved category's account balance before → after the save
-- Multi-select mode in Transactions with bulk mark cleared/uncleared, delete,
-  link to schedule, unlink schedule, and single-selection view schedule
+- Multi-select mode in Transactions, entered via long-press (pre-selecting that
+  transaction) or the existing selection entry points, with a floating selection
+  bar exposing Categorize and Label as always-visible icon actions and Edit
+  (single selection), mark cleared/uncleared, delete, link to schedule, unlink
+  schedule, and single-selection view schedule in a 3-dot overflow menu;
+  Categorize/Move apply through the existing `saveTransaction` write path and
+  Label appends a `#tag` to each selected transaction's notes
 - Query-level transaction status filters (Uncategorized, Uncleared, Cleared,
   Reconciled) mapped to database-layer SQL and surfaced as a Transactions FilterChip row
 - Zero/reflect budget month calculations, carryover, To Budget, buffered
@@ -104,9 +109,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   for schedule-owned rules; see [docs/RULES_PARITY.md](docs/RULES_PARITY.md) for the audited
   condition/action/ranking behavior and its implementation boundary
 - Actual-compatible canonical tag data model, colored `#tag` rendering consistent across
-  transaction list/detail surfaces, notes autocomplete, native tag create/edit/delete/color/hidden
-  management, and tap-a-tag transaction discovery, synced from Actual's tag dataset; see
-  [docs/tags.md](docs/tags.md)
+  transaction list/detail surfaces, notes autocomplete (including live highlighting of
+  recognized tags as they're typed, before the transaction is saved), native
+  tag create/edit/delete/color/hidden management, and tap-a-tag transaction discovery,
+  synced from Actual's tag dataset; see [docs/tags.md](docs/tags.md)
 - Timezone-free schedule day math, upcoming windows, lifecycle status, and
   transaction occurrence matching; see
   [docs/SCHEDULED_TRANSACTIONS_PARITY.md](docs/SCHEDULED_TRANSACTIONS_PARITY.md) for the
@@ -149,6 +155,13 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   and a drilled-into account or budget category while it's enabled), and Restore Defaults; stored as
   a versioned, migration-safe local UI preference
 - Saved Actual custom reports shown read-only through a shared Actual-compatible aggregator (donut and per-interval charts, viewer-side date/account filter, drill-down to transactions); see `docs/REPORTS_PARITY.md`
+- Synced report dashboard charts (Net Worth, Balance Forecast, Age of Money, Crossover, Budget
+  Analysis, Monte Carlo, Cash Flow, Calendar) render with gradient fills, gridlines, axis labels and
+  tap/drag tooltips instead of bare lines and static text; Cash Flow is a tappable grouped
+  income/expense bar chart and Calendar supports month navigation and per-day tooltips, with each
+  visible month's totals computed from that month's own days rather than summed across all synced
+  months. Presentation and interaction only; the app's synthetic Overview page and all report
+  calculations are unaffected
 - Scheduled transactions projected as unposted upcoming rows in the Transactions tab and account registers, excluded from balances and search, matching Actual's mobile PWA
 - Home section customization (show/hide optional sections, drag-to-reorder, restore defaults) as a
   versioned, migration-safe local UI preference; reordering mutates in-memory state during the

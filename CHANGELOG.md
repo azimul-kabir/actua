@@ -4,6 +4,14 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.39] - 2026-09-22
+
+### Added
+
+- Long-pressing a transaction now enters selection mode with that transaction pre-selected, opening a floating selection bar with Categorize and Label always shown as icon actions and Edit (single selection), Mark cleared/uncleared, Duplicate, Move, Link/Unlink schedule, View schedule and Delete moved into a 3-dot overflow menu; the top app bar's separate Select action is removed
+- Recognized `#tags` are now highlighted as you type them in a transaction's notes field, matching the coloring already used for saved tag chips (#493)
+- Synced report dashboard charts (Net Worth, Balance Forecast, Age of Money, Crossover, Budget Analysis, Monte Carlo, Cash Flow and Calendar) gained gradient fills, gridlines, axis labels and tappable/draggable tooltips; Cash Flow is now a real grouped income/expense bar chart with a legend, and Calendar gained month navigation, per-day tooltips and magnitude-scaled day bars with correct per-visible-month totals (the app's own Overview page is unaffected)
+
 ### Changed
 
 - The transaction balance-impact card now shows the affected budget category's available balance (before, the transaction's impact, and after) instead of the account balance, uses a solid background instead of a low-alpha tint for legibility, and stays up longer before auto-dismissing; it now also appears after editing, deleting or duplicating a transaction (not just creating one), and shows one card per category when a split transaction or a category change on edit touches more than one
@@ -11,6 +19,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Progress bars for categories with a goal, by-date or cover-schedule target now use customizable colors instead of always drawing in the theme's primary color: Settings → Category status colors gains "Goal in progress" (defaults to the previous primary color) and "Goal reached" (defaults to the Funded green) entries, and a goal only reads as reached once the full target balance is funded, not just this month's installment (#491)
+- Fixed the Schedules list's status badge sitting inline with the title next to the amount, where its variable width shifted the amount's position between rows; it now sits on its own row alongside the account name and repeat/date text
 
 ## [1.0.0-beta.38] - 2026-09-22
 
