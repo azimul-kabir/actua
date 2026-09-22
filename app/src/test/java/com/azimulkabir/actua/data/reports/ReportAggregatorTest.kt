@@ -6,6 +6,7 @@ import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReportAggregatorTest {
@@ -109,18 +110,33 @@ class ReportAggregatorTest {
 }
 
 class ReportAggregatorScaleTest {
+    private val accounts = listOf(ActualAccount("a", "A", ActualAccountType.CHECKING, false, false, 0, 0))
+    private val groups = listOf(ActualCategoryGroup("g", "G", false, false, 1.0,
+        (0 until 50).map { ActualCategory("c$it", "C$it", "g", false, false, it.toDouble()) }))
+    private val rows = (0 until 200_000).map { i ->
+        ActualTransaction("t$i", "a", 20260101 + i % 28, -(i % 997 + 1).toLong(), null, null, "c${i % 50}", null, null,
+            false, false, null, false, null, false, null, null, null, null)
+    }
+    private val aggregator = ReportAggregator(accounts, groups)
+    private val filter = ReportFilter(20260101, 20260131)
+
     @Test fun `large ledger totals reconcile with drill-down ids`() {
-        val accounts = listOf(ActualAccount("a", "A", ActualAccountType.CHECKING, false, false, 0, 0))
-        val groups = listOf(ActualCategoryGroup("g", "G", false, false, 1.0,
-            (0 until 50).map { ActualCategory("c$it", "C$it", "g", false, false, it.toDouble()) }))
-        val rows = (0 until 200_000).map { i ->
-            ActualTransaction("t$i", "a", 20260101 + i % 28, -(i % 997 + 1).toLong(), null, null, "c${i % 50}", null, null,
-                false, false, null, false, null, false, null, null, null, null)
-        }
-        val aggregator = ReportAggregator(accounts, groups)
-        val filter = ReportFilter(20260101, 20260131)
         val totals = aggregator.groupTotals(rows, filter, ReportGrouping.CATEGORY)
         assertEquals(rows.sumOf { it.amountCents }, totals.sumOf { it.totalCents })
         assertEquals(rows.size, totals.sumOf { it.transactionIds.size })
+    }
+
+    /**
+     * Guards against an accidentally-quadratic aggregation regression (e.g. re-scanning
+     * transactions per category instead of a single pass) on a 200k-row ledger, the scale
+     * a "large real-world budget" acceptance criterion (issue #230) cares about.
+     */
+    @Test fun `large ledger aggregates in one linear pass, not per-group`() {
+        val singleGroupTotals = { aggregator.groupTotals(rows, filter, ReportGrouping.CATEGORY) }
+        singleGroupTotals() // warm up JIT before timing.
+        val start = System.nanoTime()
+        repeat(5) { singleGroupTotals() }
+        val perCallMillis = (System.nanoTime() - start) / 5_000_000
+        assertTrue("expected < 500ms per pass over 200k rows, was ${perCallMillis}ms", perCallMillis < 500)
     }
 }

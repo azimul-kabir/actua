@@ -52,7 +52,13 @@ are excluded, and Income/Expenses rows drill down to the contributing transactio
   unsupported operators fall back to no condition.
 - Uncategorized positive amounts count against expenses (upstream may treat them as income).
 
-Fixtures: `app/src/test/.../data/reports/ReportAggregatorTest.kt`.
+Fixtures: `app/src/test/.../data/reports/ReportAggregatorTest.kt`. A dedicated
+`ReportAggregatorScaleTest` reconciles a synthetic 200k-transaction ledger and asserts
+aggregation stays a single linear pass (timing-bounded), guarding the "large real-world
+budgets" acceptance criterion against an accidental quadratic regression. Compose UI
+coverage (`app/src/androidTest/.../ui/reports/`) covers loading/empty states, saved-dashboard
+navigation/state-restoration, and the drill-down wiring (tapping a report segment/category
+opens the transactions behind it via the shared `TransactionRow`/`loadTransactions` path).
 
 ## Scope decision
 
