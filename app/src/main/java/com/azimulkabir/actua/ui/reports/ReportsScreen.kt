@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +32,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.StarBorder
@@ -56,6 +59,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -459,9 +465,7 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown:
                 ReportWidgetKind.MONTE_CARLO -> {
                     Text("Projected ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
                         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    ComparativeTrendChart(widget.points)
-                    Text("Median and conservative projection", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ComparativeTrendChart(widget.points, "Median", "Conservative", hideDecimals)
                 }
                 ReportWidgetKind.UNSUPPORTED -> Unit
             }
@@ -472,43 +476,78 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown:
 @Composable
 private fun TrendChart(points: List<ReportPoint>, hideDecimals: Boolean = false, isMoney: Boolean = true) {
     val color = MaterialTheme.colorScheme.primary
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
     if (points.isEmpty()) return
     var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
     val active = selected?.takeIf { it in points.indices }
     val minimum = points.minOf { it.primaryCents }
     val maximum = points.maxOf { it.primaryCents }
     val span = (maximum - minimum).coerceAtLeast(1)
+    fun label(cents: Long) = if (isMoney) formatMoneyCents(cents, hideDecimals) else "$cents days"
     active?.let {
         val point = points[it]
-        Text(
-            "${point.period.take(10)} · " + if (isMoney) formatMoneyCents(point.primaryCents, hideDecimals) else "${point.primaryCents} days",
-            style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
-        )
-    }
-    Canvas(
-        Modifier.fillMaxWidth().height(130.dp)
-            .semantics { contentDescription = "Trend chart with ${points.size} points. Touch to read a value." }
-            .pointerInput(points) {
-                fun index(x: Float) = if (points.size <= 1) 0 else
-                    (x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
-                detectTapGestures { selected = index(it.x).takeIf { i -> i != selected } }
-            }
-            .pointerInput(points) {
-                detectHorizontalDragGestures { change, _ ->
-                    selected = if (points.size <= 1) 0 else
-                        (change.position.x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
-                }
-            },
-    ) {
-        val step = if (points.size <= 1) 0f else size.width / (points.size - 1)
-        fun y(value: Long) = size.height - ((value - minimum).toFloat() / span * size.height)
-        points.zipWithNext().forEachIndexed { index, pair ->
-            drawLine(color, Offset(step * index, y(pair.first.primaryCents)),
-                Offset(step * (index + 1), y(pair.second.primaryCents)), strokeWidth = 5f, cap = StrokeCap.Round)
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
+            Text(
+                "${point.period.take(10)} · ${label(point.primaryCents)}",
+                style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            )
         }
-        active?.let {
-            drawLine(color.copy(alpha = 0.4f), Offset(step * it, 0f), Offset(step * it, size.height), strokeWidth = 2f)
-            drawCircle(color, 8.dp.toPx() / 1.5f, Offset(step * it, y(points[it].primaryCents)))
+    }
+    Row(Modifier.fillMaxWidth().height(130.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Canvas(
+            Modifier.weight(1f).fillMaxSize()
+                .semantics { contentDescription = "Trend chart with ${points.size} points. Touch to read a value." }
+                .pointerInput(points) {
+                    fun index(x: Float) = if (points.size <= 1) 0 else
+                        (x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
+                    detectTapGestures { selected = index(it.x).takeIf { i -> i != selected } }
+                }
+                .pointerInput(points) {
+                    detectHorizontalDragGestures { change, _ ->
+                        selected = if (points.size <= 1) 0 else
+                            (change.position.x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
+                    }
+                },
+        ) {
+            val step = if (points.size <= 1) 0f else size.width / (points.size - 1)
+            fun y(value: Long) = size.height - ((value - minimum).toFloat() / span * size.height)
+
+            val dashed = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+            listOf(0f, 0.5f, 1f).forEach { fraction ->
+                val lineY = size.height * fraction
+                drawLine(gridColor, Offset(0f, lineY), Offset(size.width, lineY), strokeWidth = 1.5f, pathEffect = dashed)
+            }
+
+            val linePath = Path().apply {
+                points.forEachIndexed { index, point ->
+                    val x = step * index
+                    val py = y(point.primaryCents)
+                    if (index == 0) moveTo(x, py) else lineTo(x, py)
+                }
+            }
+            val fillPath = Path().apply {
+                addPath(linePath)
+                lineTo(step * (points.size - 1), size.height)
+                lineTo(0f, size.height)
+                close()
+            }
+            drawPath(fillPath, Brush.verticalGradient(listOf(color.copy(alpha = 0.35f), color.copy(alpha = 0f))))
+            drawPath(linePath, color, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5f, cap = StrokeCap.Round))
+
+            active?.let {
+                drawLine(color.copy(alpha = 0.4f), Offset(step * it, 0f), Offset(step * it, size.height), strokeWidth = 2f)
+                drawCircle(color, 8.dp.toPx() / 1.5f, Offset(step * it, y(points[it].primaryCents)))
+            }
+        }
+        Column(Modifier.fillMaxHeight().width(72.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            listOf(maximum, minimum + span / 2, minimum).forEach { value ->
+                Text(
+                    label(value), style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -529,22 +568,72 @@ private fun PointLabels(points: List<ReportPoint>, hideDecimals: Boolean) {
 @Composable
 private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean) {
     if (points.isEmpty()) { Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant); return }
+    val incomeColor = MaterialTheme.colorScheme.primary
+    val expenseColor = MaterialTheme.colorScheme.error
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
+    val active = selected?.takeIf { it in points.indices }
     val maximum = points.maxOf { max(it.primaryCents, it.secondaryCents) }.coerceAtLeast(1)
-    points.forEach { point ->
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(Modifier.fillMaxWidth()) {
-                Text(point.period.take(7), style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(72.dp))
-                Text("In ${formatMoneyCents(point.primaryCents, hideDecimals)}", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-                Text("Out ${formatMoneyCents(point.secondaryCents, hideDecimals)}", style = MaterialTheme.typography.bodySmall)
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Spacer(Modifier.weight(point.primaryCents.toFloat().coerceAtLeast(1f) / maximum).height(6.dp)
-                    .background(MaterialTheme.colorScheme.primary, PillShape))
-                Spacer(Modifier.weight(point.secondaryCents.toFloat().coerceAtLeast(1f) / maximum).height(6.dp)
-                    .background(MaterialTheme.colorScheme.tertiary, PillShape))
+
+    active?.let {
+        val point = points[it]
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
+            Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                Text(point.period.take(7), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Text("Income ${formatMoneyCents(point.primaryCents, hideDecimals)} · Expense ${formatMoneyCents(point.secondaryCents, hideDecimals)} · " +
+                    "Net ${formatMoneyCents(point.primaryCents - point.secondaryCents, hideDecimals)}",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+    }
+
+    Canvas(
+        Modifier.fillMaxWidth().height(140.dp)
+            .semantics { contentDescription = "Cash flow chart with ${points.size} periods. Tap a period to read income and expense." }
+            .pointerInput(points) {
+                detectTapGestures { tap ->
+                    val i = (tap.x / size.width * points.size).toInt().coerceIn(0, points.size - 1)
+                    selected = i.takeIf { it != selected }
+                }
+            },
+    ) {
+        val dashed = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+        listOf(0f, 0.5f, 1f).forEach { fraction ->
+            val lineY = size.height * fraction
+            drawLine(gridColor, Offset(0f, lineY), Offset(size.width, lineY), strokeWidth = 1.5f, pathEffect = dashed)
+        }
+        val slot = size.width / points.size
+        val barWidth = (slot * 0.32f).coerceAtLeast(1f)
+        points.forEachIndexed { i, p ->
+            val alpha = if (active == null || active == i) 1f else 0.45f
+            val incomeHeight = p.primaryCents.toFloat() / maximum * size.height
+            val expenseHeight = p.secondaryCents.toFloat() / maximum * size.height
+            val groupCenter = slot * i + slot / 2
+            drawRect(incomeColor.copy(alpha = alpha),
+                Offset(groupCenter - barWidth - 2f, size.height - incomeHeight),
+                androidx.compose.ui.geometry.Size(barWidth, incomeHeight))
+            drawRect(expenseColor.copy(alpha = alpha),
+                Offset(groupCenter + 2f, size.height - expenseHeight),
+                androidx.compose.ui.geometry.Size(barWidth, expenseHeight))
+        }
+    }
+    Row(Modifier.fillMaxWidth()) {
+        Text(points.first().period.take(7), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(points.last().period.take(7), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        LegendDot(incomeColor, "Income")
+        LegendDot(expenseColor, "Expense")
+    }
+}
+
+@Composable
+private fun LegendDot(color: androidx.compose.ui.graphics.Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(Modifier.size(8.dp).background(color, androidx.compose.foundation.shape.CircleShape))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -729,28 +818,56 @@ private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
 
 @Composable
 private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean) {
-    val dated = widget.points.mapNotNull { point ->
-        runCatching { LocalDate.parse(point.period) }.getOrNull()?.let { it to point }
+    val dated = remember(widget.points) {
+        widget.points.mapNotNull { point -> runCatching { LocalDate.parse(point.period) }.getOrNull()?.let { it to point } }
     }
     if (dated.isEmpty()) {
         Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
-    val month = YearMonth.from(dated.last().first)
-    Row(Modifier.fillMaxWidth()) {
-        Text(month.month.name.lowercase().replaceFirstChar(Char::uppercase) + " ${month.year}",
-            fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-        Text("▲ ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}", color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.width(8.dp))
-        Text("▼ ${formatMoneyCents(widget.comparisonCents ?: 0, hideDecimals)}", color = MaterialTheme.colorScheme.error)
+    val months = remember(dated) { dated.map { YearMonth.from(it.first) }.distinct().sorted() }
+    var monthIndex by rememberSaveable(months) { mutableStateOf(months.lastIndex) }
+    val month = months[monthIndex.coerceIn(months.indices)]
+    val values = remember(dated, month) {
+        dated.filter { YearMonth.from(it.first) == month }.associate { it.first.dayOfMonth to it.second }
     }
-    val values = dated.filter { YearMonth.from(it.first) == month }.associate { it.first.dayOfMonth to it.second }
+    val monthIncome = values.values.sumOf { it.primaryCents }
+    val monthExpense = values.values.sumOf { it.secondaryCents }
+    var selectedDay by rememberSaveable(month) { mutableStateOf<Int?>(null) }
+
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { monthIndex--; selectedDay = null }, enabled = monthIndex > 0) {
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = "Previous month")
+        }
+        Text(month.month.name.lowercase().replaceFirstChar(Char::uppercase) + " ${month.year}",
+            fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        IconButton(onClick = { monthIndex++; selectedDay = null }, enabled = monthIndex < months.lastIndex) {
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = "Next month")
+        }
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        Text("▲ ${formatMoneyCents(monthIncome, hideDecimals)}", color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.width(12.dp))
+        Text("▼ ${formatMoneyCents(monthExpense, hideDecimals)}", color = MaterialTheme.colorScheme.error)
+    }
+    selectedDay?.let { day ->
+        val point = values[day]
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
+            Text(
+                "${month.month.name.lowercase().replaceFirstChar(Char::uppercase)} $day · " +
+                    "In ${formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)} · Out ${formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)}",
+                style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            )
+        }
+    }
     Row(Modifier.fillMaxWidth()) {
         listOf("S", "M", "T", "W", "T", "F", "S").forEach { day ->
             Text(day, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
+    val dayMax = values.values.maxOfOrNull { max(it.primaryCents, it.secondaryCents) }?.coerceAtLeast(1) ?: 1
     val leading = month.atDay(1).dayOfWeek.value % 7
     val cells = List(leading) { null } + (1..month.lengthOfMonth()).map { it }
     cells.chunked(7).forEach { week ->
@@ -759,16 +876,24 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean) {
                 val point = day?.let(values::get)
                 Column(
                     Modifier.weight(1f).height(38.dp)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.small)
+                        .background(
+                            if (day != null && selectedDay == day) MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            MaterialTheme.shapes.small,
+                        )
+                        .then(if (day != null) Modifier.clickable { selectedDay = day.takeIf { it != selectedDay } } else Modifier)
                         .padding(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(day?.toString().orEmpty(), style = MaterialTheme.typography.labelSmall)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        if ((point?.primaryCents ?: 0) > 0) Spacer(Modifier.weight(1f).height(3.dp)
+                        val incomeFraction = ((point?.primaryCents ?: 0).toFloat() / dayMax).coerceIn(0f, 1f)
+                        val expenseFraction = ((point?.secondaryCents ?: 0).toFloat() / dayMax).coerceIn(0f, 1f)
+                        if (incomeFraction > 0f) Spacer(Modifier.weight(incomeFraction).height(3.dp)
                             .background(MaterialTheme.colorScheme.primary, PillShape))
-                        if ((point?.secondaryCents ?: 0) > 0) Spacer(Modifier.weight(1f).height(3.dp)
+                        if (expenseFraction > 0f) Spacer(Modifier.weight(expenseFraction).height(3.dp)
                             .background(MaterialTheme.colorScheme.error, PillShape))
+                        if (incomeFraction == 0f && expenseFraction == 0f) Spacer(Modifier.weight(1f))
                     }
                 }
             }
@@ -784,7 +909,7 @@ private fun Crossover(widget: ReportWidget, hideDecimals: Boolean) {
             style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
         Text("Years to retire", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-    ComparativeTrendChart(widget.points)
+    ComparativeTrendChart(widget.points, "Investment income", "Monthly expenses", hideDecimals)
     Text("Investment income vs ${formatMoneyCents(widget.comparisonCents ?: 0, hideDecimals)} monthly expenses",
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
@@ -792,11 +917,7 @@ private fun Crossover(widget: ReportWidget, hideDecimals: Boolean) {
 @Composable
 private fun ComparisonSeries(points: List<ReportPoint>, primary: String, secondary: String, hideDecimals: Boolean) {
     if (points.isEmpty()) { Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant); return }
-    ComparativeTrendChart(points)
-    Row(Modifier.fillMaxWidth()) {
-        Text("● $primary", color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-        Text("● $secondary", color = MaterialTheme.colorScheme.tertiary)
-    }
+    ComparativeTrendChart(points, primary, secondary, hideDecimals)
     val last = points.last()
     Text("${last.period.take(7)} · ${formatMoneyCents(last.primaryCents, hideDecimals)} / ${formatMoneyCents(last.secondaryCents, hideDecimals)}",
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -821,22 +942,71 @@ private fun Sankey(widget: ReportWidget, hideDecimals: Boolean) {
 }
 
 @Composable
-private fun ComparativeTrendChart(points: List<ReportPoint>) {
+private fun ComparativeTrendChart(
+    points: List<ReportPoint>,
+    primaryLabel: String = "Primary",
+    secondaryLabel: String = "Secondary",
+    hideDecimals: Boolean = false,
+) {
     if (points.isEmpty()) return
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.tertiary
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val scrubColor = MaterialTheme.colorScheme.outline
+    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
+    val active = selected?.takeIf { it in points.indices }
     val minimum = points.minOf { minOf(it.primaryCents, it.secondaryCents) }
     val maximum = points.maxOf { maxOf(it.primaryCents, it.secondaryCents) }
     val span = (maximum - minimum).coerceAtLeast(1)
-    Canvas(Modifier.fillMaxWidth().height(140.dp)) {
+
+    active?.let {
+        val point = points[it]
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
+            Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                Text(point.period.take(10), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Text("$primaryLabel ${formatMoneyCents(point.primaryCents, hideDecimals)} · " +
+                    "$secondaryLabel ${formatMoneyCents(point.secondaryCents, hideDecimals)}",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+    Canvas(
+        Modifier.fillMaxWidth().height(140.dp)
+            .semantics { contentDescription = "Comparison chart with ${points.size} points. Touch to read $primaryLabel and $secondaryLabel." }
+            .pointerInput(points) {
+                fun index(x: Float) = if (points.size <= 1) 0 else
+                    (x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
+                detectTapGestures { selected = index(it.x).takeIf { i -> i != selected } }
+            }
+            .pointerInput(points) {
+                detectHorizontalDragGestures { change, _ ->
+                    selected = if (points.size <= 1) 0 else
+                        (change.position.x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
+                }
+            },
+    ) {
         val step = if (points.size <= 1) 0f else size.width / (points.size - 1)
         fun y(value: Long) = size.height - ((value - minimum).toFloat() / span * size.height)
+        val dashed = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+        listOf(0f, 0.5f, 1f).forEach { fraction ->
+            val lineY = size.height * fraction
+            drawLine(gridColor, Offset(0f, lineY), Offset(size.width, lineY), strokeWidth = 1.5f, pathEffect = dashed)
+        }
         points.zipWithNext().forEachIndexed { index, pair ->
             drawLine(primary, Offset(step * index, y(pair.first.primaryCents)),
                 Offset(step * (index + 1), y(pair.second.primaryCents)), strokeWidth = 5f, cap = StrokeCap.Round)
             drawLine(secondary, Offset(step * index, y(pair.first.secondaryCents)),
                 Offset(step * (index + 1), y(pair.second.secondaryCents)), strokeWidth = 5f, cap = StrokeCap.Round)
         }
+        active?.let {
+            drawLine(scrubColor.copy(alpha = 0.4f), Offset(step * it, 0f), Offset(step * it, size.height), strokeWidth = 2f)
+            drawCircle(primary, 7.dp.toPx() / 1.5f, Offset(step * it, y(points[it].primaryCents)))
+            drawCircle(secondary, 7.dp.toPx() / 1.5f, Offset(step * it, y(points[it].secondaryCents)))
+        }
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        LegendDot(primary, primaryLabel)
+        LegendDot(secondary, secondaryLabel)
     }
 }
 
