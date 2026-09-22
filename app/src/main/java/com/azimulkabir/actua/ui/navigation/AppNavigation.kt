@@ -148,6 +148,7 @@ import com.azimulkabir.actua.ui.components.NumberDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.TransactionImpactCue
 import com.azimulkabir.actua.ui.components.TransactionImpactPopup
+import com.azimulkabir.actua.ui.components.findTagOccurrences
 import com.azimulkabir.actua.AppLaunchRequest
 import com.azimulkabir.actua.SHARED_IMPORT_ACTION
 import com.azimulkabir.actua.widget.WidgetActions
@@ -481,6 +482,12 @@ fun AppNavigation(
                 if (it.category.isNotBlank() && it.category != "Uncategorized") add(it.category)
             }
         }
+    }
+
+    fun withTagAppended(transaction: Transaction, tag: String): Transaction? {
+        if (findTagOccurrences(transaction.notes).any { it.name == tag }) return null
+        val notes = if (transaction.notes.isBlank()) "#$tag" else "${transaction.notes} #$tag"
+        return transaction.copy(notes = notes)
     }
 
     fun categoryAvailableCents(names: Set<String>): Map<String, Long> {
@@ -1299,6 +1306,31 @@ fun AppNavigation(
                     scheduleReturnsToTransactions = true
                     scheduleReturnsToTransactionsTab = false
                     detail = DetailDestination.EditSchedule
+                },
+                categoryOptions = categoryNames,
+                onCategorizeMultiple = { transactionsToCategorize, category ->
+                    val updated = transactionsToCategorize.map { it.copy(category = category, categoryIsExplicit = true) }
+                    val categories = (transactionsToCategorize + updated).flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
+                    mutateWithImpactCue("Categorizing transactions", categories) {
+                        updated.forEach { repository.saveTransaction(it) }
+                        updated.isNotEmpty()
+                    }
+                },
+                accountOptions = accounts.filterNot { it.closed }.map { it.name },
+                onMoveMultiple = { transactionsToMove, accountName ->
+                    val updated = transactionsToMove.map { it.copy(account = accountName) }
+                    val categories = transactionsToMove.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
+                    mutateWithImpactCue("Moving transactions", categories) {
+                        updated.forEach { repository.saveTransaction(it) }
+                        updated.isNotEmpty()
+                    }
+                },
+                onLabelMultiple = { transactionsToLabel, tag ->
+                    val updated = transactionsToLabel.mapNotNull { withTagAppended(it, tag) }
+                    mutate("Labeling transactions") {
+                        updated.forEach { repository.saveTransaction(it) }
+                        true
+                    }
                 },
                 linkableSchedules = linkableSchedules,
                 account = accounts.firstOrNull { it.name == transactionAccount },
@@ -2332,6 +2364,31 @@ fun AppNavigation(
                         scheduleReturnsToTransactions = false
                         scheduleReturnsToTransactionsTab = true
                         detail = DetailDestination.EditSchedule
+                    },
+                    categoryOptions = categoryNames,
+                    onCategorizeMultiple = { transactionsToCategorize, category ->
+                        val updated = transactionsToCategorize.map { it.copy(category = category, categoryIsExplicit = true) }
+                        val categories = (transactionsToCategorize + updated).flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
+                        mutateWithImpactCue("Categorizing transactions", categories) {
+                            updated.forEach { repository.saveTransaction(it) }
+                            updated.isNotEmpty()
+                        }
+                    },
+                    accountOptions = accounts.filterNot { it.closed }.map { it.name },
+                    onMoveMultiple = { transactionsToMove, accountName ->
+                        val updated = transactionsToMove.map { it.copy(account = accountName) }
+                        val categories = transactionsToMove.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
+                        mutateWithImpactCue("Moving transactions", categories) {
+                            updated.forEach { repository.saveTransaction(it) }
+                            updated.isNotEmpty()
+                        }
+                    },
+                    onLabelMultiple = { transactionsToLabel, tag ->
+                        val updated = transactionsToLabel.mapNotNull { withTagAppended(it, tag) }
+                        mutate("Labeling transactions") {
+                            updated.forEach { repository.saveTransaction(it) }
+                            true
+                        }
                     },
                     linkableSchedules = linkableSchedules,
                     showBackButton = false,
