@@ -143,6 +143,8 @@ import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.DateDisplay
 import com.azimulkabir.actua.ui.components.NumberDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.components.TransactionImpactCue
+import com.azimulkabir.actua.ui.components.TransactionImpactPopup
 import com.azimulkabir.actua.AppLaunchRequest
 import com.azimulkabir.actua.SHARED_IMPORT_ACTION
 import com.azimulkabir.actua.widget.WidgetActions
@@ -440,6 +442,7 @@ fun AppNavigation(
     NumberDisplay.format = numberFormat
     val snackbarHostState = remember { SnackbarHostState() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var transactionImpactCue by remember { mutableStateOf<TransactionImpactCue?>(null) }
 
     fun mutate(label: String, action: () -> Boolean): Boolean = runCatching(action).fold(
         onSuccess = { changed ->
@@ -1242,7 +1245,13 @@ fun AppNavigation(
                 },
                 onSave = { savedTransaction ->
                     val wasEditing = editingTransaction != null
+                    val showsImpactCue = !wasEditing && savedTransaction.type != com.azimulkabir.actua.model.Type.TRANSFER
                     coroutineScope.launch {
+                        val accountBalanceBeforeCents = if (showsImpactCue) {
+                            withContext(Dispatchers.IO) {
+                                repository.accounts().firstOrNull { it.name == savedTransaction.account }?.balanceCents
+                            }
+                        } else null
                         // The local CRDT write is disk I/O; keep it off the main thread so the
                         // editor dismisses as soon as the transaction is durably saved locally,
                         // without waiting on anything network-related (sync is scheduled
@@ -1269,6 +1278,19 @@ fun AppNavigation(
                                 }
                                 balance?.let {
                                     errorMessage = "${savedTransaction.category} available: ${formatMoneyCents(it.toLong(), hideDecimalPlaces)}"
+                                }
+                            }
+                            if (showsImpactCue && accountBalanceBeforeCents != null) {
+                                val accountBalanceAfterCents = withContext(Dispatchers.IO) {
+                                    repository.accounts().firstOrNull { it.name == savedTransaction.account }?.balanceCents
+                                }
+                                accountBalanceAfterCents?.let {
+                                    transactionImpactCue = TransactionImpactCue(
+                                        accountName = savedTransaction.account,
+                                        balanceBeforeCents = accountBalanceBeforeCents,
+                                        balanceAfterCents = it,
+                                        isExpense = savedTransaction.type == com.azimulkabir.actua.model.Type.EXPENSE,
+                                    )
                                 }
                             }
                             WidgetUpdater.requestAll(context)
@@ -2313,6 +2335,12 @@ fun AppNavigation(
         }
     }
     if (budgetReplacementInProgress) BudgetSwitchOverlay()
+    TransactionImpactPopup(
+        cue = transactionImpactCue,
+        hideDecimalPlaces = hideDecimalPlaces,
+        onDismiss = { transactionImpactCue = null },
+        modifier = Modifier.fillMaxSize(),
+    )
     }
 }
 
