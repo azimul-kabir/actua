@@ -660,9 +660,10 @@ private fun Spending(widget: ReportWidget, hideDecimals: Boolean) {
         style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
     )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Spacer(Modifier.weight((current.toFloat() / maximum).coerceIn(0.02f, 1f)).height(9.dp)
+        val currentFraction = (current.toFloat() / maximum).coerceIn(0.02f, 0.98f)
+        Spacer(Modifier.weight(currentFraction).height(9.dp)
             .background(MaterialTheme.colorScheme.primary, PillShape))
-        Spacer(Modifier.weight((1f - current.toFloat() / maximum).coerceIn(0f, 0.98f)).height(9.dp)
+        Spacer(Modifier.weight(1f - currentFraction).height(9.dp)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh, PillShape))
     }
 }
