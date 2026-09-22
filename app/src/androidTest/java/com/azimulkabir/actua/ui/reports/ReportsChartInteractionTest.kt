@@ -1,0 +1,76 @@
+package com.azimulkabir.actua.ui.reports
+
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.azimulkabir.actua.model.ReportDashboardPage
+import com.azimulkabir.actua.model.ReportPoint
+import com.azimulkabir.actua.model.ReportSnapshot
+import com.azimulkabir.actua.model.ReportWidget
+import com.azimulkabir.actua.model.ReportWidgetKind
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * Issue #496 (Actual PWA parity): the Cash Flow and Calendar dashboard widgets used to be static
+ * text/bars with no way to read an exact value, unlike the Actual PWA's tap-for-detail charts.
+ * This exercises the new tap-to-reveal-a-tooltip interaction added for both.
+ */
+@RunWith(AndroidJUnit4::class)
+class ReportsChartInteractionTest {
+    @get:Rule val compose = createComposeRule()
+
+    @Test fun tappingTheCashFlowChartRevealsThePeriodTooltip() {
+        val widget = ReportWidget(
+            id = "cash-flow",
+            kind = ReportWidgetKind.CASH_FLOW,
+            name = "Cash Flow",
+            points = listOf(ReportPoint("2026-08", 150_000_00, 90_000_00)),
+        )
+        val page = ReportDashboardPage("main", "Main", listOf(widget))
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(page)),
+                    hideDecimalPlaces = false,
+                )
+            }
+        }
+
+        compose.onNodeWithText("2026-08", substring = true).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Cash flow chart with 1 periods. Tap a period to read income and expense.")
+            .performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("2026-08", substring = true).assertExists()
+    }
+
+    @Test fun tappingACalendarDayRevealsItsIncomeAndExpense() {
+        val widget = ReportWidget(
+            id = "calendar",
+            kind = ReportWidgetKind.CALENDAR,
+            name = "Calendar",
+            points = listOf(ReportPoint("2026-08-15", 5_000_00, 1_200_00)),
+        )
+        val page = ReportDashboardPage("main", "Main", listOf(widget))
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(page)),
+                    hideDecimalPlaces = false,
+                )
+            }
+        }
+
+        compose.onNodeWithText("15").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Out", substring = true).assertExists()
+    }
+}
