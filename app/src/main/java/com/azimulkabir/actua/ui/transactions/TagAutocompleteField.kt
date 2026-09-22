@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.transactions
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,12 +27,21 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import com.azimulkabir.actua.data.budget.model.ActualTag
+import com.azimulkabir.actua.ui.components.findTagOccurrences
+import com.azimulkabir.actua.ui.components.parseTagColor
+import com.azimulkabir.actua.ui.components.tagChipForeground
 
 @Composable
 internal fun TagAutocompleteField(
@@ -55,6 +65,9 @@ internal fun TagAutocompleteField(
     val matches = token?.let { matchingTags(tags, it.name).take(6) }.orEmpty()
     val showCreate = token?.let { canCreateTag(it.name, tags) } == true
     val expanded = focused && token != null && tokenKey != dismissedToken && (matches.isNotEmpty() || showCreate)
+    val tagColors = remember(tags) { tags.mapNotNull { tag -> tag.color?.let { tag.tag to it } }.toMap() }
+    val darkTheme = isSystemInDarkTheme()
+    val tagHighlight = remember(tagColors, darkTheme) { tagHighlightTransformation(tagColors, darkTheme) }
 
     Column(modifier) {
         OutlinedTextField(
@@ -62,6 +75,7 @@ internal fun TagAutocompleteField(
             onValueChange = { next -> fieldValue = next; onValueChange(next.text) },
             label = { Text(label) },
             singleLine = true,
+            visualTransformation = tagHighlight,
             trailingIcon = {
                 IconButton(onClick = {
                     val cursor = fieldValue.selection.end
@@ -115,6 +129,27 @@ internal fun TagAutocompleteField(
             })
         }
     }
+}
+
+/** Highlights recognized `#tag` tokens in-place while typing, matching [com.azimulkabir.actua.ui.components.TagNoteText]'s post-save styling. */
+internal fun tagHighlightTransformation(
+    tagColors: Map<String, String>,
+    darkTheme: Boolean,
+): VisualTransformation = VisualTransformation { text ->
+    val occurrences = findTagOccurrences(text.text)
+    if (occurrences.isEmpty()) return@VisualTransformation TransformedText(text, OffsetMapping.Identity)
+    val annotated = buildAnnotatedString {
+        append(text.text)
+        occurrences.forEach { occurrence ->
+            val color = parseTagColor(tagColors[occurrence.name]) ?: return@forEach
+            addStyle(
+                SpanStyle(color = tagChipForeground(color, darkTheme), fontWeight = FontWeight.SemiBold),
+                occurrence.start,
+                occurrence.endExclusive,
+            )
+        }
+    }
+    TransformedText(annotated, OffsetMapping.Identity)
 }
 
 private fun parseTagSuggestionColor(value: String?): Color = runCatching {
