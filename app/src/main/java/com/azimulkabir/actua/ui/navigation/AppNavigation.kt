@@ -471,7 +471,34 @@ fun AppNavigation(
     NumberDisplay.format = numberFormat
     val snackbarHostState = remember { SnackbarHostState() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var transactionImpactCue by remember { mutableStateOf<TransactionImpactCue?>(null) }
+    var transactionImpactCues by remember { mutableStateOf<List<TransactionImpactCue>>(emptyList()) }
+
+    fun budgetCategoriesOf(transaction: Transaction): Set<String> {
+        if (transaction.type == com.azimulkabir.actua.model.Type.TRANSFER) return emptySet()
+        return buildSet {
+            if (transaction.category.isNotBlank() && transaction.category != "Uncategorized") add(transaction.category)
+            transaction.splits.forEach {
+                if (it.category.isNotBlank() && it.category != "Uncategorized") add(it.category)
+            }
+        }
+    }
+
+    fun categoryAvailableCents(names: Set<String>): Map<String, Long> {
+        if (names.isEmpty()) return emptyMap()
+        return repository.budgetGroups()
+            .asSequence()
+            .flatMap { it.categories.asSequence() }
+            .filter { it.name in names }
+            .associate { it.name to it.balanceCents }
+    }
+
+    fun impactCues(before: Map<String, Long>, after: Map<String, Long>): List<TransactionImpactCue> =
+        (before.keys + after.keys).distinct().mapNotNull { name ->
+            val balanceBefore = before[name] ?: return@mapNotNull null
+            val balanceAfter = after[name] ?: return@mapNotNull null
+            if (balanceBefore == balanceAfter) null
+            else TransactionImpactCue(name, balanceBeforeCents = balanceBefore, balanceAfterCents = balanceAfter)
+        }
 
     fun mutate(label: String, action: () -> Boolean): Boolean = runCatching(action).fold(
         onSuccess = { changed ->
@@ -483,6 +510,14 @@ fun AppNavigation(
             false
         },
     )
+
+    /** Like [mutate], but also shows [transactionImpactCues] for every budget category [categories] touches. */
+    fun mutateWithImpactCue(label: String, categories: Set<String>, action: () -> Boolean): Boolean {
+        val before = categoryAvailableCents(categories)
+        val changed = mutate(label, action)
+        if (changed) transactionImpactCues = impactCues(before, categoryAvailableCents(categories))
+        return changed
+    }
 
     fun refreshTransactions() {
         if (transactionsRefreshing) return
@@ -685,6 +720,29 @@ fun AppNavigation(
                 onSuccess = { changed ->
                     if (changed) {
                         dataVersion += 1
+                        onChanged()
+                    } else {
+                        errorMessage = "$label could not be completed."
+                    }
+                },
+                onFailure = { error ->
+                    errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
+                },
+            )
+        }
+    }
+
+    /** Like [mutateAsync], but also shows [transactionImpactCues] for every budget category [categories] touches. */
+    fun mutateAsyncWithImpactCue(label: String, categories: Set<String>, action: () -> Boolean, onChanged: () -> Unit) {
+        coroutineScope.launch {
+            val before = withContext(Dispatchers.IO) { categoryAvailableCents(categories) }
+            val result = withContext(Dispatchers.IO) { runCatching(action) }
+            result.fold(
+                onSuccess = { changed ->
+                    if (changed) {
+                        dataVersion += 1
+                        val after = withContext(Dispatchers.IO) { categoryAvailableCents(categories) }
+                        transactionImpactCues = impactCues(before, after)
                         onChanged()
                     } else {
                         errorMessage = "$label could not be completed."
@@ -1201,20 +1259,28 @@ fun AppNavigation(
                     }
                 },
                 onDelete = { transaction ->
-                    mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
+                    mutateWithImpactCue("Deleting transaction", budgetCategoriesOf(transaction)) {
+                        repository.deleteTransaction(transaction.id)
+                    }
                 },
                 onDeleteMultiple = { transactionsToDelete ->
-                    mutate("Deleting transactions") {
+                    val categories = transactionsToDelete.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
+                    mutateWithImpactCue("Deleting transactions", categories) {
                         repository.deleteTransactions(transactionsToDelete.map { it.id }) > 0
                     }
                 },
                 onDuplicate = { transaction ->
-                    mutate("Duplicating transaction") { repository.saveTransaction(transaction.asDuplicate()); true }
+                    val duplicate = transaction.asDuplicate()
+                    mutateWithImpactCue("Duplicating transaction", budgetCategoriesOf(duplicate)) {
+                        repository.saveTransaction(duplicate); true
+                    }
                 },
                 onDuplicateMultiple = { transactionsToDuplicate ->
-                    mutate("Duplicating transactions") {
-                        transactionsToDuplicate.forEach { repository.saveTransaction(it.asDuplicate()) }
-                        transactionsToDuplicate.isNotEmpty()
+                    val duplicates = transactionsToDuplicate.map { it.asDuplicate() }
+                    val categories = duplicates.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
+                    mutateWithImpactCue("Duplicating transactions", categories) {
+                        duplicates.forEach { repository.saveTransaction(it) }
+                        duplicates.isNotEmpty()
                     }
                 },
                 onLinkSchedule = { transactionsToLink, scheduleId ->
@@ -1311,13 +1377,10 @@ fun AppNavigation(
                 },
                 onSave = { savedTransaction ->
                     val wasEditing = editingTransaction != null
-                    val showsImpactCue = !wasEditing && savedTransaction.type != com.azimulkabir.actua.model.Type.TRANSFER
+                    val impactCategories = budgetCategoriesOf(savedTransaction) +
+                        (editingTransaction?.let { budgetCategoriesOf(it) } ?: emptySet())
                     coroutineScope.launch {
-                        val accountBalanceBeforeCents = if (showsImpactCue) {
-                            withContext(Dispatchers.IO) {
-                                repository.accounts().firstOrNull { it.name == savedTransaction.account }?.balanceCents
-                            }
-                        } else null
+                        val categoryBalancesBefore = withContext(Dispatchers.IO) { categoryAvailableCents(impactCategories) }
                         // The local CRDT write is disk I/O; keep it off the main thread so the
                         // editor dismisses as soon as the transaction is durably saved locally,
                         // without waiting on anything network-related (sync is scheduled
@@ -1330,34 +1393,9 @@ fun AppNavigation(
                         }
                         if (result.isSuccess) {
                             dataVersion += 1
-                            if (!wasEditing &&
-                                savedTransaction.type != com.azimulkabir.actua.model.Type.TRANSFER &&
-                                savedTransaction.category.isNotBlank() &&
-                                savedTransaction.category != "Uncategorized"
-                            ) {
-                                val balance = withContext(Dispatchers.IO) {
-                                    repository.budgetGroups()
-                                        .asSequence()
-                                        .flatMap { it.categories.asSequence() }
-                                        .firstOrNull { it.name == savedTransaction.category }
-                                        ?.available
-                                }
-                                balance?.let {
-                                    errorMessage = "${savedTransaction.category} available: ${formatMoneyCents(it.toLong(), hideDecimalPlaces)}"
-                                }
-                            }
-                            if (showsImpactCue && accountBalanceBeforeCents != null) {
-                                val accountBalanceAfterCents = withContext(Dispatchers.IO) {
-                                    repository.accounts().firstOrNull { it.name == savedTransaction.account }?.balanceCents
-                                }
-                                accountBalanceAfterCents?.let {
-                                    transactionImpactCue = TransactionImpactCue(
-                                        accountName = savedTransaction.account,
-                                        balanceBeforeCents = accountBalanceBeforeCents,
-                                        balanceAfterCents = it,
-                                        isExpense = savedTransaction.type == com.azimulkabir.actua.model.Type.EXPENSE,
-                                    )
-                                }
+                            if (impactCategories.isNotEmpty()) {
+                                val categoryBalancesAfter = withContext(Dispatchers.IO) { categoryAvailableCents(impactCategories) }
+                                transactionImpactCues = impactCues(categoryBalancesBefore, categoryBalancesAfter)
                             }
                             WidgetUpdater.requestAll(context)
                             if (!wasEditing &&
@@ -1398,7 +1436,11 @@ fun AppNavigation(
                     }
                 },
                 onDelete = { transaction ->
-                    mutateAsync("Deleting transaction", { repository.deleteTransaction(transaction.id) }) {
+                    mutateAsyncWithImpactCue(
+                        "Deleting transaction",
+                        budgetCategoriesOf(transaction),
+                        { repository.deleteTransaction(transaction.id) },
+                    ) {
                         editingTransaction = null
                         detail = when {
                             editorReturnsToStatementDetail -> {
@@ -1546,7 +1588,9 @@ fun AppNavigation(
                     detail = DetailDestination.EditTransaction
                 },
                 onTransactionDelete = { transaction ->
-                    mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
+                    mutateWithImpactCue("Deleting transaction", budgetCategoriesOf(transaction)) {
+                        repository.deleteTransaction(transaction.id)
+                    }
                 },
                 onTransactionClearedChange = { transaction, cleared ->
                     mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
@@ -2146,7 +2190,9 @@ fun AppNavigation(
                         detail = DetailDestination.EditTransaction
                     },
                     onDeleteTransaction = { transaction ->
-                        mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
+                        mutateWithImpactCue("Deleting transaction", budgetCategoriesOf(transaction)) {
+                            repository.deleteTransaction(transaction.id)
+                        }
                     },
                     requestedCategoryDetails = reopenBudgetCategory,
                     onCategoryDetailsChange = { category ->
@@ -2246,20 +2292,28 @@ fun AppNavigation(
                         }
                     },
                     onDelete = { transaction ->
-                        mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
+                        mutateWithImpactCue("Deleting transaction", budgetCategoriesOf(transaction)) {
+                            repository.deleteTransaction(transaction.id)
+                        }
                     },
                     onDeleteMultiple = { transactionsToDelete ->
-                        mutate("Deleting transactions") {
+                        val categories = transactionsToDelete.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
+                        mutateWithImpactCue("Deleting transactions", categories) {
                             repository.deleteTransactions(transactionsToDelete.map { it.id }) > 0
                         }
                     },
                     onDuplicate = { transaction ->
-                        mutate("Duplicating transaction") { repository.saveTransaction(transaction.asDuplicate()); true }
+                        val duplicate = transaction.asDuplicate()
+                        mutateWithImpactCue("Duplicating transaction", budgetCategoriesOf(duplicate)) {
+                            repository.saveTransaction(duplicate); true
+                        }
                     },
                     onDuplicateMultiple = { transactionsToDuplicate ->
-                        mutate("Duplicating transactions") {
-                            transactionsToDuplicate.forEach { repository.saveTransaction(it.asDuplicate()) }
-                            transactionsToDuplicate.isNotEmpty()
+                        val duplicates = transactionsToDuplicate.map { it.asDuplicate() }
+                        val categories = duplicates.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
+                        mutateWithImpactCue("Duplicating transactions", categories) {
+                            duplicates.forEach { repository.saveTransaction(it) }
+                            duplicates.isNotEmpty()
                         }
                     },
                     onLinkSchedule = { transactionsToLink, scheduleId ->
@@ -2434,9 +2488,9 @@ fun AppNavigation(
     }
     if (budgetReplacementInProgress) BudgetSwitchOverlay()
     TransactionImpactPopup(
-        cue = transactionImpactCue,
+        cues = transactionImpactCues,
         hideDecimalPlaces = hideDecimalPlaces,
-        onDismiss = { transactionImpactCue = null },
+        onDismiss = { transactionImpactCues = emptyList() },
         modifier = Modifier.fillMaxSize(),
     )
     }

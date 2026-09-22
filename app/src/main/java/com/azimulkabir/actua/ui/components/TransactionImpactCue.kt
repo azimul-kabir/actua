@@ -32,45 +32,55 @@ import com.azimulkabir.actua.ui.theme.success
 import kotlinx.coroutines.delay
 
 /** How long a [TransactionImpactPopup] stays up before it auto-dismisses. */
-private const val AUTO_DISMISS_MILLIS = 2600L
+private const val AUTO_DISMISS_MILLIS = 4200L
 
 /**
- * A snapshot of how a just-saved transaction moved an account's balance, used to
- * drive [TransactionImpactPopup]. `null` means nothing to show.
+ * A snapshot of how saving, editing, deleting or duplicating a transaction moved one budget
+ * category's available balance, used to drive [TransactionImpactPopup]. An empty list means
+ * nothing to show; more than one entry shows up when the change touches more than one category
+ * (a split transaction, or an edit that moves the transaction to a different category).
  */
 data class TransactionImpactCue(
-    val accountName: String,
+    val categoryName: String,
     val balanceBeforeCents: Long,
     val balanceAfterCents: Long,
-    val isExpense: Boolean,
-)
+) {
+    val deltaCents: Long get() = balanceAfterCents - balanceBeforeCents
+    val isExpense: Boolean get() = deltaCents < 0
+}
 
 /**
  * A polished, auto-dismissing popup that slides up from the bottom of the screen to show
- * the before/after balance impact of a transaction, then slides back down. Red for an
- * expense, green for income, matching the rest of the app's status colors.
+ * the before/impact/after available balance of every budget category a transaction change
+ * touched, then slides back down. Red for a category that lost money, green for one that
+ * gained it, matching the rest of the app's status colors.
  */
 @Composable
 fun TransactionImpactPopup(
-    cue: TransactionImpactCue?,
+    cues: List<TransactionImpactCue>,
     hideDecimalPlaces: Boolean,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LaunchedEffect(cue) {
-        if (cue != null) {
+    LaunchedEffect(cues) {
+        if (cues.isNotEmpty()) {
             delay(AUTO_DISMISS_MILLIS)
             onDismiss()
         }
     }
     Box(modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = 96.dp)) {
         AnimatedVisibility(
-            visible = cue != null,
+            visible = cues.isNotEmpty(),
             modifier = Modifier.align(Alignment.BottomCenter).testTag("transactionImpactCue"),
             enter = slideInVertically(animationSpec = tween(320)) { it } + fadeIn(tween(320)),
             exit = slideOutVertically(animationSpec = tween(260)) { it } + fadeOut(tween(260)),
         ) {
-            if (cue != null) TransactionImpactCard(cue, hideDecimalPlaces)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                cues.forEach { cue -> TransactionImpactCard(cue, hideDecimalPlaces) }
+            }
         }
     }
 }
@@ -81,7 +91,7 @@ private fun TransactionImpactCard(cue: TransactionImpactCue, hideDecimalPlaces: 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = accentColor.copy(alpha = 0.14f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
     ) {
         Row(
@@ -96,9 +106,10 @@ private fun TransactionImpactCard(cue: TransactionImpactCue, hideDecimalPlaces: 
             )
             Column(Modifier.weight(1f)) {
                 Text(
-                    cue.accountName,
+                    cue.categoryName,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
@@ -106,12 +117,19 @@ private fun TransactionImpactCard(cue: TransactionImpactCue, hideDecimalPlaces: 
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Text("·", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        formatMoneyCents(cue.deltaCents, hideDecimalPlaces, showPositiveSign = true, respectBalanceVisibility = false),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor,
+                    )
                     Text("→", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         formatMoneyCents(cue.balanceAfterCents, hideDecimalPlaces, respectBalanceVisibility = false),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
-                        color = accentColor,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             }
