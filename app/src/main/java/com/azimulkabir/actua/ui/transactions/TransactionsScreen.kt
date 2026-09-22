@@ -25,6 +25,8 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Checkbox
@@ -37,7 +39,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -98,6 +99,7 @@ import com.azimulkabir.actua.ui.components.coloredTagText
 import com.azimulkabir.actua.ui.components.rememberActualTagColors
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
+import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.success
@@ -165,12 +167,16 @@ fun TransactionsScreen(
     showUpcomingTransactions: Boolean = true,
     onShowUpcomingTransactionsChange: (Boolean) -> Unit = {},
     hasFab: Boolean = true,
+    categoryOptions: List<String> = emptyList(),
+    onCategorizeMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
+    accountOptions: List<String> = emptyList(),
+    onMoveMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
+    onLabelMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
 ) {
     val listState = rememberLazyListState()
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
     var showSearch by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf<Transaction?>(null) }
     var viewed by remember { mutableStateOf<Transaction?>(null) }
     var selectionModeOn by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -178,6 +184,11 @@ fun TransactionsScreen(
     var bulkMenuOpen by remember { mutableStateOf(false) }
     var showLinkSchedulePicker by remember { mutableStateOf(false) }
     var confirmBulkDelete by remember { mutableStateOf(false) }
+    var showCategorizePicker by remember { mutableStateOf(false) }
+    var showMovePicker by remember { mutableStateOf(false) }
+    var showLabelPicker by remember { mutableStateOf(false) }
+    var newTagName by remember { mutableStateOf("") }
+    var tagVersion by remember { mutableStateOf(0L) }
     var reconcileOpen by remember(account?.id) { mutableStateOf(false) }
     LaunchedEffect(reconcileOpen) { onReconcileVisibilityChange(reconcileOpen) }
     DisposableEffect(Unit) {
@@ -195,6 +206,8 @@ fun TransactionsScreen(
     var accountNote by remember(account) { mutableStateOf(account?.note.orEmpty()) }
     val context = LocalContext.current
     val tagColors = rememberActualTagColors(transactions)
+    val tagRepository = remember(context) { ActiveTagRepository(context) }
+    val availableTags = remember(tagVersion) { tagRepository.tags(tagVersion) }
     val accountDetailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences(
             "account_detail_preferences",
@@ -263,6 +276,7 @@ fun TransactionsScreen(
     // Otherwise re-grouped inside the LazyColumn content block on every recomposition of this
     // screen (e.g. every selection-mode tap), not just when `visible` actually changes.
     val groupedByDate = remember(visible) { visible.groupBy { it.date } }
+    val selectedTransactions = remember(visible, selectedIds) { visible.filter { it.id in selectedIds } }
     val runningBalances = remember(allTransactions, accountName, showRunningBalance) {
         if (showRunningBalance && accountName != null) accountRunningBalances(allTransactions, accountName)
         else emptyMap()
@@ -311,13 +325,6 @@ fun TransactionsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { showSearch = !showSearch }) {
                         Icon(Icons.Outlined.Search, contentDescription = "Search transactions")
-                    }
-                    IconButton(onClick = { selectionModeOn = !selectionModeOn }) {
-                        Icon(
-                            Icons.Outlined.CheckCircle,
-                            contentDescription = if (selectionModeOn) "Exit selection mode" else "Select transactions",
-                            tint = if (selectionModeOn) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                        )
                     }
                     androidx.compose.foundation.layout.Box {
                         IconButton(onClick = { menuOpen = true }) {
@@ -381,7 +388,6 @@ fun TransactionsScreen(
             enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
             exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
         ) {
-            val selectedTransactions = visible.filter { it.id in selectedIds }
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = MaterialTheme.shapes.large,
@@ -397,11 +403,24 @@ fun TransactionsScreen(
                         fontWeight = FontWeight.SemiBold,
                     )
                     TextButton(onClick = { selectionModeOn = false }) { Text("Cancel") }
+                    IconButton(onClick = { showCategorizePicker = true }, enabled = selectedTransactions.isNotEmpty()) {
+                        Icon(Icons.Outlined.Category, contentDescription = "Categorize")
+                    }
+                    IconButton(onClick = { newTagName = ""; showLabelPicker = true }, enabled = selectedTransactions.isNotEmpty()) {
+                        Icon(Icons.Outlined.Sell, contentDescription = "Label")
+                    }
                     androidx.compose.foundation.layout.Box {
                         IconButton(onClick = { bulkMenuOpen = true }, enabled = selectedTransactions.isNotEmpty()) {
-                            Icon(Icons.Outlined.MoreVert, contentDescription = "Bulk actions")
+                            Icon(Icons.Outlined.MoreVert, contentDescription = "More actions")
                         }
                         DropdownMenu(expanded = bulkMenuOpen, onDismissRequest = { bulkMenuOpen = false }) {
+                            if (selectedTransactions.size == 1) {
+                                DropdownMenuItem(text = { Text("Edit") }, onClick = {
+                                    bulkMenuOpen = false
+                                    selectionModeOn = false
+                                    onEdit(selectedTransactions.first())
+                                })
+                            }
                             DropdownMenuItem(text = { Text("Mark cleared") }, onClick = {
                                 bulkMenuOpen = false
                                 selectedTransactions.filterNot { it.cleared }.forEach { onSetCleared(it, true) }
@@ -414,6 +433,10 @@ fun TransactionsScreen(
                                 bulkMenuOpen = false
                                 onDuplicateMultiple(selectedTransactions)
                                 selectionModeOn = false
+                            })
+                            DropdownMenuItem(text = { Text("Move") }, onClick = {
+                                bulkMenuOpen = false
+                                showMovePicker = true
                             })
                             DropdownMenuItem(text = { Text("Link to schedule") }, onClick = {
                                 bulkMenuOpen = false
@@ -554,7 +577,10 @@ fun TransactionsScreen(
                                 onLongClick = {
                                     if (!transaction.isUpcoming) {
                                         if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
-                                        else selected = transaction
+                                        else {
+                                            selectionModeOn = true
+                                            selectedIds = setOf(transaction.id)
+                                        }
                                     }
                                 },
                                 onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
@@ -577,7 +603,10 @@ fun TransactionsScreen(
                             onLongClick = {
                                 if (!transaction.isUpcoming) {
                                     if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
-                                    else selected = transaction
+                                    else {
+                                        selectionModeOn = true
+                                        selectedIds = setOf(transaction.id)
+                                    }
                                 }
                             },
                             onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
@@ -599,28 +628,6 @@ fun TransactionsScreen(
             onDuplicate = { viewed = null; onDuplicate(transaction) },
             tagColors = tagColors,
         )
-    }
-    selected?.let { transaction ->
-        ModalBottomSheet(onDismissRequest = { selected = null }) {
-            Column(modifier = Modifier.padding(bottom = 24.dp)) {
-                ActuaSheetTitle(transaction.payee)
-                Action("Edit transaction") { selected = null; onEdit(transaction) }
-                Action("Duplicate transaction") { selected = null; onDuplicate(transaction) }
-                Action(if (transaction.cleared) "Mark uncleared" else "Mark cleared") {
-                    selected = null
-                    onSetCleared(transaction, !transaction.cleared)
-                }
-                Action("Select") {
-                    selected = null
-                    selectionModeOn = true
-                    selectedIds = setOf(transaction.id)
-                }
-                Action("Delete transaction", destructive = true) {
-                    selected = null
-                    onDelete(transaction)
-                }
-            }
-        }
     }
     if (confirmBulkDelete) {
         val count = selectedIds.size
@@ -651,6 +658,90 @@ fun TransactionsScreen(
                         Action(schedule.name) {
                             showLinkSchedulePicker = false
                             onLinkSchedule(visible.filter { it.id in ids }, schedule.id)
+                            selectionModeOn = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (showCategorizePicker) {
+        ModalBottomSheet(onDismissRequest = { showCategorizePicker = false }) {
+            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+                ActuaSheetTitle("Categorize")
+                if (categoryOptions.isEmpty()) {
+                    Text("No categories available", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                } else {
+                    val toCategorize = selectedTransactions
+                    categoryOptions.forEach { category ->
+                        Action(category) {
+                            showCategorizePicker = false
+                            onCategorizeMultiple(toCategorize, category)
+                            selectionModeOn = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (showMovePicker) {
+        ModalBottomSheet(onDismissRequest = { showMovePicker = false }) {
+            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+                ActuaSheetTitle("Move to account")
+                if (accountOptions.isEmpty()) {
+                    Text("No accounts available", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                } else {
+                    val toMove = selectedTransactions
+                    accountOptions.forEach { account ->
+                        Action(account) {
+                            showMovePicker = false
+                            onMoveMultiple(toMove, account)
+                            selectionModeOn = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (showLabelPicker) {
+        ModalBottomSheet(onDismissRequest = { showLabelPicker = false }) {
+            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+                ActuaSheetTitle("Label")
+                val toLabel = selectedTransactions
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedTextField(
+                        value = newTagName,
+                        onValueChange = { newTagName = it },
+                        placeholder = { Text("New label") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        enabled = newTagName.isNotBlank(),
+                        onClick = {
+                            val created = runCatching { tagRepository.create(newTagName) }.getOrNull()
+                            if (created != null) {
+                                tagVersion += 1
+                                showLabelPicker = false
+                                onLabelMultiple(toLabel, created.tag)
+                                selectionModeOn = false
+                            }
+                        },
+                    ) { Text("Add") }
+                }
+                if (availableTags.isEmpty()) {
+                    Text("No labels yet", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                } else {
+                    availableTags.forEach { tag ->
+                        Action(tag.tag) {
+                            showLabelPicker = false
+                            onLabelMultiple(toLabel, tag.tag)
                             selectionModeOn = false
                         }
                     }
