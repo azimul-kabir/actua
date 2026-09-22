@@ -42,12 +42,12 @@ class ReportsChartInteractionTest {
             }
         }
 
-        compose.onNodeWithText("2026-08", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Net", substring = true).assertDoesNotExist()
         compose.onNodeWithContentDescription("Cash flow chart with 1 periods. Tap a period to read income and expense.")
             .performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithText("2026-08", substring = true).assertExists()
+        compose.onNodeWithText("Net", substring = true).assertExists()
     }
 
     @Test fun tappingACalendarDayRevealsItsIncomeAndExpense() {
