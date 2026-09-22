@@ -233,20 +233,13 @@ private fun ScheduleRow(
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Row(
-                    Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        item.title,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    StatusChip(item.status)
-                }
+                Text(
+                    item.title,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
                 Text(
                     formatScheduleAmount(item, hideDecimals),
                     fontWeight = FontWeight.SemiBold,
@@ -254,7 +247,12 @@ private fun ScheduleRow(
                         else MaterialTheme.colorScheme.onSurface,
                 )
             }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatusChip(item.status)
                 Text(
                     item.accountName.orEmpty(),
                     style = MaterialTheme.typography.bodySmall,
@@ -263,7 +261,6 @@ private fun ScheduleRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.width(12.dp))
                 val recurring = schedule.dateCondition is ScheduleDateCondition.Recurring
                 Text(
                     (if (recurring) "Repeats · " else "") + formatDate(schedule.nextDate),
