@@ -642,10 +642,30 @@ private fun Spending(widget: ReportWidget, hideDecimals: Boolean) {
     val current = widget.valueCents ?: 0
     val comparison = widget.comparisonCents ?: 0
     val maximum = max(current.coerceAtLeast(0), comparison.coerceAtLeast(0)).coerceAtLeast(1)
-    Text(formatMoneyCents(current, hideDecimals), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-    Text("Comparison ${formatMoneyCents(comparison, hideDecimals)}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Spacer(Modifier.fillMaxWidth((current.toFloat() / maximum).coerceIn(0f, 1f)).height(9.dp)
-        .background(MaterialTheme.colorScheme.primary, PillShape))
+    val delta = current - comparison
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+        Column(Modifier.weight(1f)) {
+            Text("This month", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatMoneyCents(current, hideDecimals), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text("vs comparison", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatMoneyCents(comparison, hideDecimals), style = MaterialTheme.typography.titleMedium)
+        }
+    }
+    if (delta != 0L) Text(
+        (if (delta > 0) "↑ " else "↓ ") + "${formatMoneyCents(delta.absoluteValue, hideDecimals)} " +
+            if (delta > 0) "more spent" else "less spent",
+        color = if (delta > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+    )
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        val currentFraction = (current.toFloat() / maximum).coerceIn(0.02f, 0.98f)
+        Spacer(Modifier.weight(currentFraction).height(9.dp)
+            .background(MaterialTheme.colorScheme.primary, PillShape))
+        Spacer(Modifier.weight(1f - currentFraction).height(9.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, PillShape))
+    }
 }
 
 @Composable

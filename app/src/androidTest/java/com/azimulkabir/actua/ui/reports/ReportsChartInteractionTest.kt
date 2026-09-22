@@ -17,8 +17,9 @@ import org.junit.runner.RunWith
 
 /**
  * Issue #496 (Actual PWA parity): the Cash Flow and Calendar dashboard widgets used to be static
- * text/bars with no way to read an exact value, unlike the Actual PWA's tap-for-detail charts.
- * This exercises the new tap-to-reveal-a-tooltip interaction added for both.
+ * text/bars with no way to read an exact value, unlike the Actual PWA's tap-for-detail charts, and
+ * Spending had no PWA-style "more/less spent than comparison" callout. This exercises the new
+ * tap-to-reveal-a-tooltip interactions and the Spending delta callout.
  */
 @RunWith(AndroidJUnit4::class)
 class ReportsChartInteractionTest {
@@ -48,6 +49,28 @@ class ReportsChartInteractionTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Net", substring = true).assertExists()
+    }
+
+    @Test fun spendingWidgetShowsHowMuchMoreWasSpentThanTheComparison() {
+        val widget = ReportWidget(
+            id = "spending",
+            kind = ReportWidgetKind.SPENDING,
+            name = "Spending",
+            valueCents = 118_573_00,
+            comparisonCents = 63_848_00,
+        )
+        val page = ReportDashboardPage("main", "Main", listOf(widget))
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(page)),
+                    hideDecimalPlaces = false,
+                )
+            }
+        }
+
+        compose.onNodeWithText("more spent", substring = true).assertExists()
     }
 
     @Test fun tappingACalendarDayRevealsItsIncomeAndExpense() {
