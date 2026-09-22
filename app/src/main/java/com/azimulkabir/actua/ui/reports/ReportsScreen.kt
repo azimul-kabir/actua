@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -378,9 +380,12 @@ private fun DashboardPicker(
     onOpenChange: (Boolean) -> Unit,
     onSelect: (String) -> Unit,
 ) {
+    var anchorWidth by remember { mutableStateOf(0) }
+    val anchorWidthDp = with(LocalDensity.current) { anchorWidth.toDp() }
     Box {
         Card(
-            Modifier.fillMaxWidth().clickable(enabled = pages.size > 1) { onOpenChange(true) },
+            Modifier.fillMaxWidth().onSizeChanged { anchorWidth = it.width }
+                .clickable(enabled = pages.size > 1) { onOpenChange(true) },
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         ) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -393,8 +398,22 @@ private fun DashboardPicker(
                 if (pages.size > 1) Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Switch dashboard")
             }
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { onOpenChange(false) }) {
-            pages.forEach { page -> DropdownMenuItem(text = { Text(page.name) }, onClick = { onSelect(page.id) }) }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onOpenChange(false) },
+            modifier = Modifier.width(anchorWidthDp),
+            shape = MaterialTheme.shapes.medium,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            pages.forEach { page ->
+                DropdownMenuItem(
+                    text = {
+                        Text(page.name, style = MaterialTheme.typography.titleMedium,
+                            fontWeight = if (page.id == selected.id) FontWeight.SemiBold else FontWeight.Normal)
+                    },
+                    onClick = { onSelect(page.id) },
+                )
+            }
         }
     }
 }
