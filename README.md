@@ -25,6 +25,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 
 - Native Material You Android interface
 - Home dashboard with an at-a-glance financial overview (ready to budget, favorite categories/accounts, upcoming bills, this month, reports and recent activity), customizable via show/hide and drag-to-reorder
+- Customizable bottom tab bar: show/hide and reorder tabs (Reports can be added as its own tab), plus an optional "+ Add" quick-add tab
 - App-wide favorites for categories, accounts and reports, shared by Home, the Budget favorites filter and the home-screen widget
 - Password and OpenID/OIDC login
 - Offline budgets with encrypted Actual sync

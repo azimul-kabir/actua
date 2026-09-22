@@ -80,8 +80,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Transaction form planning and atomic transaction mutations, including split
   creation, child-preserving edits, opposite-direction lines, and collapse to a
   standard transaction; transfer drafts can reverse their source/destination
-  accounts before save, and post-save feedback includes the saved category's
-  current available balance
+  accounts before save, and post-save feedback is an animated balance-impact card showing the
+  saved category's account balance before → after the save
 - Multi-select mode in Transactions with bulk mark cleared/uncleared, delete,
   link to schedule, unlink schedule, and single-selection view schedule
 - Query-level transaction status filters (Uncategorized, Uncleared, Cleared,
@@ -135,13 +135,19 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   calendar, due-date projection, paid-transaction matching, status totals, filters and safe schedule actions
 - **Manage** bottom-tab hub for Automation, transaction/data tools and financial setup, with
   general preferences behind a Settings gear and automatic migration of legacy More start-page values
-- **Home** first-class root destination (`Home | Budget | Transactions | Accounts | Manage`) replacing
-  Reports' former bottom-tab slot; a financial command center with Ready to Budget, Favorite
-  Categories, Favorite Accounts, Upcoming, This Month, Reports and Recent Activity sections, each
-  routing into the existing authoritative screen/calculation rather than duplicating it. Favorite
+- **Home** first-class root destination (`Home | Budget | Transactions | Accounts | Manage` by default)
+  replacing Reports' former fixed bottom-tab slot; a financial command center with Ready to Budget,
+  Favorite Categories, Favorite Accounts, Upcoming, This Month, Reports and Recent Activity sections,
+  each routing into the existing authoritative screen/calculation rather than duplicating it. Favorite
   category cards open their category details directly, and This Month shares Accounts' category-aware
-  cash-flow calculation so on-budget transfers and uncategorized rows are excluded. Reports remains a
-  full destination, reachable from Home and Manage
+  cash-flow calculation so on-budget transfers and uncategorized rows are excluded. Reports remains
+  reachable from Home and Manage, and can additionally be shown as its own bottom tab
+- Customizable bottom tab bar (Settings → Tab Bar), mirroring the Home dashboard customization
+  pattern: drag or up/down-arrow reorder, per-tab show/hide with Manage pinned and required and a
+  3-5 visible-tab range enforced instead of silently no-oping, an optional "+ Add" pseudo-tab that
+  opens Add Transaction from the bar (suppressing the floating Add Transaction button on tab roots
+  and a drilled-into account or budget category while it's enabled), and Restore Defaults; stored as
+  a versioned, migration-safe local UI preference
 - Saved Actual custom reports shown read-only through a shared Actual-compatible aggregator (donut and per-interval charts, viewer-side date/account filter, drill-down to transactions); see `docs/REPORTS_PARITY.md`
 - Scheduled transactions projected as unposted upcoming rows in the Transactions tab and account registers, excluded from balances and search, matching Actual's mobile PWA
 - Home section customization (show/hide optional sections, drag-to-reorder, restore defaults) as a

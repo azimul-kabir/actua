@@ -4,6 +4,18 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.38] - 2026-09-22
+
+### Added
+
+- Added a customizable bottom tab bar (Settings → Tab Bar): reorder tabs by dragging or with up/down arrows, show or hide each tab (Manage stays pinned and required, and hiding is refused below a 3-tab minimum or above a 5-tab maximum instead of silently no-oping), add a "+ Add" pseudo-tab that opens Add Transaction directly from the bar, and Restore Defaults; Reports can now be shown as its own bottom tab instead of only being reachable from Home and Manage
+- When the "+ Add" tab is enabled, the floating Add Transaction button is hidden on tab roots and on a drilled-into account or budget category, since the tab bar already exposes it
+- Replaced the "category available" snackbar shown after saving a transaction with an animated balance-impact card that slides up from the bottom showing the account's balance before → after the save, tinted red for expenses and green for income
+
+### Fixed
+
+- Fixed the Reports dashboard-picker dropdown wrapping to its text content's width and using the default menu styling instead of matching the picker card's width, shape and color
+
 ## [1.0.0-beta.37] - 2026-09-22
 
 ### Added
