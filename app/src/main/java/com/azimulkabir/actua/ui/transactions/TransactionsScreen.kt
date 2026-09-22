@@ -188,7 +188,7 @@ fun TransactionsScreen(
     var showMovePicker by remember { mutableStateOf(false) }
     var showLabelPicker by remember { mutableStateOf(false) }
     var newTagName by remember { mutableStateOf("") }
-    var tagVersion by remember { mutableStateOf(0) }
+    var tagVersion by remember { mutableStateOf(0L) }
     var reconcileOpen by remember(account?.id) { mutableStateOf(false) }
     LaunchedEffect(reconcileOpen) { onReconcileVisibilityChange(reconcileOpen) }
     DisposableEffect(Unit) {
