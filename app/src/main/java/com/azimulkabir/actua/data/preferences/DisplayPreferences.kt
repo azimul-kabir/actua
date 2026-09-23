@@ -49,6 +49,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_BUDGET_OVERVIEW, true)
         set(value) { preferences.edit().putBoolean(SHOW_BUDGET_OVERVIEW, value).apply() }
 
+    var showOverspentWarning: Boolean
+        get() = preferences.getBoolean(SHOW_OVERSPENT_WARNING, true)
+        set(value) { preferences.edit().putBoolean(SHOW_OVERSPENT_WARNING, value).apply() }
+
     var showGroupTotals: Boolean
         get() = preferences.getBoolean(SHOW_GROUP_TOTALS, false)
         set(value) { preferences.edit().putBoolean(SHOW_GROUP_TOTALS, value).apply() }
@@ -162,6 +166,7 @@ class DisplayPreferences(context: Context) {
         const val SHOW_CATEGORY_STATUS_DOTS = "show_category_status_dots"
         const val BUDGET_VIEW = "budget_view"
         const val SHOW_BUDGET_OVERVIEW = "show_budget_overview"
+        const val SHOW_OVERSPENT_WARNING = "show_overspent_warning"
         const val SHOW_GROUP_TOTALS = "show_group_totals"
         const val HIDE_FULLY_SPENT_CATEGORIES = "hide_fully_spent_categories"
         const val BUDGET_CATEGORY_VIEW = "budget_category_view"

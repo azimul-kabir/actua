@@ -436,6 +436,7 @@ fun AppNavigation(
     var showBudgetProgressBars by remember { mutableStateOf(displayPreferences.showBudgetProgressBars) }
     var budgetView by remember { mutableStateOf(displayPreferences.budgetView) }
     var showBudgetOverview by remember { mutableStateOf(displayPreferences.showBudgetOverview) }
+    var showOverspentWarning by remember { mutableStateOf(displayPreferences.showOverspentWarning) }
     var showGroupTotals by remember { mutableStateOf(displayPreferences.showGroupTotals) }
     var hideFullySpentCategories by remember { mutableStateOf(displayPreferences.hideFullySpentCategories) }
     var budgetCategoryView by remember { mutableStateOf(displayPreferences.budgetCategoryView) }
@@ -2113,6 +2114,11 @@ fun AppNavigation(
                     onShowOverviewChange = {
                         displayPreferences.showBudgetOverview = it
                         showBudgetOverview = it
+                    },
+                    showOverspentWarning = showOverspentWarning,
+                    onShowOverspentWarningChange = {
+                        displayPreferences.showOverspentWarning = it
+                        showOverspentWarning = it
                     },
                     showGroupTotals = showGroupTotals,
                     onShowGroupTotalsChange = {
