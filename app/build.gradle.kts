@@ -25,8 +25,8 @@ android {
         applicationId = "com.azimulkabir.actua"
         minSdk = 28
         targetSdk = 37
-        versionCode = 56
-        versionName = "1.0.0-beta.39"
+        versionCode = 57
+        versionName = "1.0.0-beta.40"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

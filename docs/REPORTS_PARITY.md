@@ -65,4 +65,5 @@ opens the transactions behind it via the shared `TransactionRow`/`loadTransactio
 Actua only *displays* reports that exist in the Actual budget (dashboard cards and saved
 `custom_reports` rows); it does not create or edit them. Saved reports appear on a
 "Saved reports" page, evaluated by `SavedReportEngine` on top of `ReportAggregator`, and
-render as donut (`DonutGraph`), line/area, or ranked bars (other graph types).
+render as donut (`DonutGraph`), line/area, a real per-category stacked bar chart
+(`StackedBarGraph`), or ranked bars (other graph types).
