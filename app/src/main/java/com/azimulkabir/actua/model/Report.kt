@@ -19,6 +19,8 @@ data class ReportPoint(
     val secondaryCents: Long = 0,
     /** Ids of the transactions behind this point, for read-only drill-down. */
     val transactionIds: List<String> = emptyList(),
+    /** Per-category breakdown of this point, for a `StackedBarGraph` saved report. */
+    val segments: List<ReportCategory> = emptyList(),
 )
 
 data class ReportDashboardPage(
