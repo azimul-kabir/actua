@@ -46,7 +46,9 @@ Every release follows this sequence:
    everything merged since the previous release.
 2. Bump `versionCode` (+1) and `versionName` together in `app/build.gradle.kts`.
 3. Add a `## [<version>]` section to `CHANGELOG.md` in the existing
-   Added/Changed/Fixed/Safety format.
+   Added/Changed/Fixed/Safety format, moving the Unreleased section's entries
+   under it. Entries should already be concise one-liners with a linked PR
+   reference per AGENTS.md; trim any that aren't before release.
 4. Add a dedicated `docs/releases/<version>.md` file: a one-line summary, the
    feature/fix breakdown, compatibility/safety notes, and a "Since beta N" list of the
    merged PRs, matching the structure of the existing files in that directory.
