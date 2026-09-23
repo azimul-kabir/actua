@@ -26,6 +26,7 @@ object CoreReportEngine {
         transactions: List<ActualTransaction>,
         accounts: List<ActualAccount>,
         groups: List<ActualCategoryGroup>,
+        savedReports: List<SavedReportRow> = emptyList(),
         budgetedByCategory: (YearMonth) -> Map<String, Long> = { emptyMap() },
         today: LocalDate = LocalDate.now(),
     ): List<ReportDashboardPage> {
@@ -39,15 +40,27 @@ object CoreReportEngine {
             payeeNames = transactions.mapNotNull { tx -> tx.payeeId?.let { it to tx.payeeName.orEmpty() } }.toMap(),
         )
         val incomeCategories = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id }
+        val savedReportsById = savedReports.associateBy { it.id }
+        val savedShared = if (savedReports.isEmpty()) null else
+            SavedReportEngine.Shared(transactions, accounts, groups)
         return resolvedPages.map { page ->
             ReportDashboardPage(
                 page.id,
                 page.name.ifBlank { "Untitled" },
                 widgets(page.id.ifBlank { null }).map { row ->
-                    compute(
-                        row, transactions, context, incomeCategories, budgetedByCategory, today,
-                        accounts.associate { it.id to it.balanceCents },
-                    )
+                    val savedReport = if (row.type == "custom-report") {
+                        row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
+                            ?.optString("id")?.takeIf(String::isNotBlank)?.let(savedReportsById::get)
+                    } else null
+                    if (savedReport != null && savedShared != null) {
+                        SavedReportEngine.compute(savedReport, transactions, accounts, groups, today, shared = savedShared)
+                            .copy(id = row.id)
+                    } else {
+                        compute(
+                            row, transactions, context, incomeCategories, budgetedByCategory, today,
+                            accounts.associate { it.id to it.balanceCents },
+                        )
+                    }
                 },
             )
         }

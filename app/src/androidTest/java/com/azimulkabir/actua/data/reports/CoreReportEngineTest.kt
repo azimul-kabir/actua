@@ -1,5 +1,9 @@
 package com.azimulkabir.actua.data.reports
 
+import com.azimulkabir.actua.data.budget.model.ActualAccount
+import com.azimulkabir.actua.data.budget.model.ActualAccountType
+import com.azimulkabir.actua.data.budget.model.ActualCategory
+import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.rules.RuleContext
 import com.azimulkabir.actua.model.ReportWidgetKind
@@ -145,6 +149,48 @@ class CoreReportEngineTest {
             DashboardWidgetRow("formula", "formula-card", """{"formula":"=1+2*3"}"""),
             emptyList(), today = today,
         ).valueCents)
+    }
+
+    @Test fun dashboardCustomReportWidgetUsesSavedReportNameAndGraphType() {
+        val accounts = listOf(ActualAccount("a", "A", ActualAccountType.CHECKING, false, false, 0, 0))
+        val groups = listOf(ActualCategoryGroup("g", "G", false, false, 1.0,
+            listOf(ActualCategory("c", "C", "g", false, false, 1.0))))
+        val saved = SavedReportRow(
+            "report1", "Monthly Expenses", null, null, false, "This month",
+            "Category", "Payment", false, false, true, null, "DonutGraph", null, "and", "Monthly",
+        )
+        val widgetRow = DashboardWidgetRow("widget1", "custom-report", """{"id":"report1"}""")
+        val pages = CoreReportEngine.dashboards(
+            pages = emptyList(),
+            widgets = { listOf(widgetRow) },
+            transactions = listOf(transaction("t1", -500).copy(accountId = "a", categoryId = "c")),
+            accounts = accounts,
+            groups = groups,
+            savedReports = listOf(saved),
+            today = today,
+        )
+        val widget = pages.single().widgets.single()
+        assertEquals("widget1", widget.id)
+        assertEquals(ReportWidgetKind.CUSTOM_REPORT, widget.kind)
+        assertEquals("Monthly Expenses", widget.name)
+        assertEquals("DonutGraph", widget.graphType)
+    }
+
+    @Test fun dashboardCustomReportWidgetFallsBackWhenSavedReportMissing() {
+        val widgetRow = DashboardWidgetRow("widget1", "custom-report", """{"id":"missing"}""")
+        val pages = CoreReportEngine.dashboards(
+            pages = emptyList(),
+            widgets = { listOf(widgetRow) },
+            transactions = listOf(transaction("t1", -500)),
+            accounts = emptyList(),
+            groups = emptyList(),
+            savedReports = emptyList(),
+            today = today,
+        )
+        val widget = pages.single().widgets.single()
+        assertEquals("widget1", widget.id)
+        assertEquals("Custom Report", widget.name)
+        assertEquals(null, widget.graphType)
     }
 
     private fun transaction(
