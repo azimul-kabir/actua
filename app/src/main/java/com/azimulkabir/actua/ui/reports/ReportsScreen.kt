@@ -961,20 +961,97 @@ private fun ComparisonSeries(points: List<ReportPoint>, primary: String, seconda
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
+private data class SankeyNode(val name: String, val value: Long, val color: androidx.compose.ui.graphics.Color)
+
 @Composable
 private fun Sankey(widget: ReportWidget, hideDecimals: Boolean) {
+    val income = widget.valueCents ?: 0
+    val categories = widget.categories.filter { it.spentCents > 0 }
+    if (income <= 0 && categories.isEmpty()) {
+        Text("No transactions match this report's filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    val expenseTotal = categories.sumOf { it.spentCents }
+    val remaining = (income - expenseTotal).coerceAtLeast(0)
+    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    val remainingColor = MaterialTheme.colorScheme.outlineVariant
+    val rightNodes = categories.mapIndexed { i, category ->
+        SankeyNode(category.name, category.spentCents,
+            androidx.compose.ui.graphics.Color.hsl(donutHues[i % donutHues.size], 0.55f, if (dark) 0.62f else 0.48f))
+    } + (if (remaining > 0) listOf(SankeyNode("Remaining", remaining, remainingColor)) else emptyList())
+    val total = maxOf(income, rightNodes.sumOf { it.value }, 1)
+    val incomeColor = MaterialTheme.colorScheme.primary
+
+    var selected by rememberSaveable(rightNodes.size) { mutableStateOf<Int?>(null) }
+    val active = selected?.takeIf { it in rightNodes.indices }
+
     Row(Modifier.fillMaxWidth()) {
-        Column(Modifier.weight(0.8f)) {
+        Column(Modifier.weight(1f)) {
             Text("Income", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(formatMoneyCents(widget.valueCents ?: 0, hideDecimals), fontWeight = FontWeight.Bold)
+            Text(formatMoneyCents(income, hideDecimals), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
-        Column(Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            widget.categories.take(8).forEach { category ->
-                Row(Modifier.fillMaxWidth()) {
-                    Text(category.name, maxLines = 1, modifier = Modifier.weight(1f))
-                    Text(formatMoneyCents(category.spentCents, hideDecimals), fontWeight = FontWeight.SemiBold)
+        Column(horizontalAlignment = Alignment.End) {
+            Text(active?.let { rightNodes[it].name } ?: "Expenses",
+                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatMoneyCents(active?.let { rightNodes[it].value } ?: expenseTotal, hideDecimals),
+                style = MaterialTheme.typography.titleMedium)
+        }
+    }
+    Canvas(
+        Modifier.fillMaxWidth().height(220.dp)
+            .semantics { contentDescription = "Sankey diagram from income to ${rightNodes.size} expense categories. Tap a category to read its amount." }
+            .pointerInput(rightNodes) {
+                detectTapGestures { tap ->
+                    val nodeWidth = 14.dp.toPx()
+                    if (tap.x < size.width - nodeWidth) { selected = null; return@detectTapGestures }
+                    var cumulative = 0f
+                    var hit: Int? = null
+                    for ((i, node) in rightNodes.withIndex()) {
+                        val height = node.value.toFloat() / total * size.height
+                        if (tap.y in cumulative..(cumulative + height)) { hit = i; break }
+                        cumulative += height
+                    }
+                    selected = hit.takeIf { it != selected }
                 }
+            },
+    ) {
+        val nodeWidth = 14.dp.toPx()
+        val cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
+        val leftHeight = income.toFloat() / total * size.height
+        drawRoundRect(incomeColor, Offset(0f, 0f), androidx.compose.ui.geometry.Size(nodeWidth, leftHeight), cornerRadius)
+
+        var cumulative = 0f
+        rightNodes.forEachIndexed { i, node ->
+            val height = node.value.toFloat() / total * size.height
+            val alpha = if (active == null || active == i) 1f else 0.35f
+            val topY = cumulative.coerceAtMost(leftHeight)
+            val bottomY = (cumulative + height).coerceAtMost(leftHeight)
+            if (bottomY > topY) {
+                val midX = size.width / 2f
+                val link = Path().apply {
+                    moveTo(nodeWidth, topY)
+                    cubicTo(midX, topY, midX, cumulative, size.width - nodeWidth, cumulative)
+                    lineTo(size.width - nodeWidth, cumulative + height)
+                    cubicTo(midX, cumulative + height, midX, bottomY, nodeWidth, bottomY)
+                    close()
+                }
+                drawPath(link, node.color.copy(alpha = 0.28f * alpha))
             }
+            drawRoundRect(node.color.copy(alpha = alpha), Offset(size.width - nodeWidth, cumulative),
+                androidx.compose.ui.geometry.Size(nodeWidth, height), cornerRadius)
+            cumulative += height
+        }
+    }
+    rightNodes.forEachIndexed { i, node ->
+        Row(
+            Modifier.fillMaxWidth().clickable(onClickLabel = "Highlight") { selected = i.takeIf { it != active } }.padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Spacer(Modifier.size(10.dp).background(node.color, androidx.compose.foundation.shape.CircleShape))
+            Spacer(Modifier.width(8.dp))
+            Text(node.name, maxLines = 1, modifier = Modifier.weight(1f),
+                fontWeight = if (i == active) FontWeight.Bold else FontWeight.Normal)
+            Text(formatMoneyCents(node.value, hideDecimals), fontWeight = FontWeight.SemiBold)
         }
     }
 }
