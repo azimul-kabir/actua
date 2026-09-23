@@ -4,17 +4,24 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.40] - 2026-09-23
+
 ### Added
 
-- Cash Flow, Calendar and Spending report widgets now support drill-down to their contributing transactions, tapping a Cash Flow period, a Calendar day or either Spending total opens the same transaction list sheet already used by Income vs Expenses and Custom Report (#498)
-- The Sankey report widget is now a real flow diagram (an income node linked to per-category expense nodes, plus a "Remaining" node for unspent income) instead of two plain text columns, with tap-to-highlight interactivity matching the other synced report charts (#498)
-- Saved custom reports using Actual's `StackedBarGraph` type now render as a real per-category stacked bar chart (one color per category, zero-filled so every bar keeps the same stack order) instead of a flat single-series bar chart, with tap-to-drill-down to a segment's contributing transactions (#498)
+- Cash Flow, Calendar and Spending report widgets now support drill-down to their contributing transactions ([#502](https://github.com/azimul-kabir/actua/pull/502))
+- The Sankey report widget now renders as a real flow diagram instead of plain text columns ([#503](https://github.com/azimul-kabir/actua/pull/503))
+- Saved `StackedBarGraph` custom reports now render as a real per-category stacked bar chart ([#504](https://github.com/azimul-kabir/actua/pull/504))
+
+### Changed
+
+- The bottom tab bar's quick-add tab is now labeled "Add" instead of "+ Add" ([#501](https://github.com/azimul-kabir/actua/pull/501))
 
 ### Fixed
 
-- Recognized `#tags` typed in a transaction's notes field now get the same pill background as saved tag chips, not just colored text (#505)
-- Manage Tags' create/edit color picker now offers Actual web's full tag color set instead of a smaller, non-matching palette (#505)
-- Manage Tags' per-row actions menu (View transactions/Edit/Delete) now opens anchored to the tapped row's icon instead of rendering at the top of the list (#505)
+- Recognized `#tags` in a transaction's notes field now get the same pill background as saved tag chips ([#506](https://github.com/azimul-kabir/actua/pull/506))
+- Manage Tags' color picker now offers Actual web's full tag color set ([#506](https://github.com/azimul-kabir/actua/pull/506))
+- Manage Tags' per-row actions menu now opens anchored to the tapped row instead of the top of the list ([#506](https://github.com/azimul-kabir/actua/pull/506))
+- Fixed a crash in the Spending widget's progress bar when one side fully dominated the other ([#500](https://github.com/azimul-kabir/actua/pull/500))
 
 ## [1.0.0-beta.39] - 2026-09-22
 
