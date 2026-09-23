@@ -943,12 +943,14 @@ class ActuaRepository(context: Context) {
             .sortedByDescending { it.spentCents }
         val dashboardPages = db.fetchDashboardPages()
         val reportBudgets = mutableMapOf<java.time.YearMonth, Map<String, Long>>()
+        val savedReportRows = db.fetchSavedReports()
         val dashboards = com.azimulkabir.actua.data.reports.CoreReportEngine.dashboards(
             dashboardPages,
             widgets = db::fetchDashboardWidgets,
             transactions = allRows,
             accounts = accounts,
             groups = groups,
+            savedReports = savedReportRows,
             budgetedByCategory = { month ->
                 reportBudgets.getOrPut(month) {
                     runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull()
@@ -959,7 +961,7 @@ class ActuaRepository(context: Context) {
             },
         )
         val savedWidgets = com.azimulkabir.actua.data.reports.SavedReportEngine.computeAll(
-            db.fetchSavedReports(), allRows, accounts, groups,
+            savedReportRows, allRows, accounts, groups,
         )
         val pages = dashboards + com.azimulkabir.actua.model.ReportDashboardPage("saved-reports", "Overview", savedWidgets)
         return ReportSnapshot(
