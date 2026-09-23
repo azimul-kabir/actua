@@ -1,7 +1,10 @@
 package com.azimulkabir.actua.ui.reports
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -85,10 +88,12 @@ class ReportsDrillDownTest {
             }
         }
 
-        // Tap the bar chart to select the period, then tap the resulting summary to drill down.
+        // Tap the bar chart to select the period, then tap the resulting (clickable) summary to
+        // drill down; the period label alone is ambiguous since the chart's always-visible
+        // first/last range row repeats the same "2026-05" text for a single-point chart.
         compose.onNodeWithContentDescription("Cash flow chart with 1 periods. Tap a period to read income and expense.")
             .performClick()
-        compose.onNodeWithText("2026-05").performClick()
+        compose.onNode(hasText("2026-05") and hasClickAction()).performClick()
 
         compose.waitForIdle()
         assertEquals(listOf("tx-cash"), requestedIds)
