@@ -45,4 +45,13 @@ class TagAutocompleteFieldTransformationTest {
         val style = transformed.text.spanStyles.single().item
         assertTrue(style.color != purple)
     }
+
+    @Test fun `recognized tags get a pill background matching the post-save chip`() {
+        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = false)
+
+        val transformed = transformation.filter(AnnotatedString("#school"))
+
+        val style = transformed.text.spanStyles.single().item
+        assertTrue(style.background != Color.Unspecified)
+    }
 }

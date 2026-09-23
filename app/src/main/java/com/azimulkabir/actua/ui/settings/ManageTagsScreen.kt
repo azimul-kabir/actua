@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -46,7 +50,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.model.ActualTag
 
-private val tagPalette = listOf("#E57373", "#FFB74D", "#FFF176", "#81C784", "#4DB6AC", "#64B5F6", "#7986CB", "#BA68C8", "#A1887F", "#90A4AE")
+// Mirrors Actual's web tag color picker (packages/component-library/src/ColorPicker.tsx DEFAULT_COLOR_SET)
+// so tag colors created/edited on Android match the swatches shown in the web app.
+private val tagPalette = listOf(
+    "#690CB0", "#D32F2F", "#C2185B", "#7B1FA2", "#512DA8", "#303F9F", "#1976D2", "#0288D1", "#0097A7", "#00796B",
+    "#388E3C", "#689F38", "#AFB42B", "#FBC02D", "#FFA000", "#F57C00", "#E64A19", "#5D4037", "#616161", "#455A64",
+    "#FF6666", "#FF99FF", "#C39DDF", "#6666FF", "#B2FFFF", "#99cb99", "#FFFF7F", "#FFAB66", "#D4B89C", "#BFBFBF",
+    "#FFAEAE", "#FFCCFF", "#E4D4FF", "#B0B0FF", "#D8FFFF", "#CFE5CF", "#FFFFB2", "#FFD5B3", "#E4D3C3", "#DADADA",
+)
 internal fun isValidManagedTagName(name: String): Boolean = name.isNotBlank() && name.none { it == '#' || it.isWhitespace() }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,20 +83,22 @@ fun ManageTagsScreen(
             OutlinedTextField(query, { query = it }, label = { Text("Search tags") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
             if (filtered.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(if (tags.isEmpty()) "No managed tags yet" else "No tags match your search") }
             else LazyColumn { items(filtered, key = { it.id }) { tag ->
-                Box {
-                    ListItem(
-                        headlineContent = { Text("#${tag.tag}") },
-                        supportingContent = { val detail = listOfNotNull(tag.description?.takeIf(String::isNotBlank), if (tag.hidden) "Hidden" else null); if (detail.isNotEmpty()) Text(detail.joinToString(" · ")) },
-                        leadingContent = { TagColorDot(tag.color) },
-                        trailingContent = { IconButton(onClick = { actionsFor = tag }) { Icon(Icons.Outlined.Edit, "Actions for #${tag.tag}") } },
-                        modifier = Modifier.clickable { viewing = tag },
-                    )
-                    DropdownMenu(expanded = actionsFor?.id == tag.id, onDismissRequest = { actionsFor = null }) {
-                        DropdownMenuItem(text = { Text("View transactions") }, leadingIcon = { Icon(Icons.Outlined.ReceiptLong, null) }, onClick = { actionsFor = null; viewing = tag })
-                        DropdownMenuItem(text = { Text("Edit") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { actionsFor = null; editing = tag })
-                        DropdownMenuItem(text = { Text("Delete") }, leadingIcon = { Icon(Icons.Outlined.Delete, null) }, onClick = { actionsFor = null; deleting = tag })
-                    }
-                }
+                ListItem(
+                    headlineContent = { Text("#${tag.tag}") },
+                    supportingContent = { val detail = listOfNotNull(tag.description?.takeIf(String::isNotBlank), if (tag.hidden) "Hidden" else null); if (detail.isNotEmpty()) Text(detail.joinToString(" · ")) },
+                    leadingContent = { TagColorDot(tag.color) },
+                    trailingContent = {
+                        Box {
+                            IconButton(onClick = { actionsFor = tag }) { Icon(Icons.Outlined.Edit, "Actions for #${tag.tag}") }
+                            DropdownMenu(expanded = actionsFor?.id == tag.id, onDismissRequest = { actionsFor = null }) {
+                                DropdownMenuItem(text = { Text("View transactions") }, leadingIcon = { Icon(Icons.Outlined.ReceiptLong, null) }, onClick = { actionsFor = null; viewing = tag })
+                                DropdownMenuItem(text = { Text("Edit") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { actionsFor = null; editing = tag })
+                                DropdownMenuItem(text = { Text("Delete") }, leadingIcon = { Icon(Icons.Outlined.Delete, null) }, onClick = { actionsFor = null; deleting = tag })
+                            }
+                        }
+                    },
+                    modifier = Modifier.clickable { viewing = tag },
+                )
             } }
         }
     }
@@ -94,15 +107,17 @@ fun ManageTagsScreen(
     deleting?.let { tag -> AlertDialog(onDismissRequest = { deleting = null }, title = { Text("Delete #${tag.tag}?") }, text = { Text("This deletes the managed tag metadata. Existing #${tag.tag} text in historical transaction notes will remain as an unmanaged hashtag.") }, confirmButton = { TextButton(onClick = { onDelete(tag); deleting = null }) { Text("Delete") } }, dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } }) }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable private fun TagEditorDialog(title: String, existing: ActualTag?, hiddenSupported: Boolean, onDismiss: () -> Unit, onSave: (String, String?, String?, Boolean) -> Unit) {
     var name by remember(existing) { mutableStateOf(existing?.tag.orEmpty()) }; var color by remember(existing) { mutableStateOf(existing?.color ?: tagPalette.first()) }
     var description by remember(existing) { mutableStateOf(existing?.description.orEmpty()) }; var hidden by remember(existing) { mutableStateOf(existing?.hidden ?: false) }
     val valid = isValidManagedTagName(name)
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
         OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true, isError = name.isNotEmpty() && !valid)
         OutlinedTextField(description, { description = it }, label = { Text("Description") }); Text("Color", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { tagPalette.take(5).forEach { option -> Box(Modifier.size(if (color == option) 36.dp else 32.dp).background(parseTagColor(option), CircleShape).clickable { color = option }) } }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { tagPalette.drop(5).forEach { option -> Box(Modifier.size(if (color == option) 36.dp else 32.dp).background(parseTagColor(option), CircleShape).clickable { color = option }) } }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            tagPalette.forEach { option -> Box(Modifier.size(if (color == option) 36.dp else 32.dp).background(parseTagColor(option), CircleShape).clickable { color = option }) }
+        }
         if (hiddenSupported) Row(verticalAlignment = Alignment.CenterVertically) { Text("Hidden", modifier = Modifier.weight(1f)); Switch(hidden, { hidden = it }) }
     } }, confirmButton = { Button(onClick = { onSave(name.trim(), color, description.trim().ifBlank { null }, hidden) }, enabled = valid) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }

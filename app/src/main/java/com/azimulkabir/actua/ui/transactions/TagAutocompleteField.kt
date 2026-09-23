@@ -41,6 +41,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.azimulkabir.actua.data.budget.model.ActualTag
 import com.azimulkabir.actua.ui.components.findTagOccurrences
 import com.azimulkabir.actua.ui.components.parseTagColor
+import com.azimulkabir.actua.ui.components.tagChipBackground
 import com.azimulkabir.actua.ui.components.tagChipForeground
 
 @Composable
@@ -143,7 +144,11 @@ internal fun tagHighlightTransformation(
         occurrences.forEach { occurrence ->
             val color = parseTagColor(tagColors[occurrence.name]) ?: return@forEach
             addStyle(
-                SpanStyle(color = tagChipForeground(color, darkTheme), fontWeight = FontWeight.SemiBold),
+                SpanStyle(
+                    color = tagChipForeground(color, darkTheme),
+                    background = tagChipBackground(color, darkTheme),
+                    fontWeight = FontWeight.SemiBold,
+                ),
                 occurrence.start,
                 occurrence.endExclusive,
             )
