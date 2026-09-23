@@ -96,4 +96,61 @@ class ReportsChartInteractionTest {
 
         compose.onNodeWithText("Out", substring = true).assertExists()
     }
+
+    @Test fun sankeyRendersACategoryPerNodeAndARemainingNodeForUnspentIncome() {
+        val widget = ReportWidget(
+            id = "sankey",
+            kind = ReportWidgetKind.SANKEY,
+            name = "Sankey",
+            valueCents = 500_00,
+            comparisonCents = 300_00,
+            categories = listOf(
+                com.azimulkabir.actua.model.ReportCategory("Rent", 200_00),
+                com.azimulkabir.actua.model.ReportCategory("Groceries", 100_00),
+            ),
+        )
+        val page = ReportDashboardPage("main", "Main", listOf(widget))
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(page)),
+                    hideDecimalPlaces = false,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Rent").assertExists()
+        compose.onNodeWithText("Groceries").assertExists()
+        // Income (500) exceeds categorized expenses (300), so the diagram should show the
+        // uncategorized/unspent remainder as its own flow node rather than silently dropping it.
+        compose.onNodeWithText("Remaining").assertExists()
+    }
+
+    @Test fun tappingASankeyLegendRowHighlightsItInTheSummary() {
+        val widget = ReportWidget(
+            id = "sankey",
+            kind = ReportWidgetKind.SANKEY,
+            name = "Sankey",
+            valueCents = 300_00,
+            comparisonCents = 300_00,
+            categories = listOf(com.azimulkabir.actua.model.ReportCategory("Rent", 300_00)),
+        )
+        val page = ReportDashboardPage("main", "Main", listOf(widget))
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(page)),
+                    hideDecimalPlaces = false,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Expenses").assertExists()
+        compose.onNodeWithText("Rent").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Expenses").assertDoesNotExist()
+    }
 }
