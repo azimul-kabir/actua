@@ -445,14 +445,14 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown:
                     TrendChart(widget.points, hideDecimals)
                     PointLabels(widget.points, hideDecimals)
                 }
-                ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals)
+                ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals, onDrillDown)
                 ReportWidgetKind.INCOME_EXPENSE -> IncomeExpense(widget, hideDecimals, onDrillDown)
-                ReportWidgetKind.SPENDING -> Spending(widget, hideDecimals)
+                ReportWidgetKind.SPENDING -> Spending(widget, hideDecimals, onDrillDown)
                 ReportWidgetKind.MARKDOWN -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
                 ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
                 ReportWidgetKind.CUSTOM_REPORT -> CustomReport(widget, hideDecimals, onDrillDown)
-                ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals)
+                ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
                 ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
                 ReportWidgetKind.BUDGET_ANALYSIS -> ComparisonSeries(widget.points, "Budgeted", "Spent", hideDecimals)
                 ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals)
@@ -566,7 +566,7 @@ private fun PointLabels(points: List<ReportPoint>, hideDecimals: Boolean) {
 }
 
 @Composable
-private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean) {
+private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
     if (points.isEmpty()) { Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant); return }
     val incomeColor = MaterialTheme.colorScheme.primary
     val expenseColor = MaterialTheme.colorScheme.error
@@ -577,7 +577,10 @@ private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean) {
 
     active?.let {
         val point = points[it]
-        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small,
+            modifier = Modifier.clickable(enabled = point.transactionIds.isNotEmpty(), onClickLabel = "View transactions") {
+                onDrillDown(ReportCategory(point.period.take(7), point.primaryCents - point.secondaryCents, point.transactionIds))
+            }) {
             Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                 Text(point.period.take(7), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                 Text("Income ${formatMoneyCents(point.primaryCents, hideDecimals)} · Expense ${formatMoneyCents(point.secondaryCents, hideDecimals)} · " +
@@ -638,17 +641,26 @@ private fun LegendDot(color: androidx.compose.ui.graphics.Color, label: String) 
 }
 
 @Composable
-private fun Spending(widget: ReportWidget, hideDecimals: Boolean) {
+private fun Spending(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
     val current = widget.valueCents ?: 0
     val comparison = widget.comparisonCents ?: 0
     val maximum = max(current.coerceAtLeast(0), comparison.coerceAtLeast(0)).coerceAtLeast(1)
     val delta = current - comparison
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-        Column(Modifier.weight(1f)) {
+        Column(
+            Modifier.weight(1f).clickable(enabled = widget.valueTransactionIds.isNotEmpty(), onClickLabel = "View transactions") {
+                onDrillDown(ReportCategory("This month", current, widget.valueTransactionIds))
+            },
+        ) {
             Text("This month", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(formatMoneyCents(current, hideDecimals), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
-        Column(horizontalAlignment = Alignment.End) {
+        Column(
+            horizontalAlignment = Alignment.End,
+            modifier = Modifier.clickable(enabled = widget.comparisonTransactionIds.isNotEmpty(), onClickLabel = "View transactions") {
+                onDrillDown(ReportCategory("Comparison", comparison, widget.comparisonTransactionIds))
+            },
+        ) {
             Text("vs comparison", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(formatMoneyCents(comparison, hideDecimals), style = MaterialTheme.typography.titleMedium)
         }
@@ -837,7 +849,7 @@ private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
 }
 
 @Composable
-private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean) {
+private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
     val dated = remember(widget.points) {
         widget.points.mapNotNull { point -> runCatching { LocalDate.parse(point.period) }.getOrNull()?.let { it to point } }
     }
@@ -872,10 +884,16 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean) {
     }
     selectedDay?.let { day ->
         val point = values[day]
-        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
+        val dayLabel = "${month.month.name.lowercase().replaceFirstChar(Char::uppercase)} $day"
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small,
+            modifier = Modifier.clickable(
+                enabled = point?.transactionIds?.isNotEmpty() == true,
+                onClickLabel = "View transactions",
+            ) { point?.let { onDrillDown(ReportCategory(dayLabel, it.primaryCents - it.secondaryCents, it.transactionIds)) } },
+        ) {
             Text(
-                "${month.month.name.lowercase().replaceFirstChar(Char::uppercase)} $day · " +
-                    "In ${formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)} · Out ${formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)}",
+                "$dayLabel · In ${formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)} · Out ${formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)}",
                 style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             )

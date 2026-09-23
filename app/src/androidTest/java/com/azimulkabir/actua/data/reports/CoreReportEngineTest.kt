@@ -38,6 +38,32 @@ class CoreReportEngineTest {
         assertEquals(700L, widget.points.single().secondaryCents)
     }
 
+    @Test fun cashFlowPointsCarryContributingTransactionIdsForDrillDown() {
+        val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}}"""
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("cash", "cash-flow-card", meta),
+            listOf(
+                transaction("income", 2_000), transaction("expense", -700),
+                transaction("transfer", -500, transfer = "other"), transaction("off", -900, account = "off"),
+            ),
+            context = RuleContext(offBudgetAccountIds = setOf("off")),
+            today = today,
+        )
+        assertEquals(setOf("income", "expense"), widget.points.single().transactionIds.toSet())
+    }
+
+    @Test fun calendarPointsCarryContributingTransactionIdsForDrillDown() {
+        val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}}"""
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("cal", "calendar-card", meta),
+            listOf(transaction("day10-a", 500), transaction("day10-b", -200), transaction("day11", -100, date = 20260511)),
+            today = today,
+        )
+        val day10 = widget.points.single { it.period == "2026-05-10" }
+        assertEquals(setOf("day10-a", "day10-b"), day10.transactionIds.toSet())
+        assertEquals(listOf("day11"), widget.points.single { it.period == "2026-05-11" }.transactionIds)
+    }
+
     @Test fun summaryCurrentMonthStopsAtToday() {
         val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}}"""
         val widget = CoreReportEngine.compute(
@@ -58,6 +84,29 @@ class CoreReportEngineTest {
         )
         assertEquals(1_000L, widget.valueCents)
         assertEquals(1_000L, widget.comparisonCents)
+    }
+
+    @Test fun spendingSingleMonthCarriesCurrentAndComparisonTransactionIds() {
+        val meta = """{"mode":"single-month","compare":"2026-05","compareTo":"2026-04","isLive":false}"""
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("spending", "spending-card", meta),
+            listOf(transaction("may", -1_000), transaction("april", -800, date = 20260410)),
+            today = today,
+        )
+        assertEquals(listOf("may"), widget.valueTransactionIds)
+        assertEquals(listOf("april"), widget.comparisonTransactionIds)
+    }
+
+    @Test fun spendingBudgetModeHasNoComparisonTransactionIds() {
+        val meta = """{"mode":"budget","compare":"2026-05","isLive":true}"""
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("spending", "spending-card", meta),
+            listOf(transaction("spent", -1_000)),
+            budgetedByCategory = { mapOf("food" to 3_100L) },
+            today = LocalDate.of(2026, 5, 10),
+        )
+        assertEquals(listOf("spent"), widget.valueTransactionIds)
+        assertEquals(emptyList<String>(), widget.comparisonTransactionIds)
     }
 
     @Test fun slidingWindowKeepsConfiguredMonthCount() {

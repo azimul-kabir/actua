@@ -13,7 +13,13 @@ data class ReportCategory(
     val transactionIds: List<String> = emptyList(),
 )
 
-data class ReportPoint(val period: String, val primaryCents: Long, val secondaryCents: Long = 0)
+data class ReportPoint(
+    val period: String,
+    val primaryCents: Long,
+    val secondaryCents: Long = 0,
+    /** Ids of the transactions behind this point, for read-only drill-down. */
+    val transactionIds: List<String> = emptyList(),
+)
 
 data class ReportDashboardPage(
     val id: String,
@@ -43,6 +49,10 @@ data class ReportWidget(
     val subtitle: String? = null,
     /** Saved report charts value per interval rather than per group. */
     val timeMode: Boolean = false,
+    /** Ids of the transactions behind [valueCents], for widgets with no per-point breakdown (e.g. Spending). */
+    val valueTransactionIds: List<String> = emptyList(),
+    /** Ids of the transactions behind [comparisonCents]. */
+    val comparisonTransactionIds: List<String> = emptyList(),
 )
 
 /** Viewer-side override applied on top of a saved report's own settings; never written back. */

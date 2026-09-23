@@ -178,7 +178,7 @@ object CoreReportEngine {
     private fun calendar(id: String, name: String, transactions: List<ActualTransaction>): ReportWidget {
         val points = transactions.groupBy { it.localDate() }.toSortedMap().map { (date, rows) ->
             ReportPoint(date.toString(), rows.filter { it.amountCents > 0 }.sumOf { it.amountCents },
-                -rows.filter { it.amountCents < 0 }.sumOf { it.amountCents })
+                -rows.filter { it.amountCents < 0 }.sumOf { it.amountCents }, rows.map { it.id })
         }
         return ReportWidget(id, ReportWidgetKind.CALENDAR, name,
             valueCents = points.sumOf { it.primaryCents }, comparisonCents = points.sumOf { it.secondaryCents }, points = points)
@@ -345,7 +345,7 @@ object CoreReportEngine {
             .takeWhile { !it.isAfter(YearMonth.from(end)) }.map { month ->
                 val rows = transactions.filter { YearMonth.from(it.localDate()) == month }
                 ReportPoint(month.toString(), rows.filter { it.amountCents >= 0 }.sumOf { it.amountCents },
-                    rows.filter { it.amountCents < 0 }.sumOf { -it.amountCents })
+                    rows.filter { it.amountCents < 0 }.sumOf { -it.amountCents }, rows.map { it.id })
             }.toList()
         return ReportWidget(id, ReportWidgetKind.CASH_FLOW, name, points = points,
             valueCents = points.sumOf { it.primaryCents - it.secondaryCents })
@@ -379,14 +379,17 @@ object CoreReportEngine {
         val todayDay = today.dayOfMonth
         val currentCutoff = todayDay.takeIf { compare == currentMonth }
         val comparisonCutoff = todayDay.takeIf { compare == currentMonth && todayDay < 28 }
-        fun spent(month: YearMonth, throughDay: Int? = null): Long {
+        fun spentRows(month: YearMonth, throughDay: Int? = null): List<ActualTransaction> {
             val endDay = throughDay?.coerceAtMost(month.lengthOfMonth())
-            return -matching.filter { transaction ->
+            return matching.filter { transaction ->
                 val date = transaction.localDate()
                 YearMonth.from(date) == month && (endDay == null || date.dayOfMonth <= endDay)
-            }.sumOf { it.amountCents }
+            }
         }
+        fun spent(month: YearMonth, throughDay: Int? = null): Long = -spentRows(month, throughDay).sumOf { it.amountCents }
         val current = spent(compare, currentCutoff)
+        val currentIds = spentRows(compare, currentCutoff).map { it.id }
+        var comparisonIds = emptyList<String>()
         val comparison = when (meta?.optString("mode", "single-month")) {
             "budget" -> {
                 val categoryConditions = conditions.first.filter { it.field == "category" || it.field == "category_group" }
@@ -413,9 +416,10 @@ object CoreReportEngine {
                     spent(compare.minusMonths(it.toLong()), comparisonCutoff)
                 }.average().roundToLong()
             }
-            else -> spent(compareTo, comparisonCutoff)
+            else -> spent(compareTo, comparisonCutoff).also { comparisonIds = spentRows(compareTo, comparisonCutoff).map { it.id } }
         }
-        return ReportWidget(id, ReportWidgetKind.SPENDING, name, valueCents = current, comparisonCents = comparison)
+        return ReportWidget(id, ReportWidgetKind.SPENDING, name, valueCents = current, comparisonCents = comparison,
+            valueTransactionIds = currentIds, comparisonTransactionIds = comparisonIds)
     }
 
     private fun parseConditions(meta: JSONObject?): Pair<List<Rule.Condition>, Rule.ConditionsOp> {
