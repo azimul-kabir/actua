@@ -34,6 +34,7 @@ internal object BudgetOpenProbe {
                 accounts = accounts,
                 groups = groups,
                 savedReports = database.fetchSavedReports(),
+                schedules = schedules,
                 budgetedByCategory = { month ->
                     reportBudgets.getOrPut(month) {
                         database.fetchBudgetMonth(month.toString())

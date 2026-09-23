@@ -951,6 +951,7 @@ class ActuaRepository(context: Context) {
             accounts = accounts,
             groups = groups,
             savedReports = savedReportRows,
+            schedules = db.fetchScheduleSummaries(),
             budgetedByCategory = { month ->
                 reportBudgets.getOrPut(month) {
                     runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull()
