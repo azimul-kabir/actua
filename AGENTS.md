@@ -115,6 +115,13 @@ titles, and the PR template. Report Android issues here and link upstream eviden
 for shared behavior. Do not include sensitive data in issues, review output or
 screenshots.
 
+When a PR has a user-facing effect, add one line to `CHANGELOG.md`'s Unreleased
+section under the matching Added/Changed/Fixed heading. Keep the line short (say
+what changed, not how or why) and end it with a linked PR reference, e.g.
+`- Fixed the transaction list scrolling under the keyboard on split entry ([#512](https://github.com/azimul-kabir/actua/pull/512))`.
+Do not restate implementation details, file names, or every affected screen —
+that belongs in the PR description, not the changelog.
+
 ### Autonomous coding-agent workflow
 
 Browser-based or autonomous coding agents, including Jules, must follow the same
