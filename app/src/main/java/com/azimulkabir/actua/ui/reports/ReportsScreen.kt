@@ -774,7 +774,7 @@ private fun StackedIntervalBars(points: List<ReportPoint>, hideDecimals: Boolean
                 detectTapGestures { tap ->
                     val i = (tap.x / size.width * points.size).toInt().coerceIn(0, points.size - 1)
                     val point = points[i]
-                    var y = size.height
+                    var y = size.height.toFloat()
                     var hit: ReportCategory? = null
                     for (segment in point.segments) {
                         val h = segment.spentCents.absoluteValue.toFloat() / maximum * size.height
