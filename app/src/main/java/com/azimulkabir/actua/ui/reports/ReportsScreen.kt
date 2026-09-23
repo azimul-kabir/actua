@@ -741,6 +741,83 @@ private fun IntervalBars(points: List<ReportPoint>, hideDecimals: Boolean) {
     }
 }
 
+@Composable
+private fun StackedIntervalBars(points: List<ReportPoint>, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
+    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    val names = points.firstOrNull { it.segments.isNotEmpty() }?.segments?.map { it.name }.orEmpty()
+    val colorByName = names.withIndex().associate { (i, name) ->
+        name to androidx.compose.ui.graphics.Color.hsl(donutHues[i % donutHues.size], 0.55f, if (dark) 0.62f else 0.48f)
+    }
+    val fallbackColor = MaterialTheme.colorScheme.outlineVariant
+    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
+    val active = selected?.takeIf { it in points.indices }
+    val maximum = points.maxOf { it.primaryCents.absoluteValue }.coerceAtLeast(1)
+
+    active?.let { i ->
+        val point = points[i]
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
+            Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                Text(point.period, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                point.segments.filter { it.spentCents != 0L }.forEach { segment ->
+                    Text("${segment.name}: ${formatMoneyCents(segment.spentCents, hideDecimals)}",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    } ?: Text("Tap a bar for details, or a segment to view its transactions",
+        style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+    Canvas(
+        Modifier.fillMaxWidth().height(160.dp)
+            .semantics { contentDescription = "Stacked bar chart with ${points.size} periods. Tap a bar for its breakdown, or a segment to view its transactions." }
+            .pointerInput(points) {
+                detectTapGestures { tap ->
+                    val i = (tap.x / size.width * points.size).toInt().coerceIn(0, points.size - 1)
+                    val point = points[i]
+                    var y = size.height
+                    var hit: ReportCategory? = null
+                    for (segment in point.segments) {
+                        val h = segment.spentCents.absoluteValue.toFloat() / maximum * size.height
+                        if (tap.y in (y - h)..y) { hit = segment; break }
+                        y -= h
+                    }
+                    if (hit != null && hit.transactionIds.isNotEmpty()) onDrillDown(hit) else selected = i.takeIf { it != selected }
+                }
+            },
+    ) {
+        val slot = size.width / points.size
+        val barWidth = (slot * 0.7f).coerceAtLeast(1f)
+        points.forEachIndexed { i, point ->
+            val alpha = if (active == null || active == i) 1f else 0.45f
+            var y = size.height
+            point.segments.forEach { segment ->
+                val h = segment.spentCents.absoluteValue.toFloat() / maximum * size.height
+                if (h > 0f) {
+                    val color = colorByName[segment.name] ?: fallbackColor
+                    drawRect(color.copy(alpha = alpha), Offset(slot * i + (slot - barWidth) / 2, y - h),
+                        androidx.compose.ui.geometry.Size(barWidth, h))
+                }
+                y -= h
+            }
+        }
+    }
+    Row(Modifier.fillMaxWidth()) {
+        Text(points.first().period, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(points.last().period, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    names.forEach { name ->
+        Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Spacer(Modifier.size(10.dp).background(colorByName[name] ?: fallbackColor,
+                androidx.compose.foundation.shape.CircleShape))
+            Spacer(Modifier.width(8.dp))
+            Text(name, maxLines = 1, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
 private val donutHues = floatArrayOf(210f, 20f, 140f, 280f, 50f, 350f, 175f, 320f, 100f, 240f)
 
 @Composable
@@ -757,6 +834,8 @@ private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
     }
     when {
         widget.graphType == "DonutGraph" && segments.isNotEmpty() -> DonutSegments(segments, hideDecimals, onDrillDown)
+        widget.timeMode && widget.graphType == "StackedBarGraph" && widget.points.any { it.segments.isNotEmpty() } ->
+            StackedIntervalBars(widget.points, hideDecimals, onDrillDown)
         widget.timeMode && (widget.graphType == "BarGraph" || widget.graphType == "StackedBarGraph") &&
             widget.points.isNotEmpty() -> IntervalBars(widget.points, hideDecimals)
         (widget.graphType == "LineGraph" || widget.graphType == "AreaGraph") && widget.points.size > 1 -> {

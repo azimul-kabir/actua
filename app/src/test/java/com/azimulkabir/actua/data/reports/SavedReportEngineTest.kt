@@ -103,6 +103,52 @@ class IncomeExpenseTest {
     }
 }
 
+class StackedIntervalPointsTest {
+    private val accounts = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0, 0),
+    )
+    private val groups = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("g", "G", false, false, 1.0,
+            listOf(
+                com.azimulkabir.actua.data.budget.model.ActualCategory("rent", "Rent", "g", false, false, 1.0),
+                com.azimulkabir.actua.data.budget.model.ActualCategory("food", "Food", "g", false, false, 2.0),
+            )),
+    )
+    private fun tx(id: String, date: Int, amount: Long, cat: String) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        id, "a", date, amount, null, null, cat, null, null, false, false, null, false, null, false, null, null, null, null)
+    private val today = LocalDate.of(2026, 3, 15)
+    private val saved = SavedReportRow("r", "R", null, null, false, "Last 3 months", "Category", "Payment", false, false, true,
+        null, "StackedBarGraph", null, "and", "Monthly", mode = "time")
+
+    @Test fun `stacked bar mode carries a per-category breakdown for each interval`() {
+        val rows = listOf(
+            tx("1", 20260105, -1000, "rent"), tx("2", 20260110, -200, "food"),
+            tx("3", 20260210, -1200, "rent"),
+        )
+        val w = SavedReportEngine.compute(saved, rows, accounts, groups, today)
+        assertEquals(true, w.timeMode)
+        val jan = w.points.first { it.period == "2026-01" }
+        assertEquals(setOf("Rent", "Food"), jan.segments.map { it.name }.toSet())
+        assertEquals(-1000L, jan.segments.first { it.name == "Rent" }.spentCents)
+        assertEquals(-200L, jan.segments.first { it.name == "Food" }.spentCents)
+        assertEquals(listOf("1"), jan.segments.first { it.name == "Rent" }.transactionIds)
+
+        // A category with no activity that period is zero-filled rather than dropped, so every
+        // bar keeps the same stack order and the same set of categories.
+        val feb = w.points.first { it.period == "2026-02" }
+        assertEquals(-1200L, feb.segments.first { it.name == "Rent" }.spentCents)
+        assertEquals(0L, feb.segments.first { it.name == "Food" }.spentCents)
+        assertEquals(emptyList<String>(), feb.segments.first { it.name == "Food" }.transactionIds)
+    }
+
+    @Test fun `non-stacked graph types keep the flat per-interval total with no segments`() {
+        val rows = listOf(tx("1", 20260105, -1000, "rent"), tx("2", 20260110, -200, "food"))
+        val w = SavedReportEngine.compute(saved.copy(graphType = "BarGraph"), rows, accounts, groups, today)
+        assertEquals(-1200L, w.points.first { it.period == "2026-01" }.primaryCents)
+        assertEquals(true, w.points.all { it.segments.isEmpty() })
+    }
+}
+
 class ViewFilterGroupTest {
     @Test fun `default only when nothing is overridden`() {
         assertEquals(true, com.azimulkabir.actua.model.ReportViewFilter().isDefault)

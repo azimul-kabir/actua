@@ -8,6 +8,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Cash Flow, Calendar and Spending report widgets now support drill-down to their contributing transactions, tapping a Cash Flow period, a Calendar day or either Spending total opens the same transaction list sheet already used by Income vs Expenses and Custom Report (#498)
 - The Sankey report widget is now a real flow diagram (an income node linked to per-category expense nodes, plus a "Remaining" node for unspent income) instead of two plain text columns, with tap-to-highlight interactivity matching the other synced report charts (#498)
+- Saved custom reports using Actual's `StackedBarGraph` type now render as a real per-category stacked bar chart (one color per category, zero-filled so every bar keeps the same stack order) instead of a flat single-series bar chart, with tap-to-drill-down to a segment's contributing transactions (#498)
 
 ## [1.0.0-beta.39] - 2026-09-22
 

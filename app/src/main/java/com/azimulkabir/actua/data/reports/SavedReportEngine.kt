@@ -79,42 +79,79 @@ object SavedReportEngine {
         }
         val segments = if (row.groupBy == "Interval") emptyList() else
             aggregator.groupTotals(scoped, filter, grouping).map { ReportCategory(it.name, it.totalCents, it.transactionIds) }
-        val points = intervalPoints(included, row.interval, start, end, today)
+        val timeMode = row.mode == "time" || row.groupBy == "Interval"
+        val stacked = timeMode && row.groupBy != "Interval" && row.graphType == "StackedBarGraph"
+        val points = if (stacked) {
+            intervalSegments(included, grouping, aggregator, filter, segments.map { it.name }, row.interval, start, end, today)
+        } else {
+            intervalPoints(included, row.interval, start, end, today)
+        }
         return ReportWidget(
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
-            valueCents = included.sumOf { it.amountCents }, categories = segments, points = points, timeMode = row.mode == "time" || row.groupBy == "Interval",
+            valueCents = included.sumOf { it.amountCents }, categories = segments, points = points, timeMode = timeMode,
             graphType = row.graphType, subtitle = "$start – $end · ${row.groupBy}",
         )
+    }
+
+    private fun bucketStart(interval: String, d: LocalDate): LocalDate = when (interval) {
+        "Daily" -> d
+        "Weekly" -> d.minusDays((d.dayOfWeek.value % 7).toLong())
+        "Yearly" -> d.withDayOfYear(1)
+        else -> d.withDayOfMonth(1)
+    }
+
+    private fun nextBucket(interval: String, d: LocalDate): LocalDate = when (interval) {
+        "Daily" -> d.plusDays(1)
+        "Weekly" -> d.plusWeeks(1)
+        "Yearly" -> d.plusYears(1)
+        else -> d.plusMonths(1)
+    }
+
+    private fun bucketLabel(interval: String, d: LocalDate): String = when (interval) {
+        "Yearly" -> d.year.toString()
+        "Daily", "Weekly" -> d.toString()
+        else -> YearMonth.from(d).toString()
+    }
+
+    private fun ActualTransaction.localDate(): LocalDate = LocalDate.of(date / 10000, date / 100 % 100, date % 100)
+
+    /** The interval-bucket keys shared by [intervalPoints] and [intervalSegments], zero-filled when small enough to chart. */
+    private fun bucketKeys(
+        rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
+    ): List<LocalDate> {
+        val seen = rows.map { bucketStart(interval, it.localDate()) }
+        val last = minOf(end, maxOf(today, seen.maxOrNull() ?: today))
+        val keys = generateSequence(bucketStart(interval, maxOf(start, LocalDate.of(1900, 1, 1)))) { nextBucket(interval, it) }
+            .takeWhile { !it.isAfter(last) }.take(401).toList()
+        return if (keys.size <= 400) keys else seen.distinct().sorted()
     }
 
     /** Sums per interval bucket; gaps are zero-filled when the range is small enough to chart. */
     internal fun intervalPoints(
         rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
     ): List<ReportPoint> {
-        fun date(tx: ActualTransaction) = LocalDate.of(tx.date / 10000, tx.date / 100 % 100, tx.date % 100)
-        fun bucket(d: LocalDate): LocalDate = when (interval) {
-            "Daily" -> d
-            "Weekly" -> d.minusDays((d.dayOfWeek.value % 7).toLong())
-            "Yearly" -> d.withDayOfYear(1)
-            else -> d.withDayOfMonth(1)
+        val sums = rows.groupBy { bucketStart(interval, it.localDate()) }.mapValues { (_, v) -> v.sumOf { it.amountCents } }
+        return bucketKeys(rows, interval, start, end, today).map { ReportPoint(bucketLabel(interval, it), sums[it] ?: 0L) }
+    }
+
+    /**
+     * Per-category breakdown for each interval bucket, for a `StackedBarGraph` saved report.
+     * Every point carries the same [canonicalOrder] of category names (zero-filled when a
+     * category has no activity that period) so a category keeps the same stack position and
+     * color across bars.
+     */
+    internal fun intervalSegments(
+        rows: List<ActualTransaction>, grouping: ReportGrouping, aggregator: ReportAggregator, filter: ReportFilter,
+        canonicalOrder: List<String>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
+    ): List<ReportPoint> {
+        val byBucket = rows.groupBy { bucketStart(interval, it.localDate()) }
+        return bucketKeys(rows, interval, start, end, today).map { key ->
+            val totals = aggregator.groupTotals(byBucket[key].orEmpty(), filter, grouping).associateBy { it.name }
+            val segments = canonicalOrder.map { name ->
+                totals[name]?.let { ReportCategory(it.name, it.totalCents, it.transactionIds) } ?: ReportCategory(name, 0, emptyList())
+            }
+            ReportPoint(bucketLabel(interval, key), segments.sumOf { it.spentCents }, segments = segments)
         }
-        fun next(d: LocalDate): LocalDate = when (interval) {
-            "Daily" -> d.plusDays(1)
-            "Weekly" -> d.plusWeeks(1)
-            "Yearly" -> d.plusYears(1)
-            else -> d.plusMonths(1)
-        }
-        fun label(d: LocalDate) = when (interval) {
-            "Yearly" -> d.year.toString()
-            "Daily", "Weekly" -> d.toString()
-            else -> YearMonth.from(d).toString()
-        }
-        val sums = rows.groupBy { bucket(date(it)) }.mapValues { (_, v) -> v.sumOf { it.amountCents } }
-        val last = minOf(end, maxOf(today, sums.keys.maxOrNull() ?: today))
-        val keys = generateSequence(bucket(maxOf(start, LocalDate.of(1900, 1, 1)))) { next(it) }
-            .takeWhile { !it.isAfter(last) }.take(401).toList()
-        val filled = if (keys.size <= 400) keys else sums.keys.sorted()
-        return filled.map { ReportPoint(label(it), sums[it] ?: 0L) }
     }
 
     /**
