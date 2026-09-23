@@ -472,8 +472,12 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown:
                     }
                 }
                 ReportWidgetKind.MONTE_CARLO -> {
-                    Text("Projected ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
+                    Text("${"%.1f".format(widget.percentage ?: 0.0)}%",
                         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Success rate ${widget.subtitle.orEmpty()}",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     ComparativeTrendChart(widget.points, "Median", "Conservative", hideDecimals)
                 }
                 ReportWidgetKind.UNSUPPORTED -> Unit
