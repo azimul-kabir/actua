@@ -50,6 +50,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Savings
@@ -169,6 +170,8 @@ fun BudgetScreen(
     onBudgetViewChange: (String) -> Unit = {},
     showOverview: Boolean = true,
     onShowOverviewChange: (Boolean) -> Unit = {},
+    showOverspentWarning: Boolean = true,
+    onShowOverspentWarningChange: (Boolean) -> Unit = {},
     showGroupTotals: Boolean = false,
     onShowGroupTotalsChange: (Boolean) -> Unit = {},
     hideFullySpent: Boolean = false,
@@ -234,6 +237,7 @@ fun BudgetScreen(
     var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var autoAssignBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var budgetSummaryOpen by remember { mutableStateOf(false) }
+    var overspentSheetOpen by remember { mutableStateOf(false) }
     var templatePreviewOpen by remember { mutableStateOf(false) }
     var overwriteTemplates by remember { mutableStateOf(false) }
     var cleanupPreview by remember { mutableStateOf<CleanupPreview?>(null) }
@@ -257,6 +261,17 @@ fun BudgetScreen(
         onCategoryDetailsChange(categoryDetails?.second?.name)
     }
 
+    val overspentCategories = remember(groups) {
+        groups.filterNot { it.isIncome }.flatMap { group ->
+            group.categories
+                .filter { it.balanceCents < 0L && !it.carryoverEnabled && !it.hidden }
+                .map { category -> group to category }
+        }
+    }
+    val totalOverspentCents = remember(overspentCategories) {
+        overspentCategories.sumOf { it.second.balanceCents }
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         BudgetToolbar(
             month = month,
@@ -266,6 +281,7 @@ fun BudgetScreen(
             showProgressBars = showProgressBars,
             budgetView = budgetView,
             showOverview = showOverview,
+            showOverspentWarning = showOverspentWarning,
             showGroupTotals = showGroupTotals,
             hideFullySpent = hideFullySpent,
             showHidden = showHidden,
@@ -276,6 +292,7 @@ fun BudgetScreen(
             onShowProgressBarsChange = onShowProgressBarsChange,
             onBudgetViewChange = onBudgetViewChange,
             onShowOverviewChange = onShowOverviewChange,
+            onShowOverspentWarningChange = onShowOverspentWarningChange,
             onShowGroupTotalsChange = onShowGroupTotalsChange,
             onHideFullySpentChange = onHideFullySpentChange,
             onShowHiddenChange = onShowHiddenChange,
@@ -322,6 +339,25 @@ fun BudgetScreen(
                     onToBudgetClick = { budgetSummaryOpen = true },
                 )
             }
+        }
+        AnimatedVisibility(
+            visible = showOverspentWarning && overspentCategories.isNotEmpty(),
+            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+        ) {
+            OverspentWarningBanner(
+                totalOverspentCents = totalOverspentCents,
+                categoryCount = overspentCategories.size,
+                hideDecimalPlaces = hideDecimalPlaces,
+                onClick = {
+                    if (overspentCategories.size == 1) {
+                        val (group, category) = overspentCategories.first()
+                        movingBudget = group to category
+                    } else {
+                        overspentSheetOpen = true
+                    }
+                },
+            )
         }
 
         val selectedView = BudgetCategoryView.fromLabel(categoryView)
@@ -649,6 +685,17 @@ fun BudgetScreen(
             },
         )
     }
+    if (overspentSheetOpen) {
+        OverspentCategoriesSheet(
+            categories = overspentCategories,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { overspentSheetOpen = false },
+            onSelect = { group, category ->
+                overspentSheetOpen = false
+                movingBudget = group to category
+            },
+        )
+    }
     autoAssignBudget?.let { (group, category) ->
         EditBudgetAmountSheet(
             sourceGroup = group,
@@ -682,6 +729,7 @@ private fun BudgetToolbar(
     showProgressBars: Boolean,
     budgetView: String,
     showOverview: Boolean,
+    showOverspentWarning: Boolean,
     showGroupTotals: Boolean,
     hideFullySpent: Boolean,
     showHidden: Boolean,
@@ -692,6 +740,7 @@ private fun BudgetToolbar(
     onShowProgressBarsChange: (Boolean) -> Unit,
     onBudgetViewChange: (String) -> Unit,
     onShowOverviewChange: (Boolean) -> Unit,
+    onShowOverspentWarningChange: (Boolean) -> Unit,
     onShowGroupTotalsChange: (Boolean) -> Unit,
     onHideFullySpentChange: (Boolean) -> Unit,
     onShowHiddenChange: (Boolean) -> Unit,
@@ -762,6 +811,7 @@ private fun BudgetToolbar(
                 }
                 HorizontalDivider()
                 ToggleMenuItem("Show overview", showOverview, onShowOverviewChange)
+                ToggleMenuItem("Show overspent warning", showOverspentWarning, onShowOverspentWarningChange)
                 ToggleMenuItem(
                     if (budgetView == "Plan") "Show spending details" else "Show spent column",
                     showSpent,
@@ -940,6 +990,104 @@ private fun PlanBudgetOverview(
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun OverspentWarningBanner(
+    totalOverspentCents: Long,
+    categoryCount: Int,
+    hideDecimalPlaces: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.errorContainer,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.ErrorOutline,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.padding(end = 12.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    if (categoryCount == 1) "1 category overspent" else "$categoryCount categories overspent",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Text(
+                    "Tap to cover overspending",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            Text(
+                formatMoneyCents(totalOverspentCents, hideDecimalPlaces),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OverspentCategoriesSheet(
+    categories: List<Pair<BudgetGroup, BudgetCategory>>,
+    hideDecimalPlaces: Boolean,
+    onDismiss: () -> Unit,
+    onSelect: (BudgetGroup, BudgetCategory) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+            Text(
+                "Cover Overspending",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                "Choose a category to cover",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 10.dp),
+            )
+            categories.forEach { (group, category) ->
+                Surface(
+                    onClick = { onSelect(group, category) },
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(category.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text(group.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(
+                            formatMoneyCents(category.balanceCents, hideDecimalPlaces),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
@@ -1442,6 +1590,10 @@ private fun EditBudgetAmountSheet(
             }
         }
     }
+    // Only categories with balance available can fund a move, so the "From" picker is
+    // narrower than the "To" picker (which must still be able to target any category,
+    // including an overspent one — that's how covering overspending works).
+    val fromOptions = remember(options) { options.filter { it.balanceCents > 0L } }
     val anchor = remember(sourceGroup, category) {
         MoveEndpoint(sourceGroup.name, category.name, category.balanceCents)
     }
@@ -1549,7 +1701,7 @@ private fun EditBudgetAmountSheet(
                         MoveEndpointSelector(
                             label = "From",
                             selected = from,
-                            options = options.filterNot { it.group == to.group && it.category == to.category },
+                            options = fromOptions.filterNot { it.group == to.group && it.category == to.category },
                             hideDecimalPlaces = hideDecimalPlaces,
                             onSelect = { from = it },
                         )
@@ -1732,9 +1884,13 @@ private fun BudgetSummarySheet(
     val covering = toBudgetCents < 0L
     var action by remember { mutableStateOf<BudgetSummaryAction?>(BudgetSummaryAction.MOVE) }
 
-    val options = remember(groups) {
+    // When covering an overbudgeted "To Budget", only categories with balance available can
+    // fund the cover, so the picker is narrowed instead of listing every category.
+    val options = remember(groups, covering) {
         groups.filterNot { it.isIncome }.flatMap { group ->
-            group.categories.filterNot { it.hidden }.map { group.name to it.name }
+            group.categories.filterNot { it.hidden }
+                .filter { !covering || it.balanceCents > 0L }
+                .map { group.name to it.name }
         }
     }
     var selectedCategory by remember(options) { mutableStateOf(options.firstOrNull()) }
