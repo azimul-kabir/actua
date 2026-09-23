@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.success
@@ -68,7 +69,7 @@ fun TransactionImpactPopup(
             onDismiss()
         }
     }
-    Box(modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = 96.dp)) {
+    Box(modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = 128.dp)) {
         AnimatedVisibility(
             visible = cues.isNotEmpty(),
             modifier = Modifier.align(Alignment.BottomCenter).testTag("transactionImpactCue"),
@@ -91,7 +92,7 @@ private fun TransactionImpactCard(cue: TransactionImpactCue, hideDecimalPlaces: 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
     ) {
         Row(
@@ -104,32 +105,40 @@ private fun TransactionImpactCard(cue: TransactionImpactCue, hideDecimalPlaces: 
                 contentDescription = null,
                 tint = accentColor,
             )
-            Column(Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text(
                     cue.categoryName,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
                 )
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
                     Text(
                         formatMoneyCents(cue.balanceBeforeCents, hideDecimalPlaces, respectBalanceVisibility = false),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
-                    Text("·", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("·", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     Text(
                         formatMoneyCents(cue.deltaCents, hideDecimalPlaces, showPositiveSign = true, respectBalanceVisibility = false),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = accentColor,
                     )
-                    Text("→", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("→", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     Text(
                         formatMoneyCents(cue.balanceAfterCents, hideDecimalPlaces, respectBalanceVisibility = false),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
             }
