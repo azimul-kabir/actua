@@ -14,7 +14,7 @@ enum class TabItem(val label: String) {
     TRANSACTIONS("Transactions"),
     ACCOUNTS("Accounts"),
     REPORTS("Reports"),
-    ADD("+ Add"),
+    ADD("Add"),
     MANAGE("Manage"),
 }
 

@@ -97,11 +97,11 @@ class AppNavigationTabBarTest {
         // ExtendedFloatingActionButton merges its icon/text semantics into one node, like
         // NavigationBarItem does (see the other tests in this file), so this needs unmerged too.
         composeRule.onNodeWithText("Transaction", useUnmergedTree = true).assertExists() // the FAB's label
-        composeRule.onNodeWithContentDescription("+ Add", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test fun addTabLayoutHidesFabAndOpensAddTransactionEditor() {
-        // Tab bar Slice 3 (#481): configuring "+ Add" as a tab replaces the FAB entirely.
+        // Tab bar Slice 3 (#481): configuring "Add" as a tab replaces the FAB entirely.
         tabBarPreferences.save(
             TabBarLayout(
                 order = listOf(
@@ -114,9 +114,9 @@ class AppNavigationTabBarTest {
         composeRule.setContent { MaterialTheme { AppNavigation() } }
 
         composeRule.onNodeWithText("Transaction", useUnmergedTree = true).assertDoesNotExist() // FAB is gone
-        composeRule.onNodeWithContentDescription("+ Add", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).assertExists()
 
-        composeRule.onNodeWithContentDescription("+ Add", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).performClick()
         // The add-transaction editor's top bar has a "Cancel" close action unique to that screen.
         composeRule.onNodeWithContentDescription("Cancel", useUnmergedTree = true).assertExists()
     }
