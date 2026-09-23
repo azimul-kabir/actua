@@ -6,6 +6,9 @@ import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.rules.RuleContext
 import com.azimulkabir.actua.data.rules.RulesEngine
+import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
+import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
+import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.ReportPoint
 import com.azimulkabir.actua.model.ReportWidget
@@ -27,6 +30,7 @@ object CoreReportEngine {
         accounts: List<ActualAccount>,
         groups: List<ActualCategoryGroup>,
         savedReports: List<SavedReportRow> = emptyList(),
+        schedules: List<ActualScheduleSummary> = emptyList(),
         budgetedByCategory: (YearMonth) -> Map<String, Long> = { emptyMap() },
         today: LocalDate = LocalDate.now(),
     ): List<ReportDashboardPage> {
@@ -58,7 +62,7 @@ object CoreReportEngine {
                     } else {
                         compute(
                             row, transactions, context, incomeCategories, budgetedByCategory, today,
-                            accounts.associate { it.id to it.balanceCents },
+                            accounts.associate { it.id to it.balanceCents }, schedules,
                         )
                     }
                 },
@@ -74,6 +78,7 @@ object CoreReportEngine {
         budgetedByCategory: (YearMonth) -> Map<String, Long> = { emptyMap() },
         today: LocalDate = LocalDate.now(),
         accountBalances: Map<String, Long> = emptyMap(),
+        schedules: List<ActualScheduleSummary> = emptyList(),
     ): ReportWidget {
         val meta = row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
         val name = meta?.optString("name")?.takeIf(String::isNotBlank) ?: label(row.type)
@@ -107,7 +112,7 @@ object CoreReportEngine {
             "budget-analysis-card" -> budgetAnalysis(row.id, name, filtered, context, incomeCategoryIds,
                 budgetedByCategory, start, end)
             "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds)
-            "balance-forecast-card" -> balanceForecast(row.id, name, meta, transactions, accountBalances, today)
+            "balance-forecast-card" -> balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context)
             "monte-carlo-card" -> monteCarlo(row.id, name, meta, accountBalances, today)
             else -> ReportWidget(row.id, ReportWidgetKind.UNSUPPORTED, name, sourceType = row.type)
         }
@@ -261,20 +266,90 @@ object CoreReportEngine {
             comparisonCents = categories.sumOf { it.spentCents }, categories = categories)
     }
 
+    /**
+     * Ported from Actual's `forecast/generate` (loot-core `server/forecast/forecast-projection.ts`):
+     * a starting balance summed from every posted transaction before the window, walked forward
+     * day by day by posted transactions plus projected schedule occurrences, sampled once per
+     * month for the chart. `valueCents` is the ending balance, `comparisonCents` the lowest daily
+     * combined balance across the window ("Low"), and `subtitle` the scheduled-transactions note.
+     */
     private fun balanceForecast(
         id: String, name: String, meta: JSONObject?, all: List<ActualTransaction>,
         balances: Map<String, Long>, today: LocalDate,
+        schedules: List<ActualScheduleSummary>, context: RuleContext,
     ): ReportWidget {
         val selected = meta?.optJSONArray("accounts")?.strings()?.toSet().orEmpty().ifEmpty { balances.keys }
-        var balance = selected.sumOf { balances[it] ?: 0L }
-        val recentStart = YearMonth.from(today).minusMonths(2).atDay(1).toYmd()
-        val monthlyChange = all.filterNot { it.tombstone }.filter { it.accountId in selected && it.date >= recentStart }
-            .sumOf { it.amountCents } / 3
-        val points = (0..12).map { offset ->
-            if (offset > 0) balance += monthlyChange
-            ReportPoint(YearMonth.from(today).plusMonths(offset.toLong()).toString(), balance)
+        val conditions = parseConditions(meta)
+        val (rangeStart, rangeEnd) = meta?.optJSONObject("timeFrame")?.let { timeFrame(it, today) }
+            ?: YearMonth.from(today).let { it.atDay(1) to it.plusMonths(11).atEndOfMonth() }
+        val firstForecastDate = if (rangeEnd.isBefore(today)) rangeStart else maxOf(rangeStart, today)
+        val startYmd = rangeStart.toYmd(); val endYmd = rangeEnd.toYmd(); val firstForecastYmd = firstForecastDate.toYmd()
+
+        val relevant = all.asSequence().filterNot { it.tombstone }
+            .filter { it.accountId in selected }
+            .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }
+            .toList()
+        val startingBalance = relevant.filter { it.date < startYmd }.sumOf { it.amountCents }
+        val postedByDate = relevant.filter { it.date in startYmd..endYmd }
+            .groupBy { it.date }.mapValues { (_, rows) -> rows.sumOf { it.amountCents } }
+
+        val scheduleDeltasByDate = mutableMapOf<Int, Long>()
+        val scheduleCountByDate = mutableMapOf<Int, MutableSet<String>>()
+        schedules.forEach schedule@{ schedule ->
+            if (schedule.completed) return@schedule
+            val accountId = schedule.accountId ?: return@schedule
+            if (accountId !in selected) return@schedule
+            val amount = schedule.postAmount
+            val occurrenceDays = when (val condition = schedule.dateCondition) {
+                is ScheduleDateCondition.Fixed -> listOf(condition.day)
+                is ScheduleDateCondition.Recurring -> schedule.nextDate?.let { nextDate ->
+                    ScheduleRecurrence.upcomingDates(condition.config, 400, nextDate)
+                }.orEmpty()
+                ScheduleDateCondition.Unsupported, null -> emptyList()
+            }
+            occurrenceDays.forEach { day ->
+                val ymd = day.yyyymmdd
+                if (ymd < firstForecastYmd || ymd > endYmd) return@forEach
+                val synthetic = ActualTransaction(
+                    "schedule-${schedule.id}-$ymd", accountId, ymd, amount, schedule.payeeId, null,
+                    schedule.categoryId, null, null, false, false, null, false, null, false, null, null, null, null,
+                )
+                if (!RulesEngine.matches(synthetic, conditions.first, conditions.second, context)) return@forEach
+                scheduleDeltasByDate[ymd] = (scheduleDeltasByDate[ymd] ?: 0L) + amount
+                scheduleCountByDate.getOrPut(ymd, ::mutableSetOf).add(schedule.id)
+            }
         }
-        return ReportWidget(id, ReportWidgetKind.BALANCE_FORECAST, name, valueCents = points.last().primaryCents, points = points)
+
+        var runningBalance = startingBalance
+        var lowestBalance = Long.MAX_VALUE
+        var scheduledOccurrenceCount = 0
+        val points = mutableListOf<ReportPoint>()
+        var day = rangeStart
+        while (!day.isAfter(rangeEnd)) {
+            val ymd = day.toYmd()
+            runningBalance += (postedByDate[ymd] ?: 0L) + (scheduleDeltasByDate[ymd] ?: 0L)
+            scheduledOccurrenceCount += scheduleCountByDate[ymd]?.size ?: 0
+            if (runningBalance < lowestBalance) lowestBalance = runningBalance
+            if (day == YearMonth.from(day).atEndOfMonth() || day == rangeEnd) {
+                points += ReportPoint(YearMonth.from(day).toString(), runningBalance)
+            }
+            day = day.plusDays(1)
+        }
+        if (points.isEmpty()) points += ReportPoint(YearMonth.from(rangeStart).toString(), runningBalance)
+        if (lowestBalance == Long.MAX_VALUE) lowestBalance = runningBalance
+
+        val hasFilters = conditions.first.isNotEmpty()
+        val subtitle = when {
+            scheduledOccurrenceCount == 0 && hasFilters -> "Filtered running total only; no scheduled occurrences in this range"
+            scheduledOccurrenceCount == 0 -> "No scheduled transactions in this range"
+            hasFilters -> "$scheduledOccurrenceCount scheduled transactions included (filtered running total)"
+            else -> "$scheduledOccurrenceCount scheduled transactions included"
+        }
+        return ReportWidget(
+            id, ReportWidgetKind.BALANCE_FORECAST, name,
+            valueCents = points.last().primaryCents, comparisonCents = lowestBalance,
+            points = points, subtitle = subtitle,
+        )
     }
 
     private fun monteCarlo(

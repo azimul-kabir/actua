@@ -457,10 +457,19 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown:
                 ReportWidgetKind.BUDGET_ANALYSIS -> ComparisonSeries(widget.points, "Budgeted", "Spent", hideDecimals)
                 ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals)
                 ReportWidgetKind.BALANCE_FORECAST -> {
-                    Text(formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
+                    Text("Ending: ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
                         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    if (widget.comparisonCents != null && widget.comparisonCents != widget.valueCents) {
+                        Text(
+                            "Low: ${formatMoneyCents(widget.comparisonCents, hideDecimals)}",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     TrendChart(widget.points, hideDecimals)
                     PointLabels(widget.points, hideDecimals)
+                    widget.subtitle?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
                 ReportWidgetKind.MONTE_CARLO -> {
                     Text("Projected ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",

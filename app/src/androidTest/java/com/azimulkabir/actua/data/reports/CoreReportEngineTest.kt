@@ -6,6 +6,11 @@ import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.rules.RuleContext
+import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
+import com.azimulkabir.actua.data.schedules.DayDate
+import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
+import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
+import com.azimulkabir.actua.data.schedules.ScheduledAmount
 import com.azimulkabir.actua.model.ReportWidgetKind
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -191,6 +196,40 @@ class CoreReportEngineTest {
         assertEquals("widget1", widget.id)
         assertEquals("Custom Report", widget.name)
         assertEquals(null, widget.graphType)
+    }
+
+    @Test fun balanceForecastWalksPostedTransactionsAndScheduledOccurrences() {
+        val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}}"""
+        val schedule = ActualScheduleSummary(
+            "sched1", "Rent", null, DayDate(2026, 5, 25), null, null, "checking",
+            null, ScheduledAmount.Fixed(-20_000), ScheduleAmountOp.EXACT, null,
+            ScheduleDateCondition.Fixed(DayDate(2026, 5, 25)), false, false, null, null, false, null, null, null,
+        )
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("bf", "balance-forecast-card", meta),
+            listOf(transaction("before", -1_000, date = 20260401), transaction("inRange", 500, date = 20260510)),
+            today = today,
+            accountBalances = mapOf("checking" to 0L),
+            schedules = listOf(schedule),
+        )
+        assertEquals(ReportWidgetKind.BALANCE_FORECAST, widget.kind)
+        // starting balance (-1,000 before the window) + 500 posted in-window - 20,000 scheduled = -20,500
+        assertEquals(-20_500L, widget.valueCents)
+        assertEquals(-20_500L, widget.comparisonCents)
+        assertEquals("1 scheduled transactions included", widget.subtitle)
+        assertEquals(listOf("2026-05"), widget.points.map { it.period })
+    }
+
+    @Test fun balanceForecastNotesFilteredRangeWhenNoScheduledOccurrences() {
+        val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}}"""
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("bf", "balance-forecast-card", meta),
+            listOf(transaction("inRange", -500, date = 20260510)),
+            today = today,
+            accountBalances = mapOf("checking" to 0L),
+        )
+        assertEquals("No scheduled transactions in this range", widget.subtitle)
+        assertEquals(-500L, widget.valueCents)
     }
 
     private fun transaction(
