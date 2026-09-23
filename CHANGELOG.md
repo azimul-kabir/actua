@@ -10,6 +10,12 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - The Sankey report widget is now a real flow diagram (an income node linked to per-category expense nodes, plus a "Remaining" node for unspent income) instead of two plain text columns, with tap-to-highlight interactivity matching the other synced report charts (#498)
 - Saved custom reports using Actual's `StackedBarGraph` type now render as a real per-category stacked bar chart (one color per category, zero-filled so every bar keeps the same stack order) instead of a flat single-series bar chart, with tap-to-drill-down to a segment's contributing transactions (#498)
 
+### Fixed
+
+- Recognized `#tags` typed in a transaction's notes field now get the same pill background as saved tag chips, not just colored text (#505)
+- Manage Tags' create/edit color picker now offers Actual web's full tag color set instead of a smaller, non-matching palette (#505)
+- Manage Tags' per-row actions menu (View transactions/Edit/Delete) now opens anchored to the tapped row's icon instead of rendering at the top of the list (#505)
+
 ## [1.0.0-beta.39] - 2026-09-22
 
 ### Added
