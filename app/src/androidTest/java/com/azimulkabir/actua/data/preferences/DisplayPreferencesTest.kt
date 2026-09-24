@@ -36,7 +36,7 @@ class DisplayPreferencesTest {
     @Test fun formattingDefaultsAndSelectionsPersist() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals("System default", DisplayPreferences(context).dateFormat)
-        assertEquals("1,234.56", DisplayPreferences(context).numberFormat)
+        assertEquals("System default", DisplayPreferences(context).numberFormat)
 
         DisplayPreferences(context).dateFormat = "DD/MM/YYYY"
         DisplayPreferences(context).numberFormat = "1,23,456.78"

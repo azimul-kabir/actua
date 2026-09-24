@@ -22,7 +22,7 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putString(DATE_FORMAT, value).apply() }
 
     var numberFormat: String
-        get() = preferences.getString(NUMBER_FORMAT, "1,234.56") ?: "1,234.56"
+        get() = preferences.getString(NUMBER_FORMAT, "System default") ?: "System default"
         set(value) { preferences.edit().putString(NUMBER_FORMAT, value).apply() }
 
     var showHiddenCategories: Boolean
