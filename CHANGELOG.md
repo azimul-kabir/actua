@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- The Spending report widget no longer excludes all transfers; it now matches Actual's PWA/Web filtering, which only drops the leg on an off-budget account ([#531](https://github.com/azimul-kabir/actua/issues/531))
 - The Sankey report widget now breaks income down by source and shows its date range, matching Actual's PWA/Web output ([#528](https://github.com/azimul-kabir/actua/pull/528))
 - The Monte Carlo report widget now runs a real success-rate retirement simulation instead of showing a deterministic dollar projection ([#527](https://github.com/azimul-kabir/actua/pull/527))
 - The in-line `#tag` pill in a transaction's notes field is now rounded, matching the saved tag chip style instead of a flat rectangle ([#513](https://github.com/azimul-kabir/actua/pull/513))
