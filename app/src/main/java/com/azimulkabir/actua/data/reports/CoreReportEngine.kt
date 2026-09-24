@@ -142,7 +142,12 @@ object CoreReportEngine {
     ): ReportWidget {
         data class Bucket(val date: LocalDate, var remaining: Long)
         val accountConditions = conditions.first.filter { it.field == "account" }
-        val pool = scoped.filter { it.accountId !in context.offBudgetAccountIds }
+        val endYmd = end.toYmd()
+        // Mirrors upstream's income/expense queries, both capped at `end` (already minOf(rawEnd,
+        // today)): a transaction dated after the window must never enter the FIFO pool at all, not
+        // just be excluded from the *displayed* ages afterward - otherwise a post-dated transaction
+        // can still consume/produce buckets and skew every age computed from it.
+        val pool = scoped.filter { it.date <= endYmd && it.accountId !in context.offBudgetAccountIds }
             .filter { transaction ->
                 val transferAccountId = transaction.transferAccountId
                 transferAccountId == null || transferAccountId in context.offBudgetAccountIds ||
