@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.41] - 2026-09-24
+
 ### Fixed
 
 - The Age of Money report widget now counts a transfer to an account outside the widget's account filter as an expense, matching the PWA, instead of dropping it whenever the counterpart account is on-budget ([#536](https://github.com/azimul-kabir/actua/pull/536))

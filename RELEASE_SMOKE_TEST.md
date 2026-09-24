@@ -126,6 +126,13 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] On a synced dashboard, verify Sankey renders as a real flow diagram (an income node linked to per-category expense nodes, plus a "Remaining" node for unspent income) with tap-to-highlight, not two plain text columns.
 - [ ] On a synced dashboard, tapping a Cash Flow period or a Calendar day, and tapping either Spending total, opens the same transaction list sheet already used by Income vs expenses and Custom Report, listing the contributing transactions.
 - [ ] Open the Spending widget with data where one side (current vs. compare) is much larger than the other and verify the progress bar renders without crashing.
+- [ ] Open the Spending widget on a dashboard with a transfer to an off-budget account and verify that leg is now counted (only same-side transfers stay excluded), matching Actual's PWA/Web totals.
+- [ ] Open the Age of Money widget on a dashboard with a transfer to an account outside the widget's account filter and verify it now counts as an expense instead of being dropped.
+- [ ] Open the Budget Analysis widget with a category/category-group filter set and verify only matching categories are totaled and the balance carries over from the prior month (rollover), instead of showing an unfiltered non-rolling total.
+- [ ] Open the Crossover widget and verify its projected return uses historical-balance CAGR and its expense projection uses the Hampel/median/mean method (not a fixed safe-withdrawal-rate and plain average), matching the PWA.
+- [ ] Open the Sankey widget on a dashboard with income from more than one source and verify each source appears as its own node with the date range shown, instead of a single combined income node.
+- [ ] Open the Monte Carlo widget and verify it shows a success-rate percentage with a median/10th-percentile ending-balance chart driven by a real simulation, not a fixed deterministic dollar projection.
+- [ ] Type a `#tag` in a transaction's Notes field and verify the in-line pill is rounded, matching the saved tag chip style.
 
 ## Android integrations
 
