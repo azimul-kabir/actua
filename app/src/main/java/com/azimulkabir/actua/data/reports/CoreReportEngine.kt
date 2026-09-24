@@ -203,9 +203,14 @@ object CoreReportEngine {
         Regex("query\\(\\s*[\\\"']([^\\\"']+)[\\\"']\\s*\\)", RegexOption.IGNORE_CASE)
             .findAll(expression).toList().asReversed().forEach { match ->
                 val query = queries?.optJSONObject(match.groupValues[1])
-                val range = timeFrame(query?.optJSONObject("timeFrame"), today)
+                // Unlike a widget's own timeFrame, a sub-query with no explicit timeFrame mode
+                // means "no date restriction" (all-time), matching upstream/Actuali; an unknown
+                // query name (query == null) evaluates to 0 rather than matching everything.
+                val timeFrameMeta = query?.optJSONObject("timeFrame")?.takeIf { it.has("mode") }
+                val range = timeFrameMeta?.let { timeFrame(it, today) }
                 val conditions = parseConditions(query)
-                val cents = all.filterNot { it.tombstone }.filter { it.date in range.first.toYmd()..range.second.toYmd() }
+                val cents = if (query == null) 0L else all.filterNot { it.tombstone }
+                    .filter { range == null || it.date in range.first.toYmd()..range.second.toYmd() }
                     .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }.sumOf { it.amountCents }
                 expression = expression.replaceRange(match.range, (cents / 100.0).toString())
             }

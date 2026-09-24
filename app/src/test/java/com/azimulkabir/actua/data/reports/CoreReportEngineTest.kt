@@ -371,6 +371,60 @@ class BalanceForecastTest {
 }
 
 /**
+ * Ported from PWA's `useFormulaExecution.ts` (`prefetchFormulaQueries`) and Actuali's
+ * `FormulaEngine.swift`: a saved sub-query with no explicit `timeFrame` mode means "no date
+ * restriction" (all-time), not the widget-timeFrame default of the current calendar month; and a
+ * `query("name")` referencing a name missing from the widget's `queries` map evaluates to 0
+ * instead of silently summing every unfiltered current-month transaction (actua#548).
+ */
+class FormulaTest {
+    private val context = RuleContext()
+
+    private fun tx(id: String, date: Int, amount: Long, categoryId: String? = null) = ActualTransaction(
+        id, "a", date, amount, null, null, categoryId, null, null, false, false, null, false, null, false, null, null, null, null)
+
+    private fun row(meta: String) = DashboardWidgetRow("w", "formula-card", meta)
+
+    @Test fun `a sub-query with no explicit timeFrame sums all-time, not just the current month`() {
+        val rows = listOf(
+            tx("1", 20240115, -1_000, "groceries"),
+            tx("2", 20260924, -2_000, "groceries"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"formula":"=query(\"all_groceries\")",
+                |"queries":{"all_groceries":{"conditions":[{"field":"category","op":"is","value":"groceries"}]}}}""".trimMargin()),
+            rows, context, today = LocalDate.of(2026, 9, 24),
+        )
+        assertEquals(ReportWidgetKind.FORMULA, widget.kind)
+        assertEquals(-3_000L, widget.valueCents)
+    }
+
+    @Test fun `an unknown query name evaluates to 0 instead of matching every current-month transaction`() {
+        val rows = listOf(tx("1", 20260924, -2_000, "groceries"))
+        val widget = CoreReportEngine.compute(
+            row("""{"formula":"=query(\"typo\")",
+                |"queries":{"all_groceries":{"conditions":[{"field":"category","op":"is","value":"groceries"}]}}}""".trimMargin()),
+            rows, context, today = LocalDate.of(2026, 9, 24),
+        )
+        assertEquals(0L, widget.valueCents)
+    }
+
+    @Test fun `a sub-query with an explicit timeFrame mode still applies its date restriction`() {
+        val rows = listOf(
+            tx("1", 20240115, -1_000, "groceries"),
+            tx("2", 20260924, -2_000, "groceries"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"formula":"=query(\"sep_groceries\")",
+                |"queries":{"sep_groceries":{"conditions":[{"field":"category","op":"is","value":"groceries"}],
+                |"timeFrame":{"mode":"static","start":"2026-09","end":"2026-09"}}}}""".trimMargin()),
+            rows, context, today = LocalDate.of(2026, 9, 24),
+        )
+        assertEquals(-2_000L, widget.valueCents)
+    }
+}
+
+/**
  * PWA (`calendar-spreadsheet.ts`) and Actuali's `CalendarEngine` both widen the resolved time frame
  * to whole calendar months before filtering transactions; a non-month-aligned resolved range (a
  * `static` range with day-level bounds, or `yearToDate`/`priorYearToDate` ending at `today`) must
