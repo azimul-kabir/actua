@@ -246,7 +246,7 @@ object SavedReportEngine {
             categoryGroupIds = view.categoryGroupIds.takeIf { it.isNotEmpty() },
             showOffBudget = view.includeOffBudget, showHiddenCategories = true, balanceType = ReportBalanceType.NET_ASSETS,
         )
-        val included = shared.aggregator.select(transactions, filter)
+        val included = shared.aggregator.select(transactions, filter).filterNot(shared.aggregator::isBudgetTransfer)
         val (income, expenses) = included.partition { shared.aggregator.categoryIsIncome(it.categoryId) }
         val incomeCents = income.sumOf { it.amountCents }
         val expenseCents = -expenses.sumOf { it.amountCents }

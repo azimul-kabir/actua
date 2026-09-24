@@ -52,12 +52,33 @@ class ReportAggregatorTest {
         assertEquals(-700L, aggregator.total(rows, jan.copy(balanceType = ReportBalanceType.NET_DEBTS)))
     }
 
-    @Test fun `transfers between budget accounts are excluded but budget to off-budget counts`() {
+    @Test fun `transfers follow showUncategorized like upstream, with no hard-coded exclusion`() {
         val rows = listOf(
             tx(-500, transferTo = "sav"),
             tx(-700, transferTo = "house"),
         )
-        assertEquals(-700L, aggregator.total(rows, jan))
+        assertEquals(-1200L, aggregator.total(rows, jan))
+        assertEquals(0L, aggregator.total(rows, jan.copy(showUncategorized = false)))
+    }
+
+    @Test fun `transfers land in a synthetic Transfers bucket for categorized grouping`() {
+        val rows = listOf(tx(-500, transferTo = "sav"), tx(-25, "groceries"), tx(-50))
+        val byCategory = aggregator.groupTotals(rows, jan, ReportGrouping.CATEGORY)
+        assertEquals(
+            listOf("Transfers" to -500L, "Uncategorized" to -50L, "Groceries" to -25L),
+            byCategory.map { it.name to it.totalCents },
+        )
+        val byGroup = aggregator.groupTotals(rows, jan, ReportGrouping.CATEGORY_GROUP)
+        assertEquals(
+            listOf("Transfers" to -500L, "Uncategorized" to -50L, "Food" to -25L),
+            byGroup.map { it.name to it.totalCents },
+        )
+    }
+
+    @Test fun `isBudgetTransfer flags same-status transfers but not budget-to-off-budget`() {
+        assertEquals(true, aggregator.isBudgetTransfer(tx(-500, transferTo = "sav")))
+        assertEquals(false, aggregator.isBudgetTransfer(tx(-700, transferTo = "house")))
+        assertEquals(false, aggregator.isBudgetTransfer(tx(-100, "groceries")))
     }
 
     @Test fun `off-budget accounts need opt-in`() {

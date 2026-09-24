@@ -39,8 +39,9 @@ data class ReportGroupTotal(
 /**
  * Integer-cent report aggregation following Actual's custom-report semantics
  * (loot-core `server/reports`): tombstones and split parents are ignored, split children
- * carry their own category, transfers between budget accounts are excluded, off-budget
- * accounts are excluded unless requested, and cleared/reconciled state never matters.
+ * carry their own category, transfers fall into the config-driven uncategorized/synthetic
+ * "Transfers" bucket like upstream (no hard-coded exclusion), off-budget accounts are
+ * excluded unless requested, and cleared/reconciled state never matters.
  */
 class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategoryGroup>) {
     private val accountsById = accounts.associateBy { it.id }
@@ -48,6 +49,19 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
     private val groupsById = groups.associateBy { it.id }
 
     fun categoryIsIncome(categoryId: String?): Boolean = categoryId?.let { categoriesById[it]?.first?.isIncome } == true
+
+    /**
+     * True when [tx] transfers money between two accounts with the same on/off-budget status -
+     * a same-status transfer moves money without being real income or spending, which cash-flow
+     * style widgets (e.g. [SavedReportEngine.incomeExpense]) exclude outright rather than
+     * bucketing as a synthetic "Transfers" bucket the way custom reports do.
+     */
+    fun isBudgetTransfer(tx: ActualTransaction): Boolean {
+        val transferAccountId = tx.transferAccountId ?: return false
+        val account = accountsById[tx.accountId] ?: return false
+        val counterpart = accountsById[transferAccountId]
+        return counterpart == null || counterpart.offBudget == account.offBudget
+    }
 
     /** Transactions that the filter includes, in input order. */
     fun select(transactions: List<ActualTransaction>, filter: ReportFilter): List<ActualTransaction> =
@@ -59,13 +73,11 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
         val account = accountsById[tx.accountId] ?: return false
         if (account.offBudget && !f.showOffBudget) return false
         if (f.accountIds != null && tx.accountId !in f.accountIds) return false
-        // Transfer between two budget accounts moves money without spending it.
-        val counterpart = tx.transferAccountId?.let(accountsById::get)
-        if (tx.transferAccountId != null && (counterpart == null || counterpart.offBudget == account.offBudget)) {
-            return false
-        }
         val categoryId = tx.categoryId
         if (categoryId == null) {
+            // Transfers have no category of their own (upstream's synthetic "Transfers" bucket),
+            // so they follow the same showUncategorized/category-filter toggles as any other
+            // uncategorized row instead of a hard-coded transfer exclusion.
             if (!f.showUncategorized || f.categoryIds != null || f.categoryGroupIds != null) return false
         } else {
             val (category, group) = categoriesById[categoryId] ?: return false
@@ -94,20 +106,27 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
         .groupBy { tx ->
             val entry = tx.categoryId?.let(categoriesById::get)
             when (grouping) {
-                ReportGrouping.CATEGORY -> entry?.first?.id
-                ReportGrouping.CATEGORY_GROUP -> entry?.second?.id
+                ReportGrouping.CATEGORY ->
+                    entry?.first?.id ?: if (tx.transferAccountId != null) TRANSFER_BUCKET_ID else null
+                ReportGrouping.CATEGORY_GROUP ->
+                    entry?.second?.id ?: if (tx.transferAccountId != null) TRANSFER_BUCKET_ID else null
                 ReportGrouping.PAYEE -> tx.payeeId
                 ReportGrouping.ACCOUNT -> tx.accountId
             }
         }
         .map { (id, rows) ->
             val name = when (grouping) {
-                ReportGrouping.CATEGORY -> id?.let { categoriesById[it]?.first?.name }
-                ReportGrouping.CATEGORY_GROUP -> id?.let { groupsById[it]?.name }
+                ReportGrouping.CATEGORY -> if (id == TRANSFER_BUCKET_ID) "Transfers" else id?.let { categoriesById[it]?.first?.name }
+                ReportGrouping.CATEGORY_GROUP -> if (id == TRANSFER_BUCKET_ID) "Transfers" else id?.let { groupsById[it]?.name }
                 ReportGrouping.PAYEE -> rows.firstNotNullOfOrNull { it.payeeName?.takeIf(String::isNotBlank) }
                 ReportGrouping.ACCOUNT -> id?.let { accountsById[it]?.name }
             } ?: if (grouping == ReportGrouping.PAYEE) "Unknown" else "Uncategorized"
             ReportGroupTotal(id, name, rows.sumOf { it.amountCents }, rows.map { it.id })
         }
         .sortedWith(compareByDescending<ReportGroupTotal> { kotlin.math.abs(it.totalCents) }.thenBy { it.name })
+
+    private companion object {
+        /** Synthetic grouping key for transfers under [ReportGrouping.CATEGORY]/[ReportGrouping.CATEGORY_GROUP]. */
+        const val TRANSFER_BUCKET_ID = "\u0000transfer"
+    }
 }

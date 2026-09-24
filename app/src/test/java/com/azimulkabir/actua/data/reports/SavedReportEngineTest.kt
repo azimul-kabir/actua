@@ -116,6 +116,33 @@ class SavedReportViewFilterTest {
     }
 }
 
+/** Regression coverage for https://github.com/azimul-kabir/actua/issues/547. */
+class SavedReportTransferTest {
+    private val accounts = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualAccount("chk", "Checking", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("sav", "Savings", com.azimulkabir.actua.data.budget.model.ActualAccountType.SAVINGS, false, false, 1, 0),
+    )
+    private val groups = listOf(com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("ge", "Bills", false, false, 1.0,
+        listOf(com.azimulkabir.actua.data.budget.model.ActualCategory("rent", "Rent", "ge", false, false, 1.0))))
+    private fun tx(id: String, date: Int, amount: Long, cat: String?, transferTo: String? = null) =
+        com.azimulkabir.actua.data.budget.model.ActualTransaction(id, "chk", date, amount, null, null, cat, null, null, false, false,
+            transferTo?.let { "x" }, false, null, false, null, null, null, transferTo)
+
+    // groupBy Category, balanceType Net (defaults), showUncategorized true - a default, unedited saved report.
+    private val saved = SavedReportRow("r", "R", "2026-01", "2026-01", true, null, "Category", "Net", false, false, true,
+        null, "DonutGraph", null, "and", "Monthly")
+
+    @Test fun `on-budget-to-on-budget transfer joins the Transfers bucket and the total, like upstream`() {
+        val rows = listOf(tx("1", 20260110, -100000, "rent"), tx("2", 20260112, -100000, null, transferTo = "sav"))
+        val w = SavedReportEngine.compute(saved, rows, accounts, groups)
+        assertEquals(-200000L, w.valueCents)
+        assertEquals(
+            setOf("Rent" to -100000L, "Transfers" to -100000L),
+            w.categories.map { it.name to it.spentCents }.toSet(),
+        )
+    }
+}
+
 class IntervalPointsTest {
     private fun tx(date: Int, amount: Long) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
         "t$date", "a", date, amount, null, null, null, null, null, false, false, null, false, null, false, null, null, null, null)
