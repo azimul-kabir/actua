@@ -170,3 +170,60 @@ class CrossoverTest {
         assertEquals(100L, comparison("hampel"))
     }
 }
+
+/**
+ * Ported from Actual's `age-of-money-spreadsheet.ts` (`buildTransferInclusionFilter`): without an
+ * `account` condition on the widget, a transfer only counts as real money in/out of the pool when
+ * its counterpart account is off-budget. With an `account` condition, a transfer whose counterpart
+ * falls outside that filtered set also counts, even when the counterpart is itself on-budget (see
+ * actua#532).
+ */
+class AgeOfMoneyTest {
+    private val context = RuleContext()
+
+    private fun tx(id: String, accountId: String, date: Int, amount: Long, transferAccountId: String? = null) =
+        ActualTransaction(id, accountId, date, amount, null, null, null, null, null, false, false, null,
+            false, null, false, null, null, null, transferAccountId)
+
+    private fun row(meta: String) = DashboardWidgetRow("w", "age-of-money-card", meta)
+
+    @Test fun `without an account filter, a transfer to an on-budget counterpart is excluded from the pool`() {
+        val rows = listOf(
+            tx("1", "checking", 20260401, 100_000),
+            tx("2", "checking", 20260410, -50_000, transferAccountId = "cc"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}}"""),
+            rows, context, today = LocalDate.of(2026, 4, 20),
+        )
+        assertEquals(ReportWidgetKind.AGE_OF_MONEY, widget.kind)
+        assertEquals(null, widget.valueCents)
+    }
+
+    @Test fun `with an account filter, a transfer to an on-budget counterpart outside the filtered set counts as an expense`() {
+        val rows = listOf(
+            tx("1", "checking", 20260401, 100_000),
+            tx("2", "checking", 20260410, -50_000, transferAccountId = "cc"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"},
+                |"conditions":[{"op":"is","field":"account","value":"checking"}]}""".trimMargin()),
+            rows, context, today = LocalDate.of(2026, 4, 20),
+        )
+        assertEquals(ReportWidgetKind.AGE_OF_MONEY, widget.kind)
+        assertEquals(9L, widget.valueCents)
+    }
+
+    @Test fun `with an account filter, a transfer to a counterpart inside the filtered set is still excluded`() {
+        val rows = listOf(
+            tx("1", "checking", 20260401, 100_000),
+            tx("2", "checking", 20260410, -50_000, transferAccountId = "savings"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"},
+                |"conditions":[{"op":"oneOf","field":"account","value":["checking","savings"]}]}""".trimMargin()),
+            rows, context, today = LocalDate.of(2026, 4, 20),
+        )
+        assertEquals(null, widget.valueCents)
+    }
+}

@@ -108,7 +108,7 @@ object CoreReportEngine {
                 row.id, name,
                 transactions.filterNot { it.tombstone }
                     .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) },
-                context, start, minOf(end, today),
+                context, conditions, start, minOf(end, today),
             )
             "formula-card" -> formula(row.id, name, meta, transactions, context, today)
             "custom-report" -> customReport(row.id, name, filtered, context, incomeCategoryIds)
@@ -123,14 +123,30 @@ object CoreReportEngine {
         }
     }
 
-    /** FIFO port of Actuali's AgeOfMoneyEngine. Values in [ReportPoint] are days, not cents. */
+    /**
+     * FIFO port of Actuali's AgeOfMoneyEngine. Values in [ReportPoint] are days, not cents.
+     *
+     * Mirrors the PWA's `buildTransferInclusionFilter` (age-of-money-spreadsheet.ts): by default
+     * (no `account` condition on the widget), a transfer is excluded from the pool unless its
+     * counterpart account is off-budget. When the widget's conditions include an `account` filter,
+     * a transfer whose counterpart account falls outside that filtered set is also treated as real
+     * money entering/leaving the pool, even if the counterpart is itself on-budget (e.g. a filtered
+     * checking account paying off an on-budget credit card).
+     */
     private fun ageOfMoney(
         id: String, name: String, scoped: List<ActualTransaction>, context: RuleContext,
-        start: LocalDate, end: LocalDate,
+        conditions: Pair<List<Rule.Condition>, Rule.ConditionsOp>, start: LocalDate, end: LocalDate,
     ): ReportWidget {
         data class Bucket(val date: LocalDate, var remaining: Long)
+        val accountConditions = conditions.first.filter { it.field == "account" }
         val pool = scoped.filter { it.accountId !in context.offBudgetAccountIds }
-            .filter { it.transferAccountId == null || it.transferAccountId in context.offBudgetAccountIds }
+            .filter { transaction ->
+                val transferAccountId = transaction.transferAccountId
+                transferAccountId == null || transferAccountId in context.offBudgetAccountIds ||
+                    (accountConditions.isNotEmpty() && !RulesEngine.matches(
+                        transaction.copy(accountId = transferAccountId), accountConditions, conditions.second, context,
+                    ))
+            }
             .sortedWith(compareBy<ActualTransaction> { it.date }.thenBy { it.id })
         val buckets = pool.filter { it.amountCents > 0 }.map { Bucket(it.localDate(), it.amountCents) }
         var bucketIndex = 0
