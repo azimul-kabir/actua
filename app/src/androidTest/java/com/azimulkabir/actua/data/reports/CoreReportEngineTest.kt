@@ -63,6 +63,17 @@ class CoreReportEngineTest {
         assertEquals(setOf("income", "expense"), widget.points.single().transactionIds.toSet())
     }
 
+    @Test fun cashFlowCurrentMonthStopsAtToday() {
+        val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}}"""
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("cash", "cash-flow-card", meta),
+            listOf(transaction("past", 500), transaction("future", 900, date = 20260525)),
+            today = today,
+        )
+        assertEquals(500L, widget.points.single().primaryCents)
+        assertEquals(listOf("past"), widget.points.single().transactionIds)
+    }
+
     @Test fun calendarPointsCarryContributingTransactionIdsForDrillDown() {
         val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}}"""
         val widget = CoreReportEngine.compute(
