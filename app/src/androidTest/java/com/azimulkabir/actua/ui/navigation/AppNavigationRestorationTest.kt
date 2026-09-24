@@ -9,7 +9,10 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
+import com.azimulkabir.actua.data.navigation.TabBarLayout
+import com.azimulkabir.actua.data.navigation.TabItem
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -28,6 +31,7 @@ class AppNavigationRestorationTest {
     private val files = BudgetFileManager(context)
     private val activeBudget = ActiveBudgetStore(context)
     private val displayPreferences = DisplayPreferences(context)
+    private val tabBarPreferences = TabBarPreferences(context)
     private var previousBudgetId: String? = null
     private var previousStartPage: String = "Budget"
 
@@ -38,11 +42,23 @@ class AppNavigationRestorationTest {
         DemoBudgetManager.recreate(files)
         activeBudget.budgetId = DemoBudgetManager.BUDGET_ID
         displayPreferences.startPage = "Home"
+        // Home is hidden from the default tab bar, so make it visible here - this test is about
+        // destination state surviving recreation, not about the tab bar's own default contents.
+        tabBarPreferences.save(
+            TabBarLayout(
+                order = listOf(
+                    TabItem.HOME, TabItem.BUDGET, TabItem.ACCOUNTS, TabItem.TRANSACTIONS,
+                    TabItem.ADD, TabItem.REPORTS, TabItem.MANAGE,
+                ),
+                hidden = setOf(TabItem.TRANSACTIONS, TabItem.ADD),
+            ),
+        )
     }
 
     @After fun restorePreviousBudget() {
         displayPreferences.startPage = previousStartPage
         activeBudget.budgetId = previousBudgetId
+        tabBarPreferences.restoreDefaults()
         runCatching { files.deleteBudget(DemoBudgetManager.BUDGET_ID) }
     }
 

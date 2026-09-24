@@ -52,8 +52,9 @@ class SettingsBackNavigationTest {
         composeRule.onNodeWithContentDescription("Settings").performClick()
         composeRule.onNodeWithText("Home").performScrollTo().performClick()
 
-        // Customize Home's own header ("Sections") confirms we actually reached it.
-        composeRule.onNodeWithContentDescription("Customize Home").assertExists()
+        // Customize Home's own header title confirms we actually reached it. (Its "Customize Home"
+        // content description belongs to a different icon, on the Home tab screen itself.)
+        composeRule.onNodeWithText("Customize Home").assertExists()
 
         pressBack()
 

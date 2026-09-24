@@ -157,7 +157,7 @@ class AppNavigationTabBarTest {
         pressBack()
 
         composeRule.onNodeWithText("Tab Bar").assertExists()
-        composeRule.onNodeWithContentDescription("Reports", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithContentDescription("Transactions", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Transactions", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithContentDescription("Reports", useUnmergedTree = true).assertDoesNotExist()
     }
 }
