@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- The Crossover report widget's expense projection now matches transactions by category and date only, like the PWA, instead of also filtering by amount sign, transfers, and off-budget accounts - a refund posted to an expense category now nets against that month's spend instead of inflating the projected expense ([#560](https://github.com/azimul-kabir/actua/pull/560))
+
 ## [1.0.0-beta.42] - 2026-09-24
 
 ### Fixed
