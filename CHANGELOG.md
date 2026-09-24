@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.43] - 2026-09-25
+
 ### Added
 
 - Added the remaining currencies from Actual's currency list to the currency setting ([#566](https://github.com/azimul-kabir/actua/pull/566))
