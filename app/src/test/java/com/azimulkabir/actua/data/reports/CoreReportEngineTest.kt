@@ -369,3 +369,44 @@ class BalanceForecastTest {
         assertEquals("1 scheduled transactions included", widget.subtitle)
     }
 }
+
+/**
+ * PWA (`calendar-spreadsheet.ts`) and Actuali's `CalendarEngine` both widen the resolved time frame
+ * to whole calendar months before filtering transactions; a non-month-aligned resolved range (a
+ * `static` range with day-level bounds, or `yearToDate`/`priorYearToDate` ending at `today`) must
+ * not drop transactions outside the literal range but inside the containing month (actua#545).
+ */
+class CalendarTest {
+    private val context = RuleContext()
+
+    private fun tx(id: String, date: Int, amount: Long) = ActualTransaction(
+        id, "a", date, amount, null, null, null, null, null, false, false, null, false, null, false, null, null, null, null)
+
+    private fun row(meta: String? = null) = DashboardWidgetRow("w", "calendar-card", meta)
+
+    @Test fun `widens a static day-level range to whole calendar months before filtering`() {
+        val rows = listOf(
+            tx("1", 20240105, 50000),
+            tx("2", 20240220, -30000),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2024-01-15","end":"2024-02-10"}}"""),
+            rows, context,
+        )
+        assertEquals(ReportWidgetKind.CALENDAR, widget.kind)
+        assertEquals(50000L, widget.valueCents)
+        assertEquals(30000L, widget.comparisonCents)
+        assertEquals(2, widget.points.size)
+    }
+
+    @Test fun `widens yearToDate's today-bounded end to the end of the current month`() {
+        val rows = listOf(tx("1", 20260930, 40000))
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"yearToDate"}}"""),
+            rows, context, today = LocalDate.of(2026, 9, 24),
+        )
+        assertEquals(ReportWidgetKind.CALENDAR, widget.kind)
+        assertEquals(40000L, widget.valueCents)
+        assertEquals(1, widget.points.size)
+    }
+}

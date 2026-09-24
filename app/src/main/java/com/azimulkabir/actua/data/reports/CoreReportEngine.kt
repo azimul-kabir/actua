@@ -115,7 +115,16 @@ object CoreReportEngine {
             )
             "formula-card" -> formula(row.id, name, meta, transactions, context, today)
             "custom-report" -> customReport(row.id, name, filtered, context, incomeCategoryIds)
-            "calendar-card" -> calendar(row.id, name, filtered)
+            "calendar-card" -> {
+                val monthStart = start.withDayOfMonth(1)
+                val monthEnd = end.withDayOfMonth(end.lengthOfMonth())
+                val calendarFiltered = transactions.asSequence()
+                    .filterNot { it.tombstone }
+                    .filter { it.date in monthStart.toYmd()..monthEnd.toYmd() }
+                    .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }
+                    .toList()
+                calendar(row.id, name, calendarFiltered)
+            }
             "crossover-card" -> crossover(row.id, name, meta, transactions, context, incomeCategoryIds,
                 accountBalances, today)
             "budget-analysis-card" -> budgetAnalysis(row.id, name, meta, context, budgetMonth, start, end)
