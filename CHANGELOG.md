@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added the remaining currencies from Actual's currency list to the currency setting ([#566](https://github.com/azimul-kabir/actua/pull/566))
+
 ### Fixed
 
 - The Accounts tab's monthly summary now counts a transfer into or out of an off-budget account as an expense or income instead of excluding every transfer ([#562](https://github.com/azimul-kabir/actua/pull/562))

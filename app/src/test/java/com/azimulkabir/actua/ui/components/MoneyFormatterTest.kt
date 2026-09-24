@@ -70,4 +70,26 @@ class MoneyFormatterTest {
         assertEquals("৳", currencyInputPrefix())
     }
 
+    @Test fun supportsCurrenciesAddedForActualParity() {
+        CurrencyDisplay.symbolOnly = true
+
+        CurrencyDisplay.code = "BRL"
+        assertEquals("R${'$'}", currencyInputPrefix())
+
+        CurrencyDisplay.code = "CHF"
+        assertEquals("Fr.", currencyInputPrefix())
+
+        CurrencyDisplay.code = "RUB"
+        assertEquals("₽", currencyInputPrefix())
+
+        CurrencyDisplay.code = "TRY"
+        assertEquals("₺", currencyInputPrefix())
+
+        CurrencyDisplay.code = "PKR"
+        assertEquals("Rs.", currencyInputPrefix())
+
+        CurrencyDisplay.code = "UZS"
+        assertEquals("UZS", currencyInputPrefix())
+    }
+
 }
