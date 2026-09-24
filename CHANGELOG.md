@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- The Accounts tab's monthly summary now counts a transfer into or out of an off-budget account as an expense or income instead of excluding every transfer ([#562](https://github.com/azimul-kabir/actua/pull/562))
+
 ## [1.0.0-beta.42] - 2026-09-24
 
 ### Fixed
