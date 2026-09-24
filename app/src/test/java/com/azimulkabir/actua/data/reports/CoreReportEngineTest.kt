@@ -197,6 +197,38 @@ class CrossoverTest {
         assertEquals(100L, comparison("hampel"))
     }
 
+    @Test fun `a refund posted to an expense category nets against that month's spend instead of being dropped`() {
+        // Upstream's expense query has no amount-sign filter: it sums every transaction in the
+        // selected categories for the month and negates the total, so a positive refund/reimbursement
+        // reduces that month's projected expense. Filtering to amountCents < 0 (as a naive port would)
+        // drops the refund entirely and inflates the expense, understating years-to-retire.
+        val rows = listOf(
+            tx("1", "invest", 20260105, 100_000),
+            tx("2", "checking", 20260110, -500, "rent"),
+            tx("3", "checking", 20260115, 200, "rent"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-01","end":"2026-01"},
+                |"incomeAccountIds":["invest"],"expenseCategoryIds":["rent"]}""".trimMargin()),
+            rows, today = LocalDate.of(2026, 2, 1),
+        )
+        assertEquals(300L, widget.points.first().secondaryCents)
+    }
+
+    @Test fun `an off-budget or transfer transaction in a selected expense category still counts, matching upstream`() {
+        val rows = listOf(
+            tx("1", "invest", 20260105, 100_000),
+            tx("2", "checking", 20260110, -500, "rent").copy(transferAccountId = "savings"),
+        )
+        val context = RuleContext(offBudgetAccountIds = setOf("checking"))
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-01","end":"2026-01"},
+                |"incomeAccountIds":["invest"],"expenseCategoryIds":["rent"]}""".trimMargin()),
+            rows, context, today = LocalDate.of(2026, 2, 1),
+        )
+        assertEquals(500L, widget.points.first().secondaryCents)
+    }
+
     @Test fun `an explicit, even empty, expenseCategoryIds list is honored as-is instead of matching everything`() {
         // Upstream's expenseCategoryIds memo only falls back to "every non-income category" when the
         // widget meta key is absent; an explicitly stored empty list means "no categories selected",

@@ -309,12 +309,16 @@ object CoreReportEngine {
             }
         }
 
+        // Mirrors upstream's expense AQL query exactly: transactions are matched purely by category
+        // membership and date range (no amount-sign, transfer, or off-budget filtering), and the
+        // whole category's monthly sum is negated - a refund/reimbursement posted to an expense
+        // category nets against that month's spend instead of being dropped, which would otherwise
+        // inflate the projected expense (and understate years-to-retire parity with the PWA).
         val expenseByMonth = live.asSequence()
-            .filter { it.amountCents < 0 && it.transferAccountId == null &&
-                it.accountId !in context.offBudgetAccountIds && it.categoryId !in incomeCategoryIds &&
-                it.date in startYmd..rangeEndYmd &&
+            .filter { it.date in startYmd..rangeEndYmd &&
                 if (explicitExpenseCategories != null) it.categoryId?.let(explicitExpenseCategories::contains) == true
-                else showHiddenCategories || it.categoryId !in context.hiddenCategoryIds }
+                else it.categoryId != null && it.categoryId !in incomeCategoryIds &&
+                    (showHiddenCategories || it.categoryId !in context.hiddenCategoryIds) }
             .groupBy { YearMonth.from(it.localDate()) }
             .mapValues { (_, rows) -> -rows.sumOf { it.amountCents } }
 
