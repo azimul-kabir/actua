@@ -275,10 +275,11 @@ private fun AccountsSummary(
     // and otherwise only recompute it when `transactions` actually changes, not on every
     // recomposition of this row (e.g. opening the overflow menu elsewhere on the screen).
     val summary = if (showMonthlySummary) {
-        remember(transactions) {
+        remember(transactions, accounts) {
             val monthKey = java.text.SimpleDateFormat("yyyyMM", java.util.Locale.US).format(java.util.Date())
             val monthTransactions = transactions.filter { it.date.filter(Char::isDigit).startsWith(monthKey) }
-            AccountMonthlySummaryCalculator.calculate(monthTransactions)
+            val offBudgetAccountNames = accounts.filter { it.offBudget }.map { it.name }.toSet()
+            AccountMonthlySummaryCalculator.calculate(monthTransactions, offBudgetAccountNames)
         }
     } else null
     Surface(

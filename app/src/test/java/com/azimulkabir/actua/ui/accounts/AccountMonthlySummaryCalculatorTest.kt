@@ -47,13 +47,57 @@ class AccountMonthlySummaryCalculatorTest {
         assertEquals(1_000, summary.netCents)
     }
 
+    @Test fun `on-budget leg of a transfer into an off-budget account counts as an expense`() {
+        val summary = AccountMonthlySummaryCalculator.calculate(
+            listOf(transaction(-20_000, type = Type.TRANSFER, account = "Checking", transferAccount = "DPS Savings")),
+            offBudgetAccountNames = setOf("DPS Savings"),
+        )
+
+        assertEquals(0, summary.incomeCents)
+        assertEquals(20_000, summary.expenseCents)
+        assertEquals(-20_000, summary.netCents)
+    }
+
+    @Test fun `on-budget leg of a transfer from an off-budget account counts as income`() {
+        val summary = AccountMonthlySummaryCalculator.calculate(
+            listOf(transaction(20_000, type = Type.TRANSFER, account = "Checking", transferAccount = "DPS Savings")),
+            offBudgetAccountNames = setOf("DPS Savings"),
+        )
+
+        assertEquals(20_000, summary.incomeCents)
+        assertEquals(0, summary.expenseCents)
+        assertEquals(20_000, summary.netCents)
+    }
+
+    @Test fun `off-budget leg of a cross-boundary transfer is excluded to avoid double counting`() {
+        val summary = AccountMonthlySummaryCalculator.calculate(
+            listOf(transaction(20_000, type = Type.TRANSFER, account = "DPS Savings", transferAccount = "Checking")),
+            offBudgetAccountNames = setOf("DPS Savings"),
+        )
+
+        assertEquals(0, summary.incomeCents)
+        assertEquals(0, summary.expenseCents)
+    }
+
+    @Test fun `transfer between two off-budget accounts is excluded`() {
+        val summary = AccountMonthlySummaryCalculator.calculate(
+            listOf(transaction(-5_000, type = Type.TRANSFER, account = "DPS Savings", transferAccount = "Investment")),
+            offBudgetAccountNames = setOf("DPS Savings", "Investment"),
+        )
+
+        assertEquals(0, summary.incomeCents)
+        assertEquals(0, summary.expenseCents)
+    }
+
     private fun transaction(
         amountCents: Long,
         categoryIsIncome: Boolean? = null,
         type: Type = if (amountCents >= 0) Type.INCOME else Type.EXPENSE,
+        account: String = "Checking",
+        transferAccount: String? = null,
     ) = Transaction(
         id = amountCents.toString(), date = "20260913", payee = "", category = "",
-        account = "Checking", amount = 0, cleared = true, amountCents = amountCents,
-        type = type, categoryIsIncome = categoryIsIncome,
+        account = account, amount = 0, cleared = true, amountCents = amountCents,
+        type = type, categoryIsIncome = categoryIsIncome, transferAccount = transferAccount,
     )
 }
