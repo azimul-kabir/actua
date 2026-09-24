@@ -910,8 +910,10 @@ class ActuaRepository(context: Context) {
         val db = actualDatabase ?: return emptyList()
         val inputs = if (dataVersion < 0) ReportInputs(-1, db, db.fetchAccounts(), db.fetchCategoryGroups(),
             db.fetchTransactionsForReports()) else reportInputs(db, dataVersion)
+        val budgetMonths = mutableMapOf<java.time.YearMonth, com.azimulkabir.actua.data.budget.model.ActualBudgetMonth?>()
         return com.azimulkabir.actua.data.reports.SavedReportEngine.computeAll(
             db.fetchSavedReports(), inputs.rows, inputs.accounts, inputs.groups, view,
+            budgetMonth = { month -> budgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() } },
         )
     }
 
@@ -967,6 +969,9 @@ class ActuaRepository(context: Context) {
         )
         val savedWidgets = com.azimulkabir.actua.data.reports.SavedReportEngine.computeAll(
             savedReportRows, allRows, accounts, groups,
+            budgetMonth = { month ->
+                reportBudgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() }
+            },
         )
         val pages = dashboards + com.azimulkabir.actua.model.ReportDashboardPage("saved-reports", "Overview", savedWidgets)
         return ReportSnapshot(

@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- A saved custom report with the "Budgeted" balance type now reads budget-engine cells instead of silently summing transaction spend, matching PWA/Actuali ([#553](https://github.com/azimul-kabir/actua/pull/553))
 - The Calendar report widget now widens its resolved time frame to whole calendar months before filtering transactions, matching PWA/Actuali, instead of dropping transactions outside a day-level or today-bounded range ([#552](https://github.com/azimul-kabir/actua/pull/552))
 - The Spending widget's "all-time" average range now starts from the budget's true earliest transaction instead of the spending-scoped list, matching PWA/Actuali ([#551](https://github.com/azimul-kabir/actua/pull/551))
 - The Age of Money report widget no longer lets a post-dated transaction enter its FIFO pool and produce a bogus zero-day age; the pool is now capped at today like the rest of the widget ([#550](https://github.com/azimul-kabir/actua/pull/550))

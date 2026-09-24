@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.data.reports
 
 import com.azimulkabir.actua.data.budget.model.ActualAccount
+import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
+import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.rules.Rule
@@ -34,10 +36,11 @@ object SavedReportEngine {
     fun computeAll(
         rows: List<SavedReportRow>, transactions: List<ActualTransaction>, accounts: List<ActualAccount>,
         groups: List<ActualCategoryGroup>, view: ReportViewFilter = ReportViewFilter(),
+        budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
     ): List<ReportWidget> {
         val shared = Shared(transactions, accounts, groups)
         return listOf(incomeExpense(transactions, view, shared = shared)) +
-            rows.map { compute(it, transactions, accounts, groups, view = view, shared = shared) }
+            rows.map { compute(it, transactions, accounts, groups, view = view, shared = shared, budgetMonth = budgetMonth) }
     }
 
     fun compute(
@@ -48,6 +51,7 @@ object SavedReportEngine {
         today: LocalDate = LocalDate.now(),
         view: ReportViewFilter = ReportViewFilter(),
         shared: Shared = Shared(transactions, accounts, groups),
+        budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
     ): ReportWidget {
         val aggregator = shared.aggregator
         val (start, end) = dateRange(
@@ -56,6 +60,10 @@ object SavedReportEngine {
         val selected = row.selectedCategories?.let { runCatching { JSONArray(it) }.getOrNull() }?.let { array ->
             (0 until array.length()).mapNotNull { array.optJSONObject(it)?.optString("id")?.takeIf(String::isNotBlank) }
         }.orEmpty().toSet()
+        val balType = balanceType(row.balanceType)
+        if (balType == ReportBalanceType.BUDGETED) {
+            return computeBudgeted(row, groups, start, end, selected, view, budgetMonth)
+        }
         val filter = ReportFilter(
             startDate = start.toYmd(), endDate = end.toYmd(),
             accountIds = view.accountIds.takeIf { it.isNotEmpty() },
@@ -63,7 +71,7 @@ object SavedReportEngine {
             categoryIds = selected.takeIf { it.isNotEmpty() },
             showOffBudget = row.showOffBudget || view.includeOffBudget, showHiddenCategories = row.showHidden,
             showUncategorized = row.showUncategorized,
-            balanceType = balanceType(row.balanceType),
+            balanceType = balType,
         )
         val conditions = parseConditions(row)
         val context = shared.context
@@ -89,6 +97,68 @@ object SavedReportEngine {
         return ReportWidget(
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
             valueCents = included.sumOf { it.amountCents }, categories = segments, points = points, timeMode = timeMode,
+            graphType = row.graphType, subtitle = "$start – $end · ${row.groupBy}",
+        )
+    }
+
+    /**
+     * "Budgeted" balance type: reads budget-engine cells (via [budgetMonth], the same
+     * `fetchBudgetMonth` source `CoreReportEngine.budgetAnalysis` uses) instead of aggregating
+     * transactions, matching the PWA's `fetchBudgetData` (excludes income categories, one row per
+     * category/month) and Actuali's `budgetRows()`. Budget cells only exist at monthly
+     * granularity, so unlike the transaction path this ignores [SavedReportRow.interval] and
+     * always buckets by month; grouping only distinguishes Category from Group; a Payee/Account
+     * `groupBy` (meaningless for budget cells, since they carry no payee/account) falls back to
+     * Category, mirroring the transaction path's own `else -> CATEGORY` default.
+     */
+    private fun computeBudgeted(
+        row: SavedReportRow, groups: List<ActualCategoryGroup>, start: LocalDate, end: LocalDate,
+        selectedCategories: Set<String>, view: ReportViewFilter, budgetMonth: (YearMonth) -> ActualBudgetMonth?,
+    ): ReportWidget {
+        val groupNames = groups.associate { it.id to it.name }
+        val incomeCategoryIds = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id }
+        val groupFilter = view.categoryGroupIds.takeIf { it.isNotEmpty() }
+        val byGroup = row.groupBy == "Group"
+
+        fun monthCategories(month: YearMonth): List<ActualCategoryBudget> {
+            val budget = budgetMonth(month) ?: return emptyList()
+            val pool = if (row.showHidden) budget.categories + budget.hiddenCategories else budget.categories
+            return pool.filter { category ->
+                category.categoryId !in incomeCategoryIds &&
+                    (selectedCategories.isEmpty() || category.categoryId in selectedCategories) &&
+                    (groupFilter == null || category.groupId in groupFilter)
+            }
+        }
+
+        fun totals(rows: List<ActualCategoryBudget>): List<ReportCategory> = rows
+            .groupBy { if (byGroup) it.groupId else it.categoryId }
+            .map { (key, matching) ->
+                val name = (if (byGroup) groupNames[key] else matching.first().categoryName).orEmpty()
+                ReportCategory(name.ifBlank { "Uncategorized" }, matching.sumOf { it.budgetedCents })
+            }
+            .sortedByDescending { it.spentCents }
+
+        val months = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
+            .takeWhile { !it.isAfter(YearMonth.from(end)) }.toList()
+        val byMonth = months.associateWith(::monthCategories)
+        val all = byMonth.values.flatten()
+        val segments = if (row.groupBy == "Interval") emptyList() else totals(all)
+        val timeMode = row.mode == "time" || row.groupBy == "Interval"
+        val stacked = timeMode && row.groupBy != "Interval" && row.graphType == "StackedBarGraph"
+        val canonicalOrder = segments.map { it.name }
+        val points = months.map { month ->
+            val rows = byMonth.getValue(month)
+            if (stacked) {
+                val byName = totals(rows).associateBy { it.name }
+                val filled = canonicalOrder.map { name -> byName[name] ?: ReportCategory(name, 0) }
+                ReportPoint(month.toString(), filled.sumOf { it.spentCents }, segments = filled)
+            } else {
+                ReportPoint(month.toString(), rows.sumOf { it.budgetedCents })
+            }
+        }
+        return ReportWidget(
+            id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
+            valueCents = all.sumOf { it.budgetedCents }, categories = segments, points = points, timeMode = timeMode,
             graphType = row.graphType, subtitle = "$start – $end · ${row.groupBy}",
         )
     }
@@ -199,6 +269,7 @@ object SavedReportEngine {
         "Deposit", "Income", "totalAssets" -> ReportBalanceType.ASSETS
         "Net", "netAssets" -> ReportBalanceType.NET_ASSETS
         "netDebts" -> ReportBalanceType.NET_DEBTS
+        "Budgeted", "totalBudgeted" -> ReportBalanceType.BUDGETED
         else -> ReportBalanceType.DEBTS
     }
 

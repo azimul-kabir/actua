@@ -65,7 +65,8 @@ object CoreReportEngine {
                             ?.optString("id")?.takeIf(String::isNotBlank)?.let(savedReportsById::get)
                     } else null
                     if (savedReport != null && savedShared != null) {
-                        SavedReportEngine.compute(savedReport, transactions, accounts, groups, today, shared = savedShared)
+                        SavedReportEngine.compute(savedReport, transactions, accounts, groups, today,
+                            shared = savedShared, budgetMonth = budgetMonth)
                             .copy(id = row.id)
                     } else {
                         compute(

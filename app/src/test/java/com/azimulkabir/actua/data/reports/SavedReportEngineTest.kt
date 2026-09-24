@@ -24,6 +24,68 @@ class SavedReportEngineTest {
         assertEquals(ReportBalanceType.DEBTS, SavedReportEngine.balanceType("Payment"))
         assertEquals(ReportBalanceType.ASSETS, SavedReportEngine.balanceType("Deposit"))
         assertEquals(ReportBalanceType.NET_ASSETS, SavedReportEngine.balanceType("Net"))
+        assertEquals(ReportBalanceType.BUDGETED, SavedReportEngine.balanceType("Budgeted"))
+    }
+}
+
+/** Regression coverage for https://github.com/azimul-kabir/actua/issues/546. */
+class SavedReportBudgetedTest {
+    private val groups = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("gi", "Income", true, false, 1.0,
+            listOf(com.azimulkabir.actua.data.budget.model.ActualCategory("pay", "Pay", "gi", true, false, 1.0))),
+        com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("ge", "Bills", false, false, 2.0,
+            listOf(
+                com.azimulkabir.actua.data.budget.model.ActualCategory("groceries", "Groceries", "ge", false, false, 1.0),
+                com.azimulkabir.actua.data.budget.model.ActualCategory("rent", "Rent", "ge", false, false, 2.0),
+            )),
+    )
+    private val accounts = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0, 0),
+    )
+    private fun tx(id: String, date: Int, amount: Long, cat: String) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        id, "a", date, amount, null, null, cat, null, null, false, false, null, false, null, false, null, null, null, null)
+    private fun categoryBudget(categoryId: String, name: String, groupId: String, groupName: String, budgeted: Long, spent: Long) =
+        com.azimulkabir.actua.data.budget.model.ActualCategoryBudget(
+            "2026-06", categoryId, name, groupId, groupName, 0.0, 0.0, budgeted, spent, 0, 0,
+            false, false, null, false, false, null, null, null,
+        )
+    private fun incomeBudget(categoryId: String, name: String, groupName: String) =
+        com.azimulkabir.actua.data.budget.model.ActualIncomeBudget("2026-06", categoryId, name, groupName, 0.0, 0, 0, false, false)
+    private val budgetMonth = com.azimulkabir.actua.data.budget.model.ActualBudgetMonth(
+        "2026-06",
+        listOf(categoryBudget("groceries", "Groceries", "ge", "Bills", 50000, -12000), categoryBudget("rent", "Rent", "ge", "Bills", 150000, -150000)),
+        listOf(incomeBudget("pay", "Pay", "Income")), 0, emptyList(), emptyList(),
+    )
+    private val saved = SavedReportRow("r", "R", "2026-06", "2026-06", true, null, "Category", "Budgeted", false, false, true,
+        null, "DonutGraph", null, "and", "Monthly")
+
+    @Test fun `reads budget-engine cells rather than summing transactions`() {
+        // $500 budgeted to Groceries but only $120 spent - the report must show the budgeted
+        // amount, not the transaction sum that the DEBTS branch would silently compute.
+        val transactions = listOf(tx("1", 20260605, -12000, "groceries"))
+        val w = SavedReportEngine.compute(saved, transactions, accounts, groups, budgetMonth = { budgetMonth })
+        assertEquals(200000L, w.valueCents)
+        assertEquals(setOf("Groceries" to 50000L, "Rent" to 150000L), w.categories.map { it.name to it.spentCents }.toSet())
+    }
+
+    @Test fun `excludes income categories`() {
+        val monthWithIncome = budgetMonth.copy(
+            categories = budgetMonth.categories + categoryBudget("pay", "Pay", "gi", "Income", 999999, 0),
+        )
+        val w = SavedReportEngine.compute(saved, emptyList(), accounts, groups, budgetMonth = { monthWithIncome })
+        assertEquals(false, w.categories.any { it.name == "Pay" })
+    }
+
+    @Test fun `groups by category group when requested`() {
+        val w = SavedReportEngine.compute(saved.copy(groupBy = "Group"), emptyList(), accounts, groups, budgetMonth = { budgetMonth })
+        assertEquals(listOf("Bills" to 200000L), w.categories.map { it.name to it.spentCents })
+    }
+
+    @Test fun `no budget data for the month yields zero rather than falling back to transactions`() {
+        val transactions = listOf(tx("1", 20260605, -12000, "groceries"))
+        val w = SavedReportEngine.compute(saved, transactions, accounts, groups, budgetMonth = { null })
+        assertEquals(0L, w.valueCents)
+        assertEquals(emptyList<com.azimulkabir.actua.model.ReportCategory>(), w.categories)
     }
 }
 

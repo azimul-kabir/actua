@@ -7,8 +7,10 @@ import com.azimulkabir.actua.data.budget.model.ActualTransaction
 /**
  * Upstream `balanceType`: which transactions of the selected set contribute
  * (`totalDebts`, `totalAssets`, `netAssets`, `netDebts` in loot-core custom reports).
+ * `BUDGETED` (`totalBudgeted`) reads budget-engine cells instead of transactions, so it never
+ * reaches [ReportAggregator.select] - [SavedReportEngine] branches on it before building a filter.
  */
-enum class ReportBalanceType { DEBTS, ASSETS, NET_ASSETS, NET_DEBTS }
+enum class ReportBalanceType { DEBTS, ASSETS, NET_ASSETS, NET_DEBTS, BUDGETED }
 
 enum class ReportGrouping { CATEGORY, CATEGORY_GROUP, PAYEE, ACCOUNT }
 
@@ -75,6 +77,8 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
             ReportBalanceType.DEBTS -> tx.amountCents < 0
             ReportBalanceType.ASSETS -> tx.amountCents > 0
             ReportBalanceType.NET_ASSETS, ReportBalanceType.NET_DEBTS -> true
+            // Budgeted reports never select transactions; SavedReportEngine reads budget cells instead.
+            ReportBalanceType.BUDGETED -> false
         }
     }
 
