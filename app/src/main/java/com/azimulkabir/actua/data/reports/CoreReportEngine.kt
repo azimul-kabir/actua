@@ -103,7 +103,8 @@ object CoreReportEngine {
             "summary-card" -> summary(row.id, name, meta, transactions, conditions, context, start, end, today)
             "net-worth-card" -> netWorth(row.id, name, meta, transactions.filterNot { it.tombstone }
                 .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }, start, end)
-            "cash-flow-card" -> cashFlow(row.id, name, filtered.filter { it.transferAccountId == null && it.accountId !in context.offBudgetAccountIds }, start, end)
+            "cash-flow-card" -> cashFlow(row.id, name, filtered.filter { it.transferAccountId == null &&
+                it.accountId !in context.offBudgetAccountIds && it.date <= minOf(end, today).toYmd() }, start, end)
             "spending-card" -> spending(row.id, name, meta, transactions, context, incomeCategoryIds,
                 budgetedByCategory, today)
             "markdown-card" -> ReportWidget(row.id, ReportWidgetKind.MARKDOWN, name,
