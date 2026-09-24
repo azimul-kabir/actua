@@ -16,6 +16,7 @@ import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
 import com.azimulkabir.actua.data.navigation.TabBarLayout
 import com.azimulkabir.actua.data.navigation.TabItem
+import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import org.junit.After
 import org.junit.Before
@@ -36,10 +37,13 @@ class AppNavigationTabBarTest {
     private val files = BudgetFileManager(context)
     private val activeBudget = ActiveBudgetStore(context)
     private val tabBarPreferences = TabBarPreferences(context)
+    private val displayPreferences = DisplayPreferences(context)
     private var previousBudgetId: String? = null
+    private var previousStartPage: String? = null
 
     @Before fun seedDemoBudget() {
         previousBudgetId = activeBudget.budgetId
+        previousStartPage = displayPreferences.startPage
         runCatching { if (files.budgetDirectory(DemoBudgetManager.BUDGET_ID).exists()) files.deleteBudget(DemoBudgetManager.BUDGET_ID) }
         DemoBudgetManager.recreate(files)
         activeBudget.budgetId = DemoBudgetManager.BUDGET_ID
@@ -48,6 +52,7 @@ class AppNavigationTabBarTest {
     @After fun restorePreviousBudget() {
         activeBudget.budgetId = previousBudgetId
         tabBarPreferences.restoreDefaults()
+        previousStartPage?.let { displayPreferences.startPage = it }
         runCatching { files.deleteBudget(DemoBudgetManager.BUDGET_ID) }
     }
 
@@ -62,7 +67,11 @@ class AppNavigationTabBarTest {
         }
     }
 
-    @Test fun reportsCanBeConfiguredAsATabAndBackReturnsToHome() {
+    @Test fun reportsCanBeConfiguredAsATabAndBackReturnsToConfiguredStartPage() {
+        // The back gesture's exit tab follows the Display settings start page (#568), so pin it
+        // to Home here to keep this test's expectation explicit rather than relying on whatever
+        // the shared default happens to be.
+        displayPreferences.startPage = "Home"
         tabBarPreferences.save(
             TabBarLayout(
                 order = listOf(
