@@ -44,6 +44,8 @@ data class ReportWidget(
     val comparisonCents: Long? = null,
     val points: List<ReportPoint> = emptyList(),
     val categories: List<ReportCategory> = emptyList(),
+    /** Income-side breakdown for the Sankey widget; empty for every other widget kind. */
+    val incomeCategories: List<ReportCategory> = emptyList(),
     val markdown: String? = null,
     val sourceType: String? = null,
     /** Saved-report presentation hint (`DonutGraph`, `BarGraph`, ...). */

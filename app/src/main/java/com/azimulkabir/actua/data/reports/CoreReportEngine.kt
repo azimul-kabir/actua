@@ -113,7 +113,7 @@ object CoreReportEngine {
                 accountBalances, today)
             "budget-analysis-card" -> budgetAnalysis(row.id, name, filtered, context, incomeCategoryIds,
                 budgetedByCategory, start, end)
-            "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds)
+            "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, start, end)
             "balance-forecast-card" -> balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context)
             "monte-carlo-card" -> monteCarlo(row.id, name, meta, accountBalances, today)
             else -> ReportWidget(row.id, ReportWidgetKind.UNSUPPORTED, name, sourceType = row.type)
@@ -253,19 +253,34 @@ object CoreReportEngine {
 
     private fun sankey(
         id: String, name: String, transactions: List<ActualTransaction>, context: RuleContext,
-        incomeCategoryIds: Set<String>,
+        incomeCategoryIds: Set<String>, start: LocalDate, end: LocalDate,
     ): ReportWidget {
-        val income = transactions.filter { it.amountCents > 0 && it.transferAccountId == null }.sumOf { it.amountCents }
+        fun groupLabel(transaction: ActualTransaction) =
+            transaction.categoryId?.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
+                .orEmpty().ifBlank { "Other" }
+        // Income is broken down per source category/payee (matching Actual's PWA), not per category
+        // group like expenses: budgets typically keep every income source in a single "Income" group,
+        // so grouping by group name would collapse them all into one bar.
+        fun incomeLabel(transaction: ActualTransaction) =
+            transaction.categoryId?.let(context.categoryNames::get)?.takeIf(String::isNotBlank)
+                ?: transaction.payeeName?.takeIf(String::isNotBlank) ?: "Other"
+        val incomeRows = transactions.filter { it.amountCents > 0 && it.transferAccountId == null &&
+            it.accountId !in context.offBudgetAccountIds }
+        val income = incomeRows.sumOf { it.amountCents }
+        val incomeCategories = incomeRows.groupBy(::incomeLabel)
+            .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, rows.sumOf { it.amountCents }) }
+            .sortedByDescending { it.spentCents }
         val categories = transactions.filter { it.amountCents < 0 && it.transferAccountId == null &&
             it.accountId !in context.offBudgetAccountIds && it.categoryId !in incomeCategoryIds }
-            .groupBy {
-                it.categoryId?.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
-                    .orEmpty().ifBlank { "Other" }
-            }
+            .groupBy(::groupLabel)
             .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, -rows.sumOf { it.amountCents }) }
             .sortedByDescending { it.spentCents }
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
+        val subtitle = if (YearMonth.from(start) == YearMonth.from(end)) start.format(formatter)
+            else "${start.format(formatter)} - ${end.format(formatter)}"
         return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = income,
-            comparisonCents = categories.sumOf { it.spentCents }, categories = categories)
+            comparisonCents = categories.sumOf { it.spentCents }, categories = categories,
+            incomeCategories = incomeCategories, subtitle = subtitle)
     }
 
     /**
