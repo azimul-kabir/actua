@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- The Age of Money report widget now counts a transfer to an account outside the widget's account filter as an expense, matching the PWA, instead of dropping it whenever the counterpart account is on-budget ([#536](https://github.com/azimul-kabir/actua/pull/536))
 - The Crossover report widget now uses the PWA's historical-balance CAGR for its default return, Hampel/median/mean expense projection, and last-historical-balance seeding instead of a safe-withdrawal-rate fallback and plain expense average ([#535](https://github.com/azimul-kabir/actua/pull/535))
 - The Budget Analysis report widget now respects its category/category-group filters and shows the budget engine's carried-over balance instead of an unfiltered, non-rolling total ([#534](https://github.com/azimul-kabir/actua/pull/534))
 - The Spending report widget no longer excludes all transfers; it now matches Actual's PWA/Web filtering, which only drops the leg on an off-budget account ([#533](https://github.com/azimul-kabir/actua/pull/533))
