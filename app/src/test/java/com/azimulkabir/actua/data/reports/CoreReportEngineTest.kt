@@ -101,3 +101,72 @@ class SpendingTest {
         assertEquals(50000L, widget.valueCents)
     }
 }
+
+/**
+ * Ported from Actual's `crossover-spreadsheet.ts`: the default annual return is the CAGR between
+ * the first and last historical monthly balance (not the widget's safe-withdrawal-rate fallback),
+ * the projection seeds from that last historical balance (not the account's live balance), and the
+ * expense projection reads `projectionType` (`hampel`/`median`/`mean`) instead of a plain average.
+ */
+class CrossoverTest {
+    private fun tx(id: String, accountId: String, date: Int, amount: Long, categoryId: String? = null) =
+        ActualTransaction(id, accountId, date, amount, null, null, categoryId, null, null, false, false, null,
+            false, null, false, null, null, null, null)
+
+    private fun row(meta: String) = DashboardWidgetRow("w", "crossover-card", meta)
+
+    @Test fun `default return is the CAGR of historical balances, seeded from the last historical balance not the live one`() {
+        // "invest" grows 10%/month for 3 months (100000 -> 110000 -> 121000 -> 133100), so the CAGR
+        // is exactly 10%/month. accountBalances carries a deliberately different "live" balance to
+        // prove the projection seeds from the last *historical* balance (133100), not it.
+        val rows = listOf(
+            tx("1", "invest", 20260105, 100_000),
+            tx("2", "invest", 20260205, 10_000),
+            tx("3", "invest", 20260305, 11_000),
+            tx("4", "invest", 20260405, 12_100),
+            tx("5", "checking", 20260110, -100, "rent"),
+            tx("6", "checking", 20260210, -100, "rent"),
+            tx("7", "checking", 20260310, -100, "rent"),
+            tx("8", "checking", 20260410, -100, "rent"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-01","end":"2026-04"},
+                |"incomeAccountIds":["invest"],"safeWithdrawalRate":1.0}""".trimMargin()),
+            rows, accountBalances = mapOf("invest" to 999_999_999L),
+            today = LocalDate.of(2026, 5, 15),
+        )
+        assertEquals(ReportWidgetKind.CROSSOVER, widget.kind)
+        assertEquals(
+            listOf("2026-01" to (8333L to 100L), "2026-02" to (9167L to 100L),
+                "2026-03" to (10083L to 100L), "2026-04" to (11092L to 100L)),
+            widget.points.take(4).map { it.period to (it.primaryCents to it.secondaryCents) },
+        )
+        // First projected month (2026-05): balance grown 10% from the historical seed (133100 -> 146410).
+        val projected = widget.points[4]
+        assertEquals("2026-05", projected.period)
+        assertEquals(12_201L, projected.primaryCents)
+        assertEquals(100L, projected.secondaryCents)
+        assertEquals(0L, widget.valueCents)
+        assertEquals(100L, widget.comparisonCents)
+    }
+
+    @Test fun `expense projection reads projectionType instead of always averaging`() {
+        // Monthly expenses 100, 100, 200, 100000: mean is pulled way up by the outlier, plain median
+        // isn't, and the Hampel filter drops the outlier before taking the median of what remains.
+        val rows = listOf(
+            tx("1", "invest", 20260105, 100_000),
+            tx("2", "checking", 20260110, -100, "rent"),
+            tx("3", "checking", 20260210, -100, "rent"),
+            tx("4", "checking", 20260310, -200, "rent"),
+            tx("5", "checking", 20260410, -100_000, "rent"),
+        )
+        fun comparison(projectionType: String) = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-01","end":"2026-04"},
+                |"incomeAccountIds":["invest"],"safeWithdrawalRate":1.0,"projectionType":"$projectionType"}""".trimMargin()),
+            rows, today = LocalDate.of(2026, 5, 15),
+        ).comparisonCents
+        assertEquals(25_100L, comparison("mean"))
+        assertEquals(150L, comparison("median"))
+        assertEquals(100L, comparison("hampel"))
+    }
+}
