@@ -454,7 +454,7 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown:
                 ReportWidgetKind.CUSTOM_REPORT -> CustomReport(widget, hideDecimals, onDrillDown)
                 ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
                 ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
-                ReportWidgetKind.BUDGET_ANALYSIS -> ComparisonSeries(widget.points, "Budgeted", "Spent", hideDecimals)
+                ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals)
                 ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals)
                 ReportWidgetKind.BALANCE_FORECAST -> {
                     Text("Ending: ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
@@ -1042,6 +1042,17 @@ private fun Crossover(widget: ReportWidget, hideDecimals: Boolean) {
     ComparativeTrendChart(widget.points, "Investment income", "Monthly expenses", hideDecimals)
     Text("Investment income vs ${formatMoneyCents(widget.comparisonCents ?: 0, hideDecimals)} monthly expenses",
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun BudgetAnalysis(widget: ReportWidget, hideDecimals: Boolean) {
+    ComparisonSeries(widget.points, "Budgeted", "Spent", hideDecimals)
+    widget.balanceCents?.let {
+        Text(
+            "Balance: ${formatMoneyCents(it, hideDecimals)}",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Composable

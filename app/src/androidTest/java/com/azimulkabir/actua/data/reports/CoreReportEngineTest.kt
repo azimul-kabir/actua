@@ -2,7 +2,9 @@ package com.azimulkabir.actua.data.reports
 
 import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
+import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
 import com.azimulkabir.actua.data.budget.model.ActualCategory
+import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.rules.RuleContext
@@ -265,6 +267,56 @@ class CoreReportEngineTest {
         assertEquals("to age 90", widget.subtitle)
         assertEquals(10_000_000L, widget.points.first().primaryCents)
     }
+
+    @Test fun budgetAnalysisScopesBudgetedAndSpentToCategoryConditionsAndTracksBalance() {
+        val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"},
+            "conditions":[{"field":"category","op":"is","value":"food"}]}"""
+        val budget = ActualBudgetMonth(
+            "2026-05",
+            listOf(
+                categoryBudget("food", budgeted = 1_000, spent = -400, available = 600),
+                categoryBudget("rent", budgeted = 2_000, spent = -2_000, available = 0),
+            ),
+            emptyList(), null, emptyList(), emptyList(),
+        )
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("ba", "budget-analysis-card", meta), emptyList(),
+            budgetMonth = { budget }, today = today,
+        )
+        val point = widget.points.single()
+        assertEquals(1_000L, point.primaryCents)
+        assertEquals(400L, point.secondaryCents)
+        assertEquals(600L, point.tertiaryCents)
+        assertEquals(600L, widget.balanceCents)
+    }
+
+    @Test fun budgetAnalysisExcludesHiddenCategoriesUnlessRequested() {
+        val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}}"""
+        val budget = ActualBudgetMonth(
+            "2026-05",
+            listOf(categoryBudget("food", budgeted = 1_000, spent = -400, available = 600)),
+            emptyList(), null,
+            listOf(categoryBudget("gifts", budgeted = 500, spent = 0, available = 500)),
+            emptyList(),
+        )
+        val hiddenExcluded = CoreReportEngine.compute(
+            DashboardWidgetRow("ba", "budget-analysis-card", meta), emptyList(),
+            budgetMonth = { budget }, today = today,
+        )
+        assertEquals(1_000L, hiddenExcluded.points.single().primaryCents)
+
+        val hiddenMeta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"},"showHiddenCategories":true}"""
+        val hiddenIncluded = CoreReportEngine.compute(
+            DashboardWidgetRow("ba", "budget-analysis-card", hiddenMeta), emptyList(),
+            budgetMonth = { budget }, today = today,
+        )
+        assertEquals(1_500L, hiddenIncluded.points.single().primaryCents)
+    }
+
+    private fun categoryBudget(id: String, budgeted: Long, spent: Long, available: Long) = ActualCategoryBudget(
+        "2026-05", id, id, "group", "Group", 1.0, 1.0, budgeted, spent, available,
+        available - budgeted - spent, false, false, null, false, false, null, null, null,
+    )
 
     private fun transaction(
         id: String,
