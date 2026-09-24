@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.0.0-beta.42] - 2026-09-24
+
 ### Fixed
 
 - The Cash Flow report widget no longer counts a post-dated transaction inside the current/in-progress month, matching PWA/Actuali ([#556](https://github.com/azimul-kabir/actua/pull/556))
