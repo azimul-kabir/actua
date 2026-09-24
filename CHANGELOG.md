@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- The Budget Analysis report widget now respects its category/category-group filters and shows the budget engine's carried-over balance instead of an unfiltered, non-rolling total ([#534](https://github.com/azimul-kabir/actua/pull/534))
 - The Spending report widget no longer excludes all transfers; it now matches Actual's PWA/Web filtering, which only drops the leg on an off-budget account ([#533](https://github.com/azimul-kabir/actua/pull/533))
 - The Sankey report widget now breaks income down by source and shows its date range, matching Actual's PWA/Web output ([#528](https://github.com/azimul-kabir/actua/pull/528))
 - The Monte Carlo report widget now runs a real success-rate retirement simulation instead of showing a deterministic dollar projection ([#527](https://github.com/azimul-kabir/actua/pull/527))

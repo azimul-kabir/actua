@@ -21,6 +21,8 @@ data class ReportPoint(
     val transactionIds: List<String> = emptyList(),
     /** Per-category breakdown of this point, for a `StackedBarGraph` saved report. */
     val segments: List<ReportCategory> = emptyList(),
+    /** Running rolled-over balance for this point, e.g. Budget Analysis's carried-over leftover. */
+    val tertiaryCents: Long = 0,
 )
 
 data class ReportDashboardPage(
@@ -57,6 +59,8 @@ data class ReportWidget(
     val valueTransactionIds: List<String> = emptyList(),
     /** Ids of the transactions behind [comparisonCents]. */
     val comparisonTransactionIds: List<String> = emptyList(),
+    /** Rolled-over balance for the widget's final point, e.g. Budget Analysis's carried-over leftover. */
+    val balanceCents: Long? = null,
 )
 
 /** Viewer-side override applied on top of a saved report's own settings; never written back. */

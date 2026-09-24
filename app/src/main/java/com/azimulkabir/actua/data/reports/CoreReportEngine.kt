@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.data.reports
 
 import com.azimulkabir.actua.data.budget.model.ActualAccount
+import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
+import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.rules.Rule
@@ -34,6 +36,7 @@ object CoreReportEngine {
         savedReports: List<SavedReportRow> = emptyList(),
         schedules: List<ActualScheduleSummary> = emptyList(),
         budgetedByCategory: (YearMonth) -> Map<String, Long> = { emptyMap() },
+        budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
         today: LocalDate = LocalDate.now(),
     ): List<ReportDashboardPage> {
         val resolvedPages = if (pages.isEmpty()) listOf(DashboardPageRow("", "Dashboard")) else pages
@@ -64,7 +67,7 @@ object CoreReportEngine {
                     } else {
                         compute(
                             row, transactions, context, incomeCategories, budgetedByCategory, today,
-                            accounts.associate { it.id to it.balanceCents }, schedules,
+                            accounts.associate { it.id to it.balanceCents }, schedules, budgetMonth,
                         )
                     }
                 },
@@ -81,6 +84,7 @@ object CoreReportEngine {
         today: LocalDate = LocalDate.now(),
         accountBalances: Map<String, Long> = emptyMap(),
         schedules: List<ActualScheduleSummary> = emptyList(),
+        budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
     ): ReportWidget {
         val meta = row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
         val name = meta?.optString("name")?.takeIf(String::isNotBlank) ?: label(row.type)
@@ -111,8 +115,7 @@ object CoreReportEngine {
             "calendar-card" -> calendar(row.id, name, filtered)
             "crossover-card" -> crossover(row.id, name, meta, transactions, context, incomeCategoryIds,
                 accountBalances, today)
-            "budget-analysis-card" -> budgetAnalysis(row.id, name, filtered, context, incomeCategoryIds,
-                budgetedByCategory, start, end)
+            "budget-analysis-card" -> budgetAnalysis(row.id, name, meta, context, budgetMonth, start, end)
             "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, start, end)
             "balance-forecast-card" -> balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context)
             "monte-carlo-card" -> monteCarlo(row.id, name, meta, accountBalances, today)
@@ -236,19 +239,44 @@ object CoreReportEngine {
             comparisonCents = monthlyExpenses, points = points)
     }
 
+    /**
+     * Ported from Actual's `budget-analysis-spreadsheet.ts`: reads each month's budget-engine cells
+     * (already computed via [ActualBudgetDatabase.fetchBudgetMonth]'s own carry-forward walk, which
+     * matches upstream `summarizeMonthCategories`/`getNextRunningBalance` - positive leftover always
+     * rolls over, negative leftover only when the category has rollover overspending enabled),
+     * scoped to the widget's own category/category-group conditions and `showHiddenCategories` meta,
+     * instead of a naive unfiltered transaction sum.
+     */
     private fun budgetAnalysis(
-        id: String, name: String, transactions: List<ActualTransaction>, context: RuleContext,
-        incomeCategoryIds: Set<String>, budgeted: (YearMonth) -> Map<String, Long>, start: LocalDate, end: LocalDate,
+        id: String, name: String, meta: JSONObject?, context: RuleContext,
+        budgetMonth: (YearMonth) -> ActualBudgetMonth?, start: LocalDate, end: LocalDate,
     ): ReportWidget {
+        val conditions = parseConditions(meta)
+        val categoryConditions = conditions.first.filter { it.field == "category" || it.field == "category_group" }
+        val supported = categoryConditions.all {
+            it.op in setOf("is", "isNot", "oneOf", "notOneOf", "contains", "doesNotContain", "matches")
+        }
+        val showHidden = meta?.optBoolean("showHiddenCategories", false) ?: false
+        fun selected(month: YearMonth): List<ActualCategoryBudget> {
+            val budget = budgetMonth(month) ?: return emptyList()
+            val pool = if (showHidden) budget.categories + budget.hiddenCategories else budget.categories
+            return if (categoryConditions.isEmpty() || !supported) pool else pool.filter {
+                categoryMatches(it.categoryId, categoryConditions, conditions.second, context)
+            }
+        }
         val points = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
             .takeWhile { !it.isAfter(YearMonth.from(end)) }.map { month ->
-                val spent = -transactions.filter { YearMonth.from(it.localDate()) == month && it.amountCents < 0 &&
-                    it.transferAccountId == null && it.accountId !in context.offBudgetAccountIds && it.categoryId !in incomeCategoryIds }
-                    .sumOf { it.amountCents }
-                ReportPoint(month.toString(), budgeted(month).values.sum(), spent)
+                val categories = selected(month)
+                ReportPoint(
+                    month.toString(),
+                    categories.sumOf { it.budgetedCents },
+                    categories.sumOf { -it.spentCents },
+                    tertiaryCents = categories.sumOf { it.availableCents },
+                )
             }.toList()
         return ReportWidget(id, ReportWidgetKind.BUDGET_ANALYSIS, name, points = points,
-            valueCents = points.sumOf { it.primaryCents }, comparisonCents = points.sumOf { it.secondaryCents })
+            valueCents = points.sumOf { it.primaryCents }, comparisonCents = points.sumOf { it.secondaryCents },
+            balanceCents = points.lastOrNull()?.tertiaryCents)
     }
 
     private fun sankey(
