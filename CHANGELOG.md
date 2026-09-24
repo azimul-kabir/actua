@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- The Cash Flow report widget no longer counts a post-dated transaction inside the current/in-progress month, matching PWA/Actuali ([#556](https://github.com/azimul-kabir/actua/pull/556))
 - The Formula report widget's `query("name")` sub-queries now default to no date restriction (all-time) when no `timeFrame` is saved, and evaluate to 0 for an unknown query name, instead of silently clamping to the current month or matching every current-month transaction ([#555](https://github.com/azimul-kabir/actua/pull/555))
 - A saved custom report no longer hard-excludes every transfer; it now follows the "Show uncategorized" toggle and buckets transfers into a synthetic "Transfers" row when grouping by category, matching PWA/Actuali ([#554](https://github.com/azimul-kabir/actua/pull/554))
 - A saved custom report with the "Budgeted" balance type now reads budget-engine cells instead of silently summing transaction spend, matching PWA/Actuali ([#553](https://github.com/azimul-kabir/actua/pull/553))
