@@ -133,6 +133,15 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Open the Sankey widget on a dashboard with income from more than one source and verify each source appears as its own node with the date range shown, instead of a single combined income node.
 - [ ] Open the Monte Carlo widget and verify it shows a success-rate percentage with a median/10th-percentile ending-balance chart driven by a real simulation, not a fixed deterministic dollar projection.
 - [ ] Type a `#tag` in a transaction's Notes field and verify the in-line pill is rounded, matching the saved tag chip style.
+- [ ] On a synced dashboard, verify Cash Flow no longer counts a post-dated (future) transaction in the current in-progress month's bar.
+- [ ] Open a saved report using a Formula widget with a `query("name")` sub-query that has no saved date range and verify it evaluates over all-time data instead of clamping to the current month; verify a `query()` call naming an unknown query evaluates to 0 instead of matching every current-month transaction.
+- [ ] Open a saved custom report grouped by category with "Show uncategorized" both on and off, on data containing transfers, and verify transfers appear in a synthetic "Transfers" row (grouped) and are included/excluded per the toggle, instead of always being hard-excluded.
+- [ ] Open a saved custom report using the "Budgeted" balance type and verify it matches the Budget screen's budgeted amounts (via the budget engine) instead of summing transaction spend.
+- [ ] Open the Calendar report widget with a saved time frame that doesn't align to whole months and verify no transactions near the range's start/end are dropped, instead widening to whole calendar months like the PWA.
+- [ ] Open the Spending widget's "all-time" average range on a budget whose earliest transaction predates the widget's own scoped data and verify the average starts from that true earliest transaction.
+- [ ] Open the Age of Money widget with a post-dated (future) transaction in the account/date range and verify it doesn't enter the FIFO pool or produce a zero-day age, matching the widget's other today-capped behavior.
+- [ ] Open the Crossover widget with no expense-category selection saved and verify it defaults to every non-income, non-hidden category; save an explicitly empty expense-category selection and verify it is honored as zero expenses instead of reverting to "all categories."
+- [ ] Open the Balance Forecast widget on a budget with a scheduled transaction that has already posted and verify it is not double-counted, and that the ending/low balance match Actual.
 
 ## Android integrations
 
