@@ -9,8 +9,10 @@ import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.rules.RuleContext
 import com.azimulkabir.actua.data.rules.RulesEngine
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
+import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
 import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
+import com.azimulkabir.actua.data.schedules.ScheduleStatusCalculator
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.ReportPoint
 import com.azimulkabir.actua.model.ReportWidget
@@ -466,6 +468,19 @@ object CoreReportEngine {
         val startingBalance = relevant.filter { it.date < startYmd }.sumOf { it.amountCents }
         val postedByDate = relevant.filter { it.date in startYmd..endYmd }
             .groupBy { it.date }.mapValues { (_, rows) -> rows.sumOf { it.amountCents } }
+        val postedDatesByScheduleId = relevant.mapNotNull { tx -> tx.scheduleId?.let { it to tx.date } }
+            .groupBy({ it.first }, { it.second })
+
+        // Mirrors upstream's `isScheduleOccurrencePosted`: an occurrence that already has a matching
+        // posted transaction (e.g. a bill paid earlier this cycle) must not also be projected as a
+        // synthetic schedule delta, or the running balance double-counts it.
+        fun isOccurrencePosted(schedule: ActualScheduleSummary, day: DayDate): Boolean {
+            val postedDates = postedDatesByScheduleId[schedule.id] ?: return false
+            val matchStartYmd = ScheduleStatusCalculator.occurrenceMatchStartDate(
+                day, schedule.dateOp, schedule.postsTransaction,
+            ).yyyymmdd
+            return postedDates.any { it in matchStartYmd..day.yyyymmdd }
+        }
 
         val scheduleDeltasByDate = mutableMapOf<Int, Long>()
         val scheduleCountByDate = mutableMapOf<Int, MutableSet<String>>()
@@ -484,6 +499,7 @@ object CoreReportEngine {
             occurrenceDays.forEach { day ->
                 val ymd = day.yyyymmdd
                 if (ymd < firstForecastYmd || ymd > endYmd) return@forEach
+                if (isOccurrencePosted(schedule, day)) return@forEach
                 val synthetic = ActualTransaction(
                     "schedule-${schedule.id}-$ymd", accountId, ymd, amount, schedule.payeeId, null,
                     schedule.categoryId, null, null, false, false, null, false, null, false, null, null, null, null,
