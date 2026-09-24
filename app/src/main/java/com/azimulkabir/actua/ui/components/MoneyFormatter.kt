@@ -122,7 +122,7 @@ private fun narrowCurrencySymbol(code: String): String = when (code) {
     "TRY" -> "₺"
     "TWD" -> "NT$"
     "UAH" -> "₴"
-    "UYU" -> "$U"
+    "UYU" -> "\$U"
     "UZS" -> "UZS"
     else -> runCatching { Currency.getInstance(code).symbol }.getOrDefault(code)
 }
