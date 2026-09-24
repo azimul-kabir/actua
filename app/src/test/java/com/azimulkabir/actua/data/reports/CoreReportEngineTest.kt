@@ -174,6 +174,52 @@ class CrossoverTest {
         assertEquals(150L, comparison("median"))
         assertEquals(100L, comparison("hampel"))
     }
+
+    @Test fun `an explicit, even empty, expenseCategoryIds list is honored as-is instead of matching everything`() {
+        // Upstream's expenseCategoryIds memo only falls back to "every non-income category" when the
+        // widget meta key is absent; an explicitly stored empty list means "no categories selected",
+        // i.e. zero expenses every month - not "no filter, match everything".
+        val rows = listOf(
+            tx("1", "invest", 20260105, 100_000),
+            tx("2", "checking", 20260110, -100, "rent"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-01","end":"2026-01"},
+                |"incomeAccountIds":["invest"],"expenseCategoryIds":[]}""".trimMargin()),
+            rows, today = LocalDate.of(2026, 2, 1),
+        )
+        assertEquals(0L, widget.points.first().secondaryCents)
+    }
+
+    @Test fun `without an explicit expenseCategoryIds list, hidden categories are excluded by default`() {
+        val context = RuleContext(hiddenCategoryIds = setOf("archived-rent"))
+        val rows = listOf(
+            tx("1", "invest", 20260105, 100_000),
+            tx("2", "checking", 20260110, -100, "archived-rent"),
+            tx("3", "checking", 20260110, -50, "groceries"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-01","end":"2026-01"},
+                |"incomeAccountIds":["invest"]}""".trimMargin()),
+            rows, context, today = LocalDate.of(2026, 2, 1),
+        )
+        assertEquals(50L, widget.points.first().secondaryCents)
+    }
+
+    @Test fun `showHiddenCategories includes hidden categories in the default expense set`() {
+        val context = RuleContext(hiddenCategoryIds = setOf("archived-rent"))
+        val rows = listOf(
+            tx("1", "invest", 20260105, 100_000),
+            tx("2", "checking", 20260110, -100, "archived-rent"),
+            tx("3", "checking", 20260110, -50, "groceries"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-01","end":"2026-01"},
+                |"incomeAccountIds":["invest"],"showHiddenCategories":true}""".trimMargin()),
+            rows, context, today = LocalDate.of(2026, 2, 1),
+        )
+        assertEquals(150L, widget.points.first().secondaryCents)
+    }
 }
 
 /**
