@@ -29,10 +29,10 @@ class CustomizeTabBarScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Show ${TabItem.TRANSACTIONS.label} in the bottom bar").performClick()
+        compose.onNodeWithContentDescription("Show ${TabItem.ACCOUNTS.label} in the bottom bar").performClick()
 
-        assertTrue(TabItem.TRANSACTIONS in requireNotNull(latest).hidden)
-        compose.onNodeWithContentDescription("Show ${TabItem.TRANSACTIONS.label} in the bottom bar").assertExists()
+        assertTrue(TabItem.ACCOUNTS in requireNotNull(latest).hidden)
+        compose.onNodeWithContentDescription("Show ${TabItem.ACCOUNTS.label} in the bottom bar").assertExists()
     }
 
     @Test fun manage_has_no_switch_and_is_labeled_required() {
@@ -62,7 +62,7 @@ class CustomizeTabBarScreenTest {
 
     @Test fun restore_defaults_resets_a_customized_layout() {
         var latest: TabBarLayout? = null
-        val customized = TabBarLayoutPlanner.setHidden(TabBarLayout.default(), TabItem.TRANSACTIONS, true)
+        val customized = TabBarLayoutPlanner.setHidden(TabBarLayout.default(), TabItem.ACCOUNTS, true)
         compose.setContent {
             MaterialTheme {
                 CustomizeTabBarScreen(layout = customized, onBack = {}, onLayoutChange = { latest = it })
@@ -72,13 +72,13 @@ class CustomizeTabBarScreenTest {
         compose.onNodeWithContentDescription("Restore default tab bar").performClick()
 
         assertEquals(TabBarLayout.default(), latest)
-        assertFalse(TabItem.TRANSACTIONS in requireNotNull(latest).hidden)
+        assertFalse(TabItem.ACCOUNTS in requireNotNull(latest).hidden)
     }
 
     @Test fun switch_disables_once_the_minimum_visible_tab_count_is_reached() {
-        var layout = TabBarLayoutPlanner.setHidden(TabBarLayout.default(), TabItem.TRANSACTIONS, true)
-        layout = TabBarLayoutPlanner.setHidden(layout, TabItem.ACCOUNTS, true)
-        // Visible now: Home, Budget, Manage - exactly the 3-tab minimum.
+        var layout = TabBarLayoutPlanner.setHidden(TabBarLayout.default(), TabItem.ACCOUNTS, true)
+        layout = TabBarLayoutPlanner.setHidden(layout, TabItem.ADD, true)
+        // Visible now: Budget, Reports, Manage - exactly the 3-tab minimum.
         compose.setContent {
             MaterialTheme {
                 CustomizeTabBarScreen(layout = layout, onBack = {}, onLayoutChange = {})
@@ -96,7 +96,7 @@ class CustomizeTabBarScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Show ${TabItem.REPORTS.label} in the bottom bar").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Show ${TabItem.TRANSACTIONS.label} in the bottom bar").assertIsNotEnabled()
     }
 
     @Test fun add_tab_shows_an_explanation_of_what_it_does() {

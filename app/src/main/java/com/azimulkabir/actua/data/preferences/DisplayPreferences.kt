@@ -30,7 +30,7 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putBoolean(SHOW_HIDDEN_CATEGORIES, value).apply() }
 
     var showSpentColumn: Boolean
-        get() = preferences.getBoolean(SHOW_SPENT_COLUMN, false)
+        get() = preferences.getBoolean(SHOW_SPENT_COLUMN, true)
         set(value) { preferences.edit().putBoolean(SHOW_SPENT_COLUMN, value).apply() }
 
     var showBudgetProgressBars: Boolean
@@ -42,7 +42,7 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putBoolean(SHOW_CATEGORY_STATUS_DOTS, value).apply() }
 
     var budgetView: String
-        get() = preferences.getString(BUDGET_VIEW, "Plan") ?: "Plan"
+        get() = preferences.getString(BUDGET_VIEW, "Table") ?: "Table"
         set(value) { preferences.edit().putString(BUDGET_VIEW, value).apply() }
 
     var showBudgetOverview: Boolean
@@ -54,7 +54,7 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putBoolean(SHOW_OVERSPENT_WARNING, value).apply() }
 
     var showGroupTotals: Boolean
-        get() = preferences.getBoolean(SHOW_GROUP_TOTALS, false)
+        get() = preferences.getBoolean(SHOW_GROUP_TOTALS, true)
         set(value) { preferences.edit().putBoolean(SHOW_GROUP_TOTALS, value).apply() }
 
     var hideFullySpentCategories: Boolean
@@ -127,7 +127,7 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, value).apply() }
 
     var conventionalAmountEntry: Boolean
-        get() = preferences.getBoolean(CONVENTIONAL_AMOUNT_ENTRY, true)
+        get() = preferences.getBoolean(CONVENTIONAL_AMOUNT_ENTRY, false)
         set(value) { preferences.edit().putBoolean(CONVENTIONAL_AMOUNT_ENTRY, value).apply() }
 
     var showBottomNavigationLabels: Boolean

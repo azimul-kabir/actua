@@ -8,8 +8,13 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Added the remaining currencies from Actual's currency list to the currency setting ([#566](https://github.com/azimul-kabir/actua/pull/566))
 
+### Changed
+
+- Updated the out-of-the-box defaults for the Budget tab, Transactions & Accounts, Display, and the bottom Tab Bar ([#571](https://github.com/azimul-kabir/actua/pull/571))
+
 ### Fixed
 
+- The back gesture from Customize Home and Customize Tab Bar now returns to the Settings page they were opened from instead of the Manage root ([#571](https://github.com/azimul-kabir/actua/pull/571))
 - The back gesture's final stop before exiting the app now follows the Start page setting instead of always landing on Home ([#569](https://github.com/azimul-kabir/actua/pull/569))
 - The Accounts tab's monthly summary now counts a transfer into or out of an off-budget account as an expense or income instead of excluding every transfer ([#562](https://github.com/azimul-kabir/actua/pull/562))
 - The Crossover report widget's expense projection now matches transactions by category and date only, like the PWA, instead of also filtering by amount sign, transfers, and off-budget accounts - a refund posted to an expense category now nets against that month's spend instead of inflating the projected expense ([#560](https://github.com/azimul-kabir/actua/pull/560))

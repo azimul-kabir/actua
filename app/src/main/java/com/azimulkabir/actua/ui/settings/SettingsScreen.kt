@@ -274,7 +274,10 @@ fun SettingsScreen(
                 SettingsPage.General -> {
                     SettingsSection("Preferences")
                     SettingsRow("Home", "Show, hide and reorder the sections on Home", true) {
-                        openFullScreen(onCustomizeHomeClick)
+                        // Unlike openFullScreen's other destinations, Customize Home is reached
+                        // from this page rather than from Manage root, so the back gesture should
+                        // return here instead of resetting all the way to Manage.
+                        onCustomizeHomeClick()
                     }
                     SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists and account summaries", true) {
                         page = SettingsPage.Transactions
@@ -364,7 +367,9 @@ fun SettingsScreen(
                         listOf("Icons and names", "Icons only"),
                     ) { onShowBottomNavigationLabelsChange(it == "Icons and names") }
                     SettingsRow("Tab Bar", "Show, hide and reorder the bottom navigation tabs", true) {
-                        openFullScreen(onCustomizeTabBarClick)
+                        // Reached from this page (Display), so back should return here rather than
+                        // resetting all the way to Manage the way openFullScreen's other rows do.
+                        onCustomizeTabBarClick()
                     }
                     SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
                         hideDecimalPlaces, onHideDecimalPlacesChange)

@@ -46,6 +46,16 @@ class DisplayPreferencesTest {
         assertEquals("1,23,456.78", restored.numberFormat)
     }
 
+    @Test fun budgetAndEntryDefaultsMatchAppDefaults() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val preferences = DisplayPreferences(context)
+
+        assertEquals("Table", preferences.budgetView)
+        assertEquals(true, preferences.showSpentColumn)
+        assertEquals(true, preferences.showGroupTotals)
+        assertEquals(false, preferences.conventionalAmountEntry)
+    }
+
     @Test fun categoryStatusDotsDefaultOnAndPersistWhenDisabled() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals(true, DisplayPreferences(context).showCategoryStatusDots)

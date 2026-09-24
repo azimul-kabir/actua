@@ -32,18 +32,18 @@ data class TabBarLayout(val order: List<TabItem>, val hidden: Set<TabItem>) {
 
     companion object {
         /**
-         * Today's fixed bottom bar — Home, Budget, Transactions, Accounts, Manage — with Reports
-         * and the "+ Add" pseudo-tab present but hidden. Every [TabItem] must appear in [order]
-         * (this is what [TabBarLayoutPlanner.sanitize] always produces, since it appends any
-         * missing entry), so this value is already sanitize-idempotent: [TabBarPreferences]
-         * persisting and re-reading it round-trips unchanged.
+         * Today's fixed bottom bar — Budget, Accounts, Add, Reports, Manage — with Home and
+         * Transactions present but hidden. Every [TabItem] must appear in [order] (this is what
+         * [TabBarLayoutPlanner.sanitize] always produces, since it appends any missing entry), so
+         * this value is already sanitize-idempotent: [TabBarPreferences] persisting and re-reading
+         * it round-trips unchanged.
          */
         fun default(): TabBarLayout = TabBarLayout(
             order = listOf(
-                TabItem.HOME, TabItem.BUDGET, TabItem.TRANSACTIONS, TabItem.ACCOUNTS,
-                TabItem.MANAGE, TabItem.REPORTS, TabItem.ADD,
+                TabItem.HOME, TabItem.BUDGET, TabItem.ACCOUNTS, TabItem.ADD,
+                TabItem.REPORTS, TabItem.TRANSACTIONS, TabItem.MANAGE,
             ),
-            hidden = setOf(TabItem.REPORTS, TabItem.ADD),
+            hidden = setOf(TabItem.HOME, TabItem.TRANSACTIONS),
         )
     }
 }
