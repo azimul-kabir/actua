@@ -232,6 +232,40 @@ class CoreReportEngineTest {
         assertEquals(-500L, widget.valueCents)
     }
 
+    @Test fun monteCarloReports100PercentSuccessWhenReturnsComfortablyFundZeroVolatilitySpending() {
+        val meta = """{"currentAge":60,"targetAge":70,"simulationCount":1000,"inflationMean":null,
+            "pots":[{"id":"p1","startingBalance":10000000,"expectedReturnMean":0.10,"returnStdDev":0.0}],
+            "spendingPhases":[{"annualWithdrawal":100000}]}"""
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("mc", "monte-carlo-card", meta), emptyList(), today = today,
+        )
+        assertEquals(ReportWidgetKind.MONTE_CARLO, widget.kind)
+        assertEquals(100.0, widget.percentage)
+        assertEquals("to age 70", widget.subtitle)
+        assertEquals(11, widget.points.size)
+    }
+
+    @Test fun monteCarloReports0PercentSuccessWhenSpendingCannotBeCoveredAtAll() {
+        val meta = """{"currentAge":60,"targetAge":70,"simulationCount":1000,"inflationMean":null,
+            "pots":[{"id":"p1","startingBalance":1000,"expectedReturnMean":0.0,"returnStdDev":0.0}],
+            "spendingPhases":[{"annualWithdrawal":100000}]}"""
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("mc", "monte-carlo-card", meta), emptyList(), today = today,
+        )
+        assertEquals(0.0, widget.percentage)
+    }
+
+    @Test fun monteCarloFallsBackToAccountBalancesWhenNoPotsConfigured() {
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("mc", "monte-carlo-card", null), emptyList(), today = today,
+            accountBalances = mapOf("checking" to 10_000_000L),
+        )
+        assertEquals(ReportWidgetKind.MONTE_CARLO, widget.kind)
+        assertEquals("Monte Carlo Analysis", widget.name)
+        assertEquals("to age 90", widget.subtitle)
+        assertEquals(10_000_000L, widget.points.first().primaryCents)
+    }
+
     private fun transaction(
         id: String,
         amount: Long,

@@ -46,11 +46,32 @@ transaction (uncategorized included), so refunds net against their own side and 
 never decides. Transfers within the same side of the budget are excluded, off-budget accounts
 are excluded, and Income/Expenses rows drill down to the contributing transactions.
 
+## Monte Carlo
+
+Reference: `desktop-client/src/components/reports/reports/monte-carlo/monteCarloSimulation.ts`
+(`runMonteCarloSimulation`). `CoreReportEngine.monteCarlo` runs an actual stochastic
+drawdown simulation against the widget's `pots`/`spendingPhases`/`currentAge`/`targetAge`/
+`simulationCount` meta - normal-distributed yearly returns per pot (fixed-seed mulberry32
+PRNG, same algorithm as upstream, so headline numbers are stable across recompositions),
+proportional or sequential withdrawal, and optional inflation and contributions - and
+reports the headline as a success-rate percentage against the target age plus a
+median/10th-percentile ending-balance chart, matching the PWA's presentation. It is not a
+full port: upstream's dynamic withdrawal rules (guardrails/ratcheting/floor-ceiling),
+progressive tax bands, pot fees, the surplus-pot/target-mix/best-performer strategies, and
+historical-return replay models are not simulated, so a widget configured with those
+settings gets the simplified (proportional, no tax/fees) result instead. A widget with no
+`pots` meta (a legacy dashboard predating this widget's full configuration) falls back to a
+single pot sized from the report's linked account balances at a 6%/10% mean/volatility and
+a 4%-of-balance annual withdrawal, so it still renders a real simulation instead of an
+unconfigured error.
+
 ## Known gaps
 
 - Custom conditions on saved reports use the rules engine, not upstream's query builder;
   unsupported operators fall back to no condition.
 - Uncategorized positive amounts count against expenses (upstream may treat them as income).
+- Monte Carlo does not simulate upstream's dynamic withdrawal rules, tax bands, fees, or
+  historical-return models (see above).
 
 Fixtures: `app/src/test/.../data/reports/ReportAggregatorTest.kt`. A dedicated
 `ReportAggregatorScaleTest` reconciles a synthetic 200k-transaction ledger and asserts

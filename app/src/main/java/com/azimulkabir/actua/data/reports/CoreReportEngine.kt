@@ -18,8 +18,10 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
-import kotlin.math.pow
+import kotlin.math.cos
+import kotlin.math.ln
 import kotlin.math.roundToLong
+import kotlin.math.sqrt
 
 /** Core Actual dashboard widgets, ported from Actuali's report engines. */
 object CoreReportEngine {
@@ -352,18 +354,179 @@ object CoreReportEngine {
         )
     }
 
+    /**
+     * Ported from Actual's `runMonteCarloSimulation` (desktop-client
+     * `reports/reports/monte-carlo/monteCarloSimulation.ts`): a stochastic
+     * drawdown simulation, not a deterministic compound-interest formula.
+     * Simplified to the widget's common configuration - normal-distributed
+     * yearly returns per pot, proportional or sequential withdrawal, optional
+     * inflation and contributions - and drops upstream's dynamic withdrawal
+     * rules, tax bands, fees and historical-return replay models, which
+     * Actua's widget meta never configures. `percentage` is the success rate
+     * (share of runs that never failed to fund a year's spending before
+     * [subtitle]'s target age), and `points` are the median/10th-percentile
+     * ending-balance bands per simulated year, driving the chart's
+     * uncertainty cone.
+     */
     private fun monteCarlo(
         id: String, name: String, meta: JSONObject?, balances: Map<String, Long>, today: LocalDate,
     ): ReportWidget {
-        val start = balances.values.sum().coerceAtLeast(0)
-        val annualReturn = (meta?.optDouble("returnMean", 5.0) ?: 5.0) / 100.0
-        val volatility = (meta?.optDouble("returnStdDev", 10.0) ?: 10.0) / 100.0
-        val points = (0..10).map { year ->
-            val median = (start * (1 + annualReturn).pow(year)).roundToLong()
-            val lower = (start * (1 + annualReturn - volatility).coerceAtLeast(0.0).pow(year)).roundToLong()
-            ReportPoint(YearMonth.from(today).plusYears(year.toLong()).toString(), median, lower)
+        data class Pot(val balance: Double, val meanReturn: Double, val stdDev: Double, val accessAge: Int?)
+        data class SpendingPhase(val fromAge: Int?, val annualWithdrawal: Double)
+        data class Contribution(val potId: String, val fromAge: Int?, val toAge: Int?, val annualAmount: Double, val adjustsWithInflation: Boolean)
+
+        val totalBalance = balances.values.sum().coerceAtLeast(0).toDouble()
+        val potsMeta = meta?.optJSONArray("pots")
+        val potIds = mutableListOf<String>()
+        val pots = if (potsMeta != null && potsMeta.length() > 0) (0 until potsMeta.length()).mapNotNull { index ->
+            val potMeta = potsMeta.optJSONObject(index) ?: return@mapNotNull null
+            potIds += potMeta.optString("id", "pot-$index")
+            val accountId = potMeta.optString("accountId").takeIf(String::isNotBlank)
+            val starting = (accountId?.let(balances::get) ?: potMeta.optLong("startingBalance", 0)).toDouble().coerceAtLeast(0.0)
+            Pot(
+                starting,
+                potMeta.optDouble("expectedReturnMean", 0.06),
+                potMeta.optDouble("returnStdDev", 0.10).coerceAtLeast(0.0),
+                potMeta.optInt("accessAge", -1).takeIf { potMeta.has("accessAge") && !potMeta.isNull("accessAge") },
+            )
+        } else {
+            potIds += "pot-1"
+            listOf(Pot(
+                totalBalance,
+                (meta?.optDouble("returnMean", 6.0) ?: 6.0) / 100.0,
+                ((meta?.optDouble("returnStdDev", 10.0) ?: 10.0) / 100.0).coerceAtLeast(0.0),
+                null,
+            ))
         }
-        return ReportWidget(id, ReportWidgetKind.MONTE_CARLO, name, valueCents = points.last().primaryCents, points = points)
+
+        val currentAge = meta?.optInt("currentAge", 60) ?: 60
+        val targetAge = meta?.optInt("targetAge", 90) ?: 90
+        val horizonYears = (targetAge - currentAge).coerceIn(1, 100)
+        val simulationCount = (meta?.optInt("simulationCount", 5000) ?: 5000).coerceIn(1000, 10000)
+
+        val phasesMeta = meta?.optJSONArray("spendingPhases")
+        val phases = (if (phasesMeta != null && phasesMeta.length() > 0) (0 until phasesMeta.length()).mapNotNull { index ->
+            val phaseMeta = phasesMeta.optJSONObject(index) ?: return@mapNotNull null
+            SpendingPhase(
+                phaseMeta.optInt("fromAge", -1).takeIf { phaseMeta.has("fromAge") && !phaseMeta.isNull("fromAge") },
+                phaseMeta.optDouble("annualWithdrawal", 0.0),
+            )
+        } else emptyList()).ifEmpty { listOf(SpendingPhase(null, totalBalance * 0.04)) }
+        fun activePhase(age: Int) = phases.filter { it.fromAge == null || it.fromAge <= age }
+            .maxByOrNull { it.fromAge ?: Int.MIN_VALUE } ?: phases.first()
+
+        val contributionsMeta = meta?.optJSONArray("contributions")
+        val contributions = (0 until (contributionsMeta?.length() ?: 0)).mapNotNull { index ->
+            val contributionMeta = contributionsMeta!!.optJSONObject(index) ?: return@mapNotNull null
+            Contribution(
+                contributionMeta.optString("potId"),
+                contributionMeta.optInt("fromAge", -1).takeIf { contributionMeta.has("fromAge") && !contributionMeta.isNull("fromAge") },
+                contributionMeta.optInt("toAge", -1).takeIf { contributionMeta.has("toAge") && !contributionMeta.isNull("toAge") },
+                contributionMeta.optDouble("annualAmount", 0.0),
+                contributionMeta.optBoolean("adjustsWithInflation", true),
+            )
+        }
+
+        val inflationMean = when {
+            meta == null || !meta.has("inflationMean") -> 0.025
+            meta.isNull("inflationMean") -> null
+            else -> meta.optDouble("inflationMean")
+        }
+        val inflationStdDev = (meta?.optDouble("inflationStdDev", 0.02) ?: 0.02).coerceAtLeast(0.0)
+        val minimumSpending = meta?.optDouble("minimumSpending", 0.0) ?: 0.0
+        val sequential = meta?.optString("withdrawalStrategy", "proportional") == "sequential"
+
+        // Fixed-seed mulberry32 PRNG (ported from the same file) so the headline
+        // percentage and chart are stable across recompositions instead of
+        // flickering on every redraw.
+        var state = 1234
+        fun nextUniform(): Double {
+            state += 0x6d2b79f5
+            var mixed = (state xor (state ushr 15)) * (1 or state)
+            mixed = (mixed + (mixed xor (mixed ushr 7)) * (61 or mixed)) xor mixed
+            return ((mixed xor (mixed ushr 14)).toLong() and 0xFFFFFFFFL).toDouble() / 4294967296.0
+        }
+        fun nextNormal(): Double {
+            val uniform1 = 1 - nextUniform()
+            val uniform2 = nextUniform()
+            return sqrt(-2 * ln(uniform1)) * cos(2 * Math.PI * uniform2)
+        }
+
+        val potCount = pots.size
+        val potBalances = DoubleArray(potCount)
+        val balancesByYear = Array(horizonYears + 1) { DoubleArray(simulationCount) }
+        var survived = 0
+        for (sim in 0 until simulationCount) {
+            for (i in 0 until potCount) potBalances[i] = pots[i].balance
+            var cumulativeInflation = 1.0
+            var depleted = false
+            balancesByYear[0][sim] = potBalances.sum()
+            for (year in 1..horizonYears) {
+                val age = currentAge + year - 1
+                if (!depleted) {
+                    inflationMean?.let { cumulativeInflation *= (1 + it + inflationStdDev * nextNormal()) }
+                    contributions.forEach { contribution ->
+                        if (contribution.fromAge != null && age < contribution.fromAge) return@forEach
+                        if (contribution.toAge != null && age > contribution.toAge) return@forEach
+                        val potIndex = potIds.indexOf(contribution.potId)
+                        if (potIndex < 0) return@forEach
+                        potBalances[potIndex] += contribution.annualAmount *
+                            (if (contribution.adjustsWithInflation) cumulativeInflation else 1.0)
+                    }
+                    val planned = maxOf(activePhase(age).annualWithdrawal, minimumSpending) * cumulativeInflation
+                    var accessibleTotal = 0.0
+                    for (i in 0 until potCount) if (pots[i].accessAge == null || age >= pots[i].accessAge!!) accessibleTotal += potBalances[i]
+                    val withdrawal = minOf(planned, accessibleTotal)
+                    if (withdrawal < planned - 0.5) depleted = true
+                    if (withdrawal > 0) {
+                        var remaining = withdrawal
+                        val lastAccessible = (0 until potCount).lastOrNull { pots[it].accessAge == null || age >= pots[it].accessAge!! } ?: -1
+                        for (i in 0 until potCount) {
+                            if (pots[i].accessAge != null && age < pots[i].accessAge!!) continue
+                            if (sequential && remaining <= 0) continue
+                            val take = when {
+                                sequential -> minOf(potBalances[i], remaining)
+                                i == lastAccessible -> remaining
+                                accessibleTotal > 0 -> withdrawal * (potBalances[i] / accessibleTotal)
+                                else -> 0.0
+                            }
+                            potBalances[i] -= take
+                            remaining -= take
+                        }
+                    }
+                    for (i in 0 until potCount) {
+                        val yearReturn = pots[i].meanReturn + pots[i].stdDev * nextNormal()
+                        potBalances[i] = (potBalances[i] * (1 + yearReturn)).coerceAtLeast(0.0)
+                    }
+                    if (depleted) for (i in 0 until potCount) potBalances[i] = 0.0
+                }
+                balancesByYear[year][sim] = potBalances.sum()
+            }
+            if (!depleted) survived++
+        }
+        val successRate = if (simulationCount > 0) survived.toDouble() / simulationCount * 100.0 else 0.0
+
+        fun percentile(values: DoubleArray, fraction: Double): Long {
+            val sorted = values.sortedArray()
+            val position = (sorted.size - 1) * fraction
+            val lower = position.toInt()
+            val upper = kotlin.math.ceil(position).toInt().coerceAtMost(sorted.size - 1)
+            val weight = position - lower
+            return (sorted[lower] * (1 - weight) + sorted[upper] * weight).roundToLong()
+        }
+        val points = (0..horizonYears).map { year ->
+            ReportPoint(
+                YearMonth.from(today).plusYears(year.toLong()).toString(),
+                percentile(balancesByYear[year], 0.5),
+                percentile(balancesByYear[year], 0.1),
+            )
+        }
+        return ReportWidget(
+            id, ReportWidgetKind.MONTE_CARLO, name,
+            percentage = (successRate * 10).roundToLong() / 10.0,
+            subtitle = "to age $targetAge",
+            points = points,
+        )
     }
 
     private fun summary(
@@ -655,7 +818,7 @@ object CoreReportEngine {
         "spending-card" -> "Spending"; "markdown-card" -> "Notes"; "age-of-money-card" -> "Age of Money"
         "formula-card" -> "Formula"; "custom-report" -> "Custom Report"; "calendar-card" -> "Calendar"
         "crossover-card" -> "Crossover"; "budget-analysis-card" -> "Budget Analysis"; "sankey-card" -> "Sankey"
-        "balance-forecast-card" -> "Balance Forecast"; "monte-carlo-card" -> "Monte Carlo"
+        "balance-forecast-card" -> "Balance Forecast"; "monte-carlo-card" -> "Monte Carlo Analysis"
         else -> type.ifBlank { "Unsupported report" }
     }
 }
