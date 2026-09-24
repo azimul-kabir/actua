@@ -26,16 +26,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -49,13 +45,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.azimulkabir.actua.data.budget.model.ActualTag
 import com.azimulkabir.actua.ui.components.findTagOccurrences
 import com.azimulkabir.actua.ui.components.parseTagColor
-import com.azimulkabir.actua.ui.components.tagChipBackground
 import com.azimulkabir.actua.ui.components.tagChipForeground
-
-/** Corner radius of the in-line tag pill, matching [com.azimulkabir.actua.ui.components.TagNoteText]'s chip rounding. */
-private val TagChipCornerRadius = 6.dp
-private val TagChipHorizontalPadding = 4.dp
-private val TagChipVerticalPadding = 1.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +61,6 @@ internal fun TagAutocompleteField(
     val focusRequester = remember { FocusRequester() }
     var focused by remember { mutableStateOf(false) }
     var dismissedToken by remember { mutableStateOf<String?>(null) }
-    var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
     val interactionSource = remember { MutableInteractionSource() }
     LaunchedEffect(value) {
         if (value != fieldValue.text) fieldValue = fieldValue.copy(text = value, selection = TextRange(value.length))
@@ -94,29 +83,10 @@ internal fun TagAutocompleteField(
             textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface),
             visualTransformation = tagHighlight,
             interactionSource = interactionSource,
-            onTextLayout = { textLayout = it },
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
-                .onFocusChanged { focused = it.isFocused }
-                .drawBehind {
-                    val layout = textLayout ?: return@drawBehind
-                    tagChipRects(
-                        text = fieldValue.text,
-                        tagColors = tagColors,
-                        darkTheme = darkTheme,
-                        layout = layout,
-                        horizontalPaddingPx = TagChipHorizontalPadding.toPx(),
-                        verticalPaddingPx = TagChipVerticalPadding.toPx(),
-                    ).forEach { (rect, color) ->
-                        drawRoundRect(
-                            color = color,
-                            topLeft = rect.topLeft,
-                            size = rect.size,
-                            cornerRadius = CornerRadius(TagChipCornerRadius.toPx()),
-                        )
-                    }
-                },
+                .onFocusChanged { focused = it.isFocused },
             decorationBox = { innerTextField ->
                 OutlinedTextFieldDefaults.DecorationBox(
                     value = fieldValue.text,
@@ -205,35 +175,6 @@ internal fun tagHighlightTransformation(
         }
     }
     TransformedText(annotated, OffsetMapping.Identity)
-}
-
-/**
- * Computes a rounded pill rect (in the text field's own draw coordinates) behind each
- * recognized `#tag` occurrence, so the in-line highlight matches [com.azimulkabir.actua.ui.components.TagNoteText]'s
- * rounded chip instead of a flat rectangular [SpanStyle] background.
- */
-internal fun tagChipRects(
-    text: String,
-    tagColors: Map<String, String>,
-    darkTheme: Boolean,
-    layout: TextLayoutResult,
-    horizontalPaddingPx: Float,
-    verticalPaddingPx: Float,
-): List<Pair<Rect, Color>> {
-    val occurrences = findTagOccurrences(text)
-    if (occurrences.isEmpty()) return emptyList()
-    return occurrences.mapNotNull { occurrence ->
-        val color = parseTagColor(tagColors[occurrence.name]) ?: return@mapNotNull null
-        val startBox = layout.getBoundingBox(occurrence.start)
-        val endBox = layout.getBoundingBox(occurrence.endExclusive - 1)
-        val rect = Rect(
-            left = startBox.left - horizontalPaddingPx,
-            top = minOf(startBox.top, endBox.top) - verticalPaddingPx,
-            right = endBox.right + horizontalPaddingPx,
-            bottom = maxOf(startBox.bottom, endBox.bottom) + verticalPaddingPx,
-        )
-        rect to tagChipBackground(color, darkTheme)
-    }
 }
 
 private fun parseTagSuggestionColor(value: String?): Color = runCatching {
