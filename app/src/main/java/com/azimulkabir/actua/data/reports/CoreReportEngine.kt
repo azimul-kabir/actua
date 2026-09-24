@@ -622,7 +622,13 @@ object CoreReportEngine {
         context: RuleContext, incomeCategoryIds: Set<String>,
         budgetedByCategory: (YearMonth) -> Map<String, Long>, today: LocalDate,
     ): ReportWidget {
-        val scoped = transactions.filterNot { it.tombstone || it.transferAccountId != null ||
+        // Mirrors PWA's hardcoded `makeQuery` filters (spending-spreadsheet.ts): exclude only the
+        // transaction's own off-budget account and income-categorized rows. Transfers are not
+        // excluded here — PWA doesn't exclude them either, so a transfer whose *other* leg is
+        // off-budget (or between two on-budget accounts) still counts, same as PWA. Whatever the
+        // widget's own `conditions` (set in the PWA) additionally exclude is applied below via
+        // RulesEngine, not hardcoded here.
+        val scoped = transactions.filterNot { it.tombstone ||
             it.accountId in context.offBudgetAccountIds || it.categoryId in incomeCategoryIds }
         val conditions = parseConditions(meta)
         val matching = scoped.filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }
