@@ -277,6 +277,29 @@ class AgeOfMoneyTest {
         )
         assertEquals(null, widget.valueCents)
     }
+
+    /**
+     * Ported from Actual's `age-of-money-spreadsheet.ts` (`makeIncomeQuery`/`makeExpenseQuery`):
+     * both queries cap at `fixedEnd` (`minOf(end, today)`) *before* the FIFO draining runs, so a
+     * post-dated transaction never enters the pool at all. Actua used to only filter the already-
+     * computed ages afterward, so a post-dated income bucket could still be drained by an earlier
+     * expense and silently zero out its age (see actua#543).
+     */
+    @Test fun `a post-dated income transaction is excluded from the FIFO pool, not just the displayed ages`() {
+        val rows = listOf(
+            tx("1", "checking", 20260901, 10_000),
+            tx("2", "checking", 20261005, 50_000), // after "today" - must not enter the pool
+            tx("3", "checking", 20260910, -60_000),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-09","end":"2026-09"}}"""),
+            rows, context, today = LocalDate.of(2026, 9, 24),
+        )
+        // Without the post-dated bucket, the Sep-10 expense only drains the Sep-1 bucket and stops
+        // there (age 9 days); with it, it would also drain the Oct-5 bucket and report a bogus age
+        // of 0 (a future bucket date clamped by coerceAtLeast(0)).
+        assertEquals(9L, widget.valueCents)
+    }
 }
 
 /**
