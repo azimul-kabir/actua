@@ -1054,12 +1054,14 @@ private fun ComparisonSeries(points: List<ReportPoint>, primary: String, seconda
 }
 
 private data class SankeyNode(val name: String, val value: Long, val color: androidx.compose.ui.graphics.Color)
+private enum class SankeySide { INCOME, EXPENSE }
 
 @Composable
 private fun Sankey(widget: ReportWidget, hideDecimals: Boolean) {
     val income = widget.valueCents ?: 0
     val categories = widget.categories.filter { it.spentCents > 0 }
-    if (income <= 0 && categories.isEmpty()) {
+    val incomeCategories = widget.incomeCategories.filter { it.spentCents > 0 }
+    if (income <= 0 && categories.isEmpty() && incomeCategories.isEmpty()) {
         Text("No transactions match this report's filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
@@ -1071,60 +1073,111 @@ private fun Sankey(widget: ReportWidget, hideDecimals: Boolean) {
         SankeyNode(category.name, category.spentCents,
             androidx.compose.ui.graphics.Color.hsl(donutHues[i % donutHues.size], 0.55f, if (dark) 0.62f else 0.48f))
     } + (if (remaining > 0) listOf(SankeyNode("Remaining", remaining, remainingColor)) else emptyList())
-    val total = maxOf(income, rightNodes.sumOf { it.value }, 1)
+    // Income sources use the same hue wheel but from the far end, so the two sides stay visually distinct.
+    val leftNodes = incomeCategories.ifEmpty { listOf(com.azimulkabir.actua.model.ReportCategory("Income", income)) }
+        .mapIndexed { i, category ->
+            SankeyNode(category.name, category.spentCents,
+                androidx.compose.ui.graphics.Color.hsl(donutHues[donutHues.size - 1 - i % donutHues.size], 0.55f, if (dark) 0.62f else 0.48f))
+        }
+    val total = maxOf(income, leftNodes.sumOf { it.value }, rightNodes.sumOf { it.value }, 1)
     val incomeColor = MaterialTheme.colorScheme.primary
 
-    var selected by rememberSaveable(rightNodes.size) { mutableStateOf<Int?>(null) }
-    val active = selected?.takeIf { it in rightNodes.indices }
+    var selected by rememberSaveable(leftNodes.size, rightNodes.size) { mutableStateOf<Pair<SankeySide, Int>?>(null) }
+    val activeRight = selected?.takeIf { it.first == SankeySide.EXPENSE && it.second in rightNodes.indices }?.second
+    val activeLeft = selected?.takeIf { it.first == SankeySide.INCOME && it.second in leftNodes.indices }?.second
 
+    widget.subtitle?.let {
+        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     Row(Modifier.fillMaxWidth()) {
         Column(Modifier.weight(1f)) {
-            Text("Income", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(formatMoneyCents(income, hideDecimals), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(activeLeft?.let { leftNodes[it].name } ?: "Income",
+                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatMoneyCents(activeLeft?.let { leftNodes[it].value } ?: income, hideDecimals),
+                style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(active?.let { rightNodes[it].name } ?: "Expenses",
+            Text(activeRight?.let { rightNodes[it].name } ?: "Expenses",
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(formatMoneyCents(active?.let { rightNodes[it].value } ?: expenseTotal, hideDecimals),
+            Text(formatMoneyCents(activeRight?.let { rightNodes[it].value } ?: expenseTotal, hideDecimals),
                 style = MaterialTheme.typography.titleMedium)
         }
     }
     Canvas(
         Modifier.fillMaxWidth().height(220.dp)
-            .semantics { contentDescription = "Sankey diagram from income to ${rightNodes.size} expense categories. Tap a category to read its amount." }
-            .pointerInput(rightNodes) {
+            .semantics {
+                contentDescription = "Sankey diagram from ${leftNodes.size} income sources to ${rightNodes.size} " +
+                    "expense categories. Tap a category to read its amount."
+            }
+            .pointerInput(leftNodes, rightNodes) {
                 detectTapGestures { tap ->
                     val nodeWidth = 14.dp.toPx()
-                    if (tap.x < size.width - nodeWidth) { selected = null; return@detectTapGestures }
+                    val side = when {
+                        tap.x <= nodeWidth -> SankeySide.INCOME
+                        tap.x >= size.width - nodeWidth -> SankeySide.EXPENSE
+                        else -> { selected = null; return@detectTapGestures }
+                    }
+                    val nodes = if (side == SankeySide.INCOME) leftNodes else rightNodes
                     var cumulative = 0f
                     var hit: Int? = null
-                    for ((i, node) in rightNodes.withIndex()) {
+                    for ((i, node) in nodes.withIndex()) {
                         val height = node.value.toFloat() / total * size.height
                         if (tap.y in cumulative..(cumulative + height)) { hit = i; break }
                         cumulative += height
                     }
-                    selected = hit.takeIf { it != selected }
+                    selected = hit?.let { side to it }.takeIf { it != selected }
                 }
             },
     ) {
         val nodeWidth = 14.dp.toPx()
         val cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
-        val leftHeight = income.toFloat() / total * size.height
-        drawRoundRect(incomeColor, Offset(0f, 0f), androidx.compose.ui.geometry.Size(nodeWidth, leftHeight), cornerRadius)
+        val midX = size.width / 2f
+        val incomeWidth = if (incomeCategories.isEmpty()) 0f else nodeWidth
+        val rightSpanHeight = income.toFloat() / total * size.height
+
+        if (incomeCategories.isEmpty()) {
+            // No breakdown available: draw a single income bar, same as before.
+            drawRoundRect(incomeColor, Offset(0f, 0f), androidx.compose.ui.geometry.Size(nodeWidth, rightSpanHeight), cornerRadius)
+        } else {
+            var leftCumulative = 0f
+            leftNodes.forEachIndexed { i, node ->
+                val height = node.value.toFloat() / total * size.height
+                val alpha = if (activeLeft == null || activeLeft == i) 1f else 0.35f
+                val topY = leftCumulative.coerceAtMost(rightSpanHeight)
+                val bottomY = (leftCumulative + height).coerceAtMost(rightSpanHeight)
+                if (bottomY > topY) {
+                    val link = Path().apply {
+                        moveTo(incomeWidth, leftCumulative)
+                        cubicTo(midX, leftCumulative, midX, topY, midX, topY)
+                        lineTo(midX, bottomY)
+                        cubicTo(midX, bottomY, midX, leftCumulative + height, incomeWidth, leftCumulative + height)
+                        close()
+                    }
+                    drawPath(link, node.color.copy(alpha = 0.28f * alpha))
+                }
+                drawRoundRect(node.color.copy(alpha = alpha), Offset(0f, leftCumulative),
+                    androidx.compose.ui.geometry.Size(incomeWidth, height), cornerRadius)
+                leftCumulative += height
+            }
+            // Merge point: a thin "Income" bar between the sources and the expense breakdown.
+            drawRoundRect(incomeColor, Offset(midX - nodeWidth / 2f, 0f),
+                androidx.compose.ui.geometry.Size(nodeWidth, rightSpanHeight), cornerRadius)
+        }
 
         var cumulative = 0f
+        val rightStartX = if (incomeCategories.isEmpty()) nodeWidth else midX + nodeWidth / 2f
         rightNodes.forEachIndexed { i, node ->
             val height = node.value.toFloat() / total * size.height
-            val alpha = if (active == null || active == i) 1f else 0.35f
-            val topY = cumulative.coerceAtMost(leftHeight)
-            val bottomY = (cumulative + height).coerceAtMost(leftHeight)
+            val alpha = if (activeRight == null || activeRight == i) 1f else 0.35f
+            val topY = cumulative.coerceAtMost(rightSpanHeight)
+            val bottomY = (cumulative + height).coerceAtMost(rightSpanHeight)
             if (bottomY > topY) {
-                val midX = size.width / 2f
+                val linkMidX = (rightStartX + size.width - nodeWidth) / 2f
                 val link = Path().apply {
-                    moveTo(nodeWidth, topY)
-                    cubicTo(midX, topY, midX, cumulative, size.width - nodeWidth, cumulative)
+                    moveTo(rightStartX, topY)
+                    cubicTo(linkMidX, topY, linkMidX, cumulative, size.width - nodeWidth, cumulative)
                     lineTo(size.width - nodeWidth, cumulative + height)
-                    cubicTo(midX, cumulative + height, midX, bottomY, nodeWidth, bottomY)
+                    cubicTo(linkMidX, cumulative + height, linkMidX, bottomY, rightStartX, bottomY)
                     close()
                 }
                 drawPath(link, node.color.copy(alpha = 0.28f * alpha))
@@ -1134,15 +1187,38 @@ private fun Sankey(widget: ReportWidget, hideDecimals: Boolean) {
             cumulative += height
         }
     }
+    if (incomeCategories.isNotEmpty()) {
+        Text("Income sources", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        leftNodes.forEachIndexed { i, node ->
+            Row(
+                Modifier.fillMaxWidth()
+                    .clickable(onClickLabel = "Highlight") { selected = (SankeySide.INCOME to i).takeIf { i != activeLeft } }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(Modifier.size(10.dp).background(node.color, androidx.compose.foundation.shape.CircleShape))
+                Spacer(Modifier.width(8.dp))
+                Text(node.name, maxLines = 1, modifier = Modifier.weight(1f),
+                    fontWeight = if (i == activeLeft) FontWeight.Bold else FontWeight.Normal)
+                Text(
+                    "${"%.1f".format(if (income > 0) node.value * 100.0 / income else 0.0)}% · " +
+                        formatMoneyCents(node.value, hideDecimals),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
     rightNodes.forEachIndexed { i, node ->
         Row(
-            Modifier.fillMaxWidth().clickable(onClickLabel = "Highlight") { selected = i.takeIf { it != active } }.padding(vertical = 4.dp),
+            Modifier.fillMaxWidth()
+                .clickable(onClickLabel = "Highlight") { selected = (SankeySide.EXPENSE to i).takeIf { i != activeRight } }
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(Modifier.size(10.dp).background(node.color, androidx.compose.foundation.shape.CircleShape))
             Spacer(Modifier.width(8.dp))
             Text(node.name, maxLines = 1, modifier = Modifier.weight(1f),
-                fontWeight = if (i == active) FontWeight.Bold else FontWeight.Normal)
+                fontWeight = if (i == activeRight) FontWeight.Bold else FontWeight.Normal)
             Text(formatMoneyCents(node.value, hideDecimals), fontWeight = FontWeight.SemiBold)
         }
     }
