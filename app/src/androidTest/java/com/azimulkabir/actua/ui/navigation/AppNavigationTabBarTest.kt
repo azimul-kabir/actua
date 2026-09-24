@@ -142,12 +142,14 @@ class AppNavigationTabBarTest {
         composeRule.onNodeWithText("Display").performScrollTo().performClick()
         composeRule.onNodeWithText("Tab Bar").performScrollTo().performClick()
 
+        // The default layout is already at the 5-tab maximum, so Transactions' switch (hidden by
+        // default) starts disabled; hide Add first to free a slot before showing Transactions.
         composeRule.onNodeWithContentDescription(
-            "Show ${TabItem.TRANSACTIONS.label} in the bottom bar",
+            "Show ${TabItem.ADD.label} in the bottom bar",
             useUnmergedTree = true,
         ).performScrollTo().performClick()
         composeRule.onNodeWithContentDescription(
-            "Show ${TabItem.REPORTS.label} in the bottom bar",
+            "Show ${TabItem.TRANSACTIONS.label} in the bottom bar",
             useUnmergedTree = true,
         ).performScrollTo().performClick()
 
@@ -158,6 +160,6 @@ class AppNavigationTabBarTest {
 
         composeRule.onNodeWithText("Tab Bar").assertExists()
         composeRule.onNodeWithContentDescription("Transactions", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithContentDescription("Reports", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).assertDoesNotExist()
     }
 }
