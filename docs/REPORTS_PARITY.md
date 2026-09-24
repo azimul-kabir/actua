@@ -25,10 +25,13 @@ Reference: Actual `packages/loot-core/src/server/reports` and
 - **Deleted data**: tombstoned rows are ignored. Split parents (`isParent`) are ignored;
   split children carry their own category, so splits aggregate per category and never
   double count.
-- **Transfers**: a transfer between two on-budget (or two off-budget) accounts is excluded.
-  A transfer that crosses the budget boundary counts as uncategorized spending/income
-  (money leaves/enters the budget). Income/expense is decided by category, never by sign
-  alone (`isIncome` categories vs. others), and by balance type for signed direction.
+- **Transfers**: no hard-coded exclusion, matching upstream custom reports. A transfer has
+  no category of its own, so it follows the same `showUncategorized`/category-filter toggles
+  as any other uncategorized row, and lands in a synthetic "Transfers" bucket rather than
+  "Uncategorized" when grouping by category or category group. Income/expense is decided by
+  category, never by sign alone (`isIncome` categories vs. others), and by balance type for
+  signed direction. Income vs expenses (below) is the exception: it excludes same-budget-side
+  transfers outright, matching upstream's cash-flow spreadsheet.
 - **Off-budget**: accounts excluded unless `showOffBudget`.
 - **Hidden**: hidden categories or groups excluded unless `showHiddenCategories`.
 - **Uncategorized**: included unless `showUncategorized` is false or a category/group
