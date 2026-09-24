@@ -864,7 +864,8 @@ object CoreReportEngine {
                 val range = meta?.optJSONObject("averageRange")
                 val months = when (range?.optString("mode")) {
                     "year-to-date" -> compare.monthValue - 1
-                    "all-time" -> scoped.minOfOrNull { YearMonth.from(it.localDate()) }
+                    "all-time" -> transactions.filterNot { it.tombstone }
+                        .minOfOrNull { YearMonth.from(it.localDate()) }
                         ?.let { ChronoUnit.MONTHS.between(it, compare).toInt() } ?: 0
                     else -> range?.optInt("months", 3)?.takeIf { it in setOf(3, 6, 12) } ?: 3
                 }
