@@ -961,7 +961,13 @@ fun AppNavigation(
         onLaunchRequestConsumed()
     }
 
-    BackHandler(enabled = detail != DetailDestination.Main || destination != MainDestination.Home) {
+    // Tabs can be hidden/reordered, so the exit tab for the back gesture follows the
+    // user's configured start page rather than being hardcoded to Home.
+    val backGestureHomeDestination = visibleMainDestinations.firstOrNull { it.label == startPage }
+        ?: visibleMainDestinations.firstOrNull()
+        ?: MainDestination.Accounts
+
+    BackHandler(enabled = detail != DetailDestination.Main || destination != backGestureHomeDestination) {
         when {
             detail == DetailDestination.EditTransaction && editorReturnsToCategory -> {
                 reopenBudgetCategory = transactionCategory
@@ -1012,7 +1018,7 @@ fun AppNavigation(
                 detail = DetailDestination.Main
                 editingTransaction = null
             }
-            else -> destination = MainDestination.Home
+            else -> destination = backGestureHomeDestination
         }
     }
 

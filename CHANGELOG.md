@@ -10,6 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- The back gesture's final stop before exiting the app now follows the Start page setting instead of always landing on Home ([#569](https://github.com/azimul-kabir/actua/pull/569))
 - The Accounts tab's monthly summary now counts a transfer into or out of an off-budget account as an expense or income instead of excluding every transfer ([#562](https://github.com/azimul-kabir/actua/pull/562))
 - The Crossover report widget's expense projection now matches transactions by category and date only, like the PWA, instead of also filtering by amount sign, transfers, and off-budget accounts - a refund posted to an expense category now nets against that month's spend instead of inflating the projected expense ([#560](https://github.com/azimul-kabir/actua/pull/560))
 
