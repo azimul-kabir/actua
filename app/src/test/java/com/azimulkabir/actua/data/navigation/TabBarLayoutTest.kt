@@ -10,22 +10,22 @@ class TabBarLayoutTest {
     @Test fun default_layout_visible_tabs_match_todays_fixed_bottom_bar() {
         val default = TabBarLayout.default()
         assertEquals(
-            listOf(TabItem.HOME, TabItem.BUDGET, TabItem.TRANSACTIONS, TabItem.ACCOUNTS, TabItem.MANAGE),
+            listOf(TabItem.BUDGET, TabItem.ACCOUNTS, TabItem.ADD, TabItem.REPORTS, TabItem.MANAGE),
             default.visibleTabs,
         )
-        assertEquals(setOf(TabItem.REPORTS, TabItem.ADD), default.hidden)
+        assertEquals(setOf(TabItem.HOME, TabItem.TRANSACTIONS), default.hidden)
         assertEquals(TabItem.entries.toSet(), default.order.toSet())
     }
 
     @Test fun move_tab_reorders_and_leaves_manage_untouched() {
-        // default() order is [HOME, BUDGET, TRANSACTIONS, ACCOUNTS, MANAGE, REPORTS, ADD].
+        // default() order is [HOME, BUDGET, ACCOUNTS, ADD, REPORTS, TRANSACTIONS, MANAGE].
         val moved = TabBarLayoutPlanner.moveTab(
             TabBarLayout.default().order,
             TabItem.ACCOUNTS,
             TabItem.BUDGET,
         )
         assertEquals(
-            listOf(TabItem.HOME, TabItem.ACCOUNTS, TabItem.BUDGET, TabItem.TRANSACTIONS, TabItem.MANAGE, TabItem.REPORTS, TabItem.ADD),
+            listOf(TabItem.HOME, TabItem.ACCOUNTS, TabItem.BUDGET, TabItem.ADD, TabItem.REPORTS, TabItem.TRANSACTIONS, TabItem.MANAGE),
             moved,
         )
     }
@@ -40,7 +40,7 @@ class TabBarLayoutTest {
     @Test fun move_up_and_down_step_one_position_at_a_time() {
         val order = TabBarLayout.default().order
         val down = TabBarLayoutPlanner.moveTabDown(order, TabItem.BUDGET)
-        assertEquals(TabItem.TRANSACTIONS, down?.get(1))
+        assertEquals(TabItem.ACCOUNTS, down?.get(1))
         assertEquals(TabItem.BUDGET, down?.get(2))
 
         val up = TabBarLayoutPlanner.moveTabUp(down!!, TabItem.BUDGET)
@@ -48,8 +48,8 @@ class TabBarLayoutTest {
     }
 
     @Test fun move_down_from_the_last_position_is_a_no_op() {
-        // ADD is the last reorderable entry in default()'s order (Manage excluded).
-        assertNull(TabBarLayoutPlanner.moveTabDown(TabBarLayout.default().order, TabItem.ADD))
+        // TRANSACTIONS is the last reorderable entry in default()'s order (Manage excluded).
+        assertNull(TabBarLayoutPlanner.moveTabDown(TabBarLayout.default().order, TabItem.TRANSACTIONS))
     }
 
     @Test fun move_tab_with_unknown_or_equal_ids_is_a_no_op() {
@@ -63,16 +63,16 @@ class TabBarLayoutTest {
         val attempt = TabBarLayoutPlanner.setHidden(layout, TabItem.MANAGE, true)
         assertEquals(layout, attempt)
 
-        val hiddenTransactions = TabBarLayoutPlanner.setHidden(layout, TabItem.TRANSACTIONS, true)
-        assertTrue(TabItem.TRANSACTIONS in hiddenTransactions.hidden)
-        assertFalse(TabItem.TRANSACTIONS in hiddenTransactions.visibleTabs)
-        assertTrue(TabItem.MANAGE in hiddenTransactions.visibleTabs)
+        val hiddenAccounts = TabBarLayoutPlanner.setHidden(layout, TabItem.ACCOUNTS, true)
+        assertTrue(TabItem.ACCOUNTS in hiddenAccounts.hidden)
+        assertFalse(TabItem.ACCOUNTS in hiddenAccounts.visibleTabs)
+        assertTrue(TabItem.MANAGE in hiddenAccounts.visibleTabs)
     }
 
     @Test fun set_hidden_refuses_to_drop_below_the_minimum_visible_tabs() {
         // default() has 5 visible tabs; hide two down to the 3-tab minimum, then a third must refuse.
-        var layout = TabBarLayoutPlanner.setHidden(TabBarLayout.default(), TabItem.TRANSACTIONS, true)
-        layout = TabBarLayoutPlanner.setHidden(layout, TabItem.ACCOUNTS, true)
+        var layout = TabBarLayoutPlanner.setHidden(TabBarLayout.default(), TabItem.ACCOUNTS, true)
+        layout = TabBarLayoutPlanner.setHidden(layout, TabItem.ADD, true)
         assertEquals(3, layout.visibleTabs.size)
 
         val refused = TabBarLayoutPlanner.setHidden(layout, TabItem.BUDGET, true)
@@ -85,7 +85,7 @@ class TabBarLayoutTest {
         val layout = TabBarLayout.default()
         assertEquals(5, layout.visibleTabs.size)
 
-        val refused = TabBarLayoutPlanner.setHidden(layout, TabItem.REPORTS, false)
+        val refused = TabBarLayoutPlanner.setHidden(layout, TabItem.TRANSACTIONS, false)
         assertEquals(layout, refused)
         assertEquals(5, refused.visibleTabs.size)
     }

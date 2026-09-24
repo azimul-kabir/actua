@@ -62,9 +62,11 @@ class AppNavigationTabBarTest {
 
         // NavigationBarItem merges its icon/label/selection-state semantics into one node, so the
         // icon's contentDescription is only visible in the unmerged tree.
-        for (label in listOf("Home", "Budget", "Transactions", "Accounts", "Manage")) {
+        for (label in listOf("Budget", "Accounts", "Add", "Reports", "Manage")) {
             composeRule.onNodeWithContentDescription(label, useUnmergedTree = true).assertExists()
         }
+        composeRule.onNodeWithContentDescription("Home", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Transactions", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test fun reportsCanBeConfiguredAsATabAndBackReturnsToConfiguredStartPage() {
@@ -98,15 +100,13 @@ class AppNavigationTabBarTest {
         composeRule.onNodeWithContentDescription("Customize Home", useUnmergedTree = true).assertExists()
     }
 
-    @Test fun defaultLayoutShowsFabAndNoAddTab() {
-        // Tab bar Slice 3 (#481): the FAB-based layout is the default, unchanged by this slice.
+    @Test fun defaultLayoutShowsAddTabAndNoFab() {
+        // The default tab bar (#570) now includes Add as a visible tab, so the FAB is replaced.
         tabBarPreferences.restoreDefaults()
         composeRule.setContent { MaterialTheme { AppNavigation() } }
 
-        // ExtendedFloatingActionButton merges its icon/text semantics into one node, like
-        // NavigationBarItem does (see the other tests in this file), so this needs unmerged too.
-        composeRule.onNodeWithText("Transaction", useUnmergedTree = true).assertExists() // the FAB's label
-        composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Transaction", useUnmergedTree = true).assertDoesNotExist() // the FAB's label
+        composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).assertExists()
     }
 
     @Test fun addTabLayoutHidesFabAndOpensAddTransactionEditor() {
@@ -151,10 +151,12 @@ class AppNavigationTabBarTest {
             useUnmergedTree = true,
         ).performScrollTo().performClick()
 
-        // Leaving the (full-screen) Customize Tab Bar destination returns straight to Manage; no
-        // app restart or explicit save step is needed for the bottom bar to reflect the change.
+        // Leaving the (full-screen) Customize Tab Bar destination returns to the Display settings
+        // page it was opened from (#570), not all the way back to Manage; no app restart or
+        // explicit save step is needed for the bottom bar to reflect the change either way.
         pressBack()
 
+        composeRule.onNodeWithText("Tab Bar").assertExists()
         composeRule.onNodeWithContentDescription("Reports", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithContentDescription("Transactions", useUnmergedTree = true).assertDoesNotExist()
     }

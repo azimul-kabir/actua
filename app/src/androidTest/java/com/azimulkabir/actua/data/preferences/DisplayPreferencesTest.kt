@@ -36,7 +36,7 @@ class DisplayPreferencesTest {
     @Test fun formattingDefaultsAndSelectionsPersist() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals("System default", DisplayPreferences(context).dateFormat)
-        assertEquals("System default", DisplayPreferences(context).numberFormat)
+        assertEquals("1,234.56", DisplayPreferences(context).numberFormat)
 
         DisplayPreferences(context).dateFormat = "DD/MM/YYYY"
         DisplayPreferences(context).numberFormat = "1,23,456.78"
@@ -44,6 +44,16 @@ class DisplayPreferencesTest {
         val restored = DisplayPreferences(context)
         assertEquals("DD/MM/YYYY", restored.dateFormat)
         assertEquals("1,23,456.78", restored.numberFormat)
+    }
+
+    @Test fun budgetAndEntryDefaultsMatchAppDefaults() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val preferences = DisplayPreferences(context)
+
+        assertEquals("Table", preferences.budgetView)
+        assertEquals(true, preferences.showSpentColumn)
+        assertEquals(true, preferences.showGroupTotals)
+        assertEquals(false, preferences.conventionalAmountEntry)
     }
 
     @Test fun categoryStatusDotsDefaultOnAndPersistWhenDisabled() {
