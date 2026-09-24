@@ -78,9 +78,11 @@ class SankeyTest {
 class SpendingTest {
     private val context = RuleContext(offBudgetAccountIds = setOf("off"))
 
-    private fun tx(id: String, accountId: String, date: Int, amount: Long, transferAccountId: String?) =
-        ActualTransaction(id, accountId, date, amount, null, null, null, null, null, false, false, null,
-            false, null, false, null, null, null, transferAccountId)
+    private fun tx(
+        id: String, accountId: String, date: Int, amount: Long,
+        transferAccountId: String? = null, categoryId: String? = null,
+    ) = ActualTransaction(id, accountId, date, amount, null, null, categoryId, null, null, false, false, null,
+        false, null, false, null, null, null, transferAccountId)
 
     private fun row(meta: String? = null) = DashboardWidgetRow("w", "spending-card", meta)
 
@@ -104,6 +106,26 @@ class SpendingTest {
             today = LocalDate.of(2026, 4, 20),
         )
         assertEquals(50000L, widget.valueCents)
+    }
+
+    @Test fun `all-time average range starts from the budget's earliest transaction, not the scoped one`() {
+        // Earliest transaction overall is a 2024-01 off-budget opening balance, excluded from the
+        // spending scope; on-budget spending only starts 2024-03. All-time average must still divide
+        // by the number of months since 2024-01, matching PWA's unfiltered get-earliest-transaction.
+        val rows = listOf(
+            tx("1", "off", 20240101, 100_000),
+            tx("2", "checking", 20240305, -600),
+            tx("3", "checking", 20240405, -1_200),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"isLive":false,"compare":"2024-05","mode":"average",
+                |"averageRange":{"mode":"all-time"}}""".trimMargin()),
+            rows, context,
+            today = LocalDate.of(2024, 5, 20),
+        )
+        // 4 months elapsed from 2024-01 to 2024-05 (exclusive of compare month); spend only in Mar/Apr,
+        // averaged over all 4 months: (600 + 1200) / 4 = 450.
+        assertEquals(450L, widget.comparisonCents)
     }
 }
 
