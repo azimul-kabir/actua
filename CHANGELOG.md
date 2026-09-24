@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- The Monte Carlo report widget now runs a real success-rate retirement simulation instead of showing a deterministic dollar projection ([#527](https://github.com/azimul-kabir/actua/pull/527))
 - The in-line `#tag` pill in a transaction's notes field is now rounded, matching the saved tag chip style instead of a flat rectangle ([#513](https://github.com/azimul-kabir/actua/pull/513))
 
 ## [1.0.0-beta.40] - 2026-09-23
