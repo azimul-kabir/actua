@@ -4,6 +4,11 @@ import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.rules.RuleContext
+import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
+import com.azimulkabir.actua.data.schedules.DayDate
+import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
+import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
+import com.azimulkabir.actua.data.schedules.ScheduledAmount
 import com.azimulkabir.actua.model.ReportWidgetKind
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -225,5 +230,51 @@ class AgeOfMoneyTest {
             rows, context, today = LocalDate.of(2026, 4, 20),
         )
         assertEquals(null, widget.valueCents)
+    }
+}
+
+/**
+ * Ported from Actual's `isScheduleOccurrencePosted`/`buildFutureScheduleOccurrences`
+ * (forecast-schedules.ts): an occurrence that already has a matching posted transaction must not
+ * also be projected as a synthetic schedule delta, or the running balance and the "N scheduled
+ * transactions included" count both double it (see actua#539).
+ */
+class BalanceForecastTest {
+    private val context = RuleContext()
+
+    private fun tx(id: String, date: Int, amount: Long, scheduleId: String? = null) = ActualTransaction(
+        id, "checking", date, amount, null, null, null, null, null, false, false, null,
+        false, null, false, null, scheduleId, null, null)
+
+    private fun schedule(
+        id: String, day: DayDate, amount: Long, dateOp: String? = "is", postsTransaction: Boolean = false,
+    ) = ActualScheduleSummary(
+        id, null, null, day, null, null, "checking", null, ScheduledAmount.Fixed(amount), ScheduleAmountOp.EXACT,
+        dateOp, ScheduleDateCondition.Fixed(day), postsTransaction, false, null, null, false, null, null, null,
+    )
+
+    private fun row(meta: String? = null) = DashboardWidgetRow("w", "balance-forecast-card", meta)
+
+    @Test fun `an occurrence already posted as a real transaction is not also projected as a schedule delta`() {
+        val today = LocalDate.of(2026, 9, 10)
+        val rows = listOf(tx("posted-1", 20260905, -50_000, scheduleId = "rent"))
+        val schedules = listOf(schedule("rent", DayDate(2026, 9, 5), -50_000))
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-09","end":"2026-09"}}"""),
+            rows, context, today = today, accountBalances = mapOf("checking" to -50_000L), schedules = schedules,
+        )
+        assertEquals(-50_000L, widget.valueCents)
+        assertEquals("No scheduled transactions in this range", widget.subtitle)
+    }
+
+    @Test fun `an unposted occurrence is still projected as a schedule delta`() {
+        val today = LocalDate.of(2026, 9, 1)
+        val schedules = listOf(schedule("rent", DayDate(2026, 9, 5), -50_000))
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-09","end":"2026-09"}}"""),
+            emptyList(), context, today = today, accountBalances = mapOf("checking" to 0L), schedules = schedules,
+        )
+        assertEquals(-50_000L, widget.valueCents)
+        assertEquals("1 scheduled transactions included", widget.subtitle)
     }
 }
