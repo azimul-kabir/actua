@@ -63,3 +63,41 @@ class SankeyTest {
         assertEquals("Apr 2026", widget.subtitle)
     }
 }
+
+/**
+ * PWA's own spending query (`spending-spreadsheet.ts`/`makeQuery.ts`) has no transfer exclusion —
+ * it only drops the leg whose own account is off-budget or whose category is income. Actua used to
+ * additionally hardcode `transferAccountId == null`, which silently dropped transfers PWA counts
+ * (see actua#531).
+ */
+class SpendingTest {
+    private val context = RuleContext(offBudgetAccountIds = setOf("off"))
+
+    private fun tx(id: String, accountId: String, date: Int, amount: Long, transferAccountId: String?) =
+        ActualTransaction(id, accountId, date, amount, null, null, null, null, null, false, false, null,
+            false, null, false, null, null, null, transferAccountId)
+
+    private fun row(meta: String? = null) = DashboardWidgetRow("w", "spending-card", meta)
+
+    @Test fun `counts an on-budget-to-on-budget transfer leg as spending, matching PWA's hardcoded filters`() {
+        val rows = listOf(tx("1", "checking", 20260405, -50000, transferAccountId = "savings"))
+        val widget = CoreReportEngine.compute(
+            row("""{"isLive":false,"compare":"2026-04"}"""), rows, context,
+            today = LocalDate.of(2026, 4, 20),
+        )
+        assertEquals(ReportWidgetKind.SPENDING, widget.kind)
+        assertEquals(50000L, widget.valueCents)
+    }
+
+    @Test fun `excludes only the leg whose own account is off-budget, not the whole transfer`() {
+        val rows = listOf(
+            tx("1", "checking", 20260405, -50000, transferAccountId = "off"),
+            tx("2", "off", 20260405, 50000, transferAccountId = "checking"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"isLive":false,"compare":"2026-04"}"""), rows, context,
+            today = LocalDate.of(2026, 4, 20),
+        )
+        assertEquals(50000L, widget.valueCents)
+    }
+}
