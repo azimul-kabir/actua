@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- The Calendar report widget now widens its resolved time frame to whole calendar months before filtering transactions, matching PWA/Actuali, instead of dropping transactions outside a day-level or today-bounded range ([#552](https://github.com/azimul-kabir/actua/pull/552))
 - The Spending widget's "all-time" average range now starts from the budget's true earliest transaction instead of the spending-scoped list, matching PWA/Actuali ([#551](https://github.com/azimul-kabir/actua/pull/551))
 - The Age of Money report widget no longer lets a post-dated transaction enter its FIFO pool and produce a bogus zero-day age; the pool is now capped at today like the rest of the widget ([#550](https://github.com/azimul-kabir/actua/pull/550))
 - The Crossover report widget now defaults its expense-category selection to every non-income, non-hidden category (and honors an explicitly saved empty selection as zero expenses) instead of always matching every category when none is selected ([#542](https://github.com/azimul-kabir/actua/pull/542))
