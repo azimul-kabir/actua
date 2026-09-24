@@ -49,6 +49,7 @@ object CoreReportEngine {
             categoryGroupIds = groups.flatMap { it.categories }.associate { it.id to it.groupId },
             categoryGroupNames = groups.associate { it.id to it.name },
             payeeNames = transactions.mapNotNull { tx -> tx.payeeId?.let { it to tx.payeeName.orEmpty() } }.toMap(),
+            hiddenCategoryIds = groups.flatMap { it.categories }.filter { it.hidden }.mapTo(mutableSetOf()) { it.id },
         )
         val incomeCategories = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id }
         val savedReportsById = savedReports.associateBy { it.id }
@@ -242,7 +243,11 @@ object CoreReportEngine {
         val live = all.filterNot { it.tombstone }
         val selectedAccounts = meta?.optJSONArray("incomeAccountIds")?.strings()?.toSet().orEmpty()
             .ifEmpty { accountBalances.keys }
-        val selectedCategories = meta?.optJSONArray("expenseCategoryIds")?.strings()?.toSet().orEmpty()
+        // Mirrors upstream's `expenseCategoryIds` memo: an explicit (even empty) list is honored
+        // as-is, but when the widget hasn't set one, the default is every non-income category,
+        // excluding hidden ones unless `showHiddenCategories` is set - not "match everything".
+        val explicitExpenseCategories = meta?.optJSONArray("expenseCategoryIds")?.strings()?.toSet()
+        val showHiddenCategories = meta?.optBoolean("showHiddenCategories", false) ?: false
 
         val previousMonth = YearMonth.from(today).minusMonths(1)
         val earliestMonth = live.minOfOrNull { YearMonth.from(it.localDate()) } ?: previousMonth
@@ -287,7 +292,8 @@ object CoreReportEngine {
             .filter { it.amountCents < 0 && it.transferAccountId == null &&
                 it.accountId !in context.offBudgetAccountIds && it.categoryId !in incomeCategoryIds &&
                 it.date in startYmd..rangeEndYmd &&
-                (selectedCategories.isEmpty() || it.categoryId?.let(selectedCategories::contains) == true) }
+                if (explicitExpenseCategories != null) it.categoryId?.let(explicitExpenseCategories::contains) == true
+                else showHiddenCategories || it.categoryId !in context.hiddenCategoryIds }
             .groupBy { YearMonth.from(it.localDate()) }
             .mapValues { (_, rows) -> -rows.sumOf { it.amountCents } }
 

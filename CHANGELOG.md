@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- The Crossover report widget now defaults its expense-category selection to every non-income, non-hidden category (and honors an explicitly saved empty selection as zero expenses) instead of always matching every category when none is selected ([#542](https://github.com/azimul-kabir/actua/pull/542))
 - The Balance Forecast report widget no longer double-counts a scheduled transaction that already posted, which was inflating the scheduled-transaction count and understating the ending/low balance ([#541](https://github.com/azimul-kabir/actua/pull/541))
 
 ## [1.0.0-beta.41] - 2026-09-24

@@ -17,6 +17,7 @@ data class RuleContext(
     val categoryGroupIds: Map<String, String> = emptyMap(),
     val categoryGroupNames: Map<String, String> = emptyMap(),
     val payeeNames: Map<String, String> = emptyMap(),
+    val hiddenCategoryIds: Set<String> = emptySet(),
 )
 data class RuleRunResult(
     val transaction: ActualTransaction, val changedFields: Set<String>,
