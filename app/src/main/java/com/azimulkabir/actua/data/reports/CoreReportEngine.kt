@@ -207,36 +207,149 @@ object CoreReportEngine {
             valueCents = points.sumOf { it.primaryCents }, comparisonCents = points.sumOf { it.secondaryCents }, points = points)
     }
 
+    /**
+     * Ported from Actual's `crossover-spreadsheet.ts` (`recalculate`): the historical window builds
+     * per-selected-account monthly balances (starting balance = running total through the end of the
+     * first month, then walked forward by each month's posted deltas) to derive the default annual
+     * return as the CAGR between the first and last historical balance, and to chart real
+     * income-vs-expenses per historical month. The projection seeds from the *last historical
+     * balance* (not the account's live balance), grows monthly by the explicit `estimatedReturn` (if
+     * set) or that CAGR, and projects expenses with the widget's `projectionType`
+     * (`hampel`/`median`/`mean`) over the zero-filled monthly expense series, not a plain average.
+     */
     private fun crossover(
         id: String, name: String, meta: JSONObject?, all: List<ActualTransaction>, context: RuleContext,
         incomeCategoryIds: Set<String>, accountBalances: Map<String, Long>, today: LocalDate,
     ): ReportWidget {
+        val live = all.filterNot { it.tombstone }
         val selectedAccounts = meta?.optJSONArray("incomeAccountIds")?.strings()?.toSet().orEmpty()
             .ifEmpty { accountBalances.keys }
-        var balance = selectedAccounts.sumOf { accountBalances[it] ?: 0L }.coerceAtLeast(0)
         val selectedCategories = meta?.optJSONArray("expenseCategoryIds")?.strings()?.toSet().orEmpty()
-        val expenses = all.filterNot { it.tombstone || it.amountCents >= 0 || it.transferAccountId != null ||
-            it.accountId in context.offBudgetAccountIds || it.categoryId in incomeCategoryIds }
-            .filter { selectedCategories.isEmpty() || it.categoryId?.let(selectedCategories::contains) == true }
-        val months = expenses.map { YearMonth.from(it.localDate()) }.distinct().size.coerceAtLeast(1)
-        val monthlyExpenses = (-expenses.sumOf { it.amountCents } / months.toLong() *
-            (meta?.optDouble("expenseAdjustmentFactor", 1.0) ?: 1.0)).roundToLong()
-        val swr = meta?.optDouble("safeWithdrawalRate", 0.04)?.takeIf { it > 0 } ?: 0.04
-        val annualReturn = meta?.optDouble("estimatedReturn", swr)?.takeIf { it.isFinite() } ?: swr
-        val contribution = meta?.optDouble("expectedContribution", 0.0)?.roundToLong() ?: 0
-        val points = mutableListOf<ReportPoint>()
-        var crossoverMonth: Int? = null
-        for (offset in 0..600) {
-            val income = (balance * swr / 12.0).roundToLong()
-            if (offset % 12 == 0 || crossoverMonth == null && income >= monthlyExpenses) {
-                points += ReportPoint(YearMonth.from(today).plusMonths(offset.toLong()).toString(), income, monthlyExpenses)
+
+        val previousMonth = YearMonth.from(today).minusMonths(1)
+        val earliestMonth = live.minOfOrNull { YearMonth.from(it.localDate()) } ?: previousMonth
+        val timeFrameMeta = meta?.optJSONObject("timeFrame")
+        fun storedMonth(key: String) = timeFrameMeta?.optString(key)?.let(::month)
+        val start: YearMonth
+        val end: YearMonth
+        when (timeFrameMeta?.optString("mode") ?: "full") {
+            "sliding-window" -> {
+                start = (storedMonth("start") ?: earliestMonth).minusMonths(1).coerceIn(earliestMonth, previousMonth)
+                end = (storedMonth("end") ?: previousMonth).minusMonths(1).coerceIn(earliestMonth, previousMonth)
             }
-            if (crossoverMonth == null && income >= monthlyExpenses) crossoverMonth = offset
-            if (crossoverMonth != null && offset > crossoverMonth!! + 12) break
-            balance = ((balance + contribution) * (1 + annualReturn / 12.0)).roundToLong()
+            "full" -> { start = earliestMonth; end = previousMonth }
+            else -> {
+                start = (storedMonth("start") ?: earliestMonth).coerceIn(earliestMonth, previousMonth)
+                end = (storedMonth("end") ?: previousMonth).coerceIn(earliestMonth, previousMonth)
+            }
         }
-        return ReportWidget(id, ReportWidgetKind.CROSSOVER, name, valueCents = crossoverMonth?.toLong(),
-            comparisonCents = monthlyExpenses, points = points)
+        val rangeEnd = if (end.isBefore(start)) start else end
+        val months = generateSequence(start) { it.plusMonths(1) }.takeWhile { !it.isAfter(rangeEnd) }.toList()
+        val startYmd = start.atDay(1).toYmd()
+        val startEndYmd = start.atEndOfMonth().toYmd()
+        val rangeEndYmd = rangeEnd.atEndOfMonth().toYmd()
+
+        // Total balance across selected accounts per historical month, seeded from the running
+        // balance through the end of the start month and walked forward by later months' deltas.
+        val historicalBalances = LongArray(months.size)
+        selectedAccounts.forEach { accountId ->
+            val accountTx = live.filter { it.accountId == accountId }
+            var running = accountTx.filter { it.date <= startEndYmd }.sumOf { it.amountCents }
+            val deltasByMonth = accountTx.filter { it.date in startYmd..rangeEndYmd }
+                .filter { YearMonth.from(it.localDate()) != start }
+                .groupBy { YearMonth.from(it.localDate()) }
+                .mapValues { (_, rows) -> rows.sumOf { it.amountCents } }
+            months.forEachIndexed { i, m ->
+                running += deltasByMonth[m] ?: 0L
+                historicalBalances[i] += running
+            }
+        }
+
+        val expenseByMonth = live.asSequence()
+            .filter { it.amountCents < 0 && it.transferAccountId == null &&
+                it.accountId !in context.offBudgetAccountIds && it.categoryId !in incomeCategoryIds &&
+                it.date in startYmd..rangeEndYmd &&
+                (selectedCategories.isEmpty() || it.categoryId?.let(selectedCategories::contains) == true) }
+            .groupBy { YearMonth.from(it.localDate()) }
+            .mapValues { (_, rows) -> -rows.sumOf { it.amountCents } }
+
+        val swr = meta?.optDouble("safeWithdrawalRate", 0.04)?.takeIf { it > 0 } ?: 0.04
+        val monthlySwr = swr / 12.0
+
+        val points = mutableListOf<ReportPoint>()
+        months.forEachIndexed { i, m ->
+            points += ReportPoint(m.toString(), (historicalBalances[i] * monthlySwr).roundToLong(), expenseByMonth[m] ?: 0L)
+        }
+
+        // Default (historical) monthly return: CAGR between the first and last non-zero historical balance.
+        var defaultMonthlyReturn: Double? = null
+        if (historicalBalances.size >= 2) {
+            var startingBalance = historicalBalances[0].toDouble()
+            val finalBalance = historicalBalances.last().toDouble()
+            val n = historicalBalances.size - 1
+            if (startingBalance == 0.0) {
+                for (i in 1 until historicalBalances.size) {
+                    if (historicalBalances[i] != 0L) { startingBalance = historicalBalances[i].toDouble(); break }
+                }
+            }
+            defaultMonthlyReturn = if (startingBalance > 0 && finalBalance > 0 && n > 0) {
+                Math.pow(finalBalance / startingBalance, 1.0 / n).minus(1).takeIf { it.isFinite() } ?: 0.0
+            } else 0.0
+        }
+        val explicitAnnualReturn = meta?.optDouble("estimatedReturn", Double.NaN)?.takeIf { it.isFinite() }
+        val monthlyReturn = explicitAnnualReturn?.let { Math.pow(1 + it, 1.0 / 12) - 1 } ?: defaultMonthlyReturn
+        val contribution = meta?.optDouble("expectedContribution", 0.0)?.roundToLong() ?: 0L
+        val adjustmentFactor = meta?.optDouble("expenseAdjustmentFactor", 1.0)?.takeIf { it.isFinite() } ?: 1.0
+
+        val expenseSeries = months.map { (expenseByMonth[it] ?: 0L).toDouble() }
+        val flatExpense = when (meta?.optString("projectionType", "hampel") ?: "hampel") {
+            "median" -> median(expenseSeries)
+            "mean" -> mean(expenseSeries)
+            else -> hampelFilteredMedian(expenseSeries)
+        }
+        val adjustedExpenses = (maxOf(0.0, flatExpense) * adjustmentFactor).roundToLong()
+
+        var projectedBalance = historicalBalances.lastOrNull() ?: 0L
+        var monthCursor = rangeEnd
+        var crossoverIteration: Int? = null
+        var crossoverMonth: YearMonth? = null
+        for (i in 1..600) {
+            monthCursor = monthCursor.plusMonths(1)
+            projectedBalance += contribution
+            monthlyReturn?.let { projectedBalance = (projectedBalance * (1 + it)).roundToLong() }
+            val projectedIncome = (projectedBalance * monthlySwr).roundToLong()
+            val reached = projectedIncome >= adjustedExpenses
+            if (i % 12 == 0 || (crossoverIteration == null && reached)) {
+                points += ReportPoint(monthCursor.toString(), projectedIncome, adjustedExpenses)
+            }
+            if (crossoverIteration == null && reached) { crossoverIteration = i; crossoverMonth = monthCursor }
+            if (crossoverIteration != null && i > crossoverIteration + 12) break
+        }
+        val monthsToRetire = crossoverMonth?.let { ChronoUnit.MONTHS.between(YearMonth.from(today), it) }?.coerceAtLeast(0)
+        return ReportWidget(id, ReportWidgetKind.CROSSOVER, name, valueCents = monthsToRetire,
+            comparisonCents = adjustedExpenses, points = points)
+    }
+
+    private fun median(values: List<Double>): Double {
+        if (values.isEmpty()) return 0.0
+        if (values.size == 1) return values[0]
+        val sorted = values.sorted()
+        val mid = sorted.size / 2
+        return if (sorted.size % 2 == 0) (sorted[mid - 1] + sorted[mid]) / 2 else sorted[mid]
+    }
+
+    private fun mean(values: List<Double>): Double = if (values.isEmpty()) 0.0 else values.sum() / values.size
+
+    private fun hampelFilteredMedian(values: List<Double>): Double {
+        if (values.isEmpty()) return 0.0
+        if (values.size == 1) return values[0]
+        val med = median(values)
+        val mad = median(values.map { kotlin.math.abs(it - med) })
+        val threshold = 3.0
+        val lower = med - 1.4826 * mad * threshold
+        val upper = med + 1.4826 * mad * threshold
+        val filtered = values.filter { it in lower..upper }
+        return median(filtered)
     }
 
     /**
