@@ -50,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -685,6 +686,23 @@ fun ConnectionScreen(
                 Text("Connection", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f))
                 if (connected && !editingConnection) TextButton(onClick = { editingConnection = true }) { Text("Edit") }
+            }
+            if (!connected) {
+                val uriHandler = LocalUriHandler.current
+                Text(
+                    "Actua connects to a self-hosted Actual Budget server — it doesn't host budgets itself. " +
+                        "You need the URL of a running Actual server and the password (or OpenID login) you " +
+                        "use for it. New to Actual Budget?",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Learn how it works and how to self-host a server at actualbudget.org",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { uriHandler.openUri("https://actualbudget.org") },
+                )
             }
             OutlinedTextField(
                 value = serverUrl, onValueChange = { serverUrl = it }, label = { Text("Server URL") },

@@ -478,7 +478,11 @@ fun SettingsScreen(
                     ListItem(
                         headlineContent = { Text("Actual Budget") },
                         supportingContent = {
-                            Text("Synchronization behavior is compatible with the open-source Actual Budget project.")
+                            Text("Synchronization behavior is compatible with the open-source Actual Budget project. Visit actualbudget.org to learn how it works and how to self-host a server.")
+                        },
+                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://actualbudget.org")
                         },
                     )
                     SettingsSection("Compatibility")
