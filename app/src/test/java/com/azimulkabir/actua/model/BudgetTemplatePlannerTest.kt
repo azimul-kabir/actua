@@ -390,6 +390,27 @@ class BudgetTemplatePlannerTest {
         assertEquals(1, preview.unchangedCount)
     }
 
+    @Test fun scopingToASingleGroupLeavesOtherGroupsUntouched() {
+        val living = BudgetGroup("Living", listOf(
+            category("rent", "Rent", assigned = 80_000, target = BudgetTarget(
+                BudgetTarget.Type.FIXED, 100_000,
+            )),
+        ))
+        val bills = BudgetGroup("Bills", listOf(
+            category("power", "Power", assigned = 0, target = BudgetTarget(
+                BudgetTarget.Type.FIXED, 15_000,
+            )),
+        ))
+
+        // The group-scoped "apply/overwrite templates" action passes only the long-pressed
+        // group's list entry; the planner must not reach into the other group's categories.
+        val preview = BudgetTemplatePlanner.preview(listOf(bills), "2026-09", overwriteExisting = true)
+
+        assertEquals(1, preview.changes.size)
+        assertEquals("power", preview.changes.single().categoryId)
+        assertEquals("Bills", preview.changes.single().groupName)
+    }
+
     private fun category(
         id: String,
         name: String,
