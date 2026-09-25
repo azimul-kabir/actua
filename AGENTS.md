@@ -71,12 +71,20 @@ Use the committed Gradle wrapper. The daemon toolchain is JDK 25 in
 which is not the Gradle runtime requirement. Install Android SDK 37; minSdk is
 28. Dependency versions live in `gradle/libs.versions.toml`.
 
+The app has two product flavors: `fdroid` (no proprietary dependencies, what
+GitHub Releases/F-Droid ship) and `playstore` (adds Google Play Billing for
+the optional Support Actua purchase). `assembleDebug`/`bundleRelease` still
+aggregate both flavors, but unit test and lint tasks don't — name the flavor
+explicitly for those, or use `connected<Flavor>InstrumentedAndroidTest` for
+instrumented tests (the flavors only differ in the billing wrapper, so
+`fdroid` alone is normally sufficient coverage).
+
 ```sh
-./gradlew assembleDebug testInstrumentedUnitTest lintDebug
+./gradlew assembleDebug testFdroidInstrumentedUnitTest testPlaystoreInstrumentedUnitTest lintFdroidDebug lintPlaystoreDebug
 # With an emulator/device connected (the test build type is "instrumented"):
-./gradlew connectedInstrumentedAndroidTest
+./gradlew connectedFdroidInstrumentedAndroidTest
 # Narrow a JVM regression run where appropriate:
-./gradlew testInstrumentedUnitTest --tests '*SyncCoreFixtureTest'
+./gradlew testFdroidInstrumentedUnitTest --tests '*SyncCoreFixtureTest'
 ```
 
 Add meaningful regression coverage for changed behavior. Keep pure logic tests
