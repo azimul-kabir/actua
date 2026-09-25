@@ -70,18 +70,22 @@ jobs:
           ACTUA_KEYSTORE_PASSWORD: ${{ secrets.ACTUA_RELEASE_STORE_PASSWORD }}
           ACTUA_KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
           ACTUA_KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon assembleRelease testInstrumentedUnitTest lintDebug
+        # The "fdroid" flavor excludes Play Billing, so it's the flavor published to GitHub
+        # Releases and built by F-Droid; testInstrumentedUnitTest/lintDebug still aggregate
+        # across both flavors.
+        run: ./gradlew --no-daemon assembleFdroidRelease testInstrumentedUnitTest lintDebug
       - name: Verify release signature
         run: |
           BUILD_TOOLS_VERSION="$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)"
-          "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose --print-certs app/build/outputs/apk/fdroid/release/app-fdroid-release.apk
       - name: Build release bundle for Play Console upload
         env:
           ACTUA_KEYSTORE_PATH: ${{ runner.temp }}/actua-release.jks
           ACTUA_KEYSTORE_PASSWORD: ${{ secrets.ACTUA_RELEASE_STORE_PASSWORD }}
           ACTUA_KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
           ACTUA_KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon bundleRelease
+        # The "playstore" flavor is the one that includes Play Billing (for Support Actua).
+        run: ./gradlew --no-daemon bundlePlaystoreRelease
       - name: Read release version
         id: version
         run: |
@@ -183,12 +187,12 @@ jobs:
           fi
           test -s release-notes.md
       - name: Prepare testing APK
-        run: cp app/build/outputs/apk/release/app-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
+        run: cp app/build/outputs/apk/fdroid/release/app-fdroid-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
       - name: Upload Play Store bundle artifact
         uses: actions/upload-artifact@v4
         with:
           name: Actua-v${{ steps.version.outputs.name }}-aab
-          path: app/build/outputs/bundle/release/app-release.aab
+          path: app/build/outputs/bundle/playstoreRelease/app-playstore-release.aab
           retention-days: 90
       - name: Publish GitHub prerelease
         uses: softprops/action-gh-release@v3

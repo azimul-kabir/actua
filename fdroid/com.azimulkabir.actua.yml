@@ -21,7 +21,7 @@ Builds:
     commit: c12e210ba9401d04b927364703ae887e7d151ca6
     subdir: app
     gradle:
-      - yes
+      - fdroid
     prebuild: sed -i '/^plugins {$/,/^}$/d' ../settings.gradle.kts
 
 AllowedAPKSigningKeys: 2a37719a0770ce4e03f3c080bd9d780c22300e28db678823b5595c9ad55753cc

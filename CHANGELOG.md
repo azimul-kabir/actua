@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added FAQ and Discord links to the About page, and an optional one-time Play Store "Support Actua" purchase ([#598](https://github.com/azimul-kabir/actua/issues/598))
+
 ## [1.0.0] - 2026-09-25
 
 ### Changed
