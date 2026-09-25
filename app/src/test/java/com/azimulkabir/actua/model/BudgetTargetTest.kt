@@ -119,6 +119,41 @@ class BudgetTargetTest {
         )
     }
 
+    @Test fun scheduleWithoutFundingReturnsZero() {
+        // Regression for #575: a category's target can be previewed (e.g. the Auto-Assign
+        // sheet) before the caller has schedule funding on hand at all.
+        assertEquals(
+            0,
+            BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = "sched-1").suggestedBudget(category(), "2026-09"),
+        )
+    }
+
+    @Test fun scheduleUsesLinkedFundingAmount() {
+        // Regression for #575: "Auto-Assign" for a "Cover schedule" target defaulted to 0
+        // instead of the linked schedule's requested amount.
+        val funding = BudgetScheduleFunding(
+            id = "sched-1", name = "Rent", amountCents = 150_000,
+            occurrencesInMonth = 1, monthsUntilNextOccurrence = 0,
+        )
+        assertEquals(
+            150_000,
+            BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = "sched-1")
+                .suggestedBudget(category(), "2026-09", listOf(funding)),
+        )
+    }
+
+    @Test fun scheduleFullRequestsWholeAmountTimesOccurrences() {
+        val funding = BudgetScheduleFunding(
+            id = "sched-1", name = "Rent", amountCents = 50_000,
+            occurrencesInMonth = 2, monthsUntilNextOccurrence = 0,
+        )
+        assertEquals(
+            100_000,
+            BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = "sched-1", scheduleFull = true)
+                .suggestedBudget(category(), "2026-09", listOf(funding)),
+        )
+    }
+
     private fun category(carryover: Long = 0) = BudgetCategory(
         name = "Groceries", assigned = 0, spent = 0, actualAvailable = carryover.toInt(),
         actualAssignedCents = 0, availableCents = carryover,
