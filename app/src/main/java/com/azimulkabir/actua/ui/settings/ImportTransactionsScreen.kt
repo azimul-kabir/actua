@@ -79,7 +79,7 @@ private data class ReviewRow(
 fun ImportTransactionsScreen(
     accounts: List<Account>,
     duplicateKeys: (String) -> Set<String>,
-    onImport: (String, List<ImportCandidate>) -> Boolean,
+    onImport: (String, List<ImportCandidate>, onImported: () -> Unit) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialSharedText: String? = null,
@@ -386,7 +386,7 @@ fun ImportTransactionsScreen(
         Button(
             onClick = {
                 val target = account ?: return@Button
-                if (onImport(target.id, ready)) {
+                onImport(target.id, ready) {
                     message = "Imported ${ready.size} transaction${if (ready.size == 1) "" else "s"}."
                     importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, target.name,
                         ready.size, rows.size - ready.size, System.currentTimeMillis()))

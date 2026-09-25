@@ -508,7 +508,34 @@ fun AppNavigation(
             else TransactionImpactCue(name, balanceBeforeCents = balanceBefore, balanceAfterCents = balanceAfter)
         }
 
-    fun mutate(label: String, action: () -> Boolean): Boolean = runCatching(action).fold(
+    // The (disk I/O) mutation runs off the main thread; [onChanged] fires afterwards on the
+    // main thread once the local write has durably completed, so callers that need to react to
+    // success (closing a dialog, navigating away) do so there instead of on a return value.
+    fun mutate(label: String, onChanged: () -> Unit = {}, action: () -> Boolean) {
+        coroutineScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching(action) }
+            result.fold(
+                onSuccess = { changed ->
+                    if (changed) {
+                        dataVersion += 1
+                        onChanged()
+                    } else {
+                        errorMessage = "$label could not be completed."
+                    }
+                },
+                onFailure = { error ->
+                    errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
+                },
+            )
+        }
+    }
+
+    // Drag-to-reorder screens need to know synchronously whether a move was accepted, to decide
+    // whether to keep the just-dropped optimistic order or snap back to the last confirmed one.
+    // Reorder writes are single-row updates (not the batched writes this main-thread-blocking fix
+    // targets), so this stays synchronous rather than gaining the same async/onChanged shape as
+    // [mutate].
+    fun mutateSync(label: String, action: () -> Boolean): Boolean = runCatching(action).fold(
         onSuccess = { changed ->
             if (changed) dataVersion += 1 else errorMessage = "$label could not be completed."
             changed
@@ -520,11 +547,26 @@ fun AppNavigation(
     )
 
     /** Like [mutate], but also shows [transactionImpactCues] for every budget category [categories] touches. */
-    fun mutateWithImpactCue(label: String, categories: Set<String>, action: () -> Boolean): Boolean {
-        val before = categoryAvailableCents(categories)
-        val changed = mutate(label, action)
-        if (changed) transactionImpactCues = impactCues(before, categoryAvailableCents(categories))
-        return changed
+    fun mutateWithImpactCue(label: String, categories: Set<String>, onChanged: () -> Unit = {}, action: () -> Boolean) {
+        coroutineScope.launch {
+            val before = withContext(Dispatchers.IO) { categoryAvailableCents(categories) }
+            val result = withContext(Dispatchers.IO) { runCatching(action) }
+            result.fold(
+                onSuccess = { changed ->
+                    if (changed) {
+                        dataVersion += 1
+                        val after = withContext(Dispatchers.IO) { categoryAvailableCents(categories) }
+                        transactionImpactCues = impactCues(before, after)
+                        onChanged()
+                    } else {
+                        errorMessage = "$label could not be completed."
+                    }
+                },
+                onFailure = { error ->
+                    errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
+                },
+            )
+        }
     }
 
     fun refreshTransactions() {
@@ -697,20 +739,26 @@ fun AppNavigation(
 
     fun linkBankAccount(discovered: com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount, account: Account, source: String) {
         val (requisitionId, externalId) = if (source == "goCardless") splitGoCardlessId(discovered.id) else null to discovered.id
-        if (mutate("Linking account") { repository.linkBankAccount(account.id, externalId, source, requisitionId) }) {
-            goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-            simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-        }
+        mutate(
+            "Linking account",
+            onChanged = {
+                goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+                simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+            },
+        ) { repository.linkBankAccount(account.id, externalId, source, requisitionId) }
     }
 
     fun createAndLinkBankAccount(
         discovered: com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount, name: String, offBudget: Boolean, source: String,
     ) {
         val (requisitionId, externalId) = if (source == "goCardless") splitGoCardlessId(discovered.id) else null to discovered.id
-        if (mutate("Creating account") { repository.createLinkedAccount(name, offBudget, externalId, source, requisitionId) }) {
-            goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-            simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
-        }
+        mutate(
+            "Creating account",
+            onChanged = {
+                goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+                simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+            },
+        ) { repository.createLinkedAccount(name, offBudget, externalId, source, requisitionId) }
     }
 
     fun unlinkBankAccount(account: Account) {
@@ -1264,11 +1312,11 @@ fun AppNavigation(
                 onSetCleared = { transaction, cleared ->
                     mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
                 },
-                onReconcileAccount = { account ->
-                    mutate("Reconciling account") { repository.reconcileAccount(account.id) }
+                onReconcileAccount = { account, onReconciled ->
+                    mutate("Reconciling account", onChanged = onReconciled) { repository.reconcileAccount(account.id) }
                 },
-                onCreateReconciliationAdjustment = { account, difference ->
-                    mutate("Creating reconciliation adjustment") {
+                onCreateReconciliationAdjustment = { account, difference, onCreated ->
+                    mutate("Creating reconciliation adjustment", onChanged = onCreated) {
                         repository.createReconciliationAdjustment(account.id, difference)
                     }
                 },
@@ -1675,14 +1723,16 @@ fun AppNavigation(
                     creditCardsReturnToBills = false
                 },
                 onSave = { accountId, day, paymentDue, limit ->
-                    if (mutate("Saving credit card") { repository.setCreditCard(accountId, day, paymentDue, limit) }) {
-                        CreditCardDueNotificationScheduler.refresh(context)
-                    }
+                    mutate(
+                        "Saving credit card",
+                        onChanged = { CreditCardDueNotificationScheduler.refresh(context) },
+                    ) { repository.setCreditCard(accountId, day, paymentDue, limit) }
                 },
                 onRemove = { accountId ->
-                    if (mutate("Removing credit card") { repository.setCreditCard(accountId, null) }) {
-                        CreditCardDueNotificationScheduler.refresh(context)
-                    }
+                    mutate(
+                        "Removing credit card",
+                        onChanged = { CreditCardDueNotificationScheduler.refresh(context) },
+                    ) { repository.setCreditCard(accountId, null) }
                 },
                 notificationsEnabled = creditCardNotificationsEnabled,
                 onNotificationsEnabledChange = { enabled ->
@@ -1776,8 +1826,8 @@ fun AppNavigation(
                 scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() },
                 editorData = remember(dataVersion) { repository.ruleEditorData() },
                 onBack = { detail = DetailDestination.Main },
-                onSave = { rule -> mutate("Saving rule") { repository.saveRule(rule) } },
-                onDelete = { ruleId -> mutate("Deleting rule") { repository.deleteRule(ruleId) } },
+                onSave = { rule, onSaved -> mutate("Saving rule", onChanged = onSaved) { repository.saveRule(rule) } },
+                onDelete = { ruleId, onDeleted -> mutate("Deleting rule", onChanged = onDeleted) { repository.deleteRule(ruleId) } },
                 modifier = contentModifier,
             )
             DetailDestination.ManageCategories -> ManageCategoriesScreen(
@@ -1799,13 +1849,13 @@ fun AppNavigation(
                     }
                 },
                 onDeleteCategory = { group, category -> mutate("Deleting category") { repository.deleteCategory(group, category) } },
-                onMoveCategory = { move -> mutate("Reordering category") { repository.moveCategory(move) } },
+                onMoveCategory = { move -> mutateSync("Reordering category") { repository.moveCategory(move) } },
                 modifier = contentModifier,
             )
             DetailDestination.ReorderGroups -> ReorderGroupsScreen(
                 groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
                 onBack = { detail = DetailDestination.ManageCategories },
-                onMoveGroup = { move -> mutate("Reordering category group") { repository.moveCategoryGroup(move) } },
+                onMoveGroup = { move -> mutateSync("Reordering category group") { repository.moveCategoryGroup(move) } },
                 modifier = contentModifier,
             )
             DetailDestination.CustomizeHome -> CustomizeHomeScreen(
@@ -1892,24 +1942,18 @@ fun AppNavigation(
                 writesSupported = repository.payeeLocationWritesSupported(),
                 onBack = { detail = DetailDestination.Main },
                 onDelete = { id ->
-                    if (mutate("Deleting payee location") { repository.deletePayeeLocation(id) }) {
-                        dataVersion += 1
-                    }
+                    mutate("Deleting payee location") { repository.deletePayeeLocation(id) }
                 },
                 onClearPayee = { payeeId ->
-                    if (mutate("Clearing payee locations") {
-                            repository.clearPayeeLocations(payeeId) > 0
-                        }) {
-                        dataVersion += 1
-                    }
+                    mutate("Clearing payee locations") { repository.clearPayeeLocations(payeeId) > 0 }
                 },
                 modifier = contentModifier,
             )
             DetailDestination.ImportTransactions -> ImportTransactionsScreen(
                 accounts = accounts.filterNot { it.closed },
                 duplicateKeys = repository::importDuplicateKeys,
-                onImport = { accountId, candidates ->
-                    mutate("Importing transactions") {
+                onImport = { accountId, candidates, onImported ->
+                    mutate("Importing transactions", onChanged = onImported) {
                         repository.importTransactions(accountId, candidates) == candidates.size
                     }
                 },
@@ -1968,11 +2012,10 @@ fun AppNavigation(
                     hideDecimalPlaces = hideDecimalPlaces,
                     onBack = { detail = DetailDestination.Schedules },
                     onCreate = { selected ->
-                        if (mutate("Creating schedules") {
-                            repository.createDiscoveredSchedules(selected)
-                        }) {
-                            detail = DetailDestination.Schedules
-                        }
+                        mutate(
+                            "Creating schedules",
+                            onChanged = { detail = DetailDestination.Schedules },
+                        ) { repository.createDiscoveredSchedules(selected) }
                     },
                     modifier = contentModifier,
                 )
@@ -1988,12 +2031,13 @@ fun AppNavigation(
                     scheduleReturnsToBills = false
                 },
                 onSave = { fields, payeeName ->
-                    if (mutate("Creating schedule") {
-                        repository.createSchedule(fields, payeeName)
-                    }) {
-                        detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
-                        scheduleReturnsToBills = false
-                    }
+                    mutate(
+                        "Creating schedule",
+                        onChanged = {
+                            detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
+                            scheduleReturnsToBills = false
+                        },
+                    ) { repository.createSchedule(fields, payeeName) }
                 },
                 modifier = contentModifier,
             )
@@ -2013,16 +2057,16 @@ fun AppNavigation(
                         returnFromEditSchedule()
                     },
                     onSave = { fields, payeeName ->
-                        if (mutate("Saving schedule") {
-                            repository.updateSchedule(item.schedule.id, fields, payeeName)
-                        }) {
-                            returnFromEditSchedule()
-                        }
+                        mutate(
+                            "Saving schedule",
+                            onChanged = ::returnFromEditSchedule,
+                        ) { repository.updateSchedule(item.schedule.id, fields, payeeName) }
                     },
                     onDelete = {
-                        if (mutate("Deleting schedule") { repository.deleteSchedule(item.schedule.id) }) {
-                            returnFromEditSchedule()
-                        }
+                        mutate(
+                            "Deleting schedule",
+                            onChanged = ::returnFromEditSchedule,
+                        ) { repository.deleteSchedule(item.schedule.id) }
                     },
                     onUnlinkTransaction = { transactionId ->
                         mutate("Unlinking transaction") {
@@ -2157,13 +2201,13 @@ fun AppNavigation(
                         favoriteCategoryIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.CATEGORY)
                         WidgetUpdater.requestAll(context)
                     },
-                    onSetCategoryHidden = { group, category, hidden ->
-                        mutate(if (hidden) "Hiding category" else "Showing category") {
+                    onSetCategoryHidden = { group, category, hidden, onChanged ->
+                        mutate(if (hidden) "Hiding category" else "Showing category", onChanged = onChanged) {
                             repository.setCategoryHidden(group, category, hidden)
                         }
                     },
-                    onSetGroupHidden = { group, hidden ->
-                        mutate(if (hidden) "Hiding group" else "Showing group") {
+                    onSetGroupHidden = { group, hidden, onChanged ->
+                        mutate(if (hidden) "Hiding group" else "Showing group", onChanged = onChanged) {
                             repository.setCategoryGroupHidden(group, hidden)
                         }
                     },
@@ -2220,8 +2264,8 @@ fun AppNavigation(
                     onSearch = { detail = DetailDestination.Search },
                     onManageCategories = { detail = DetailDestination.ManageCategories },
                     transactions = filteredTransactions,
-                    onDeleteCategory = { group, category ->
-                        mutate("Deleting category") { repository.deleteCategory(group, category) }
+                    onDeleteCategory = { group, category, onChanged ->
+                        mutate("Deleting category", onChanged = onChanged) { repository.deleteCategory(group, category) }
                     },
                     onEditTransaction = { transaction ->
                         activeBudgetCategory = null
@@ -2327,11 +2371,11 @@ fun AppNavigation(
                     onSetCleared = { transaction, cleared ->
                         mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
                     },
-                    onReconcileAccount = { account ->
-                        mutate("Reconciling account") { repository.reconcileAccount(account.id) }
+                    onReconcileAccount = { account, onReconciled ->
+                        mutate("Reconciling account", onChanged = onReconciled) { repository.reconcileAccount(account.id) }
                     },
-                    onCreateReconciliationAdjustment = { account, difference ->
-                        mutate("Creating reconciliation adjustment") {
+                    onCreateReconciliationAdjustment = { account, difference, onCreated ->
+                        mutate("Creating reconciliation adjustment", onChanged = onCreated) {
                             repository.createReconciliationAdjustment(account.id, difference)
                         }
                     },

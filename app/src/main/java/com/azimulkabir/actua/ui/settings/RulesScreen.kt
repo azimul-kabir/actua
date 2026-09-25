@@ -56,8 +56,8 @@ fun RulesScreen(
     scheduleOwnedRuleIds: Set<String>,
     editorData: RuleEditorData,
     onBack: () -> Unit,
-    onSave: (Rule) -> Boolean,
-    onDelete: (String) -> Boolean,
+    onSave: (Rule, onSaved: () -> Unit) -> Unit,
+    onDelete: (String, onDeleted: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var search by remember { mutableStateOf("") }
@@ -107,8 +107,8 @@ fun RulesScreen(
     }
     editing?.let { rule ->
         RuleEditor(rule, editorData, rule.id in scheduleOwnedRuleIds, onDismiss = { editing = null },
-            onSave = { if (onSave(it)) editing = null },
-            onDelete = { if (onDelete(rule.id)) editing = null })
+            onSave = { onSave(it) { editing = null } },
+            onDelete = { onDelete(rule.id) { editing = null } })
     }
 }
 

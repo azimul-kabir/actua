@@ -136,8 +136,8 @@ fun TransactionsScreen(
     hideReconciledTransactions: Boolean = false,
     onHideReconciledTransactionsChange: (Boolean) -> Unit = {},
     onSetCleared: (Transaction, Boolean) -> Unit = { _, _ -> },
-    onReconcileAccount: (Account) -> Boolean = { false },
-    onCreateReconciliationAdjustment: (Account, Long) -> Boolean = { _, _ -> false },
+    onReconcileAccount: (Account, onReconciled: () -> Unit) -> Unit = { _, _ -> },
+    onCreateReconciliationAdjustment: (Account, Long, onCreated: () -> Unit) -> Unit = { _, _, _ -> },
     onDelete: (Transaction) -> Unit = {},
     onDuplicate: (Transaction) -> Unit = {},
     onDuplicateMultiple: (List<Transaction>) -> Unit = {},
@@ -309,8 +309,8 @@ fun TransactionsScreen(
             conventionalAmountEntry = conventionalAmountEntry,
             onBack = { reconcileOpen = false },
             onSetCleared = onSetCleared,
-            onReconcile = { if (onReconcileAccount(account)) reconcileOpen = false },
-            onCreateAdjustment = { difference -> onCreateReconciliationAdjustment(account, difference) },
+            onReconcile = { onReconcileAccount(account) { reconcileOpen = false } },
+            onCreateAdjustment = { difference, onCreated -> onCreateReconciliationAdjustment(account, difference, onCreated) },
         )
     } else Column(modifier = modifier.fillMaxSize()) {
         ActuaScreenHeader(
@@ -775,7 +775,7 @@ private fun ReconcileAccountScreen(
     onBack: () -> Unit,
     onSetCleared: (Transaction, Boolean) -> Unit,
     onReconcile: () -> Unit,
-    onCreateAdjustment: (Long) -> Boolean,
+    onCreateAdjustment: (Long, onCreated: () -> Unit) -> Unit,
 ) {
     var bankBalance by remember(account.id) { mutableStateOf<Long?>(null) }
     var calculatorKey by remember(account.id) { mutableStateOf(0) }
@@ -919,7 +919,7 @@ private fun ReconcileAccountScreen(
             title = { Text("Create adjustment transaction?") },
             text = { Text("Actua will add a cleared, uncategorized transaction for ${formatReconciliationMoney(amount, hideDecimalPlaces)} so the balances match.") },
             confirmButton = { TextButton(onClick = {
-                if (onCreateAdjustment(amount)) adjustmentConfirmation = null
+                onCreateAdjustment(amount) { adjustmentConfirmation = null }
             }) { Text("Create adjustment") } },
             dismissButton = { TextButton(onClick = { adjustmentConfirmation = null }) { Text("Cancel") } },
         )
