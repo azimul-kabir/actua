@@ -53,4 +53,34 @@ class AddTransactionScreenTest {
         assertEquals("Rent transfer", saved?.notes)
         assertEquals(true, saved?.cleared)
     }
+
+    @Test fun zeroAmountTransactionCanBeSaved() {
+        val editing = Transaction(
+            id = "placeholder",
+            date = "20260920",
+            payee = "",
+            category = "",
+            account = "Checking",
+            amountCents = 0,
+            amount = 0,
+            type = Type.EXPENSE,
+            notes = "",
+            cleared = false,
+        )
+        var saved: Transaction? = null
+        compose.setContent {
+            MaterialTheme {
+                AddTransactionScreen(
+                    editing = editing,
+                    onBack = {},
+                    onSave = { saved = it },
+                    accountOptions = listOf("Checking", "Savings"),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Save").performScrollTo().performClick()
+
+        assertEquals(0L, saved?.amountCents)
+    }
 }

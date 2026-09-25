@@ -166,7 +166,7 @@ fun AddTransactionScreen(
     val splitIsValid = !isSplit || (splitLines.size >= 2 && splitLines.all {
         (isOffBudget || it.category.isNotBlank()) && it.amountCents > 0
     } && splitTotal == amountCents)
-    val canSave = amountCents > 0 && account.isNotBlank() &&
+    val canSave = amountCents >= 0 && account.isNotBlank() &&
         (transactionType != Type.TRANSFER.displayName || transferAccount.isNotBlank()) && splitIsValid
     val isTransferType = transactionType == Type.TRANSFER.displayName
     val showsCategory = !isTransferType && !isSplit && !isOffBudget
