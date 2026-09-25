@@ -72,9 +72,13 @@ jobs:
       - name: Build debug APK
         run: ./gradlew --no-daemon --stacktrace assembleDebug
       - name: Run JVM regression tests
-        run: ./gradlew --no-daemon --stacktrace testInstrumentedUnitTest
+        # Unlike assembleDebug/bundleRelease, AGP doesn't register a real flavor-aggregating
+        # task for unit tests or lint, so the bare "testInstrumentedUnitTest"/"lintDebug" names
+        # are ambiguous once the playstore/fdroid flavor split exists. Run both flavors
+        # explicitly instead.
+        run: ./gradlew --no-daemon --stacktrace testFdroidInstrumentedUnitTest testPlaystoreInstrumentedUnitTest
       - name: Run Android lint
-        run: ./gradlew --no-daemon --stacktrace lintDebug
+        run: ./gradlew --no-daemon --stacktrace lintFdroidDebug lintPlaystoreDebug
       - name: Upload test and lint reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
