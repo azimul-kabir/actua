@@ -393,8 +393,9 @@ fun TransactionsScreen(
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
             ) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
@@ -465,6 +466,15 @@ fun TransactionsScreen(
                             )
                         }
                     }
+                }
+                if (selectedTransactions.isNotEmpty()) {
+                    val totalCents = selectedTransactions.sumOf { it.amountCents }
+                    Text(
+                        "Total: ${formatMoneyCents(totalCents, hideDecimalPlaces, showPositiveSign = true)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 }
             }
         }
