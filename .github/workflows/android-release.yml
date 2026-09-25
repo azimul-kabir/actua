@@ -75,6 +75,15 @@ jobs:
         run: |
           BUILD_TOOLS_VERSION="$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)"
           "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+      - name: Build release bundle for Play Console upload
+        env:
+          ACTUA_KEYSTORE_PATH: ${{ runner.temp }}/actua-release.jks
+          ACTUA_KEYSTORE_PASSWORD: ${{ secrets.ACTUA_RELEASE_STORE_PASSWORD }}
+          ACTUA_KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
+          ACTUA_KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon bundleRelease
+      - name: Verify release bundle signature
+        run: jarsigner -verify -strict app/build/outputs/bundle/release/app-release.aab
       - name: Read release version
         id: version
         run: |
@@ -177,6 +186,12 @@ jobs:
           test -s release-notes.md
       - name: Prepare testing APK
         run: cp app/build/outputs/apk/release/app-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
+      - name: Upload Play Store bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Actua-v${{ steps.version.outputs.name }}-aab
+          path: app/build/outputs/bundle/release/app-release.aab
+          retention-days: 90
       - name: Publish GitHub prerelease
         uses: softprops/action-gh-release@v3
         with:
