@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added a contact email to the About page ([#580](https://github.com/azimul-kabir/actua/pull/580))
+
 ## [1.0.0-beta.43] - 2026-09-25
 
 ### Added
