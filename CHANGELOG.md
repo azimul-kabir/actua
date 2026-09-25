@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Transactions can now be saved with a $0.00 amount instead of the Save button staying disabled ([#578](https://github.com/azimul-kabir/actua/pull/578))
+
 ## [1.0.0-beta.43] - 2026-09-25
 
 ### Added
