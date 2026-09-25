@@ -242,6 +242,7 @@ fun BudgetScreen(
     var overspentSheetOpen by remember { mutableStateOf(false) }
     var templatePreviewOpen by remember { mutableStateOf(false) }
     var overwriteTemplates by remember { mutableStateOf(false) }
+    var templateGroupTarget by remember { mutableStateOf<BudgetGroup?>(null) }
     var zeroBudgetPreviewOpen by remember { mutableStateOf(false) }
     var cleanupPreview by remember { mutableStateOf<CleanupPreview?>(null) }
     val listState = rememberLazyListState()
@@ -522,6 +523,12 @@ fun BudgetScreen(
             onSetHidden = { hidden ->
                 onSetGroupHidden(group.name, hidden) { selectedGroup = null }
             },
+            onApplyTemplate = { overwrite ->
+                selectedGroup = null
+                templateGroupTarget = group
+                overwriteTemplates = overwrite
+                templatePreviewOpen = true
+            },
         )
     }
     if (showAddSheet) {
@@ -562,16 +569,18 @@ fun BudgetScreen(
         )
     }
     if (templatePreviewOpen) {
+        val templateGroups = templateGroupTarget?.let { target -> groups.filter { it.name == target.name } } ?: groups
         BudgetTemplatePreviewSheet(
-            preview = remember(groups, month, overview.toBudgetCents, overwriteTemplates, scheduleFunding) {
+            preview = remember(templateGroups, month, overview.toBudgetCents, overwriteTemplates, scheduleFunding) {
                 BudgetTemplatePlanner.preview(
-                    groups, month, overview.toBudgetCents ?: Long.MAX_VALUE, overwriteTemplates,
+                    templateGroups, month, overview.toBudgetCents ?: Long.MAX_VALUE, overwriteTemplates,
                     scheduleFunding,
                 )
             },
             hideDecimalPlaces = hideDecimalPlaces,
-            onDismiss = { templatePreviewOpen = false },
-            onApply = { preview -> onApplyBudgetTemplate(preview); templatePreviewOpen = false },
+            onDismiss = { templatePreviewOpen = false; templateGroupTarget = null },
+            onApply = { preview -> onApplyBudgetTemplate(preview); templatePreviewOpen = false; templateGroupTarget = null },
+            title = templateGroupTarget?.let { "Review budget template · ${it.name}" } ?: "Review budget template",
         )
     }
     editingBudget?.let { (group, category) ->
@@ -2559,11 +2568,15 @@ private fun FundingActionsSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRename: () -> Unit,
-    hidden: Boolean, onSetHidden: (Boolean) -> Unit) {
+    hidden: Boolean, onSetHidden: (Boolean) -> Unit, onApplyTemplate: (Boolean) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 24.dp)) {
             ActuaSheetTitle(group.name)
             SheetAction("Rename group", onRename)
+            if (!group.isIncome && !hidden) {
+                SheetAction("Apply budget templates", onClick = { onApplyTemplate(false) })
+                SheetAction("Overwrite budget templates", onClick = { onApplyTemplate(true) })
+            }
             if (!group.isIncome || hidden) {
                 SheetAction(if (hidden) "Unhide group" else "Hide group", { onSetHidden(!hidden) }, destructive = !hidden)
             }
