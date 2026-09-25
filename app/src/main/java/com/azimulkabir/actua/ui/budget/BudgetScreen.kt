@@ -184,8 +184,8 @@ fun BudgetScreen(
     onFavoritesOnlyChange: (Boolean) -> Unit = {},
     favoriteCategoryIds: Set<String> = emptySet(),
     onFavoriteCategoryChange: (String, Boolean) -> Unit = { _, _ -> },
-    onSetCategoryHidden: (String, String, Boolean) -> Boolean = { _, _, _ -> false },
-    onSetGroupHidden: (String, Boolean) -> Boolean = { _, _ -> false },
+    onSetCategoryHidden: (String, String, Boolean, onChanged: () -> Unit) -> Unit = { _, _, _, _ -> },
+    onSetGroupHidden: (String, Boolean, onChanged: () -> Unit) -> Unit = { _, _, _ -> },
     onRenameCategory: (String, String, String) -> Unit = { _, _, _ -> },
     onRenameGroup: (String, String) -> Unit = { _, _ -> },
     onShowCategoryTransactions: (String, Boolean, Boolean) -> Unit = { _, _, _ -> },
@@ -204,7 +204,7 @@ fun BudgetScreen(
     onSearch: () -> Unit = {},
     onManageCategories: () -> Unit = {},
     transactions: List<Transaction> = emptyList(),
-    onDeleteCategory: (String, String) -> Boolean = { _, _ -> false },
+    onDeleteCategory: (String, String, onChanged: () -> Unit) -> Unit = { _, _, _ -> },
     onEditTransaction: (Transaction) -> Unit = {},
     onDeleteTransaction: (Transaction) -> Unit = {},
     requestedCategoryDetails: String? = null,
@@ -506,7 +506,7 @@ fun BudgetScreen(
             },
             hidden = category.hidden,
             onSetHidden = { hidden ->
-                if (onSetCategoryHidden(parent.name, category.name, hidden)) selectedCategory = null
+                onSetCategoryHidden(parent.name, category.name, hidden) { selectedCategory = null }
             },
         )
     }
@@ -517,7 +517,7 @@ fun BudgetScreen(
             onRename = { selectedGroup = null; renamingGroup = group },
             hidden = group.hidden,
             onSetHidden = { hidden ->
-                if (onSetGroupHidden(group.name, hidden)) selectedGroup = null
+                onSetGroupHidden(group.name, hidden) { selectedGroup = null }
             },
         )
     }
@@ -653,10 +653,10 @@ fun BudgetScreen(
             favorite = category.id in favoriteCategoryIds,
             onFavoriteChange = { favorite -> category.id?.let { onFavoriteCategoryChange(it, favorite) } },
             onSetHidden = { hidden ->
-                if (onSetCategoryHidden(group.name, category.name, hidden)) categoryDetails = null
+                onSetCategoryHidden(group.name, category.name, hidden) { categoryDetails = null }
             },
             onDelete = {
-                if (onDeleteCategory(group.name, category.name)) categoryDetails = null
+                onDeleteCategory(group.name, category.name) { categoryDetails = null }
             },
             onEditTransaction = onEditTransaction,
             onDeleteTransaction = onDeleteTransaction,
