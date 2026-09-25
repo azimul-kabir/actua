@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Added
 
 - Added a "Set budgets to zero" action to the budget tab's + sheet ([#583](https://github.com/azimul-kabir/actua/pull/583))
+- Added a Privacy Policy link to the About page ([#588](https://github.com/azimul-kabir/actua/pull/588))
 - Added a contact email to the About page ([#580](https://github.com/azimul-kabir/actua/pull/580))
 
 ### Fixed

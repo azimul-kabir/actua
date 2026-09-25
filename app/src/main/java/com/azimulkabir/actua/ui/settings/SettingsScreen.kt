@@ -458,6 +458,16 @@ fun SettingsScreen(
                             uriHandler.openUri("mailto:actua.mobile@gmail.com")
                         },
                     )
+                    ListItem(
+                        headlineContent = { Text("Privacy Policy") },
+                        supportingContent = {
+                            Text("What data Actua stores, syncs and never collects")
+                        },
+                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://github.com/azimul-kabir/actua/blob/main/PRIVACY.md")
+                        },
+                    )
                     SettingsSection("Credits")
                     ListItem(
                         headlineContent = { Text("Actuali for iOS") },
