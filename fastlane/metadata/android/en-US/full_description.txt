@@ -12,6 +12,6 @@ Features include:
 
 Actua connects directly to your Actual Budget server. It is an independent community project and is not an official Actual Budget application.
 
-IMPORTANT: Actua is currently beta software. Back up your Actual Budget data before using Actua with an important budget. Please report bugs and unexpected synchronization behavior through the project's issue tracker.
+IMPORTANT: Actua can write changes to your synchronized Actual budget. Back up your Actual Budget data before connecting a new client. Please report bugs and unexpected synchronization behavior through the project's issue tracker.
 
 Actua builds on work from the Actuali iOS client and Actual Budget. See the repository's NOTICE and LICENSE files for detailed attribution and licensing information.

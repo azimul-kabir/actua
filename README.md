@@ -6,7 +6,6 @@
 
 ![Android 9+](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack_Compose-7F52FF?logo=kotlin&logoColor=white)
-![Beta](https://img.shields.io/badge/status-beta-F0A44B)
 ![License](https://img.shields.io/badge/License-MIT-48506A)
 
 <p align="center">
@@ -111,7 +110,7 @@ Download the latest APK from [GitHub Releases](https://github.com/azimul-kabir/a
 Don't have an Actual server handy? Open **Manage → Connection & Data → Try demo budget** to explore Actua using a completely local sample budget.
 
 > [!CAUTION]
-> Actua is currently beta software and can write changes to your synchronized Actual budget. Back up important budgets before testing.
+> Actua can write changes to your synchronized Actual budget. Back up important budgets before connecting a new client.
 
 ## Credits
 
