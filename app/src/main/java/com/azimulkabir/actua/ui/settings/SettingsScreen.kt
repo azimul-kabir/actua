@@ -450,6 +450,14 @@ fun SettingsScreen(
                             Text("Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.")
                         },
                     )
+                    ListItem(
+                        headlineContent = { Text("Contact") },
+                        supportingContent = { Text("actua.mobile@gmail.com") },
+                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("mailto:actua.mobile@gmail.com")
+                        },
+                    )
                     SettingsSection("Credits")
                     ListItem(
                         headlineContent = { Text("Actuali for iOS") },

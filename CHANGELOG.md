@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added a contact email to the About page ([#580](https://github.com/azimul-kabir/actua/pull/580))
+
 ### Fixed
 
 - Transactions can now be saved with a $0.00 amount instead of the Save button staying disabled ([#578](https://github.com/azimul-kabir/actua/pull/578))
