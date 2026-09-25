@@ -168,11 +168,12 @@ data class BudgetTarget(
 
     /**
      * This month's contribution for the types the local preview can evaluate exactly.
-     * [Type.REFILL] (needs the sibling [Type.LIMIT] amount), [Type.SCHEDULE], [Type.PERCENTAGE]
+     * [Type.REFILL] (needs the sibling [Type.LIMIT] amount), [Type.PERCENTAGE]
      * and [Type.REMAINDER] are computed by [BudgetTemplatePlanner] instead, since they need
-     * category/document-wide context this single row doesn't have.
+     * category/document-wide context this single row doesn't have. [Type.SCHEDULE] needs the
+     * linked [BudgetScheduleFunding] passed in via [schedules]; it returns 0 without it.
      */
-    fun suggestedBudget(category: BudgetCategory, month: String): Long = when (type) {
+    fun suggestedBudget(category: BudgetCategory, month: String, schedules: List<BudgetScheduleFunding> = emptyList()): Long = when (type) {
         Type.FIXED -> fixedSuggestedBudget(month)
         Type.BY_DATE -> byDateSuggestedBudget(category, month)
         Type.HISTORICAL -> when (historicalMode) {
@@ -188,7 +189,19 @@ data class BudgetTarget(
                 category.history.firstOrNull { it.month == previous }?.assignedCents ?: 0L
             }
         }
-        Type.GOAL, Type.REMAINDER, Type.PERCENTAGE, Type.SCHEDULE, Type.LIMIT, Type.REFILL -> 0L
+        Type.SCHEDULE -> scheduleSuggestedBudget(category, schedules)
+        Type.GOAL, Type.REMAINDER, Type.PERCENTAGE, Type.LIMIT, Type.REFILL -> 0L
+    }
+
+    /** This month's request for the linked schedule, matching [BudgetTemplatePlanner]'s whole-budget computation. */
+    private fun scheduleSuggestedBudget(category: BudgetCategory, schedules: List<BudgetScheduleFunding>): Long {
+        val reference = scheduleId?.takeIf(String::isNotBlank) ?: scheduleName?.trim().orEmpty()
+        val funding = schedules.firstOrNull {
+            reference in it.referenceNames && (it.categoryId == null || it.categoryId == category.id)
+        } ?: return 0L
+        val base = if (scheduleFull) funding.amountCents * funding.occurrencesInMonth
+            else funding.requestedBudget(category.carryoverCents)
+        return max(0L, applyAdjustment(base))
     }
 
     /**
@@ -708,15 +721,8 @@ object BudgetTemplatePlanner {
             it.type == BudgetTarget.Type.PERCENTAGE || it.type == BudgetTarget.Type.SCHEDULE
         }
             .sumOf { it.suggestedBudget(category, month) }
-        val schedule = targets.filter { it.type == BudgetTarget.Type.SCHEDULE }.sumOf { target ->
-            val funding = schedules.firstOrNull {
-                targetReference(target) in it.referenceNames &&
-                    (it.categoryId == null || it.categoryId == category.id)
-            } ?: return@sumOf 0L
-            val base = if (target.scheduleFull) funding.amountCents * funding.occurrencesInMonth
-                else funding.requestedBudget(category.carryoverCents)
-            max(0L, target.applyAdjustment(base))
-        }
+        val schedule = targets.filter { it.type == BudgetTarget.Type.SCHEDULE }
+            .sumOf { it.suggestedBudget(category, month, schedules) }
         val percentage = targets.filter { it.type == BudgetTarget.Type.PERCENTAGE }
             .sumOf { target ->
             if (target.percentagePrevious) return@sumOf 0L // local preview doesn't model prior-month income yet

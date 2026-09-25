@@ -564,6 +564,7 @@ fun BudgetScreen(
             hideDecimalPlaces = hideDecimalPlaces,
             startInMoveMode = false,
             startInAutoAssignMode = false,
+            scheduleFunding = scheduleFunding,
             onDismiss = { editingBudget = null },
             onDetails = { editingBudget = null; categoryDetails = group to category },
             onSave = { amount ->
@@ -673,6 +674,7 @@ fun BudgetScreen(
             hideDecimalPlaces = hideDecimalPlaces,
             startInMoveMode = true,
             startInAutoAssignMode = false,
+            scheduleFunding = scheduleFunding,
             onDismiss = { movingBudget = null },
             onDetails = { movingBudget = null; categoryDetails = group to category },
             onSave = { amount ->
@@ -706,6 +708,7 @@ fun BudgetScreen(
             hideDecimalPlaces = hideDecimalPlaces,
             startInMoveMode = false,
             startInAutoAssignMode = true,
+            scheduleFunding = scheduleFunding,
             onDismiss = { autoAssignBudget = null },
             onDetails = { autoAssignBudget = null; categoryDetails = group to category },
             onSave = { amount ->
@@ -1573,6 +1576,7 @@ private fun EditBudgetAmountSheet(
     hideDecimalPlaces: Boolean,
     startInMoveMode: Boolean,
     startInAutoAssignMode: Boolean,
+    scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
     onDismiss: () -> Unit,
     onDetails: () -> Unit,
     onSave: (Long) -> Unit,
@@ -1582,7 +1586,9 @@ private fun EditBudgetAmountSheet(
     var autoAssignMode by remember(category, startInMoveMode, startInAutoAssignMode) {
         mutableStateOf(startInAutoAssignMode)
     }
-    val autoAssignChoices = remember(category, month) { buildAutoAssignChoices(category, month) }
+    val autoAssignChoices = remember(category, month, scheduleFunding) {
+        buildAutoAssignChoices(category, month, scheduleFunding)
+    }
     val options = remember(groups, toBudgetCents) {
         listOf(MoveEndpoint(null, null, toBudgetCents)) + groups.filterNot { it.isIncome }.flatMap { group ->
             group.categories.filterNot { it.hidden }.map { item ->
@@ -2442,9 +2448,13 @@ private fun SummaryValue(label: String, amount: Long, hideDecimals: Boolean, mod
     }
 }
 
-private fun buildAutoAssignChoices(category: BudgetCategory, month: String): List<Pair<String, Long>> = buildList {
+private fun buildAutoAssignChoices(
+    category: BudgetCategory,
+    month: String,
+    scheduleFunding: List<BudgetScheduleFunding>,
+): List<Pair<String, Long>> = buildList {
     category.target?.takeUnless { it.type == BudgetTarget.Type.LIMIT }?.let { target ->
-        add("Target · ${target.type.label}" to target.suggestedBudget(category, month))
+        add("Target · ${target.type.label}" to target.suggestedBudget(category, month, scheduleFunding))
     }
     category.history.firstOrNull()?.let { last ->
         val spent = kotlin.math.abs(minOf(last.spentCents, 0L))

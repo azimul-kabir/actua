@@ -6,6 +6,7 @@ import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -291,6 +292,37 @@ class ActualBudgetReadModelTest {
         assertEquals(-1_000L, collapsed.amountCents)
         assertEquals("grocery", collapsed.categoryId)
         assertTrue(database.fetchChildTransactions(parent.id).isEmpty())
+    }
+
+    @Test
+    fun formServiceAllowsZeroAmountButRejectsNegative() = withDatabase { database ->
+        var next = 0
+        val ids = { "zero-${++next}" }
+        val service = ActualTransactionFormService(
+            database, ActualTransactionWriter(database, idFactory = ids), idFactory = ids,
+        )
+
+        val expenseId = service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "0", payeeName = "Placeholder", date = 20260908,
+        ))
+        assertEquals(0L, database.fetchTransaction(expenseId!!)?.amountCents)
+
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "0.00", transferToAccountId = "savings", date = 20260908,
+        ))
+        val transfer = database.fetchTransactions("checking")
+            .first { it.id.startsWith("zero-") && it.transferId != null }
+        assertEquals(0L, transfer.amountCents)
+        assertEquals(0L, database.fetchTransaction(transfer.transferId!!)?.amountCents)
+
+        assertThrows(ActualTransactionFormException.InvalidAmount::class.java) {
+            service.save(ActualTransactionForm(
+                accountId = "checking", type = ActualTransactionType.EXPENSE,
+                amount = "-5", payeeName = "Invalid", date = 20260908,
+            ))
+        }
     }
 
     @Test
