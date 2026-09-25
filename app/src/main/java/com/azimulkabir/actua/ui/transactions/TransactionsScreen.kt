@@ -467,7 +467,7 @@ fun TransactionsScreen(
                         }
                     }
                 }
-                if (selectedTransactions.isNotEmpty()) {
+                if (selectedTransactions.size > 1) {
                     val totalCents = selectedTransactions.sumOf { it.amountCents }
                     Text(
                         "Total: ${formatMoneyCents(totalCents, hideDecimalPlaces, showPositiveSign = true)}",
