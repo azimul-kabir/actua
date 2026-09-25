@@ -1,8 +1,14 @@
 # Changelog
 
-All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
+All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `beta` were testing builds and may have contained incomplete workflows or required a clean reinstall before a future production release.
 
 ## Unreleased
+
+## [1.0.0] - 2026-09-25
+
+### Changed
+
+- Removed beta status; Actua is now a 1.0.0 release ([#591](https://github.com/azimul-kabir/actua/issues/591))
 
 ### Added
 
