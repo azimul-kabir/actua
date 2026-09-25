@@ -8,7 +8,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
-- Removed beta status; Actua is now a 1.0.0 release ([#591](https://github.com/azimul-kabir/actua/issues/591))
+- Removed beta status; Actua is now a 1.0.0 release ([#593](https://github.com/azimul-kabir/actua/pull/593))
 
 ### Added
 
