@@ -46,6 +46,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Bolt
@@ -110,6 +111,7 @@ import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.BudgetScheduleFunding
 import com.azimulkabir.actua.model.CleanupPreview
 import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.model.ZeroBudgetPlanner
 import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -240,6 +242,7 @@ fun BudgetScreen(
     var overspentSheetOpen by remember { mutableStateOf(false) }
     var templatePreviewOpen by remember { mutableStateOf(false) }
     var overwriteTemplates by remember { mutableStateOf(false) }
+    var zeroBudgetPreviewOpen by remember { mutableStateOf(false) }
     var cleanupPreview by remember { mutableStateOf<CleanupPreview?>(null) }
     val listState = rememberLazyListState()
 
@@ -531,7 +534,24 @@ fun BudgetScreen(
             onPreviewCleanup = {
                 showAddSheet = false
                 cleanupPreview = onPreviewCleanup()
+            },
+            onPreviewZeroBudget = {
+                showAddSheet = false
+                zeroBudgetPreviewOpen = true
             })
+    }
+    if (zeroBudgetPreviewOpen) {
+        val zeroBudgetPreview = remember(groups, month) { ZeroBudgetPlanner.preview(groups, month) }
+        BudgetTemplatePreviewSheet(
+            preview = zeroBudgetPreview,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { zeroBudgetPreviewOpen = false },
+            onApply = { preview -> onApplyBudgetTemplate(preview); zeroBudgetPreviewOpen = false },
+            title = "Set budgets to zero",
+            description = "Nothing changes until you apply this preview. Every category's budgeted amount for ${formatMonth(month)} will be reset to zero.",
+            upToDateMessage = "Every category is already at zero.",
+            unchangedLabel = if (zeroBudgetPreview.unchangedCount == 1) "category is" else "categories are",
+        )
     }
     cleanupPreview?.let { preview ->
         CleanupPreviewSheet(
@@ -794,7 +814,7 @@ private fun BudgetToolbar(
                         Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
                     }
                     IconButton(onClick = onAdd) {
-                        Icon(Icons.Outlined.Add, contentDescription = "Add category")
+                        Icon(Icons.Outlined.AutoAwesome, contentDescription = "Add to budget")
                     }
                     IconButton(onClick = onManageCategories) {
                         Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = "Manage Categories")
@@ -2554,13 +2574,14 @@ private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRenam
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddBudgetSheet(onDismiss: () -> Unit,
-    onApplyTemplate: (Boolean) -> Unit, onPreviewCleanup: () -> Unit) {
+    onApplyTemplate: (Boolean) -> Unit, onPreviewCleanup: () -> Unit, onPreviewZeroBudget: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(bottom = 28.dp)) {
             ActuaSheetTitle("Add to budget")
             SheetAction("Apply budget templates", onClick = { onApplyTemplate(false) })
             SheetAction("Overwrite budget templates", onClick = { onApplyTemplate(true) })
             SheetAction("Month-end cleanup", onClick = onPreviewCleanup)
+            SheetAction("Set budgets to zero", onClick = onPreviewZeroBudget, destructive = true)
         }
     }
 }
@@ -2647,6 +2668,15 @@ private fun BudgetTemplatePreviewSheet(
     hideDecimalPlaces: Boolean,
     onDismiss: () -> Unit,
     onApply: (BudgetTemplatePreview) -> Unit,
+    title: String = "Review budget template",
+    description: String = if (preview.overwriteExisting) {
+        "Nothing changes until you confirm. Supported automations will recalculate existing budgeted amounts for ${formatMonth(preview.month)}."
+    } else {
+        "Nothing changes until you apply this preview. Categories that already have a budgeted amount will stay unchanged."
+    },
+    upToDateMessage: String = if (preview.skippedExistingCount > 0) "No unbudgeted categories need changes."
+    else "All supported targets are already up to date.",
+    unchangedLabel: String = if (preview.unchangedCount == 1) "supported target is" else "supported targets are",
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -2654,20 +2684,10 @@ private fun BudgetTemplatePreviewSheet(
                 .padding(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Review budget template", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(
-                if (preview.overwriteExisting) {
-                    "Nothing changes until you confirm. Supported automations will recalculate existing budgeted amounts for ${formatMonth(preview.month)}."
-                } else {
-                    "Nothing changes until you apply this preview. Categories that already have a budgeted amount will stay unchanged."
-                },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (preview.changes.isEmpty() && preview.goalChanges.isEmpty()) {
-                Text(
-                    if (preview.skippedExistingCount > 0) "No unbudgeted categories need changes."
-                    else "All supported targets are already up to date.",
-                )
+                Text(upToDateMessage)
             } else {
                 preview.changes.forEach { change ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -2703,7 +2723,7 @@ private fun BudgetTemplatePreviewSheet(
                 }
             }
             if (preview.unchangedCount > 0) Text(
-                "${preview.unchangedCount} supported ${if (preview.unchangedCount == 1) "target is" else "targets are"} already current.",
+                "${preview.unchangedCount} $unchangedLabel already current.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -267,6 +267,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   "Month-end cleanup" whole-budget action, one atomic stale-checked CRDT budget/goal batch on
   confirmation, idempotent reapplication, and explicit disclosure of unparseable cleanup
   definitions; see [the audited behavior and staged boundary](docs/BUDGET_AUTOMATION_PARITY.md)
+- Preview-first "Set budgets to zero" whole-budget action (upstream `setZero`), resetting every
+  non-income category's budgeted amount for the month, including hidden categories, via the
+  same atomic CRDT batch as the template and cleanup actions
 - Exact schedule-template reference codec (`scheduleId`/`name`) with explicit read-only
   disclosure for unresolved rows; resolved schedule funding now uses the existing recurrence
   projection, completed/past handling, amount-range midpoint, priority validation, Ready to Budget
