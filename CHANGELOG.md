@@ -10,6 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Saving, categorizing, reconciling, and other transaction/category actions no longer briefly freeze the app while the write completes ([#585](https://github.com/azimul-kabir/actua/pull/585))
 - Transactions can now be saved with a $0.00 amount instead of the Save button staying disabled ([#578](https://github.com/azimul-kabir/actua/pull/578))
 - Auto-Assign now suggests the linked schedule's amount for a "Cover schedule" target instead of always suggesting $0 ([#576](https://github.com/azimul-kabir/actua/pull/576))
 
