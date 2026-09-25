@@ -71,7 +71,7 @@ class ActualTransactionFormService(
 
     private fun planNormalized(form: ActualTransactionForm): ActualTransactionFormPlan {
         val unsigned = cents(form.amount) ?: throw ActualTransactionFormException.InvalidAmount
-        if (unsigned <= 0) throw ActualTransactionFormException.InvalidAmount
+        if (unsigned < 0) throw ActualTransactionFormException.InvalidAmount
         return when (form.type) {
             ActualTransactionType.TRANSFER -> ActualTransactionFormPlan.Transfer(
                 form.transferToAccountId ?: throw ActualTransactionFormException.MissingTransferDestination,
