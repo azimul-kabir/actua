@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.settings
 
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
@@ -44,6 +47,8 @@ import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -52,7 +57,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,7 +73,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
+import com.azimulkabir.actua.billing.createSupportBillingManager
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.LocationPreferences
@@ -77,6 +86,7 @@ import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSectionHeader
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
+import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
 
 internal enum class SettingsPage(val title: String, val depth: Int) {
@@ -89,6 +99,7 @@ internal enum class SettingsPage(val title: String, val depth: Int) {
     Budget("Budget", 2),
     CategoryColors("Category status colors", 3),
     Experimental("Experimental", 2),
+    Support("Support Actua", 2),
     About("About", 2),
 }
 
@@ -164,6 +175,13 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    // The fdroid flavor's manager never reports isAvailable, so the Support row stays hidden there.
+    val supportBillingManager = remember { createSupportBillingManager(context) }
+    val supportPurchaseState by supportBillingManager.state.collectAsState()
+    DisposableEffect(supportBillingManager) {
+        supportBillingManager.start()
+        onDispose { supportBillingManager.stop() }
+    }
     val locationPreferences = remember { LocationPreferences(context) }
     val tagRepository = remember { ActiveTagRepository(context) }
     var tagVersion by remember { mutableStateOf(0L) }
@@ -214,7 +232,7 @@ fun SettingsScreen(
     fun parentPage(current: SettingsPage): SettingsPage = when (current) {
         SettingsPage.Tags -> SettingsPage.Manage
         SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.Budget,
-        SettingsPage.Experimental, SettingsPage.About,
+        SettingsPage.Experimental, SettingsPage.Support, SettingsPage.About,
         -> SettingsPage.General
         SettingsPage.CategoryColors -> SettingsPage.Budget
         SettingsPage.General -> SettingsPage.Manage
@@ -361,6 +379,17 @@ fun SettingsScreen(
                         ActuaCardDivider()
                         SettingsRow("Budget", "Category status dot, progress bar colors and income group", true, Icons.Outlined.PieChartOutline) {
                             page = SettingsPage.Budget
+                        }
+                    }
+                    if (supportPurchaseState.isAvailable) SettingsGroup("Support") {
+                        SettingsRow(
+                            "Support Actua",
+                            if (supportPurchaseState.isPurchased) "You're an Actua Supporter — thank you!"
+                            else "Actua is free and open source. Leave a one-time tip.",
+                            true,
+                            Icons.Outlined.FavoriteBorder,
+                        ) {
+                            page = SettingsPage.Support
                         }
                     }
                     SettingsGroup("Labs") {
@@ -545,6 +574,45 @@ fun SettingsScreen(
                         "Experimental features can change or be removed. They are stored on this device only " +
                             "and don't change your budget until you link an account.",
                     )
+                }
+                SettingsPage.Support -> {
+                    SettingsNote(
+                        "Actua is free and open source. If you find it useful, you can support its continued development.",
+                    )
+                    SettingsGroup {
+                        if (supportPurchaseState.isPurchased) {
+                            ActuaFormRow(
+                                icon = Icons.Outlined.FavoriteBorder,
+                                label = "Actua Supporter",
+                                value = null,
+                                caption = "Thank you for supporting Actua!",
+                            )
+                        } else {
+                            ActuaFormRow(
+                                icon = Icons.Outlined.FavoriteBorder,
+                                label = "Actua Supporter · ${supportPurchaseState.priceLabel}",
+                                value = null,
+                                caption = "Get a permanent Supporter badge as a thank-you.",
+                            )
+                        }
+                    }
+                    if (!supportPurchaseState.isPurchased) {
+                        SettingsNote("All Actua features remain free.")
+                        Button(
+                            enabled = supportPurchaseState.isAvailable && !supportPurchaseState.isProcessing,
+                            onClick = { (context as? Activity)?.let(supportBillingManager::launchPurchase) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.screenHorizontal)
+                                .height(Sizes.primaryButtonHeight),
+                            shape = MaterialTheme.shapes.large,
+                        ) {
+                            if (supportPurchaseState.isProcessing) {
+                                CircularProgressIndicator(Modifier.padding(end = Spacing.sm).size(18.dp), strokeWidth = 2.dp)
+                            }
+                            Text("Become a Supporter")
+                        }
+                    }
                 }
                 SettingsPage.About -> {
                     SettingsGroup {
