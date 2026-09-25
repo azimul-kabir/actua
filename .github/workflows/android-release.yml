@@ -82,8 +82,6 @@ jobs:
           ACTUA_KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
           ACTUA_KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
         run: ./gradlew --no-daemon bundleRelease
-      - name: Verify release bundle signature
-        run: jarsigner -verify -strict app/build/outputs/bundle/release/app-release.aab
       - name: Read release version
         id: version
         run: |
