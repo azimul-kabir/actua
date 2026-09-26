@@ -9,10 +9,11 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-data class BankSyncResult(val accountsSynced: Int, val imported: Int, val problems: List<String>) {
+data class BankSyncResult(val accountsSynced: Int, val imported: Int, val matched: Int = 0, val problems: List<String>) {
     val summary: String get() = buildList {
         if (imported > 0) add("Imported $imported ${if (imported == 1) "transaction" else "transactions"}.")
-        if (imported == 0 && problems.isEmpty()) add(
+        if (matched > 0) add("Matched $matched ${if (matched == 1) "transaction" else "transactions"} already entered manually.")
+        if (imported == 0 && matched == 0 && problems.isEmpty()) add(
             if (accountsSynced == 0) "No linked bank accounts to sync."
             else "Everything is already up to date.",
         )
@@ -31,7 +32,7 @@ class BankSyncService(
 ) {
     fun sync(serverUrl: String, token: String, accountId: String? = null): BankSyncResult {
         val accounts = database.fetchBankSyncAccounts().filter { !it.closed && (accountId == null || it.id == accountId) }
-        if (accounts.isEmpty()) return BankSyncResult(0, 0, emptyList())
+        if (accounts.isEmpty()) return BankSyncResult(accountsSynced = 0, imported = 0, problems = emptyList())
         val floor = today().minusDays(89).format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
         fun startDateFor(id: String): String {
             val oldest = database.oldestTransactionDate(id)
@@ -71,6 +72,7 @@ class BankSyncService(
             account.id to download
         }
         var imported = 0
+        var matched = 0
         accounts.forEach { account ->
             val download = downloads[account.id]
             if (download == null) {
@@ -85,27 +87,72 @@ class BankSyncService(
             val conflicts = download.transactions.map { it.financialId }.toSet().size - unambiguous.size
             if (conflicts > 0) problems += "${account.name}: skipped $conflicts conflicting bank transactions."
             val existing = database.existingFinancialIds(account.id, unambiguous.mapTo(mutableSetOf()) { it.financialId })
-            val inserts = unambiguous.filterNot { it.financialId in existing }.sortedBy { it.date }.mapNotNull { row ->
-                val payee = transactions.resolveOrCreatePayee(row.payeeName)
-                transactions.createTransaction(
-                    ActualTransaction(
-                        id = idFactory(), accountId = account.id, date = row.date,
-                        amountCents = row.amountCents, payeeId = payee.id, payeeName = payee.name,
-                        categoryId = null, categoryName = null, notes = row.notes,
-                        cleared = row.booked, reconciled = false, transferId = null,
-                        isParent = false, parentId = null, tombstone = false, sortOrder = null,
-                        importedPayee = row.payeeName, scheduleId = null, transferAccountId = null,
-                        financialId = row.financialId, pending = !row.booked,
-                    ),
-                    applyRules = true,
+            val newRows = unambiguous.filterNot { it.financialId in existing }.sortedBy { it.date }
+            val payeeByRow = newRows.associateWith { transactions.resolveOrCreatePayee(it.payeeName) }
+
+            // Fuzzy-match each new bank row against an unlinked local transaction (same account and
+            // amount, close date) before inserting, so a manually entered transaction that posts a
+            // few days apart from the bank's own date is reconciled instead of duplicated.
+            val candidatesByRow = newRows.associate { row ->
+                row.financialId to database.fuzzyMatchCandidates(
+                    account.id, row.amountCents, dateFrom = row.date.shiftDays(-7), dateTo = row.date.shiftDays(7),
                 )
             }
-            imported += inserts.size
+            val matches = BankSyncMatcher.match(
+                rows = newRows.map { BankSyncMatchRow(it.financialId, it.date, payeeByRow.getValue(it).id) },
+                candidatesByRow = candidatesByRow.mapValues { (_, candidates) ->
+                    candidates.map { BankSyncMatchCandidate(it.id, it.date, it.payeeId, it.reconciled) }
+                },
+            )
+
+            newRows.forEach { row ->
+                val payee = payeeByRow.getValue(row)
+                val match = matches[row.financialId]
+                when {
+                    match == null -> {
+                        val created = transactions.createTransaction(
+                            ActualTransaction(
+                                id = idFactory(), accountId = account.id, date = row.date,
+                                amountCents = row.amountCents, payeeId = payee.id, payeeName = payee.name,
+                                categoryId = null, categoryName = null, notes = row.notes,
+                                cleared = row.booked, reconciled = false, transferId = null,
+                                isParent = false, parentId = null, tombstone = false, sortOrder = null,
+                                importedPayee = row.payeeName, scheduleId = null, transferAccountId = null,
+                                financialId = row.financialId, pending = !row.booked,
+                            ),
+                            applyRules = true,
+                        )
+                        if (created != null) imported++
+                    }
+                    match.reconciled -> {
+                        // Locked transaction: it's already accounted for, so don't duplicate the bank row.
+                        matched++
+                    }
+                    else -> {
+                        val original = database.fetchTransaction(match.id) ?: return@forEach
+                        val linked = original.copy(
+                            financialId = row.financialId,
+                            payeeId = original.payeeId ?: payee.id,
+                            notes = original.notes ?: row.notes,
+                            importedPayee = row.payeeName,
+                            cleared = original.cleared || row.booked,
+                            pending = !row.booked,
+                        )
+                        transactions.mutate(updates = listOf(original to linked))
+                        matched++
+                    }
+                }
+            }
             entities.recordBankSyncStatus(
                 account.id, download.status,
                 syncedAt = if (download.status == "ok") System.currentTimeMillis().toString() else null,
             )
         }
-        return BankSyncResult(downloads.size, imported, problems)
+        return BankSyncResult(accountsSynced = downloads.size, imported = imported, matched = matched, problems = problems)
+    }
+
+    private fun Int.shiftDays(days: Long): Int {
+        val date = LocalDate.of(this / 10000, this / 100 % 100, this % 100).plusDays(days)
+        return date.year * 10000 + date.monthValue * 100 + date.dayOfMonth
     }
 }

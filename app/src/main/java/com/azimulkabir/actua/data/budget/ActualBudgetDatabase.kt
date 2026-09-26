@@ -60,6 +60,14 @@ class ActualBudgetDatabase private constructor(
         val lastSync: String? = null,
     )
 
+    /** A local row [fuzzyMatchCandidates] considers reconciling an imported bank row into. */
+    data class FuzzyMatchCandidate(
+        val id: String,
+        val date: Int,
+        val payeeId: String?,
+        val reconciled: Boolean,
+    )
+
     override fun close() = database.close()
 
     /** Live accounts and their Actual-compatible, split-aware balances. */
@@ -153,6 +161,28 @@ class ActualBudgetDatabase private constructor(
             (listOf(accountId) + ids).toTypedArray(),
         ).use { cursor -> buildSet { while (cursor.moveToNext()) cursor.stringOrNull(0)?.let(::add) } }
     }
+
+    /**
+     * Candidate rows a bank-sync import might reconcile with: same account/amount, no
+     * `financial_id` of their own yet (so not already linked to a different bank row), within
+     * the caller's date window. Mirrors the dataset upstream Actual's fuzzy matcher queries
+     * before picking a payee match or the closest remaining date.
+     */
+    @Synchronized
+    fun fuzzyMatchCandidates(accountId: String, amountCents: Long, dateFrom: Int, dateTo: Int): List<FuzzyMatchCandidate> =
+        database.rawQuery(
+            """SELECT id, date, description, reconciled FROM transactions
+                WHERE acct = ? AND (tombstone = 0 OR tombstone IS NULL)
+                  AND financial_id IS NULL AND amount = ? AND date >= ? AND date <= ?""",
+            arrayOf(accountId, amountCents.toString(), dateFrom.toString(), dateTo.toString()),
+        ).use { cursor -> buildList {
+            while (cursor.moveToNext()) add(FuzzyMatchCandidate(
+                id = cursor.getString(0),
+                date = cursor.getInt(1),
+                payeeId = cursor.stringOrNull(2),
+                reconciled = cursor.getInt(3) == 1,
+            ))
+        } }
 
     @Synchronized
     fun fetchNote(id: String): String {
@@ -690,6 +720,9 @@ class ActualBudgetDatabase private constructor(
         putOrNull("imported_description", transaction.importedPayee)
         putOrNull("schedule", transaction.scheduleId)
         put("starting_balance_flag", if (transaction.startingBalance) 1 else 0)
+        putOrNull("financial_id", transaction.financialId)
+        put("pending", if (transaction.pending) 1 else 0)
+        putOrNull("raw_synced_data", transaction.rawSyncedData)
     }
 
     private fun ContentValues.putOrNull(key: String, value: String?) {
@@ -1173,6 +1206,9 @@ class ActualBudgetDatabase private constructor(
         transferAccountId = string("transfer_acct"),
         startingBalance = int("starting_balance_flag") == 1,
         categoryIsIncome = intOrNull(getColumnIndexOrThrow("category_is_income"))?.let { it == 1 },
+        financialId = string("financial_id"),
+        pending = int("pending") == 1,
+        rawSyncedData = string("raw_synced_data"),
     )
 
     private fun android.database.Cursor.string(name: String) = stringOrNull(getColumnIndexOrThrow(name))
@@ -1429,7 +1465,8 @@ class ActualBudgetDatabase private constructor(
                    t.tombstone, t.parent_id,
                    COALESCE(pa.name, p.name, cpa.name, cp.name) AS payee_name,
                    c.name AS category_name, p.transfer_acct AS transfer_acct,
-                   t.starting_balance_flag, c.is_income AS category_is_income
+                   t.starting_balance_flag, c.is_income AS category_is_income,
+                   t.financial_id, t.pending, t.raw_synced_data
             FROM transactions t
             LEFT JOIN payee_mapping pm ON pm.id = t.description
             LEFT JOIN payees p ON p.id = pm.targetId
@@ -1462,7 +1499,8 @@ class ActualBudgetDatabase private constructor(
                    t.transferred_id, t.cleared, t.reconciled, t.sort_order,
                    t.tombstone, t.parent_id, COALESCE(pa.name, p.name) AS payee_name,
                    c.name AS category_name, p.transfer_acct AS transfer_acct,
-                   t.starting_balance_flag, c.is_income AS category_is_income
+                   t.starting_balance_flag, c.is_income AS category_is_income,
+                   t.financial_id, t.pending, t.raw_synced_data
             FROM transactions t
             LEFT JOIN payee_mapping pm ON pm.id = t.description
             LEFT JOIN payees p ON p.id = pm.targetId
