@@ -2,7 +2,7 @@
 
 **A native Android client for [Actual Budget](https://actualbudget.org/), built with Kotlin and Jetpack Compose.**
 
-[Download APK](https://github.com/azimul-kabir/actua/releases/latest) • [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) • [Discord](https://discord.gg/FyGxRjmhw) • [Report an issue](https://github.com/azimul-kabir/actua/issues/new/choose)
+[Website](https://azimul-kabir.github.io/actua-website) • [Download APK](https://github.com/azimul-kabir/actua/releases/latest) • [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) • [Discord](https://discord.gg/FyGxRjmhw) • [Report an issue](https://github.com/azimul-kabir/actua/issues/new/choose)
 
 ![Android 9+](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack_Compose-7F52FF?logo=kotlin&logoColor=white)
@@ -50,53 +50,47 @@ See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implem
 
 <table>
   <tr>
-    <td align="center" width="50%">
-      <a href="artwork/screenshots/budget-plan.jpg">
-        <img src="artwork/screenshots/budget-plan.jpg" width="340" alt="Actua budget plan view">
-      </a><br>
-      <strong>Budget Plan</strong><br>
-      <sub>Targets, progress and balances</sub>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/budget.png">
+        <img src="artwork/screenshots/budget.png" width="200" alt="Actua budget view with categories, targets and progress">
+      </a>
     </td>
-    <td align="center" width="50%">
-      <a href="artwork/screenshots/category-details.jpg">
-        <img src="artwork/screenshots/category-details.jpg" width="340" alt="Actua category details">
-      </a><br>
-      <strong>Category Details</strong><br>
-      <sub>Budget, move money and auto-assign</sub>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/accounts.png">
+        <img src="artwork/screenshots/accounts.png" width="200" alt="Actua accounts overview">
+      </a>
     </td>
-  </tr>
-
-  <tr>
-    <td align="center" width="50%">
-      <a href="artwork/screenshots/accounts.jpg">
-        <img src="artwork/screenshots/accounts.jpg" width="340" alt="Actua accounts overview">
-      </a><br>
-      <strong>Accounts</strong><br>
-      <sub>On-budget, off-budget and cards</sub>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/transactions.png">
+        <img src="artwork/screenshots/transactions.png" width="200" alt="Actua transaction list">
+      </a>
     </td>
-    <td align="center" width="50%">
-      <a href="artwork/screenshots/transactions.jpg">
-        <img src="artwork/screenshots/transactions.jpg" width="340" alt="Actua transaction list">
-      </a><br>
-      <strong>Transactions</strong><br>
-      <sub>Searchable, grouped activity</sub>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/add-transaction.png">
+        <img src="artwork/screenshots/add-transaction.png" width="200" alt="Actua add transaction screen">
+      </a>
     </td>
   </tr>
-
   <tr>
-    <td align="center" width="50%">
-      <a href="artwork/screenshots/reconciliation.jpg">
-        <img src="artwork/screenshots/reconciliation.jpg" width="340" alt="Actua account reconciliation">
-      </a><br>
-      <strong>Reconciliation</strong><br>
-      <sub>Match Actua with your bank</sub>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/reports.png">
+        <img src="artwork/screenshots/reports.png" width="200" alt="Actua reports with income vs expenses chart">
+      </a>
     </td>
-    <td align="center" width="50%">
-      <a href="artwork/screenshots/bills-calendar.jpg">
-        <img src="artwork/screenshots/bills-calendar.jpg" width="340" alt="Actua bills calendar">
-      </a><br>
-      <strong>Bills Calendar</strong><br>
-      <sub>Recurring schedules and card bills</sub>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/bills-calendar.png">
+        <img src="artwork/screenshots/bills-calendar.png" width="200" alt="Actua bills calendar">
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/rules.png">
+        <img src="artwork/screenshots/rules.png" width="200" alt="Actua rules and automatic categorization">
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/budget-table.png">
+        <img src="artwork/screenshots/budget-table.png" width="200" alt="Actua budget table view with budgeted, spent and balance columns">
+      </a>
     </td>
   </tr>
 </table>
