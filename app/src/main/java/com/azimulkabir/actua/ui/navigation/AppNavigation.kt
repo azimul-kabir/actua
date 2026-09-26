@@ -105,6 +105,7 @@ import com.azimulkabir.actua.ui.settings.ImportTransactionsScreen
 import com.azimulkabir.actua.ui.settings.PayeeLocationsScreen
 import com.azimulkabir.actua.ui.categories.ManageCategoriesScreen
 import com.azimulkabir.actua.ui.categories.ReorderGroupsScreen
+import com.azimulkabir.actua.ui.accounts.ReorderAccountsScreen
 import com.azimulkabir.actua.ui.home.CustomizeHomeScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.NearbyPayeeOption
@@ -181,7 +182,7 @@ private fun TabItem.toMainDestination(): MainDestination? = when (this) {
     TabItem.ADD -> null
 }
 
-private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
+private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -1858,6 +1859,12 @@ fun AppNavigation(
                 onMoveGroup = { move -> mutateSync("Reordering category group") { repository.moveCategoryGroup(move) } },
                 modifier = contentModifier,
             )
+            DetailDestination.ReorderAccounts -> ReorderAccountsScreen(
+                accounts = remember(dataVersion) { repository.accountsForReorder() },
+                onBack = { detail = DetailDestination.Main },
+                onMoveAccount = { move -> mutateSync("Reordering account") { repository.moveAccount(move) } },
+                modifier = contentModifier,
+            )
             DetailDestination.CustomizeHome -> CustomizeHomeScreen(
                 layout = homeLayout,
                 onBack = { detail = DetailDestination.Main },
@@ -2329,6 +2336,7 @@ fun AppNavigation(
                     onCreateAccount = { name, offBudget, balance, type ->
                         mutate("Creating account") { repository.createAccount(name, offBudget, balance, type) }
                     },
+                    onReorderAccounts = { detail = DetailDestination.ReorderAccounts },
                     onSearch = { detail = DetailDestination.Search },
                     onSetUpBankSync = { loadBankSyncProviderStatus(); detail = DetailDestination.BankSync },
                     isRefreshing = accountsRefreshing,

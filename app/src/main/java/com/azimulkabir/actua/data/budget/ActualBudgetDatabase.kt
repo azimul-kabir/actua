@@ -103,7 +103,7 @@ class ActualBudgetDatabase private constructor(
                     type = ActualAccountType.fromDatabase(cursor.stringOrNull(2)),
                     offBudget = cursor.intOrZero(3) == 1,
                     closed = cursor.intOrZero(4) == 1,
-                    sortOrder = cursor.doubleOrZero(5).toInt(),
+                    sortOrder = cursor.doubleOrZero(5),
                     balanceCents = balances[id]?.total ?: 0,
                     clearedCents = balances[id]?.cleared ?: 0,
                     unclearedCents = (balances[id]?.total ?: 0) - (balances[id]?.cleared ?: 0),

@@ -22,7 +22,7 @@ data class ActualAccount(
     val type: ActualAccountType,
     val offBudget: Boolean,
     val closed: Boolean,
-    val sortOrder: Int,
+    val sortOrder: Double,
     val balanceCents: Long,
     val clearedCents: Long = 0,
     val unclearedCents: Long = 0,

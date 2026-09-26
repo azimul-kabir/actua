@@ -186,6 +186,23 @@ class ActualEntityWriter(
         persist(messages)
     }
 
+    /** Move an account before another account, or to the end when beforeId is null. */
+    @Synchronized
+    fun moveAccount(id: String, beforeId: String?) {
+        val accounts = database.fetchAccounts()
+        require(accounts.any { it.id == id }) { "Account no longer exists" }
+        require(beforeId == null || accounts.any { it.id == beforeId }) { "Invalid account destination" }
+        if (beforeId == id) return
+        val positions = accounts.filterNot { it.id == id }
+            .sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            .map { SortOrder.Position(it.id, it.sortOrder) }
+        val placement = SortOrder.shove(positions, beforeId)
+        val messages = mutableListOf<CrdtMessage>()
+        placement.moved.forEach { messages += fields("accounts", it.id, mapOf("sort_order" to it.sortOrder)) }
+        messages += fields("accounts", id, mapOf("sort_order" to placement.sortOrder))
+        persist(messages)
+    }
+
     fun setPreference(id: String, value: String?) = update("preferences", id, mapOf("value" to value))
     fun setNote(id: String, note: String) = update("notes", id, mapOf("note" to note))
     fun saveRule(rule: Rule) = update("rules", rule.id, mapOf(
