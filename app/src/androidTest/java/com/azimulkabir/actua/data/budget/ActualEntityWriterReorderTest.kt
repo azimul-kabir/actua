@@ -113,7 +113,7 @@ class ActualEntityWriterReorderTest {
             db.execSQL("CREATE TABLE category_mapping (id TEXT PRIMARY KEY, transferId TEXT)")
             db.execSQL("CREATE TABLE payee_mapping (id TEXT PRIMARY KEY)")
             db.execSQL("CREATE TABLE payees (id TEXT PRIMARY KEY)")
-            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY, acct TEXT, amount INTEGER, date INTEGER, cleared INTEGER DEFAULT 0, reconciled INTEGER DEFAULT 0, isChild INTEGER DEFAULT 0, isParent INTEGER DEFAULT 0, parent_id TEXT, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE zero_budgets (id TEXT PRIMARY KEY)")
             db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
             db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, column TEXT NOT NULL, value BLOB NOT NULL)")
