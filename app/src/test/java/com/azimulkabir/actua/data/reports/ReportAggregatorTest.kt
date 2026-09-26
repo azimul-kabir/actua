@@ -11,7 +11,7 @@ import org.junit.Test
 
 class ReportAggregatorTest {
     private fun account(id: String, offBudget: Boolean = false) =
-        ActualAccount(id, id, ActualAccountType.CHECKING, offBudget, false, 0, 0)
+        ActualAccount(id, id, ActualAccountType.CHECKING, offBudget, false, 0.0, 0)
 
     private val groups = listOf(
         ActualCategoryGroup("g-food", "Food", false, false, 1.0, listOf(
@@ -131,7 +131,7 @@ class ReportAggregatorTest {
 }
 
 class ReportAggregatorScaleTest {
-    private val accounts = listOf(ActualAccount("a", "A", ActualAccountType.CHECKING, false, false, 0, 0))
+    private val accounts = listOf(ActualAccount("a", "A", ActualAccountType.CHECKING, false, false, 0.0, 0))
     private val groups = listOf(ActualCategoryGroup("g", "G", false, false, 1.0,
         (0 until 50).map { ActualCategory("c$it", "C$it", "g", false, false, it.toDouble()) }))
     private val rows = (0 until 200_000).map { i ->

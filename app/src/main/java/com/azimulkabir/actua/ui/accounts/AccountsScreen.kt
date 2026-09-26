@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -102,6 +103,7 @@ fun AccountsScreen(
     onRenameAccount: (Account, String) -> Unit = { _, _ -> },
     onChangeAccountType: (Account, String) -> Unit = { _, _ -> },
     onCreateAccount: (String, Boolean, String, String) -> Unit = { _, _, _, _ -> },
+    onReorderAccounts: () -> Unit = {},
     onSearch: () -> Unit = {},
     onSetUpBankSync: () -> Unit = {},
     isRefreshing: Boolean = false,
@@ -146,6 +148,9 @@ fun AccountsScreen(
                     }
                     IconButton(onClick = { showAddSheet = true }) {
                         Icon(Icons.Outlined.Add, contentDescription = "Add account")
+                    }
+                    IconButton(onClick = onReorderAccounts) {
+                        Icon(Icons.Outlined.SwapVert, contentDescription = "Reorder accounts")
                     }
                     Box {
                         IconButton(onClick = { accountMenuExpanded = true }) {

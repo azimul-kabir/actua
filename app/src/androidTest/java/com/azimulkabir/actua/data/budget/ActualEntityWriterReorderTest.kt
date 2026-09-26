@@ -9,7 +9,10 @@ import org.junit.Test
 import java.io.File
 import java.util.UUID
 
-/** Regression coverage for issue #223: drag-to-reorder category groups and categories. */
+/**
+ * Regression coverage for issue #223 (drag-to-reorder category groups and categories) and
+ * issue #597 (drag-to-reorder accounts).
+ */
 class ActualEntityWriterReorderTest {
     @Test
     fun moveCategoryReordersWithinItsGroup() = withDatabase { database, _ ->
@@ -66,10 +69,27 @@ class ActualEntityWriterReorderTest {
     }
 
     @Test
+    fun moveAccountReordersAccounts() = withDatabase { database, _ ->
+        val writer = ActualEntityWriter(database, nodeId = "1111111111111111")
+        writer.moveAccount("savings", "checking")
+        val accounts = database.fetchAccounts().sortedBy { it.sortOrder }
+        assertEquals(listOf("savings", "checking", "cash"), accounts.map { it.id })
+    }
+
+    @Test
+    fun moveAccountToEndWhenBeforeIdNull() = withDatabase { database, _ ->
+        val writer = ActualEntityWriter(database, nodeId = "2222222222222222")
+        writer.moveAccount("checking", null)
+        val accounts = database.fetchAccounts().sortedBy { it.sortOrder }
+        assertEquals(listOf("savings", "cash", "checking"), accounts.map { it.id })
+    }
+
+    @Test
     fun reorderingSurvivesReopeningTheDatabase() = withDatabase { database, file ->
         val writer = ActualEntityWriter(database, nodeId = "ffffffffffffffff")
         writer.moveCategory("electric", "bills", "rent")
         writer.moveCategoryGroup("fun", "bills")
+        writer.moveAccount("cash", "checking")
 
         ActualBudgetDatabase.open(file).use { reopened ->
             val groups = reopened.fetchCategoryGroups().sortedBy { it.sortOrder }
@@ -78,6 +98,7 @@ class ActualEntityWriterReorderTest {
                 listOf("electric", "rent"),
                 groups.single { it.id == "bills" }.categories.sortedBy { it.sortOrder }.map { it.id },
             )
+            assertEquals(listOf("cash", "checking", "savings"), reopened.fetchAccounts().sortedBy { it.sortOrder }.map { it.id })
             assertTrue(reopened.maxMessageTimestamp() != null)
         }
     }
@@ -86,13 +107,13 @@ class ActualEntityWriterReorderTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "entity-writer-reorder-${UUID.randomUUID()}.sqlite")
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
-            db.execSQL("CREATE TABLE accounts (id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT, type TEXT, offbudget INTEGER DEFAULT 0, closed INTEGER DEFAULT 0, sort_order REAL, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE categories (id TEXT PRIMARY KEY, name TEXT, cat_group TEXT, is_income INTEGER DEFAULT 0, hidden INTEGER DEFAULT 0, sort_order REAL, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE category_groups (id TEXT PRIMARY KEY, name TEXT, is_income INTEGER DEFAULT 0, hidden INTEGER DEFAULT 0, sort_order REAL, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE category_mapping (id TEXT PRIMARY KEY, transferId TEXT)")
             db.execSQL("CREATE TABLE payee_mapping (id TEXT PRIMARY KEY)")
             db.execSQL("CREATE TABLE payees (id TEXT PRIMARY KEY)")
-            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY, acct TEXT, amount INTEGER, date INTEGER, cleared INTEGER DEFAULT 0, reconciled INTEGER DEFAULT 0, isChild INTEGER DEFAULT 0, isParent INTEGER DEFAULT 0, parent_id TEXT, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE zero_budgets (id TEXT PRIMARY KEY)")
             db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
             db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, column TEXT NOT NULL, value BLOB NOT NULL)")
@@ -101,6 +122,7 @@ class ActualEntityWriterReorderTest {
             // Actual data, so shoving expense sort_order values around it never interleaves it.
             db.execSQL("INSERT INTO category_groups VALUES ('bills','Bills',0,0,1.0,0), ('fun','Fun',0,0,2.0,0), ('income','Income',1,0,1000000.0,0)")
             db.execSQL("INSERT INTO categories VALUES ('rent','Rent','bills',0,0,1.0,0), ('electric','Electric','bills',0,0,2.0,0), ('dining','Dining','fun',0,0,1.0,0), ('salary','Salary','income',1,0,1.0,0)")
+            db.execSQL("INSERT INTO accounts VALUES ('checking','Checking','checking',0,0,1.0,0), ('savings','Savings','savings',0,0,2.0,0), ('cash','Cash','cash',0,0,3.0,0)")
         }
         try {
             ActualBudgetDatabase.open(file).use { block(it, file) }

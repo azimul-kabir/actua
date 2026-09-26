@@ -22,6 +22,8 @@ import com.azimulkabir.actua.data.network.TrustedCertificateStore
 import com.azimulkabir.actua.data.network.UrlConnectionTransport
 import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
+import com.azimulkabir.actua.data.budget.AccountReorderPlanner
+import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
@@ -1209,6 +1211,15 @@ class ActuaRepository(context: Context) {
 
     fun moveCategoryGroup(move: CategoryReorderPlanner.GroupMove): Boolean {
         actualEntities?.moveCategoryGroup(move.groupId, move.beforeGroupId) ?: return false
+        return true
+    }
+
+    /** Accounts sorted for the drag-to-reorder accounts screen. */
+    fun accountsForReorder(): List<ActualAccount> =
+        actualDatabase?.fetchAccounts()?.sortedWith(compareBy({ it.sortOrder }, { it.id })).orEmpty()
+
+    fun moveAccount(move: AccountReorderPlanner.AccountMove): Boolean {
+        actualEntities?.moveAccount(move.accountId, move.beforeAccountId) ?: return false
         return true
     }
 
