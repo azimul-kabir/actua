@@ -170,7 +170,7 @@ class CoreReportEngineTest {
     }
 
     @Test fun dashboardCustomReportWidgetUsesSavedReportNameAndGraphType() {
-        val accounts = listOf(ActualAccount("a", "A", ActualAccountType.CHECKING, false, false, 0, 0))
+        val accounts = listOf(ActualAccount("a", "A", ActualAccountType.CHECKING, false, false, 0.0, 0))
         val groups = listOf(ActualCategoryGroup("g", "G", false, false, 1.0,
             listOf(ActualCategory("c", "C", "g", false, false, 1.0))))
         val saved = SavedReportRow(

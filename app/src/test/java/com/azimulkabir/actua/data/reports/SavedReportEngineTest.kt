@@ -40,7 +40,7 @@ class SavedReportBudgetedTest {
             )),
     )
     private val accounts = listOf(
-        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0.0, 0),
     )
     private fun tx(id: String, date: Int, amount: Long, cat: String) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
         id, "a", date, amount, null, null, cat, null, null, false, false, null, false, null, false, null, null, null, null)
@@ -91,8 +91,8 @@ class SavedReportBudgetedTest {
 
 class SavedReportViewFilterTest {
     private val accounts = listOf(
-        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0, 0),
-        com.azimulkabir.actua.data.budget.model.ActualAccount("b", "B", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 1, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0.0, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("b", "B", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 1.0, 0),
     )
     private val groups = listOf(com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("g", "G", false, false, 1.0,
         listOf(com.azimulkabir.actua.data.budget.model.ActualCategory("c", "C", "g", false, false, 1.0))))
@@ -119,8 +119,8 @@ class SavedReportViewFilterTest {
 /** Regression coverage for https://github.com/azimul-kabir/actua/issues/547. */
 class SavedReportTransferTest {
     private val accounts = listOf(
-        com.azimulkabir.actua.data.budget.model.ActualAccount("chk", "Checking", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0, 0),
-        com.azimulkabir.actua.data.budget.model.ActualAccount("sav", "Savings", com.azimulkabir.actua.data.budget.model.ActualAccountType.SAVINGS, false, false, 1, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("chk", "Checking", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0.0, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("sav", "Savings", com.azimulkabir.actua.data.budget.model.ActualAccountType.SAVINGS, false, false, 1.0, 0),
     )
     private val groups = listOf(com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("ge", "Bills", false, false, 1.0,
         listOf(com.azimulkabir.actua.data.budget.model.ActualCategory("rent", "Rent", "ge", false, false, 1.0))))
@@ -163,8 +163,8 @@ class IntervalPointsTest {
 
 class IncomeExpenseTest {
     private val accounts = listOf(
-        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0, 0),
-        com.azimulkabir.actua.data.budget.model.ActualAccount("b", "B", com.azimulkabir.actua.data.budget.model.ActualAccountType.SAVINGS, false, false, 1, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0.0, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("b", "B", com.azimulkabir.actua.data.budget.model.ActualAccountType.SAVINGS, false, false, 1.0, 0),
     )
     private val groups = listOf(
         com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("gi", "Income", true, false, 1.0,
@@ -194,7 +194,7 @@ class IncomeExpenseTest {
 
 class StackedIntervalPointsTest {
     private val accounts = listOf(
-        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0, 0),
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0.0, 0),
     )
     private val groups = listOf(
         com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("g", "G", false, false, 1.0,

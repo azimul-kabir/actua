@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added manual drag-to-reorder for accounts on the Accounts screen ([#603](https://github.com/azimul-kabir/actua/pull/603))
 - Added FAQ and Discord links to the About page, and an optional one-time Play Store "Support Actua" purchase ([#599](https://github.com/azimul-kabir/actua/pull/599))
 
 ## [1.0.0] - 2026-09-25
