@@ -5,12 +5,30 @@ import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 
 /**
- * Upstream `balanceType`: which transactions of the selected set contribute
- * (`totalDebts`, `totalAssets`, `netAssets`, `netDebts` in loot-core custom reports).
- * `BUDGETED` (`totalBudgeted`) reads budget-engine cells instead of transactions, so it never
- * reaches [ReportAggregator.select] - [SavedReportEngine] branches on it before building a filter.
+ * Upstream `balanceTypeOp` for custom reports: `totalDebts` ([DEBTS], only amounts < 0),
+ * `totalAssets` ([ASSETS], only amounts > 0), `totalTotals` ([NET], the signed sum), and
+ * `netAssets`/`netDebts` ([NET_ASSETS]/[NET_DEBTS], the signed sum clamped to one side by
+ * [clampNet]). `BUDGETED` (`totalBudgeted`) reads budget-engine cells instead of transactions,
+ * so it never reaches [ReportAggregator.select] - [SavedReportEngine] branches on it before
+ * building a filter.
  */
-enum class ReportBalanceType { DEBTS, ASSETS, NET_ASSETS, NET_DEBTS, BUDGETED }
+enum class ReportBalanceType {
+    DEBTS, ASSETS, NET, NET_ASSETS, NET_DEBTS, BUDGETED;
+
+    /**
+     * Upstream `recalculate`/`custom-spreadsheet`: `netAssets` keeps a net amount only when it is
+     * positive (`total > 0 ? total : 0`) and `netDebts` only when negative; every other balance
+     * type passes the amount through.
+     */
+    fun clampNet(cents: Long): Long = when (this) {
+        NET_ASSETS -> maxOf(cents, 0L)
+        NET_DEBTS -> minOf(cents, 0L)
+        else -> cents
+    }
+
+    /** True for the balance types [clampNet] actually clamps. */
+    val clampsNet: Boolean get() = this == NET_ASSETS || this == NET_DEBTS
+}
 
 enum class ReportGrouping { CATEGORY, CATEGORY_GROUP, PAYEE, ACCOUNT }
 
@@ -88,16 +106,21 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
         return when (f.balanceType) {
             ReportBalanceType.DEBTS -> tx.amountCents < 0
             ReportBalanceType.ASSETS -> tx.amountCents > 0
-            ReportBalanceType.NET_ASSETS, ReportBalanceType.NET_DEBTS -> true
+            ReportBalanceType.NET, ReportBalanceType.NET_ASSETS, ReportBalanceType.NET_DEBTS -> true
             // Budgeted reports never select transactions; SavedReportEngine reads budget cells instead.
             ReportBalanceType.BUDGETED -> false
         }
     }
 
+    /** The selection's total as one interval, clamped by [ReportBalanceType.clampNet]. */
     fun total(transactions: List<ActualTransaction>, filter: ReportFilter): Long =
-        select(transactions, filter).sumOf { it.amountCents }
+        filter.balanceType.clampNet(select(transactions, filter).sumOf { it.amountCents })
 
-    /** Per-category or per-group totals, largest magnitude first. */
+    /**
+     * Per-category or per-group totals, largest magnitude first. For `netAssets`/`netDebts` each
+     * group's net is clamped by [ReportBalanceType.clampNet] and groups left at zero are dropped,
+     * like upstream's `filterEmptyRows` with "show empty" off.
+     */
     fun groupTotals(
         transactions: List<ActualTransaction>,
         filter: ReportFilter,
@@ -121,8 +144,9 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
                 ReportGrouping.PAYEE -> rows.firstNotNullOfOrNull { it.payeeName?.takeIf(String::isNotBlank) }
                 ReportGrouping.ACCOUNT -> id?.let { accountsById[it]?.name }
             } ?: if (grouping == ReportGrouping.PAYEE) "Unknown" else "Uncategorized"
-            ReportGroupTotal(id, name, rows.sumOf { it.amountCents }, rows.map { it.id })
+            ReportGroupTotal(id, name, filter.balanceType.clampNet(rows.sumOf { it.amountCents }), rows.map { it.id })
         }
+        .filterNot { it.totalCents == 0L && filter.balanceType.clampsNet }
         .sortedWith(compareByDescending<ReportGroupTotal> { kotlin.math.abs(it.totalCents) }.thenBy { it.name })
 
     private companion object {

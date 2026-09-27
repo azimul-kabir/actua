@@ -97,9 +97,9 @@ object SavedReportEngine {
         val points = if (stacked) {
             intervalSegments(included, grouping, aggregator, filter, segments.map { it.name }, row.interval, start, end, today)
         } else {
-            intervalPoints(included, row.interval, start, end, today)
+            intervalPoints(included, row.interval, start, end, today, balType)
         }
-        val total = included.sumOf { it.amountCents }
+        val total = reportTotal(included, row.interval, balType)
         return ReportWidget(
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
             valueCents = total, categories = segments, points = points, timeMode = timeMode,
@@ -114,7 +114,8 @@ object SavedReportEngine {
     /**
      * Upstream `ReportSummary`: the report total plus `Math.round(total / intervalsCount)`, where
      * the intervals span the whole date range (`rangeInclusive` and friends), not just intervals
-     * with activity. A `Net` report is labelled a payment when its debits outweigh its credits.
+     * with activity. Net Deposit/Net Payment keep their own label; a `Net` report is labelled a
+     * payment when its debits outweigh its credits.
      */
     internal fun summary(
         row: SavedReportRow, totalCents: Long, debitCents: Long, creditCents: Long, start: LocalDate, end: LocalDate,
@@ -124,11 +125,10 @@ object SavedReportEngine {
             ReportBalanceType.ASSETS -> ReportSummaryKind.DEPOSITS
             ReportBalanceType.BUDGETED -> ReportSummaryKind.BUDGETED
             ReportBalanceType.NET_DEBTS -> ReportSummaryKind.NET_PAYMENT
-            ReportBalanceType.NET_ASSETS -> when {
-                row.balanceType == "netAssets" -> ReportSummaryKind.NET_DEPOSIT
-                kotlin.math.abs(debitCents) > kotlin.math.abs(creditCents) -> ReportSummaryKind.NET_PAYMENT
-                else -> ReportSummaryKind.NET_DEPOSIT
-            }
+            ReportBalanceType.NET_ASSETS -> ReportSummaryKind.NET_DEPOSIT
+            ReportBalanceType.NET ->
+                if (kotlin.math.abs(debitCents) > kotlin.math.abs(creditCents)) ReportSummaryKind.NET_PAYMENT
+                else ReportSummaryKind.NET_DEPOSIT
         }
         val count = intervalCount(row.interval, start, end)
         return ReportSummary(kind, totalCents, roundedAverage(totalCents, count), count, row.interval)
@@ -254,13 +254,28 @@ object SavedReportEngine {
         return if (keys.size <= 400) keys else seen.distinct().sorted()
     }
 
-    /** Sums per interval bucket; gaps are zero-filled when the range is small enough to chart. */
+    /**
+     * Sums per interval bucket, clamped by [ReportBalanceType.clampNet] like upstream's per-interval
+     * `netAssets`/`netDebts`; gaps are zero-filled when the range is small enough to chart.
+     */
     internal fun intervalPoints(
         rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
+        balanceType: ReportBalanceType = ReportBalanceType.NET,
     ): List<ReportPoint> {
-        val sums = rows.groupBy { bucketStart(interval, it.localDate()) }.mapValues { (_, v) -> v.sumOf { it.amountCents } }
+        val sums = rows.groupBy { bucketStart(interval, it.localDate()) }
+            .mapValues { (_, v) -> balanceType.clampNet(v.sumOf { it.amountCents }) }
         return bucketKeys(rows, interval, start, end, today).map { ReportPoint(bucketLabel(interval, it), sums[it] ?: 0L) }
     }
+
+    /**
+     * Upstream's report-level `data[balanceTypeOp]`: for `netAssets`/`netDebts` each interval's
+     * net across every group is clamped and the intervals summed (`netAssets += perIntervalNetAssets`),
+     * so a refund-heavy month can't cancel spending in another; other types are the plain signed sum.
+     */
+    internal fun reportTotal(rows: List<ActualTransaction>, interval: String, balanceType: ReportBalanceType): Long =
+        if (!balanceType.clampsNet) rows.sumOf { it.amountCents } else rows
+            .groupBy { bucketStart(interval, it.localDate()) }.values
+            .sumOf { bucket -> balanceType.clampNet(bucket.sumOf { it.amountCents }) }
 
     /**
      * Per-category breakdown for each interval bucket, for a `StackedBarGraph` saved report.
@@ -302,7 +317,7 @@ object SavedReportEngine {
             startDate = start.toYmd(), endDate = end.toYmd(),
             accountIds = view.accountIds.takeIf { it.isNotEmpty() },
             categoryGroupIds = view.categoryGroupIds.takeIf { it.isNotEmpty() },
-            showOffBudget = view.includeOffBudget, showHiddenCategories = true, balanceType = ReportBalanceType.NET_ASSETS,
+            showOffBudget = view.includeOffBudget, showHiddenCategories = true, balanceType = ReportBalanceType.NET,
         )
         val included = shared.aggregator.select(transactions, filter).filterNot(shared.aggregator::isBudgetTransfer)
         val (income, expenses) = included.partition { shared.aggregator.categoryIsIncome(it.categoryId) }
@@ -323,10 +338,16 @@ object SavedReportEngine {
         )
     }
 
+    /**
+     * `custom_reports.balance_type` stores upstream's `balanceTypeOptions` key (`ReportOptions.ts`);
+     * the matching `format` literals are accepted too. Unknown values fall back to upstream's
+     * default, Payment.
+     */
     internal fun balanceType(value: String): ReportBalanceType = when (value) {
         "Deposit", "Income", "totalAssets" -> ReportBalanceType.ASSETS
-        "Net", "netAssets" -> ReportBalanceType.NET_ASSETS
-        "netDebts" -> ReportBalanceType.NET_DEBTS
+        "Net", "totalTotals" -> ReportBalanceType.NET
+        "Net Deposit", "netAssets" -> ReportBalanceType.NET_ASSETS
+        "Net Payment", "netDebts" -> ReportBalanceType.NET_DEBTS
         "Budgeted", "totalBudgeted" -> ReportBalanceType.BUDGETED
         else -> ReportBalanceType.DEBTS
     }

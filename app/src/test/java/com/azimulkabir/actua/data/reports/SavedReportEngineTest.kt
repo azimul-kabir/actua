@@ -44,11 +44,115 @@ class SavedReportEngineTest {
         assertEquals(LocalDate.of(2026, 2, 1) to LocalDate.of(2026, 3, 31), r)
     }
 
-    @Test fun `balance types map to upstream semantics`() {
-        assertEquals(ReportBalanceType.DEBTS, SavedReportEngine.balanceType("Payment"))
-        assertEquals(ReportBalanceType.ASSETS, SavedReportEngine.balanceType("Deposit"))
-        assertEquals(ReportBalanceType.NET_ASSETS, SavedReportEngine.balanceType("Net"))
-        assertEquals(ReportBalanceType.BUDGETED, SavedReportEngine.balanceType("Budgeted"))
+    @Test fun `balance types map upstream's stored keys and format literals`() {
+        // Upstream ReportOptions.ts balanceTypeOptions: key -> format (actua#646).
+        mapOf(
+            "Payment" to ReportBalanceType.DEBTS, "totalDebts" to ReportBalanceType.DEBTS,
+            "Deposit" to ReportBalanceType.ASSETS, "totalAssets" to ReportBalanceType.ASSETS,
+            "Net" to ReportBalanceType.NET, "totalTotals" to ReportBalanceType.NET,
+            "Net Payment" to ReportBalanceType.NET_DEBTS, "netDebts" to ReportBalanceType.NET_DEBTS,
+            "Net Deposit" to ReportBalanceType.NET_ASSETS, "netAssets" to ReportBalanceType.NET_ASSETS,
+            "Budgeted" to ReportBalanceType.BUDGETED, "totalBudgeted" to ReportBalanceType.BUDGETED,
+            "" to ReportBalanceType.DEBTS,
+        ).forEach { (stored, expected) -> assertEquals(stored, expected, SavedReportEngine.balanceType(stored)) }
+    }
+}
+
+/**
+ * Regression coverage for https://github.com/azimul-kabir/actua/issues/646: upstream's
+ * `totalTotals`/`netAssets`/`netDebts` (recalculate.ts, custom-spreadsheet.ts, filterEmptyRows.ts).
+ */
+class SavedReportNetBalanceTest {
+    private val accounts = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0.0, 0),
+    )
+    private val groups = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("gi", "Income", true, false, 1.0,
+            listOf(com.azimulkabir.actua.data.budget.model.ActualCategory("pay", "Pay", "gi", true, false, 1.0))),
+        com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("ge", "Bills", false, false, 2.0,
+            listOf(
+                com.azimulkabir.actua.data.budget.model.ActualCategory("groceries", "Groceries", "ge", false, false, 1.0),
+                com.azimulkabir.actua.data.budget.model.ActualCategory("rent", "Rent", "ge", false, false, 2.0),
+            )),
+    )
+    private fun tx(id: String, date: Int, amount: Long, cat: String) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        id, "a", date, amount, null, null, cat, null, null, false, false, null, false, null, false, null, null, null, null)
+    private val today = LocalDate.of(2026, 3, 15)
+    private fun saved(balanceType: String, graphType: String = "BarGraph", mode: String = "total") =
+        SavedReportRow("r", "R", "2026-01", "2026-02", true, null, "Category", balanceType, false, false, true,
+            null, graphType, null, "and", "Monthly", mode = mode)
+
+    // Jan nets +185,000 (pay 300,000, rent -100,000, groceries -20,000 with a 5,000 refund);
+    // Feb nets -110,000. The whole range nets +75,000.
+    private val rows = listOf(
+        tx("1", 20260105, 300000, "pay"), tx("2", 20260106, -100000, "rent"),
+        tx("3", 20260107, -20000, "groceries"), tx("4", 20260108, 5000, "groceries"),
+        tx("5", 20260205, -100000, "rent"), tx("6", 20260210, -10000, "groceries"),
+    )
+    private fun compute(row: SavedReportRow, transactions: List<com.azimulkabir.actua.data.budget.model.ActualTransaction> = rows) =
+        SavedReportEngine.compute(row, transactions, accounts, groups, today)
+
+    @Test fun `Net is the signed sum per group, per interval and overall`() {
+        val w = compute(saved("Net"))
+        assertEquals(75000L, w.valueCents)
+        assertEquals(
+            setOf("Pay" to 300000L, "Rent" to -200000L, "Groceries" to -25000L),
+            w.categories.map { it.name to it.spentCents }.toSet(),
+        )
+        assertEquals(listOf(185000L, -110000L), w.points.map { it.primaryCents })
+    }
+
+    @Test fun `Net Deposit keeps positive nets and sums per-interval clamped totals`() {
+        val w = compute(saved("Net Deposit"))
+        // Rent and Groceries net negative, so upstream's filterEmptyRows hides them.
+        assertEquals(listOf("Pay" to 300000L), w.categories.map { it.name to it.spentCents })
+        assertEquals(listOf(185000L, 0L), w.points.map { it.primaryCents })
+        // max(185,000, 0) + max(-110,000, 0), not max(75,000, 0).
+        assertEquals(185000L, w.valueCents)
+    }
+
+    @Test fun `Net Payment keeps negative nets, netting refunds, and sums per-interval clamped totals`() {
+        val w = compute(saved("Net Payment"))
+        // Groceries nets its refund (-30,000 + 5,000); Payment (DEBTS) would have ignored it.
+        assertEquals(
+            listOf("Rent" to -200000L, "Groceries" to -25000L),
+            w.categories.map { it.name to it.spentCents },
+        )
+        assertEquals(listOf(0L, -110000L), w.points.map { it.primaryCents })
+        assertEquals(-110000L, w.valueCents)
+        assertEquals(listOf("3", "4", "6"), w.categories.first { it.name == "Groceries" }.transactionIds.sorted())
+    }
+
+    @Test fun `a group that nets to zero stays in Net but drops out of Net Deposit and Net Payment`() {
+        val wash = listOf(tx("1", 20260105, -500, "groceries"), tx("2", 20260106, 500, "groceries"))
+        assertEquals(listOf("Groceries" to 0L), compute(saved("Net"), wash).categories.map { it.name to it.spentCents })
+        assertEquals(emptyList<String>(), compute(saved("Net Deposit"), wash).categories.map { it.name })
+        assertEquals(emptyList<String>(), compute(saved("Net Payment"), wash).categories.map { it.name })
+    }
+
+    @Test fun `Net Deposit and Net Payment summaries total and average the per-interval clamped nets`() {
+        val deposit = compute(saved("Net Deposit")).summary!!
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_DEPOSIT, deposit.kind)
+        assertEquals(185000L to 92500L, deposit.totalCents to deposit.averageCents)
+        val payment = compute(saved("Net Payment")).summary!!
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_PAYMENT, payment.kind)
+        assertEquals(-110000L to -55000L, payment.totalCents to payment.averageCents)
+    }
+
+    @Test fun `stacked Net Payment clamps each group's net per interval`() {
+        val stackedRows = listOf(
+            tx("1", 20260105, 3000, "groceries"), tx("2", 20260106, -1000, "rent"),
+            tx("3", 20260210, -10000, "groceries"),
+        )
+        val w = compute(saved("Net Payment", graphType = "StackedBarGraph", mode = "time"), stackedRows)
+        val jan = w.points.first { it.period == "2026-01" }.segments.associate { it.name to it.spentCents }
+        val feb = w.points.first { it.period == "2026-02" }.segments.associate { it.name to it.spentCents }
+        // Groceries' January refund nets positive, so it contributes nothing to that month's payments.
+        assertEquals(mapOf("Groceries" to 0L, "Rent" to -1000L), jan)
+        assertEquals(mapOf("Groceries" to -10000L, "Rent" to 0L), feb)
+        // The total clamps each interval's net across all groups: January nets +2,000, so only
+        // February's -10,000 counts, even though Rent's January segment shows -1,000.
+        assertEquals(-10000L, w.valueCents)
     }
 }
 
@@ -338,6 +442,9 @@ class SavedReportSummaryTest {
         assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_DEPOSIT, kind(incomeHeavy, "Net"))
         assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_DEPOSIT, kind(spendHeavy, "netAssets"))
         assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_PAYMENT, kind(incomeHeavy, "netDebts"))
+        // The stored keys resolve the same way as their format literals (actua#646).
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_DEPOSIT, kind(spendHeavy, "Net Deposit"))
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_PAYMENT, kind(incomeHeavy, "Net Payment"))
         assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.DEPOSITS, kind(incomeHeavy, "Deposit"))
     }
 

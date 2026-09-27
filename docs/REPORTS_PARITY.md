@@ -18,9 +18,14 @@ Reference: Actual `packages/loot-core/src/server/reports` and
 
 ## Shared semantics (implemented in `ReportAggregator`)
 
-- **Balance type** mirrors upstream `balanceType`: `DEBTS` (amount < 0 only, upstream
-  default "Payment"), `ASSETS` (amount > 0), `NET_ASSETS` / `NET_DEBTS` (signed sum, so
-  refunds reduce spending).
+- **Balance type** mirrors upstream `balanceTypeOptions`, whose key is what
+  `custom_reports.balance_type` stores: `DEBTS` ("Payment"/`totalDebts`, amount < 0 only,
+  upstream's default), `ASSETS` ("Deposit"/`totalAssets`, amount > 0), `NET`
+  ("Net"/`totalTotals`, the signed sum, so refunds reduce spending), and `NET_ASSETS` /
+  `NET_DEBTS` ("Net Deposit"/`netAssets`, "Net Payment"/`netDebts`): the signed sum clamped to
+  its positive/negative side per group and per interval. Groups clamped to zero are hidden,
+  and the report total sums the per-interval clamped nets, as in upstream's `recalculate.ts` and
+  `custom-spreadsheet.ts`.
 - **Dates** are inclusive YYYYMMDD integers.
 - **Deleted data**: tombstoned rows are ignored. Split parents (`isParent`) are ignored;
   split children carry their own category, so splits aggregate per category and never
