@@ -838,8 +838,6 @@ private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
     widget.subtitle?.let {
         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-    Text(formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
-        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     val segments = widget.categories.filter { it.spentCents != 0L }
     if (segments.isEmpty() && widget.points.all { it.primaryCents == 0L }) {
         Text("No transactions match this report's filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)

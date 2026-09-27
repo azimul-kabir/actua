@@ -160,6 +160,37 @@ class ReportsChartInteractionTest {
         compose.onNodeWithText("Expenses").assertDoesNotExist()
     }
 
+    /**
+     * Issue #628 (Actual PWA parity): the PWA's dashboard card for a custom report shows only the
+     * name, date range and chart - never a total-sum headline (that only appears on the full
+     * report detail page, which Actua doesn't have a separate view for). Actua used to always
+     * show one above the chart regardless of graph type.
+     */
+    @Test fun customReportCardDoesNotShowATotalSumHeadlineAboveTheChart() {
+        val widget = ReportWidget(
+            id = "category-bars",
+            kind = ReportWidgetKind.CUSTOM_REPORT,
+            name = "Spending by category",
+            graphType = "BarGraph",
+            valueCents = -98765432,
+            categories = listOf(ReportCategory("Rent", -1000_00, listOf("tx-rent"))),
+        )
+        val page = ReportDashboardPage("main", "Main", listOf(widget))
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(page)),
+                    hideDecimalPlaces = false,
+                )
+            }
+        }
+
+        compose.onNodeWithText(com.azimulkabir.actua.ui.components.formatMoneyCents(-98765432, false))
+            .assertDoesNotExist()
+        compose.onNodeWithText("Rent").assertExists()
+    }
+
     @Test fun stackedBarChartShowsAPerCategoryLegendAndDrillsDownOnASegmentTap() {
         val widget = ReportWidget(
             id = "stacked",
