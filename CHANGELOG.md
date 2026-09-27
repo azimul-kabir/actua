@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Bank sync now reconciles with an existing manually entered transaction instead of importing it as a duplicate ([#604](https://github.com/azimul-kabir/actua/pull/604))
+- Show category balances while picking a category, and preselect the account when adding a transaction from an Account Detail screen ([#608](https://github.com/azimul-kabir/actua/pull/608))
 
 ## [1.0.0] - 2026-09-25
 
