@@ -58,6 +58,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Manage → Categories → automation editor: open a category's Budget Automation page and verify the "Automations" list (Fixed amount, Cover schedule, Save by date, % of income, From history, Refill to cap, Whatever is left) and "Options" section (Balance cap, Long-term goal) each allow at most one entry; set a Balance cap and a Refill to cap together and verify Refill to cap tracks the Balance cap amount instead of taking its own; verify Fixed amount's period (day/week/month/year), Save by date's repeat/early-spending options, and Cover schedule's savings mode and schedule picker (select/change/clear) all save and reload correctly, including the note field on each automation.
 - [ ] Set a Cover schedule or From history (average) automation's signed increase/decrease adjustment, save, and verify it reloads correctly; set % of income to a specific income category (not just available funds/all income), save, reopen the editor and verify the selected category round-trips instead of reverting to the default.
 - [ ] Budget screen overflow menu → "Copy last month's budget": verify it copies the previous month's budgeted amounts into visible expense categories (and visible income categories on a tracking budget) for the selected month, and leaves hidden categories/groups unchanged.
+- [ ] With "Show warnings" enabled in Settings → Budget, verify the Budget screen shows an uncategorized-transactions banner alongside the overspent-categories banner when the selected month has uncategorized transactions, and both banners disappear when "Show warnings" is toggled off.
 
 ## Transactions and accounts
 
@@ -66,6 +67,11 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] After saving a categorized transaction, verify the confirmation cue shows that category's current available balance.
 - [ ] Pull down on Transactions and verify the list refreshes without leaving the tab or changing any transaction.
 - [ ] Create a new account and pick a non-default type from the picker; verify it syncs with the correct type. Use "Change account type" on an existing account and verify the change persists and syncs.
+- [ ] On the Accounts screen, drag an account to a new position using its drag handle and verify the new order persists and syncs.
+- [ ] On a budget with Actual's experimental account groups configured (created from the web/PWA), verify the Accounts screen displays on/off-budget accounts nested under their group headers in the group's sort order, with an ungrouped bucket for accounts outside every group; on a budget without account groups, verify accounts still show as a flat list.
+- [ ] Add a transaction from an Account Detail screen's "+" and verify that account is preselected in the editor; open the category picker and verify each category shows its current available balance.
+- [ ] Sync a bank transaction whose amount, date and account match an existing manually entered transaction and verify it reconciles into the manual one instead of creating a duplicate.
+- [ ] View an off-budget account's transactions with no category set and verify they are not shown or filtered as "Uncategorized" (in the account register or the Transactions tab's Uncategorized status chip).
 - [ ] Add and edit a split transaction.
 - [ ] Typing `#` (or deleting characters) in a transaction note while suggestions are showing keeps the on-screen keyboard open without flicker.
 - [ ] Long-press a transaction to enter selection mode with it pre-selected (there is no separate app-bar Select button); select several more and verify the floating selection bar's always-visible Categorize and Label icon actions apply to every selected transaction, and that Edit (single selection), Mark cleared/uncleared, Delete (with confirmation naming the count), Move, Link to schedule and Unlink schedule are available from the 3-dot overflow menu.
