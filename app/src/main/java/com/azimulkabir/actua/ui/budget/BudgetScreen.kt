@@ -102,6 +102,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetCategoryView
 import com.azimulkabir.actua.model.BudgetGroup
@@ -224,15 +225,17 @@ fun BudgetScreen(
     val budgetUiPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("budget_ui_preferences", android.content.Context.MODE_PRIVATE)
     }
+    val activeBudgetId = remember(context) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
+    val collapsedGroupsKey = "collapsed_groups_$activeBudgetId"
     var selectedCategory by remember { mutableStateOf<BudgetCategory?>(null) }
     var selectedGroup by remember { mutableStateOf<BudgetGroup?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
-    var collapsedGroups by remember {
-        mutableStateOf(budgetUiPreferences.getStringSet("collapsed_groups", emptySet()).orEmpty().toSet())
+    var collapsedGroups by remember(activeBudgetId) {
+        mutableStateOf(budgetUiPreferences.getStringSet(collapsedGroupsKey, emptySet()).orEmpty().toSet())
     }
     fun saveCollapsedGroups(value: Set<String>) {
         collapsedGroups = value
-        budgetUiPreferences.edit().putStringSet("collapsed_groups", value).apply()
+        budgetUiPreferences.edit().putStringSet(collapsedGroupsKey, value).apply()
     }
     var optionsExpanded by remember { mutableStateOf(false) }
     var editingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }

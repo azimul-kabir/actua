@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.accounts
 
+import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,8 +11,10 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.model.Account
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,6 +22,12 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AccountsScreenTest {
     @get:Rule val compose = createComposeRule()
+    private val context get() = ApplicationProvider.getApplicationContext<Context>()
+
+    @Before fun clear() {
+        context.getSharedPreferences("budget_ui_preferences", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("active_budget", Context.MODE_PRIVATE).edit().clear().commit()
+    }
 
     @Test fun favoritesSectionAppearsAndUpdatesWhenFavoriteIdsChange() {
         val checking = Account("Checking", 10_000, "checking", id = "checking")
@@ -61,5 +70,28 @@ class AccountsScreenTest {
 
         compose.onNodeWithContentDescription("Reorder accounts").performClick()
         assert(reorderClicked)
+    }
+
+    /** Regression coverage for issue #619: collapsing an account section survives leaving and returning to Accounts. */
+    @Test fun collapsedSectionSurvivesLeavingAndReturningToAccountsScreen() {
+        val checking = Account("Checking", 10_000, "checking", id = "checking")
+        var showScreen by mutableStateOf(true)
+
+        compose.setContent {
+            MaterialTheme {
+                if (showScreen) {
+                    AccountsScreen(accounts = listOf(checking), showMonthlySummary = false)
+                }
+            }
+        }
+
+        compose.onNodeWithContentDescription("Collapse On budget").performClick()
+        compose.onNodeWithContentDescription("Expand On budget").assertExists()
+
+        // Simulate leaving the Accounts tab (screen torn down) and coming back to it.
+        compose.runOnIdle { showScreen = false }
+        compose.runOnIdle { showScreen = true }
+
+        compose.onNodeWithContentDescription("Expand On budget").assertExists()
     }
 }

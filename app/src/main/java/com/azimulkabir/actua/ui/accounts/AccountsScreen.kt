@@ -51,9 +51,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.CreditCardStatus
@@ -138,7 +140,21 @@ fun AccountsScreen(
     LaunchedEffect(scrollToTopRequest) {
         if (scrollToTopRequest > 0) listState.animateScrollToItem(0)
     }
-    var collapsedSections by remember { mutableStateOf(setOf("Closed accounts")) }
+    val context = LocalContext.current
+    val accountsUiPreferences = remember(context) {
+        context.applicationContext.getSharedPreferences("budget_ui_preferences", android.content.Context.MODE_PRIVATE)
+    }
+    val activeBudgetId = remember(context) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
+    val collapsedSectionsKey = "collapsed_account_sections_$activeBudgetId"
+    var collapsedSections by remember(activeBudgetId) {
+        mutableStateOf(
+            accountsUiPreferences.getStringSet(collapsedSectionsKey, setOf("Closed accounts")).orEmpty().toSet(),
+        )
+    }
+    fun saveCollapsedSections(value: Set<String>) {
+        collapsedSections = value
+        accountsUiPreferences.edit().putStringSet(collapsedSectionsKey, value).apply()
+    }
     var selectedAccount by remember { mutableStateOf<Account?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
     var showNewAccountDialog by remember { mutableStateOf(false) }
@@ -200,14 +216,14 @@ fun AccountsScreen(
                             DropdownMenuItem(
                                 text = { Text("Expand all") },
                                 onClick = {
-                                    collapsedSections = emptySet()
+                                    saveCollapsedSections(emptySet())
                                     accountMenuExpanded = false
                                 },
                             )
                             DropdownMenuItem(
                                 text = { Text("Collapse all") },
                                 onClick = {
-                                    collapsedSections = accountSections.mapTo(mutableSetOf()) { it.title }
+                                    saveCollapsedSections(accountSections.mapTo(mutableSetOf()) { it.title })
                                     accountMenuExpanded = false
                                 },
                             )
@@ -236,8 +252,10 @@ fun AccountsScreen(
                             collapsed = collapsed,
                             hideDecimalPlaces = hideDecimalPlaces,
                             onClick = {
-                                collapsedSections = if (collapsed) collapsedSections - section.title
-                                else collapsedSections + section.title
+                                saveCollapsedSections(
+                                    if (collapsed) collapsedSections - section.title
+                                    else collapsedSections + section.title,
+                                )
                             },
                         )
                     }
