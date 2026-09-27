@@ -861,6 +861,50 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun transactionsOnAMergedPayeeReportTheTargetPayeeId() {
+        // Merging payees leaves transactions on the old id with payee_mapping pointing
+        // old -> target; upstream's view exposes the mapped id (actua#640).
+        val file = createDatabaseFile()
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO payees VALUES ('old-store','Old Store',NULL,1)")
+                db.execSQL("INSERT INTO payee_mapping VALUES ('old-store','store')")
+                insertTransaction(db, "merged", 0, 0, "checking", "grocery", -250, "old-store", 20260801, 8.0)
+                insertTransaction(db, "merged-split", 1, 0, "checking", null, -250, null, 20260802, 9.0)
+                insertTransaction(db, "merged-child", 0, 1, "checking", "grocery", -250, "old-store", 20260802, 10.0, parent = "merged-split")
+            }
+            ActualBudgetDatabase.open(file).use { database ->
+                val listed = database.fetchTransactions().first { it.id == "merged" }
+                assertEquals("store", listed.payeeId)
+                assertEquals("Store", listed.payeeName)
+                assertEquals("store", database.fetchChildTransactions("merged-split").single().payeeId)
+                val reported = database.fetchTransactionsForReports().associateBy { it.id }
+                assertEquals("store", reported.getValue("merged").payeeId)
+                assertEquals("store", reported.getValue("merged-child").payeeId)
+                assertEquals("store", database.fuzzyMatchCandidates("checking", -250, 20260801, 20260801).single().payeeId)
+
+                // Editing without touching the payee must keep it and emit no payee message.
+                var next = 0
+                val ids = { "merged-edit-${++next}" }
+                val service = ActualTransactionFormService(database, ActualTransactionWriter(database, idFactory = ids), idFactory = ids)
+                val original = requireNotNull(database.fetchTransaction("merged"))
+                service.save(ActualTransactionForm(
+                    accountId = "checking", type = ActualTransactionType.EXPENSE, amount = "2.50",
+                    payeeName = "Store", categoryId = "grocery", notes = "edited", date = 20260801,
+                ), original = original)
+                val edited = requireNotNull(database.fetchTransaction("merged"))
+                assertEquals("edited", edited.notes)
+                assertEquals("store", edited.payeeId)
+                assertTrue(database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString()).none {
+                    it.row == "merged" && it.column == "description"
+                })
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun savedReportsReadIncludeCurrentAndTolerateOlderSchemas() {
         val file = createDatabaseFile()
         try {

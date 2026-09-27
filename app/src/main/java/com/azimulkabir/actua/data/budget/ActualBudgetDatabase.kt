@@ -192,9 +192,10 @@ class ActualBudgetDatabase private constructor(
     @Synchronized
     fun fuzzyMatchCandidates(accountId: String, amountCents: Long, dateFrom: Int, dateTo: Int): List<FuzzyMatchCandidate> =
         database.rawQuery(
-            """SELECT id, date, description, reconciled FROM transactions
-                WHERE acct = ? AND (tombstone = 0 OR tombstone IS NULL)
-                  AND financial_id IS NULL AND amount = ? AND date >= ? AND date <= ?""",
+            """SELECT t.id, t.date, COALESCE(pm.targetId, t.description), t.reconciled
+                FROM transactions t LEFT JOIN payee_mapping pm ON pm.id = t.description
+                WHERE t.acct = ? AND (t.tombstone = 0 OR t.tombstone IS NULL)
+                  AND t.financial_id IS NULL AND t.amount = ? AND t.date >= ? AND t.date <= ?""",
             arrayOf(accountId, amountCents.toString(), dateFrom.toString(), dateTo.toString()),
         ).use { cursor -> buildList {
             while (cursor.moveToNext()) add(FuzzyMatchCandidate(
@@ -1488,7 +1489,8 @@ class ActualBudgetDatabase private constructor(
 
         private const val transactionSelect = """
             SELECT t.id, t.isParent, t.isChild, t.acct, COALESCE(cm.transferId, t.category) AS category, t.amount,
-                   t.description, t.notes, t.date, t.imported_description, t.schedule,
+                   COALESCE(pm.targetId, t.description) AS description, t.notes, t.date,
+                   t.imported_description, t.schedule,
                    t.transferred_id, t.cleared, t.reconciled, t.sort_order,
                    t.tombstone, t.parent_id,
                    COALESCE(pa.name, p.name, cpa.name, cp.name) AS payee_name,
@@ -1524,7 +1526,8 @@ class ActualBudgetDatabase private constructor(
 
         private const val transactionChildSelect = """
             SELECT t.id, t.isParent, t.isChild, t.acct, COALESCE(cm.transferId, t.category) AS category, t.amount,
-                   t.description, t.notes, t.date, t.imported_description, t.schedule,
+                   COALESCE(pm.targetId, t.description) AS description, t.notes, t.date,
+                   t.imported_description, t.schedule,
                    t.transferred_id, t.cleared, t.reconciled, t.sort_order,
                    t.tombstone, t.parent_id, COALESCE(pa.name, p.name) AS payee_name,
                    c.name AS category_name, p.transfer_acct AS transfer_acct,
