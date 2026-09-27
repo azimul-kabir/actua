@@ -245,6 +245,36 @@ class CoreReportEngineTest {
         assertEquals(-500L, widget.valueCents)
     }
 
+    @Test fun balanceForecastIncludesAccountlessSchedulesWhenNoAccountFilterIsSet() {
+        val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}}"""
+        val schedule = ActualScheduleSummary(
+            "sched1", "Unlinked", null, DayDate(2026, 5, 25), null, null, null,
+            null, ScheduledAmount.Fixed(-20_000), ScheduleAmountOp.EXACT, null,
+            ScheduleDateCondition.Fixed(DayDate(2026, 5, 25)), false, false, null, null, false, null, null, null,
+        )
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("bf", "balance-forecast-card", meta), emptyList(), today = today,
+            accountBalances = mapOf("checking" to 0L), schedules = listOf(schedule),
+        )
+        assertEquals(-20_000L, widget.valueCents)
+        assertEquals("1 scheduled transactions included", widget.subtitle)
+    }
+
+    @Test fun balanceForecastExcludesAccountlessSchedulesWhenAnExplicitAccountFilterIsSet() {
+        val meta = """{"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"},"accounts":["checking"]}"""
+        val schedule = ActualScheduleSummary(
+            "sched1", "Unlinked", null, DayDate(2026, 5, 25), null, null, null,
+            null, ScheduledAmount.Fixed(-20_000), ScheduleAmountOp.EXACT, null,
+            ScheduleDateCondition.Fixed(DayDate(2026, 5, 25)), false, false, null, null, false, null, null, null,
+        )
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("bf", "balance-forecast-card", meta), emptyList(), today = today,
+            accountBalances = mapOf("checking" to 0L), schedules = listOf(schedule),
+        )
+        assertEquals(0L, widget.valueCents)
+        assertEquals("No scheduled transactions in this range", widget.subtitle)
+    }
+
     @Test fun monteCarloReports100PercentSuccessWhenReturnsComfortablyFundZeroVolatilitySpending() {
         val meta = """{"currentAge":60,"targetAge":70,"simulationCount":1000,"inflationMean":null,
             "pots":[{"id":"p1","startingBalance":10000000,"expectedReturnMean":0.10,"returnStdDev":0.0}],
