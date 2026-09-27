@@ -1868,6 +1868,7 @@ fun AppNavigation(
             )
             DetailDestination.ReorderAccounts -> ReorderAccountsScreen(
                 accounts = remember(dataVersion) { repository.accountsForReorder() },
+                groups = remember(dataVersion) { repository.accountGroupsForReorder() },
                 onBack = { detail = DetailDestination.Main },
                 onMoveAccount = { move -> mutateSync("Reordering account") { repository.moveAccount(move) } },
                 modifier = contentModifier,

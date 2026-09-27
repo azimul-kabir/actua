@@ -1,5 +1,10 @@
 package com.azimulkabir.actua.ui.accounts
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,8 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DragHandle
@@ -19,6 +24,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,16 +36,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.AccountDragReorder
 import com.azimulkabir.actua.data.budget.AccountReorderPlanner
 import com.azimulkabir.actua.data.budget.model.ActualAccount
+import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.dragReorderHandle
 import kotlinx.coroutines.launch
@@ -47,28 +57,89 @@ import kotlinx.coroutines.launch
 private const val ROW_HEIGHT_DP = 56
 private const val EDGE_SCROLL_ZONE_PX = 100f
 private const val EDGE_SCROLL_SPEED_PX = 14f
+private const val CLOSED_SECTION_TITLE = "Closed accounts"
 
-/** Dedicated drag-to-reorder screen for the accounts list (issue #597). */
+/**
+ * One reorderable bucket of accounts on the Reorder Accounts screen: a section
+ * (On budget / Off budget / Closed accounts) optionally split further into one of
+ * Actual's experimental account groups. Dragging or stepping an account only ever
+ * reorders it within its own chunk — it never crosses a section or group boundary,
+ * since [ActualAccount.sortOrder] is a single shared field and a stray move here
+ * would silently reshuffle accounts the user never touched.
+ */
+internal data class ReorderChunk(
+    val sectionTitle: String,
+    val groupName: String?,
+    val accounts: List<ActualAccount>,
+) {
+    val key: String get() = "$sectionTitle|${groupName ?: ""}"
+}
+
+/** Splits accounts into section chunks, then splits each section by account group, mirroring AccountsScreen. */
+internal fun buildReorderChunks(accounts: List<ActualAccount>, groups: List<ActualAccountGroup>): List<ReorderChunk> {
+    val groupsById = groups.associateBy { it.id }
+    val sections = listOf(
+        "On budget" to accounts.filter { !it.offBudget && !it.closed },
+        "Off budget" to accounts.filter { it.offBudget && !it.closed },
+        CLOSED_SECTION_TITLE to accounts.filter { it.closed },
+    ).filter { (_, sectionAccounts) -> sectionAccounts.isNotEmpty() }
+
+    return sections.flatMap { (title, sectionAccounts) ->
+        if (sectionAccounts.none { it.groupId != null }) {
+            listOf(ReorderChunk(title, null, sectionAccounts))
+        } else {
+            val grouped = sectionAccounts.groupBy { it.groupId }
+            val orderedGroupIds = grouped.keys.filterNotNull()
+                .sortedWith(compareBy({ groupsById[it]?.sortOrder ?: 0.0 }, { it }))
+            val groupChunks = orderedGroupIds.map { groupId ->
+                ReorderChunk(title, groupsById[groupId]?.name ?: "Group", grouped.getValue(groupId))
+            }
+            val ungrouped = grouped[null].orEmpty()
+            if (ungrouped.isEmpty()) groupChunks else groupChunks + ReorderChunk(title, null, ungrouped)
+        }
+    }
+}
+
+/** Each account's 1-based position within its section, counted across all of that section's groups. */
+internal fun serialsBySection(chunks: List<ReorderChunk>): Map<String, Int> {
+    val serials = mutableMapOf<String, Int>()
+    chunks.groupBy { it.sectionTitle }.forEach { (_, sectionChunks) ->
+        var position = 1
+        sectionChunks.forEach { chunk -> chunk.accounts.forEach { serials[it.id] = position++ } }
+    }
+    return serials
+}
+
+/** Dedicated drag-to-reorder screen for the accounts list (issue #597, grouping/collapsing in #617). */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ReorderAccountsScreen(
     accounts: List<ActualAccount>,
     onBack: () -> Unit,
     onMoveAccount: (AccountReorderPlanner.AccountMove) -> Boolean,
     modifier: Modifier = Modifier,
+    groups: List<ActualAccountGroup> = emptyList(),
 ) {
-    val orderKey = remember(accounts) { accounts.joinToString("|") { it.id } }
-    var localAccounts by remember { mutableStateOf(accounts) }
-    var draggingAccountId by remember { mutableStateOf<String?>(null) }
-    var dragStartAccounts by remember { mutableStateOf(accounts) }
-    var dragOffsetPx by remember { mutableStateOf(0f) }
-    LaunchedEffect(orderKey) {
-        if (draggingAccountId == null) localAccounts = accounts
+    val orderKey = remember(accounts, groups) {
+        accounts.joinToString("|") { it.id } + "::" + groups.joinToString("|") { "${it.id}:${it.sortOrder}" }
     }
+    var localChunks by remember { mutableStateOf(buildReorderChunks(accounts, groups)) }
+    var draggingAccountId by remember { mutableStateOf<String?>(null) }
+    var dragStartChunks by remember { mutableStateOf(localChunks) }
+    var dragOffsetPx by remember { mutableStateOf(0f) }
+    var collapsedSections by remember { mutableStateOf(setOf(CLOSED_SECTION_TITLE)) }
+    var collapsedGroups by remember { mutableStateOf(emptySet<String>()) }
+    LaunchedEffect(orderKey) {
+        if (draggingAccountId == null) localChunks = buildReorderChunks(accounts, groups)
+    }
+    val serials = remember(localChunks) { serialsBySection(localChunks) }
 
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val rowHeightPx = with(density) { ROW_HEIGHT_DP.dp.toPx() }
+
+    fun chunkIndexOf(accountId: String) = localChunks.indexOfFirst { chunk -> chunk.accounts.any { it.id == accountId } }
 
     fun autoScrollDirection(accountId: String): Int {
         val info = listState.layoutInfo
@@ -84,39 +155,54 @@ fun ReorderAccountsScreen(
 
     fun onDragStart(accountId: String) {
         draggingAccountId = accountId
-        dragStartAccounts = localAccounts
+        dragStartChunks = localChunks
         dragOffsetPx = 0f
     }
 
     fun onDrag(accountId: String, deltaY: Float) {
         dragOffsetPx += deltaY
         while (dragOffsetPx > rowHeightPx / 2) {
-            val stepped = AccountReorderPlanner.moveAccountDown(localAccounts, accountId)?.first
-            if (stepped != null) { localAccounts = stepped; dragOffsetPx -= rowHeightPx } else { dragOffsetPx = rowHeightPx / 2; break }
+            val chunkIndex = chunkIndexOf(accountId)
+            val chunk = localChunks.getOrNull(chunkIndex)
+            val stepped = chunk?.let { AccountReorderPlanner.moveAccountDown(it.accounts, accountId)?.first }
+            if (chunk != null && stepped != null) {
+                localChunks = localChunks.toMutableList().apply { this[chunkIndex] = chunk.copy(accounts = stepped) }
+                dragOffsetPx -= rowHeightPx
+            } else { dragOffsetPx = rowHeightPx / 2; break }
         }
         while (dragOffsetPx < -rowHeightPx / 2) {
-            val stepped = AccountReorderPlanner.moveAccountUp(localAccounts, accountId)?.first
-            if (stepped != null) { localAccounts = stepped; dragOffsetPx += rowHeightPx } else { dragOffsetPx = -rowHeightPx / 2; break }
+            val chunkIndex = chunkIndexOf(accountId)
+            val chunk = localChunks.getOrNull(chunkIndex)
+            val stepped = chunk?.let { AccountReorderPlanner.moveAccountUp(it.accounts, accountId)?.first }
+            if (chunk != null && stepped != null) {
+                localChunks = localChunks.toMutableList().apply { this[chunkIndex] = chunk.copy(accounts = stepped) }
+                dragOffsetPx += rowHeightPx
+            } else { dragOffsetPx = -rowHeightPx / 2; break }
         }
         val direction = autoScrollDirection(accountId)
         if (direction != 0) scope.launch { listState.scrollBy(direction * EDGE_SCROLL_SPEED_PX) }
     }
 
     fun onDragEnd(accountId: String) {
-        if (AccountDragReorder.hasMoved(dragStartAccounts, localAccounts, accountId)) {
-            val move = AccountDragReorder.finalMove(localAccounts, accountId)
-            if (move != null && !onMoveAccount(move)) localAccounts = dragStartAccounts
+        val chunkIndex = chunkIndexOf(accountId)
+        val originalAccounts = dragStartChunks.getOrNull(chunkIndex)?.accounts
+        val currentAccounts = localChunks.getOrNull(chunkIndex)?.accounts
+        if (originalAccounts != null && currentAccounts != null && AccountDragReorder.hasMoved(originalAccounts, currentAccounts, accountId)) {
+            val move = AccountDragReorder.finalMove(currentAccounts, accountId)
+            if (move != null && !onMoveAccount(move)) localChunks = dragStartChunks
         }
         draggingAccountId = null
         dragOffsetPx = 0f
     }
 
     fun stepByButton(accountId: String, direction: Int) {
-        val stepped = if (direction < 0) AccountReorderPlanner.moveAccountUp(localAccounts, accountId)?.first
-            else AccountReorderPlanner.moveAccountDown(localAccounts, accountId)?.first
+        val chunkIndex = chunkIndexOf(accountId)
+        val chunk = localChunks.getOrNull(chunkIndex) ?: return
+        val stepped = if (direction < 0) AccountReorderPlanner.moveAccountUp(chunk.accounts, accountId)?.first
+            else AccountReorderPlanner.moveAccountDown(chunk.accounts, accountId)?.first
         if (stepped == null) return
         val move = AccountDragReorder.finalMove(stepped, accountId) ?: return
-        if (onMoveAccount(move)) localAccounts = stepped
+        if (onMoveAccount(move)) localChunks = localChunks.toMutableList().apply { this[chunkIndex] = chunk.copy(accounts = stepped) }
     }
 
     Column(modifier.fillMaxSize()) {
@@ -128,26 +214,106 @@ fun ReorderAccountsScreen(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
         LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-            items(localAccounts.size, key = { index -> "account:${localAccounts[index].id}" }) { index ->
-                val account = localAccounts[index]
-                val isDragging = draggingAccountId == account.id
-                AccountReorderRow(
-                    account = account,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(ROW_HEIGHT_DP.dp)
-                        .graphicsLayer { translationY = if (isDragging) dragOffsetPx else 0f }
-                        .alpha(if (isDragging) 0.85f else 1f),
-                    onDragStart = { onDragStart(account.id) },
-                    onDrag = { deltaY -> onDrag(account.id, deltaY) },
-                    onDragEnd = { onDragEnd(account.id) },
-                    onMoveUp = { stepByButton(account.id, -1) },
-                    onMoveDown = { stepByButton(account.id, +1) },
-                    canMoveUp = index > 0,
-                    canMoveDown = index < localAccounts.size - 1,
-                )
-                HorizontalDivider()
+            val sectionTitles = localChunks.map { it.sectionTitle }.distinct()
+            sectionTitles.forEach { sectionTitle ->
+                val sectionCollapsed = sectionTitle in collapsedSections
+                stickyHeader(key = "section:$sectionTitle") {
+                    ReorderSectionHeader(
+                        title = sectionTitle,
+                        collapsed = sectionCollapsed,
+                        onClick = {
+                            collapsedSections = if (sectionCollapsed) collapsedSections - sectionTitle
+                            else collapsedSections + sectionTitle
+                        },
+                    )
+                }
+                localChunks.filter { it.sectionTitle == sectionTitle }.forEach { chunk ->
+                    val groupCollapsed = chunk.groupName != null && chunk.key in collapsedGroups
+                    if (chunk.groupName != null) {
+                        item(key = "group:${chunk.key}") {
+                            AnimatedVisibility(visible = !sectionCollapsed) {
+                                ReorderGroupHeader(
+                                    name = chunk.groupName,
+                                    collapsed = groupCollapsed,
+                                    onClick = {
+                                        collapsedGroups = if (groupCollapsed) collapsedGroups - chunk.key
+                                        else collapsedGroups + chunk.key
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    if (!sectionCollapsed && !groupCollapsed) {
+                        chunk.accounts.forEachIndexed { index, account ->
+                            item(key = "account:${account.id}") {
+                                val isDragging = draggingAccountId == account.id
+                                AccountReorderRow(
+                                    account = account,
+                                    serial = serials[account.id] ?: (index + 1),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(ROW_HEIGHT_DP.dp)
+                                        .graphicsLayer { translationY = if (isDragging) dragOffsetPx else 0f }
+                                        .alpha(if (isDragging) 0.85f else 1f),
+                                    onDragStart = { onDragStart(account.id) },
+                                    onDrag = { deltaY -> onDrag(account.id, deltaY) },
+                                    onDragEnd = { onDragEnd(account.id) },
+                                    onMoveUp = { stepByButton(account.id, -1) },
+                                    onMoveDown = { stepByButton(account.id, +1) },
+                                    canMoveUp = index > 0,
+                                    canMoveDown = index < chunk.accounts.size - 1,
+                                )
+                                HorizontalDivider()
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun ReorderSectionHeader(title: String, collapsed: Boolean, onClick: () -> Unit) {
+    val rotation by animateFloatAsState(if (collapsed) -90f else 0f, tween(220), label = "reorder section")
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 1.dp) {
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.KeyboardArrowDown,
+                contentDescription = if (collapsed) "Expand $title" else "Collapse $title",
+                modifier = Modifier.rotate(rotation),
+            )
+            Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f).padding(start = 8.dp))
+        }
+    }
+}
+
+@Composable
+private fun ReorderGroupHeader(name: String, collapsed: Boolean, onClick: () -> Unit) {
+    val rotation by animateFloatAsState(if (collapsed) -90f else 0f, tween(220), label = "reorder group")
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.KeyboardArrowDown,
+                contentDescription = if (collapsed) "Expand $name" else "Collapse $name",
+                modifier = Modifier.size(18.dp).rotate(rotation),
+            )
+            Text(
+                name,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f).padding(start = 8.dp),
+            )
         }
     }
 }
@@ -155,6 +321,7 @@ fun ReorderAccountsScreen(
 @Composable
 private fun AccountReorderRow(
     account: ActualAccount,
+    serial: Int,
     modifier: Modifier = Modifier,
     onDragStart: () -> Unit,
     onDrag: (Float) -> Unit,
@@ -165,6 +332,13 @@ private fun AccountReorderRow(
     canMoveDown: Boolean,
 ) {
     Row(modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            "$serial.",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(28.dp),
+        )
         Icon(
             Icons.Outlined.DragHandle,
             contentDescription = "Drag to reorder ${account.name} account",
