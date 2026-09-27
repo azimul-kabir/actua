@@ -87,6 +87,19 @@ jobs:
         run: |
           echo "name=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
           echo "code=$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+      - name: Determine release channel
+        id: channel
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.name }}
+        # A version with a -beta./-alpha./-rc. suffix is a testing build and stays a GitHub
+        # pre-release; a plain X.Y.Z is stable and should become the repo's Latest release
+        # without manual editing.
+        run: |
+          if [[ "$RELEASE_VERSION" =~ -(beta|alpha|rc)\. ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Update F-Droid submission template
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.name }}
@@ -190,19 +203,21 @@ jobs:
           name: Actua-v${{ steps.version.outputs.name }}-aab
           path: app/build/outputs/bundle/release/app-release.aab
           retention-days: 90
-      - name: Publish GitHub prerelease
+      - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
-          prerelease: true
+          prerelease: ${{ steps.channel.outputs.prerelease }}
+          make_latest: ${{ steps.channel.outputs.prerelease == 'false' }}
           tag_name: v${{ steps.version.outputs.name }}
           name: Actua ${{ steps.version.outputs.name }}
           target_commitish: ${{ github.sha }}
           body_path: release-notes.md
           files: Actua-v${{ steps.version.outputs.name }}.apk
-      - name: Notify Discord about prerelease
+      - name: Notify Discord about release
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_BETA_WEBHOOK }}
           RELEASE_VERSION: ${{ steps.version.outputs.name }}
+          IS_PRERELEASE: ${{ steps.channel.outputs.prerelease }}
           REPOSITORY: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
         run: |
@@ -219,6 +234,7 @@ jobs:
           version = os.environ["RELEASE_VERSION"]
           repo = os.environ["REPOSITORY"]
           server = os.environ["SERVER_URL"]
+          is_prerelease = os.environ["IS_PRERELEASE"] == "true"
           tag = f"v{version}"
           release_url = f"{server}/{repo}/releases/tag/{tag}"
           apk_url = f"{server}/{repo}/releases/download/{tag}/Actua-v{version}.apk"
@@ -233,16 +249,22 @@ jobs:
           if len(body) > max_body:
               body = body[:max_body].rstrip() + "\n\n… Full changelog on GitHub."
 
+          safety_notice = (
+              "⚠️ **Beta software:** Back up your Actual Budget data before testing an important budget."
+              if is_prerelease
+              else "Back up your Actual Budget data before updating an important budget."
+          )
           description = (
               f"{body}\n\n"
-              "⚠️ **Beta software:** Back up your Actual Budget data before testing an important budget.\n\n"
+              f"{safety_notice}\n\n"
               f"[View release]({release_url}) • [Download APK]({apk_url})"
           )
+          title_verb = "beta released" if is_prerelease else "released"
           payload = {
               "username": "Actua Releases",
               "allowed_mentions": {"parse": []},
               "embeds": [{
-                  "title": f"Actua beta released: {tag}"[:256],
+                  "title": f"Actua {title_verb}: {tag}"[:256],
                   "url": release_url,
                   "description": description[:4096],
                   "color": 0xD29922,
@@ -263,5 +285,5 @@ jobs:
               raise SystemExit(f"Discord returned HTTP {error.code}") from None
           except (urllib.error.URLError, TimeoutError):
               raise SystemExit("Could not reach Discord beta webhook") from None
-          print(f"Discord prerelease notification sent for {tag}")
+          print(f"Discord release notification sent for {tag}")
           PY
