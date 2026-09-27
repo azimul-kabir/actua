@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Crossover Point no longer counts hidden categories in its expenses unless "show hidden categories" is on, matching Actual's PWA ([#635](https://github.com/azimul-kabir/actua/pull/635))
 - Balance Forecast now adds scheduled transfers to the receiving account, so transfers between forecast accounts no longer lower the projected balance ([#634](https://github.com/azimul-kabir/actua/pull/634))
 - Schedules set to move weekend dates earlier no longer stop after their next occurrence in Balance Forecast, the bills calendar and schedule previews ([#633](https://github.com/azimul-kabir/actua/pull/633))
+- Saved reports set to include the current month or week now show it, and week, quarter and last-30-days ranges follow today's date ([#639](https://github.com/azimul-kabir/actua/pull/639))
 
 ## [1.1.0] - 2026-09-27
 
