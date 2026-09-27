@@ -49,7 +49,8 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_BUDGET_OVERVIEW, true)
         set(value) { preferences.edit().putBoolean(SHOW_BUDGET_OVERVIEW, value).apply() }
 
-    var showOverspentWarning: Boolean
+    /** Governs both the overspent-categories and uncategorized-transactions budget banners. */
+    var showBudgetStatusBanners: Boolean
         get() = preferences.getBoolean(SHOW_OVERSPENT_WARNING, true)
         set(value) { preferences.edit().putBoolean(SHOW_OVERSPENT_WARNING, value).apply() }
 

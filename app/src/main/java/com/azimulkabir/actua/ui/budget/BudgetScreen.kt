@@ -50,6 +50,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.MoreHoriz
@@ -172,8 +173,8 @@ fun BudgetScreen(
     onBudgetViewChange: (String) -> Unit = {},
     showOverview: Boolean = true,
     onShowOverviewChange: (Boolean) -> Unit = {},
-    showOverspentWarning: Boolean = true,
-    onShowOverspentWarningChange: (Boolean) -> Unit = {},
+    showBudgetStatusBanners: Boolean = true,
+    onShowBudgetStatusBannersChange: (Boolean) -> Unit = {},
     showGroupTotals: Boolean = false,
     onShowGroupTotalsChange: (Boolean) -> Unit = {},
     hideFullySpent: Boolean = false,
@@ -206,6 +207,9 @@ fun BudgetScreen(
     onSearch: () -> Unit = {},
     onManageCategories: () -> Unit = {},
     transactions: List<Transaction> = emptyList(),
+    /** Unfiltered by the Transactions tab's own status/reconciled filters, unlike [transactions]. */
+    allTransactions: List<Transaction> = emptyList(),
+    onShowUncategorizedTransactions: () -> Unit = {},
     onDeleteCategory: (String, String, onChanged: () -> Unit) -> Unit = { _, _, _ -> },
     onEditTransaction: (Transaction) -> Unit = {},
     onDeleteTransaction: (Transaction) -> Unit = {},
@@ -275,6 +279,12 @@ fun BudgetScreen(
     val totalOverspentCents = remember(overspentCategories) {
         overspentCategories.sumOf { it.second.balanceCents }
     }
+    val uncategorizedTransactions = remember(allTransactions, month) {
+        uncategorizedTransactionsForBudgetMonth(allTransactions, month)
+    }
+    val totalUncategorizedCents = remember(uncategorizedTransactions) {
+        uncategorizedTransactions.sumOf { it.amountCents }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         BudgetToolbar(
@@ -285,7 +295,7 @@ fun BudgetScreen(
             showProgressBars = showProgressBars,
             budgetView = budgetView,
             showOverview = showOverview,
-            showOverspentWarning = showOverspentWarning,
+            showBudgetStatusBanners = showBudgetStatusBanners,
             showGroupTotals = showGroupTotals,
             hideFullySpent = hideFullySpent,
             showHidden = showHidden,
@@ -296,7 +306,7 @@ fun BudgetScreen(
             onShowProgressBarsChange = onShowProgressBarsChange,
             onBudgetViewChange = onBudgetViewChange,
             onShowOverviewChange = onShowOverviewChange,
-            onShowOverspentWarningChange = onShowOverspentWarningChange,
+            onShowBudgetStatusBannersChange = onShowBudgetStatusBannersChange,
             onShowGroupTotalsChange = onShowGroupTotalsChange,
             onHideFullySpentChange = onHideFullySpentChange,
             onShowHiddenChange = onShowHiddenChange,
@@ -345,7 +355,7 @@ fun BudgetScreen(
             }
         }
         AnimatedVisibility(
-            visible = showOverspentWarning && overspentCategories.isNotEmpty(),
+            visible = showBudgetStatusBanners && overspentCategories.isNotEmpty(),
             enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
             exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
         ) {
@@ -361,6 +371,18 @@ fun BudgetScreen(
                         overspentSheetOpen = true
                     }
                 },
+            )
+        }
+        AnimatedVisibility(
+            visible = showBudgetStatusBanners && uncategorizedTransactions.isNotEmpty(),
+            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+        ) {
+            UncategorizedWarningBanner(
+                totalUncategorizedCents = totalUncategorizedCents,
+                transactionCount = uncategorizedTransactions.size,
+                hideDecimalPlaces = hideDecimalPlaces,
+                onClick = onShowUncategorizedTransactions,
             )
         }
 
@@ -761,7 +783,7 @@ private fun BudgetToolbar(
     showProgressBars: Boolean,
     budgetView: String,
     showOverview: Boolean,
-    showOverspentWarning: Boolean,
+    showBudgetStatusBanners: Boolean,
     showGroupTotals: Boolean,
     hideFullySpent: Boolean,
     showHidden: Boolean,
@@ -772,7 +794,7 @@ private fun BudgetToolbar(
     onShowProgressBarsChange: (Boolean) -> Unit,
     onBudgetViewChange: (String) -> Unit,
     onShowOverviewChange: (Boolean) -> Unit,
-    onShowOverspentWarningChange: (Boolean) -> Unit,
+    onShowBudgetStatusBannersChange: (Boolean) -> Unit,
     onShowGroupTotalsChange: (Boolean) -> Unit,
     onHideFullySpentChange: (Boolean) -> Unit,
     onShowHiddenChange: (Boolean) -> Unit,
@@ -843,7 +865,7 @@ private fun BudgetToolbar(
                 }
                 HorizontalDivider()
                 ToggleMenuItem("Show overview", showOverview, onShowOverviewChange)
-                ToggleMenuItem("Show overspent warning", showOverspentWarning, onShowOverspentWarningChange)
+                ToggleMenuItem("Show warnings", showBudgetStatusBanners, onShowBudgetStatusBannersChange)
                 ToggleMenuItem(
                     if (budgetView == "Plan") "Show spending details" else "Show spent column",
                     showSpent,
@@ -978,6 +1000,16 @@ private fun BudgetMonthPicker(
 private fun formatMonth(month: String): String = java.time.YearMonth.parse(month)
     .format(java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.getDefault()))
 
+/**
+ * On-budget transactions with no category in [month] ("yyyy-MM"). Actua's category fallback
+ * ([Transaction.category] literally "Uncategorized") already excludes off-budget accounts,
+ * transfers ("") and split parents ("Split"), so this only needs to match that literal and date.
+ */
+internal fun uncategorizedTransactionsForBudgetMonth(transactions: List<Transaction>, month: String): List<Transaction> {
+    val monthDigits = month.replace("-", "")
+    return transactions.filter { it.category == "Uncategorized" && it.date.filter(Char::isDigit).startsWith(monthDigits) }
+}
+
 @Composable
 private fun ToggleMenuItem(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     DropdownMenuItem(
@@ -1033,6 +1065,57 @@ private fun OverspentWarningBanner(
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
 ) {
+    // Matches the OVERSPENT category progress bar/status dot color (colorScheme.error) rather
+    // than the softer errorContainer, so the banner reads as the same severity at a glance.
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.error,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.ErrorOutline,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onError,
+                modifier = Modifier.padding(end = 12.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    if (categoryCount == 1) "1 category overspent" else "$categoryCount categories overspent",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onError,
+                )
+                Text(
+                    "Tap to cover overspending",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onError,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            Text(
+                formatMoneyCents(totalOverspentCents, hideDecimalPlaces),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onError,
+            )
+        }
+    }
+}
+
+@Composable
+private fun UncategorizedWarningBanner(
+    totalUncategorizedCents: Long,
+    transactionCount: Int,
+    hideDecimalPlaces: Boolean,
+    onClick: () -> Unit,
+) {
+    // Reuses the errorContainer/onErrorContainer pairing the overspent banner used before it
+    // moved to the stronger colorScheme.error, keeping a distinct but still red-family severity.
     Surface(
         onClick = onClick,
         color = MaterialTheme.colorScheme.errorContainer,
@@ -1044,27 +1127,27 @@ private fun OverspentWarningBanner(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                Icons.Outlined.ErrorOutline,
+                Icons.Outlined.Category,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.padding(end = 12.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    if (categoryCount == 1) "1 category overspent" else "$categoryCount categories overspent",
+                    if (transactionCount == 1) "1 uncategorized transaction" else "$transactionCount uncategorized transactions",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                 )
                 Text(
-                    "Tap to cover overspending",
+                    "Tap to categorize",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
             Text(
-                formatMoneyCents(totalOverspentCents, hideDecimalPlaces),
+                formatMoneyCents(totalUncategorizedCents, hideDecimalPlaces),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onErrorContainer,
