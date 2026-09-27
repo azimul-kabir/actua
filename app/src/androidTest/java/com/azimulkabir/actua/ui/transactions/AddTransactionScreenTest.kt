@@ -54,6 +54,24 @@ class AddTransactionScreenTest {
         assertEquals(true, saved?.cleared)
     }
 
+    @Test fun categoryPickerShowsAvailableBalance() {
+        compose.setContent {
+            MaterialTheme {
+                PickerTextField(
+                    label = "Category",
+                    value = "",
+                    options = listOf("Groceries"),
+                    onValueChange = {},
+                    supportingValues = mapOf("Groceries" to "$42.00"),
+                    autoOpen = true,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Groceries").assertExists()
+        compose.onNodeWithText("$42.00").assertExists()
+    }
+
     @Test fun zeroAmountTransactionCanBeSaved() {
         val editing = Transaction(
             id = "placeholder",

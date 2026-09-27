@@ -1134,7 +1134,7 @@ fun AppNavigation(
                         NavigationBarItem(
                             selected = false,
                             onClick = {
-                                openAddTransaction()
+                                if (inAccount) openAddTransactionForAccount() else openAddTransaction()
                                 transactionFabExpanded = true
                             },
                             icon = { Icon(Icons.Outlined.Add, contentDescription = tabItem.label) },
@@ -1442,6 +1442,12 @@ fun AppNavigation(
                 if (hideBalances) emptyMap() else nonClosedAccounts
                     .associate { it.name to formatMoneyCents(it.balanceCents, hideDecimalPlaces) }
             }
+            val categoryBalanceLabels = remember(budgetGroups, hideBalances, hideDecimalPlaces) {
+                if (hideBalances) emptyMap() else budgetGroups
+                    .asSequence()
+                    .flatMap { it.categories.asSequence() }
+                    .associate { it.name to formatMoneyCents(it.balanceCents, hideDecimalPlaces) }
+            }
             val payeeOptions = remember(payeeNames, nonClosedAccounts) {
                 (payeeNames + nonClosedAccounts.map { "Transfer: ${it.name}" }).distinct()
             }
@@ -1547,6 +1553,7 @@ fun AppNavigation(
                     accountOptions = accountOptions,
                     offBudgetAccountOptions = offBudgetAccountOptions,
                     accountBalanceLabels = accountBalanceLabels,
+                    categoryBalanceLabels = categoryBalanceLabels,
                     categoryOptions = categoryNames,
                     payeeOptions = payeeOptions,
                     defaultAccount = if (editingTransaction == null && editorReturnsToTransactions) {
