@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Balance Forecast no longer drops scheduled transactions that have no linked account, which was undercounting the scheduled-transaction total and ending/low balance ([#625](https://github.com/azimul-kabir/actua/pull/625))
 - Crossover Point's sliding-window date range no longer goes stale after the widget is saved, keeping the "years to retire" projection anchored to today ([#626](https://github.com/azimul-kabir/actua/pull/626))
 - Monte Carlo Analysis now plans each year's withdrawal against the prior year's inflation and applies one shared market return across all pots, matching Actual's methodology more closely ([#627](https://github.com/azimul-kabir/actua/pull/627))
+- Custom report dashboard cards no longer show a total-sum headline above the chart, matching Actual's PWA ([#629](https://github.com/azimul-kabir/actua/pull/629))
 
 ## [1.1.0] - 2026-09-27
 
