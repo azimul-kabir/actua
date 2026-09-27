@@ -72,6 +72,9 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Add a transaction from an Account Detail screen's "+" and verify that account is preselected in the editor; open the category picker and verify each category shows its current available balance.
 - [ ] Sync a bank transaction whose amount, date and account match an existing manually entered transaction and verify it reconciles into the manual one instead of creating a duplicate.
 - [ ] View an off-budget account's transactions with no category set and verify they are not shown or filtered as "Uncategorized" (in the account register or the Transactions tab's Uncategorized status chip).
+- [ ] Open Reorder Accounts and verify it shows On budget, Off budget and Closed sections plus account groups, each collapsible, with each account's position number; reorder an account and verify the order persists and syncs.
+- [ ] Collapse a category group on Budget and an account section on Accounts, switch tabs and return, and verify both stay collapsed.
+- [ ] Merge a payee and a category in Actual, sync, and verify transactions on the merged-away payee/category count toward the target in reports and filters; edit one of those transactions (e.g. toggle cleared) and verify its payee and category are not cleared.
 - [ ] Add and edit a split transaction.
 - [ ] Typing `#` (or deleting characters) in a transaction note while suggestions are showing keeps the on-screen keyboard open without flicker.
 - [ ] Long-press a transaction to enter selection mode with it pre-selected (there is no separate app-bar Select button); select several more and verify the floating selection bar's always-visible Categorize and Label icon actions apply to every selected transaction, and that Edit (single selection), Mark cleared/uncleared, Delete (with confirmation naming the count), Move, Link to schedule and Unlink schedule are available from the 3-dot overflow menu.
@@ -149,6 +152,13 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Open the Crossover widget with no expense-category selection saved and verify it defaults to every non-income, non-hidden category; save an explicitly empty expense-category selection and verify it is honored as zero expenses instead of reverting to "all categories."
 - [ ] Open the Balance Forecast widget on a budget with a scheduled transaction that has already posted and verify it is not double-counted, and that the ending/low balance match Actual.
 - [ ] Post a refund/reimbursement transaction to an expense category included in the Crossover widget's expense selection and verify it nets against that month's spend (reducing the projected expense and years-to-crossover) instead of being dropped; verify an uncategorized deposit into an income account is still excluded from the expense total.
+- [ ] Open the Balance Forecast widget with a scheduled transaction that has no linked account and with a scheduled transfer between two forecast accounts; verify the unlinked schedule is still counted and the transfer credits the receiving account instead of lowering the projected balance.
+- [ ] Open a schedule set to move weekend dates earlier and verify later occurrences still appear in Balance Forecast, the bills calendar and schedule previews.
+- [ ] Open the Crossover widget with a sliding-window range saved earlier and verify the range is anchored to today; with a hidden expense category, verify it is excluded unless "show hidden categories" is on.
+- [ ] Open the Monte Carlo widget and verify each year's withdrawal is inflation-adjusted from the prior year and results broadly match Actual for the same inputs.
+- [ ] Open a saved custom report, turn on its summary and verify the total and average per period match Actual; verify the dashboard card shows no total-sum headline unless the summary is on.
+- [ ] Open saved reports set to include the current month/week, and ones using week, quarter and last-30-days ranges, and verify they include the current period and follow today's date.
+- [ ] Open saved reports using the Net Payment and Net Deposit balance types and verify they show net amounts matching Actual.
 - [ ] Add a transfer between an on-budget account and an off-budget account and verify the Accounts tab's "All accounts" monthly summary counts the on-budget leg as an expense or income (by direction) without double-counting the off-budget leg; verify a transfer between two on-budget accounts, and one between two off-budget accounts, remain excluded as before.
 
 ## Android integrations
@@ -185,6 +195,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] From a deep detail screen, repeatedly press/gesture Back and verify the app collapses to the configured Start page tab (falling back to the first visible tab, then Accounts, if Start page's tab is hidden) before the next back press exits the app.
 - [ ] From Manage → Settings → Display → Tab Bar and Manage → Settings → Home (Customize Home), press/gesture Back and verify it returns to the Settings page it was opened from (General or Display), not all the way to the Manage root.
 - [ ] Add/edit transaction Save button, keypad and selectors remain usable with the software keyboard open.
+- [ ] The About screen shows working links to the Actua website, FAQ and Discord server.
 - [ ] Light/dark/system appearance and Material You rendering remain legible.
 - [ ] On Android 12+, Settings > Display "Material You colors" toggle switches between the app's own brand palette and wallpaper-derived dynamic color, in both light and dark mode; the setting persists across relaunch and the toggle is hidden/inert below Android 12.
 - [ ] Settings → Display → Currency picker offers the full expanded currency list (beyond the original ~12); select a newly added currency (e.g. BRL, CHF, RUB, TRY) and verify amounts display with its correct symbol in both normal and symbol-only decimal-hiding mode.
