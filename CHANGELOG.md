@@ -13,6 +13,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Monte Carlo Analysis now plans each year's withdrawal against the prior year's inflation and applies one shared market return across all pots, matching Actual's methodology more closely ([#627](https://github.com/azimul-kabir/actua/pull/627))
 - Custom report dashboard cards no longer show a total-sum headline above the chart, matching Actual's PWA ([#629](https://github.com/azimul-kabir/actua/pull/629))
 - Balance Forecast now adds scheduled transfers to the receiving account, so transfers between forecast accounts no longer lower the projected balance ([#634](https://github.com/azimul-kabir/actua/pull/634))
+- Schedules set to move weekend dates earlier no longer stop after their next occurrence in Balance Forecast, the bills calendar and schedule previews ([#633](https://github.com/azimul-kabir/actua/pull/633))
 
 ## [1.1.0] - 2026-09-27
 
