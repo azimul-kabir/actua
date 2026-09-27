@@ -10,6 +10,8 @@ import com.azimulkabir.actua.data.rules.RuleContext
 import com.azimulkabir.actua.data.rules.RulesEngine
 import com.azimulkabir.actua.model.ReportCategory
 import com.azimulkabir.actua.model.ReportPoint
+import com.azimulkabir.actua.model.ReportSummary
+import com.azimulkabir.actua.model.ReportSummaryKind
 import com.azimulkabir.actua.model.ReportViewFilter
 import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
@@ -61,8 +63,11 @@ object SavedReportEngine {
             (0 until array.length()).mapNotNull { array.optJSONObject(it)?.optString("id")?.takeIf(String::isNotBlank) }
         }.orEmpty().toSet()
         val balType = balanceType(row.balanceType)
+        val summaryStart = if (start == ALL_TIME_START) earliestDate(transactions) ?: today else start
         if (balType == ReportBalanceType.BUDGETED) {
-            return computeBudgeted(row, groups, start, end, selected, view, budgetMonth)
+            return computeBudgeted(row, groups, start, end, selected, view, budgetMonth).let {
+                it.copy(summary = summary(row, it.valueCents ?: 0, 0, 0, summaryStart, end))
+            }
         }
         val filter = ReportFilter(
             startDate = start.toYmd(), endDate = end.toYmd(),
@@ -94,12 +99,65 @@ object SavedReportEngine {
         } else {
             intervalPoints(included, row.interval, start, end, today)
         }
+        val total = included.sumOf { it.amountCents }
         return ReportWidget(
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
-            valueCents = included.sumOf { it.amountCents }, categories = segments, points = points, timeMode = timeMode,
+            valueCents = total, categories = segments, points = points, timeMode = timeMode,
             graphType = row.graphType, subtitle = "$start – $end · ${row.groupBy}",
+            summary = summary(
+                row, total, included.filter { it.amountCents < 0 }.sumOf { it.amountCents },
+                included.filter { it.amountCents > 0 }.sumOf { it.amountCents }, summaryStart, end,
+            ),
         )
     }
+
+    /**
+     * Upstream `ReportSummary`: the report total plus `Math.round(total / intervalsCount)`, where
+     * the intervals span the whole date range (`rangeInclusive` and friends), not just intervals
+     * with activity. A `Net` report is labelled a payment when its debits outweigh its credits.
+     */
+    internal fun summary(
+        row: SavedReportRow, totalCents: Long, debitCents: Long, creditCents: Long, start: LocalDate, end: LocalDate,
+    ): ReportSummary {
+        val kind = when (balanceType(row.balanceType)) {
+            ReportBalanceType.DEBTS -> ReportSummaryKind.SPENDING
+            ReportBalanceType.ASSETS -> ReportSummaryKind.DEPOSITS
+            ReportBalanceType.BUDGETED -> ReportSummaryKind.BUDGETED
+            ReportBalanceType.NET_DEBTS -> ReportSummaryKind.NET_PAYMENT
+            ReportBalanceType.NET_ASSETS -> when {
+                row.balanceType == "netAssets" -> ReportSummaryKind.NET_DEPOSIT
+                kotlin.math.abs(debitCents) > kotlin.math.abs(creditCents) -> ReportSummaryKind.NET_PAYMENT
+                else -> ReportSummaryKind.NET_DEPOSIT
+            }
+        }
+        val count = intervalCount(row.interval, start, end)
+        return ReportSummary(kind, totalCents, roundedAverage(totalCents, count), count, row.interval)
+    }
+
+    /** Intervals from [start] through [end] inclusive; never less than one. */
+    internal fun intervalCount(interval: String, start: LocalDate, end: LocalDate): Int {
+        if (end.isBefore(start)) return 1
+        val first = bucketStart(interval, start)
+        val last = bucketStart(interval, end)
+        val count = when (interval) {
+            "Daily" -> java.time.temporal.ChronoUnit.DAYS.between(first, last)
+            "Weekly" -> java.time.temporal.ChronoUnit.WEEKS.between(first, last)
+            "Yearly" -> java.time.temporal.ChronoUnit.YEARS.between(first, last)
+            else -> java.time.temporal.ChronoUnit.MONTHS.between(first, last)
+        } + 1
+        return count.coerceIn(1, Int.MAX_VALUE.toLong()).toInt()
+    }
+
+    /** JavaScript's `Math.round(total / count)` (halves round towards positive infinity) in exact integer cents. */
+    internal fun roundedAverage(totalCents: Long, count: Int): Long =
+        Math.floorDiv(2 * totalCents + count, 2L * count)
+
+    /** Upstream resolves "All time" from the earliest transaction; Actua's range uses a sentinel start. */
+    private fun earliestDate(transactions: List<ActualTransaction>): LocalDate? =
+        transactions.asSequence().filterNot { it.tombstone }.minOfOrNull { it.date }
+            ?.let { LocalDate.of(it / 10000, it / 100 % 100, it % 100) }
+
+    private val ALL_TIME_START: LocalDate = LocalDate.of(1900, 1, 1)
 
     /**
      * "Budgeted" balance type: reads budget-engine cells (via [budgetMonth], the same
@@ -303,7 +361,7 @@ object SavedReportEngine {
             "Year to date" -> return today.withDayOfYear(1) to today
             "Last year" -> return LocalDate.of(today.year - 1, 1, 1) to LocalDate.of(today.year - 1, 12, 31)
             "Prior year to date" -> return today.minusYears(1).withDayOfYear(1) to today.minusYears(1)
-            "All time" -> return LocalDate.of(1900, 1, 1) to today
+            "All time" -> return ALL_TIME_START to today
         }
         return (parse(row.startDate, false) ?: month.atDay(1)) to (parse(row.endDate, true) ?: month.atEndOfMonth())
     }

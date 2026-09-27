@@ -46,6 +46,15 @@ class DisplayPreferencesTest {
         assertEquals("1,23,456.78", restored.numberFormat)
     }
 
+    @Test fun reportSummaryDefaultsOffAndPersists() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(false, DisplayPreferences(context).showReportSummary)
+
+        DisplayPreferences(context).showReportSummary = true
+
+        assertEquals(true, DisplayPreferences(context).showReportSummary)
+    }
+
     @Test fun budgetAndEntryDefaultsMatchAppDefaults() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val preferences = DisplayPreferences(context)

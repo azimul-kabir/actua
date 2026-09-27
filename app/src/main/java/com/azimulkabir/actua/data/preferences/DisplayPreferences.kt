@@ -155,6 +155,11 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_UPCOMING_TRANSACTIONS, true)
         set(value) { preferences.edit().putBoolean(SHOW_UPCOMING_TRANSACTIONS, value).apply() }
 
+    /** Upstream's device-local `reportsViewSummary`: show custom reports' total and average. Never synced. */
+    var showReportSummary: Boolean
+        get() = preferences.getBoolean(SHOW_REPORT_SUMMARY, false)
+        set(value) { preferences.edit().putBoolean(SHOW_REPORT_SUMMARY, value).apply() }
+
     private companion object {
         const val HIDE_DECIMAL_PLACES = "hide_decimal_places"
         const val CURRENCY_CODE = "currency_code"
@@ -192,5 +197,6 @@ class DisplayPreferences(context: Context) {
         const val SHOW_NOTES = "show_notes"
         const val HIDE_INCOME_GROUP_IN_BUDGET = "hide_income_group_in_budget"
         const val SHOW_UPCOMING_TRANSACTIONS = "show_upcoming_transactions"
+        const val SHOW_REPORT_SUMMARY = "show_report_summary"
     }
 }
