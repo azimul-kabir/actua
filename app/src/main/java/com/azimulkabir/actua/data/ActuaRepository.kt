@@ -614,7 +614,9 @@ class ActuaRepository(context: Context) {
             val fetched = db.fetchAccounts()
             val bankLinks = db.fetchBankSyncAccounts().associateBy { it.id }
             val notes = db.fetchNotes(fetched.map { "account-${it.id}" })
+            val groups = db.fetchAccountGroups().associateBy { it.id }
             return fetched.map {
+                val group = it.groupId?.let(groups::get)
                 Account(
                     name = it.name,
                     balance = centsToDisplayUnits(it.balanceCents),
@@ -630,6 +632,9 @@ class ActuaRepository(context: Context) {
                     bankSyncSource = bankLinks[it.id]?.source,
                     bankSyncStatus = bankLinks[it.id]?.status,
                     bankSyncLastSync = bankLinks[it.id]?.lastSync,
+                    groupId = group?.id,
+                    groupName = group?.name,
+                    groupSortOrder = group?.sortOrder ?: 0.0,
                 )
             }
         }

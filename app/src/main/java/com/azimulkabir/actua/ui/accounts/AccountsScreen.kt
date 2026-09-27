@@ -71,6 +71,27 @@ import kotlin.math.absoluteValue
 
 private data class AccountSection(val title: String, val accounts: List<Account>)
 
+/** One named sub-bucket of an [AccountSection], derived from Actual's experimental account groups. `groupName` is null for the ungrouped bucket. */
+internal data class AccountGroupChunk(val groupName: String?, val accounts: List<Account>)
+
+/**
+ * Splits a section's accounts into group chunks, preserving each account's existing sort order.
+ * Returns a single ungrouped chunk untouched when none of the accounts have a group assigned,
+ * so users who have not enabled Actual's account grouping see no behavior change.
+ */
+internal fun List<Account>.chunkedByGroup(): List<AccountGroupChunk> {
+    if (none { it.groupId != null }) return listOf(AccountGroupChunk(null, this))
+    val grouped = groupBy { it.groupId }
+    val orderedGroupIds = grouped.keys.filterNotNull()
+        .sortedWith(compareBy({ grouped[it]!!.first().groupSortOrder }, { it }))
+    val chunks = orderedGroupIds.map { groupId ->
+        val accountsInGroup = grouped.getValue(groupId)
+        AccountGroupChunk(accountsInGroup.first().groupName, accountsInGroup)
+    }
+    val ungrouped = grouped[null].orEmpty()
+    return if (ungrouped.isEmpty()) chunks else chunks + AccountGroupChunk(null, ungrouped)
+}
+
 private val sampleAccountSections = listOf(
     AccountSection("On budget", listOf(
         Account("Everyday account", 48_250, "Bank"),
@@ -133,6 +154,9 @@ fun AccountsScreen(
             AccountSection("Off budget", accounts.filter { it.offBudget && !it.closed }),
             AccountSection("Closed accounts", accounts.filter { it.closed }),
         ).filter { it.accounts.isNotEmpty() }
+    }
+    val sectionGroupChunks = remember(accountSections) {
+        accountSections.associate { it.title to it.accounts.chunkedByGroup() }
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -217,20 +241,34 @@ fun AccountsScreen(
                             },
                         )
                     }
-                    itemsIndexed(section.accounts, key = { _, account -> "${section.title}-${account.name}" }) { index, account ->
-                        androidx.compose.animation.AnimatedVisibility(
-                            visible = !collapsed,
-                            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
-                            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
-                        ) {
-                            AccountRow(
-                                account = account,
-                                creditCard = creditCardByAccountId[account.id],
-                                showTopDivider = index > 0,
-                                onClick = { onAccountClick(account.name) },
-                            onLongClick = { selectedAccount = account },
-                                hideDecimalPlaces = hideDecimalPlaces,
-                            )
+                    val groupChunks = sectionGroupChunks[section.title].orEmpty()
+                    groupChunks.forEach { chunk ->
+                        if (chunk.groupName != null) {
+                            item(key = "account-group-${section.title}-${chunk.groupName}") {
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = !collapsed,
+                                    enter = fadeIn(tween(180)),
+                                    exit = fadeOut(tween(120)),
+                                ) {
+                                    AccountGroupHeader(chunk.groupName)
+                                }
+                            }
+                        }
+                        itemsIndexed(chunk.accounts, key = { _, account -> "${section.title}-${account.name}" }) { index, account ->
+                            androidx.compose.animation.AnimatedVisibility(
+                                visible = !collapsed,
+                                enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+                                exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+                            ) {
+                                AccountRow(
+                                    account = account,
+                                    creditCard = creditCardByAccountId[account.id],
+                                    showTopDivider = index > 0,
+                                    onClick = { onAccountClick(account.name) },
+                                onLongClick = { selectedAccount = account },
+                                    hideDecimalPlaces = hideDecimalPlaces,
+                                )
+                            }
                         }
                     }
                 }
@@ -347,6 +385,20 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
             // Match the space occupied by the account-row disclosure chevron.
             Spacer(Modifier.width(Spacing.screenHorizontal))
         }
+    }
+}
+
+/** A lightweight, non-collapsible sub-header for an Actual account group nested inside an on/off-budget section. */
+@Composable
+private fun AccountGroupHeader(groupName: String) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Text(
+            groupName,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+        )
     }
 }
 

@@ -15,4 +15,7 @@ data class Account(
     val bankSyncSource: String? = null,
     val bankSyncStatus: String? = null,
     val bankSyncLastSync: String? = null,
+    val groupId: String? = null,
+    val groupName: String? = null,
+    val groupSortOrder: Double = 0.0,
 )
