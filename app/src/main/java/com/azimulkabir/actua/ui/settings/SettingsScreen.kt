@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.settings
 
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,6 +14,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,8 +25,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -33,7 +38,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
+import com.azimulkabir.actua.billing.createSupportBillingManager
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.LocationPreferences
@@ -61,6 +69,7 @@ internal enum class SettingsPage(val title: String, val depth: Int) {
     Privacy("Privacy", 2),
     Budget("Budget", 2),
     CategoryColors("Category status colors", 3),
+    Support("Support Actua", 2),
     About("About", 2),
 }
 
@@ -121,6 +130,12 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val supportBillingManager = remember { createSupportBillingManager(context) }
+    val supportPurchaseState by supportBillingManager.state.collectAsState()
+    DisposableEffect(supportBillingManager) {
+        supportBillingManager.start()
+        onDispose { supportBillingManager.stop() }
+    }
     val locationPreferences = remember { LocationPreferences(context) }
     val tagRepository = remember { ActiveTagRepository(context) }
     var tagVersion by remember { mutableStateOf(0L) }
@@ -171,7 +186,7 @@ fun SettingsScreen(
     fun parentPage(current: SettingsPage): SettingsPage = when (current) {
         SettingsPage.Tags -> SettingsPage.Manage
         SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.Budget,
-        SettingsPage.About,
+        SettingsPage.Support, SettingsPage.About,
         -> SettingsPage.General
         SettingsPage.CategoryColors -> SettingsPage.Budget
         SettingsPage.General -> SettingsPage.Manage
@@ -290,6 +305,20 @@ fun SettingsScreen(
                     }
                     SettingsRow("Budget", "Category status dot, progress bar colors and income group", true) {
                         page = SettingsPage.Budget
+                    }
+                    if (supportPurchaseState.isAvailable) {
+                        SettingsSection("Support Actua")
+                        SettingsRow(
+                            "Support Actua ❤️",
+                            if (supportPurchaseState.isPurchased) {
+                                "You're an Actua Supporter — thank you!"
+                            } else {
+                                "Actua is free and open source. Leave a one-time tip."
+                            },
+                            true,
+                        ) {
+                            page = SettingsPage.Support
+                        }
                     }
                     SettingsSection("About")
                     SettingsRow("About Actua", "Version, project information, credits and license", true) {
@@ -428,6 +457,50 @@ fun SettingsScreen(
                 SettingsPage.CategoryColors -> {
                     CategoryStatusColorSettings()
                 }
+                SettingsPage.Support -> {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            "Actua is free and open source. If you find it useful, you can " +
+                                "support its continued development.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        if (supportPurchaseState.isPurchased) {
+                            ElevatedCard {
+                                ListItem(
+                                    headlineContent = { Text("❤️ Actua Supporter") },
+                                    supportingContent = { Text("Thank you for supporting Actua!") },
+                                )
+                            }
+                        } else {
+                            ElevatedCard {
+                                ListItem(
+                                    headlineContent = { Text("Actua Supporter · ${supportPurchaseState.priceLabel}") },
+                                    supportingContent = { Text("Get a permanent ❤️ Supporter badge as a thank-you.") },
+                                )
+                            }
+                            Text(
+                                "All Actua features remain free.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Button(
+                                enabled = supportPurchaseState.isAvailable && !supportPurchaseState.isProcessing,
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = {
+                                    (context as? Activity)?.let(supportBillingManager::launchPurchase)
+                                },
+                            ) {
+                                if (supportPurchaseState.isProcessing) {
+                                    CircularProgressIndicator(Modifier.padding(end = 8.dp))
+                                }
+                                Text("Become a Supporter")
+                            }
+                        }
+                    }
+                }
                 SettingsPage.About -> {
                     ListItem(
                         headlineContent = { Text("Actua") },
@@ -466,6 +539,26 @@ fun SettingsScreen(
                         trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
                         modifier = Modifier.clickable {
                             uriHandler.openUri("https://github.com/azimul-kabir/actua/blob/main/PRIVACY.md")
+                        },
+                    )
+                    ListItem(
+                        headlineContent = { Text("FAQ") },
+                        supportingContent = {
+                            Text("Common questions about setup, syncing, imports and data privacy")
+                        },
+                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://github.com/azimul-kabir/actua/blob/main/docs/FAQ.md")
+                        },
+                    )
+                    ListItem(
+                        headlineContent = { Text("Join Discord") },
+                        supportingContent = {
+                            Text("Discuss Actua, test beta builds and get involved with development")
+                        },
+                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://discord.gg/FyGxRjmhw")
                         },
                     )
                     SettingsSection("Credits")

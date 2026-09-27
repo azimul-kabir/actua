@@ -31,6 +31,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // The "playstore" flavor adds Google Play Billing (a proprietary dependency) for the
+    // in-app "Support Actua" purchase; "fdroid" excludes it so the GitHub/F-Droid build
+    // stays free of non-free dependencies. Same applicationId and signing key both flavors —
+    // this only changes which optional dependency and Kotlin sources get compiled in.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("fdroid") {
+            dimension = "distribution"
+        }
+        create("playstore") {
+            dimension = "distribution"
+        }
+    }
+
     signingConfigs {
         create("release") {
             releaseKeystorePath?.let { storeFile = file(it) }
@@ -93,6 +107,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.work.runtime)
     implementation(libs.pdfbox.android)
+    add("playstoreImplementation", libs.android.billing.ktx)
     testImplementation(libs.junit)
     // Real org.json impl for JVM unit tests — the Android stub jar throws on use.
     testImplementation("org.json:json:20240303")
