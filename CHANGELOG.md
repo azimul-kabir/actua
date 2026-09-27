@@ -18,6 +18,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Saved reports set to include the current month or week now show it, and week, quarter and last-30-days ranges follow today's date ([#639](https://github.com/azimul-kabir/actua/pull/639))
 - Transactions from a deleted category that was merged into another now count toward that category in reports and filters ([#638](https://github.com/azimul-kabir/actua/pull/638))
 - Transactions on a merged payee now match that payee in reports, rules and bank sync, and editing them no longer clears the payee ([#641](https://github.com/azimul-kabir/actua/pull/641))
+- Saved reports set to Net Payment or Net Deposit now show net amounts like Actual instead of payments only ([#647](https://github.com/azimul-kabir/actua/pull/647))
 
 ## [1.1.0] - 2026-09-27
 
