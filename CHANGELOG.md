@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.2.0] - 2026-09-28
+
 ### Added
 
 - Custom reports can show their total and average per period ([#645](https://github.com/azimul-kabir/actua/pull/645))

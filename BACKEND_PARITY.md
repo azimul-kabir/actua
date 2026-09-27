@@ -160,7 +160,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   opens Add Transaction from the bar (suppressing the floating Add Transaction button on tab roots
   and a drilled-into account or budget category while it's enabled), and Restore Defaults; stored as
   a versioned, migration-safe local UI preference
-- Saved Actual custom reports shown read-only through a shared Actual-compatible aggregator (donut and per-interval charts, viewer-side date/account filter, drill-down to transactions); see `docs/REPORTS_PARITY.md`
+- Saved Actual custom reports shown read-only through a shared Actual-compatible aggregator (donut and per-interval charts, device-local total/average-per-period summary, viewer-side date/account filter, drill-down to transactions); see `docs/REPORTS_PARITY.md`
 - Synced report dashboard charts (Net Worth, Balance Forecast, Age of Money, Crossover, Budget
   Analysis, Monte Carlo, Cash Flow, Calendar) render with gradient fills, gridlines, axis labels and
   tap/drag tooltips instead of bare lines and static text; Cash Flow is a tappable grouped
@@ -188,8 +188,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Entity mutation core completed for account deletion, category-group deletion,
   ordinary-payee deletion/merge, category reorder, and category-group reorder. All
   writes use synced CRDT messages; payee merges redirect `payee_mapping` before
-  tombstoning source payees; account deletion tombstones its owned transfer payee;
-  transfer payees cannot be independently deleted or merged; group deletion
+  tombstoning source payees, and reads (reports, rules, filters, bank sync) resolve merged
+  payees and categories through `payee_mapping`/`category_mapping`; account deletion
+  tombstones its owned transfer payee; transfer payees cannot be independently deleted or merged; group deletion
   tombstones its categories before the group; and reorder uses Actual-compatible
   shove sort orders. Destructive UI remains opt-in only where a safe confirmation
   flow is present.
