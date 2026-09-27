@@ -706,7 +706,6 @@ object CoreReportEngine {
             for (year in 1..horizonYears) {
                 val age = currentAge + year - 1
                 if (!depleted) {
-                    inflationMean?.let { cumulativeInflation *= (1 + it + inflationStdDev * nextNormal()) }
                     contributions.forEach { contribution ->
                         if (contribution.fromAge != null && age < contribution.fromAge) return@forEach
                         if (contribution.toAge != null && age > contribution.toAge) return@forEach
@@ -736,10 +735,18 @@ object CoreReportEngine {
                             remaining -= take
                         }
                     }
+                    // Every pot experiences the same market year: upstream draws one shared normal
+                    // shock and scales it by each pot's own mean/stddev, rather than an independent
+                    // draw per pot, so pot returns stay correlated (systemic/sequence-of-returns risk).
+                    val marketShock = nextNormal()
                     for (i in 0 until potCount) {
-                        val yearReturn = pots[i].meanReturn + pots[i].stdDev * nextNormal()
+                        val yearReturn = pots[i].meanReturn + pots[i].stdDev * marketShock
                         potBalances[i] = (potBalances[i] * (1 + yearReturn)).coerceAtLeast(0.0)
                     }
+                    // Inflation is realized after this year's withdrawal and growth, for use starting
+                    // next year - mirrors upstream's ordering, so a given year's withdrawal is planned
+                    // against the inflation accumulated through the *prior* year, not this one.
+                    inflationMean?.let { cumulativeInflation *= (1 + it + inflationStdDev * nextNormal()) }
                     if (depleted) for (i in 0 until potCount) potBalances[i] = 0.0
                 }
                 balancesByYear[year][sim] = potBalances.sum()
