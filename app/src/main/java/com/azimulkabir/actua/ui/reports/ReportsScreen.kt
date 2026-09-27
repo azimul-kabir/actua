@@ -69,6 +69,8 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.ReportPoint
 import com.azimulkabir.actua.model.ReportSnapshot
+import com.azimulkabir.actua.model.ReportSummary
+import com.azimulkabir.actua.model.ReportSummaryKind
 import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -91,6 +93,8 @@ fun ReportsScreen(
     onFavoriteReportChange: (String, Boolean) -> Unit = { _, _ -> },
     loadSavedReports: suspend (ReportViewFilter) -> List<ReportWidget> = { emptyList() },
     loadTransactions: suspend (List<String>) -> List<Transaction> = { emptyList() },
+    showReportSummary: Boolean = false,
+    onShowReportSummaryChange: (Boolean) -> Unit = {},
     scrollToTopRequest: Int = 0,
     initialPageId: String? = null,
     initialPageRequest: Int = 0,
@@ -200,7 +204,10 @@ fun ReportsScreen(
                 else selected.widgets
             val visible = shownWidgets.filterNot { it.kind == ReportWidgetKind.UNSUPPORTED }
             if (visible.isEmpty()) item { EmptyReports() }
-            items(visible, key = { it.id }) { widget -> WidgetCard(widget, hideDecimalPlaces, onDrillDown = { drill = it to widget.name }) }
+            items(visible, key = { it.id }) { widget ->
+                WidgetCard(widget, hideDecimalPlaces, showReportSummary, onShowReportSummaryChange,
+                    onDrillDown = { drill = it to widget.name })
+            }
         }
     }
     drill?.let { (segment, reportName) ->
@@ -427,7 +434,13 @@ private fun DashboardPicker(
 }
 
 @Composable
-private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
+private fun WidgetCard(
+    widget: ReportWidget,
+    hideDecimals: Boolean,
+    showSummary: Boolean,
+    onShowSummaryChange: (Boolean) -> Unit,
+    onDrillDown: (ReportCategory) -> Unit,
+) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(widget.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
@@ -451,7 +464,10 @@ private fun WidgetCard(widget: ReportWidget, hideDecimals: Boolean, onDrillDown:
                 ReportWidgetKind.MARKDOWN -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
                 ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
-                ReportWidgetKind.CUSTOM_REPORT -> CustomReport(widget, hideDecimals, onDrillDown)
+                ReportWidgetKind.CUSTOM_REPORT -> {
+                    CustomReport(widget, hideDecimals, onDrillDown)
+                    widget.summary?.let { CustomReportSummary(it, hideDecimals, showSummary, onShowSummaryChange) }
+                }
                 ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
                 ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
                 ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals)
@@ -832,6 +848,52 @@ private fun StackedIntervalBars(points: List<ReportPoint>, hideDecimals: Boolean
 }
 
 private val donutHues = floatArrayOf(210f, 20f, 140f, 280f, 50f, 350f, 175f, 320f, 100f, 240f)
+
+/**
+ * Upstream's custom-report Summary panel (`ReportSummary.tsx`): the range total and its average
+ * per interval, behind the same device-local show/hide preference as the PWA's summary toggle.
+ */
+@Composable
+private fun CustomReportSummary(
+    summary: ReportSummary,
+    hideDecimals: Boolean,
+    visible: Boolean,
+    onVisibleChange: (Boolean) -> Unit,
+) {
+    if (visible) {
+        val (totalLabel, averageLabel) = when (summary.kind) {
+            ReportSummaryKind.SPENDING -> "Total spending" to "Average spending"
+            ReportSummaryKind.DEPOSITS -> "Total deposits" to "Average deposit"
+            ReportSummaryKind.BUDGETED -> "Total budgeted" to "Average budgeted"
+            ReportSummaryKind.NET_PAYMENT -> "Net payment" to "Average net"
+            ReportSummaryKind.NET_DEPOSIT -> "Net deposit" to "Average net"
+        }
+        val per = when (summary.interval) {
+            "Daily" -> "Per day"
+            "Weekly" -> "Per week"
+            "Yearly" -> "Per year"
+            else -> "Per month"
+        }
+        Row(Modifier.fillMaxWidth().testTag("customReportSummary"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SummaryFigure(totalLabel, formatMoneyCents(summary.totalCents, hideDecimals), null, Modifier.weight(1f))
+            SummaryFigure(averageLabel, formatMoneyCents(summary.averageCents, hideDecimals), per, Modifier.weight(1f))
+        }
+    }
+    androidx.compose.material3.TextButton(onClick = { onVisibleChange(!visible) }) {
+        Text(if (visible) "Hide summary" else "Show summary")
+    }
+}
+
+@Composable
+private fun SummaryFigure(label: String, amount: String, caption: String?, modifier: Modifier) {
+    Column(modifier.semantics(mergeDescendants = true) {}) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        caption?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
 
 @Composable
 private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {

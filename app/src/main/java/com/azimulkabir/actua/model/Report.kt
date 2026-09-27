@@ -61,6 +61,25 @@ data class ReportWidget(
     val comparisonTransactionIds: List<String> = emptyList(),
     /** Rolled-over balance for the widget's final point, e.g. Budget Analysis's carried-over leftover. */
     val balanceCents: Long? = null,
+    /** Total and per-interval average for a saved custom report; null for every other widget kind. */
+    val summary: ReportSummary? = null,
+)
+
+/** What a custom report's Summary totals, mirroring the labels in upstream `ReportSummary.tsx`. */
+enum class ReportSummaryKind { SPENDING, DEPOSITS, BUDGETED, NET_PAYMENT, NET_DEPOSIT }
+
+/**
+ * Actual's custom-report Summary panel: the total for the report's range and its average per
+ * interval (`Math.round(total / intervalsCount)`), both in integer cents.
+ */
+data class ReportSummary(
+    val kind: ReportSummaryKind,
+    val totalCents: Long,
+    val averageCents: Long,
+    /** Intervals in the report's date range, counted inclusively like upstream's `rangeInclusive`. */
+    val intervalCount: Int,
+    /** The saved report's interval: `Daily`, `Weekly`, `Monthly` or `Yearly`. */
+    val interval: String,
 )
 
 /** Viewer-side override applied on top of a saved report's own settings; never written back. */

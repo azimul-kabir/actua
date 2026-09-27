@@ -467,6 +467,7 @@ fun AppNavigation(
     var showRunningBalance by remember { mutableStateOf(displayPreferences.showRunningBalance) }
     var showNotes by remember { mutableStateOf(displayPreferences.showNotes) }
     var hideIncomeGroupInBudget by remember { mutableStateOf(displayPreferences.hideIncomeGroupInBudget) }
+    var showReportSummary by remember { mutableStateOf(displayPreferences.showReportSummary) }
     BalanceVisibility.hidden = hideBalances
     CurrencyDisplay.code = currencyCode
     CurrencyDisplay.symbolOnly = currencySymbolOnly
@@ -1270,6 +1271,11 @@ fun AppNavigation(
                 },
                 loadSavedReports = { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } },
                 loadTransactions = { ids -> withContext(Dispatchers.IO) { repository.reportTransactions(ids) } },
+                showReportSummary = showReportSummary,
+                onShowReportSummaryChange = {
+                    displayPreferences.showReportSummary = it
+                    showReportSummary = it
+                },
                 scrollToTopRequest = 0,
                 initialPageId = requestedReportPageId,
                 initialPageRequest = requestedReportPageRequest,
@@ -2496,6 +2502,11 @@ fun AppNavigation(
                     },
                     loadSavedReports = { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } },
                     loadTransactions = { ids -> withContext(Dispatchers.IO) { repository.reportTransactions(ids) } },
+                    showReportSummary = showReportSummary,
+                    onShowReportSummaryChange = {
+                        displayPreferences.showReportSummary = it
+                        showReportSummary = it
+                    },
                     scrollToTopRequest = rootRequests[MainDestination.Reports] ?: 0,
                     initialPageId = null,
                     initialPageRequest = 0,

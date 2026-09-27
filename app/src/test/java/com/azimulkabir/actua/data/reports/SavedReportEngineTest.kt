@@ -130,6 +130,15 @@ class SavedReportNetBalanceTest {
         assertEquals(emptyList<String>(), compute(saved("Net Payment"), wash).categories.map { it.name })
     }
 
+    @Test fun `Net Deposit and Net Payment summaries total and average the per-interval clamped nets`() {
+        val deposit = compute(saved("Net Deposit")).summary!!
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_DEPOSIT, deposit.kind)
+        assertEquals(185000L to 92500L, deposit.totalCents to deposit.averageCents)
+        val payment = compute(saved("Net Payment")).summary!!
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_PAYMENT, payment.kind)
+        assertEquals(-110000L to -55000L, payment.totalCents to payment.averageCents)
+    }
+
     @Test fun `stacked Net Payment clamps each group's net per interval`() {
         val stackedRows = listOf(
             tx("1", 20260105, 3000, "groceries"), tx("2", 20260106, -1000, "rent"),
@@ -185,6 +194,9 @@ class SavedReportBudgetedTest {
         val w = SavedReportEngine.compute(saved, transactions, accounts, groups, budgetMonth = { budgetMonth })
         assertEquals(200000L, w.valueCents)
         assertEquals(setOf("Groceries" to 50000L, "Rent" to 150000L), w.categories.map { it.name to it.spentCents }.toSet())
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.BUDGETED, w.summary?.kind)
+        assertEquals(200000L, w.summary?.totalCents)
+        assertEquals(200000L, w.summary?.averageCents)
     }
 
     @Test fun `excludes income categories`() {
@@ -362,5 +374,92 @@ class ViewFilterGroupTest {
         assertEquals(true, com.azimulkabir.actua.model.ReportViewFilter().isDefault)
         assertEquals(false, com.azimulkabir.actua.model.ReportViewFilter(categoryGroupIds = setOf("g")).isDefault)
         assertEquals(false, com.azimulkabir.actua.model.ReportViewFilter(includeOffBudget = true).isDefault)
+    }
+}
+
+/** Upstream `ReportSummary.tsx` total and per-interval average (actua#644). */
+class SavedReportSummaryTest {
+    private val accounts = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0.0, 0),
+    )
+    private val groups = listOf(com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("g", "G", false, false, 1.0,
+        listOf(com.azimulkabir.actua.data.budget.model.ActualCategory("c", "C", "g", false, false, 1.0))))
+    private fun tx(id: String, date: Int, amount: Long) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        id, "a", date, amount, null, null, "c", null, null, false, false, null, false, null, false, null, null, null, null)
+    private fun report(range: String, balanceType: String = "Payment", interval: String = "Monthly", includeCurrent: Boolean = false) =
+        SavedReportRow("r", "R", null, null, false, range, "Interval", balanceType, false, false, true,
+            null, "BarGraph", null, "and", interval, mode = "time", includeCurrent = includeCurrent)
+    private val today = LocalDate.of(2026, 9, 27)
+
+    @Test fun `average rounds like JavaScript Math round in integer cents`() {
+        assertEquals(333L, SavedReportEngine.roundedAverage(1000, 3))
+        assertEquals(-333L, SavedReportEngine.roundedAverage(-1000, 3))
+        assertEquals(3L, SavedReportEngine.roundedAverage(5, 2))
+        assertEquals(-2L, SavedReportEngine.roundedAverage(-5, 2))
+        assertEquals(0L, SavedReportEngine.roundedAverage(0, 6))
+    }
+
+    @Test fun `interval count spans the whole range inclusively`() {
+        assertEquals(6, SavedReportEngine.intervalCount("Monthly", LocalDate.of(2026, 3, 1), LocalDate.of(2026, 8, 31)))
+        assertEquals(2, SavedReportEngine.intervalCount("Yearly", LocalDate.of(2025, 1, 1), LocalDate.of(2026, 12, 31)))
+        // Sunday-start weeks: 2026-09-20 and 2026-09-27.
+        assertEquals(2, SavedReportEngine.intervalCount("Weekly", LocalDate.of(2026, 9, 20), LocalDate.of(2026, 10, 3)))
+        assertEquals(30, SavedReportEngine.intervalCount("Daily", LocalDate.of(2026, 8, 25), LocalDate.of(2026, 9, 23)))
+        assertEquals(1, SavedReportEngine.intervalCount("Monthly", LocalDate.of(2026, 9, 1), LocalDate.of(2026, 8, 1)))
+    }
+
+    @Test fun `include_current adds the current month to the average's interval count`() {
+        val rows = listOf(tx("1", 20260310, -6000), tx("2", 20260915, -1000))
+        val live = SavedReportEngine.compute(report("Last 6 months", includeCurrent = true), rows, accounts, groups, today)
+        val summary = live.summary!!
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.SPENDING, summary.kind)
+        assertEquals(-7000L, summary.totalCents)
+        assertEquals(live.points.sumOf { it.primaryCents }, summary.totalCents)
+        assertEquals(7, summary.intervalCount)
+        assertEquals(-1000L, summary.averageCents)
+
+        val excluded = SavedReportEngine.compute(report("Last 6 months"), rows, accounts, groups, today).summary!!
+        assertEquals(6, excluded.intervalCount)
+        assertEquals(-6000L, excluded.totalCents)
+        assertEquals(-1000L, excluded.averageCents)
+    }
+
+    @Test fun `yearly interval averages per year`() {
+        val rows = listOf(tx("1", 20250110, -1001), tx("2", 20251215, -2000))
+        val summary = SavedReportEngine.compute(report("Last year", interval = "Yearly"), rows, accounts, groups, today).summary!!
+        assertEquals(1, summary.intervalCount)
+        assertEquals("Yearly", summary.interval)
+        assertEquals(-3001L, summary.averageCents)
+    }
+
+    @Test fun `net reports are labelled by whichever side dominates`() {
+        val kind = { rows: List<com.azimulkabir.actua.data.budget.model.ActualTransaction>, type: String ->
+            SavedReportEngine.compute(report("Last 6 months", balanceType = type), rows, accounts, groups, today).summary!!.kind
+        }
+        val spendHeavy = listOf(tx("1", 20260410, -5000), tx("2", 20260411, 2000))
+        val incomeHeavy = listOf(tx("1", 20260410, -2000), tx("2", 20260411, 5000))
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_PAYMENT, kind(spendHeavy, "Net"))
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_DEPOSIT, kind(incomeHeavy, "Net"))
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_DEPOSIT, kind(spendHeavy, "netAssets"))
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_PAYMENT, kind(incomeHeavy, "netDebts"))
+        // The stored keys resolve the same way as their format literals (actua#646).
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_DEPOSIT, kind(spendHeavy, "Net Deposit"))
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.NET_PAYMENT, kind(incomeHeavy, "Net Payment"))
+        assertEquals(com.azimulkabir.actua.model.ReportSummaryKind.DEPOSITS, kind(incomeHeavy, "Deposit"))
+    }
+
+    @Test fun `empty range yields a zero summary`() {
+        val summary = SavedReportEngine.compute(report("Last 3 months"), emptyList(), accounts, groups, today).summary!!
+        assertEquals(0L, summary.totalCents)
+        assertEquals(0L, summary.averageCents)
+        assertEquals(3, summary.intervalCount)
+    }
+
+    @Test fun `all time counts intervals from the earliest transaction, not the 1900 sentinel`() {
+        val rows = listOf(tx("1", 20250610, -1600), tx("2", 20260110, -1600))
+        val summary = SavedReportEngine.compute(report("All time"), rows, accounts, groups, LocalDate.of(2026, 9, 22)).summary!!
+        // June 2025 through September 2026.
+        assertEquals(16, summary.intervalCount)
+        assertEquals(-200L, summary.averageCents)
     }
 }
