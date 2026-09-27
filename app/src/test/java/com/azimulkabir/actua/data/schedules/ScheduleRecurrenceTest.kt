@@ -41,6 +41,22 @@ class ScheduleRecurrenceTest {
         assertEquals("2026-02-09", next(after, "2026-02-01"))
     }
 
+    @Test fun upcomingDatesContinuePastABeforeSolvedWeekendOccurrence() {
+        // 2026-10-25 is a Sunday, solved back to Friday 2026-10-23; the walk must not stop there.
+        val before = RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2025,10,25),
+            skipWeekend = true, weekendSolveMode = "before")
+        assertEquals(listOf("2026-10-23", "2026-11-25", "2026-12-25", "2027-01-25"),
+            ScheduleRecurrence.upcomingDates(before, 4, DayDate(2026,10,23)).map { it.iso })
+        assertEquals("2026-11-25", ScheduleRecurrence.previousOccurrence(before, DayDate(2026,12,1))?.iso)
+    }
+
+    @Test fun upcomingDatesStopAtTheRecurrenceEnd() {
+        val count = RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2026,8,25),
+            endMode = "after_n_occurrences", endOccurrences = 3)
+        assertEquals(listOf("2026-09-25", "2026-10-25"),
+            ScheduleRecurrence.upcomingDates(count, 10, DayDate(2026,9,1)).map { it.iso })
+    }
+
     @Test fun occursOnAndOccursApproxMatchTheRecurrence() {
         val monthly = RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2026, 1, 3))
         org.junit.Assert.assertTrue(ScheduleRecurrence.occursOn(monthly, DayDate(2026, 5, 3)))
