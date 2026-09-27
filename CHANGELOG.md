@@ -8,6 +8,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Added manual drag-to-reorder for accounts on the Accounts screen ([#603](https://github.com/azimul-kabir/actua/pull/603))
 - Accounts synced into Actual's experimental account groups are now displayed grouped on the Accounts screen ([#609](https://github.com/azimul-kabir/actua/pull/609))
+- Added an uncategorized-transactions banner to the Budget screen, alongside the overspent-categories one, both now controlled by a single "Show warnings" toggle ([#612](https://github.com/azimul-kabir/actua/pull/612))
 
 ### Fixed
 
