@@ -94,7 +94,7 @@ class ActualTransactionWriter(
         val unknown = changedFields - mutableTransactionFields
         require(unknown.isEmpty()) { "Unknown transaction fields: ${unknown.sorted().joinToString()}" }
         database.updateTransaction(transaction, fields("transactions", transaction.id,
-            transactionFields(transaction).filterKeys { it in changedFields }))
+            transactionFields(transaction, changedFields)))
         saveClock()
     }
 
@@ -144,7 +144,7 @@ class ActualTransactionWriter(
         inserts.forEach(::validateBase)
         val messages = updates.flatMap { (original, updated) ->
             val changed = changedFields(original, updated)
-            fields("transactions", updated.id, transactionFields(updated).filterKeys { it in changed })
+            fields("transactions", updated.id, transactionFields(updated, changed))
         } + inserts.flatMap(::fieldsForInsert) +
             tombstoneIds.map { message("transactions", it, "tombstone", 1) }
         database.mutateTransactions(updates.map { it.second }, inserts, tombstoneIds, messages)
@@ -161,7 +161,15 @@ class ActualTransactionWriter(
     private fun fieldsForInsert(transaction: ActualTransaction) =
         fields("transactions", transaction.id, transactionFields(transaction))
 
-    private fun transactionFields(transaction: ActualTransaction): LinkedHashMap<String, Any?> = linkedMapOf<String, Any?>(
+    /** Diffed update fields; changed import fields are sent even when they revert to null/false. */
+    private fun transactionFields(transaction: ActualTransaction, changed: Set<String>): Map<String, Any?> =
+        transactionFields(transaction, includeImportFields = changed.any { it in importFields })
+            .filterKeys { it in changed }
+
+    private fun transactionFields(
+        transaction: ActualTransaction,
+        includeImportFields: Boolean = false,
+    ): LinkedHashMap<String, Any?> = linkedMapOf<String, Any?>(
         "acct" to transaction.accountId,
         "date" to transaction.date,
         "description" to transaction.payeeId,
@@ -182,7 +190,7 @@ class ActualTransactionWriter(
     ).apply {
         // These fields belong to provider imports. Omitting them for manual rows preserves the
         // established CRDT message shape instead of publishing redundant null/default writes.
-        if (transaction.financialId != null || transaction.rawSyncedData != null || transaction.pending) {
+        if (includeImportFields || transaction.financialId != null || transaction.rawSyncedData != null || transaction.pending) {
             put("financial_id", transaction.financialId)
             put("pending", if (transaction.pending) 1 else 0)
             put("raw_synced_data", transaction.rawSyncedData)
@@ -201,6 +209,8 @@ class ActualTransactionWriter(
     }
 
     companion object {
+        private val importFields = setOf("financial_id", "pending", "raw_synced_data")
+
         private val mutableTransactionFields = setOf(
             "acct", "date", "description", "category", "amount", "notes", "cleared",
             "reconciled", "transferred_id", "isParent", "parent_id", "tombstone", "schedule",

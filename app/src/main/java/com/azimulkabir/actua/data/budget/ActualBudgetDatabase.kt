@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.budget
 
 import android.content.ContentValues
+import android.database.DatabaseUtils
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import com.azimulkabir.actua.data.budget.model.ActualAccount
@@ -684,10 +685,7 @@ class ActualBudgetDatabase private constructor(
 
     @Synchronized
     fun updateTransaction(transaction: ActualTransaction, messages: List<CrdtMessage>) = transaction {
-        val values = transactionValues(transaction, includeCreationFields = false)
-        check(database.update("transactions", values, "id = ?", arrayOf(transaction.id)) == 1) {
-            "Transaction ${transaction.id} does not exist"
-        }
+        updateTransactionRow(transaction, messages)
         insertMessageRows(messages)
     }
 
@@ -707,16 +705,33 @@ class ActualBudgetDatabase private constructor(
         tombstoneIds: List<String>,
         messages: List<CrdtMessage>,
     ) = transaction {
-        updates.forEach { item ->
-            check(database.update("transactions", transactionValues(item, false), "id = ?", arrayOf(item.id)) == 1) {
-                "Transaction ${item.id} does not exist"
-            }
-        }
+        updates.forEach { item -> updateTransactionRow(item, messages) }
         inserts.forEach(::insertTransactionRow)
         tombstoneIds.forEach { id ->
             database.update("transactions", ContentValues().apply { put("tombstone", 1) }, "id = ?", arrayOf(id))
         }
         insertMessageRows(messages)
+    }
+
+    /**
+     * Write only the columns this row's messages carry, like loot-core's diffed update. A full-row
+     * write would silently replace raw stored ids with the mapped ids the read model reports.
+     */
+    private fun updateTransactionRow(transaction: ActualTransaction, messages: List<CrdtMessage>) {
+        val columns = messages
+            .filter { it.dataset == "transactions" && it.row == transaction.id }
+            .mapTo(mutableSetOf()) { it.column }
+        // isChild is derived from parent_id locally rather than carried by its own message.
+        if ("parent_id" in columns) columns += "isChild"
+        val values = transactionValues(transaction, includeCreationFields = false).apply {
+            keySet().filter { it !in columns }.forEach(::remove)
+        }
+        val found = if (values.size() == 0) {
+            DatabaseUtils.queryNumEntries(database, "transactions", "id = ?", arrayOf(transaction.id)) == 1L
+        } else {
+            database.update("transactions", values, "id = ?", arrayOf(transaction.id)) == 1
+        }
+        check(found) { "Transaction ${transaction.id} does not exist" }
     }
 
     private fun insertTransactionRow(transaction: ActualTransaction) {
