@@ -979,6 +979,8 @@ class ActuaRepository(context: Context) {
             groups = groups,
             savedReports = savedReportRows,
             schedules = db.fetchScheduleSummaries(),
+            transferAccountByPayee = db.fetchPayees()
+                .mapNotNull { payee -> payee.transferAccountId?.let { payee.id to it } }.toMap(),
             budgetedByCategory = { month ->
                 reportBudgets.getOrPut(month) {
                     reportBudgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() }

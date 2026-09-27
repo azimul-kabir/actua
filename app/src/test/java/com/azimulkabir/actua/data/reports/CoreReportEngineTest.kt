@@ -418,6 +418,47 @@ class BalanceForecastTest {
         assertEquals(-50_000L, widget.valueCents)
         assertEquals("1 scheduled transactions included", widget.subtitle)
     }
+
+    private fun transferSchedule(day: DayDate, amount: Long) = ActualScheduleSummary(
+        "save", null, null, day, null, null, "checking", "to-savings", ScheduledAmount.Fixed(amount),
+        ScheduleAmountOp.EXACT, "is", ScheduleDateCondition.Fixed(day), false, false, null, null, false,
+        null, null, null,
+    )
+
+    @Test fun `a transfer schedule between two forecast accounts nets out and counts once`() {
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-09","end":"2026-09"}}"""),
+            emptyList(), context, today = LocalDate.of(2026, 9, 1),
+            accountBalances = mapOf("checking" to 0L, "savings" to 0L),
+            schedules = listOf(transferSchedule(DayDate(2026, 9, 5), -20_000)),
+            transferAccountByPayee = mapOf("to-savings" to "savings", "to-checking" to "checking"),
+        )
+        assertEquals(0L, widget.valueCents)
+        assertEquals("1 scheduled transactions included", widget.subtitle)
+    }
+
+    @Test fun `a transfer schedule into an account outside the forecast still leaves it`() {
+        val widget = CoreReportEngine.compute(
+            row("""{"accounts":["checking"],"timeFrame":{"mode":"static","start":"2026-09","end":"2026-09"}}"""),
+            emptyList(), context, today = LocalDate.of(2026, 9, 1),
+            accountBalances = mapOf("checking" to 0L, "savings" to 0L),
+            schedules = listOf(transferSchedule(DayDate(2026, 9, 5), -20_000)),
+            transferAccountByPayee = mapOf("to-savings" to "savings"),
+        )
+        assertEquals(-20_000L, widget.valueCents)
+    }
+
+    @Test fun `only the receiving leg is projected when just the destination account is selected`() {
+        val widget = CoreReportEngine.compute(
+            row("""{"accounts":["savings"],"timeFrame":{"mode":"static","start":"2026-09","end":"2026-09"}}"""),
+            emptyList(), context, today = LocalDate.of(2026, 9, 1),
+            accountBalances = mapOf("checking" to 0L, "savings" to 0L),
+            schedules = listOf(transferSchedule(DayDate(2026, 9, 5), -20_000)),
+            transferAccountByPayee = mapOf("to-savings" to "savings"),
+        )
+        assertEquals(20_000L, widget.valueCents)
+        assertEquals("1 scheduled transactions included", widget.subtitle)
+    }
 }
 
 /**
