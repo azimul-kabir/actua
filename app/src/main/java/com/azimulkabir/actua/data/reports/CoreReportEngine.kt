@@ -29,6 +29,10 @@ import kotlin.math.sqrt
 
 /** Core Actual dashboard widgets, ported from Actuali's report engines. */
 object CoreReportEngine {
+    /** Placeholder account id for a Balance Forecast schedule with no linked account, mirroring
+     * upstream's `FORECAST_UNASSIGNED_ACCOUNT_ID` - never a real account, only used to satisfy
+     * [ActualTransaction.accountId]'s non-null type for the synthetic occurrence. */
+    private const val UNASSIGNED_SCHEDULE_ACCOUNT_ID = "__unassigned_schedule__"
     fun dashboards(
         pages: List<DashboardPageRow>,
         widgets: (String?) -> List<DashboardWidgetRow>,
@@ -485,7 +489,12 @@ object CoreReportEngine {
         balances: Map<String, Long>, today: LocalDate,
         schedules: List<ActualScheduleSummary>, context: RuleContext,
     ): ReportWidget {
-        val selected = meta?.optJSONArray("accounts")?.strings()?.toSet().orEmpty().ifEmpty { balances.keys }
+        val explicitAccounts = meta?.optJSONArray("accounts")?.strings()?.toSet()
+        val selected = explicitAccounts.orEmpty().ifEmpty { balances.keys }
+        // Mirrors upstream's `includeAccountlessSchedules: meta?.accounts === undefined`: a schedule
+        // with no linked account only counts toward the forecast when the widget has no explicit
+        // account filter at all - an explicit filter (even one listing every account) excludes them.
+        val includeAccountlessSchedules = explicitAccounts == null
         val conditions = parseConditions(meta)
         val (rangeStart, rangeEnd) = meta?.optJSONObject("timeFrame")?.let { timeFrame(it, today) }
             ?: YearMonth.from(today).let { it.atDay(1) to it.plusMonths(11).atEndOfMonth() }
@@ -517,8 +526,10 @@ object CoreReportEngine {
         val scheduleCountByDate = mutableMapOf<Int, MutableSet<String>>()
         schedules.forEach schedule@{ schedule ->
             if (schedule.completed) return@schedule
-            val accountId = schedule.accountId ?: return@schedule
-            if (accountId !in selected) return@schedule
+            val accountId = schedule.accountId
+            if (accountId == null) {
+                if (!includeAccountlessSchedules) return@schedule
+            } else if (accountId !in selected) return@schedule
             val amount = schedule.postAmount
             val occurrenceDays = when (val condition = schedule.dateCondition) {
                 is ScheduleDateCondition.Fixed -> listOf(condition.day)
@@ -532,8 +543,9 @@ object CoreReportEngine {
                 if (ymd < firstForecastYmd || ymd > endYmd) return@forEach
                 if (isOccurrencePosted(schedule, day)) return@forEach
                 val synthetic = ActualTransaction(
-                    "schedule-${schedule.id}-$ymd", accountId, ymd, amount, schedule.payeeId, null,
-                    schedule.categoryId, null, null, false, false, null, false, null, false, null, null, null, null,
+                    "schedule-${schedule.id}-$ymd", accountId ?: UNASSIGNED_SCHEDULE_ACCOUNT_ID, ymd, amount,
+                    schedule.payeeId, null, schedule.categoryId, null, null, false, false, null, false, null,
+                    false, null, null, null, null,
                 )
                 if (!RulesEngine.matches(synthetic, conditions.first, conditions.second, context)) return@forEach
                 scheduleDeltasByDate[ymd] = (scheduleDeltasByDate[ymd] ?: 0L) + amount
