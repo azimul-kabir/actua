@@ -278,8 +278,19 @@ object CoreReportEngine {
         val end: YearMonth
         when (timeFrameMeta?.optString("mode") ?: "full") {
             "sliding-window" -> {
-                start = (storedMonth("start") ?: earliestMonth).minusMonths(1).coerceIn(earliestMonth, previousMonth)
-                end = (storedMonth("end") ?: previousMonth).minusMonths(1).coerceIn(earliestMonth, previousMonth)
+                val storedStart = storedMonth("start"); val storedEnd = storedMonth("end")
+                if (storedStart != null && storedEnd != null) {
+                    // Mirrors upstream's `calculateTimeRange`/`getLatestRange` plus Crossover.tsx's
+                    // own -1-month shift: preserve the stored window's WIDTH but re-anchor it live to
+                    // end at "previous month" every time the widget is computed, instead of statically
+                    // shifting the stored start/end - otherwise the window (and the CAGR/expense base
+                    // it drives) silently goes stale the longer it's been since the widget was saved.
+                    val widthMonths = ChronoUnit.MONTHS.between(storedStart, storedEnd)
+                    end = previousMonth.coerceIn(earliestMonth, previousMonth)
+                    start = previousMonth.minusMonths(widthMonths).coerceIn(earliestMonth, previousMonth)
+                } else {
+                    start = earliestMonth; end = previousMonth
+                }
             }
             "full" -> { start = earliestMonth; end = previousMonth }
             else -> {

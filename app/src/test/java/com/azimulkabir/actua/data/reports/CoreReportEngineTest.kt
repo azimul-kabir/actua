@@ -13,6 +13,7 @@ import com.azimulkabir.actua.model.ReportWidgetKind
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
+import java.time.YearMonth
 
 class SankeyTest {
     private val groups = listOf(
@@ -258,6 +259,23 @@ class CrossoverTest {
             rows, context, today = LocalDate.of(2026, 2, 1),
         )
         assertEquals(50L, widget.points.first().secondaryCents)
+    }
+
+    @Test fun `sliding-window mode re-anchors live to previous month instead of statically shifting the stored months`() {
+        // Mirrors upstream's calculateTimeRange/getLatestRange plus Crossover.tsx's own -1-month
+        // shift: the stored window's WIDTH (2 months, Jan-Mar) must be preserved but re-anchored to
+        // end at "previous month" relative to `today`, not statically shifted from whatever start/end
+        // was last saved - otherwise the historical window (and the CAGR/expense base it drives) goes
+        // stale the longer it's been since the widget was saved.
+        val months = generateSequence(YearMonth.of(2025, 11)) { it.plusMonths(1) }
+            .takeWhile { !it.isAfter(YearMonth.of(2026, 7)) }.toList()
+        val rows = months.mapIndexed { i, m -> tx("t$i", "invest", m.year * 10_000 + m.monthValue * 100 + 5, 1_000) }
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"sliding-window","start":"2026-01","end":"2026-03"},
+                |"incomeAccountIds":["invest"]}""".trimMargin()),
+            rows, today = LocalDate.of(2026, 8, 15),
+        )
+        assertEquals(listOf("2026-05", "2026-06", "2026-07"), widget.points.take(3).map { it.period })
     }
 
     @Test fun `showHiddenCategories includes hidden categories in the default expense set`() {
