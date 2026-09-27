@@ -292,6 +292,41 @@ class CrossoverTest {
         )
         assertEquals(150L, widget.points.first().secondaryCents)
     }
+
+    @Test fun `hidden categories named in an explicit expense list are excluded unless showHiddenCategories`() {
+        // Upstream filters the resolved list with `showHiddenCategories || !c.hidden` after applying
+        // the stored ids, so an explicit selection doesn't bring hidden categories back in.
+        val context = RuleContext(hiddenCategoryIds = setOf("archived-rent"))
+        val rows = listOf(
+            tx("1", "invest", 20260105, 100_000),
+            tx("2", "checking", 20260110, -100, "archived-rent"),
+            tx("3", "checking", 20260110, -50, "groceries"),
+        )
+        fun expense(showHidden: Boolean) = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-01","end":"2026-01"},"incomeAccountIds":["invest"],
+                |"expenseCategoryIds":["archived-rent","groceries"],"showHiddenCategories":$showHidden}""".trimMargin()),
+            rows, context, today = LocalDate.of(2026, 2, 1),
+        ).points.first().secondaryCents
+        assertEquals(50L, expense(showHidden = false))
+        assertEquals(150L, expense(showHidden = true))
+    }
+
+    @Test fun `months to retire counts whole months from today to the start of the crossover month`() {
+        // Income 100/month on a 1200 balance at 100% SWR, +1200 contributed monthly with 0% return:
+        // income reaches the 400 expense in the third projected month (2026-04). Upstream's
+        // differenceInMonths(2026-04-01, 2026-02-10) is 1, not the 2 calendar months between Feb and Apr.
+        val rows = listOf(
+            tx("1", "invest", 20260105, 1_200),
+            tx("2", "checking", 20260110, -400, "rent"),
+        )
+        val widget = CoreReportEngine.compute(
+            row("""{"timeFrame":{"mode":"static","start":"2026-01","end":"2026-01"},"incomeAccountIds":["invest"],
+                |"safeWithdrawalRate":1.0,"estimatedReturn":0,"expectedContribution":1200}""".trimMargin()),
+            rows, today = LocalDate.of(2026, 2, 10),
+        )
+        assertEquals("2026-04", widget.points.first { it.primaryCents >= 400 }.period)
+        assertEquals(1L, widget.valueCents)
+    }
 }
 
 /**
