@@ -9,6 +9,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Reorder Accounts now shows On budget/Off budget/Closed sections and account groups, both collapsible, with each account's position number, instead of one flat unordered list ([#618](https://github.com/azimul-kabir/actua/pull/618))
 - Collapsed category groups on Budget and account sections on Accounts now stay collapsed after leaving and returning to the tab ([#620](https://github.com/azimul-kabir/actua/pull/620))
 - Balance Forecast no longer drops scheduled transactions that have no linked account, which was undercounting the scheduled-transaction total and ending/low balance ([#625](https://github.com/azimul-kabir/actua/pull/625))
+- Crossover Point's sliding-window date range no longer goes stale after the widget is saved, keeping the "years to retire" projection anchored to today ([#626](https://github.com/azimul-kabir/actua/pull/626))
 
 ## [1.1.0] - 2026-09-27
 
