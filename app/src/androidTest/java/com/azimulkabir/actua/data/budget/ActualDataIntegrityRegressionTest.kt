@@ -141,7 +141,7 @@ class ActualDataIntegrityRegressionTest {
             db.execSQL("CREATE TABLE payee_mapping (id TEXT PRIMARY KEY, targetId TEXT)")
             db.execSQL("CREATE TABLE payees (id TEXT PRIMARY KEY, name TEXT, transfer_acct TEXT, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE zero_budgets (id TEXT PRIMARY KEY)")
-            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY, acct TEXT, date INTEGER, description TEXT, category TEXT, amount INTEGER, notes TEXT, cleared INTEGER DEFAULT 0, reconciled INTEGER DEFAULT 0, transferred_id TEXT, isParent INTEGER DEFAULT 0, isChild INTEGER DEFAULT 0, parent_id TEXT, tombstone INTEGER DEFAULT 0, sort_order REAL, imported_description TEXT, schedule TEXT, starting_balance_flag INTEGER DEFAULT 0)")
+            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY, acct TEXT, date INTEGER, description TEXT, category TEXT, amount INTEGER, notes TEXT, cleared INTEGER DEFAULT 0, reconciled INTEGER DEFAULT 0, transferred_id TEXT, isParent INTEGER DEFAULT 0, isChild INTEGER DEFAULT 0, parent_id TEXT, tombstone INTEGER DEFAULT 0, sort_order REAL, imported_description TEXT, schedule TEXT, starting_balance_flag INTEGER DEFAULT 0, financial_id TEXT, pending INTEGER DEFAULT 0, raw_synced_data TEXT)")
             db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
             db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, column TEXT NOT NULL, value BLOB NOT NULL)")
         }
@@ -150,7 +150,7 @@ class ActualDataIntegrityRegressionTest {
 
     private fun rowSnapshot(file: File, id: String): List<String?> =
         SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { db ->
-            db.rawQuery("SELECT acct,date,description,category,amount,notes,cleared,reconciled,transferred_id,isParent,isChild,parent_id,tombstone,sort_order,imported_description,schedule,starting_balance_flag FROM transactions WHERE id=?", arrayOf(id)).use { cursor ->
+            db.rawQuery("SELECT acct,date,description,category,amount,notes,cleared,reconciled,transferred_id,isParent,isChild,parent_id,tombstone,sort_order,imported_description,schedule,starting_balance_flag,financial_id,pending,raw_synced_data FROM transactions WHERE id=?", arrayOf(id)).use { cursor ->
                 assertTrue("Missing transaction $id", cursor.moveToFirst())
                 (0 until cursor.columnCount).map { if (cursor.isNull(it)) null else cursor.getString(it) }
             }

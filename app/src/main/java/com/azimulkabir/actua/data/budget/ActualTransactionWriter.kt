@@ -220,6 +220,10 @@ class ActualTransactionWriter(
             if (original.isParent != updated.isParent) add("isParent")
             if (original.parentId != updated.parentId) add("parent_id")
             if (original.tombstone != updated.tombstone) add("tombstone")
+            if (original.importedPayee != updated.importedPayee) add("imported_description")
+            if (original.financialId != updated.financialId) add("financial_id")
+            if (original.pending != updated.pending) add("pending")
+            if (original.rawSyncedData != updated.rawSyncedData) add("raw_synced_data")
         }
     }
 }

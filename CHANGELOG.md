@@ -8,6 +8,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Added manual drag-to-reorder for accounts on the Accounts screen ([#603](https://github.com/azimul-kabir/actua/pull/603))
 
+### Fixed
+
+- Bank sync now reconciles with an existing manually entered transaction instead of importing it as a duplicate ([#604](https://github.com/azimul-kabir/actua/pull/604))
+
 ## [1.0.0] - 2026-09-25
 
 ### Changed
