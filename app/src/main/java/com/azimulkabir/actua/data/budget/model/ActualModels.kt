@@ -27,6 +27,14 @@ data class ActualAccount(
     val clearedCents: Long = 0,
     val unclearedCents: Long = 0,
     val reconciledCents: Long = 0,
+    val groupId: String? = null,
+)
+
+/** Actual's experimental `account_groups`: a user-named container accounts can be assigned to. */
+data class ActualAccountGroup(
+    val id: String,
+    val name: String,
+    val sortOrder: Double,
 )
 
 data class ActualPayee(

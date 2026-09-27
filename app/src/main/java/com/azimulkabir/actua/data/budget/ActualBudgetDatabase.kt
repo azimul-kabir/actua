@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import com.azimulkabir.actua.data.budget.model.ActualAccount
+import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
@@ -97,7 +98,7 @@ class ActualBudgetDatabase private constructor(
         val result = mutableListOf<ActualAccount>()
         database.rawQuery(
             """
-                SELECT id, name, type, offbudget, closed, sort_order
+                SELECT id, name, type, offbudget, closed, sort_order, account_group_id
                 FROM accounts
                 WHERE tombstone = 0 OR tombstone IS NULL
                 ORDER BY sort_order ASC
@@ -116,10 +117,30 @@ class ActualBudgetDatabase private constructor(
                     clearedCents = balances[id]?.cleared ?: 0,
                     unclearedCents = (balances[id]?.total ?: 0) - (balances[id]?.cleared ?: 0),
                     reconciledCents = balances[id]?.reconciled ?: 0,
+                    groupId = cursor.stringOrNull(6),
                 )
             }
         }
         return result
+    }
+
+    /** Actual's experimental `account_groups`: user-defined account containers, present only when the feature is enabled server-side. */
+    @Synchronized
+    fun fetchAccountGroups(): List<ActualAccountGroup> {
+        if (!hasTable("account_groups")) return emptyList()
+        return database.rawQuery(
+            """SELECT id, name, sort_order FROM account_groups
+                WHERE tombstone = 0 OR tombstone IS NULL ORDER BY sort_order ASC""",
+            null,
+        ).use { cursor ->
+            val rows = mutableListOf<ActualAccountGroup>()
+            while (cursor.moveToNext()) rows += ActualAccountGroup(
+                id = cursor.getString(0),
+                name = cursor.stringOrNull(1) ?: "Unknown",
+                sortOrder = cursor.doubleOrZero(2),
+            )
+            rows
+        }
     }
 
     @Synchronized

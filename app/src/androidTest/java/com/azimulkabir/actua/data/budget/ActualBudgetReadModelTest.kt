@@ -89,6 +89,38 @@ class ActualBudgetReadModelTest {
     }
 
     /**
+     * Actual's account grouping is experimental server-side; a budget with no groups configured
+     * must read/display exactly as before (empty `fetchAccountGroups()`, null `groupId`). Once a
+     * server assigns accounts to groups, those rows must round-trip through Actua's reads without
+     * any local write path modifying them.
+     */
+    @Test
+    fun accountGroupsAreAbsentUntilTheServerAssignsThemThenRoundTripOnRead() {
+        val file = createDatabaseFile()
+        try {
+            ActualBudgetDatabase.open(file).use { database ->
+                assertTrue(database.fetchAccountGroups().isEmpty())
+                assertTrue(database.fetchAccounts().all { it.groupId == null })
+            }
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO account_groups VALUES ('personal','Personal',1,0), ('business','Business',2,0)")
+                db.execSQL("UPDATE accounts SET account_group_id = 'personal' WHERE id = 'checking'")
+                db.execSQL("UPDATE accounts SET account_group_id = 'business' WHERE id = 'savings'")
+            }
+            ActualBudgetDatabase.open(file).use { database ->
+                val groups = database.fetchAccountGroups()
+                assertEquals(listOf("Personal", "Business"), groups.map { it.name })
+
+                val accounts = database.fetchAccounts()
+                assertEquals("personal", accounts.first { it.id == "checking" }.groupId)
+                assertEquals("business", accounts.first { it.id == "savings" }.groupId)
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    /**
      * Older Actual servers pre-date the cleanup automation schema, so a budget downloaded from
      * one has neither `cleanup_groups` nor `categories.cleanup_def`. Confirms the defensive
      * migration adds both, and that a `cleanup_def`/`cleanup_groups` write lands in one atomic

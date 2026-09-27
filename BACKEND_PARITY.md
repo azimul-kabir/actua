@@ -56,6 +56,12 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   high-water mark, preserving pending edits and Merkle-guided restart recovery
 - Actual schema migrations required by current Android reads
 - Accounts, payees, category groups/categories, transactions, transfers, splits
+- Actual's experimental account grouping: existing `account_groups` data synced from the server is
+  detected and the Accounts screen displays on/off-budget accounts nested under their configured
+  group, ordered by the group's own sort order, with an ungrouped bucket for accounts left outside
+  every group; unchanged flat behavior for budgets that have not enabled the feature. Actua never
+  creates, renames, reorders, or reassigns account groups itself, and the grouping is preserved
+  as-is across syncs, backups, and app reinstalls since it lives in the synced budget data
 - Actual-compatible payee-location schema migration, complete-row reads, nearby ranking,
   500-metre deduplication, CRDT create/delete mutations, Android foreground permission,
   automatic picker suggestions, inline Nearby/Save actions, transaction recording, and
