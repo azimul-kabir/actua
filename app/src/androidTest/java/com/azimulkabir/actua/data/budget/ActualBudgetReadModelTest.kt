@@ -860,6 +860,32 @@ class ActualBudgetReadModelTest {
         assertEquals(db.fetchTransactions().map { it.id }, db.fetchTransactions(query = " ").map { it.id })
     }
 
+    @Test
+    fun transactionsInAMergedCategoryReportTheTargetCategoryId() {
+        // Deleting a category and moving its transactions leaves them on the old id with
+        // category_mapping pointing old -> new; upstream's view exposes the mapped id (actua#636).
+        val file = createDatabaseFile()
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO categories VALUES ('old-grocery','Old Groceries','essential',0,0,1,4)")
+                db.execSQL("INSERT INTO category_mapping VALUES ('old-grocery','grocery')")
+                insertTransaction(db, "merged", 0, 0, "checking", "old-grocery", -250, "store", 20260801, 8.0)
+                insertTransaction(db, "merged-split", 1, 0, "checking", null, -250, null, 20260802, 9.0)
+                insertTransaction(db, "merged-child", 0, 1, "checking", "old-grocery", -250, "store", 20260802, 10.0, parent = "merged-split")
+            }
+            ActualBudgetDatabase.open(file).use { database ->
+                val listed = database.fetchTransactions().first { it.id == "merged" }
+                assertEquals("grocery", listed.categoryId)
+                assertEquals("Groceries", listed.categoryName)
+                val reported = database.fetchTransactionsForReports().associateBy { it.id }
+                assertEquals("grocery", reported.getValue("merged").categoryId)
+                assertEquals("grocery", reported.getValue("merged-child").categoryId)
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
     private fun withDatabase(block: (ActualBudgetDatabase) -> Unit) {
         val file = createDatabaseFile()
         try {
