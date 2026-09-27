@@ -67,7 +67,7 @@ private const val CLOSED_SECTION_TITLE = "Closed accounts"
  * since [ActualAccount.sortOrder] is a single shared field and a stray move here
  * would silently reshuffle accounts the user never touched.
  */
-private data class ReorderChunk(
+internal data class ReorderChunk(
     val sectionTitle: String,
     val groupName: String?,
     val accounts: List<ActualAccount>,
@@ -76,7 +76,7 @@ private data class ReorderChunk(
 }
 
 /** Splits accounts into section chunks, then splits each section by account group, mirroring AccountsScreen. */
-private fun buildReorderChunks(accounts: List<ActualAccount>, groups: List<ActualAccountGroup>): List<ReorderChunk> {
+internal fun buildReorderChunks(accounts: List<ActualAccount>, groups: List<ActualAccountGroup>): List<ReorderChunk> {
     val groupsById = groups.associateBy { it.id }
     val sections = listOf(
         "On budget" to accounts.filter { !it.offBudget && !it.closed },
@@ -101,7 +101,7 @@ private fun buildReorderChunks(accounts: List<ActualAccount>, groups: List<Actua
 }
 
 /** Each account's 1-based position within its section, counted across all of that section's groups. */
-private fun serialsBySection(chunks: List<ReorderChunk>): Map<String, Int> {
+internal fun serialsBySection(chunks: List<ReorderChunk>): Map<String, Int> {
     val serials = mutableMapOf<String, Int>()
     chunks.groupBy { it.sectionTitle }.forEach { (_, sectionChunks) ->
         var position = 1
