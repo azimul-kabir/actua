@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Reorder Accounts now shows On budget/Off budget/Closed sections and account groups, both collapsible, with each account's position number, instead of one flat unordered list ([#618](https://github.com/azimul-kabir/actua/pull/618))
+- Collapsed category groups on Budget and account sections on Accounts now stay collapsed after leaving and returning to the tab ([#620](https://github.com/azimul-kabir/actua/pull/620))
 
 ## [1.1.0] - 2026-09-27
 
