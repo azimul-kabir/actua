@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.1.0] - 2026-09-27
+
 ### Added
 
 - Added manual drag-to-reorder for accounts on the Accounts screen ([#603](https://github.com/azimul-kabir/actua/pull/603))
