@@ -437,7 +437,7 @@ fun AppNavigation(
     var showBudgetProgressBars by remember { mutableStateOf(displayPreferences.showBudgetProgressBars) }
     var budgetView by remember { mutableStateOf(displayPreferences.budgetView) }
     var showBudgetOverview by remember { mutableStateOf(displayPreferences.showBudgetOverview) }
-    var showOverspentWarning by remember { mutableStateOf(displayPreferences.showOverspentWarning) }
+    var showBudgetStatusBanners by remember { mutableStateOf(displayPreferences.showBudgetStatusBanners) }
     var showGroupTotals by remember { mutableStateOf(displayPreferences.showGroupTotals) }
     var hideFullySpentCategories by remember { mutableStateOf(displayPreferences.hideFullySpentCategories) }
     var budgetCategoryView by remember { mutableStateOf(displayPreferences.budgetCategoryView) }
@@ -2179,10 +2179,10 @@ fun AppNavigation(
                         displayPreferences.showBudgetOverview = it
                         showBudgetOverview = it
                     },
-                    showOverspentWarning = showOverspentWarning,
-                    onShowOverspentWarningChange = {
-                        displayPreferences.showOverspentWarning = it
-                        showOverspentWarning = it
+                    showBudgetStatusBanners = showBudgetStatusBanners,
+                    onShowBudgetStatusBannersChange = {
+                        displayPreferences.showBudgetStatusBanners = it
+                        showBudgetStatusBanners = it
                     },
                     showGroupTotals = showGroupTotals,
                     onShowGroupTotalsChange = {
@@ -2278,6 +2278,15 @@ fun AppNavigation(
                     onSearch = { detail = DetailDestination.Search },
                     onManageCategories = { detail = DetailDestination.ManageCategories },
                     transactions = filteredTransactions,
+                    allTransactions = transactions,
+                    onShowUncategorizedTransactions = {
+                        transactionAccount = null
+                        transactionCategory = null
+                        transactionMonth = budgetMonth
+                        transactionSearch = ""
+                        transactionStatusFilter = TransactionStatusFilter.UNCATEGORIZED
+                        detail = DetailDestination.Transactions
+                    },
                     onDeleteCategory = { group, category, onChanged ->
                         mutate("Deleting category", onChanged = onChanged) { repository.deleteCategory(group, category) }
                     },
