@@ -861,6 +861,32 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun savedReportsReadIncludeCurrentAndTolerateOlderSchemas() {
+        val file = createDatabaseFile()
+        try {
+            val columns = "id TEXT PRIMARY KEY, name TEXT, start_date TEXT, end_date TEXT, date_static INTEGER, " +
+                "date_range TEXT, mode TEXT, group_by TEXT, balance_type TEXT, show_offbudget INTEGER, show_hidden INTEGER, " +
+                "show_uncategorized INTEGER, selected_categories TEXT, graph_type TEXT, conditions TEXT, " +
+                "conditions_op TEXT, interval TEXT, tombstone INTEGER"
+            val insert = "INSERT INTO custom_reports (id, name, date_static, date_range, mode, tombstone) " +
+                "VALUES ('r', 'Trend', 0, 'Last 6 months', 'time', 0)"
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("CREATE TABLE custom_reports ($columns)")
+                db.execSQL(insert)
+            }
+            ActualBudgetDatabase.open(file).use { assertEquals(false, it.fetchSavedReports().single().includeCurrent) }
+
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("ALTER TABLE custom_reports ADD COLUMN include_current INTEGER DEFAULT 0")
+                db.execSQL("UPDATE custom_reports SET include_current = 1")
+            }
+            ActualBudgetDatabase.open(file).use { assertEquals(true, it.fetchSavedReports().single().includeCurrent) }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun transactionsInAMergedCategoryReportTheTargetCategoryId() {
         // Deleting a category and moving its transactions leaves them on the old id with
         // category_mapping pointing old -> new; upstream's view exposes the mapped id (actua#636).
