@@ -7,7 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Added
 
 - Custom reports can show their total and average per period ([#645](https://github.com/azimul-kabir/actua/pull/645))
-- About now links to the Actua website, FAQ and Discord server ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- About now links to the Actua website, FAQ and Discord server ([#649](https://github.com/azimul-kabir/actua/pull/649))
 
 ### Fixed
 
