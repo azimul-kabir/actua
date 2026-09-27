@@ -1172,7 +1172,7 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
                     Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
                         overflow = TextOverflow.Ellipsis)
                 } ?: Spacer(Modifier.height(7.dp))
-                CategoryChip(presentation.categoryLabel, transaction.type == Type.TRANSFER)
+                presentation.categoryLabel?.let { CategoryChip(it, transaction.type == Type.TRANSFER) }
             }
             if (transaction.notes.isNotBlank()) {
                 Text(coloredTagText(transaction.notes, effectiveTagColors), style = MaterialTheme.typography.bodyMedium,
@@ -1203,7 +1203,8 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
 
 internal data class TransactionRowPresentation(
     val title: String,
-    val categoryLabel: String,
+    /** Null when there is nothing meaningful to show, e.g. an off-budget account with no category. */
+    val categoryLabel: String?,
     val accountLabel: String?,
     val transferContext: String?,
 )
@@ -1212,7 +1213,13 @@ internal fun transactionRowPresentation(transaction: Transaction, showAccount: B
     if (transaction.type != Type.TRANSFER) {
         return TransactionRowPresentation(
             title = transaction.payee.ifBlank { "Unknown payee" },
-            categoryLabel = transaction.category.ifBlank { "Uncategorized" },
+            // Actual never requires a category for off-budget accounts, so an empty category
+            // there isn't "Uncategorized" the way it is for an on-budget transaction.
+            categoryLabel = when {
+                transaction.category.isNotBlank() -> transaction.category
+                transaction.accountOffBudget -> null
+                else -> "Uncategorized"
+            },
             accountLabel = transaction.account.takeIf { showAccount && it.isNotBlank() },
             transferContext = null,
         )
@@ -1299,7 +1306,7 @@ fun TransactionDetailsSheet(
             HorizontalDivider()
             TransactionDetail("Payee", presentation.title)
             TransactionDetail("Date", formatTransactionDate(transaction.date))
-            TransactionDetail("Category", presentation.categoryLabel)
+            presentation.categoryLabel?.let { TransactionDetail("Category", it) }
             TransactionDetail("Account", transaction.account)
             transaction.transferAccount?.takeIf(String::isNotBlank)?.let {
                 TransactionDetail("Transfer account", it)

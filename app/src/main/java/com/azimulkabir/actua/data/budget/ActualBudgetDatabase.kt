@@ -830,7 +830,7 @@ class ActualBudgetDatabase private constructor(
             }
 
             when (statusFilter) {
-                TransactionStatusFilter.UNCATEGORIZED -> append(" AND (c.name IS NULL OR c.name = '') AND t.transferred_id IS NULL AND (t.isParent = 0 OR t.isParent IS NULL)")
+                TransactionStatusFilter.UNCATEGORIZED -> append(" AND (c.name IS NULL OR c.name = '') AND t.transferred_id IS NULL AND (t.isParent = 0 OR t.isParent IS NULL) AND COALESCE(acc.offbudget, 0) = 0")
                 TransactionStatusFilter.UNCLEARED -> append(" AND COALESCE(t.cleared, 0) = 0")
                 TransactionStatusFilter.CLEARED -> append(" AND COALESCE(t.cleared, 0) = 1 AND COALESCE(t.reconciled, 0) = 0")
                 TransactionStatusFilter.RECONCILED -> append(" AND COALESCE(t.reconciled, 0) = 1")
@@ -1509,6 +1509,7 @@ class ActualBudgetDatabase private constructor(
                 AND (cpa.tombstone = 0 OR cpa.tombstone IS NULL)
             LEFT JOIN category_mapping cm ON cm.id = t.category
             LEFT JOIN categories c ON c.id = COALESCE(cm.transferId, t.category)
+            LEFT JOIN accounts acc ON acc.id = t.acct
             WHERE (t.tombstone = 0 OR t.tombstone IS NULL)
               AND (t.isChild = 0 OR t.isChild IS NULL)
               AND t.date IS NOT NULL AND t.acct IS NOT NULL
