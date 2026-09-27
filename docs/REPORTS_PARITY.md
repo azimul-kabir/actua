@@ -90,4 +90,8 @@ Actua only *displays* reports that exist in the Actual budget (dashboard cards a
 `custom_reports` rows); it does not create or edit them. Saved reports appear on a
 "Saved reports" page, evaluated by `SavedReportEngine` on top of `ReportAggregator`, and
 render as donut (`DonutGraph`), line/area, a real per-category stacked bar chart
-(`StackedBarGraph`), or ranked bars (other graph types).
+(`StackedBarGraph`), or ranked bars (other graph types). Like upstream's `ReportSummary`, each saved report
+can show its range total and `Math.round(total / intervalsCount)` average per interval, with
+intervals counted over the whole range. The show/hide choice is a device-local preference,
+as upstream's `reportsViewSummary` is, and is never synced. Dashboard cards show no total unless
+the summary is turned on.
