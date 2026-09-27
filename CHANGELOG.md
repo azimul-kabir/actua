@@ -16,6 +16,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Balance Forecast now adds scheduled transfers to the receiving account, so transfers between forecast accounts no longer lower the projected balance ([#634](https://github.com/azimul-kabir/actua/pull/634))
 - Schedules set to move weekend dates earlier no longer stop after their next occurrence in Balance Forecast, the bills calendar and schedule previews ([#633](https://github.com/azimul-kabir/actua/pull/633))
 - Saved reports set to include the current month or week now show it, and week, quarter and last-30-days ranges follow today's date ([#639](https://github.com/azimul-kabir/actua/pull/639))
+- Transactions from a deleted category that was merged into another now count toward that category in reports and filters ([#638](https://github.com/azimul-kabir/actua/pull/638))
 
 ## [1.1.0] - 2026-09-27
 

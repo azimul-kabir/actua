@@ -1487,7 +1487,7 @@ class ActualBudgetDatabase private constructor(
         """
 
         private const val transactionSelect = """
-            SELECT t.id, t.isParent, t.isChild, t.acct, t.category, t.amount,
+            SELECT t.id, t.isParent, t.isChild, t.acct, COALESCE(cm.transferId, t.category) AS category, t.amount,
                    t.description, t.notes, t.date, t.imported_description, t.schedule,
                    t.transferred_id, t.cleared, t.reconciled, t.sort_order,
                    t.tombstone, t.parent_id,
@@ -1523,7 +1523,7 @@ class ActualBudgetDatabase private constructor(
         """
 
         private const val transactionChildSelect = """
-            SELECT t.id, t.isParent, t.isChild, t.acct, t.category, t.amount,
+            SELECT t.id, t.isParent, t.isChild, t.acct, COALESCE(cm.transferId, t.category) AS category, t.amount,
                    t.description, t.notes, t.date, t.imported_description, t.schedule,
                    t.transferred_id, t.cleared, t.reconciled, t.sort_order,
                    t.tombstone, t.parent_id, COALESCE(pa.name, p.name) AS payee_name,
