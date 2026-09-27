@@ -100,6 +100,7 @@ fun AddTransactionScreen(
     categoryOptions: List<String> = listOf("Groceries", "Dining", "Transport", "Rent"),
     payeeOptions: List<String> = emptyList(),
     accountBalanceLabels: Map<String, String> = emptyMap(),
+    categoryBalanceLabels: Map<String, String> = emptyMap(),
     defaultAccount: String? = null,
     defaultCategory: String? = null,
     defaultType: Type = Type.EXPENSE,
@@ -347,6 +348,7 @@ fun AddTransactionScreen(
             if (transactionType != Type.TRANSFER.displayName && !isSplit && !isOffBudget) {
                 PickerTextField(
                     label = "Category", value = category, options = categoryOptions,
+                    supportingValues = categoryBalanceLabels,
                     onValueChange = { category = it; categoryIsExplicit = it.isNotBlank() },
                     autoOpen = autoStep == AddStep.Category,
                     onAutoOpenHandled = { autoStep = null },
@@ -452,6 +454,7 @@ fun AddTransactionScreen(
                                     label = "Category",
                                     value = line.category,
                                     options = categoryOptions,
+                                    supportingValues = categoryBalanceLabels,
                                     onValueChange = { value ->
                                         splitLines = splitLines.toMutableList().also {
                                             it[index] = line.copy(category = value)

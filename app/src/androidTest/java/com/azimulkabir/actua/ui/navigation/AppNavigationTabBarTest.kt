@@ -130,6 +130,19 @@ class AppNavigationTabBarTest {
         composeRule.onNodeWithContentDescription("Cancel", useUnmergedTree = true).assertExists()
     }
 
+    /** Regression coverage for issue #606: the bottom-nav Add button preselects the account when
+     * launched from an Account Detail screen, matching the floating "+ Transaction" button. */
+    @Test fun addTabFromAccountDetailPreselectsThatAccount() {
+        tabBarPreferences.restoreDefaults()
+        composeRule.setContent { MaterialTheme { AppNavigation() } }
+
+        composeRule.onNodeWithContentDescription("Accounts", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText("Everyday Checking").performClick()
+        composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).performClick()
+
+        composeRule.onNodeWithText("Everyday Checking").assertExists()
+    }
+
     @Test fun customizingFromSettingsUpdatesTheBottomBarImmediately() {
         // Tab bar Slice 4 (#483): the Customize Tab Bar screen, reached from Settings, is the only
         // way a real user can reach any of the non-default layouts the earlier slices/tests above
