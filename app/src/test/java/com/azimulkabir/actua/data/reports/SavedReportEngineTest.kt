@@ -15,6 +15,30 @@ class SavedReportEngineTest {
         assertEquals(LocalDate.of(2026, 1, 1) to today, SavedReportEngine.dateRange(row("Year to date"), today))
     }
 
+    @Test fun `include_current extends last-N ranges through the current interval`() {
+        // Upstream getLiveRange: "Last 6 months" with include_current spans Mar-Sep, not Mar-Aug (actua#637).
+        val today = LocalDate.of(2026, 9, 27)
+        val included = row("Last 6 months").copy(includeCurrent = true)
+        assertEquals(LocalDate.of(2026, 3, 1) to LocalDate.of(2026, 8, 31), SavedReportEngine.dateRange(row("Last 6 months"), today))
+        assertEquals(LocalDate.of(2026, 3, 1) to LocalDate.of(2026, 9, 30), SavedReportEngine.dateRange(included, today))
+        assertEquals(LocalDate.of(2026, 8, 1) to LocalDate.of(2026, 9, 30),
+            SavedReportEngine.dateRange(row("Last month").copy(includeCurrent = true), today))
+        // Sunday-start weeks: today is Sunday 2026-09-27.
+        assertEquals(LocalDate.of(2026, 9, 20) to LocalDate.of(2026, 9, 26), SavedReportEngine.dateRange(row("Last week"), today))
+        assertEquals(LocalDate.of(2026, 9, 20) to LocalDate.of(2026, 10, 3),
+            SavedReportEngine.dateRange(row("Last week").copy(includeCurrent = true), today))
+    }
+
+    @Test fun `week, quarter and 30-day presets resolve live instead of falling back to stored dates`() {
+        val today = LocalDate.of(2026, 9, 23)
+        val stale = { range: String -> row(range, start = "2025-01", end = "2025-01") }
+        assertEquals(LocalDate.of(2026, 9, 20) to LocalDate.of(2026, 9, 26), SavedReportEngine.dateRange(stale("This week"), today))
+        assertEquals(LocalDate.of(2026, 9, 13) to LocalDate.of(2026, 9, 19), SavedReportEngine.dateRange(stale("Last week"), today))
+        assertEquals(LocalDate.of(2026, 7, 1) to LocalDate.of(2026, 9, 30), SavedReportEngine.dateRange(stale("Current quarter"), today))
+        assertEquals(LocalDate.of(2026, 4, 1) to LocalDate.of(2026, 6, 30), SavedReportEngine.dateRange(stale("Previous quarter"), today))
+        assertEquals(LocalDate.of(2026, 8, 25) to today, SavedReportEngine.dateRange(stale("Last 30 days"), today))
+    }
+
     @Test fun `static ranges use stored month bounds`() {
         val r = SavedReportEngine.dateRange(row(null, true, "2026-02", "2026-03"), LocalDate.of(2026, 9, 22))
         assertEquals(LocalDate.of(2026, 2, 1) to LocalDate.of(2026, 3, 31), r)
