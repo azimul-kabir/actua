@@ -44,6 +44,7 @@ object CoreReportEngine {
         budgetedByCategory: (YearMonth) -> Map<String, Long> = { emptyMap() },
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
         today: LocalDate = LocalDate.now(),
+        transferAccountByPayee: Map<String, String> = emptyMap(),
     ): List<ReportDashboardPage> {
         val resolvedPages = if (pages.isEmpty()) listOf(DashboardPageRow("", "Dashboard")) else pages
         val context = RuleContext(
@@ -76,6 +77,7 @@ object CoreReportEngine {
                         compute(
                             row, transactions, context, incomeCategories, budgetedByCategory, today,
                             accounts.associate { it.id to it.balanceCents }, schedules, budgetMonth,
+                            transferAccountByPayee,
                         )
                     }
                 },
@@ -93,6 +95,7 @@ object CoreReportEngine {
         accountBalances: Map<String, Long> = emptyMap(),
         schedules: List<ActualScheduleSummary> = emptyList(),
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
+        transferAccountByPayee: Map<String, String> = emptyMap(),
     ): ReportWidget {
         val meta = row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
         val name = meta?.optString("name")?.takeIf(String::isNotBlank) ?: label(row.type)
@@ -135,7 +138,8 @@ object CoreReportEngine {
                 accountBalances, today)
             "budget-analysis-card" -> budgetAnalysis(row.id, name, meta, context, budgetMonth, start, end)
             "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, start, end)
-            "balance-forecast-card" -> balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context)
+            "balance-forecast-card" -> balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context,
+                transferAccountByPayee)
             "monte-carlo-card" -> monteCarlo(row.id, name, meta, accountBalances, today)
             else -> ReportWidget(row.id, ReportWidgetKind.UNSUPPORTED, name, sourceType = row.type)
         }
@@ -499,6 +503,7 @@ object CoreReportEngine {
         id: String, name: String, meta: JSONObject?, all: List<ActualTransaction>,
         balances: Map<String, Long>, today: LocalDate,
         schedules: List<ActualScheduleSummary>, context: RuleContext,
+        transferAccountByPayee: Map<String, String>,
     ): ReportWidget {
         val explicitAccounts = meta?.optJSONArray("accounts")?.strings()?.toSet()
         val selected = explicitAccounts.orEmpty().ifEmpty { balances.keys }
@@ -533,15 +538,26 @@ object CoreReportEngine {
             return postedDates.any { it in matchStartYmd..day.yyyymmdd }
         }
 
+        val transferPayeeByAccount = transferAccountByPayee.entries.associate { (payee, account) -> account to payee }
+        fun includesAccount(accountId: String?) =
+            if (accountId == null) includeAccountlessSchedules else accountId in selected
+
         val scheduleDeltasByDate = mutableMapOf<Int, Long>()
         val scheduleCountByDate = mutableMapOf<Int, MutableSet<String>>()
         schedules.forEach schedule@{ schedule ->
             if (schedule.completed) return@schedule
             val accountId = schedule.accountId
-            if (accountId == null) {
-                if (!includeAccountlessSchedules) return@schedule
-            } else if (accountId !in selected) return@schedule
+            // Mirrors upstream's `buildFutureScheduleOccurrences`: a schedule paying a transfer payee
+            // also projects the receiving leg (-amount) into that payee's account, so a transfer
+            // between two forecast accounts nets out instead of reading as money leaving both.
+            val transferAccountId = schedule.payeeId?.let(transferAccountByPayee::get)
+                ?.takeIf { accountId != null && it != accountId }
+            if (!includesAccount(accountId) && (transferAccountId == null || transferAccountId !in selected)) return@schedule
             val amount = schedule.postAmount
+            // Upstream clears the category on both legs when neither side crosses the budget boundary.
+            val categoryId = if (transferAccountId != null &&
+                (accountId in context.offBudgetAccountIds) == (transferAccountId in context.offBudgetAccountIds)
+            ) null else schedule.categoryId
             val occurrenceDays = when (val condition = schedule.dateCondition) {
                 is ScheduleDateCondition.Fixed -> listOf(condition.day)
                 is ScheduleDateCondition.Recurring -> schedule.nextDate?.let { nextDate ->
@@ -553,14 +569,24 @@ object CoreReportEngine {
                 val ymd = day.yyyymmdd
                 if (ymd < firstForecastYmd || ymd > endYmd) return@forEach
                 if (isOccurrencePosted(schedule, day)) return@forEach
-                val synthetic = ActualTransaction(
-                    "schedule-${schedule.id}-$ymd", accountId ?: UNASSIGNED_SCHEDULE_ACCOUNT_ID, ymd, amount,
-                    schedule.payeeId, null, schedule.categoryId, null, null, false, false, null, false, null,
-                    false, null, null, null, null,
-                )
-                if (!RulesEngine.matches(synthetic, conditions.first, conditions.second, context)) return@forEach
-                scheduleDeltasByDate[ymd] = (scheduleDeltasByDate[ymd] ?: 0L) + amount
-                scheduleCountByDate.getOrPut(ymd, ::mutableSetOf).add(schedule.id)
+                val legs = buildList {
+                    if (includesAccount(accountId)) add(Triple(accountId ?: UNASSIGNED_SCHEDULE_ACCOUNT_ID, amount, schedule.payeeId))
+                    if (transferAccountId != null && transferAccountId in selected) {
+                        add(Triple(transferAccountId, -amount, accountId?.let(transferPayeeByAccount::get)))
+                    }
+                }
+                legs.forEach { (legAccountId, legAmount, legPayeeId) ->
+                    val synthetic = ActualTransaction(
+                        "schedule-${schedule.id}-$ymd-$legAccountId", legAccountId, ymd, legAmount,
+                        legPayeeId, null, categoryId, null, null, false, false, null, false, null,
+                        false, null, null, null, null,
+                    )
+                    if (!RulesEngine.matches(synthetic, conditions.first, conditions.second, context)) return@forEach
+                    scheduleDeltasByDate[ymd] = (scheduleDeltasByDate[ymd] ?: 0L) + legAmount
+                    // Keyed by schedule like upstream's `countForecastScheduledOccurrences`, so a
+                    // transfer's two legs count as one scheduled transaction.
+                    scheduleCountByDate.getOrPut(ymd, ::mutableSetOf).add(schedule.id)
+                }
             }
         }
 
