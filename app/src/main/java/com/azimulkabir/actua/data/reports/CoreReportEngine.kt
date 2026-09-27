@@ -268,9 +268,10 @@ object CoreReportEngine {
         val live = all.filterNot { it.tombstone }
         val selectedAccounts = meta?.optJSONArray("incomeAccountIds")?.strings()?.toSet().orEmpty()
             .ifEmpty { accountBalances.keys }
-        // Mirrors upstream's `expenseCategoryIds` memo: an explicit (even empty) list is honored
-        // as-is, but when the widget hasn't set one, the default is every non-income category,
-        // excluding hidden ones unless `showHiddenCategories` is set - not "match everything".
+        // Mirrors upstream's `expenseCategoryIds` memo: an explicit (even empty) list is honored,
+        // but when the widget hasn't set one, the default is every non-income category - not
+        // "match everything". Hidden categories are dropped from either set unless
+        // `showHiddenCategories` is on, even when the explicit list names them.
         val explicitExpenseCategories = meta?.optJSONArray("expenseCategoryIds")?.strings()?.toSet()
         val showHiddenCategories = meta?.optBoolean("showHiddenCategories", false) ?: false
 
@@ -331,9 +332,9 @@ object CoreReportEngine {
         // inflate the projected expense (and understate years-to-retire parity with the PWA).
         val expenseByMonth = live.asSequence()
             .filter { it.date in startYmd..rangeEndYmd &&
-                if (explicitExpenseCategories != null) it.categoryId?.let(explicitExpenseCategories::contains) == true
-                else it.categoryId != null && it.categoryId !in incomeCategoryIds &&
-                    (showHiddenCategories || it.categoryId !in context.hiddenCategoryIds) }
+                it.categoryId != null &&
+                (explicitExpenseCategories?.contains(it.categoryId) ?: (it.categoryId !in incomeCategoryIds)) &&
+                (showHiddenCategories || it.categoryId !in context.hiddenCategoryIds) }
             .groupBy { YearMonth.from(it.localDate()) }
             .mapValues { (_, rows) -> -rows.sumOf { it.amountCents } }
 
@@ -373,14 +374,15 @@ object CoreReportEngine {
         }
         val adjustedExpenses = (maxOf(0.0, flatExpense) * adjustmentFactor).roundToLong()
 
-        var projectedBalance = historicalBalances.lastOrNull() ?: 0L
+        // Unrounded like upstream; only the income/expense comparison and plotted values round.
+        var projectedBalance = (historicalBalances.lastOrNull() ?: 0L).toDouble()
         var monthCursor = rangeEnd
         var crossoverIteration: Int? = null
         var crossoverMonth: YearMonth? = null
         for (i in 1..600) {
             monthCursor = monthCursor.plusMonths(1)
             projectedBalance += contribution
-            monthlyReturn?.let { projectedBalance = (projectedBalance * (1 + it)).roundToLong() }
+            monthlyReturn?.let { projectedBalance *= 1 + it }
             val projectedIncome = (projectedBalance * monthlySwr).roundToLong()
             val reached = projectedIncome >= adjustedExpenses
             if (i % 12 == 0 || (crossoverIteration == null && reached)) {
@@ -389,7 +391,9 @@ object CoreReportEngine {
             if (crossoverIteration == null && reached) { crossoverIteration = i; crossoverMonth = monthCursor }
             if (crossoverIteration != null && i > crossoverIteration + 12) break
         }
-        val monthsToRetire = crossoverMonth?.let { ChronoUnit.MONTHS.between(YearMonth.from(today), it) }?.coerceAtLeast(0)
+        // Upstream's `differenceInMonths(crossoverDate, now)`: whole months from today to the first
+        // of the crossover month.
+        val monthsToRetire = crossoverMonth?.let { ChronoUnit.MONTHS.between(today, it.atDay(1)) }?.coerceAtLeast(0)
         return ReportWidget(id, ReportWidgetKind.CROSSOVER, name, valueCents = monthsToRetire,
             comparisonCents = adjustedExpenses, points = points)
     }
