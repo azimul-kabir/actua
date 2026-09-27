@@ -24,6 +24,7 @@ import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
 import com.azimulkabir.actua.data.budget.AccountReorderPlanner
 import com.azimulkabir.actua.data.budget.model.ActualAccount
+import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
@@ -1238,6 +1239,9 @@ class ActuaRepository(context: Context) {
     /** Accounts sorted for the drag-to-reorder accounts screen. */
     fun accountsForReorder(): List<ActualAccount> =
         actualDatabase?.fetchAccounts()?.sortedWith(compareBy({ it.sortOrder }, { it.id })).orEmpty()
+
+    /** Actual's experimental account groups, for rendering group headers on the drag-to-reorder accounts screen. */
+    fun accountGroupsForReorder(): List<ActualAccountGroup> = actualDatabase?.fetchAccountGroups().orEmpty()
 
     fun moveAccount(move: AccountReorderPlanner.AccountMove): Boolean {
         actualEntities?.moveAccount(move.accountId, move.beforeAccountId) ?: return false
