@@ -23,4 +23,6 @@ data class SavedReportRow(
     val interval: String,
     /** `total` (one bar per group) or `time` (one bar per interval). */
     val mode: String = "total",
+    /** `include_current`: live "Last N" ranges also cover the current week/month. */
+    val includeCurrent: Boolean = false,
 )

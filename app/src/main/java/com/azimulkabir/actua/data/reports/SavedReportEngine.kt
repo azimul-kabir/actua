@@ -55,7 +55,7 @@ object SavedReportEngine {
     ): ReportWidget {
         val aggregator = shared.aggregator
         val (start, end) = dateRange(
-            view.datePreset?.let { row.copy(dateStatic = false, dateRange = it) } ?: row, today,
+            view.datePreset?.let { row.copy(dateStatic = false, dateRange = it, includeCurrent = false) } ?: row, today,
         )
         val selected = row.selectedCategories?.let { runCatching { JSONArray(it) }.getOrNull() }?.let { array ->
             (0 until array.length()).mapNotNull { array.optJSONObject(it)?.optString("id")?.takeIf(String::isNotBlank) }
@@ -280,14 +280,26 @@ object SavedReportEngine {
             else -> null
         }
         val month = YearMonth.from(today)
+        // Mirrors upstream's `getLiveRange`/`getSpecificRange`: a "Last N" range starts N intervals
+        // back and spans N - 1 more, or N more (through the current one) with `include_current`.
+        fun lastMonths(n: Int) = month.minusMonths(n.toLong()).let { start ->
+            start.atDay(1) to start.plusMonths((n - if (row.includeCurrent) 0 else 1).toLong()).atEndOfMonth()
+        }
+        fun lastWeeks(n: Int) = today.minusDays((today.dayOfWeek.value % 7).toLong()).minusWeeks(n.toLong()).let { start ->
+            start to start.plusWeeks((n - if (row.includeCurrent) 0 else 1).toLong()).plusDays(6)
+        }
+        val quarter = month.withMonth((month.monthValue - 1) / 3 * 3 + 1)
         if (!row.dateStatic) when (row.dateRange) {
-            "This week" -> today.minusDays((today.dayOfWeek.value % 7).toLong()).let { it to it.plusDays(6) }
-            "Last week" -> today.minusDays((today.dayOfWeek.value % 7 + 7).toLong()).let { it to it.plusDays(6) }
+            "This week" -> return lastWeeks(0).first.let { it to it.plusDays(6) }
+            "Last week" -> return lastWeeks(1)
             "This month" -> return month.atDay(1) to month.atEndOfMonth()
-            "Last month" -> return month.minusMonths(1).let { it.atDay(1) to it.atEndOfMonth() }
-            "Last 3 months" -> return month.minusMonths(3).atDay(1) to month.minusMonths(1).atEndOfMonth()
-            "Last 6 months" -> return month.minusMonths(6).atDay(1) to month.minusMonths(1).atEndOfMonth()
-            "Last 12 months" -> return month.minusMonths(12).atDay(1) to month.minusMonths(1).atEndOfMonth()
+            "Last month" -> return lastMonths(1)
+            "Current quarter" -> return quarter.atDay(1) to quarter.plusMonths(2).atEndOfMonth()
+            "Previous quarter" -> return quarter.minusMonths(3).let { it.atDay(1) to it.plusMonths(2).atEndOfMonth() }
+            "Last 30 days" -> return today.minusDays(29) to today
+            "Last 3 months" -> return lastMonths(3)
+            "Last 6 months" -> return lastMonths(6)
+            "Last 12 months" -> return lastMonths(12)
             "Year to date" -> return today.withDayOfYear(1) to today
             "Last year" -> return LocalDate.of(today.year - 1, 1, 1) to LocalDate.of(today.year - 1, 12, 31)
             "Prior year to date" -> return today.minusYears(1).withDayOfYear(1) to today.minusYears(1)
