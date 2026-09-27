@@ -886,6 +886,73 @@ class ActualBudgetReadModelTest {
         }
     }
 
+    @Test
+    fun unrelatedEditsKeepStaleMappedIdsRawAndMatchTheMessageLog() {
+        // Reads report mapped payee/category ids; an edit must only write the columns its
+        // messages carry, so the raw merged ids stay put like upstream's diffed update (actua#642).
+        val file = createDatabaseFile()
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO categories VALUES ('old-grocery','Old Groceries','essential',0,0,1,4)")
+                db.execSQL("INSERT INTO category_mapping VALUES ('old-grocery','grocery')")
+                db.execSQL("INSERT INTO payees VALUES ('old-store','Old Store',NULL,1)")
+                db.execSQL("INSERT INTO payee_mapping VALUES ('old-store','store')")
+                insertTransaction(db, "stale-cleared", 0, 0, "checking", "old-grocery", -250, "old-store", 20260801, 8.0)
+                insertTransaction(db, "stale-notes", 0, 0, "checking", "old-grocery", -250, "old-store", 20260801, 9.0)
+                insertTransaction(db, "imported", 0, 0, "checking", "old-grocery", -250, "old-store", 20260801, 10.0)
+                db.execSQL("UPDATE transactions SET financial_id = 'bank-1', pending = 1 WHERE id = 'imported'")
+            }
+            ActualBudgetDatabase.open(file).use { database ->
+                val writer = ActualTransactionWriter(database, nodeId = "efefefefefefefef")
+                writer.setCleared(requireNotNull(database.fetchTransaction("stale-cleared")), true)
+                writer.updateTransaction(
+                    requireNotNull(database.fetchTransaction("stale-notes")).copy(notes = "edited"), setOf("notes"),
+                )
+                val imported = requireNotNull(database.fetchTransaction("imported"))
+                writer.mutate(updates = listOf(imported to imported.copy(financialId = null, pending = false)))
+
+                val messages = database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString())
+                    .filter { it.dataset == "transactions" && it.row != "ordinary" }
+                    .map { Triple(it.row, it.column, it.value) }
+                assertEquals(
+                    setOf(
+                        Triple("stale-cleared", "cleared", "N:1"),
+                        Triple("stale-notes", "notes", "S:edited"),
+                        Triple("imported", "financial_id", "0:"),
+                        Triple("imported", "pending", "N:0"),
+                    ),
+                    messages.toSet(),
+                )
+                assertEquals(4, messages.size)
+                assertEquals("grocery", requireNotNull(database.fetchTransaction("stale-cleared")).categoryId)
+            }
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery(
+                    """SELECT id, description, category, cleared, notes, financial_id, pending FROM transactions
+                        WHERE id IN ('stale-cleared','stale-notes','imported') ORDER BY id""",
+                    null,
+                ).use { cursor ->
+                    val rows = buildList {
+                        while (cursor.moveToNext()) add(
+                            listOf(cursor.getString(0), cursor.getString(1), cursor.getString(2), cursor.getInt(3),
+                                cursor.getString(4), cursor.getString(5), cursor.getInt(6)),
+                        )
+                    }
+                    assertEquals(
+                        listOf(
+                            listOf("imported", "old-store", "old-grocery", 0, null, null, 0),
+                            listOf("stale-cleared", "old-store", "old-grocery", 1, null, null, 0),
+                            listOf("stale-notes", "old-store", "old-grocery", 0, "edited", null, 0),
+                        ),
+                        rows,
+                    )
+                }
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
     private fun withDatabase(block: (ActualBudgetDatabase) -> Unit) {
         val file = createDatabaseFile()
         try {
