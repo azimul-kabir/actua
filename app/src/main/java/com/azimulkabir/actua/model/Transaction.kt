@@ -21,6 +21,8 @@ data class Transaction(
     val categoryIsExplicit: Boolean = false,
     /** True for a synthetic row projecting a schedule's next occurrence — not a posted transaction. */
     val isUpcoming: Boolean = false,
+    /** True when [account] is an off-budget account, which Actual never requires a category for. */
+    val accountOffBudget: Boolean = false,
 )
 
 data class SplitLine(

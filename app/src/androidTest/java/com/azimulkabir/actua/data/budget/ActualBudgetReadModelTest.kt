@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.model.TransactionStatusFilter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -201,6 +202,30 @@ class ActualBudgetReadModelTest {
         assertTrue(database.fetchTransactions(query = "Store").any { it.id == "ordinary" })
         assertTrue(database.fetchTransactions(query = "Store", hideReconciled = true).none { it.id == "ordinary" })
         assertTrue(database.fetchTransactions(unclearedOnly = true).none { it.id == "ordinary" })
+    }
+
+    @Test
+    fun uncategorizedFilterExcludesOffBudgetAccounts() = withDatabase { database ->
+        val offBudgetAccountId = ActualEntityWriter(database, idFactory = { "off-budget-uncat-acct" })
+            .createAccount("Off Budget", offBudget = true, startingBalanceCents = 0)
+        var transactionId = 0
+        val ids = { "uncat-tx-${++transactionId}" }
+        val service = ActualTransactionFormService(
+            database, ActualTransactionWriter(database, idFactory = ids), idFactory = ids,
+        )
+
+        val offBudgetTxId = requireNotNull(service.save(ActualTransactionForm(
+            accountId = offBudgetAccountId, type = ActualTransactionType.EXPENSE,
+            amount = "5", payeeName = "Interest", date = 20260908,
+        )))
+        val onBudgetTxId = requireNotNull(service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "7", payeeName = "Store", date = 20260908,
+        )))
+
+        val uncategorized = database.fetchTransactions(statusFilter = TransactionStatusFilter.UNCATEGORIZED).map { it.id }
+        assertTrue(onBudgetTxId in uncategorized)
+        assertTrue(offBudgetTxId !in uncategorized)
     }
 
     @Test
