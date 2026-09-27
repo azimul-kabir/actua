@@ -65,21 +65,25 @@ object ScheduleRecurrence {
     private sealed interface Kind { data object Plain : Kind; data class Days(val values: List<Int>) : Kind; data class Weekdays(val values: List<Pair<Int, Int>>) : Kind }
     private data class SubRule(val config: RecurConfig, val kind: Kind)
 
-    fun nextOccurrence(config: RecurConfig, onOrAfter: DayDate): DayDate? {
-        var result = subRules(config).mapNotNull { first(it) { date -> date >= onOrAfter } }.minOrNull()
-            ?: subRules(config).mapNotNull(::last).maxOrNull() ?: return null
-        if (config.skipWeekend && result.isWeekend) result =
-            if (config.weekendSolveMode == "before") previousFriday(result) else nextMonday(result)
-        return result
-    }
+    fun nextOccurrence(config: RecurConfig, onOrAfter: DayDate): DayDate? =
+        unadjustedNext(config, onOrAfter)?.let { solveWeekend(config, it) }
 
+    /**
+     * Walks raw (pre-weekend-solve) occurrences, like upstream's `getFutureOccurrenceDates`
+     * skipping already-seen dates: a "before" weekend solve moves an occurrence back past the
+     * cursor, so a repeated date is skipped rather than treated as the end of the recurrence.
+     */
     fun upcomingDates(config: RecurConfig, count: Int, from: DayDate): List<DayDate> {
         val dates = mutableListOf<DayDate>(); var cursor = from
         while (dates.size < count) {
-            val next = nextOccurrence(config, cursor) ?: break
-            if (dates.isEmpty() && next < from.addingDays(-2)) break
-            if (dates.lastOrNull()?.let { next <= it } == true) break
-            dates += next; cursor = next.addingDays(1)
+            val raw = unadjustedNext(config, cursor) ?: break
+            val next = solveWeekend(config, raw)
+            val last = dates.lastOrNull()
+            if (last == null && next < from.addingDays(-2)) break
+            // Past the recurrence's end, unadjustedNext falls back to its final occurrence.
+            if (last != null && raw < cursor) break
+            if (last == null || next > last) dates += next
+            cursor = raw.addingDays(1)
         }
         return dates
     }
@@ -92,11 +96,12 @@ object ScheduleRecurrence {
         var previous: DayDate? = null
         var cursor = config.start
         repeat(PERIOD_CAP) {
-            val occurrence = nextOccurrence(config, cursor) ?: return previous
+            val raw = unadjustedNext(config, cursor) ?: return previous
+            val occurrence = solveWeekend(config, raw)
             if (occurrence >= date) return previous
-            if (previous?.let { occurrence <= it } == true) return previous
-            previous = occurrence
-            cursor = occurrence.addingDays(1)
+            if (raw < cursor) return previous
+            if (previous?.let { occurrence <= it } != true) previous = occurrence
+            cursor = raw.addingDays(1)
         }
         return previous
     }
@@ -111,6 +116,16 @@ object ScheduleRecurrence {
         var date = nextDate
         if (config.skipWeekend && config.weekendSolveMode == "before" && (date.weekday == 6 || date.isWeekend)) date = nextMonday(date)
         return date.addingDays(1)
+    }
+
+    private fun unadjustedNext(config: RecurConfig, onOrAfter: DayDate): DayDate? =
+        subRules(config).mapNotNull { first(it) { date -> date >= onOrAfter } }.minOrNull()
+            ?: subRules(config).mapNotNull(::last).maxOrNull()
+
+    private fun solveWeekend(config: RecurConfig, date: DayDate): DayDate = when {
+        !config.skipWeekend || !date.isWeekend -> date
+        config.weekendSolveMode == "before" -> previousFriday(date)
+        else -> nextMonday(date)
     }
 
     fun nextMonday(date: DayDate): DayDate { var result = date; while (result.weekday != 2) result = result.addingDays(1); return result }
