@@ -298,6 +298,46 @@ class CoreReportEngineTest {
         assertEquals(0.0, widget.percentage)
     }
 
+    @Test fun monteCarloPlansAYearsWithdrawalAgainstInflationCarriedFromThePriorYearNotThisOne() {
+        // Zero growth/volatility isolates inflation timing: with a 1,000 flat annual withdrawal and
+        // 50% inflation/year (no variance), a withdrawal planned against the inflation accumulated
+        // through the *prior* year (upstream's order) leaves 7,500 after two years - 10,000 - 1,000 -
+        // 1,500. Applying this year's inflation before that year's own withdrawal (the bug) instead
+        // inflates year 1's withdrawal too, leaving only 6,250 - 10,000 - 1,500 - 2,250.
+        val meta = """{"currentAge":60,"targetAge":62,"simulationCount":1000,
+            "inflationMean":0.5,"inflationStdDev":0.0,
+            "pots":[{"id":"p1","startingBalance":10000,"expectedReturnMean":0.0,"returnStdDev":0.0}],
+            "spendingPhases":[{"annualWithdrawal":1000}]}"""
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("mc", "monte-carlo-card", meta), emptyList(), today = today,
+        )
+        assertEquals(7_500L, widget.points.last().primaryCents)
+    }
+
+    @Test fun monteCarloAppliesOneSharedMarketShockAcrossAllPotsInsteadOfIndependentDraws() {
+        // Upstream draws one shared market shock per simulated year and scales it by each pot's own
+        // volatility, so N pots with identical mean/stddev behave exactly like one pot holding their
+        // combined balance. Independent per-pot draws (the bug) would diversify this away and change
+        // the result, so splitting the same total balance across two identical pots must be a no-op.
+        val singlePotMeta = """{"currentAge":60,"targetAge":61,"simulationCount":1000,"inflationMean":null,
+            "pots":[{"id":"p1","startingBalance":200000,"expectedReturnMean":0.05,"returnStdDev":0.3}],
+            "spendingPhases":[{"annualWithdrawal":0}]}"""
+        val twoPotMeta = """{"currentAge":60,"targetAge":61,"simulationCount":1000,"inflationMean":null,
+            "pots":[{"id":"p1","startingBalance":100000,"expectedReturnMean":0.05,"returnStdDev":0.3},
+                {"id":"p2","startingBalance":100000,"expectedReturnMean":0.05,"returnStdDev":0.3}],
+            "spendingPhases":[{"annualWithdrawal":0}]}"""
+        val single = CoreReportEngine.compute(
+            DashboardWidgetRow("mc1", "monte-carlo-card", singlePotMeta), emptyList(), today = today,
+        )
+        val twoPot = CoreReportEngine.compute(
+            DashboardWidgetRow("mc2", "monte-carlo-card", twoPotMeta), emptyList(), today = today,
+        )
+        assertEquals(
+            single.points.map { it.primaryCents to it.secondaryCents },
+            twoPot.points.map { it.primaryCents to it.secondaryCents },
+        )
+    }
+
     @Test fun monteCarloFallsBackToAccountBalancesWhenNoPotsConfigured() {
         val widget = CoreReportEngine.compute(
             DashboardWidgetRow("mc", "monte-carlo-card", null), emptyList(), today = today,
