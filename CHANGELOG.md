@@ -13,6 +13,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Monte Carlo Analysis now plans each year's withdrawal against the prior year's inflation and applies one shared market return across all pots, matching Actual's methodology more closely ([#627](https://github.com/azimul-kabir/actua/pull/627))
 - Custom report dashboard cards no longer show a total-sum headline above the chart, matching Actual's PWA ([#629](https://github.com/azimul-kabir/actua/pull/629))
 - Crossover Point no longer counts hidden categories in its expenses unless "show hidden categories" is on, matching Actual's PWA ([#635](https://github.com/azimul-kabir/actua/pull/635))
+- Schedules set to move weekend dates earlier no longer stop after their next occurrence in Balance Forecast, the bills calendar and schedule previews ([#633](https://github.com/azimul-kabir/actua/pull/633))
 
 ## [1.1.0] - 2026-09-27
 
