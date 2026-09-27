@@ -445,6 +445,30 @@ fun SettingsScreen(
                         },
                     )
                     ListItem(
+                        headlineContent = { Text("Website") },
+                        supportingContent = { Text("azimul-kabir.github.io/actua-website") },
+                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://azimul-kabir.github.io/actua-website")
+                        },
+                    )
+                    ListItem(
+                        headlineContent = { Text("FAQ") },
+                        supportingContent = { Text("Answers to common questions about Actua") },
+                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://azimul-kabir.github.io/actua-website#faq")
+                        },
+                    )
+                    ListItem(
+                        headlineContent = { Text("Join Discord") },
+                        supportingContent = { Text("Discuss Actua, test beta builds and help with development") },
+                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://discord.gg/FyGxRjmhw")
+                        },
+                    )
+                    ListItem(
                         headlineContent = { Text("Independent community project") },
                         supportingContent = {
                             Text("Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.")
