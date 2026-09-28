@@ -299,9 +299,12 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   to its own transaction list, ported 1:1 from Actuali's `CreditCardCycle`; a per-account
   "Show credit card section" toggle in the account dropdown menu hides the billing
   cycle/statement history section entirely
+- Statement-due tracking ported from Actuali: the Bills calendar, reminders, Credit Cards
+  row pill and account billing cycle card use the pending statement's remaining due (or
+  Paid) and due date, falling back to the live balance only without statement data
 - Opt-in Android credit-card payment reminders at 7, 5, 3, and 1 days before
-  due, with permission handling, stale-work cancellation, delivery-time balance
-  validation, and unpaid-first stable due-date sorting
+  due for an unpaid statement, with permission handling, stale-work cancellation,
+  delivery-time statement validation, and unpaid-first stable due-date sorting
 - Database-backed complete-history transaction search, including live split-child
   payees, notes, imported descriptions and categories; stable database paging
 - Character-by-character payee-picker filtering with one alphabetical result list

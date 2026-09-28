@@ -300,6 +300,47 @@ class ActualBudgetDatabase private constructor(
         """.trimIndent(), arrayOf(accountId, fromDate.toString(), toDate.toString()),
     ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else 0L }
 
+    /** One statement to price for [fetchCreditCardStatementDues]. */
+    data class StatementDueRequest(
+        val accountId: String,
+        val statementDate: DayDate,
+        val dueDate: DayDate,
+        val liveBalanceCents: Long,
+    )
+
+    /**
+     * Statement balance, payments since the statement closed, and remaining due for each
+     * request, grouped by account in request order.
+     */
+    @Synchronized
+    fun fetchCreditCardStatementDues(
+        requests: List<StatementDueRequest>,
+    ): Map<String, List<CreditCardCycle.StatementDue>> {
+        val result = linkedMapOf<String, MutableList<CreditCardCycle.StatementDue>>()
+        for (request in requests) {
+            val statementDate = request.statementDate.yyyymmdd.toString()
+            val (statementRawBalance, paymentsSince) = database.rawQuery(
+                """
+                    SELECT
+                        COALESCE(SUM(CASE WHEN t.date <= ? THEN t.amount ELSE 0 END), 0),
+                        COALESCE(SUM(CASE WHEN t.date > ? AND t.amount > 0 THEN t.amount ELSE 0 END), 0)
+                    FROM transactions t
+                    LEFT JOIN transactions p ON p.id = t.parent_id
+                    WHERE t.acct = ? AND t.date IS NOT NULL
+                      AND (t.tombstone = 0 OR t.tombstone IS NULL)
+                      AND (t.isChild = 0 OR t.isChild IS NULL OR
+                           (p.id IS NOT NULL AND (p.tombstone = 0 OR p.tombstone IS NULL)))
+                      AND (t.isParent = 0 OR t.isParent IS NULL)
+                """.trimIndent(),
+                arrayOf(statementDate, statementDate, request.accountId),
+            ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) to cursor.getLong(1) else 0L to 0L }
+            result.getOrPut(request.accountId) { mutableListOf() } += CreditCardCycle.calculateStatementDue(
+                statementRawBalance, paymentsSince, request.liveBalanceCents, request.dueDate,
+            )
+        }
+        return result
+    }
+
     /** Statement records for the given closed cycles on a credit card account, newest first;
      * cycles with no recorded transactions and zero statement balance are excluded. */
     @Synchronized

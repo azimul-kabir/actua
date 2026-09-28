@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.model.paymentDue
@@ -552,6 +553,26 @@ class ActualBudgetReadModelTest {
         assertTrue(database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString()).any {
             it.dataset == "categories" && it.row == "grocery" && it.column == "tombstone"
         })
+    }
+
+    @Test
+    fun creditCardStatementDuesUseLiveRowsAndKeepRequestOrder() = withDatabase { database ->
+        fun request(statement: Int, liveBalance: Long) = ActualBudgetDatabase.StatementDueRequest(
+            "checking", DayDate.fromYyyymmdd(statement)!!, DayDate(2026, 10, 1), liveBalance,
+        )
+
+        // Live checking rows: -1000 on 1 Sep, -1000 on 2 Sep, split children -600/-400 on 3 Sep.
+        // The split parent, the orphan child and the undated row never count.
+        val dues = database.fetchCreditCardStatementDues(listOf(
+            request(20260831, -3_000),
+            request(20260902, -3_000),
+            request(20260903, -1_500),
+        )).getValue("checking")
+
+        assertEquals(listOf(0L, 2_000L, 3_000L), dues.map { it.statementBalance })
+        assertEquals(listOf(0L, 0L, 0L), dues.map { it.paymentsSince })
+        assertEquals(listOf(0L, 2_000L, 1_500L), dues.map { it.remainingDue })
+        assertTrue(database.fetchCreditCardStatementDues(emptyList()).isEmpty())
     }
 
     @Test
