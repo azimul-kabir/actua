@@ -889,6 +889,8 @@ class ActualBudgetDatabase private constructor(
         unclearedOnly: Boolean = false,
         hideReconciled: Boolean = false,
         statusFilter: TransactionStatusFilter? = null,
+        startDate: Int? = null,
+        endDate: Int? = null,
     ): List<ActualTransaction> {
         require(limit >= 0 && offset >= 0)
         val args = mutableListOf<String>()
@@ -896,6 +898,11 @@ class ActualBudgetDatabase private constructor(
         if (accountId != null) {
             accountClause = " AND t.acct = ?"
             args += accountId
+        }
+        // Inclusive YYYYMMDD bounds; undated rows never match a bounded query.
+        val dateClause = buildString {
+            startDate?.let { append(" AND t.date >= ?"); args += it.toString() }
+            endDate?.let { append(" AND t.date <= ?"); args += it.toString() }
         }
         val statusFilterActive = statusFilter != null && statusFilter != TransactionStatusFilter.ALL
         val stateClause = buildString {
@@ -923,7 +930,7 @@ class ActualBudgetDatabase private constructor(
         args += limit.toString()
         args += offset.toString()
         val rows = mutableListOf<ActualTransaction>()
-        database.rawQuery(transactionSelect + accountClause + stateClause + searchClause + " ORDER BY t.date DESC, t.sort_order DESC, t.id LIMIT ? OFFSET ?", args.toTypedArray()).use { cursor ->
+        database.rawQuery(transactionSelect + accountClause + dateClause + stateClause + searchClause + " ORDER BY t.date DESC, t.sort_order DESC, t.id LIMIT ? OFFSET ?", args.toTypedArray()).use { cursor ->
             while (cursor.moveToNext()) rows += cursor.toActualTransaction()
         }
         val parentIds = rows.filter(ActualTransaction::isParent).map(ActualTransaction::id)

@@ -861,8 +861,7 @@ class ActuaRepository(context: Context) {
         val accounts = db.fetchAccounts()
         val accountNames = accounts.associate { it.id to it.name }
         val offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id }
-        return db.fetchTransactions(accountId = accountId, limit = Int.MAX_VALUE)
-            .filter { it.date in startDate..endDate }
+        return db.fetchTransactions(accountId = accountId, limit = Int.MAX_VALUE, startDate = startDate, endDate = endDate)
             .map { toTransaction(it, accountNames, offBudgetAccountIds) }
     }
 
