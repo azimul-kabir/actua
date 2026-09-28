@@ -20,8 +20,14 @@ data class CreditCardStatus(
     val cycleSpendCents: Long,
     val availableCreditCents: Long?,
     val closed: Boolean,
+    /** Recent statement dues, oldest first; null when statement data wasn't loaded. */
+    val statementDues: List<CreditCardCycle.StatementDue>? = null,
 ) {
     val cycle: CreditCardCycle get() = CreditCardCycle(config.statementDay, config.paymentDue)
+
+    /** The statement still awaiting payment, shared by every screen that shows the card. */
+    fun pendingStatementDue(today: DayDate = DayDate.today()): CreditCardCycle.StatementDue? =
+        statementDues?.let { CreditCardCycle.pendingStatementDue(it, today) }
 }
 
 /** Unpaid cards first by nearest due date, then paid cards, with a stable name tie-break. */
@@ -83,22 +89,30 @@ data class CreditCardCycle(
         }
     }
 
-    fun upcomingDueDate(today: DayDate = DayDate.today()): DayDate {
-        var due = dueDate(cycleRange(today).second)
+    /**
+     * The statement closing date whose payment is next due. Walks back through closed
+     * statements rather than assuming only the most recent one is pending, in case the
+     * offset exceeds a monthly cycle.
+     */
+    fun upcomingStatementDate(today: DayDate = DayDate.today()): DayDate {
+        var pending = cycleRange(today).second
         var statement = previousStatementDate(today)
         repeat(dueOffsetDays / 28 + 2) {
-            val statementDue = dueDate(statement)
-            if (today > statementDue) return due
-            due = statementDue
+            if (today > dueDate(statement)) return pending
+            pending = statement
             statement = previousStatementDate(statement)
         }
-        return due
+        return pending
     }
+
+    fun upcomingDueDate(today: DayDate = DayDate.today()): DayDate = dueDate(upcomingStatementDate(today))
 
     fun daysRemainingInCycle(today: DayDate = DayDate.today()) =
         maxOf(0, today.daysUntil(cycleRange(today).second))
 
-    fun daysUntilDue(today: DayDate = DayDate.today()) = maxOf(0, today.daysUntil(upcomingDueDate(today)))
+    /** Days until [dueDate], or until the next calculated due date when it is null. */
+    fun daysUntilDue(today: DayDate = DayDate.today(), dueDate: DayDate? = null) =
+        maxOf(0, today.daysUntil(dueDate ?: upcomingDueDate(today)))
 
     /** The last three closed billing statement cycles, ordered newest to oldest. */
     fun recentStatementCycles(today: DayDate = DayDate.today()): List<StatementCycle> {
@@ -117,19 +131,32 @@ data class CreditCardCycle(
     /** "Due today", "Due tomorrow", or "Due <date> (Nd)" in the user's date format. */
     fun dueSummary(
         today: DayDate = DayDate.today(),
+        dueDate: DayDate? = null,
         formatDueDate: (LocalDate) -> String = ::formatDate,
-    ): String = when (val days = daysUntilDue(today)) {
+    ): String = when (val days = daysUntilDue(today, dueDate)) {
         0 -> "Due today"
         1 -> "Due tomorrow"
         else -> {
-            val due = upcomingDueDate(today)
+            val due = dueDate ?: upcomingDueDate(today)
             "Due ${formatDueDate(LocalDate.of(due.year, due.month, due.day))} (${days}d)"
         }
     }
 
-    fun dueShortSummary(today: DayDate = DayDate.today()): String {
-        val days = daysUntilDue(today)
-        return if (days <= 1) dueSummary(today) else "Due in ${days}d"
+    fun dueShortSummary(today: DayDate = DayDate.today(), dueDate: DayDate? = null): String {
+        val days = daysUntilDue(today, dueDate)
+        return if (days <= 1) dueSummary(today, dueDate) else "Due in ${days}d"
+    }
+
+    /**
+     * Statements whose dues cards load, oldest first: the recent closed statements (the
+     * 60-day maximum offset means these cover every one still pending), plus the current
+     * cycle's statement when none of them is still due.
+     */
+    fun statementDueCycles(today: DayDate = DayDate.today()): List<StatementCycle> {
+        val recent = recentStatementCycles(today).reversed()
+        if (recent.any { today <= it.dueDate }) return recent
+        val (start, end) = cycleRange(today)
+        return recent + StatementCycle(start, end, dueDate(end))
     }
 
     /** A closed billing cycle's date range and the payment due date for its statement. */
@@ -167,6 +194,18 @@ data class CreditCardCycle(
     companion object {
         const val DEFAULT_DUE_OFFSET_DAYS = 15
         const val MAX_DUE_OFFSET_DAYS = 60
+
+        /**
+         * The statement still awaiting payment: the first unpaid one that isn't past due,
+         * else the first not-yet-due one even if already paid. [dues] are oldest first.
+         */
+        fun pendingStatementDue(dues: List<StatementDue>, today: DayDate = DayDate.today()): StatementDue? =
+            dues.firstOrNull { today <= it.dueDate && it.remainingDue > 0 }
+                ?: dues.firstOrNull { today <= it.dueDate }
+
+        /** Cards-row due pill: "$342.18 · Due in 27d", or the summary alone once settled. */
+        fun duePillText(amount: String, summary: String, remainingDue: Long): String =
+            if (remainingDue > 0) "$amount · $summary" else summary
 
         /** Computes the statement payment status given raw balances and payments. */
         fun calculateStatementDue(
