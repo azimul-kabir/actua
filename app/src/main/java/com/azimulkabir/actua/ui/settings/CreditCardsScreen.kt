@@ -45,6 +45,7 @@ import com.azimulkabir.actua.ui.theme.warning
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.util.Locale
 
 @Composable
 fun CreditCardsScreen(
@@ -61,8 +62,7 @@ fun CreditCardsScreen(
 ) {
     var editing by remember { mutableStateOf<CreditCardStatus?>(null) }
     var adding by remember { mutableStateOf(false) }
-    val configured = cards.mapTo(mutableSetOf()) { it.accountId }
-    val availableAccounts = accounts.filter { !it.closed && it.id !in configured }
+    val availableAccounts = creditCardCandidates(accounts, cards.mapTo(mutableSetOf()) { it.accountId })
 
     Column(modifier.fillMaxSize()) {
         ActuaScreenHeader(title = "Credit Cards", onBack = onBack) {
@@ -105,6 +105,17 @@ fun CreditCardsScreen(
         onSave(id, day, paymentDue, limit); editing = null
     }, onRemove = { onRemove(card.accountId); editing = null }) }
 }
+
+/**
+ * Open accounts that can be marked as a card: credit-type accounts first, then by name,
+ * with an id tie-break so the pre-selected first entry is stable (as in Actuali).
+ */
+internal fun creditCardCandidates(accounts: List<Account>, configuredIds: Set<String>): List<Account> =
+    accounts.filter { !it.closed && it.id !in configuredIds }.sortedWith(compareBy(
+        { if (it.type.equals("credit", ignoreCase = true)) 0 else 1 },
+        { it.name.lowercase(Locale.ROOT) },
+        { it.id },
+    ))
 
 @Composable
 private fun CreditCardRow(
