@@ -1,7 +1,8 @@
 package com.azimulkabir.actua.model
 
 import com.azimulkabir.actua.data.schedules.DayDate
-import java.time.format.DateTimeFormatter
+import com.azimulkabir.actua.ui.components.formatDate
+import java.time.LocalDate
 import java.util.Locale
 
 data class CreditCardConfig(
@@ -113,14 +114,16 @@ data class CreditCardCycle(
         return cycles
     }
 
-    fun dueSummary(today: DayDate = DayDate.today()): String = when (val days = daysUntilDue(today)) {
+    /** "Due today", "Due tomorrow", or "Due <date> (Nd)" in the user's date format. */
+    fun dueSummary(
+        today: DayDate = DayDate.today(),
+        formatDueDate: (LocalDate) -> String = ::formatDate,
+    ): String = when (val days = daysUntilDue(today)) {
         0 -> "Due today"
         1 -> "Due tomorrow"
         else -> {
             val due = upcomingDueDate(today)
-            val formatted = java.time.LocalDate.of(due.year, due.month, due.day)
-                .format(DateTimeFormatter.ofPattern("dd-MMM-yy", Locale.ENGLISH))
-            "Due $formatted (${days}d)"
+            "Due ${formatDueDate(LocalDate.of(due.year, due.month, due.day))} (${days}d)"
         }
     }
 

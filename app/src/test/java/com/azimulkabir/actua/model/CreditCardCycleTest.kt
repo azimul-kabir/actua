@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.model
 
 import com.azimulkabir.actua.data.schedules.DayDate
+import com.azimulkabir.actua.ui.components.DateDisplay
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -139,5 +140,24 @@ class CreditCardCycleTest {
         assertEquals(25_000L, due.statementBalance)
         assertEquals(10_000L, due.remainingDue)
         assertEquals(false, due.isPaid)
+    }
+
+    @Test fun dueSummaryFormatsTheDateWithTheGivenFormatter() {
+        val cycle = CreditCardCycle(statementDay = 15, dueOffsetDays = 25)
+        val today = DayDate(2026, 3, 20)
+
+        assertEquals("Due 2026/4/9 (20d)", cycle.dueSummary(today) { "${it.year}/${it.monthValue}/${it.dayOfMonth}" })
+        assertEquals("Due tomorrow", cycle.dueSummary(DayDate(2026, 4, 8)) { error("not formatted") })
+    }
+
+    @Test fun dueSummaryFollowsTheDisplayDateFormatByDefault() {
+        val previous = DateDisplay.format
+        try {
+            DateDisplay.format = "YYYY-MM-DD"
+            assertEquals("Due 2026-04-09 (20d)",
+                CreditCardCycle(statementDay = 15, dueOffsetDays = 25).dueSummary(DayDate(2026, 3, 20)))
+        } finally {
+            DateDisplay.format = previous
+        }
     }
 }
