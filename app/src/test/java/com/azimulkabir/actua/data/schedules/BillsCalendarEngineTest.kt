@@ -1,5 +1,8 @@
 package com.azimulkabir.actua.data.schedules
 
+import com.azimulkabir.actua.model.CreditCardConfig
+import com.azimulkabir.actua.model.CreditCardCycle
+import com.azimulkabir.actua.model.CreditCardStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -131,4 +134,39 @@ class BillsCalendarEngineTest {
         null,
         status,
     )
+
+    private fun cardBill(
+        dues: List<CreditCardCycle.StatementDue>?, today: DayDate, balance: Long = -5_000,
+    ): BillCalendarItem {
+        val card = CreditCardStatus("card1", "Visa", balance, CreditCardConfig(statementDay = 15, dueOffsetDays = 25),
+            0, null, false, dues)
+        return BillsCalendarEngine.itemsForCreditCards(listOf(card), 2026, 4, today).single()
+    }
+
+    private fun statement(remaining: Long, balance: Long = 25_000L) =
+        CreditCardCycle.StatementDue(balance, balance - remaining, remaining, DayDate(2026, 4, 9))
+
+    @Test fun creditCardBillUsesTheStatementDueInsteadOfTheLiveBalance() {
+        val paid = cardBill(listOf(statement(remaining = 0)), DayDate(2026, 4, 5))
+        assertEquals(DayDate(2026, 4, 9), paid.date)
+        assertEquals(ScheduleStatus.PAID, paid.status)
+        assertEquals(-25_000L, paid.amountCents)
+
+        val zero = cardBill(listOf(statement(remaining = 0, balance = 0)), DayDate(2026, 4, 5))
+        assertEquals(ScheduleStatus.PAID, zero.status)
+        assertEquals(0L, zero.amountCents)
+
+        val upcoming = cardBill(listOf(statement(remaining = 10_000)), DayDate(2026, 4, 5))
+        assertEquals(ScheduleStatus.UPCOMING, upcoming.status)
+        assertEquals(-10_000L, upcoming.amountCents)
+
+        assertEquals(ScheduleStatus.MISSED, cardBill(listOf(statement(remaining = 10_000)), DayDate(2026, 4, 10)).status)
+    }
+
+    @Test fun creditCardBillFallsBackToTheLiveBalanceWithoutStatementData() {
+        val bill = cardBill(null, DayDate(2026, 4, 5))
+        assertEquals(ScheduleStatus.UPCOMING, bill.status)
+        assertEquals(-5_000L, bill.amountCents)
+        assertEquals(ScheduleStatus.PAID, cardBill(null, DayDate(2026, 4, 5), balance = 0).status)
+    }
 }

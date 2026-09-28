@@ -731,17 +731,28 @@ class ActuaRepository(context: Context) {
     fun creditCards(includeClosed: Boolean = false): List<CreditCardStatus> {
         val db = actualDatabase ?: return emptyList()
         val configs = db.fetchCreditCardConfigs()
-        return db.fetchAccounts().mapNotNull { account ->
+        val today = DayDate.today()
+        val cards = db.fetchAccounts().mapNotNull { account ->
             val config = configs[account.id] ?: return@mapNotNull null
             if (account.closed && !includeClosed) return@mapNotNull null
+            account to config
+        }
+        // Closed cards are inactive, so only open ones get statement dues (as in Actuali).
+        val dues = db.fetchCreditCardStatementDues(cards.filterNot { it.first.closed }.flatMap { (account, config) ->
+            CreditCardCycle(config.statementDay, config.paymentDue).statementDueCycles(today).map {
+                ActualBudgetDatabase.StatementDueRequest(account.id, it.end, it.dueDate, account.balanceCents)
+            }
+        })
+        return cards.map { (account, config) ->
             val cycle = CreditCardCycle(config.statementDay, config.paymentDue)
-            val range = cycle.cycleRange()
+            val range = cycle.cycleRange(today)
             CreditCardStatus(
                 account.id, account.name, account.balanceCents, config,
                 db.fetchAccountSpend(account.id, range.first.yyyymmdd, range.second.yyyymmdd),
                 config.limitCents?.plus(account.balanceCents), account.closed,
+                dues[account.id],
             )
-        }.sortedForPaymentPriority()
+        }.sortedForPaymentPriority(today)
     }
 
     fun setCreditCard(accountId: String, statementDay: Int?,
