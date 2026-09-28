@@ -40,7 +40,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   Actual session-token capture, recovery from an incomplete browser return without leaving the
   connection UI loading, and preservation of password login on mixed-mode servers
 - Server file lifecycle endpoints, including Actual-compatible blank-budget creation/upload
-  and exact-name confirmed server deletion with local cleanup
+  and exact-name confirmed server deletion with local cleanup; itemized with upstream links,
+  test evidence and filed divergences (re-selecting a downloaded budget re-downloads it, no
+  re-sign-in after token expiry) in [docs/SERVER_FILE_PARITY.md](docs/SERVER_FILE_PARITY.md)
 - Local-only demo-budget lifecycle with fixed `demo` identity, current-schema recreation,
   no cloud registration, explicit sync rejection, and Connection & Data launch/reset flow
 - Demo seed coverage for checking, savings, credit-card and off-budget investment accounts;
