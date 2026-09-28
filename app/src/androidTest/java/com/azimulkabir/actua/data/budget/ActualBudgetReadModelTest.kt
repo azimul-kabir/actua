@@ -4,7 +4,10 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.schedules.DayDate
+import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.TransactionStatusFilter
+import com.azimulkabir.actua.model.paymentDue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -553,6 +556,26 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun creditCardStatementDuesUseLiveRowsAndKeepRequestOrder() = withDatabase { database ->
+        fun request(statement: Int, liveBalance: Long) = ActualBudgetDatabase.StatementDueRequest(
+            "checking", DayDate.fromYyyymmdd(statement)!!, DayDate(2026, 10, 1), liveBalance,
+        )
+
+        // Live checking rows: -1000 on 1 Sep, -1000 on 2 Sep, split children -600/-400 on 3 Sep.
+        // The split parent, the orphan child and the undated row never count.
+        val dues = database.fetchCreditCardStatementDues(listOf(
+            request(20260831, -3_000),
+            request(20260902, -3_000),
+            request(20260903, -1_500),
+        )).getValue("checking")
+
+        assertEquals(listOf(0L, 2_000L, 3_000L), dues.map { it.statementBalance })
+        assertEquals(listOf(0L, 0L, 0L), dues.map { it.paymentsSince })
+        assertEquals(listOf(0L, 2_000L, 1_500L), dues.map { it.remainingDue })
+        assertTrue(database.fetchCreditCardStatementDues(emptyList()).isEmpty())
+    }
+
+    @Test
     fun creditCardConfigUsesIosPreferenceContractAndSyncLog() = withDatabase { database ->
         val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
         writer.setPreference(
@@ -568,6 +591,23 @@ class ActualBudgetReadModelTest {
         })
         writer.setPreference(ActualBudgetDatabase.CREDIT_CARD_PREFERENCE_PREFIX + "checking", null)
         assertTrue(database.fetchCreditCardConfigs().isEmpty())
+    }
+
+    @Test
+    fun creditCardConfigsSkipOutOfRangeSyncedValues() = withDatabase { database ->
+        val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
+        val prefix = ActualBudgetDatabase.CREDIT_CARD_PREFERENCE_PREFIX
+        writer.setPreference(prefix + "valid", "{\"statementDay\":15,\"dueOffsetDays\":25}")
+        writer.setPreference(prefix + "fixedDay", "{\"statementDay\":15,\"dueOffsetDays\":90,\"dueDay\":1}")
+        writer.setPreference(prefix + "zeroDay", "{\"statementDay\":0,\"dueOffsetDays\":25}")
+        writer.setPreference(prefix + "lateDay", "{\"statementDay\":32}")
+        writer.setPreference(prefix + "longOffset", "{\"statementDay\":15,\"dueOffsetDays\":90}")
+        writer.setPreference(prefix + "zeroOffset", "{\"statementDay\":15,\"dueOffsetDays\":0}")
+
+        val configs = database.fetchCreditCardConfigs()
+
+        assertEquals(setOf("valid", "fixedDay"), configs.keys)
+        configs.values.forEach { CreditCardCycle(it.statementDay, it.paymentDue).upcomingDueDate() }
     }
 
     @Test

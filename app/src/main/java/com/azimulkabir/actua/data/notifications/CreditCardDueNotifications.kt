@@ -23,6 +23,7 @@ import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.DateDisplay
@@ -77,12 +78,37 @@ object CreditCardDueLaunch {
 object CreditCardReminderPlanner {
     val reminderOffsets = listOf(7, 5, 3, 1)
 
+    /**
+     * The payment a reminder is for, or null when the card needs none: its first unpaid
+     * statement that isn't past due, falling back to the live balance and calculated due
+     * date when statement data is unavailable.
+     */
+    fun reminderDue(card: CreditCardStatus, today: DayDate): ReminderDue? {
+        if (card.closed) return null
+        val dues = card.statementDues
+        val statementDue = dues?.firstOrNull { today <= it.dueDate && it.remainingDue > 0 }
+        val unpaid = if (dues == null) card.balanceCents < 0 else statementDue != null
+        if (!unpaid) return null
+        return ReminderDue(statementDue?.dueDate ?: card.cycle.upcomingDueDate(today), statementDue)
+    }
+
+    /** "Statement due X" for an unpaid statement, else the live balance owed. */
+    fun body(
+        statementDue: CreditCardCycle.StatementDue?, balanceCents: Long, dueDate: String,
+        formatCents: (Long) -> String,
+    ): String = if (statementDue != null && statementDue.remainingDue > 0) {
+        "Statement due ${formatCents(statementDue.remainingDue)}. Payment due $dueDate."
+    } else {
+        "Current balance ${formatCents(kotlin.math.abs(balanceCents))}. Payment due $dueDate."
+    }
+
+    data class ReminderDue(val dueDate: DayDate, val statementDue: CreditCardCycle.StatementDue?)
+
     fun plan(cards: List<CreditCardStatus>, now: ZonedDateTime = ZonedDateTime.now()): List<CreditCardReminder> {
         val today = DayDate.from(now.toLocalDate())
         return cards.asSequence()
-            .filter { !it.closed && it.balanceCents < 0 }
-            .flatMap { card ->
-                val dueDate = card.cycle.upcomingDueDate(today)
+            .mapNotNull { card -> reminderDue(card, today)?.let { card to it.dueDate } }
+            .flatMap { (card, dueDate) ->
                 reminderOffsets.asSequence().mapNotNull { offset ->
                     val reminderDay = dueDate.addingDays(-offset)
                     val trigger = LocalDate.of(reminderDay.year, reminderDay.month, reminderDay.day)
@@ -143,11 +169,11 @@ class CreditCardDueNotificationWorker(context: Context, parameters: WorkerParame
         val card = try { repository.creditCards().firstOrNull { it.accountId == accountId } }
             finally { repository.close() }
         val today = DayDate.today()
-        if (card == null || card.closed || card.balanceCents >= 0 ||
-            card.cycle.upcomingDueDate(today) != dueDate || today.daysUntil(dueDate) != offset) {
+        val due = card?.let { CreditCardReminderPlanner.reminderDue(it, today) }
+        if (card == null || due == null || due.dueDate != dueDate || today.daysUntil(dueDate) != offset) {
             return Result.success()
         }
-        postNotification(applicationContext, card, dueDate, offset)
+        postNotification(applicationContext, card, dueDate, offset, due.statementDue)
         return Result.success()
     }
 
@@ -161,7 +187,10 @@ class CreditCardDueNotificationWorker(context: Context, parameters: WorkerParame
 private fun notificationsAllowed(context: Context) = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
     ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-private fun postNotification(context: Context, card: CreditCardStatus, dueDate: DayDate, offset: Int) {
+private fun postNotification(
+    context: Context, card: CreditCardStatus, dueDate: DayDate, offset: Int,
+    statementDue: CreditCardCycle.StatementDue?,
+) {
     if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED) return
 
@@ -183,15 +212,16 @@ private fun postNotification(context: Context, card: CreditCardStatus, dueDate: 
     CurrencyDisplay.symbolOnly = display.currencySymbolOnly
     NumberDisplay.format = display.numberFormat
     DateDisplay.format = display.dateFormat
-    val amount = formatMoneyCents(kotlin.math.abs(card.balanceCents), display.hideDecimalPlaces,
-        respectBalanceVisibility = false)
     val date = formatDate(LocalDate.of(dueDate.year, dueDate.month, dueDate.day))
     val whenText = if (offset == 1) "tomorrow" else "in $offset days"
+    val body = CreditCardReminderPlanner.body(statementDue, card.balanceCents, date) { cents ->
+        formatMoneyCents(cents, display.hideDecimalPlaces, respectBalanceVisibility = false)
+    }
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(R.drawable.actua_launcher_monochrome)
         .setContentTitle("${card.accountName} payment due $whenText")
-        .setContentText("Current balance $amount. Payment due $date.")
-        .setStyle(NotificationCompat.BigTextStyle().bigText("Current balance $amount. Payment due $date."))
+        .setContentText(body)
+        .setStyle(NotificationCompat.BigTextStyle().bigText(body))
         .setContentIntent(openApp).setAutoCancel(true).setCategory(NotificationCompat.CATEGORY_REMINDER)
         .build()
     NotificationManagerCompat.from(context).notify(card.accountId.hashCode() * 31 + offset, notification)
