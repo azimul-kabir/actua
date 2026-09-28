@@ -22,6 +22,7 @@ import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.schedules.DayDate
+import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
@@ -59,6 +60,19 @@ data class CreditCardReminder(
     val triggerAt: ZonedDateTime,
 ) {
     val workName: String get() = "actua-credit-card-due-$accountId-${offsetDays}d"
+}
+
+/** Launch contract for tapping a reminder: open the card's account, like Actuali's router. */
+object CreditCardDueLaunch {
+    const val ACTION = "com.azimulkabir.actua.OPEN_CREDIT_CARD_ACCOUNT"
+    const val EXTRA_ACCOUNT_ID = "accountId"
+
+    /**
+     * The register key (account name) for the tapped card, or null when the account is gone.
+     * The notification carries the id, since the name can change before the tap.
+     */
+    fun accountName(accounts: List<Account>, accountId: String?): String? =
+        accountId?.let { id -> accounts.firstOrNull { it.id == id }?.name }
 }
 
 object CreditCardReminderPlanner {
@@ -184,8 +198,13 @@ private fun postNotification(
     manager.createNotificationChannel(NotificationChannel(
         CHANNEL_ID, "Credit card due dates", NotificationManager.IMPORTANCE_DEFAULT
     ).apply { description = "Payment reminders for tracked credit cards" })
+    val openAccount = Intent(context, MainActivity::class.java).apply {
+        action = CreditCardDueLaunch.ACTION
+        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        putExtra(CreditCardDueLaunch.EXTRA_ACCOUNT_ID, card.accountId)
+    }
     val openApp = PendingIntent.getActivity(
-        context, card.accountId.hashCode(), Intent(context, MainActivity::class.java),
+        context, card.accountId.hashCode(), openAccount,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
     val display = DisplayPreferences(context)
