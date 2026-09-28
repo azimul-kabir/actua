@@ -44,6 +44,7 @@ import com.azimulkabir.actua.data.sync.MurmurHash3
 import org.json.JSONObject
 import com.azimulkabir.actua.model.CreditCardConfig
 import com.azimulkabir.actua.model.CreditCardCycle
+import com.azimulkabir.actua.model.paymentDue
 import java.io.Closeable
 import java.io.File
 
@@ -274,7 +275,10 @@ class ActualBudgetDatabase private constructor(
                         json.getInt("dueDay").also { require(it in 1..31) }
                     } else null
                     val limit = if (json.has("limit") && !json.isNull("limit")) json.getLong("limit") else null
+                    // Another client can sync a statement day or offset the cycle rejects;
+                    // skip that card here rather than throw later while building it.
                     CreditCardConfig(day, offset, limit, dueDay)
+                        .also { CreditCardCycle(it.statementDay, it.paymentDue) }
                 }.getOrNull()?.let { result[id.removePrefix(prefix)] = it }
             }
         }
