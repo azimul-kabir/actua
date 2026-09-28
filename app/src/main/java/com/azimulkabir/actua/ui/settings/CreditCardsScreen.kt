@@ -34,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Account
@@ -131,19 +133,34 @@ private fun CreditCardRow(
         days <= 7 -> MaterialTheme.colorScheme.warning
         else -> Color(0xFFF9A825)
     }
-    val summary = card.cycle.dueShortSummary(dueDate = statementDue?.dueDate)
-    val dueText = when {
-        isPaid -> "Paid"
-        statementDue != null -> CreditCardCycle.duePillText(
-            formatMoneyCents(statementDue.remainingDue, hideDecimals), summary, statementDue.remainingDue)
-        else -> summary
+    // The pill's short text and its long form for TalkBack, which keeps the date the pill drops.
+    fun dueText(short: Boolean): String {
+        if (isPaid) return "Paid"
+        val summary = if (short) card.cycle.dueShortSummary(dueDate = statementDue?.dueDate)
+            else card.cycle.dueSummary(dueDate = statementDue?.dueDate)
+        return statementDue?.let {
+            CreditCardCycle.duePillText(formatMoneyCents(it.remainingDue, hideDecimals), summary, it.remainingDue)
+        } ?: summary
     }
+    val pillText = dueText(short = true)
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.padding(vertical = 0.dp).align(Alignment.CenterVertically)) {
                 Surface(color = urgency, modifier = Modifier.padding(0.dp)) { Box(Modifier.padding(horizontal = 2.dp, vertical = 34.dp)) }
             }
-            Column(Modifier.padding(12.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // One spoken element per card, worded like Actuali's row; the long-form due summary
+            // keeps the date the pill drops. The statements button stays its own element.
+            val description = creditCardRowDescription(
+                card.accountName,
+                formatMoneyCents(card.balanceCents, hideDecimals),
+                formatMoneyCents(card.cycleSpendCents, hideDecimals),
+                dueText(short = false),
+                card.availableCreditCents?.let { formatMoneyCents(it, hideDecimals) },
+            )
+            Column(
+                Modifier.padding(12.dp).weight(1f).clearAndSetSemantics { contentDescription = description },
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Row(Modifier.fillMaxWidth()) {
                     Text(card.accountName, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                     Text(formatMoneyCents(card.balanceCents, hideDecimals), fontWeight = FontWeight.SemiBold)
@@ -152,7 +169,7 @@ private fun CreditCardRow(
                     Text("Spend ${formatMoneyCents(card.cycleSpendCents, hideDecimals)} · ${card.cycle.daysRemainingInCycle()}d left",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f))
-                    Text(dueText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
+                    Text(pillText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 8.dp))
                 }
                 card.availableCreditCents?.let {
@@ -165,6 +182,14 @@ private fun CreditCardRow(
             }
         }
     }
+}
+
+/** TalkBack description for a card row: "Visa, balance -$120.00, cycle spend $80.00, Due … (9d)". */
+internal fun creditCardRowDescription(
+    name: String, balance: String, cycleSpend: String, dueSummary: String, availableCredit: String?,
+): String = buildString {
+    append("$name, balance $balance, cycle spend $cycleSpend, $dueSummary")
+    availableCredit?.let { append(", available credit $it") }
 }
 
 @Composable

@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- TalkBack now reads each card on the Credit Cards screen as a single description ([#688](https://github.com/azimul-kabir/actua/pull/688))
 - The credit card due date now follows the selected date format ([#686](https://github.com/azimul-kabir/actua/pull/686))
 - Credit card bills, payment reminders and card rows now show the statement amount still owed, and Paid once the statement is paid ([#684](https://github.com/azimul-kabir/actua/pull/684))
 - Fixed a possible crash on opening a budget with an invalid synced credit card billing cycle ([#683](https://github.com/azimul-kabir/actua/pull/683))
