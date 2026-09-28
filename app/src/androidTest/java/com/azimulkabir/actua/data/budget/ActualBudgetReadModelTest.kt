@@ -553,6 +553,21 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun transactionDateBoundsAreInclusiveAndMatchFilteringFullHistory() = withDatabase { database ->
+        val all = database.fetchTransactions(accountId = "checking", limit = Int.MAX_VALUE)
+        fun bounded(start: Int, end: Int) =
+            database.fetchTransactions(accountId = "checking", limit = Int.MAX_VALUE, startDate = start, endDate = end)
+
+        assertEquals(listOf("transfer-out"), bounded(20260902, 20260902).map { it.id })
+        assertEquals(all.filter { it.date in 20260901..20260903 }.map { it.id }, bounded(20260901, 20260903).map { it.id })
+        assertEquals(
+            all.first { it.id == "split-parent" }.splitPortions.map { it.id },
+            bounded(20260903, 20260903).first { it.id == "split-parent" }.splitPortions.map { it.id },
+        )
+        assertTrue(bounded(20260904, 20261231).isEmpty())
+    }
+
+    @Test
     fun creditCardConfigUsesIosPreferenceContractAndSyncLog() = withDatabase { database ->
         val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
         writer.setPreference(
