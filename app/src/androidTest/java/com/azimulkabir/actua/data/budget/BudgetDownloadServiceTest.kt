@@ -8,6 +8,7 @@ import com.azimulkabir.actua.data.network.RemoteBudgetFile
 import com.azimulkabir.actua.data.security.BudgetEncryptionKeyStore
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayOutputStream
@@ -82,9 +83,87 @@ class BudgetDownloadServiceTest {
         }
     }
 
+    @Test
+    fun openingADownloadedBudgetKeepsUnsyncedLocalEditsAndMakesNoRequest() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val budget = files.createBudget("Offline ${UUID.randomUUID()}")
+        try {
+            files.saveCloudRegistration(budget.id, "cloud-offline", "sync-group")
+            // The server still has the snapshot from before the offline edit.
+            val staleSnapshot = archiveFromBudget(files, budget.id)
+            val requests = mutableListOf<String>()
+            val server = ActualServerClient { request ->
+                requests += request.url.path
+                ActualHttpResponse(200, staleSnapshot)
+            }
+            val service = BudgetDownloadService(server, files, BudgetEncryptionKeyStore(context))
+            ActualBudgetDatabase.open(files.databaseFile(budget.id)).use { database ->
+                ActualEntityWriter(database, nodeId = "abababababababab")
+                    .renameCategory(GENERAL_CATEGORY_ID, "Renamed offline")
+            }
+            val pending = unsyncedMessages(files, budget.id)
+            assertTrue(pending.isNotEmpty())
+
+            val opened = service.openOrDownload(
+                "https://actual.test", "token",
+                RemoteBudgetFile("cloud-offline", "sync-group", "Offline", null),
+            )
+
+            assertEquals(budget.id, opened.id)
+            assertTrue("Opening a downloaded budget must not contact the server", requests.isEmpty())
+            assertEquals(pending, unsyncedMessages(files, budget.id))
+            SQLiteDatabase.openDatabase(files.databaseFile(budget.id).path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT name FROM categories WHERE id = ?", arrayOf(GENERAL_CATEGORY_ID)).use {
+                    assertTrue(it.moveToFirst())
+                    assertEquals("Renamed offline", it.getString(0))
+                }
+            }
+        } finally {
+            runCatching { files.deleteBudget(budget.id) }
+        }
+    }
+
+    @Test
+    fun budgetWithoutAnInstalledDatabaseIsDownloaded() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val source = files.createBudget("Missing ${UUID.randomUUID()}")
+        try {
+            val archive = archiveFromBudget(files, source.id)
+            files.saveCloudRegistration(source.id, "cloud-missing", "sync-group")
+            files.databaseFile(source.id).delete()
+            var downloads = 0
+            val server = ActualServerClient { downloads++; ActualHttpResponse(200, archive) }
+            val service = BudgetDownloadService(server, files, BudgetEncryptionKeyStore(context))
+            val remote = RemoteBudgetFile("cloud-missing", "sync-group", "Missing", null)
+
+            assertNull(service.localCopy(remote))
+            val opened = service.openOrDownload("https://actual.test", "token", remote)
+
+            assertEquals(1, downloads)
+            assertEquals(source.id, opened.id)
+            assertTrue(files.databaseFile(source.id).isFile)
+        } finally {
+            runCatching { files.deleteBudget(source.id) }
+        }
+    }
+
+    private fun unsyncedMessages(files: BudgetFileManager, budgetId: String): List<String> =
+        SQLiteDatabase.openDatabase(files.databaseFile(budgetId).path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+            db.rawQuery("SELECT timestamp, dataset, row, `column` FROM messages_crdt ORDER BY timestamp", null).use {
+                buildList { while (it.moveToNext()) add("${it.getString(0)} ${it.getString(1)} ${it.getString(2)} ${it.getString(3)}") }
+            }
+        }
+
     private fun archiveFromBudget(files: BudgetFileManager, budgetId: String): ByteArray =
         ByteArrayOutputStream().use { bytes ->
             files.writeArchive(budgetId, bytes)
             bytes.toByteArray()
         }
+
+    private companion object {
+        /** "General" in the blank budget template. */
+        const val GENERAL_CATEGORY_ID = "af375fd4-d759-46b3-bffe-74a856151d57"
+    }
 }
