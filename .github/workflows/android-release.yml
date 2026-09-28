@@ -198,7 +198,7 @@ jobs:
       - name: Prepare testing APK
         run: cp app/build/outputs/apk/release/app-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
       - name: Upload Play Store bundle artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Actua-v${{ steps.version.outputs.name }}-aab
           path: app/build/outputs/bundle/release/app-release.aab
