@@ -7,9 +7,12 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Changed
 
 - The Add Credit Card picker now lists credit accounts first ([#687](https://github.com/azimul-kabir/actua/pull/687))
+- Tapping a credit card payment reminder now opens that card's account ([#685](https://github.com/azimul-kabir/actua/pull/685))
 
 ### Fixed
 
+- Credit card bills, payment reminders and card rows now show the statement amount still owed, and Paid once the statement is paid ([#684](https://github.com/azimul-kabir/actua/pull/684))
+- Fixed a possible crash on opening a budget with an invalid synced credit card billing cycle ([#683](https://github.com/azimul-kabir/actua/pull/683))
 - Fixed "Hide reconciled transactions" in accounts not following the setting from Actual, and restored its per-account toggle ([#657](https://github.com/azimul-kabir/actua/pull/657))
 
 ## [1.2.0] - 2026-09-28

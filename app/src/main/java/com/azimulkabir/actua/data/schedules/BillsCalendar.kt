@@ -97,7 +97,14 @@ object BillsCalendarEngine {
     ) = cards.filterNot(CreditCardStatus::closed).mapNotNull { card ->
         val due = card.cycle.upcomingDueDate(DayDate(year, month, 1))
         due.takeIf { it.year == year && it.month == month }?.let {
-            val owed = maxOf(0, -card.balanceCents)
+            // The statement's remaining due when it was loaded; the live balance otherwise.
+            val statementDue = card.statementDues?.firstOrNull { it.dueDate == due }
+            val owed = when {
+                statementDue == null -> maxOf(0, -card.balanceCents)
+                statementDue.isPaid -> statementDue.statementBalance
+                else -> statementDue.remainingDue
+            }
+            val paid = if (statementDue != null) statementDue.remainingDue == 0L else owed == 0L
             BillCalendarItem(
                 id = "cc_${card.accountId}_${due.yyyymmdd}",
                 date = due,
@@ -106,7 +113,7 @@ object BillsCalendarEngine {
                 categoryName = "Credit Card Payment",
                 accountName = card.accountName,
                 status = when {
-                    owed == 0L -> ScheduleStatus.PAID
+                    paid -> ScheduleStatus.PAID
                     due < today -> ScheduleStatus.MISSED
                     due == today -> ScheduleStatus.DUE
                     else -> ScheduleStatus.UPCOMING

@@ -446,7 +446,7 @@ private fun AccountRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(account.name, style = MaterialTheme.typography.bodyMedium)
-                Text(creditCard?.let { "${it.cycle.dueShortSummary()} · Spend ${formatMoneyCents(it.cycleSpendCents, hideDecimalPlaces)}" }
+                Text(creditCard?.let { "${it.cycle.dueShortSummary(dueDate = it.pendingStatementDue()?.dueDate)} · Spend ${formatMoneyCents(it.cycleSpendCents, hideDecimalPlaces)}" }
                     ?: account.type, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
