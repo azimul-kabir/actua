@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Tapping a credit card payment reminder now opens that card's account ([#685](https://github.com/azimul-kabir/actua/pull/685))
+
 ### Fixed
 
 - Credit card bills, payment reminders and card rows now show the statement amount still owed, and Paid once the statement is paid ([#684](https://github.com/azimul-kabir/actua/pull/684))
