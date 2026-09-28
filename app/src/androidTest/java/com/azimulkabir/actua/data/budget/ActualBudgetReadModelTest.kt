@@ -205,6 +205,35 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun reconciledStatusFilterReturnsOnlyReconciledRows() = withDatabase { database ->
+        val ordinary = requireNotNull(database.fetchTransaction("ordinary"))
+        ActualTransactionWriter(database).updateTransaction(
+            ordinary.copy(reconciled = true, cleared = true), setOf("reconciled", "cleared"),
+        )
+
+        val reconciled = database.fetchTransactions(statusFilter = TransactionStatusFilter.RECONCILED)
+        assertEquals(listOf("ordinary"), reconciled.map { it.id })
+        assertTrue(database.fetchTransactions(statusFilter = TransactionStatusFilter.CLEARED).none { it.id == "ordinary" })
+        assertTrue(database.fetchTransactions().any { it.id == "ordinary" })
+    }
+
+    @Test
+    fun hideReconciledUsesActualSyncedPerAccountPreference() = withDatabase { database ->
+        assertTrue(database.fetchHideReconciledAccountIds().isEmpty())
+        val writer = ActualEntityWriter(database, nodeId = "dddddddddddddddd")
+
+        writer.setPreference(ActualBudgetDatabase.HIDE_RECONCILED_PREFERENCE_PREFIX + "checking", "true")
+        writer.setPreference(ActualBudgetDatabase.HIDE_RECONCILED_PREFERENCE_PREFIX + "savings", "false")
+        assertEquals(setOf("checking"), database.fetchHideReconciledAccountIds())
+        assertTrue(database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString()).any {
+            it.dataset == "preferences" && it.row == "hide-reconciled-checking" && it.column == "value"
+        })
+
+        writer.setPreference(ActualBudgetDatabase.HIDE_RECONCILED_PREFERENCE_PREFIX + "checking", "false")
+        assertTrue(database.fetchHideReconciledAccountIds().isEmpty())
+    }
+
+    @Test
     fun uncategorizedFilterExcludesOffBudgetAccounts() = withDatabase { database ->
         val offBudgetAccountId = ActualEntityWriter(database, idFactory = { "off-budget-uncat-acct" })
             .createAccount("Off Budget", offBudget = true, startingBalanceCents = 0)

@@ -333,20 +333,21 @@ fun AppNavigation(
     }
     val budgetOverview = remember(dataVersion, budgetMonth) { repository.budgetOverview(budgetMonth) }
     val accounts = remember(dataVersion) { repository.accounts() }
-    var hideReconciledTransactions by remember {
-        mutableStateOf(displayPreferences.hideReconciledTransactions)
-    }
+    // Actual's synced per-account `hide-reconciled-<accountId>` preference, shared with the PWA.
+    val hideReconciledAccountIds = remember(dataVersion) { repository.hideReconciledAccountIds() }
     var showUpcomingTransactions by remember {
         mutableStateOf(displayPreferences.showUpcomingTransactions)
     }
     var transactionStatusFilter by rememberSaveable { mutableStateOf(TransactionStatusFilter.ALL) }
     val transactions = remember(dataVersion) { repository.transactions() }
-    val filteredTransactions = remember(dataVersion, hideReconciledTransactions, transactionStatusFilter) {
-        repository.transactions(hideReconciled = hideReconciledTransactions, statusFilter = transactionStatusFilter)
+    // Hiding reconciled rows is per account, so it's applied by TransactionsScreen for the open
+    // account rather than here, where the list backs every account and the Transactions tab.
+    val filteredTransactions = remember(dataVersion, transactionStatusFilter) {
+        repository.transactions(statusFilter = transactionStatusFilter)
     }
-    val searchTransactions: suspend (String) -> List<Transaction> = remember(repository, hideReconciledTransactions, transactionStatusFilter) {
+    val searchTransactions: suspend (String) -> List<Transaction> = remember(repository, transactionStatusFilter) {
         { query -> withContext(Dispatchers.IO) {
-            repository.transactions(query, hideReconciled = hideReconciledTransactions, statusFilter = transactionStatusFilter)
+            repository.transactions(query, statusFilter = transactionStatusFilter)
         } }
     }
     val categoryNames = remember(dataVersion) { repository.categoryNames() }
@@ -1311,10 +1312,12 @@ fun AppNavigation(
                     displayPreferences.groupTransactionsByDate = it
                     groupTransactionsByDate = it
                 },
-                hideReconciledTransactions = hideReconciledTransactions,
-                onHideReconciledTransactionsChange = {
-                    displayPreferences.hideReconciledTransactions = it
-                    hideReconciledTransactions = it
+                hideReconciledTransactions = accounts.firstOrNull { it.name == transactionAccount }
+                    ?.let { it.id in hideReconciledAccountIds } == true,
+                onHideReconciledTransactionsChange = { hide ->
+                    accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
+                        mutate("Updating account view") { repository.setHideReconciled(account.id, hide) }
+                    }
                 },
                 onSetCleared = { transaction, cleared ->
                     mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
@@ -1665,11 +1668,10 @@ fun AppNavigation(
             }
             DetailDestination.Search -> GlobalSearchScreen(
                 transactions = filteredTransactions,
-                searchTransactions = remember(repository, hideReconciledTransactions, transactionStatusFilter) {
+                searchTransactions = remember(repository, transactionStatusFilter) {
                     { query, limit, offset ->
                         withContext(Dispatchers.IO) {
                             repository.transactions(query, limit, offset,
-                                hideReconciled = hideReconciledTransactions,
                                 statusFilter = transactionStatusFilter)
                         }
                     }
@@ -2393,11 +2395,6 @@ fun AppNavigation(
                     onGroupTransactionsByDateChange = {
                         displayPreferences.groupTransactionsByDate = it
                         groupTransactionsByDate = it
-                    },
-                    hideReconciledTransactions = hideReconciledTransactions,
-                    onHideReconciledTransactionsChange = {
-                        displayPreferences.hideReconciledTransactions = it
-                        hideReconciledTransactions = it
                     },
                     onSetCleared = { transaction, cleared ->
                         mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
