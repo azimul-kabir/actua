@@ -26,6 +26,18 @@ class BudgetDownloadService(
         return loaded
     }
 
+    /** The installed copy of [remote], if this device has one with a database to open. */
+    fun localCopy(remote: RemoteBudgetFile): BudgetMetadata? = files.listLocalBudgets()
+        .firstOrNull { it.cloudFileId == remote.fileId && files.databaseFile(it.id).isFile }
+
+    /**
+     * Opens the installed copy of [remote] when there is one, like Actual's `load-budget`, and
+     * downloads only budgets that aren't on this device. Re-downloading would replace the local
+     * database and discard messages that haven't been synced yet.
+     */
+    fun openOrDownload(serverUrl: String, token: String, remote: RemoteBudgetFile): BudgetMetadata =
+        localCopy(remote) ?: download(serverUrl, token, remote)
+
     fun download(serverUrl: String, token: String, remote: RemoteBudgetFile): BudgetMetadata {
         val key = if (remote.encryptedKeyId != null) {
             keyStore.load(remote.fileId) ?: throw BudgetDownloadException.EncryptionPasswordRequired

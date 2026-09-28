@@ -982,7 +982,8 @@ fun ConnectionScreen(
                             )
                         }
                         remoteBudgets.forEach { remote ->
-                            val local = files.listLocalBudgets().firstOrNull { it.cloudFileId == remote.fileId }
+                            val local = downloader.localCopy(remote)
+                            val isActive = local != null && activeBudget.budgetId == local.id
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -991,7 +992,7 @@ fun ConnectionScreen(
                                     Text(remote.name, fontWeight = FontWeight.Medium)
                                     Text(
                                         when {
-                                            activeBudget.budgetId == local?.id -> "Active"
+                                            isActive -> "Active"
                                             local != null -> "Downloaded"
                                             remote.encryptedKeyId != null -> "Encrypted"
                                             else -> "Available"
@@ -1000,7 +1001,9 @@ fun ConnectionScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
-                                OutlinedButton(
+                                // The active budget has no button: its local copy is already open, and
+                                // replacing it with the server snapshot would discard unsynced edits.
+                                if (!isActive) OutlinedButton(
                                     enabled = downloadingId == null,
                                     onClick = {
                                         val token = credentials.token() ?: return@OutlinedButton
@@ -1010,17 +1013,19 @@ fun ConnectionScreen(
                                         scope.launch {
                                             runCatching {
                                                 withContext(Dispatchers.IO) {
-                                                    if (remote.encryptedKeyId != null) {
-                                                        if (encryptionPassword.isNotBlank()) {
-                                                            downloader.unlock(activeServerUrl, token, remote.fileId, encryptionPassword)
-                                                        }
+                                                    val needsKey = remote.encryptedKeyId != null &&
+                                                        BudgetEncryptionKeyStore(context).load(remote.fileId) == null
+                                                    if (needsKey && encryptionPassword.isNotBlank()) {
+                                                        downloader.unlock(activeServerUrl, token, remote.fileId, encryptionPassword)
                                                     }
-                                                    downloader.download(activeServerUrl, token, remote)
+                                                    downloader.openOrDownload(activeServerUrl, token, remote)
                                                 }
                                             }.onSuccess { metadata ->
                                                 activeBudget.budgetId = metadata.id
-                                                message = "${remote.name} is downloaded and active."
+                                                message = if (local == null) "${remote.name} is downloaded and active." else "${remote.name} is active."
                                                 onBudgetInstalled()
+                                                // Catch up with the server and send any edits made before switching away.
+                                                ActualSyncScheduler.scheduleMutation(context)
                                             }.onFailure { error ->
                                                 message = when (error) {
                                                     BudgetDownloadException.EncryptionPasswordRequired -> "Enter the budget encryption password."
@@ -1034,7 +1039,7 @@ fun ConnectionScreen(
                                     },
                                 ) {
                                     if (downloadingId == remote.fileId) CircularProgressIndicator(Modifier.padding(end = 8.dp))
-                                    Text(if (local == null) "Download" else if (activeBudget.budgetId == local.id) "Refresh" else "Use")
+                                    Text(if (local == null) "Download" else "Open")
                                 }
                                 TextButton(
                                     enabled = downloadingId == null && !loading,
