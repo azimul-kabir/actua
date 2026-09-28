@@ -50,7 +50,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - User-defined custom HTTP headers (e.g. `CF-Access-Client-Id`/`Secret`) sent with every
   request to the Actual server, configurable from the Connection screen for servers behind
   an auth proxy
-- HLC, CRDT values/messages, protobuf sync protocol, Merkle tree, encryption
+- HLC, CRDT values/messages, protobuf sync protocol, Merkle tree, encryption; itemized with
+  upstream links, test evidence and filed divergences in [docs/SYNC_PARITY.md](docs/SYNC_PARITY.md)
 - Sync convergence loop and Android Keystore-backed credentials/keys
 - Stored sync clock validation and legacy/epoch recovery from the message-log
   high-water mark, preserving pending edits and Merkle-guided restart recovery
