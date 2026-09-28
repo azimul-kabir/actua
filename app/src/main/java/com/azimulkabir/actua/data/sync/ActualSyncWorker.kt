@@ -20,6 +20,7 @@ import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
 import com.azimulkabir.actua.data.network.ActualServerClient
+import com.azimulkabir.actua.data.network.ActualServerException
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
 import com.azimulkabir.actua.data.network.UrlConnectionTransport
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
@@ -96,14 +97,15 @@ object ActualSyncRunner {
                 val server = ActualServerClient(UrlConnectionTransport(TrustedCertificateStore(context))).apply { customHeaders = credentials.customHeaders }
                 fun syncAt(url: String) = ActualSyncClient(url, token, server, database, fileId, groupId,
                     loadedKey?.keyId, loadedKey?.let { ActualMessageCipher(it.key) }).sync()
-                var outcome = try { syncAt(serverUrl) } catch (primary: Exception) {
+                // The fallback is another address of the same server, so it would reject the same token.
+                fun syncWithFallback() = try { syncAt(serverUrl) } catch (primary: Exception) {
+                    if (primary is ActualServerException.SessionExpired) throw primary
                     fallbackUrl?.let(::syncAt) ?: throw primary
                 }
+                var outcome = syncWithFallback()
                 val poster = SchedulePoster(app, database, ActualTransactionWriter(database), ActualScheduleWriter(database))
                 val posted = poster.runIfNeeded(budgetId)
-                if (posted > 0) outcome = try { syncAt(serverUrl) } catch (primary: Exception) {
-                    fallbackUrl?.let(::syncAt) ?: throw primary
-                }
+                if (posted > 0) outcome = syncWithFallback()
                 if (makeBackup) runCatching { BackupService(app, files).makeBackup(budgetId) }
                 SyncRunResult.Success(outcome, posted)
             }
@@ -114,6 +116,7 @@ object ActualSyncRunner {
             SyncSignals.dataChanged()
             result
         } catch (error: Exception) {
+            if (error is ActualServerException.SessionExpired) credentials.expireSession()
             status.failed(error)
             throw error
         }
@@ -165,7 +168,12 @@ class ActualSyncWorker(context: Context, parameters: WorkerParameters) : Corouti
                 SyncRunResult.EncryptionKeyUnavailable -> Result.failure()
             }
         } catch (error: Exception) {
-            if (runAttemptCount < 5) Result.retry() else Result.failure()
+            when {
+                // Retrying can't help until the user signs in again, which schedules a new sync.
+                error is ActualServerException.SessionExpired -> Result.failure()
+                runAttemptCount < 5 -> Result.retry()
+                else -> Result.failure()
+            }
         } finally {
             if (inputData.getBoolean(BACKGROUND_KEY, false)) {
                 SyncStatusStore(applicationContext).backgroundRefreshFinished()
