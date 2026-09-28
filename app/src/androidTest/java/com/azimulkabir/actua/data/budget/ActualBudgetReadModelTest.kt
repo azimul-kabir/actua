@@ -568,6 +568,9 @@ class ActualBudgetReadModelTest {
             bounded(20260903, 20260903).first { it.id == "split-parent" }.splitPortions.map { it.id },
         )
         assertTrue(bounded(20260904, 20261231).isEmpty())
+    }
+
+    @Test
     fun creditCardStatementDuesUseLiveRowsAndKeepRequestOrder() = withDatabase { database ->
         fun request(statement: Int, liveBalance: Long) = ActualBudgetDatabase.StatementDueRequest(
             "checking", DayDate.fromYyyymmdd(statement)!!, DayDate(2026, 10, 1), liveBalance,
