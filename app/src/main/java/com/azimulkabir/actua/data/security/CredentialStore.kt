@@ -45,7 +45,19 @@ class CredentialStore(context: Context) {
             .putString("fallback_server_url", fallbackUrl)
             .putString("token", Base64.encodeToString(encrypted, Base64.NO_WRAP))
             .putString("token_iv", Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
+            .remove(SESSION_EXPIRED)
             .apply()
+    }
+
+    /** True after the server rejected the saved token, until the user signs in again. */
+    val sessionExpired: Boolean get() = preferences.getBoolean(SESSION_EXPIRED, false)
+
+    /**
+     * Forgets only the rejected token, like Actual removing `user-token`. The server addresses,
+     * headers, downloaded budgets, their encryption keys and unsynced changes are kept for re-sign-in.
+     */
+    fun expireSession() {
+        preferences.edit().remove("token").remove("token_iv").putBoolean(SESSION_EXPIRED, true).commit()
     }
 
     fun updateServerUrls(url: String, fallbackUrl: String) {
@@ -89,5 +101,6 @@ class CredentialStore(context: Context) {
     companion object {
         private const val KEY_ALIAS = "actua_server_token"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
+        private const val SESSION_EXPIRED = "session_expired"
     }
 }

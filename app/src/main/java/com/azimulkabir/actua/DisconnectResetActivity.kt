@@ -19,6 +19,7 @@ import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.security.DisconnectResetManager
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.SyncRunResult
@@ -131,7 +132,13 @@ class DisconnectResetActivity : ComponentActivity() {
                 activeStore.budgetId = budget.id
                 when (ActualSyncRunner.run(this)) {
                     is SyncRunResult.Success -> Unit
-                    SyncRunResult.NotConfigured -> error("${budget.budgetName ?: budget.id} is not configured for server sync.")
+                    SyncRunResult.NotConfigured -> error(
+                        if (CredentialStore(this).sessionExpired) {
+                            "Your server session has expired, so changes can't be synced. Cancel and sign in again in Connection & data, or disconnect anyway."
+                        } else {
+                            "${budget.budgetName ?: budget.id} is not configured for server sync."
+                        },
+                    )
                     SyncRunResult.EncryptionKeyUnavailable -> error("${budget.budgetName ?: budget.id} is encrypted and locked. Unlock it before disconnecting, or disconnect anyway.")
                 }
             }

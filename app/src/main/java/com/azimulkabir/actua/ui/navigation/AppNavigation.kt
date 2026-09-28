@@ -155,6 +155,10 @@ import com.azimulkabir.actua.AppLaunchRequest
 import com.azimulkabir.actua.SHARED_IMPORT_ACTION
 import com.azimulkabir.actua.widget.WidgetActions
 import com.azimulkabir.actua.widget.WidgetUpdater
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import com.azimulkabir.actua.data.security.CredentialStore
+import com.azimulkabir.actua.data.budget.DemoBudgetManager
 
 private enum class MainDestination(
     val label: String,
@@ -204,6 +208,28 @@ internal fun shouldRequestForegroundSync(foregroundGeneration: Int): Boolean =
  */
 internal fun shouldShowSyncBanner(status: SyncStatus): Boolean =
     status.running && status.activeTrigger != SYNC_TRIGGER_AFTER_CHANGE
+
+/** Shown when the server rejected the saved session, so nothing syncs until the user signs in again. */
+@Composable
+internal fun SessionExpiredBanner(onSignIn: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        modifier = modifier
+            .statusBarsPadding()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+            .clickable(onClickLabel = "Sign in again", role = Role.Button, onClick = onSignIn),
+    ) {
+        Text(
+            "Signed out of your Actual server. Tap to sign in again. Changes stay on this device until then.",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+                .testTag("sessionExpiredBanner"),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+        )
+    }
+}
 
 @Composable
 internal fun SyncStatusBanner(modifier: Modifier = Modifier) {
@@ -384,6 +410,8 @@ fun AppNavigation(
     var selectedTab by rememberSaveable { mutableStateOf(destination) }
     var tabSwitchJob by remember { mutableStateOf<Job?>(null) }
     var detail by rememberSaveable { mutableStateOf(DetailDestination.Main) }
+    // Re-read after sync status changes (a sync can expire the session) and after leaving Connection.
+    val sessionExpired = remember(syncStatusGeneration, detail) { CredentialStore(context).sessionExpired }
     var transactionAccount by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionMonth by rememberSaveable { mutableStateOf<String?>(null) }
@@ -1107,7 +1135,11 @@ fun AppNavigation(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            if (shouldShowSyncBanner(syncStatus) && repository.isUsingActualBudget) {
+            if (sessionExpired && repository.isUsingActualBudget && !DemoBudgetManager.isDemoBudget(favoriteBudgetId) &&
+                detail != DetailDestination.Connection
+            ) {
+                SessionExpiredBanner(onSignIn = { detail = DetailDestination.Connection })
+            } else if (shouldShowSyncBanner(syncStatus) && repository.isUsingActualBudget) {
                 SyncStatusBanner()
             }
         },
