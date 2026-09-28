@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed "Hide reconciled transactions" in accounts not following the setting from Actual, and restored its per-account toggle ([#657](https://github.com/azimul-kabir/actua/pull/657))
+
 ## [1.2.0] - 2026-09-28
 
 ### Added
