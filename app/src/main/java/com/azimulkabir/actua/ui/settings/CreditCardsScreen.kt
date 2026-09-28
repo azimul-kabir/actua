@@ -42,6 +42,7 @@ import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.theme.success
 import com.azimulkabir.actua.ui.theme.warning
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.math.BigDecimal
@@ -112,8 +113,25 @@ private fun CreditCardRow(
     card: CreditCardStatus, hideDecimals: Boolean, modifier: Modifier = Modifier,
     onViewStatements: () -> Unit = {},
 ) {
-    val days = card.cycle.daysUntilDue()
-    val urgency = when { days <= 3 -> MaterialTheme.colorScheme.error; days <= 7 -> MaterialTheme.colorScheme.warning; else -> Color(0xFFF9A825) }
+    val statementDue = card.pendingStatementDue()
+    val isPaid = statementDue?.isPaid == true
+    val days = card.cycle.daysUntilDue(dueDate = statementDue?.dueDate)
+    val urgency = when {
+        isPaid -> MaterialTheme.colorScheme.success
+        days <= 3 -> MaterialTheme.colorScheme.error
+        days <= 7 -> MaterialTheme.colorScheme.warning
+        else -> Color(0xFFF9A825)
+    }
+    // The pill's short text and its long form for TalkBack, which keeps the date the pill drops.
+    fun dueText(short: Boolean): String {
+        if (isPaid) return "Paid"
+        val summary = if (short) card.cycle.dueShortSummary(dueDate = statementDue?.dueDate)
+            else card.cycle.dueSummary(dueDate = statementDue?.dueDate)
+        return statementDue?.let {
+            CreditCardCycle.duePillText(formatMoneyCents(it.remainingDue, hideDecimals), summary, it.remainingDue)
+        } ?: summary
+    }
+    val pillText = dueText(short = true)
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.padding(vertical = 0.dp).align(Alignment.CenterVertically)) {
@@ -125,7 +143,7 @@ private fun CreditCardRow(
                 card.accountName,
                 formatMoneyCents(card.balanceCents, hideDecimals),
                 formatMoneyCents(card.cycleSpendCents, hideDecimals),
-                card.cycle.dueSummary(),
+                dueText(short = false),
                 card.availableCreditCents?.let { formatMoneyCents(it, hideDecimals) },
             )
             Column(
@@ -140,7 +158,7 @@ private fun CreditCardRow(
                     Text("Spend ${formatMoneyCents(card.cycleSpendCents, hideDecimals)} · ${card.cycle.daysRemainingInCycle()}d left",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f))
-                    Text(card.cycle.dueShortSummary(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
+                    Text(pillText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 8.dp))
                 }
                 card.availableCreditCents?.let {
