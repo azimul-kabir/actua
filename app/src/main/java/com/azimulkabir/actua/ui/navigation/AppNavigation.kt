@@ -140,6 +140,7 @@ import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.LocationPreferences
+import com.azimulkabir.actua.data.notifications.CreditCardDueLaunch
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 import com.azimulkabir.actua.data.notifications.CreditCardNotificationSettings
 import com.azimulkabir.actua.ui.components.BalanceVisibility
@@ -986,6 +987,16 @@ fun AppNavigation(
                 transactionMonth = null
                 transactionSearch = ""
                 detail = if (request.target == null) DetailDestination.Main else DetailDestination.Transactions
+            }
+            CreditCardDueLaunch.ACTION -> {
+                // A card deleted since the reminder was posted opens the Accounts list instead.
+                val accountName = CreditCardDueLaunch.accountName(accounts, request.target)
+                destination = MainDestination.Accounts
+                transactionAccount = accountName
+                transactionCategory = null
+                transactionMonth = null
+                transactionSearch = ""
+                detail = if (accountName == null) DetailDestination.Main else DetailDestination.Transactions
             }
             WidgetActions.SEARCH -> {
                 destination = MainDestination.Transactions

@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Tapping a credit card payment reminder now opens that card's account ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+
 ### Fixed
 
 - Fixed "Hide reconciled transactions" in accounts not following the setting from Actual, and restored its per-account toggle ([#657](https://github.com/azimul-kabir/actua/pull/657))
