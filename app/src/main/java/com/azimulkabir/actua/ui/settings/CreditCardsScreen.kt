@@ -40,6 +40,7 @@ import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.theme.success
 import com.azimulkabir.actua.ui.theme.warning
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.math.BigDecimal
@@ -110,8 +111,22 @@ private fun CreditCardRow(
     card: CreditCardStatus, hideDecimals: Boolean, modifier: Modifier = Modifier,
     onViewStatements: () -> Unit = {},
 ) {
-    val days = card.cycle.daysUntilDue()
-    val urgency = when { days <= 3 -> MaterialTheme.colorScheme.error; days <= 7 -> MaterialTheme.colorScheme.warning; else -> Color(0xFFF9A825) }
+    val statementDue = card.pendingStatementDue()
+    val isPaid = statementDue?.isPaid == true
+    val days = card.cycle.daysUntilDue(dueDate = statementDue?.dueDate)
+    val urgency = when {
+        isPaid -> MaterialTheme.colorScheme.success
+        days <= 3 -> MaterialTheme.colorScheme.error
+        days <= 7 -> MaterialTheme.colorScheme.warning
+        else -> Color(0xFFF9A825)
+    }
+    val summary = card.cycle.dueShortSummary(dueDate = statementDue?.dueDate)
+    val dueText = when {
+        isPaid -> "Paid"
+        statementDue != null -> CreditCardCycle.duePillText(
+            formatMoneyCents(statementDue.remainingDue, hideDecimals), summary, statementDue.remainingDue)
+        else -> summary
+    }
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.padding(vertical = 0.dp).align(Alignment.CenterVertically)) {
@@ -126,7 +141,7 @@ private fun CreditCardRow(
                     Text("Spend ${formatMoneyCents(card.cycleSpendCents, hideDecimals)} · ${card.cycle.daysRemainingInCycle()}d left",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f))
-                    Text(card.cycle.dueShortSummary(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
+                    Text(dueText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 8.dp))
                 }
                 card.availableCreditCents?.let {

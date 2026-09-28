@@ -1032,8 +1032,20 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                     Text("${cycleStart.formatted()} – ${cycleEnd.formatted()}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(it.cycle.dueSummary(), style = MaterialTheme.typography.bodyMedium,
+                    val statementDue = it.pendingStatementDue()
+                    Text(it.cycle.dueSummary(dueDate = statementDue?.dueDate), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary)
+                    statementDue?.let { due ->
+                        if (due.isPaid) {
+                            Row(Modifier.fillMaxWidth()) {
+                                Text("Statement due", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                                Text("Paid", style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.success)
+                            }
+                        } else {
+                            DetailAmount("Statement due", due.remainingDue, hideDecimals)
+                        }
+                    }
                     DetailAmount("Cycle spend", it.cycleSpendCents, hideDecimals)
                     if (onViewStatements != null) {
                         HorizontalDivider()
