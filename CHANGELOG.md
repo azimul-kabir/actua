@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
-- TalkBack now reads each card on the Credit Cards screen as a single description ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- TalkBack now reads each card on the Credit Cards screen as a single description ([#688](https://github.com/azimul-kabir/actua/pull/688))
 - Fixed "Hide reconciled transactions" in accounts not following the setting from Actual, and restored its per-account toggle ([#657](https://github.com/azimul-kabir/actua/pull/657))
 
 ## [1.2.0] - 2026-09-28
