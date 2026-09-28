@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed switching to a downloaded budget discarding its changes that had not synced yet ([#703](https://github.com/azimul-kabir/actua/pull/703))
 - Closed credit card accounts no longer show statement history ([#689](https://github.com/azimul-kabir/actua/pull/689))
 - TalkBack now reads each card on the Credit Cards screen as a single description ([#688](https://github.com/azimul-kabir/actua/pull/688))
 - The credit card due date now follows the selected date format ([#686](https://github.com/azimul-kabir/actua/pull/686))
