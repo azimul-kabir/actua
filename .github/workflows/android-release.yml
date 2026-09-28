@@ -215,7 +215,8 @@ jobs:
           files: Actua-v${{ steps.version.outputs.name }}.apk
       - name: Notify Discord about release
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_BETA_WEBHOOK }}
+          RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          BETA_WEBHOOK: ${{ secrets.DISCORD_BETA_WEBHOOK }}
           RELEASE_VERSION: ${{ steps.version.outputs.name }}
           IS_PRERELEASE: ${{ steps.channel.outputs.prerelease }}
           REPOSITORY: ${{ github.repository }}
@@ -227,14 +228,16 @@ jobs:
           import urllib.error
           import urllib.request
 
-          webhook = os.environ.get("DISCORD_WEBHOOK", "")
+          is_prerelease = os.environ["IS_PRERELEASE"] == "true"
+          secret_name = "DISCORD_BETA_WEBHOOK" if is_prerelease else "DISCORD_RELEASE_WEBHOOK"
+          # Stable releases go to the release channel; pre-releases to the beta channel.
+          webhook = os.environ.get("BETA_WEBHOOK" if is_prerelease else "RELEASE_WEBHOOK", "")
           if not webhook:
-              raise SystemExit("DISCORD_BETA_WEBHOOK is not configured")
+              raise SystemExit(f"{secret_name} is not configured")
 
           version = os.environ["RELEASE_VERSION"]
           repo = os.environ["REPOSITORY"]
           server = os.environ["SERVER_URL"]
-          is_prerelease = os.environ["IS_PRERELEASE"] == "true"
           tag = f"v{version}"
           release_url = f"{server}/{repo}/releases/tag/{tag}"
           apk_url = f"{server}/{repo}/releases/download/{tag}/Actua-v{version}.apk"
@@ -267,7 +270,7 @@ jobs:
                   "title": f"Actua {title_verb}: {tag}"[:256],
                   "url": release_url,
                   "description": description[:4096],
-                  "color": 0xD29922,
+                  "color": 0xD29922 if is_prerelease else 0x238636,
                   "footer": {"text": "Actua • Native Android client for Actual Budget"}
               }]
           }
@@ -284,6 +287,6 @@ jobs:
           except urllib.error.HTTPError as error:
               raise SystemExit(f"Discord returned HTTP {error.code}") from None
           except (urllib.error.URLError, TimeoutError):
-              raise SystemExit("Could not reach Discord beta webhook") from None
+              raise SystemExit(f"Could not reach Discord via {secret_name}") from None
           print(f"Discord release notification sent for {tag}")
           PY
