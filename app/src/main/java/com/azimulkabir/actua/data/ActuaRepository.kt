@@ -845,11 +845,12 @@ class ActuaRepository(context: Context) {
         )
     }
 
-    /** Closed statements for a credit card account (up to 3), newest first. */
+    /** Closed statements for an open credit card account (up to 3), newest first. */
     fun fetchRecentStatements(accountId: String): List<CreditCardCycle.StatementRecord> {
         val db = actualDatabase ?: return emptyList()
         val config = db.fetchCreditCardConfigs()[accountId] ?: return emptyList()
-        val account = db.fetchAccounts().firstOrNull { it.id == accountId } ?: return emptyList()
+        // A closed card is inactive, so it has no statement history (as in Actuali).
+        val account = db.fetchAccounts().firstOrNull { it.id == accountId && !it.closed } ?: return emptyList()
         val cycle = CreditCardCycle(config.statementDay, config.paymentDue)
         return db.fetchRecentStatements(accountId, cycle.recentStatementCycles(), account.balanceCents)
     }
