@@ -34,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Account
@@ -117,7 +119,19 @@ private fun CreditCardRow(
             Box(Modifier.padding(vertical = 0.dp).align(Alignment.CenterVertically)) {
                 Surface(color = urgency, modifier = Modifier.padding(0.dp)) { Box(Modifier.padding(horizontal = 2.dp, vertical = 34.dp)) }
             }
-            Column(Modifier.padding(12.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // One spoken element per card, worded like Actuali's row; the long-form due summary
+            // keeps the date the pill drops. The statements button stays its own element.
+            val description = creditCardRowDescription(
+                card.accountName,
+                formatMoneyCents(card.balanceCents, hideDecimals),
+                formatMoneyCents(card.cycleSpendCents, hideDecimals),
+                card.cycle.dueSummary(),
+                card.availableCreditCents?.let { formatMoneyCents(it, hideDecimals) },
+            )
+            Column(
+                Modifier.padding(12.dp).weight(1f).clearAndSetSemantics { contentDescription = description },
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Row(Modifier.fillMaxWidth()) {
                     Text(card.accountName, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                     Text(formatMoneyCents(card.balanceCents, hideDecimals), fontWeight = FontWeight.SemiBold)
@@ -139,6 +153,14 @@ private fun CreditCardRow(
             }
         }
     }
+}
+
+/** TalkBack description for a card row: "Visa, balance -$120.00, cycle spend $80.00, Due … (9d)". */
+internal fun creditCardRowDescription(
+    name: String, balance: String, cycleSpend: String, dueSummary: String, availableCredit: String?,
+): String = buildString {
+    append("$name, balance $balance, cycle spend $cycleSpend, $dueSummary")
+    availableCredit?.let { append(", available credit $it") }
 }
 
 @Composable
