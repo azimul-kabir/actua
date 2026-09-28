@@ -4,6 +4,9 @@ Actua is local-first. It renders the selected local SQLite budget immediately an
 launch on the network. Remote changes become visible after a foreground or background sync commits
 them to that database.
 
+Protocol-level parity with Actual (HLC, CRDT values, protobuf, Merkle, encryption, sync loop and
+server error handling) is audited in [SYNC_PARITY.md](SYNC_PARITY.md).
+
 ## Foreground refresh
 
 `MainActivity.onStart` increments a foreground generation. The active Compose navigation tree uses
