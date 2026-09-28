@@ -1281,6 +1281,16 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    /** Account ids whose register hides reconciled transactions (Actual's synced per-account preference). */
+    fun hideReconciledAccountIds(): Set<String> = actualDatabase?.fetchHideReconciledAccountIds().orEmpty()
+
+    fun setHideReconciled(accountId: String, hide: Boolean): Boolean {
+        // Actual's PWA stores this synced preference as the string "true"/"false".
+        actualEntities?.setPreference(ActualBudgetDatabase.HIDE_RECONCILED_PREFERENCE_PREFIX + accountId, hide.toString())
+            ?: return false
+        return true
+    }
+
     fun setAccountNote(accountId: String, note: String): Boolean {
         actualEntities?.setNote("account-$accountId", normalizeNote(note)) ?: return false
         return true

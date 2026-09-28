@@ -306,8 +306,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   payees, notes, imported descriptions and categories; stable database paging
 - Character-by-character payee-picker filtering with one alphabetical result list
   across ordinary payees and matching transfer accounts
-- Persisted app-wide reconciled-transaction filtering applied before database
-  paging and search, shared by account and all-transaction lists
+- Per-account "Hide reconciled transactions" backed by Actual's synced
+  `hide-reconciled-<accountId>` preference, so the setting is shared with the PWA;
+  a selected status chip supersedes it
 - Add/edit split transaction UI with per-line category, amount, direction, payee,
   notes, remaining allocation, and Actual-compatible child-row persistence
 - Off-budget transaction category enforcement for standard and split create/edit

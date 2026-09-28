@@ -237,6 +237,22 @@ class ActualBudgetDatabase private constructor(
         }
     }
 
+    /**
+     * Accounts whose register hides reconciled transactions, from Actual's synced per-account
+     * `hide-reconciled-<accountId>` preference (stored as the string "true"/"false").
+     */
+    @Synchronized
+    fun fetchHideReconciledAccountIds(): Set<String> {
+        if (!hasTable("preferences")) return emptySet()
+        val prefix = HIDE_RECONCILED_PREFERENCE_PREFIX
+        return database.rawQuery(
+            "SELECT id FROM preferences WHERE id LIKE ? AND value = 'true'",
+            arrayOf("$prefix%"),
+        ).use { cursor ->
+            buildSet { while (cursor.moveToNext()) cursor.stringOrNull(0)?.let { add(it.removePrefix(prefix)) } }
+        }
+    }
+
     /** Actuali's cross-platform card metadata stored in Actual's synced preferences table. */
     @Synchronized
     fun fetchCreditCardConfigs(): Map<String, CreditCardConfig> {
@@ -1478,6 +1494,7 @@ class ActualBudgetDatabase private constructor(
 
     companion object {
         const val CREDIT_CARD_PREFERENCE_PREFIX = "actuali:credit_card:"
+        const val HIDE_RECONCILED_PREFERENCE_PREFIX = "hide-reconciled-"
         private const val transactionSearchClause = """
             AND (
                 COALESCE(pa.name, p.name, cpa.name, cp.name,
