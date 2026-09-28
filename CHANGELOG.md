@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
-- Tapping a credit card payment reminder now opens that card's account ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+- Tapping a credit card payment reminder now opens that card's account ([#685](https://github.com/azimul-kabir/actua/pull/685))
 
 ### Fixed
 
