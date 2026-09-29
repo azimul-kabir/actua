@@ -275,7 +275,7 @@ fun AccountsScreen(
                                 }
                             }
                         }
-                        itemsIndexed(chunk.accounts, key = { _, account -> "${section.title}-${account.name}" }) { index, account ->
+                        itemsIndexed(chunk.accounts, key = { _, account -> "${section.title}-${account.id}" }) { index, account ->
                             androidx.compose.animation.AnimatedVisibility(
                                 visible = !collapsed,
                                 enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
