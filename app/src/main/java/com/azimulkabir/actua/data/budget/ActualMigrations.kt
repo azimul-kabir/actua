@@ -177,7 +177,13 @@ internal object ActualMigrations {
     }
 
     private fun execute(database: SQLiteDatabase, statement: String) {
-        if (shouldRun(statement, database::hasTable, database::hasColumn, database::hasIndex)) database.execSQL(statement)
+        val run = shouldRun(
+            statement,
+            hasTable = { database.hasTable(it) },
+            hasColumn = { table, column -> database.hasColumn(table, column) },
+            hasIndex = { database.hasIndex(it) },
+        )
+        if (run) database.execSQL(statement)
     }
 
     private fun sqlResource(name: String): String =
