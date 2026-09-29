@@ -219,6 +219,7 @@ jobs:
           BETA_WEBHOOK: ${{ secrets.DISCORD_BETA_WEBHOOK }}
           RELEASE_VERSION: ${{ steps.version.outputs.name }}
           IS_PRERELEASE: ${{ steps.channel.outputs.prerelease }}
+          BETA_ROLE_ID: ${{ vars.DISCORD_BETA_ROLE_ID }}
           REPOSITORY: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
         run: |
@@ -234,6 +235,11 @@ jobs:
           webhook = os.environ.get("BETA_WEBHOOK" if is_prerelease else "RELEASE_WEBHOOK", "")
           if not webhook:
               raise SystemExit(f"{secret_name} is not configured")
+
+          # Pre-releases ping the opt-in beta-tester role when its ID is configured.
+          beta_role_id = os.environ.get("BETA_ROLE_ID", "").strip() if is_prerelease else ""
+          if beta_role_id and not (beta_role_id.isascii() and beta_role_id.isdigit()):
+              raise SystemExit("DISCORD_BETA_ROLE_ID must be a numeric Discord role ID")
 
           version = os.environ["RELEASE_VERSION"]
           repo = os.environ["REPOSITORY"]
@@ -274,6 +280,9 @@ jobs:
                   "footer": {"text": "Actua • Native Android client for Actual Budget"}
               }]
           }
+          if beta_role_id:
+              payload["content"] = f"<@&{beta_role_id}>"
+              payload["allowed_mentions"]["roles"] = [beta_role_id]
           req = urllib.request.Request(
               webhook,
               data=json.dumps(payload).encode(),
