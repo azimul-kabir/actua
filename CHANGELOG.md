@@ -12,6 +12,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Budgets created in earlier versions of Actua now get Actual's reports dashboard after syncing ([#725](https://github.com/azimul-kabir/actua/pull/725))
 - Budgets created in Actua now include Actual's default reports dashboard ([#724](https://github.com/azimul-kabir/actua/pull/724))
 - Transactions no longer show deleted payees or categories, and now count as uncategorized like in Actual ([#722](https://github.com/azimul-kabir/actua/pull/722))
 - Fixed linking a bank account in Actua causing sync errors in Actual ([#721](https://github.com/azimul-kabir/actua/pull/721))
