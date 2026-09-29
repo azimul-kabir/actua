@@ -1178,14 +1178,15 @@ class ActuaRepository(context: Context) {
         return true
     }
 
-    fun renameAccount(oldName: String, newName: String): Boolean {
-        val account = actualDatabase?.fetchAccounts()?.firstOrNull { it.name == oldName } ?: return false
+    // Account mutations take ids: Actual allows duplicate account names, so a name can match another account.
+    fun renameAccount(accountId: String, newName: String): Boolean {
+        val account = actualDatabase?.fetchAccounts()?.firstOrNull { it.id == accountId } ?: return false
         actualEntities!!.renameAccount(account.id, newName); return true
     }
 
-    fun setAccountType(name: String, type: String): Boolean {
+    fun setAccountType(accountId: String, type: String): Boolean {
         val db = actualDatabase ?: return false
-        val account = db.fetchAccounts().firstOrNull { it.name == name } ?: return false
+        val account = db.fetchAccounts().firstOrNull { it.id == accountId } ?: return false
         val normalized = ActualAccountType.entries.firstOrNull { it.name.equals(type, ignoreCase = true) } ?: return false
         actualEntities!!.setAccountType(account.id, normalized.name.lowercase())
         return true

@@ -2411,10 +2411,10 @@ fun AppNavigation(
                         mutate("Reopening account") { repository.reopenAccount(account.id) }
                     },
                     onRenameAccount = { account, name ->
-                        mutate("Renaming account") { repository.renameAccount(account.name, name) }
+                        mutate("Renaming account") { repository.renameAccount(account.id, name) }
                     },
                     onChangeAccountType = { account, type ->
-                        mutate("Changing account type") { repository.setAccountType(account.name, type) }
+                        mutate("Changing account type") { repository.setAccountType(account.id, type) }
                     },
                     onCreateAccount = { name, offBudget, balance, type ->
                         mutate("Creating account") { repository.createAccount(name, offBudget, balance, type) }
