@@ -1654,6 +1654,18 @@ class ActualBudgetDatabase private constructor(
             ColumnMigration(1787013118115, "accounts", "account_group_id", "TEXT DEFAULT NULL"),
             ColumnMigration(1787013118200, "accounts", "gocardless_requisition_id", "TEXT DEFAULT NULL"),
         )
+        /**
+         * Migration ids recorded by Actuali/Actua for their own partial column steps. Actual has no
+         * such ids and refuses a database that lists them (`out-of-sync-migrations`), so they are
+         * never recorded, are removed from `__migrations__` on open, and are stripped from backups.
+         */
+        internal val PRIVATE_MIGRATION_IDS: Set<Long> = setOf(
+            1694438752001, 1694438752002, 1720665000001, 1765518577216,
+            1770000000001, 1770000000002, 1770000000003, 1778510362741,
+            1780606214999, 1780606215002, 1780606215003, 1780606215004,
+            1780606215005, 1787013118200,
+        )
+        internal val columnMigrationIds: List<Long> get() = columnMigrations.map { it.id }
         private val internalTables = setOf("messages_crdt", "messages_clock", "migrations", "__migrations__")
         private val requiredTables = setOf(
             "accounts",
@@ -1685,6 +1697,9 @@ class ActualBudgetDatabase private constructor(
             database.beginTransaction()
             try {
                 database.execSQL("CREATE TABLE IF NOT EXISTS __migrations__ (id INTEGER PRIMARY KEY)")
+                database.execSQL(
+                    "DELETE FROM __migrations__ WHERE id IN (${PRIVATE_MIGRATION_IDS.joinToString()})",
+                )
                 val applied = mutableSetOf<Long>()
                 database.rawQuery("SELECT id FROM __migrations__", null).use { cursor ->
                     while (cursor.moveToNext()) applied += cursor.getLong(0)
@@ -1727,7 +1742,9 @@ class ActualBudgetDatabase private constructor(
                         )
                         added += migration.table to migration.column
                     }
-                    database.execSQL("INSERT OR IGNORE INTO __migrations__ (id) VALUES (?)", arrayOf(migration.id))
+                    if (migration.id !in PRIVATE_MIGRATION_IDS) {
+                        database.execSQL("INSERT OR IGNORE INTO __migrations__ (id) VALUES (?)", arrayOf(migration.id))
+                    }
                 }
                 if (database.hasTable("transactions") &&
                     database.hasColumn("transactions", "acct") && database.hasColumn("transactions", "tombstone")) {

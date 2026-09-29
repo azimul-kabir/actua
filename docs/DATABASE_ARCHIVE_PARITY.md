@@ -30,7 +30,7 @@ are in [SERVER_FILE_PARITY.md](SERVER_FILE_PARITY.md). `/sync/sync` and message 
 | JS migrations that seed rows: `1722804019000` adds the default dashboard widgets and `1765518577215` adds a `Main` dashboard page | [`M/1722804019000_create_dashboard_table.js`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/migrations/1722804019000_create_dashboard_table.js), [`M/1765518577215_multiple_dashboards.js`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/migrations/1765518577215_multiple_dashboards.js) | Both ids are marked applied, but neither row is seeded | **Divergence** [#716](https://github.com/azimul-kabir/actua/issues/716). In Actual, a budget created by Actua has no dashboard page. | – |
 | Opening: `checkDatabaseValidity` requires `__migrations__` to be an exact ordered prefix of the known list, otherwise `out-of-sync-migrations`. Budgets newer than the client are refused. `patchBadMigrations` renames `1685375406832`. | [`L/migrate/migrations.ts#L53-L65`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/migrate/migrations.ts#L53-L65), [`#L146-L192`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/migrate/migrations.ts#L146-L192) | `DB.open` → `runMigrations` (`DB:1684-1744`) never refuses a budget. Required tables are checked by `DB.validate` (`DB:1787`), and core reads by `BudgetOpenProbe`. | **Intentional.** Actua opens newer budgets and leaves unknown tables and columns alone (see §4). | `BudgetDownloadServiceTest.downloadedBudgetThatFailsOpenValidationIsRejectedBeforeInstall` |
 | Older budgets: pending SQL/JS migrations run in full, in order | [`L/migrate/migrations.ts#L178-L192`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/migrate/migrations.ts#L178-L192) | `runMigrations` adds only the tables, columns and indexes Actua reads (`columnMigrations`, `DB:1640-1656`) in one transaction, then replays the latest stored CRDT value into each new column | Match for data: nothing is dropped or rewritten, and the new columns get their synced values. **Divergence** in bookkeeping, see next row. | `ActualBudgetReadModelTest.migrationAddsScheduleAndReplaysLatestStoredValue`, `migrationAddsCurrentActualAccountGroupSchema`, `cleanupSchemaMigratesAndRoundTripsThroughOneAtomicBatch`, `PayeeLocationDatabaseTest.migrationCreatesUpstreamTableAndIndexes` |
-| `__migrations__` bookkeeping | Only ids from `M/` | `runMigrations` records private ids (`1694438752001`, `1694438752002`, `1720665000001`, `1778510362741`, `1780606214999`, `1780606215003`–`05`, `1787013118200`) on every open, and can record an upstream id without the migrations before it. `BackupService.cleanSnapshot` strips most private ids from backups but misses `1780606215005` and `1787013118200`. | **Divergence** [#709](https://github.com/azimul-kabir/actua/issues/709). Actua backups imported into Actual fail with `out-of-sync-migrations`. | – |
+| `__migrations__` bookkeeping | Only ids from `M/` | Private column-step ids live in one list, `ActualBudgetDatabase.PRIVATE_MIGRATION_IDS`. `runMigrations` never records them and deletes any that older versions recorded, and `BackupService.cleanSnapshot` strips the same list from backups. For a budget last uploaded by an older Actual, Actua can still record an upstream id without the full migration or the ones before it. | Match for private ids (fixed in [#709](https://github.com/azimul-kabir/actua/issues/709)). **Divergence** [#719](https://github.com/azimul-kabir/actua/issues/719) for older snapshots. | `src/test/.../data/budget/MigrationBookkeepingTest`, `BackupServiceTest.openedBudgetAndItsBackupListOnlyActualsMigrationsInOrder` |
 | Only upstream columns are synced | The AQL schema and migrations define every syncable column. `apply()` raises `invalid-schema` for unknown ones. | `ActualEntityWriter` also syncs `accounts.gocardless_requisition_id`, which Actual doesn't have | **Divergence** [#708](https://github.com/azimul-kabir/actua/issues/708) | – |
 
 ## 2. Views
@@ -84,8 +84,8 @@ Every read in `ActualBudgetDatabase` was checked. "Live" means `tombstone = 0 OR
 | `metadata.json` fields: `id`, `budgetName`, `cloudFileId`, `groupId`, `lastUploaded`, `encryptKeyId`, `resetClock`, plus others such as `userId` and legacy synced prefs | `L/prefs.ts`, `L/cloud-storage.ts` | `BudgetMetadata` reads the seven core fields. Download keeps unknown keys verbatim and overwrites the cloud identity (see SERVER_FILE_PARITY §3). | Match |
 | `resetClock`: on load, generate a new clock node, then clear the flag | [`L/budgetfiles/app.ts#L602-L616`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budgetfiles/app.ts#L602-L616) | Every writer and sync client starts a fresh random node (`HybridLogicalClock.generateNodeId()`). The stored clock only supplies the timestamp high-water mark, so the flag is read but never needed. | Match (stronger) | – |
 | Export (`export-budget`): empties `kvcache`/`kvcache_key` and sets `resetClock = true` | [`L/cloud-storage.ts#L145-L210`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/cloud-storage.ts#L145-L210) | No standalone export. The Backups screen exports a backup archive, and `uploadArchive` is used only for new budgets. | N/A. Backup archives are what users move between apps (next rows). |
-| Backup creation: copy `db.sqlite`, delete `messages_crdt` and `messages_clock`, then zip it with the current `metadata.json` | [`L/budgetfiles/backups.ts#L106-L165`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budgetfiles/backups.ts#L106-L165) | `BackupService.makeBackup` / `cleanSnapshot` (`:27-44`, `:164-178`) do the same on a consistent snapshot, also strip private migration ids (incompletely, #709), and write through a temp file | Match, except [#709](https://github.com/azimul-kabir/actua/issues/709) | `BackupServiceTest.backupStripsSyncStateAndRestoreCanRevert` |
-| Snapshot method | Plain file copy | `VACUUM INTO` on API 29 and later; on API 28, `wal_checkpoint(FULL)` then a copy | **Divergence** [#710](https://github.com/azimul-kabir/actua/issues/710): AOSP Android 10 bundles SQLite 3.22.0, and `VACUUM INTO` needs 3.27. | – |
+| Backup creation: copy `db.sqlite`, delete `messages_crdt` and `messages_clock`, then zip it with the current `metadata.json` | [`L/budgetfiles/backups.ts#L106-L165`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budgetfiles/backups.ts#L106-L165) | `BackupService.makeBackup` / `cleanSnapshot` (`:27-44`, `:164-178`) do the same on a consistent snapshot, also strip private migration ids, and write through a temp file | Match | `BackupServiceTest.backupStripsSyncStateAndRestoreCanRevert`, `openedBudgetAndItsBackupListOnlyActualsMigrationsInOrder` |
+| Snapshot method | Plain file copy | `VACUUM INTO` when the device's `sqlite_version()` is 3.27 or later; otherwise (Android 9 and 10 ship 3.22.0) `wal_checkpoint(FULL)` then a copy | Intentional (consistent snapshot). Fixed for Android 10 in [#710](https://github.com/azimul-kabir/actua/issues/710). | `MigrationBookkeepingTest.vacuumIntoNeedsSqlite327`, `BackupServiceTest` on the API 28 and 35 emulators |
 | Retention: 3 backups for today, 1 per earlier day, at most 10 in total; automatic every 15 minutes (desktop only) | [`L/budgetfiles/backups.ts#L81-L104`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budgetfiles/backups.ts#L81-L104), `#L257-L275` | `BackupService.backupsToRemove` uses the same rule. Backups are made by WorkManager jobs (`LocalBackupWorker` and optionally with a sync run) and on demand. | Match (schedule adapted to Android) | `src/test/.../data/budget/BackupRetentionTest` |
 | First restore keeps `db.latest.sqlite` and `metadata.latest.json` for a one-tap revert. Revert copies them back and deletes them. Making a new backup discards the revert point. | [`L/budgetfiles/backups.ts#L167-L212`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budgetfiles/backups.ts#L167-L212) | `BackupService.restore` and `makeBackup` behave the same | Match | `BackupServiceTest.backupStripsSyncStateAndRestoreCanRevert` |
 | Restoring a backup: clear `groupId`, `lastSyncedTimestamp` and `lastUploaded`, try `upload()`, then write the archive's `db.sqlite` and `metadata.json` verbatim. The revert also re-uploads. | [`L/budgetfiles/backups.ts#L213-L254`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budgetfiles/backups.ts#L213-L254) | Restores the database and writes metadata with the archive's `id`, `budgetName` and `resetClock`. `cloudFileId` and `encryptKeyId` come from the live budget, `groupId` and `lastUploaded` are set to null, and nothing is uploaded. Sync then reports "not configured" until the budget is downloaded again. | **Intentional.** A restored copy is never pushed over the server file; the UI says restoring disconnects sync. | `BackupServiceTest.backupStripsSyncStateAndRestoreCanRevert` |
@@ -100,15 +100,15 @@ The round trip was checked from source, not on a live PWA:
    passes validation and restores. Its `messages_crdt` is kept, and `resetClock = true` has no
    effect because Actua always uses fresh nodes. Data is unchanged. The restored copy is detached
    from sync, as described above.
-2. **Actua → PWA import.** Tables and columns are Actual's own schema. However, the archive's
-   `__migrations__` currently contains `1780606215005` (and `1787013118200` for budgets opened
-   since that migration), so Actual refuses the file with `out-of-sync-migrations`. This is
-   **blocked by [#709](https://github.com/azimul-kabir/actua/issues/709)**. A budget that Actua has
+2. **Actua → PWA import.** Tables and columns are Actual's own schema, and since
+   [#709](https://github.com/azimul-kabir/actua/issues/709) the archive's `__migrations__` lists
+   only Actual's ids, in order. The exception is a budget last uploaded by an older Actual
+   ([#719](https://github.com/azimul-kabir/actua/issues/719)). A budget that Actua has
    linked to a bank provider also carries `accounts.gocardless_requisition_id` values. They don't
    stop the file from opening, but syncing them breaks Actual
    ([#708](https://github.com/azimul-kabir/actua/issues/708)).
 
-After #709 is fixed, the full round trip (PWA export → Actua import → Actua backup export → PWA
+The full round trip (PWA export → Actua import → Actua backup export → PWA
 import) should be run manually against a real Actual server with a synthetic budget, and the result
 recorded here.
 
@@ -131,7 +131,7 @@ versus `0`.
 
 Android 9 and 10 bundle SQLite 3.22.0; Android 11 bundles 3.28.0. A search of `src/main` for
 post-3.22 syntax (window functions, UPSERT, `RETURNING`, column rename or drop, `json_each`,
-`iif`, `unixepoch`, `->>`) found only `VACUUM INTO` ([#710](https://github.com/azimul-kabir/actua/issues/710)).
+`iif`, `unixepoch`, `->>`) found only `VACUUM INTO`, which now runs only when `sqlite_version()` is 3.27 or later ([#710](https://github.com/azimul-kabir/actua/issues/710)).
 Migrations use only `CREATE TABLE`/`CREATE INDEX IF NOT EXISTS` and `ALTER TABLE ADD COLUMN`, which
 work on API 28.
 
@@ -140,11 +140,13 @@ work on API 28.
 - [#708](https://github.com/azimul-kabir/actua/issues/708) (**P1**, sync): linking or unlinking a
   bank account syncs `accounts.gocardless_requisition_id`, a column Actual doesn't have, which
   causes `invalid-schema` in Actual clients
-- [#709](https://github.com/azimul-kabir/actua/issues/709) (**P1**, round trip): private or
-  out-of-order migration ids make Actua backups fail to open in Actual
-- [#710](https://github.com/azimul-kabir/actua/issues/710) (P2): backup creation uses `VACUUM INTO`
-  on Android 10 (SQLite 3.22)
+- [#709](https://github.com/azimul-kabir/actua/issues/709) (**P1**, round trip, fixed): private
+  migration ids made Actua backups fail to open in Actual
+- [#710](https://github.com/azimul-kabir/actua/issues/710) (P2, fixed): backup creation used
+  `VACUUM INTO` on Android 10 (SQLite 3.22)
 - [#711](https://github.com/azimul-kabir/actua/issues/711) (P2): transaction reads show deleted
   payees and categories where Actual shows none
 - [#716](https://github.com/azimul-kabir/actua/issues/716) (P2): budgets created in Actua have no
   dashboard page in Actual
+- [#719](https://github.com/azimul-kabir/actua/issues/719) (**P1**, round trip): budgets last
+  uploaded by an older Actual get upstream migration ids recorded without the full migration

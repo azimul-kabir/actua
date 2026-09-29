@@ -45,6 +45,33 @@ class BackupServiceTest {
         }
     }
 
+    @Test fun openedBudgetAndItsBackupListOnlyActualsMigrationsInOrder() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val id = files.createBudget("Migration test ${UUID.randomUUID()}").id
+        try {
+            // A budget opened by an earlier Actua version already carries private ids.
+            SQLiteDatabase.openDatabase(files.databaseFile(id).path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                listOf(1694438752001L, 1780606215005L, 1787013118200L).forEach {
+                    db.execSQL("INSERT INTO __migrations__ (id) VALUES (?)", arrayOf(it))
+                }
+            }
+            ActualBudgetDatabase.open(files.databaseFile(id)).close()
+            val upstream = BlankBudgetFactory.MIGRATIONS.toList()
+            assertEquals(upstream, migrations(files.databaseFile(id)))
+
+            val archive = BackupService(context, files).makeBackup(id)
+            val (database, _) = files.extractBackup(archive)
+            try {
+                assertEquals(upstream, migrations(database))
+            } finally {
+                database.delete()
+            }
+        } finally {
+            files.budgetDirectory(id).deleteRecursively()
+        }
+    }
+
     @Test fun importedBackupIsValidatedAndDoesNotChangeTheActiveBudget() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val id = "backup-import-${UUID.randomUUID()}"
@@ -117,6 +144,13 @@ class BackupServiceTest {
             .put("id", id).put("budgetName", "Backup test").put("cloudFileId", "cloud")
             .put("groupId", "group").put("encryptKeyId", "key").toString())
     }
+
+    private fun migrations(file: java.io.File): List<Long> =
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { database ->
+            database.rawQuery("SELECT id FROM __migrations__ ORDER BY id", null).use { cursor ->
+                buildList { while (cursor.moveToNext()) add(cursor.getLong(0)) }
+            }
+        }
 
     private fun note(files: BudgetFileManager, id: String): String =
         SQLiteDatabase.openDatabase(files.databaseFile(id).path, null, SQLiteDatabase.OPEN_READONLY).use { database ->
