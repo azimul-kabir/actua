@@ -28,7 +28,6 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Repeat
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
@@ -649,22 +648,9 @@ fun TransactionsScreen(
         ModalBottomSheet(onDismissRequest = { upcomingMenuFor = null }) {
             Column(modifier = Modifier.padding(bottom = 24.dp)) {
                 val scheduleId = transaction.scheduleId
-                Row(Modifier.fillMaxWidth()
-                    .then(if (scheduleId != null) Modifier.clickable(onClickLabel = "Edit schedule") {
-                        upcomingMenuFor = null
-                        onViewSchedule(scheduleId)
-                    } else Modifier)
-                    .padding(horizontal = 24.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    Text(transaction.payee, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f, fill = false))
-                    if (scheduleId != null) {
-                        Icon(Icons.Outlined.Edit, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 8.dp).size(18.dp))
-                    }
-                }
+                Text(transaction.payee, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp))
                 Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 4.dp, bottom = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Scheduled date", style = MaterialTheme.typography.bodyLarge)
@@ -676,6 +662,13 @@ fun TransactionsScreen(
                     Action(action.label) {
                         upcomingMenuFor = null
                         onUpcomingAction(transaction, action)
+                    }
+                }
+                if (scheduleId != null) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Action("Edit schedule") {
+                        upcomingMenuFor = null
+                        onViewSchedule(scheduleId)
                     }
                 }
             }
