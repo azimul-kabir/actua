@@ -104,7 +104,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   creation, child-preserving edits, opposite-direction lines, and collapse to a
   standard transaction; transfer drafts can reverse their source/destination
   accounts before save, and post-save feedback is an animated balance-impact card showing the
-  saved category's account balance before → after the save
+  saved category's account balance before → after the save. Transaction, transfer and split
+  semantics are itemized with upstream links and filed divergences in
+  [docs/TRANSACTIONS_PARITY.md](docs/TRANSACTIONS_PARITY.md)
 - Multi-select mode in Transactions, entered via long-press (pre-selecting that
   transaction) or the existing selection entry points, with a floating selection
   bar exposing Categorize and Label as always-visible icon actions and Edit
