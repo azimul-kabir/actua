@@ -39,7 +39,9 @@ Actua registers one unique periodic WorkManager job with:
 
 - a 15-minute interval, Android's minimum periodic interval
 - a connected-network constraint
-- exponential retry beginning at 10 seconds, capped by the worker after five attempts
+- exponential retry beginning at 10 seconds, capped by the worker after five attempts; failures that
+  need the user to act (sign-in, server sync reset, clock drift, decryption) aren't retried (see
+  [SYNC_PARITY.md](SYNC_PARITY.md) section 8)
 - persistent unique-work registration using `ExistingPeriodicWorkPolicy.UPDATE`
 - per-run schedule posting, a second sync when schedules were posted, widget refresh, and local backup
 

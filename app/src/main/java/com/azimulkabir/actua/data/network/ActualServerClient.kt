@@ -74,6 +74,8 @@ sealed class ActualServerException(message: String) : Exception(message) {
         "Your Actual server session has expired. Sign in again to resume syncing.",
     )
     data object FileNotFound : ActualServerException("Budget file not found")
+    /** `/sync` refused the request with Actual's [reason] code, e.g. `file-has-reset`. Retrying can't help. */
+    class SyncRejected(val reason: String) : ActualServerException(syncRejectionMessage(reason))
     data object InvalidResponse : ActualServerException("The server returned an invalid response")
     class Http(val status: Int, body: String) : ActualServerException("HTTP $status: $body")
 }
@@ -308,6 +310,10 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
             actualHeaders(token) + ("Content-Type" to "application/actual-sync"), requestData,
         )
         checkAuthorization(response)
+        // Actual reports why it refused a sync as a 4xx reason; 5xx, 408 and 429 stay retryable HTTP errors.
+        if (response.status in 400..499 && response.status != 408 && response.status != 429) {
+            syncRejectionReason(response.body)?.let { throw ActualServerException.SyncRejected(it) }
+        }
         requireSuccess(response)
         return response.body
     }
@@ -594,6 +600,40 @@ internal fun isRejectedSession(body: ByteArray): Boolean = runCatching {
     val reason = json.optString("reason")
     reason == "token-expired" || (reason == "unauthorized" && json.optString("details") == "token-not-found")
 }.getOrDefault(false)
+
+/**
+ * Actual's `/sync` sends its reason as plain text (`file-has-reset`, `file-not-found`, …) or as JSON
+ * `{reason, details}`. Anything that isn't a reason code, such as a proxy's HTML page, returns null.
+ * A rejected session (401) is classified earlier by `checkAuthorization`.
+ */
+internal fun syncRejectionReason(body: ByteArray): String? {
+    val text = body.decodeToString().trim()
+    val reason = if (text.startsWith("{")) {
+        runCatching { JSONObject(text).optString("reason") }.getOrNull() ?: return null
+    } else {
+        text
+    }
+    return reason.takeIf { SYNC_REASON_PATTERN.matches(it) }
+}
+
+private val SYNC_REASON_PATTERN = Regex("[a-z][a-z0-9-]{0,63}")
+
+/** Actionable text for Actual's `/sync` rejection reasons; local data is never touched for any of them. */
+internal fun syncRejectionMessage(reason: String): String = when (reason) {
+    "file-has-reset", "file-has-new-key" ->
+        "This budget's sync was reset in Actual${if (reason == "file-has-new-key") " with a new encryption key" else ""}. " +
+            "Syncing is paused and this device's copy is unchanged. It needs a fresh download to sync again; " +
+            "changes here that haven't synced won't carry over, so back it up first."
+    "file-old-version", "file-needs-upload" ->
+        "The server's copy of this budget needs attention. Open it in Actual's web app and follow its sync " +
+            "prompt, then sync again. Your local changes are kept."
+    "file-key-mismatch" ->
+        "This budget's encryption key doesn't match the server's. Open it in Actual's web app to fix its " +
+            "encryption, then sync again. Your local changes are kept."
+    "file-not-found" ->
+        "This budget is no longer on the server. It may have been deleted. Your local copy is unchanged."
+    else -> "The server refused to sync this budget ($reason). Your local changes are kept."
+}
 
 /** Actua's reason for an invalid-password answer from a server that hasn't been set up yet. */
 internal const val REASON_NEEDS_BOOTSTRAP = "needs-bootstrap"

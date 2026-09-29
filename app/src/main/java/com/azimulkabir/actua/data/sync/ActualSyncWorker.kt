@@ -98,9 +98,8 @@ object ActualSyncRunner {
                 val server = ActualServerClient(UrlConnectionTransport(TrustedCertificateStore(context))).apply { customHeaders = credentials.customHeaders }
                 fun syncAt(url: String) = ActualSyncClient(url, token, server, database, fileId, groupId,
                     loadedKey?.keyId, loadedKey?.let { ActualMessageCipher(it.key) }).sync()
-                // The fallback is another address of the same server, so it would reject the same token.
                 fun syncWithFallback() = try { syncAt(serverUrl) } catch (primary: Exception) {
-                    if (primary is ActualServerException.SessionExpired) throw primary
+                    if (!SyncFailurePolicy.triesFallback(primary)) throw primary
                     fallbackUrl?.let(::syncAt) ?: throw primary
                 }
                 var outcome = syncWithFallback()
@@ -172,8 +171,8 @@ class ActualSyncWorker(context: Context, parameters: WorkerParameters) : Corouti
             }
         } catch (error: Exception) {
             when {
-                // Retrying can't help until the user signs in again, which schedules a new sync.
-                error is ActualServerException.SessionExpired -> Result.failure()
+                // Retrying can't help until the user acts; the next scheduled or manual sync tries again.
+                !SyncFailurePolicy.isRetryable(error) -> Result.failure()
                 runAttemptCount < 5 -> Result.retry()
                 else -> Result.failure()
             }

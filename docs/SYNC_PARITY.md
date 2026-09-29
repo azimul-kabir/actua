@@ -73,7 +73,7 @@ Feature-by-feature audit of the Actual Budget sync behavior Actua depends on, tr
 | AES-256-GCM, 12-byte random IV, 16-byte tag split off the ciphertext | `encryption-internals.ts#L17-L61` | `SyncEncryption.kt:33-65` | Match | `SyncEncryptionFixtureTest.decryptsActualKeyTestFixture`, `encryptedSyncMessageRoundTripsThroughProtobufEnvelope` |
 | Key test: decrypt the server `test` JSON (`value`, `meta.iv`, `meta.authTag`); missing test → `old-key-style`; failure → `decrypt-failure` | [`U/packages/loot-core/src/server/encryption/app.ts#L91-L118`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/encryption/app.ts#L91-L118) | `data/sync/EncryptionKeyManager.kt:20-40` (`UnsupportedLegacyKey`, `InvalidPassword`, `MalformedTestMessage`) | Match | `src/androidTest/.../data/sync/EncryptionKeyManagerTest.validatesActualFixtureAndRejectsWrongPassword` |
 | Key storage | `asyncStorage` `encrypt-keys` | `data/security/BudgetEncryptionKeyStore.kt` (derived key wrapped by an Android Keystore AES-GCM key) | **Intentional** (stronger at rest) | `EncryptionKeyManagerTest.derivedKeyIsWrappedByAndroidKeystore` |
-| `keyId` sent on every request; missing key → `encrypt-failure`/`decrypt-failure` (`isMissingKey`) | `encoder.ts#L38-L66`, `#L107-L123` | `data/sync/ActualSyncWorker.kt:70-79` refuses to sync without a loaded key whose id matches the budget's `encryptKeyId` (`EncryptionKeyUnavailable`); an encrypted envelope without a cipher → `EncryptionRequired` | Match for local detection. The error surface is covered by [#692](https://github.com/azimul-kabir/actua/issues/692). | `SyncEncoderFixtureTest.encryptedEnvelopeRequiresCipher` |
+| `keyId` sent on every request; missing key → `encrypt-failure`/`decrypt-failure` (`isMissingKey`) | `encoder.ts#L38-L66`, `#L107-L123` | `data/sync/ActualSyncWorker.kt:70-79` refuses to sync without a loaded key whose id matches the budget's `encryptKeyId` (`EncryptionKeyUnavailable`); an encrypted envelope without a cipher → `EncryptionRequired`; a saved key that can't decrypt → `ActualSyncException.DecryptionFailed` (not retried) | Match ([#692](https://github.com/azimul-kabir/actua/issues/692)) | `SyncEncoderFixtureTest.encryptedEnvelopeRequiresCipher`, `SyncFailureClassificationTest` |
 
 ## 6. Full sync loop
 
@@ -81,7 +81,7 @@ Feature-by-feature audit of the Actual Budget sync behavior Actua depends on, tr
 | --- | --- | --- | --- | --- |
 | Send `messages_crdt WHERE timestamp > since`; since = explicit diff time, else `lastSyncedTimestamp`, else now − 5 min | `sync/index.ts#L534-L540`, `#L695-L704` | `ActualSyncClient.kt:58-78`, `ActualBudgetDatabase.kt:1344-1368` | **Intentional.** The fallback is the downloaded snapshot's log high-water mark, not "5 minutes ago", so pending edits made before the first sync are never skipped. | `ActualSyncClientTest.freshDownloadUsesSnapshotHighWaterMarkAndDoesNotRepushHistory`, `localWriteAfterRecoveryBeforeFirstSyncIsSent`, `validClockBehindLogPreservesUnsentWrites` |
 | Receive → `Timestamp.recv` each message → apply → Merkle diff → recurse from the diff time | `sync/index.ts#L735-L830` | `ActualSyncClient.kt:79-91` | Match | `ActualSyncClientTest.clientsExchangeMessagesAndConverge`, `missingClockAfterCommittedWriteRecoversThroughMerkleDifference`, `retryAfterResponseInterruptionResendsAcceptedLocalWriteAndConverges` |
-| Repeated-sync limit: `out-of-sync` after 10 identical diff times or 100 passes; counter resets when the local clock moved | `sync/index.ts#L754-L830` | `ActualSyncClient.kt:59,100` (10 passes total) | **Divergence** ([#693](https://github.com/azimul-kabir/actua/issues/693)): a large catch-up can fail sooner than Actual would | `ActualSyncClientTest.permanentlyDishonestMerkleIsBounded` |
+| Repeated-sync limit: `out-of-sync` when a pass at count ≥ 10 returns the same diff time as the previous pass, or at count ≥ 100; the count resets when the local clock moved during the round trip | `sync/index.ts#L754-L830` | `SyncLoopLimit` in `ActualSyncClient.kt`; a local change is detected by the message log's high-water mark moving during the request (writers log every edit) | Match ([#693](https://github.com/azimul-kabir/actua/issues/693)) | `SyncFailureClassificationTest.loop limit *`, `local changes during a pass reset the loop count`; `ActualSyncClientTest.diffThatMovesEveryPassConvergesAfterMoreThanTenPasses`, `stuckDiffFailsWithOutOfSyncAfterTenRepeats`, `localEditsDuringSyncResetTheLoopLimit`, `permanentlyDishonestMerkleIsBounded` |
 | On success, persist `lastSyncedTimestamp` = current clock | `sync/index.ts#L831-L841` | `ActualSyncClient.kt:93-94` (saved in `messages_clock`) | Match | `ActualSyncClientTest.*ClockRecoversFromMessageLog` |
 | Abort if the group id changed during the request (local sync reset) | `sync/index.ts#L729-L733` | Not applicable: a reset/re-download replaces the budget file and database outside a running sync | N/A | – |
 | Sync is serialized (`once`, `sequential`) | `sync/index.ts#L261`, `#L597` | `ActualSyncClient.sync` and `ActualSyncRunner.run` are `@Synchronized`; WorkManager unique work | Match | `SyncSchedulingPolicyTest` |
@@ -100,28 +100,38 @@ Feature-by-feature audit of the Actual Budget sync behavior Actua depends on, tr
 and
 [`U/packages/sync-server/src/app-sync/validation.js#L7-L47`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/sync-server/src/app-sync/validation.js#L7-L47).
 Actual's client maps them in `sync/index.ts#L597-L661` and `packages/desktop-client/src/sync-events.ts`.
-Actua's current mapping goes through `data/network/ActualServerClient.kt:283-291,521-526`, with
-retries at `ActualSyncWorker.kt:167-168`: non-200 → `ActualServerException.Http`, 401/403 →
-`Unauthorized`, any exception → WorkManager retry (5 attempts, exponential backoff from 10 s), then
-failure. The latest message appears in **Manage → Connection & Data**. With a fallback server
-configured, every primary failure is retried once against the fallback URL.
+Actua parses the reason in `data/network/ActualServerClient.kt` (`postSync`, `syncRejectionReason`):
+401/403 go through `checkAuthorization` (`SessionExpired`, `FileAccessDenied`, `Unauthorized`); any
+other 4xx except 408/429 whose body is a reason code (plain text or JSON `reason`) becomes
+`ActualServerException.SyncRejected(reason)` with an actionable message; everything else stays
+`ActualServerException.Http`. Local failures are typed in `data/sync/ActualSyncClient.kt`
+(`ActualSyncException.ClockDrift`, `DecryptionFailed`, `OutOfSync`). `data/sync/SyncFailurePolicy.kt`
+decides retries: WorkManager retries only retryable failures (5 attempts, exponential backoff from
+10 s); a non-retryable one fails the work immediately and waits for the next scheduled or manual
+sync. The fallback server URL is tried only for retryable failures and proxy `Unauthorized`. The
+message appears in **Manage → Connection & Data**. No failure resets, re-downloads or deletes local
+data, and pending edits stay in the message log.
 
-| Reason (source) | Actual behavior | Actua behavior today | Class | Target ([#692](https://github.com/azimul-kabir/actua/issues/692)) |
+| Reason (source) | Actual behavior | Actua behavior | Class | Status |
 | --- | --- | --- | --- | --- |
 | `network-failure` (fetch threw) | "network" notice; retries on next sync | IOException → fallback URL, then WorkManager retry | Retry | Match |
-| `internal-error` (500) | Generic error | `Http(500)` → retry | Retry | Match |
-| `unauthorized` (401) / `token-expired` (401 + `token-not-found`) | Read-only mode + auth notice / sign out | `Unauthorized` → retried 5× → surfaced | Surface | Stop retrying; prompt to sign in again |
-| `file-access-not-allowed` (403, text) | Generic error | Treated as `Unauthorized` | Surface | Distinct "no access to this file" message |
-| `file-not-found` (400) | "Not a cloud file" → Register (upload) | `Http(400)` → retry | Surface | No retry; explain; offer re-link via Actual |
-| `since-required` (422) | – (client always sends `since`) | `Http(422)` | N/A | Actua always sends `since` |
-| `file-old-version` (400) | "Reset sync" prompt | `Http(400)` → retry | Surface | No retry; direct the user to reset in Actual |
-| `file-needs-upload` (400) | "Upload" (reset sync) | `Http(400)` → retry | Surface | No retry; direct the user to Actual |
-| `file-key-mismatch` (400) | "Reset key" prompt | `Http(400)` → retry | Surface | No retry; direct the user to Actual |
-| `file-has-reset` / `file-has-new-key` (400) | "Sync has been reset" → revert (re-download) or upload | `Http(400)` → retry | Recover (user-confirmed) | No retry; offer re-download after backing up local unsynced edits |
-| `decrypt-failure` / `encrypt-failure` | "Missing encryption key" → create/re-enter key | Missing key: `EncryptionKeyUnavailable` (no retry, surfaced). Wrong key: `SyncEncryptionException` → retry | Surface | No retry; prompt for the encryption password |
-| `clock-drift` (`Timestamp.ClockDriftError` on recv) | "Time sync issue" notice | `HlcException.ClockDrift` → retry | Surface | No retry until the device time changes; explain |
-| `out-of-sync` (loop limit) | "Out of sync" → Repair / Reset sync | `ActualSyncException.OutOfSync` → retry | Surface | Keep the retry (the next run rebuilds the Merkle tree from the log); see #693 |
+| `internal-error` (500), other 5xx, 408, 429, non-reason bodies | Generic error | `Http` → retry | Retry | Match |
+| `token-expired` (401) / `unauthorized` + `token-not-found` (401) | Sign out / auth notice | `SessionExpired` → session marked expired, sign-in banner, no retry | Surface | Match |
+| Proxy 401/403 without Actual's reason | – | `Unauthorized` → fallback URL tried, no WorkManager retry | Surface | Match |
+| `file-access-not-allowed` (403, text) | Generic error | `FileAccessDenied` → "no access" message, no retry | Surface | Match |
+| `file-not-found` (400) | "Not a cloud file" → Register (upload) | `SyncRejected` → explains the budget is gone, no retry | Surface | Match (no in-app register/upload) |
+| `since-required` (422) | – (client always sends `since`) | `SyncRejected` → no retry | N/A | Actua always sends `since` |
+| `file-old-version` / `file-needs-upload` (400) | "Reset sync" / "Upload" prompt | `SyncRejected` → directs the user to Actual's web app, no retry | Surface | Match |
+| `file-key-mismatch` (400) | "Reset key" prompt | `SyncRejected` → directs the user to Actual's web app, no retry | Surface | Match |
+| `file-has-reset` / `file-has-new-key` (400) | "Sync has been reset" → revert (re-download) or upload | `SyncRejected` → explains a fresh download is needed and to back up first, no retry | Recover (user-confirmed) | **Partial:** an in-app re-download over an existing local copy isn't implemented, so nothing is replaced without the user |
+| Other 4xx reason codes | Generic error | `SyncRejected` → "refused to sync (reason)", no retry | Surface | Match |
+| `decrypt-failure` / `encrypt-failure` | "Missing encryption key" → create/re-enter key | Missing key: `EncryptionKeyUnavailable` (no retry). Saved key can't decrypt: `ActualSyncException.DecryptionFailed` (no retry) | Surface | Match (no in-app re-key when a saved key is wrong) |
+| `clock-drift` (`Timestamp.ClockDriftError` on recv) | "Time sync issue" notice | `ActualSyncException.ClockDrift` → asks to fix the device time, no retry | Surface | Match |
+| `out-of-sync` (loop limit) | "Out of sync" → Repair / Reset sync | `ActualSyncException.OutOfSync` → retry (the next run rebuilds the Merkle tree from the log) | Retry | **Intentional** |
 | `invalid-schema` / `apply-failure` | "Update required" / apply-failure notice | Not raised (see section 2, unknown dataset/column) | Intentional | – |
+
+Test evidence: `src/test/.../data/sync/SyncFailureClassificationTest.kt` (each reason → typed error →
+retry and fallback decision), `src/test/.../data/network/ActualServerSessionTest.kt`.
 
 ## Fixture coverage
 
@@ -133,13 +143,11 @@ verbatim from `timestamp.test.ts` (all `send`/`recv` cases, overflow, drift) and
 overrides `timestamp.hash()`, the test builds the same tries with `MerkleTree.building` and the same
 per-minute hashes. No fixture was regenerated.
 
-Still missing, and covered by the linked issues' acceptance criteria:
-
-- Server error reason classification and retry decisions (#692)
-- Loop-limit progress and reset behavior (#693)
+Server error classification (#692) and loop-limit progress/reset behavior (#693) are covered by
+`SyncFailureClassificationTest` and `ActualSyncClientTest`.
 
 ## Divergences filed
 
 - [#691](https://github.com/azimul-kabir/actua/issues/691): writer clocks weren't advanced by received messages (LWW divergence under clock skew); fixed
-- [#692](https://github.com/azimul-kabir/actua/issues/692): server/sync error reasons retried as generic failures
-- [#693](https://github.com/azimul-kabir/actua/issues/693): full-sync retry limit stricter than Actual
+- [#692](https://github.com/azimul-kabir/actua/issues/692): server/sync error reasons retried as generic failures; fixed
+- [#693](https://github.com/azimul-kabir/actua/issues/693): full-sync retry limit stricter than Actual; fixed

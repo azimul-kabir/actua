@@ -59,6 +59,67 @@ class ActualSyncClientTest {
     }
 
     @Test
+    fun diffThatMovesEveryPassConvergesAfterMoreThanTenPasses() {
+        withDatabase { database ->
+            val anchor = loopAnchor()
+            database.insertMessages(listOf(anchor))
+            val movingPasses = 15
+            var requests = 0
+            val server = ActualServerClient {
+                val pass = requests++
+                // Each pass the server reports one more difference at a shallower trie depth, so the diff time moves.
+                val extra = if (pass < movingPasses) listOf(minutesAfter(anchor, pow3(pass))) else emptyList()
+                merkleOnlyResponse(listOf(anchor.timestamp) + extra)
+            }
+
+            val outcome = client(database, server).sync()
+
+            assertEquals(movingPasses + 1, outcome.attempts)
+            assertEquals(movingPasses + 1, requests)
+        }
+    }
+
+    @Test
+    fun stuckDiffFailsWithOutOfSyncAfterTenRepeats() {
+        withDatabase { database ->
+            val anchor = loopAnchor()
+            database.insertMessages(listOf(anchor))
+            var requests = 0
+            val server = ActualServerClient {
+                requests++
+                merkleOnlyResponse(listOf(anchor.timestamp, minutesAfter(anchor, 1)))
+            }
+
+            assertThrows(ActualSyncException.OutOfSync::class.java) { client(database, server).sync() }
+            assertEquals(11, requests)
+        }
+    }
+
+    @Test
+    fun localEditsDuringSyncResetTheLoopLimit() {
+        withDatabase { database ->
+            val anchor = loopAnchor()
+            database.insertMessages(listOf(anchor))
+            val editingPasses = 12
+            var requests = 0
+            val server = ActualServerClient {
+                val pass = requests++
+                if (pass < editingPasses) {
+                    // The user edits while the request is in flight.
+                    database.insertMessages(listOf(message(
+                        "2010-12-04T00:${"%02d".format(pass)}:00.000Z", "aaaaaaaaaaaaaaaa", "acct-$pass", "S:Edit",
+                    )))
+                }
+                merkleOnlyResponse(listOf(anchor.timestamp, minutesAfter(anchor, 1)))
+            }
+
+            assertThrows(ActualSyncException.OutOfSync::class.java) { client(database, server).sync() }
+            assertEquals(editingPasses + 11, requests)
+            assertEquals(editingPasses + 1, database.getMessagesSince(HlcTimestamp.ZERO.toString()).size)
+        }
+    }
+
+    @Test
     fun blankLegacyClockRecoversFromMessageLog() = assertClockRecovery(" ")
 
     @Test
@@ -179,6 +240,19 @@ class ActualSyncClientTest {
         groupId = "group",
         nodeId = "cccccccccccccccc",
     )
+
+    /** Minute 21 523 360 is `1111111111111111` in base 3, so adding 3^k changes only digit k of its Merkle key. */
+    private fun loopAnchor() = message("2010-12-03T18:40:00.000Z", "aaaaaaaaaaaaaaaa", "acct-1", "S:Checking")
+
+    private fun minutesAfter(message: CrdtMessage, minutes: Long) =
+        HlcTimestamp(message.timestamp.millis + minutes * 60_000, 0, "bbbbbbbbbbbbbbbb")
+
+    private fun pow3(exponent: Int): Long = (0 until exponent).fold(1L) { value, _ -> value * 3 }
+
+    private fun merkleOnlyResponse(timestamps: List<HlcTimestamp>): ActualHttpResponse {
+        val tree = timestamps.fold(MerkleTree()) { merkle, timestamp -> merkle.inserting(timestamp) }
+        return ActualHttpResponse(200, SyncProtocol.encodeResponse(SyncResponsePayload(emptyList(), MerkleJson.encode(tree.root))))
+    }
 
     private fun message(iso: String, node: String, row: String, value: String) = CrdtMessage(
         HlcTimestamp.parse("$iso-0000-$node")!!,
