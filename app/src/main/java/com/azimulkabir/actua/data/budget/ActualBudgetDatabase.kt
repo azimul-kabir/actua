@@ -191,6 +191,60 @@ class ActualBudgetDatabase private constructor(
         ).use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
     }
 
+    /**
+     * What Actual's `closeAccount` reads before choosing to delete, force-delete or close: the
+     * account's live transactions (Actual's `v_transactions`, so parents and children, minus rows
+     * under a deleted split parent) with their transfer links, the account's transfer payee, and
+     * which bank-link columns are set. Null when the account is missing or deleted.
+     */
+    @Synchronized
+    fun fetchAccountCloseState(accountId: String): AccountCloseState? {
+        val accountColumns = columns("accounts")
+        val linkColumns = listOf("account_id", "bank", "account_sync_source").filter { it in accountColumns }
+        val selectLinks = linkColumns.joinToString("") { ", $it" }
+        val linked = database.rawQuery(
+            "SELECT id$selectLinks FROM accounts WHERE id = ? AND (tombstone = 0 OR tombstone IS NULL)",
+            arrayOf(accountId),
+        ).use { cursor ->
+            if (!cursor.moveToFirst()) return null
+            linkColumns.indices.any { !cursor.stringOrNull(it + 1).isNullOrEmpty() }
+        }
+        val transactions = database.rawQuery(
+            """SELECT t.id, t.transferred_id FROM transactions t
+                LEFT JOIN transactions p ON p.id = t.parent_id
+                WHERE t.acct = ? AND (t.tombstone = 0 OR t.tombstone IS NULL)
+                  AND (t.isChild = 0 OR t.isChild IS NULL OR
+                       (p.id IS NOT NULL AND (p.tombstone = 0 OR p.tombstone IS NULL)))
+                ORDER BY t.id""",
+            arrayOf(accountId),
+        ).use { cursor -> buildList {
+            while (cursor.moveToNext()) add(AccountCloseState.Row(cursor.getString(0), cursor.stringOrNull(1)))
+        } }
+        return AccountCloseState(
+            transactions = transactions,
+            transferPayeeId = transferPayeeId(accountId),
+            balanceColumns = listOf("balance_current", "balance_available", "balance_limit").filter { it in accountColumns },
+            bankLinked = linked,
+        )
+    }
+
+    /** Actual's `SELECT id FROM payees WHERE transfer_acct = ?`, preferring a live payee. */
+    @Synchronized
+    fun transferPayeeId(accountId: String): String? = database.rawQuery(
+        """SELECT id FROM payees WHERE transfer_acct = ?
+            ORDER BY CASE WHEN tombstone = 0 OR tombstone IS NULL THEN 0 ELSE 1 END, id LIMIT 1""",
+        arrayOf(accountId),
+    ).use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+
+    data class AccountCloseState(
+        val transactions: List<Row>,
+        val transferPayeeId: String?,
+        val balanceColumns: List<String>,
+        val bankLinked: Boolean,
+    ) {
+        data class Row(val id: String, val transferId: String?)
+    }
+
     @Synchronized
     fun oldestTransactionDate(accountId: String): Int? = database.rawQuery(
         """SELECT MIN(date) FROM transactions WHERE acct = ? AND date IS NOT NULL

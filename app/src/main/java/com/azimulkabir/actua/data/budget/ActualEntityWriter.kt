@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.budget
 
+import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.sync.CrdtMessage
@@ -154,15 +155,96 @@ class ActualEntityWriter(
         persist(messages)
     }
 
-    /** Delete an account and its owned transfer payee together, matching Actual's reference model. */
+    enum class CloseOutcome { DELETED, FORCE_DELETED, CLOSED }
+
+    /**
+     * Actual's `closeAccount` as one CRDT batch. Bank sync is unlinked first. An account with no
+     * transactions is deleted. [forced] deletes the account, its transfer payee and every
+     * transaction in it, detaching the other leg of each transfer. Otherwise the account is marked
+     * closed, and a non-zero balance moves to [transferAccountId] as a `Closing account` transfer
+     * dated today; an on-budget to off-budget transfer needs [categoryId].
+     * Returns null when the account is missing or already closed, where Actual does nothing.
+     */
     @Synchronized
-    fun deleteAccount(id: String) {
-        require(database.fetchAccounts().any { it.id == id }) { "Account no longer exists" }
-        val transferPayees = database.fetchPayees().filter { it.transferAccountId == id }
+    fun closeAccount(
+        id: String,
+        transferAccountId: String? = null,
+        categoryId: String? = null,
+        forced: Boolean = false,
+    ): CloseOutcome? {
+        val accounts = database.fetchAccounts()
+        val account = accounts.firstOrNull { it.id == id } ?: return null
+        if (account.closed) return null
+        val state = database.fetchAccountCloseState(id) ?: return null
         val messages = mutableListOf<CrdtMessage>()
-        transferPayees.forEach { messages += fields("payees", it.id, mapOf("tombstone" to 1)) }
-        messages += fields("accounts", id, mapOf("tombstone" to 1))
+        if (state.bankLinked) {
+            messages += fields("accounts", id, linkedMapOf<String, Any?>(
+                "account_id" to null, "bank" to null,
+            ).apply {
+                state.balanceColumns.forEach { put(it, null) }
+                put("account_sync_source", null); put("bank_sync_status", null)
+            })
+        }
+        val outcome = when {
+            state.transactions.isEmpty() -> {
+                messages += fields("accounts", id, mapOf("tombstone" to 1))
+                CloseOutcome.DELETED
+            }
+            forced -> {
+                val transferPayeeId = state.transferPayeeId ?: error("Transfer payee for ${account.name} not found")
+                state.transactions.forEach { row ->
+                    row.transferId?.let {
+                        messages += fields("transactions", it, linkedMapOf("description" to null, "transferred_id" to null))
+                    }
+                    messages += fields("transactions", row.id, mapOf("tombstone" to 1))
+                }
+                messages += fields("accounts", id, mapOf("tombstone" to 1))
+                messages += fields("payees", transferPayeeId, mapOf("tombstone" to 1))
+                CloseOutcome.FORCE_DELETED
+            }
+            else -> {
+                val balance = account.balanceCents
+                require(balance == 0L || transferAccountId != null) { "Choose an account to transfer the balance to" }
+                require(transferAccountId != id) { "The balance can't be transferred to the account being closed" }
+                messages += fields("accounts", id, mapOf("closed" to 1))
+                if (balance != 0L && transferAccountId != null) {
+                    val target = accounts.firstOrNull { it.id == transferAccountId && !it.closed }
+                        ?: error("The transfer account is closed or no longer exists")
+                    val needsCategory = !account.offBudget && target.offBudget
+                    require(!needsCategory || categoryId != null) {
+                        "Choose a category for the transfer to an off-budget account"
+                    }
+                    if (needsCategory) require(database.fetchCategoryGroups().any { group -> group.categories.any { it.id == categoryId } }) {
+                        "The category no longer exists"
+                    }
+                    messages += closingTransfer(account, target, balance, if (needsCategory) categoryId else null)
+                }
+                CloseOutcome.CLOSED
+            }
+        }
         persist(messages)
+        return outcome
+    }
+
+    /**
+     * Actual's `transaction-add` of `-balance` to the target's transfer payee, plus the counterpart
+     * leg its transfer hook inserts. The category is kept only when budget types differ, as
+     * `clearCategory` does.
+     */
+    private fun closingTransfer(account: ActualAccount, target: ActualAccount, balance: Long, categoryId: String?): List<CrdtMessage> {
+        val targetPayee = database.transferPayeeId(target.id) ?: error("Transfer payee for ${target.name} not found")
+        val sourcePayee = database.transferPayeeId(account.id) ?: error("Transfer payee for ${account.name} not found")
+        val sourceId = idFactory(); val targetId = idFactory()
+        val date = DayDate.today().yyyymmdd; val sortOrder = nowMillis().toDouble()
+        fun leg(acct: String, payee: String, amount: Long, category: String?, cleared: Boolean, transfer: String) = linkedMapOf<String, Any?>(
+            "acct" to acct, "date" to date, "description" to payee, "category" to category, "amount" to amount,
+            "notes" to CLOSING_ACCOUNT_NOTE, "cleared" to flag(cleared), "reconciled" to 0,
+            "transferred_id" to transfer, "isParent" to 0, "isChild" to 0, "parent_id" to null,
+            "tombstone" to 0, "sort_order" to sortOrder, "imported_description" to null, "schedule" to null,
+            "starting_balance_flag" to 0,
+        )
+        return fields("transactions", sourceId, leg(account.id, targetPayee, -balance, categoryId, cleared = true, transfer = targetId)) +
+            fields("transactions", targetId, leg(target.id, sourcePayee, balance, null, cleared = false, transfer = sourceId))
     }
 
     /** Delete every category in the group, then the group itself, as one CRDT batch. */
@@ -320,6 +402,9 @@ class ActualEntityWriter(
     private fun flag(value: Boolean) = if (value) 1 else 0
 
     companion object {
+        /** The note Actual puts on the transfer that empties a closing account. */
+        const val CLOSING_ACCOUNT_NOTE = "Closing account"
+
         internal val DEFAULT_DASHBOARD_PAGE_ID: String =
             UUID.nameUUIDFromBytes("actua:default-dashboard:page".toByteArray()).toString()
 

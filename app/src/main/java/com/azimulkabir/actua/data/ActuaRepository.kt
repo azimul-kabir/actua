@@ -1162,10 +1162,19 @@ class ActuaRepository(context: Context) {
         )
     }
 
-    fun setAccountClosed(name: String, closed: Boolean): Boolean {
+    /** Whether Actual's close would delete the account outright because it has no transactions. */
+    fun accountHasTransactions(accountId: String): Boolean =
+        actualDatabase?.fetchAccountCloseState(accountId)?.transactions?.isNotEmpty() ?: false
+
+    /** Actual's close flow; see [ActualEntityWriter.closeAccount]. */
+    fun closeAccount(accountId: String, transferAccountId: String?, categoryId: String?, forced: Boolean): Boolean =
+        actualEntities?.closeAccount(accountId, transferAccountId, categoryId, forced) != null
+
+    /** Reopening only clears `closed`, as Actual's `reopenAccount` does. */
+    fun reopenAccount(accountId: String): Boolean {
         val db = actualDatabase ?: return false
-        val account = db.fetchAccounts().firstOrNull { it.name == name } ?: return false
-        actualEntities!!.setAccountClosed(account.id, closed)
+        if (db.fetchAccounts().none { it.id == accountId && it.closed }) return false
+        actualEntities!!.setAccountClosed(accountId, false)
         return true
     }
 

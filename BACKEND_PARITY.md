@@ -185,6 +185,12 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   entities are filtered out of every surface that reads it
 - Account, category, and category-group rename/close/hide long-press actions
   wired through CRDT mutations and immediate UI refresh
+- Closing an account follows Actual's `closeAccount` in one CRDT batch: bank sync is unlinked
+  first, an account with no transactions is deleted, a non-zero balance must move to another open
+  account as a `Closing account` transfer dated today (categorized for on- to off-budget), and
+  force close deletes the account, its transfer payee and its transactions while detaching the
+  other transfer legs. Reopen only clears `closed`. Unlike Actual, closing does not also delete an
+  unused GoCardless requisition on the server, and the closing transfer skips transaction rules
 - Category deletion through Actual-compatible tombstone mutations, with existing
   transactions safely falling back to uncategorized
 - Account/category/group creation with Actual transfer-payee, opening-balance,
