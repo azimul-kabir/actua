@@ -457,6 +457,8 @@ fun AppNavigation(
     var scheduleReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
     var scheduleReturnsToTransactionsTab by rememberSaveable { mutableStateOf(false) }
     var billsCalendarReturnsToSchedules by rememberSaveable { mutableStateOf(false) }
+    // Set while Rules is open on a schedule's own rule via "Edit as rule"; closing it returns to the schedule.
+    var scheduleRuleId by rememberSaveable { mutableStateOf<String?>(null) }
     var creditCardsReturnToBills by rememberSaveable { mutableStateOf(false) }
     var statementsAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     var statementsReturnToTransactions by rememberSaveable { mutableStateOf(false) }
@@ -862,6 +864,11 @@ fun AppNavigation(
         }
     }
 
+    fun returnFromScheduleRule() {
+        scheduleRuleId = null
+        detail = DetailDestination.EditSchedule
+    }
+
     fun returnFromEditSchedule() {
         when {
             scheduleReturnsToTransactionsTab -> {
@@ -1085,6 +1092,7 @@ fun AppNavigation(
                 editingTransaction = null
                 editorReturnsToCategory = false
             }
+            detail == DetailDestination.Rules && scheduleRuleId != null -> returnFromScheduleRule()
             detail == DetailDestination.BillsCalendar && billsCalendarReturnsToSchedules -> {
                 billsCalendarReturnsToSchedules = false
                 detail = DetailDestination.Schedules
@@ -1905,10 +1913,14 @@ fun AppNavigation(
                 supported = remember(dataVersion) { repository.rulesSupported() },
                 scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() },
                 editorData = remember(dataVersion) { repository.ruleEditorData() },
-                onBack = { detail = DetailDestination.Main },
+                onBack = {
+                    if (scheduleRuleId != null) returnFromScheduleRule() else detail = DetailDestination.Main
+                },
                 onSave = { rule, onSaved -> mutate("Saving rule", onChanged = onSaved) { repository.saveRule(rule) } },
                 onDelete = { ruleId, onDeleted -> mutate("Deleting rule", onChanged = onDeleted) { repository.deleteRule(ruleId) } },
                 modifier = contentModifier,
+                initialRuleId = scheduleRuleId,
+                onInitialRuleClosed = ::returnFromScheduleRule,
             )
             DetailDestination.ManageCategories -> ManageCategoriesScreen(
                 groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
@@ -2159,6 +2171,10 @@ fun AppNavigation(
                         mutate("Unlinking transaction") {
                             repository.unlinkScheduleTransaction(item.schedule.id, transactionId)
                         }
+                    },
+                    onEditAsRule = { ruleId ->
+                        scheduleRuleId = ruleId
+                        detail = DetailDestination.Rules
                     },
                     modifier = contentModifier,
                 )
@@ -2682,7 +2698,10 @@ fun AppNavigation(
                         loadBankSyncProviderStatus()
                         detail = DetailDestination.BankSync
                     },
-                    onRulesClick = { detail = DetailDestination.Rules },
+                    onRulesClick = {
+                        scheduleRuleId = null
+                        detail = DetailDestination.Rules
+                    },
                     onSchedulesClick = { detail = DetailDestination.Schedules },
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
                     onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },

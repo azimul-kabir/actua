@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Added
 
 - Tap an upcoming transaction to post it, post it today, skip its next date or complete its schedule ([#740](https://github.com/azimul-kabir/actua/pull/740))
+- Edit a schedule's underlying rule from the schedule editor with Edit as rule ([#742](https://github.com/azimul-kabir/actua/pull/742))
 
 ## [1.3.0] - 2026-09-29
 

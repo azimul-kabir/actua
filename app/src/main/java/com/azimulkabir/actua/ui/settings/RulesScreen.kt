@@ -59,9 +59,19 @@ fun RulesScreen(
     onSave: (Rule, onSaved: () -> Unit) -> Unit,
     onDelete: (String, onDeleted: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
+    initialRuleId: String? = null,
+    onInitialRuleClosed: () -> Unit = {},
 ) {
     var search by remember { mutableStateOf("") }
-    var editing by remember { mutableStateOf<Rule?>(null) }
+    var editing by remember(initialRuleId) {
+        mutableStateOf(initialRuleId?.let { id -> rules.firstOrNull { it.id == id } })
+    }
+    // Opened straight into one rule (e.g. a schedule's "Edit as rule"): closing it returns to the caller.
+    fun closeEditor() {
+        val closedInitial = initialRuleId != null && editing?.id == initialRuleId
+        editing = null
+        if (closedInitial) onInitialRuleClosed()
+    }
     Column(modifier.fillMaxSize()) {
         ActuaScreenHeader(title = "Rules", onBack = onBack) {
             if (supported) IconButton(onClick = { editing = Rule.empty() }) { Icon(Icons.Outlined.Add, "Add rule") }
@@ -106,9 +116,9 @@ fun RulesScreen(
         }
     }
     editing?.let { rule ->
-        RuleEditor(rule, editorData, rule.id in scheduleOwnedRuleIds, onDismiss = { editing = null },
-            onSave = { onSave(it) { editing = null } },
-            onDelete = { onDelete(rule.id) { editing = null } })
+        RuleEditor(rule, editorData, rule.id in scheduleOwnedRuleIds, onDismiss = ::closeEditor,
+            onSave = { onSave(it, ::closeEditor) },
+            onDelete = { onDelete(rule.id, ::closeEditor) })
     }
 }
 
