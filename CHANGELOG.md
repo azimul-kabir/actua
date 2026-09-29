@@ -12,6 +12,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed linking a bank account in Actua causing sync errors in Actual ([#721](https://github.com/azimul-kabir/actua/pull/721))
 - Fixed backups failing on Android 10 ([#720](https://github.com/azimul-kabir/actua/pull/720))
 - Fixed Actua backups being rejected when imported into Actual ([#720](https://github.com/azimul-kabir/actua/pull/720))
 - Fixed switching to a downloaded budget discarding its changes that had not synced yet ([#703](https://github.com/azimul-kabir/actua/pull/703))
