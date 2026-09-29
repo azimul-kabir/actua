@@ -61,6 +61,10 @@ sealed class GoCardlessAccountsResult {
 
 sealed class ActualServerException(message: String) : Exception(message) {
     data object Unauthorized : ActualServerException("Unauthorized")
+    /** Actual rejected the session token because it expired or was revoked. Signing in again fixes it. */
+    data object SessionExpired : ActualServerException(
+        "Your Actual server session has expired. Sign in again to resume syncing.",
+    )
     data object FileNotFound : ActualServerException("Budget file not found")
     data object InvalidResponse : ActualServerException("The server returned an invalid response")
     class Http(val status: Int, body: String) : ActualServerException("HTTP $status: $body")
@@ -521,6 +525,7 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         else -> "failed"
     }
     private fun checkAuthorization(response: ActualHttpResponse) {
+        if (response.status == 401 && isRejectedSession(response.body)) throw ActualServerException.SessionExpired
         if (response.status == 401 || response.status == 403) throw ActualServerException.Unauthorized
     }
     private fun requireSuccess(response: ActualHttpResponse) {
@@ -547,3 +552,13 @@ private fun encodeURIComponent(value: String): String = buildString {
 
 private fun JSONObject.optionalString(key: String): String? =
     if (has(key) && !isNull(key)) optString(key).takeIf(String::isNotBlank) else null
+
+/**
+ * Actual's session check answers 401 with `token-expired`, or `unauthorized` + `token-not-found` for
+ * a token it no longer knows. Its client treats both as an expired session (`getServerErrorReason`).
+ */
+internal fun isRejectedSession(body: ByteArray): Boolean = runCatching {
+    val json = JSONObject(body.decodeToString())
+    val reason = json.optString("reason")
+    reason == "token-expired" || (reason == "unauthorized" && json.optString("details") == "token-not-found")
+}.getOrDefault(false)

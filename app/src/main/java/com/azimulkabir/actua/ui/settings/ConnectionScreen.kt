@@ -210,6 +210,7 @@ fun ConnectionScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var connected by remember { mutableStateOf(credentials.token() != null) }
+    var sessionExpired by remember { mutableStateOf(credentials.sessionExpired) }
     var loading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var remoteBudgets by remember { mutableStateOf<List<RemoteBudgetFile>>(emptyList()) }
@@ -238,12 +239,41 @@ fun ConnectionScreen(
         }.getOrDefault(emptyList())
     }
 
+    /** Shows [error]; a rejected session switches to re-sign-in, keeping every downloaded budget. */
+    fun showServerError(error: Throwable, fallback: String) {
+        if (error is ActualServerException.SessionExpired) {
+            credentials.expireSession()
+            connected = false
+            sessionExpired = true
+            remoteBudgets = emptyList()
+        }
+        message = connectionErrorMessage(error, fallback)
+    }
+
+    /** Clears the expired-session state and sends changes made while the session was invalid. */
+    fun onSignedIn() {
+        sessionExpired = false
+        ActualSyncScheduler.scheduleMutation(context)
+    }
+
+    fun disconnect() {
+        listOf(serverUrl, fallbackServerUrl).filter(String::isNotBlank).forEach { url ->
+            runCatching { java.net.URI(client.normalizeServerUrl(url)).host }
+                .getOrNull()?.let(certificateStore::forget)
+        }
+        credentials.clear()
+        connected = false
+        remoteBudgets = emptyList()
+        message = "Disconnected"
+    }
+
     fun loadBudgets() {
         val token = credentials.token() ?: return
         loading = true
         scope.launch {
             runCatching { withContext(Dispatchers.IO) {
                 runCatching { serverUrl to client.listFiles(serverUrl, token) }.getOrElse { primary ->
+                    if (primary is ActualServerException.SessionExpired) throw primary
                     val fallback = fallbackServerUrl.takeIf { it.isNotBlank() && it != serverUrl } ?: throw primary
                     fallback to client.listFiles(fallback, token)
                 }
@@ -251,7 +281,7 @@ fun ConnectionScreen(
                 activeServerUrl = usedUrl; remoteBudgets = budgets
                 message = if (budgets.isEmpty()) "No budgets found." else null
             }
-                .onFailure { message = connectionErrorMessage(it, "Could not load budgets.") }
+                .onFailure { showServerError(it, "Could not load budgets.") }
             loading = false
         }
     }
@@ -298,6 +328,7 @@ fun ConnectionScreen(
                 }
             }.onSuccess { (url, fallback, token) ->
                 credentials.saveConnection(url, token, fallback)
+                onSignedIn()
                 credentials.customHeaders = headerEntries.toMap()
                 serverUrl = url
                 fallbackServerUrl = fallback
@@ -377,6 +408,7 @@ fun ConnectionScreen(
                 )
             }.onSuccess { result ->
                 credentials.saveConnection(result.primaryUrl, result.token, result.fallbackUrl)
+                onSignedIn()
                 credentials.customHeaders = headerEntries.toMap()
                 serverUrl = result.primaryUrl
                 fallbackServerUrl = result.fallbackUrl
@@ -585,7 +617,7 @@ fun ConnectionScreen(
                         message = "$name created and opened."; onBudgetInstalled(); loadBudgets(); refreshBackups()
                     }.onFailure { error ->
                         localId?.let { runCatching { files.deleteBudget(it) } }
-                        message = error.message ?: "Could not create budget."
+                        showServerError(error, "Could not create budget.")
                     }
                     loading = false
                 }
@@ -628,7 +660,7 @@ fun ConnectionScreen(
                             pendingDelete = null; deleteConfirmation = ""
                             message = "${remote.name} deleted."; loadBudgets(); refreshBackups(); onBudgetInstalled()
                         }.onFailure { error ->
-                            message = error.message ?: "Could not delete budget."; onBudgetInstalled()
+                            showServerError(error, "Could not delete budget."); onBudgetInstalled()
                         }
                         loading = false
                     }
@@ -688,7 +720,14 @@ fun ConnectionScreen(
                     modifier = Modifier.weight(1f))
                 if (connected && !editingConnection) TextButton(onClick = { editingConnection = true }) { Text("Edit") }
             }
-            if (!connected) {
+            if (sessionExpired) {
+                Text(
+                    "Your session on this server has expired or was signed out. Sign in again to resume " +
+                        "syncing. Downloaded budgets and changes that haven't synced yet stay on this device.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            } else if (!connected) {
                 val uriHandler = LocalUriHandler.current
                 Text(
                     "Actua connects to a self-hosted Actual Budget server — it doesn't host budgets itself. " +
@@ -708,14 +747,16 @@ fun ConnectionScreen(
             OutlinedTextField(
                 value = serverUrl, onValueChange = { serverUrl = it }, label = { Text("Server URL") },
                 placeholder = { Text("https://actual.example.com") }, singleLine = true,
-                enabled = (!connected || editingConnection) && !loading, modifier = Modifier.fillMaxWidth(),
+                // Downloaded budgets belong to this server, so re-sign-in can't switch servers.
+                enabled = (!connected || editingConnection) && !sessionExpired && !loading, modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
             )
             OutlinedTextField(
                 value = fallbackServerUrl, onValueChange = { fallbackServerUrl = it },
                 label = { Text("Fallback server URL (optional)") },
                 placeholder = { Text("https://actual-local.example.com") }, singleLine = true,
-                enabled = (!connected || editingConnection) && !loading, modifier = Modifier.fillMaxWidth(),
+                // Downloaded budgets belong to this server, so re-sign-in can't switch servers.
+                enabled = (!connected || editingConnection) && !sessionExpired && !loading, modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
             )
             if (!connected || editingConnection) {
@@ -771,7 +812,11 @@ fun ConnectionScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     if (loading) CircularProgressIndicator(modifier = Modifier.padding(end = 10.dp))
-                    Text(if (loading) "Connecting…" else "Connect with password")
+                    Text(when {
+                        loading -> "Connecting…"
+                        sessionExpired -> "Sign in again with password"
+                        else -> "Connect with password"
+                    })
                 }
                 OutlinedButton(
                     onClick = {
@@ -794,6 +839,11 @@ fun ConnectionScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (sessionExpired) {
+                    OutlinedButton(onClick = ::disconnect, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
+                        Text("Disconnect")
+                    }
+                }
             } else {
                 Text("● Connected", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 if (editingConnection) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -821,16 +871,7 @@ fun ConnectionScreen(
                         }
                     }, enabled = serverUrl.isNotBlank() && !loading, modifier = Modifier.weight(1f)) { Text("Save") }
                 }
-                OutlinedButton(onClick = {
-                    listOf(serverUrl, fallbackServerUrl).filter(String::isNotBlank).forEach { url ->
-                        runCatching { java.net.URI(client.normalizeServerUrl(url)).host }
-                            .getOrNull()?.let(certificateStore::forget)
-                    }
-                    credentials.clear()
-                    connected = false
-                    remoteBudgets = emptyList()
-                    message = "Disconnected"
-                }, modifier = Modifier.fillMaxWidth()) { Text("Disconnect") }
+                OutlinedButton(onClick = ::disconnect, modifier = Modifier.fillMaxWidth()) { Text("Disconnect") }
             }
             message?.let {
                 Text(it, color = if (connected || demoActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
@@ -901,7 +942,7 @@ fun ConnectionScreen(
                                         message = "Unlock this encrypted budget before syncing."
                                     }
                                 }
-                            }.onFailure { error -> message = error.message ?: "Sync failed." }
+                            }.onFailure { error -> showServerError(error, "Sync failed.") }
                             syncStatus = syncStatusStore.read(); syncing = false
                         }
                     }) {
@@ -988,8 +1029,9 @@ fun ConnectionScreen(
                                             }.onFailure { error ->
                                                 message = when (error) {
                                                     BudgetDownloadException.EncryptionPasswordRequired -> "Enter the budget encryption password."
-                                                    else -> error.message ?: "Could not download the budget."
+                                                    else -> connectionErrorMessage(error, "Could not download the budget.")
                                                 }
+                                                if (error is ActualServerException.SessionExpired) showServerError(error, "")
                                                 onBudgetInstalled()
                                             }
                                             downloadingId = null
