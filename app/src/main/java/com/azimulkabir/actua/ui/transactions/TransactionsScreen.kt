@@ -166,6 +166,8 @@ fun TransactionsScreen(
     upcomingTransactions: List<Transaction> = emptyList(),
     showUpcomingTransactions: Boolean = true,
     onShowUpcomingTransactionsChange: (Boolean) -> Unit = {},
+    recurringScheduleIds: Set<String> = emptySet(),
+    onUpcomingAction: (Transaction, UpcomingTransactionAction) -> Unit = { _, _ -> },
     hasFab: Boolean = true,
     categoryOptions: List<String> = emptyList(),
     onCategorizeMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
@@ -178,6 +180,7 @@ fun TransactionsScreen(
     var showSearch by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var viewed by remember { mutableStateOf<Transaction?>(null) }
+    var upcomingMenuFor by remember { mutableStateOf<Transaction?>(null) }
     var selectionModeOn by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     LaunchedEffect(selectionModeOn) { if (!selectionModeOn) selectedIds = emptySet() }
@@ -580,7 +583,7 @@ fun TransactionsScreen(
                             TransactionRow(transaction, hideDecimalPlaces, showDate = false,
                                 onClick = {
                                     if (transaction.isUpcoming) {
-                                        transaction.scheduleId?.let(onViewSchedule)
+                                        if (!selectionModeOn) upcomingMenuFor = transaction
                                     } else if (selectionModeOn) {
                                         selectedIds = selectedIds.toggle(transaction.id)
                                     } else viewed = transaction
@@ -606,7 +609,7 @@ fun TransactionsScreen(
                         TransactionRow(transaction, hideDecimalPlaces, showDate = true,
                             onClick = {
                                 if (transaction.isUpcoming) {
-                                    transaction.scheduleId?.let(onViewSchedule)
+                                    if (!selectionModeOn) upcomingMenuFor = transaction
                                 } else if (selectionModeOn) {
                                     selectedIds = selectedIds.toggle(transaction.id)
                                 } else viewed = transaction
@@ -640,6 +643,36 @@ fun TransactionsScreen(
             onDuplicate = { viewed = null; onDuplicate(transaction) },
             tagColors = tagColors,
         )
+    }
+    upcomingMenuFor?.let { transaction ->
+        ModalBottomSheet(onDismissRequest = { upcomingMenuFor = null }) {
+            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+                val scheduleId = transaction.scheduleId
+                Text(transaction.payee, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp))
+                Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 4.dp, bottom = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Scheduled date", style = MaterialTheme.typography.bodyLarge)
+                    Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold)
+                }
+                upcomingTransactionActions(recurring = scheduleId in recurringScheduleIds).forEach { action ->
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Action(action.label) {
+                        upcomingMenuFor = null
+                        onUpcomingAction(transaction, action)
+                    }
+                }
+                if (scheduleId != null) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Action("Edit schedule") {
+                        upcomingMenuFor = null
+                        onViewSchedule(scheduleId)
+                    }
+                }
+            }
+        }
     }
     if (confirmBulkDelete) {
         val count = selectedIds.size
