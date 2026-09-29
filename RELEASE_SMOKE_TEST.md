@@ -33,6 +33,14 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Verify split transaction create/edit and sync on a disposable/test transaction.
 - [ ] Confirm demo budget never attempts server sync and can be reset.
 - [ ] Create a local backup, export it, restore it, and verify the pre-restore revert path.
+- [ ] Create a backup on Android 10 (API 29) and verify it succeeds; import an Actua backup into Actual (web/desktop) and verify Actual opens it without an out-of-sync-migrations error.
+- [ ] On a disposable budget also used in Actual, link and unlink a bank account in Actua, sync both clients, and verify Actual keeps syncing without "Update required" and shows the account as linked.
+- [ ] Open a budget last uploaded by an older Actual version, sync, and verify Actual still opens and syncs it afterwards.
+- [ ] With an unsynced edit, switch to another downloaded budget and back, and verify the edit is still there and then syncs.
+- [ ] Expire or revoke the server session (e.g. log out all sessions in Actual), then verify Actua shows the signed-out banner and Sign in again restores sync without losing downloaded budgets or unsynced edits.
+- [ ] Reset sync for a disposable budget in Actual, sync Actua, and verify Connection & Data explains that a fresh download is needed, background sync stops retrying, and the local budget is untouched.
+- [ ] Upgrade over 1.2.0 with a custom HTTP header configured and verify login/sync still succeed with the header.
+- [ ] Create a new budget in Actua, sync, and verify Actual shows its default reports dashboard.
 
 ## Budget and category flows
 
@@ -72,6 +80,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Add a transaction from an Account Detail screen's "+" and verify that account is preselected in the editor; open the category picker and verify each category shows its current available balance.
 - [ ] Sync a bank transaction whose amount, date and account match an existing manually entered transaction and verify it reconciles into the manual one instead of creating a duplicate.
 - [ ] View an off-budget account's transactions with no category set and verify they are not shown or filtered as "Uncategorized" (in the account register or the Transactions tab's Uncategorized status chip).
+- [ ] Close an account with no transactions and verify it is deleted; close one with a balance and verify the balance must move to another open account as a "Closing account" transfer dated today; force close another and verify its transactions are removed and the other transfer legs remain; reopen a closed account; verify all of it matches Actual after sync.
+- [ ] Rename and change the type of one of two accounts with the same name and verify only that account changes.
 - [ ] Open Reorder Accounts and verify it shows On budget, Off budget and Closed sections plus account groups, each collapsible, with each account's position number; reorder an account and verify the order persists and syncs.
 - [ ] Collapse a category group on Budget and an account section on Accounts, switch tabs and return, and verify both stay collapsed.
 - [ ] Merge a payee and a category in Actual, sync, and verify transactions on the merged-away payee/category count toward the target in reports and filters; edit one of those transactions (e.g. toggle cleared) and verify its payee and category are not cleared.

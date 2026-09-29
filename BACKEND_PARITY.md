@@ -38,7 +38,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Password and OpenID/OIDC login through Actual's `/account/login` flow, including explicit
   login-method selection, browser authorization, a localhost-only callback listener,
   Actual session-token capture, recovery from an incomplete browser return without leaving the
-  connection UI loading, and preservation of password login on mixed-mode servers
+  connection UI loading, and preservation of password login on mixed-mode servers; an expired
+  or unknown session token (`token-expired`, `unauthorized`/`token-not-found`) forgets only the
+  token and offers Sign in again for the same server, keeping downloaded budgets, keys and
+  unsynced changes
 - Server file lifecycle endpoints, including Actual-compatible blank-budget creation/upload
   and exact-name confirmed server deletion with local cleanup; itemized with upstream links,
   test evidence and filed divergences in [docs/SERVER_FILE_PARITY.md](docs/SERVER_FILE_PARITY.md)
@@ -50,14 +53,20 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Editable primary/fallback server addresses with explicitly scoped private-LAN HTTP support and automatic failover without replacing local budgets; HTTPS connections trust manually installed user CAs (not just the system store), so a self-signed/private-CA certificate on a self-hosted server works without rooting the device; alternatively a single server certificate can be explicitly trusted per host in Actua after fingerprint review, with hostname verification still enforced
 - User-defined custom HTTP headers (e.g. `CF-Access-Client-Id`/`Secret`) sent with every
   request to the Actual server, configurable from the Connection screen for servers behind
-  an auth proxy
+  an auth proxy; values are encrypted with the session token's Keystore key, and the server
+  connection, budget encryption keys and trusted certificates are excluded from cloud backup and
+  device-to-device transfer
 - HLC, CRDT values/messages, protobuf sync protocol, Merkle tree, encryption; itemized with
   upstream links, test evidence and filed divergences in [docs/SYNC_PARITY.md](docs/SYNC_PARITY.md)
-- Sync convergence loop and Android Keystore-backed credentials/keys
+- Sync convergence loop and Android Keystore-backed credentials/keys; Actual's `_fullSync`
+  loop limit, and classified `/sync` rejections (sync reset on the server, clock drift,
+  decryption) that show an actionable message and are not retried by WorkManager
 - Stored sync clock validation and legacy/epoch recovery from the message-log
   high-water mark, preserving pending edits and Merkle-guided restart recovery
 - Actual schema migrations required by current Android reads; schema, view, tombstone and
-  archive parity is audited in [docs/DATABASE_ARCHIVE_PARITY.md](docs/DATABASE_ARCHIVE_PARITY.md)
+  archive parity is audited in [docs/DATABASE_ARCHIVE_PARITY.md](docs/DATABASE_ARCHIVE_PARITY.md);
+  a budget last uploaded by an older Actual gets every missing upstream migration in id order in
+  one transaction, and Actua-private migration ids are never recorded in `__migrations__`
 - Accounts, payees, category groups/categories, transactions, transfers, splits; account
   lifecycle, balances, groups, notes/preferences and credit-card data are itemized with upstream
   links, a synthetic balance cross-check and filed divergences in
@@ -80,7 +89,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   SimpleFIN setup token and GoCardless Secret ID/Key configuration, account discovery, linking a
   discovered account to an existing or newly created Actual account, and unlinking. GoCardless
   authorization opens the bank's consent flow in the browser; the user returns and taps "check
-  accounts" to finish linking. Pluggy.ai is not yet implemented (server-side credential storage
+  accounts" to finish linking. Linking writes Actual's `banks` row referenced by `accounts.bank`
+  (see [docs/ACCOUNTS_PARITY.md](docs/ACCOUNTS_PARITY.md) for recovering budgets linked by
+  Actua 1.0.0–1.2.0). Pluggy.ai is not yet implemented (server-side credential storage
   only; no account discovery/linking/download).
 - Server-hosted SimpleFIN and GoCardless transaction download for linked accounts, triggered by
   pulling down the Accounts list (all linked accounts) or a single linked account's register.
@@ -110,7 +121,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Shared compact calculator-style amount entry for budget and transaction writes,
   including complete expression display and predictable operator backspace editing
 - Local backup snapshots, CRDT stripping, retention, validated document-picker import,
-  restore, and one-shot revert
+  restore, and one-shot revert; snapshots list only Actual's migration ids so Actual accepts
+  them, and use `VACUUM INTO` based on the device's SQLite version (3.27+), not its API level
 - Rule JSON parsing, schema translation, ranking, condition/action evaluation,
   named-payee resolution, live form previews, and rule application for incoming transactions,
   including transfer drafts matched through the destination account's canonical transfer payee;
@@ -335,7 +347,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   widget time frames and shared rule conditions, and native Summary, Net Worth,
   Cash Flow, Spending, Markdown, Age of Money, Formula, Custom Report, Calendar,
   Crossover, Budget Analysis, Sankey, Balance Forecast, and Monte Carlo cards
-  with unknown future widget-type disclosure
+  with unknown future widget-type disclosure; budgets created in Actua, and existing Actua-created
+  budgets without a dashboard after syncing, get Actual's default reports dashboard
 
 - Opt-in foreground-only location-aware payees: automatic picker lookup after permission using
   a recent valid cached fix or concurrent enabled Android providers; distance-labelled 500-metre
