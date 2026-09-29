@@ -1473,6 +1473,9 @@ class ActualBudgetDatabase private constructor(
         null,
     ).use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getString(0) else null }
 
+    /** Newest parseable message-log timestamp; writers' clocks advance past it before each send. */
+    fun messageLogHighWater(): HlcTimestamp? = maxMessageTimestamp()?.let(HlcTimestamp::parse)
+
     @Synchronized
     fun filterNewMessages(messages: List<CrdtMessage>): List<CrdtMessage> =
         messages.filterNot(::hasSameOrNewerCellMessage)

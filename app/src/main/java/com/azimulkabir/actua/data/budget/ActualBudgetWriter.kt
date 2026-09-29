@@ -11,7 +11,7 @@ class ActualBudgetWriter(
     nodeId: String = HybridLogicalClock.generateNodeId(),
     private val onWrite: () -> Unit = {},
 ) {
-    private val clock = HybridLogicalClock(nodeId)
+    private val clock = HybridLogicalClock(nodeId, highWater = database::messageLogHighWater)
 
     init { database.maxMessageTimestamp()?.let(HlcTimestamp::parse)?.let(clock::advance) }
 

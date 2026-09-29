@@ -17,7 +17,7 @@ class ActualEntityWriter(
     private val nowMillis: () -> Long = System::currentTimeMillis,
     private val onWrite: () -> Unit = {},
 ) {
-    private val clock = HybridLogicalClock(nodeId)
+    private val clock = HybridLogicalClock(nodeId, nowMillis = nowMillis, highWater = database::messageLogHighWater)
 
     init { database.maxMessageTimestamp()?.let(HlcTimestamp::parse)?.let(clock::advance) }
 

@@ -20,7 +20,7 @@ class ActualTagWriter(
     private val idFactory: () -> String = { UUID.randomUUID().toString().lowercase() },
     private val onWrite: () -> Unit = {},
 ) {
-    private val clock = HybridLogicalClock(nodeId)
+    private val clock = HybridLogicalClock(nodeId, highWater = database::messageLogHighWater)
 
     init { database.maxMessageTimestamp()?.let(HlcTimestamp::parse)?.let(clock::advance) }
 

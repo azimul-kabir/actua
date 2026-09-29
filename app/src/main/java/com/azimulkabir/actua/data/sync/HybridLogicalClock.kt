@@ -7,11 +7,18 @@ sealed class HlcException(message: String) : Exception(message) {
     data object CounterOverflow : HlcException("Timestamp counter overflow")
 }
 
-/** Thread-safe Hybrid Logical Clock matching Actual's five-minute drift rule. */
+/**
+ * Thread-safe Hybrid Logical Clock matching Actual's five-minute drift rule.
+ *
+ * [highWater] reports the newest timestamp already in the budget's message log.
+ * [send] advances past it first, so a long-lived clock stays newer than messages
+ * that another clock (for example the sync client's) received after construction.
+ */
 class HybridLogicalClock(
     val node: String = generateNodeId(),
     initial: HlcTimestamp? = null,
     private val nowMillis: () -> Long = System::currentTimeMillis,
+    private val highWater: (() -> HlcTimestamp?)? = null,
 ) {
     private var millis = initial?.millis ?: 0
     private var counter = initial?.counter ?: 0
@@ -27,8 +34,16 @@ class HybridLogicalClock(
         }
     }
 
-    @Synchronized
     fun send(): HlcTimestamp {
+        // Read outside the clock lock so the log query never nests inside it.
+        val logHighWater = highWater?.invoke()
+        synchronized(this) {
+            logHighWater?.let(::advance)
+            return sendLocked()
+        }
+    }
+
+    private fun sendLocked(): HlcTimestamp {
         val now = nowMillis()
         val nextMillis = maxOf(millis, now)
         val nextCounter = if (millis == nextMillis) counter.toLong() + 1 else 0

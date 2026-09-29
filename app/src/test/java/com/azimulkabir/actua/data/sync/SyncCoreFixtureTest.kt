@@ -118,4 +118,23 @@ class SyncCoreFixtureTest {
         )
         assertThrows(HlcException.CounterOverflow::class.java) { overflow.send() }
     }
+
+    @Test
+    fun sendAdvancesPastMessageLogWrittenAfterConstruction() {
+        val now = 1_700_000_000_000L
+        var logHighWater: HlcTimestamp? = null
+        val clock = HybridLogicalClock(
+            node = "aaaaaaaaaaaaaaaa",
+            nowMillis = { now },
+            highWater = { logHighWater },
+        )
+        assertEquals(HlcTimestamp(now, 0, "aaaaaaaaaaaaaaaa"), clock.send())
+
+        // Another clock received a message from a device running 2 minutes fast.
+        val remote = HlcTimestamp(now + 120_000, 3, "0000000000000001")
+        logHighWater = remote
+        val sent = clock.send()
+        assertEquals(HlcTimestamp(now + 120_000, 4, "aaaaaaaaaaaaaaaa"), sent)
+        assertTrue(sent > remote)
+    }
 }

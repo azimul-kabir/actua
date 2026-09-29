@@ -17,7 +17,7 @@ class ActualTransactionWriter(
     nowMillis: () -> Long = System::currentTimeMillis,
     private val onWrite: () -> Unit = {},
 ) {
-    private val clock = HybridLogicalClock(nodeId, nowMillis = nowMillis)
+    private val clock = HybridLogicalClock(nodeId, nowMillis = nowMillis, highWater = database::messageLogHighWater)
 
     init {
         database.maxMessageTimestamp()?.let(com.azimulkabir.actua.data.sync.HlcTimestamp::parse)?.let(clock::advance)
