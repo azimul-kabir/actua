@@ -39,6 +39,7 @@ class DemoBudgetTest {
                 assertTrue(count(db, "SELECT COUNT(*) FROM rules WHERE tombstone=0") >= 7)
                 assertEquals(1, count(db, "SELECT COUNT(*) FROM preferences WHERE id='actuali:credit_card:demo-account-credit'"))
                 assertTrue(count(db, "SELECT COUNT(*) FROM dashboard WHERE tombstone=0") >= 3)
+                assertEquals(1, count(db, "SELECT COUNT(*) FROM dashboard_pages WHERE tombstone=0"))
                 assertEquals(
                     count(db, "SELECT COUNT(*) FROM payees WHERE tombstone=0"),
                     count(db, "SELECT COUNT(*) FROM payee_mapping"),

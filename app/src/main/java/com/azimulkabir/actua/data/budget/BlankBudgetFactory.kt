@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.budget
 
 import android.database.sqlite.SQLiteDatabase
 import java.io.File
+import java.util.UUID
 
 /** Builds the same empty Actual schema and starter categories as Actuali's bundled template. */
 internal object BlankBudgetFactory {
@@ -13,12 +14,48 @@ internal object BlankBudgetFactory {
             SCHEMA.forEach(database::execSQL)
             MIGRATIONS.forEach { database.execSQL("INSERT INTO __migrations__ (id) VALUES (?)", arrayOf(it)) }
             STARTER_DATA.forEach(database::execSQL)
+            seedDashboard(database)
             database.setTransactionSuccessful()
         } finally {
             if (database.inTransaction()) database.endTransaction()
             database.close()
         }
     }
+
+    /**
+     * Actual seeds these rows in JS migrations 1722804019000 (`DEFAULT_DASHBOARD_STATE`) and
+     * 1765518577215 (a `Main` page owning every widget) when it creates a budget. Its Reports screen
+     * assumes at least one page exists. Like Actual's seed, these are snapshot rows without CRDT
+     * messages, with fresh ids per budget.
+     */
+    private fun seedDashboard(database: SQLiteDatabase) {
+        val pageId = UUID.randomUUID().toString()
+        database.execSQL("INSERT INTO dashboard_pages (id, name) VALUES (?, ?)", arrayOf(pageId, "Main"))
+        DEFAULT_DASHBOARD.forEach { widget ->
+            database.execSQL(
+                "INSERT INTO dashboard (id, type, width, height, x, y, meta, dashboard_page_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                arrayOf<Any?>(UUID.randomUUID().toString(), widget.type, widget.width, widget.height, widget.x, widget.y, widget.meta, pageId),
+            )
+        }
+    }
+
+    internal data class DashboardWidget(val type: String, val width: Int, val height: Int, val x: Int, val y: Int, val meta: String?)
+
+    /** `DEFAULT_DASHBOARD_STATE` from Actual's `packages/loot-core/src/shared/dashboard.ts` at 59fe126f, meta as `JSON.stringify` wrote it. */
+    internal val DEFAULT_DASHBOARD = listOf(
+        DashboardWidget("summary-card", 3, 2, 0, 0, """{"name":"Total Income (YTD)","content":"{\"type\":\"sum\",\"fontSize\":20}","timeFrame":{"start":"2024-01-01","end":"2024-12-31","mode":"yearToDate"},"conditions":[{"field":"amount","op":"gt","value":0},{"field":"account","op":"onBudget","value":""},{"field":"transfer","op":"is","value":false}],"conditionsOp":"and"}"""),
+        DashboardWidget("summary-card", 3, 2, 3, 0, """{"name":"Total Expenses (YTD)","content":"{\"type\":\"sum\",\"fontSize\":20}","timeFrame":{"start":"2024-01-01","end":"2024-12-31","mode":"yearToDate"},"conditions":[{"field":"amount","op":"lt","value":0},{"field":"account","op":"onBudget","value":""},{"field":"transfer","op":"is","value":false}],"conditionsOp":"and"}"""),
+        DashboardWidget("summary-card", 3, 2, 6, 0, """{"name":"Avg Per Month","content":"{\"type\":\"avgPerMonth\",\"fontSize\":20}","timeFrame":{"start":"2024-01-01","end":"2024-12-31","mode":"yearToDate"},"conditions":[{"field":"amount","op":"lt","value":0},{"field":"account","op":"onBudget","value":""},{"field":"transfer","op":"is","value":false}],"conditionsOp":"and"}"""),
+        DashboardWidget("summary-card", 3, 2, 9, 0, """{"name":"Avg Per Transaction","content":"{\"type\":\"avgPerTransact\",\"fontSize\":20}","timeFrame":{"start":"2024-01-01","end":"2024-12-31","mode":"yearToDate"},"conditions":[{"field":"amount","op":"lt","value":0},{"field":"account","op":"onBudget","value":""},{"field":"transfer","op":"is","value":false}],"conditionsOp":"and"}"""),
+        DashboardWidget("net-worth-card", 6, 2, 0, 2, null),
+        DashboardWidget("cash-flow-card", 6, 2, 6, 2, null),
+        DashboardWidget("spending-card", 4, 2, 0, 5, """{"name":"This Month","mode":"single-month"}"""),
+        DashboardWidget("spending-card", 4, 2, 4, 5, """{"name":"Budget Overview","mode":"budget"}"""),
+        DashboardWidget("spending-card", 4, 2, 8, 5, """{"name":"3-Month Average","mode":"average"}"""),
+        DashboardWidget("calendar-card", 8, 4, 0, 8, """{"name":"Transaction Calendar","timeFrame":{"start":"2024-01-01","end":"2024-03-31","mode":"sliding-window"},"conditions":[{"field":"transfer","op":"is","value":false}],"conditionsOp":"and"}"""),
+        DashboardWidget("summary-card", 4, 2, 8, 8, """{"name":"Recent Net Worth Change","content":"{\"type\":\"sum\",\"fontSize\":32}","timeFrame":{"start":"2024-01-01","end":"2024-03-31","mode":"sliding-window"},"conditions":[],"conditionsOp":"and"}"""),
+        DashboardWidget("markdown-card", 4, 2, 8, 10, """{"content":"## Dashboard Tips\n\nYou can add new widgets or edit existing widgets by using the buttons at the top of the page. Choose a widget type and customize it to fit your needs.\n\n**Moving cards:** Drag any card by its header to reposition it.\n\n**Deleting cards:** Click the three-dot menu on any card and select \"Remove\"."}"""),
+    )
 
     private val SCHEMA = listOf(
         "CREATE TABLE __meta__ (key TEXT PRIMARY KEY, value TEXT)",
