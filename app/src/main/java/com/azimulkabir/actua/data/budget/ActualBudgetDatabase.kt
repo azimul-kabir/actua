@@ -145,26 +145,51 @@ class ActualBudgetDatabase private constructor(
         }
     }
 
+    /**
+     * A GoCardless requisition lives where Actual keeps it: `banks.bank_id` of the row `accounts.bank`
+     * points to. Accounts linked by earlier Actua versions may still carry the requisition in the
+     * local-only `gocardless_requisition_id` column, which is read as a fallback.
+     */
     @Synchronized
-    fun fetchBankSyncAccounts(): List<BankSyncAccount> = database.rawQuery(
-        """SELECT id, name, account_id, account_sync_source, closed, gocardless_requisition_id,
-                  bank_sync_status, last_sync FROM accounts
-            WHERE account_id IS NOT NULL AND account_id != ''
-              AND account_sync_source IS NOT NULL AND account_sync_source != ''
-              AND (tombstone = 0 OR tombstone IS NULL)""",
-        null,
-    ).use { cursor -> buildList {
-        while (cursor.moveToNext()) add(BankSyncAccount(
-            id = cursor.getString(0),
-            name = cursor.stringOrNull(1) ?: "Account",
-            externalId = cursor.getString(2),
-            source = cursor.getString(3),
-            closed = cursor.intOrZero(4) == 1,
-            requisitionId = cursor.stringOrNull(5),
-            status = cursor.stringOrNull(6),
-            lastSync = cursor.stringOrNull(7),
-        ))
-    } }
+    fun fetchBankSyncAccounts(): List<BankSyncAccount> {
+        val accountColumns = columns("accounts")
+        val bankJoin = "bank" in accountColumns && hasTable("banks")
+        val requisition = listOfNotNull(
+            "b.bank_id".takeIf { bankJoin },
+            "a.gocardless_requisition_id".takeIf { "gocardless_requisition_id" in accountColumns },
+        ).let { if (it.isEmpty()) "NULL" else "COALESCE(${it.joinToString()}, NULL)" }
+        val join = if (bankJoin) "LEFT JOIN banks b ON b.id = a.bank AND (b.tombstone = 0 OR b.tombstone IS NULL)" else ""
+        return database.rawQuery(
+            """SELECT a.id, a.name, a.account_id, a.account_sync_source, a.closed, $requisition,
+                      a.bank_sync_status, a.last_sync FROM accounts a $join
+                WHERE a.account_id IS NOT NULL AND a.account_id != ''
+                  AND a.account_sync_source IS NOT NULL AND a.account_sync_source != ''
+                  AND (a.tombstone = 0 OR a.tombstone IS NULL)""",
+            null,
+        ).use { cursor -> buildList {
+            while (cursor.moveToNext()) add(BankSyncAccount(
+                id = cursor.getString(0),
+                name = cursor.stringOrNull(1) ?: "Account",
+                externalId = cursor.getString(2),
+                source = cursor.getString(3),
+                closed = cursor.intOrZero(4) == 1,
+                requisitionId = cursor.stringOrNull(5),
+                status = cursor.stringOrNull(6),
+                lastSync = cursor.stringOrNull(7),
+            ))
+        } }
+    }
+
+    /** The live `banks` row Actual uses for this provider connection id (a GoCardless requisition). */
+    @Synchronized
+    fun findBankId(bankId: String): String? {
+        if (!hasTable("banks")) return null
+        return database.rawQuery(
+            """SELECT id FROM banks WHERE bank_id = ? AND (tombstone = 0 OR tombstone IS NULL)
+                ORDER BY id LIMIT 1""",
+            arrayOf(bankId),
+        ).use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+    }
 
     @Synchronized
     fun oldestTransactionDate(accountId: String): Int? = database.rawQuery(
@@ -1283,6 +1308,12 @@ class ActualBudgetDatabase private constructor(
         return if (tracking) "reflect_budgets" else "zero_budgets"
     }
 
+    private fun columns(table: String): Set<String> =
+        database.rawQuery("PRAGMA table_info(${quoteIdentifier(table)})", null).use { cursor ->
+            val name = cursor.getColumnIndexOrThrow("name")
+            buildSet { while (cursor.moveToNext()) add(cursor.getString(name)) }
+        }
+
     private fun hasTable(name: String) = database.rawQuery(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", arrayOf(name),
     ).use { it.moveToFirst() }
@@ -1652,7 +1683,6 @@ class ActualBudgetDatabase private constructor(
             ColumnMigration(1780606215004, "accounts", "last_sync", "TEXT"),
             ColumnMigration(1783004650757, "schedules", "sort_order", "REAL DEFAULT 0"),
             ColumnMigration(1787013118115, "accounts", "account_group_id", "TEXT DEFAULT NULL"),
-            ColumnMigration(1787013118200, "accounts", "gocardless_requisition_id", "TEXT DEFAULT NULL"),
         )
         /**
          * Migration ids recorded by Actuali/Actua for their own partial column steps. Actual has no
