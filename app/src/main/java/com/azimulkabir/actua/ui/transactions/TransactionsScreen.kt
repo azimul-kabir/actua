@@ -166,6 +166,8 @@ fun TransactionsScreen(
     upcomingTransactions: List<Transaction> = emptyList(),
     showUpcomingTransactions: Boolean = true,
     onShowUpcomingTransactionsChange: (Boolean) -> Unit = {},
+    recurringScheduleIds: Set<String> = emptySet(),
+    onUpcomingAction: (Transaction, UpcomingTransactionAction) -> Unit = { _, _ -> },
     hasFab: Boolean = true,
     categoryOptions: List<String> = emptyList(),
     onCategorizeMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
@@ -178,6 +180,7 @@ fun TransactionsScreen(
     var showSearch by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var viewed by remember { mutableStateOf<Transaction?>(null) }
+    var upcomingMenuFor by remember { mutableStateOf<Transaction?>(null) }
     var selectionModeOn by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     LaunchedEffect(selectionModeOn) { if (!selectionModeOn) selectedIds = emptySet() }
@@ -580,14 +583,16 @@ fun TransactionsScreen(
                             TransactionRow(transaction, hideDecimalPlaces, showDate = false,
                                 onClick = {
                                     if (transaction.isUpcoming) {
-                                        transaction.scheduleId?.let(onViewSchedule)
+                                        if (!selectionModeOn) upcomingMenuFor = transaction
                                     } else if (selectionModeOn) {
                                         selectedIds = selectedIds.toggle(transaction.id)
                                     } else viewed = transaction
                                 },
                                 showAccount = accountName == null,
                                 onLongClick = {
-                                    if (!transaction.isUpcoming) {
+                                    if (transaction.isUpcoming) {
+                                        if (!selectionModeOn) upcomingMenuFor = transaction
+                                    } else {
                                         if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
                                         else {
                                             selectionModeOn = true
@@ -606,14 +611,16 @@ fun TransactionsScreen(
                         TransactionRow(transaction, hideDecimalPlaces, showDate = true,
                             onClick = {
                                 if (transaction.isUpcoming) {
-                                    transaction.scheduleId?.let(onViewSchedule)
+                                    if (!selectionModeOn) upcomingMenuFor = transaction
                                 } else if (selectionModeOn) {
                                     selectedIds = selectedIds.toggle(transaction.id)
                                 } else viewed = transaction
                             },
                             showAccount = accountName == null,
                             onLongClick = {
-                                if (!transaction.isUpcoming) {
+                                if (transaction.isUpcoming) {
+                                    if (!selectionModeOn) upcomingMenuFor = transaction
+                                } else {
                                     if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
                                     else {
                                         selectionModeOn = true
@@ -640,6 +647,36 @@ fun TransactionsScreen(
             onDuplicate = { viewed = null; onDuplicate(transaction) },
             tagColors = tagColors,
         )
+    }
+    upcomingMenuFor?.let { transaction ->
+        val recurring = transaction.scheduleId in recurringScheduleIds
+        ModalBottomSheet(onDismissRequest = { upcomingMenuFor = null }) {
+            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(transaction.payee, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Scheduled date", style = MaterialTheme.typography.bodyLarge)
+                    Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold)
+                }
+                upcomingTransactionActions(recurring).forEach { action ->
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Action(action.label) {
+                        upcomingMenuFor = null
+                        onUpcomingAction(transaction, action)
+                    }
+                }
+                transaction.scheduleId?.let { scheduleId ->
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Action("Edit schedule") {
+                        upcomingMenuFor = null
+                        onViewSchedule(scheduleId)
+                    }
+                }
+            }
+        }
     }
     if (confirmBulkDelete) {
         val count = selectedIds.size

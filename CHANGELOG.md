@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Tap an upcoming transaction to post it, post it today, skip it or complete its schedule ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
+
 ## [1.3.0] - 2026-09-29
 
 ### Upgrade notes
