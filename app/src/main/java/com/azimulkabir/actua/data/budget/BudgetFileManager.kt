@@ -25,6 +25,9 @@ sealed class BudgetFileException(message: String) : Exception(message) {
     class UnsafeArchive(reason: String) : BudgetFileException("Unsafe budget archive: $reason")
 }
 
+/** Actual's server-side identity for a downloaded file, which overrides the archive's metadata. */
+data class CloudFileIdentity(val fileId: String, val groupId: String?, val encryptKeyId: String?)
+
 /**
  * Owns Actual-compatible budget directories and ZIP archives. It deliberately
  * does not know about Compose or the prototype database.
@@ -114,8 +117,7 @@ class BudgetFileManager(context: Context) {
      */
     fun importBudget(
         archive: InputStream,
-        cloudFileId: String? = null,
-        groupId: String? = null,
+        cloud: CloudFileIdentity? = null,
     ): BudgetMetadata {
         val staging = File(root, ".import-${UUID.randomUUID()}")
         check(staging.mkdirs()) { "Unable to create import staging directory" }
@@ -126,8 +128,13 @@ class BudgetFileManager(context: Context) {
 
             val json = JSONObject(extracted.metadata.readText())
             val original = BudgetMetadata.fromJson(json)
-            if (cloudFileId != null) json.put("cloudFileId", cloudFileId)
-            if (groupId != null) json.put("groupId", groupId)
+            // Same keys Actual's importBuffer overwrites, including an explicit null key id.
+            if (cloud != null) {
+                json.put("cloudFileId", cloud.fileId)
+                    .put("groupId", cloud.groupId ?: JSONObject.NULL)
+                    .put("lastUploaded", java.time.LocalDate.now().toString())
+                    .put("encryptKeyId", cloud.encryptKeyId ?: JSONObject.NULL)
+            }
             extracted.metadata.writeText(json.toString())
             val updated = BudgetMetadata.fromJson(json)
 
