@@ -37,6 +37,16 @@ data class SplitLine(
 
 enum class Type { EXPENSE, INCOME, TRANSFER }
 
+/**
+ * A list row as a save draft. A transfer form's `account` is the sending account, so an incoming
+ * leg (`amountCents >= 0`, the rule the editor and `ActualTransactionFormService` share) swaps its
+ * accounts; saving the raw row would reverse the transfer.
+ */
+fun Transaction.asTransferDraft(): Transaction =
+    if (type == Type.TRANSFER && amountCents >= 0 && transferAccount != null) {
+        copy(account = transferAccount, transferAccount = account, amountCents = -amountCents, amount = -amount)
+    } else this
+
 /** A copy of this transaction detached from its schedule link and split children, ready to be saved as a new one. */
 fun Transaction.asDuplicate(): Transaction = copy(
     id = "",

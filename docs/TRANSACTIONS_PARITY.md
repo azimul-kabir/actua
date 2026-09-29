@@ -169,6 +169,7 @@ matrices above apply to each row.
 | Duplicate | `onBatchDuplicate` ([`DC/hooks/useTransactionBatchActions.ts#L286-L318`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/hooks/useTransactionBatchActions.ts#L286-L318)) inserts copies with `cleared: false`, `reconciled: false` and the schedule kept; transfers get a new pair through `onInsert` | `Transaction.asDuplicate` (`model/Transaction.kt:41`) keeps `cleared` and drops the schedule; transfers go through `createTransfer` | **Divergence** [#752](https://github.com/azimul-kabir/actua/issues/752) |
 | Delete | `batchUpdateTransactions({deleted})` with `removeTransfer` | `deleteTransactions` in one batch | Match ([#743](https://github.com/azimul-kabir/actua/issues/743)) |
 | Link / unlink schedule | batch update (copied to the other transfer leg) | `setScheduleLink` updates both legs in one batch | Match ([#744](https://github.com/azimul-kabir/actua/issues/744)). Test: `TransactionParityTest`.`linkingAScheduleToOneTransferLegLinksBothLegs`; schedule semantics in [#670](https://github.com/azimul-kabir/actua/issues/670) |
+| Bulk edits and duplicates of an incoming transfer leg keep the transfer's direction | each row is its own leg in `batchUpdateTransactions` | `Transaction.asTransferDraft` turns an incoming leg into the From → To draft the editor saves | Match ([#757](https://github.com/azimul-kabir/actua/issues/757)). Tests: `ActuaRepositoryIncomingTransferTest`, `TransferDraftTest` |
 
 ## Test evidence and limitations
 
