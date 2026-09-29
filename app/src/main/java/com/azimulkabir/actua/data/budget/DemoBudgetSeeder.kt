@@ -16,11 +16,14 @@ internal object DemoBudgetSeeder {
     fun seed(database: SQLiteDatabase, now: LocalDate = LocalDate.now()) {
         database.beginTransaction()
         try {
-            // BlankBudgetFactory intentionally ships starter categories for newly-created budgets.
-            // The demo is curated, so replace only those starter rows while preserving schema/migrations.
+            // BlankBudgetFactory intentionally ships starter categories and Actual's default dashboard
+            // for newly-created budgets. The demo is curated, so replace only those starter rows while
+            // preserving schema/migrations.
             database.execSQL("DELETE FROM category_mapping")
             database.execSQL("DELETE FROM categories")
             database.execSQL("DELETE FROM category_groups")
+            database.execSQL("DELETE FROM dashboard")
+            database.execSQL("DELETE FROM dashboard_pages")
 
             val checking = "demo-account-checking"
             val savings = "demo-account-savings"
