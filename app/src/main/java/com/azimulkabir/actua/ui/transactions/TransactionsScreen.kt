@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
@@ -166,7 +167,6 @@ fun TransactionsScreen(
     upcomingTransactions: List<Transaction> = emptyList(),
     showUpcomingTransactions: Boolean = true,
     onShowUpcomingTransactionsChange: (Boolean) -> Unit = {},
-    recurringScheduleIds: Set<String> = emptySet(),
     onUpcomingAction: (Transaction, UpcomingTransactionAction) -> Unit = { _, _ -> },
     hasFab: Boolean = true,
     categoryOptions: List<String> = emptyList(),
@@ -590,9 +590,7 @@ fun TransactionsScreen(
                                 },
                                 showAccount = accountName == null,
                                 onLongClick = {
-                                    if (transaction.isUpcoming) {
-                                        if (!selectionModeOn) upcomingMenuFor = transaction
-                                    } else {
+                                    if (!transaction.isUpcoming) {
                                         if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
                                         else {
                                             selectionModeOn = true
@@ -618,9 +616,7 @@ fun TransactionsScreen(
                             },
                             showAccount = accountName == null,
                             onLongClick = {
-                                if (transaction.isUpcoming) {
-                                    if (!selectionModeOn) upcomingMenuFor = transaction
-                                } else {
+                                if (!transaction.isUpcoming) {
                                     if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
                                     else {
                                         selectionModeOn = true
@@ -649,30 +645,36 @@ fun TransactionsScreen(
         )
     }
     upcomingMenuFor?.let { transaction ->
-        val recurring = transaction.scheduleId in recurringScheduleIds
         ModalBottomSheet(onDismissRequest = { upcomingMenuFor = null }) {
             Column(modifier = Modifier.padding(bottom = 24.dp)) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally) {
+                val scheduleId = transaction.scheduleId
+                Row(Modifier.fillMaxWidth()
+                    .then(if (scheduleId != null) Modifier.clickable(onClickLabel = "Edit schedule") {
+                        upcomingMenuFor = null
+                        onViewSchedule(scheduleId)
+                    } else Modifier)
+                    .padding(horizontal = 24.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     Text(transaction.payee, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(8.dp))
+                        maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f, fill = false))
+                    if (scheduleId != null) {
+                        Icon(Icons.Outlined.Edit, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp).size(18.dp))
+                    }
+                }
+                Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 4.dp, bottom = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Scheduled date", style = MaterialTheme.typography.bodyLarge)
                     Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold)
                 }
-                upcomingTransactionActions(recurring).forEach { action ->
+                UpcomingTransactionAction.entries.forEach { action ->
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Action(action.label) {
                         upcomingMenuFor = null
                         onUpcomingAction(transaction, action)
-                    }
-                }
-                transaction.scheduleId?.let { scheduleId ->
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Action("Edit schedule") {
-                        upcomingMenuFor = null
-                        onViewSchedule(scheduleId)
                     }
                 }
             }
