@@ -971,8 +971,10 @@ class ActualBudgetDatabase private constructor(
                     FROM transactions ct
                     LEFT JOIN category_mapping cm ON cm.id = ct.category
                     LEFT JOIN categories c ON c.id = COALESCE(cm.transferId, ct.category)
+                        AND (c.tombstone = 0 OR c.tombstone IS NULL)
                     LEFT JOIN payee_mapping pm ON pm.id = ct.description
-                    LEFT JOIN payees p ON p.id = pm.targetId
+                    LEFT JOIN payees p ON p.id = COALESCE(pm.targetId, ct.description)
+                        AND (p.tombstone = 0 OR p.tombstone IS NULL)
                     WHERE ct.parent_id IN ($placeholders)
                       AND (ct.tombstone = 0 OR ct.tombstone IS NULL)
                     ORDER BY ct.sort_order DESC
@@ -1589,10 +1591,12 @@ class ActualBudgetDatabase private constructor(
                 OR (t.isParent = 1 AND EXISTS (
                     SELECT 1 FROM transactions child
                     LEFT JOIN payee_mapping spm ON spm.id = child.description
-                    LEFT JOIN payees sp ON sp.id = spm.targetId
+                    LEFT JOIN payees sp ON sp.id = COALESCE(spm.targetId, child.description)
+                        AND (sp.tombstone = 0 OR sp.tombstone IS NULL)
                     LEFT JOIN accounts sa ON sa.id = sp.transfer_acct
                     LEFT JOIN category_mapping scm ON scm.id = child.category
                     LEFT JOIN categories sc ON sc.id = COALESCE(scm.transferId, child.category)
+                        AND (sc.tombstone = 0 OR sc.tombstone IS NULL)
                     WHERE child.parent_id = t.id AND child.isChild = 1
                       AND (child.tombstone = 0 OR child.tombstone IS NULL)
                       AND (sp.name LIKE ? ESCAPE '\' OR child.notes LIKE ? ESCAPE '\'
@@ -1603,8 +1607,8 @@ class ActualBudgetDatabase private constructor(
         """
 
         private const val transactionSelect = """
-            SELECT t.id, t.isParent, t.isChild, t.acct, COALESCE(cm.transferId, t.category) AS category, t.amount,
-                   COALESCE(pm.targetId, t.description) AS description, t.notes, t.date,
+            SELECT t.id, t.isParent, t.isChild, t.acct, c.id AS category, t.amount,
+                   p.id AS description, t.notes, t.date,
                    t.imported_description, t.schedule,
                    t.transferred_id, t.cleared, t.reconciled, t.sort_order,
                    t.tombstone, t.parent_id,
@@ -1614,7 +1618,8 @@ class ActualBudgetDatabase private constructor(
                    t.financial_id, t.pending, t.raw_synced_data
             FROM transactions t
             LEFT JOIN payee_mapping pm ON pm.id = t.description
-            LEFT JOIN payees p ON p.id = pm.targetId
+            LEFT JOIN payees p ON p.id = COALESCE(pm.targetId, t.description)
+                AND (p.tombstone = 0 OR p.tombstone IS NULL)
             LEFT JOIN accounts pa ON pa.id = p.transfer_acct
                 AND (pa.tombstone = 0 OR pa.tombstone IS NULL)
             LEFT JOIN (
@@ -1628,11 +1633,13 @@ class ActualBudgetDatabase private constructor(
                 GROUP BY ct.parent_id
             ) child_payee ON t.isParent = 1 AND child_payee.parent_id = t.id
             LEFT JOIN payee_mapping cpm ON cpm.id = child_payee.payee
-            LEFT JOIN payees cp ON cp.id = cpm.targetId
+            LEFT JOIN payees cp ON cp.id = COALESCE(cpm.targetId, child_payee.payee)
+                AND (cp.tombstone = 0 OR cp.tombstone IS NULL)
             LEFT JOIN accounts cpa ON cpa.id = cp.transfer_acct
                 AND (cpa.tombstone = 0 OR cpa.tombstone IS NULL)
             LEFT JOIN category_mapping cm ON cm.id = t.category
             LEFT JOIN categories c ON c.id = COALESCE(cm.transferId, t.category)
+                AND (c.tombstone = 0 OR c.tombstone IS NULL)
             LEFT JOIN accounts acc ON acc.id = t.acct
             WHERE (t.tombstone = 0 OR t.tombstone IS NULL)
               AND (t.isChild = 0 OR t.isChild IS NULL)
@@ -1640,8 +1647,8 @@ class ActualBudgetDatabase private constructor(
         """
 
         private const val transactionChildSelect = """
-            SELECT t.id, t.isParent, t.isChild, t.acct, COALESCE(cm.transferId, t.category) AS category, t.amount,
-                   COALESCE(pm.targetId, t.description) AS description, t.notes, t.date,
+            SELECT t.id, t.isParent, t.isChild, t.acct, c.id AS category, t.amount,
+                   p.id AS description, t.notes, t.date,
                    t.imported_description, t.schedule,
                    t.transferred_id, t.cleared, t.reconciled, t.sort_order,
                    t.tombstone, t.parent_id, COALESCE(pa.name, p.name) AS payee_name,
@@ -1650,11 +1657,13 @@ class ActualBudgetDatabase private constructor(
                    t.financial_id, t.pending, t.raw_synced_data
             FROM transactions t
             LEFT JOIN payee_mapping pm ON pm.id = t.description
-            LEFT JOIN payees p ON p.id = pm.targetId
+            LEFT JOIN payees p ON p.id = COALESCE(pm.targetId, t.description)
+                AND (p.tombstone = 0 OR p.tombstone IS NULL)
             LEFT JOIN accounts pa ON pa.id = p.transfer_acct
                 AND (pa.tombstone = 0 OR pa.tombstone IS NULL)
             LEFT JOIN category_mapping cm ON cm.id = t.category
             LEFT JOIN categories c ON c.id = COALESCE(cm.transferId, t.category)
+                AND (c.tombstone = 0 OR c.tombstone IS NULL)
             WHERE (t.tombstone = 0 OR t.tombstone IS NULL)
         """
 

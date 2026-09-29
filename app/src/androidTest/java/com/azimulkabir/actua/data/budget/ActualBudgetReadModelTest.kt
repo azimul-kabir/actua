@@ -1041,6 +1041,64 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun deletedPayeesAndCategoriesReadAsNoneLikeActualsTransactionView() {
+        // Actual's v_transactions joins payees/categories with tombstone = 0, so a transaction that
+        // still references a deleted payee or category reads as having none (actua#711).
+        val file = createDatabaseFile()
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO categories VALUES ('retired','Retired Category','essential',0,0,1,5)")
+                db.execSQL("INSERT INTO category_mapping VALUES ('retired','retired')")
+                db.execSQL("INSERT INTO payees VALUES ('gone','Gone Payee',NULL,1)")
+                db.execSQL("INSERT INTO payee_mapping VALUES ('gone','gone')")
+                insertTransaction(db, "deleted-refs", 0, 0, "checking", "retired", -300, "gone", 20260805, 20.0)
+                insertTransaction(db, "deleted-split", 1, 0, "checking", null, -300, null, 20260806, 21.0)
+                insertTransaction(db, "deleted-child", 0, 1, "checking", "retired", -300, "gone", 20260806, 22.0, parent = "deleted-split")
+            }
+            ActualBudgetDatabase.open(file).use { database ->
+                val row = requireNotNull(database.fetchTransaction("deleted-refs"))
+                assertNull(row.payeeId)
+                assertNull(row.payeeName)
+                assertNull(row.categoryId)
+                assertNull(row.categoryName)
+
+                val uncategorized = database.fetchTransactions(statusFilter = TransactionStatusFilter.UNCATEGORIZED).map { it.id }
+                assertTrue("deleted-refs" in uncategorized)
+                assertTrue(database.fetchTransactions(query = "Gone Payee").isEmpty())
+                assertTrue(database.fetchTransactions(query = "Retired Category").isEmpty())
+
+                val portion = database.fetchTransactions(limit = Int.MAX_VALUE)
+                    .single { it.id == "deleted-split" }.splitPortions.single()
+                assertNull(portion.categoryName)
+                assertNull(portion.payeeName)
+                val child = database.fetchChildTransactions("deleted-split").single()
+                assertNull(child.payeeId)
+                assertNull(child.categoryId)
+
+                val reported = database.fetchTransactionsForReports().associateBy { it.id }
+                assertNull(reported.getValue("deleted-refs").categoryId)
+                assertNull(reported.getValue("deleted-child").categoryId)
+                // Live references are unaffected.
+                assertEquals("grocery", reported.getValue("ordinary").categoryId)
+                assertEquals("store", reported.getValue("ordinary").payeeId)
+
+                // An unrelated edit writes only its own column, so the stored references stay raw.
+                ActualTransactionWriter(database, nodeId = "abababababababab").setCleared(row, true)
+            }
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT description, category, cleared FROM transactions WHERE id = 'deleted-refs'", null).use {
+                    it.moveToFirst()
+                    assertEquals("gone", it.getString(0))
+                    assertEquals("retired", it.getString(1))
+                    assertEquals(1, it.getInt(2))
+                }
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun unrelatedEditsKeepStaleMappedIdsRawAndMatchTheMessageLog() {
         // Reads report mapped payee/category ids; an edit must only write the columns its
         // messages carry, so the raw merged ids stay put like upstream's diffed update (actua#642).
