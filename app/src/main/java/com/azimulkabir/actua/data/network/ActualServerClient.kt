@@ -216,13 +216,8 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
             mapOf("Content-Type" to "application/json"),
             body,
         )
-        if (response.status == 400 || response.status == 401) {
-            error(loginError(response, "Could not start OpenID sign-in."))
-        }
-        requireSuccess(response)
-        val json = response.json()
-        if (json.optString("status") != "ok") error(json.optString("reason", "Could not start OpenID sign-in."))
-        return json.optJSONObject("data")?.optString("returnUrl")?.takeIf(String::isNotBlank)
+        checkLogin(response, fallbackReason = "openid-failed")
+        return response.json().optJSONObject("data")?.optString("returnUrl")?.takeIf(String::isNotBlank)
             ?: throw ActualServerException.InvalidResponse
     }
 
@@ -547,14 +542,30 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
     }
     private fun checkAuthorization(response: ActualHttpResponse) {
         if (response.status == 401 && isRejectedSession(response.body)) throw ActualServerException.SessionExpired
+        if (response.status == 403 && response.body.decodeToString().trim() == "file-access-not-allowed") {
+            throw ActualServerException.FileAccessDenied
+        }
         if (response.status == 401 || response.status == 403) throw ActualServerException.Unauthorized
     }
     private fun requireSuccess(response: ActualHttpResponse) {
         if (response.status != 200) throw ActualServerException.Http(response.status, response.body.decodeToString())
     }
-    private fun loginError(response: ActualHttpResponse, fallback: String): String = runCatching {
-        JSONObject(response.body.decodeToString()).optString("reason").takeIf(String::isNotBlank)
-    }.getOrNull() ?: fallback
+
+    /**
+     * Actual's `/account/login` reports errors as `400 {reason}`, header-auth errors as
+     * `200 {status:"error", reason}`, and its rate limit as `429 {reason:"too-many-requests"}`.
+     */
+    private fun checkLogin(response: ActualHttpResponse, fallbackReason: String) {
+        if (response.status !in setOf(200, 400, 401, 429)) requireSuccess(response)
+        val json = runCatching { JSONObject(response.body.decodeToString()) }.getOrNull()
+        if (response.status == 200) {
+            if (json == null) throw ActualServerException.InvalidResponse
+            if (json.optString("status") == "ok") return
+        }
+        val reason = json?.optString("reason")?.takeIf(String::isNotBlank)
+            ?: if (response.status == 429) "too-many-requests" else fallbackReason
+        throw ActualServerException.LoginRejected(reason)
+    }
     private fun ActualHttpResponse.json(): JSONObject = try {
         JSONObject(body.decodeToString())
     } catch (_: Exception) {
@@ -583,3 +594,22 @@ internal fun isRejectedSession(body: ByteArray): Boolean = runCatching {
     val reason = json.optString("reason")
     reason == "token-expired" || (reason == "unauthorized" && json.optString("details") == "token-not-found")
 }.getOrDefault(false)
+
+/** Actua's reason for an invalid-password answer from a server that hasn't been set up yet. */
+internal const val REASON_NEEDS_BOOTSTRAP = "needs-bootstrap"
+
+/** Readable text for Actual's `/account/login` reason codes; unknown codes are shown as-is. */
+internal fun loginReasonMessage(reason: String): String = when (reason) {
+    "invalid-password" -> "Incorrect server password."
+    REASON_NEEDS_BOOTSTRAP ->
+        "This Actual server hasn't been set up yet. Open it in a browser to create its password, then connect."
+    "too-many-requests" -> "Too many sign-in attempts. Wait 15 minutes, then try again."
+    "invalid-header" ->
+        "This server signs in through an authentication proxy, but the proxy didn't send a password header."
+    "proxy-not-trusted" -> "This server only accepts header sign-in from a trusted proxy."
+    "user-not-found" -> "The server has no user for this password. Finish setting it up in Actual first."
+    "Invalid redirect URL", "invalid-return-url" ->
+        "The server rejected Actua's OpenID return address. Check the server's OpenID settings."
+    "openid-failed" -> "Could not start OpenID sign-in."
+    else -> "Sign-in failed: $reason"
+}

@@ -44,12 +44,12 @@ class ActualServerSessionTest {
     }
 
     @Test
-    fun `proxy and file-access rejections stay Unauthorized`() {
+    fun `proxy and file-access rejections are not expired sessions`() {
         val proxy = ActualServerClient { ActualHttpResponse(401, "Unauthorized".encodeToByteArray()) }
         assertThrows(ActualServerException.Unauthorized::class.java) { proxy.listFiles("https://actual.test", "token") }
 
         val forbidden = ActualServerClient { ActualHttpResponse(403, "file-access-not-allowed".encodeToByteArray()) }
-        assertThrows(ActualServerException.Unauthorized::class.java) {
+        assertThrows(ActualServerException.FileAccessDenied::class.java) {
             forbidden.deleteFile("https://actual.test", "token", "file-1")
         }
     }
