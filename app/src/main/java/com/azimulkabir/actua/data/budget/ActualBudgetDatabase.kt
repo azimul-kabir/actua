@@ -993,7 +993,8 @@ class ActualBudgetDatabase private constructor(
             }
 
             when (statusFilter) {
-                TransactionStatusFilter.UNCATEGORIZED -> append(" AND (c.name IS NULL OR c.name = '') AND t.transferred_id IS NULL AND (t.isParent = 0 OR t.isParent IS NULL) AND COALESCE(acc.offbudget, 0) = 0")
+                // Actual's `uncategorizedTransactions`: transfers count only when they leave the budget.
+                TransactionStatusFilter.UNCATEGORIZED -> append(" AND (c.name IS NULL OR c.name = '') AND (p.transfer_acct IS NULL OR pa.offbudget = 1) AND (t.isParent = 0 OR t.isParent IS NULL) AND COALESCE(acc.offbudget, 0) = 0")
                 TransactionStatusFilter.UNCLEARED -> append(" AND COALESCE(t.cleared, 0) = 0")
                 TransactionStatusFilter.CLEARED -> append(" AND COALESCE(t.cleared, 0) = 1 AND COALESCE(t.reconciled, 0) = 0")
                 TransactionStatusFilter.RECONCILED -> append(" AND COALESCE(t.reconciled, 0) = 1")

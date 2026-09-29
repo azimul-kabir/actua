@@ -168,10 +168,16 @@ class ActualTransactionFormService(
         val toPayee = transferPayee(plan.toAccountId)
         val sourceId = idFactory()
         val targetId = idFactory()
+        // loot-core `clearCategory`: only the on-budget leg of an on/off-budget transfer keeps a category.
+        val offBudget = offBudgetAccountIds()
+        fun category(account: String, other: String) =
+            form.categoryId.takeIf { account !in offBudget && other in offBudget }
         // loot-core `addTransfer` inserts the other leg with `cleared: false`.
         writer.createTransfer(
-            baseTransaction(sourceId, form.accountId, form.date, -plan.amountCents, toPayee.id, null, notes, form.cleared, transferId = targetId),
-            baseTransaction(targetId, plan.toAccountId, form.date, plan.amountCents, fromPayee.id, null, notes, false, transferId = sourceId),
+            baseTransaction(sourceId, form.accountId, form.date, -plan.amountCents, toPayee.id,
+                category(form.accountId, plan.toAccountId), notes, form.cleared, transferId = targetId),
+            baseTransaction(targetId, plan.toAccountId, form.date, plan.amountCents, fromPayee.id,
+                category(plan.toAccountId, form.accountId), notes, false, transferId = sourceId),
         )
     }
 

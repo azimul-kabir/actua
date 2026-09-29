@@ -155,8 +155,13 @@ fun AddTransactionScreen(
     var tagVersion by remember { mutableStateOf(0L) }
     val availableTags = remember(tagVersion) { tagRepository.tags(tagVersion) }
     val isOffBudget = account in offBudgetAccountOptions
-    LaunchedEffect(isOffBudget) {
-        if (isOffBudget) {
+    val isTransferType = transactionType == Type.TRANSFER.displayName
+    // Like Actual's mobile editor, an on/off-budget transfer takes a category for its on-budget leg,
+    // edited from that leg only; transfers within the budget (or outside it) never have one.
+    val transferTakesCategory = isTransferType && transferAccount.isNotBlank() &&
+        isOffBudget != (transferAccount in offBudgetAccountOptions) && editing?.accountOffBudget != true
+    LaunchedEffect(isOffBudget, isTransferType) {
+        if (isOffBudget && !isTransferType) {
             category = ""
             categoryIsExplicit = false
             splitLines = splitLines.map { it.copy(category = "") }
@@ -169,8 +174,7 @@ fun AddTransactionScreen(
     } && splitTotal == amountCents)
     val canSave = amountCents >= 0 && account.isNotBlank() &&
         (transactionType != Type.TRANSFER.displayName || transferAccount.isNotBlank()) && splitIsValid
-    val isTransferType = transactionType == Type.TRANSFER.displayName
-    val showsCategory = !isTransferType && !isSplit && !isOffBudget
+    val showsCategory = (!isTransferType && !isSplit && !isOffBudget) || transferTakesCategory
     LaunchedEffect(autoStep, isTransferType, showsCategory) {
         autoStep = when (autoStep) {
             AddStep.Payee -> if (isTransferType) AddStep.Account else AddStep.Payee
@@ -195,8 +199,11 @@ fun AddTransactionScreen(
                     id = editing?.id.orEmpty(),
                     date = storageDate(date),
                     payee = payee,
-                    category = if (transactionType == "Transfer" || isOffBudget) ""
-                    else category.ifBlank { "Uncategorized" },
+                    category = when {
+                        isTransferType -> if (transferTakesCategory) category else ""
+                        isOffBudget -> ""
+                        else -> category.ifBlank { "Uncategorized" }
+                    },
                     account = account,
                     amount = (amountCents / 100L).toInt() * if (transactionType == "Income") 1 else -1,
                     cleared = cleared,
@@ -345,7 +352,7 @@ fun AddTransactionScreen(
                     onForgetPayeeLocation = onForgetPayeeLocation,
                 )
             }
-            if (transactionType != Type.TRANSFER.displayName && !isSplit && !isOffBudget) {
+            if (showsCategory) {
                 PickerTextField(
                     label = "Category", value = category, options = categoryOptions,
                     supportingValues = categoryBalanceLabels,
@@ -361,7 +368,7 @@ fun AddTransactionScreen(
                 supportingValues = accountBalanceLabels,
                 onValueChange = {
                     account = it
-                    if (it in offBudgetAccountOptions) {
+                    if (it in offBudgetAccountOptions && !isTransferType) {
                         category = ""
                         splitLines = splitLines.map { line -> line.copy(category = "") }
                     }

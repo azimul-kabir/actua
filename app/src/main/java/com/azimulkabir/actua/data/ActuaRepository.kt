@@ -808,7 +808,8 @@ class ActuaRepository(context: Context) {
             date = it.date.toString(),
             payee = it.payeeName ?: if (it.isParent) "Split" else "",
             category = when {
-                isTransfer -> ""
+                // Only the on-budget leg of an on/off-budget transfer has one (loot-core `clearCategory`).
+                isTransfer -> it.categoryName.orEmpty()
                 it.isParent -> "Split"
                 it.categoryName != null -> it.categoryName
                 // Actual never requires a category for off-budget accounts, so leave it blank
@@ -1025,16 +1026,20 @@ class ActuaRepository(context: Context) {
         actualDatabase?.let { db ->
             val account = db.fetchAccounts().firstOrNull { it.name == transaction.account && !it.closed }
                 ?: error("Select an account")
-            val categoriesAllowed = !account.offBudget && transaction.type != Type.TRANSFER
-            val categories = db.fetchCategoryGroups().flatMap { it.categories }
-            val category = categories.firstOrNull { it.name == transaction.category && !it.hidden }
-            if (categoriesAllowed && transaction.splits.isEmpty() && transaction.category.isNotBlank() &&
-                transaction.category != "Uncategorized" && category == null) {
-                error("Select a category from the list")
-            }
             val transferAccount = transaction.transferAccount?.let { name ->
                 db.fetchAccounts().firstOrNull { it.name == name && !it.closed }
                     ?: error("Select a destination account")
+            }
+            // A transfer carries a category only on the on-budget leg of an on/off-budget pair.
+            val categoriesAllowed = if (transaction.type == Type.TRANSFER) {
+                transferAccount != null && account.offBudget != transferAccount.offBudget
+            } else !account.offBudget
+            val categories = db.fetchCategoryGroups().flatMap { it.categories }
+            val category = categories.firstOrNull { it.name == transaction.category && !it.hidden }
+                ?.takeIf { categoriesAllowed }
+            if (categoriesAllowed && transaction.splits.isEmpty() && transaction.category.isNotBlank() &&
+                transaction.category != "Uncategorized" && category == null) {
+                error("Select a category from the list")
             }
             val original = transaction.id.takeIf(String::isNotBlank)?.let(db::fetchTransaction)
             actualForms!!.save(
