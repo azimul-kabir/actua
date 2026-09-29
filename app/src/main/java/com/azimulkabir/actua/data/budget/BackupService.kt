@@ -2,7 +2,6 @@ package com.azimulkabir.actua.data.budget
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import android.os.Build
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -136,22 +135,19 @@ class BackupService(context: Context, private val files: BudgetFileManager = Bud
 
     private fun snapshot(source: File, destination: File) {
         destination.delete()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val database = SQLiteDatabase.openDatabase(source.path, null, SQLiteDatabase.OPEN_READWRITE)
-            try {
-                val escaped = destination.path.replace("'", "''")
-                database.execSQL("VACUUM INTO '$escaped'")
-            } finally {
-                database.close()
-            }
-            return
-        }
-
-        // Android 9 ships SQLite 3.22, before VACUUM INTO was introduced. Close any
-        // connection opened here and copy the database plus committed WAL contents
-        // after forcing a full checkpoint so the snapshot remains self-contained.
         val database = SQLiteDatabase.openDatabase(source.path, null, SQLiteDatabase.OPEN_READWRITE)
         try {
+            val version = database.rawQuery("SELECT sqlite_version()", null).use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+            if (supportsVacuumInto(version)) {
+                val escaped = destination.path.replace("'", "''")
+                database.execSQL("VACUUM INTO '$escaped'")
+                return
+            }
+            // Android 9 and 10 ship SQLite 3.22, before VACUUM INTO (3.27) was introduced.
+            // Force a full checkpoint and copy the database once this connection is closed so
+            // the snapshot remains self-contained.
             database.rawQuery("PRAGMA wal_checkpoint(FULL)", null).use { cursor ->
                 if (cursor.moveToFirst()) Unit
             }
@@ -168,7 +164,11 @@ class BackupService(context: Context, private val files: BudgetFileManager = Bud
             if (hasTable(database, "messages_crdt")) database.delete("messages_crdt", null, null)
             if (hasTable(database, "messages_clock")) database.delete("messages_clock", null, null)
             if (hasTable(database, "__migrations__")) {
-                database.delete("__migrations__", "id IN (${ACTUALI_MIGRATIONS.joinToString()})", null)
+                database.delete(
+                    "__migrations__",
+                    "id IN (${ActualBudgetDatabase.PRIVATE_MIGRATION_IDS.joinToString()})",
+                    null,
+                )
             }
             database.setTransactionSuccessful()
         } finally {
@@ -219,11 +219,19 @@ class BackupService(context: Context, private val files: BudgetFileManager = Bud
     companion object {
         const val LATEST_ID = "db.latest.sqlite"
         private val formatter = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US)
-        private val ACTUALI_MIGRATIONS = longArrayOf(
-            1765518577216, 1694438752001, 1694438752002, 1720665000001,
-            1770000000001, 1770000000002, 1778510362741, 1780606214999,
-            1780606215002, 1780606215003, 1780606215004, 1770000000003,
-        )
+        private val VACUUM_INTO_MINIMUM = listOf(3, 27, 0)
+
+        /** True when [sqliteVersion] (from `sqlite_version()`) supports `VACUUM INTO`. */
+        fun supportsVacuumInto(sqliteVersion: String?): Boolean {
+            val parts = sqliteVersion?.trim()?.split('.')?.map { it.toIntOrNull() ?: return false }
+                ?: return false
+            if (parts.isEmpty()) return false
+            for (index in VACUUM_INTO_MINIMUM.indices) {
+                val part = parts.getOrElse(index) { 0 }
+                if (part != VACUUM_INTO_MINIMUM[index]) return part > VACUUM_INTO_MINIMUM[index]
+            }
+            return true
+        }
 
         fun archiveName(instant: Instant): String = "${formatter.format(Date.from(instant))}.zip"
         data class DatedBackup(val id: String, val date: Instant)
