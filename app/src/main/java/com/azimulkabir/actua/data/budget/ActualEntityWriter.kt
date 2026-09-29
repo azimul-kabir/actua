@@ -63,6 +63,34 @@ class ActualEntityWriter(
             "bank" to null, "bank_sync_status" to null, "last_sync" to null,
         ),
     )
+    /**
+     * Budgets created by Actua before #716 were uploaded without a dashboard page, and Actual's Reports
+     * screen needs one. When no live page exists, create Actual's `Main` page through the message log:
+     * existing widgets move onto it, and an empty dashboard gets Actual's default widgets. The ids are
+     * fixed, so devices repairing the same budget offline write the same rows instead of two pages.
+     * Returns whether anything was written.
+     */
+    @Synchronized
+    fun ensureDashboardPage(): Boolean {
+        if (!database.dashboardPagesSupported() || database.fetchDashboardPages().isNotEmpty()) return false
+        val messages = mutableListOf<CrdtMessage>()
+        messages += fields("dashboard_pages", DEFAULT_DASHBOARD_PAGE_ID, linkedMapOf("name" to "Main", "tombstone" to 0))
+        val widgets = database.liveDashboardWidgetIds()
+        if (widgets.isNotEmpty()) {
+            widgets.forEach { messages += fields("dashboard", it, linkedMapOf("dashboard_page_id" to DEFAULT_DASHBOARD_PAGE_ID)) }
+        } else {
+            BlankBudgetFactory.DEFAULT_DASHBOARD.forEachIndexed { index, widget ->
+                messages += fields("dashboard", defaultDashboardWidgetId(index), linkedMapOf(
+                    "type" to widget.type, "width" to widget.width, "height" to widget.height,
+                    "x" to widget.x, "y" to widget.y, "meta" to widget.meta, "tombstone" to 0,
+                    "dashboard_page_id" to DEFAULT_DASHBOARD_PAGE_ID,
+                ))
+            }
+        }
+        persist(messages)
+        return true
+    }
+
     fun renameCategory(id: String, name: String) = update("categories", id, mapOf("name" to requiredName(name)))
     fun setCategoryHidden(id: String, hidden: Boolean) = update("categories", id, mapOf("hidden" to flag(hidden)))
     fun setCategoryTarget(id: String, goalDef: String?) = update("categories", id, mapOf(
@@ -292,6 +320,12 @@ class ActualEntityWriter(
     private fun flag(value: Boolean) = if (value) 1 else 0
 
     companion object {
+        internal val DEFAULT_DASHBOARD_PAGE_ID: String =
+            UUID.nameUUIDFromBytes("actua:default-dashboard:page".toByteArray()).toString()
+
+        internal fun defaultDashboardWidgetId(index: Int): String =
+            UUID.nameUUIDFromBytes("actua:default-dashboard:widget:$index".toByteArray()).toString()
+
         internal val allowedFields = mapOf(
             "accounts" to setOf("name", "type", "closed", "offbudget", "tombstone", "sort_order",
                 "bank_sync_status", "last_sync", "account_id", "account_sync_source", "bank"),

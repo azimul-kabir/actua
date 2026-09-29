@@ -1074,6 +1074,20 @@ class ActualBudgetDatabase private constructor(
         return rows
     }
 
+    /** The schema has dashboard pages (Actual migration 1765518577215), so widgets belong to one. */
+    @Synchronized
+    fun dashboardPagesSupported(): Boolean =
+        hasTable("dashboard_pages") && hasTable("dashboard") && "dashboard_page_id" in columns("dashboard")
+
+    /** Ids of every live widget, whichever page (live, deleted or none) it points to. */
+    @Synchronized
+    fun liveDashboardWidgetIds(): List<String> {
+        if (!hasTable("dashboard")) return emptyList()
+        return database.rawQuery(
+            "SELECT id FROM dashboard WHERE tombstone = 0 OR tombstone IS NULL ORDER BY rowid", null,
+        ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(0)) } }
+    }
+
     @Synchronized
     fun fetchDashboardWidgets(pageId: String?): List<DashboardWidgetRow> {
         if (!hasTable("dashboard")) return emptyList()

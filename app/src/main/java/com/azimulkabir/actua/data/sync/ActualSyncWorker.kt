@@ -15,6 +15,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.ActualBudgetDatabase
+import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
@@ -105,7 +106,9 @@ object ActualSyncRunner {
                 var outcome = syncWithFallback()
                 val poster = SchedulePoster(app, database, ActualTransactionWriter(database), ActualScheduleWriter(database))
                 val posted = poster.runIfNeeded(budgetId)
-                if (posted > 0) outcome = syncWithFallback()
+                // Only after a successful sync, so a page another client already created isn't duplicated.
+                val repairedDashboard = runCatching { ActualEntityWriter(database).ensureDashboardPage() }.getOrDefault(false)
+                if (posted > 0 || repairedDashboard) outcome = syncWithFallback()
                 if (makeBackup) runCatching { BackupService(app, files).makeBackup(budgetId) }
                 SyncRunResult.Success(outcome, posted)
             }
