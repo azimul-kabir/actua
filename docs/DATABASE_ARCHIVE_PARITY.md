@@ -44,9 +44,9 @@ when the hash changes.
 
 | View (from [`L/aql/schema/index.ts#L313-L432`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/aql/schema/index.ts#L313-L432)) | Actua equivalent | Status |
 | --- | --- | --- |
-| `v_transactions_internal`: `payee = payee_mapping.targetId`, `category = category_mapping.transferId` (null for parents), `amount = IFNULL(amount, 0)`, rows need `date` and `acct`, and children need a `parent_id` | `transactionSelect` / `transactionChildSelect` (`DB` companion) resolve both mappings and require `date` and `acct`. Actua falls back to the raw id when there is no mapping row (`COALESCE(cm.transferId, t.category)`). | Match when the mapping rows exist, which Actual always writes. The fallback is part of [#711](https://github.com/azimul-kabir/actua/issues/711). |
+| `v_transactions_internal`: `payee = payee_mapping.targetId`, `category = category_mapping.transferId` (null for parents), `amount = IFNULL(amount, 0)`, rows need `date` and `acct`, and children need a `parent_id` | `transactionSelect` / `transactionChildSelect` (`DB` companion) resolve both mappings and require `date` and `acct`. When a mapping row is missing, Actua looks up the raw id instead of reading null, but only a live payee or category is returned (next row). | Match when the mapping rows exist, which Actual and Actua always write. **Intentional** fallback otherwise: it can only name a live row that the raw id points to directly. |
 | `v_transactions_internal_alive`: `tombstone = 0`, and children only if the parent is alive | Every balance, report, reconciliation, statement and budget query uses `(t.tombstone = 0 OR NULL)` and checks the parent join (`DB:78-128`, `:290-390`, `:997-1037`, `:1149-1185`). The list shows parents and hydrates live children. | Match. Actua also treats a `NULL` tombstone as alive. |
-| `v_transactions`: joins `payees`, `categories` and `accounts` with `tombstone = 0`, so deleted references read as null | Actua's transaction joins check the tombstone for transfer accounts, but not for payees or categories | **Divergence** [#711](https://github.com/azimul-kabir/actua/issues/711) |
+| `v_transactions`: joins `payees`, `categories` and `accounts` with `tombstone = 0`, so deleted references read as null | The payee, category, child-payee and transfer-account joins require live rows, and the returned payee and category ids come from those joins. A transaction referencing a deleted payee or category reads as having none and counts as uncategorized. Only the columns an edit changes are written, so stored ids are never rewritten. | Match (fixed in [#711](https://github.com/azimul-kabir/actua/issues/711)) |
 | `v_payees`: hides transfer payees whose account is deleted and names transfer payees after their account | `fetchPayees` returns every live payee. Callers drop transfer payees from name lists, and transaction rows use `COALESCE(pa.name, p.name)` with `pa` restricted to live accounts. | Match for what is displayed. Transfer payees are never offered as ordinary payees. |
 | `v_categories`: `group = cat_group` | `fetchCategoryGroups` / `fetchBudgetMonth` read `cat_group` directly and filter tombstones | Match |
 | `v_schedules`: `next_date` is `local_next_date` when `local_next_date_ts = base_next_date_ts`, else `base_next_date`, and the payee resolves through `payee_mapping` | `fetchSchedules` / `fetchScheduleSummaries` (`DB:571-682`) apply the same rule and resolve the payee through `payee_mapping` | Match. Details in [SCHEDULED_TRANSACTIONS_PARITY.md](SCHEDULED_TRANSACTIONS_PARITY.md). |
@@ -64,8 +64,8 @@ Every read in `ActualBudgetDatabase` was checked. "Live" means `tombstone = 0 OR
 | `fetchPayees`, `findPayeeByName`, `fetchPayeeLocations`, `fetchRules`, `fetchCleanupGroups`, `fetchDashboardPages`, `fetchDashboardWidgets`, `fetchSavedReports`, `scheduleNameExists`, `scheduleOwnedRuleIds` | Live only | – | Match |
 | `fetchCategoryGroups`, budget-month categories and groups | Live only | – | Match |
 | `fetchBudgetMonth` spending | Live rows, live parent, parents excluded, live on-budget accounts | `category_mapping` | Match |
-| `fetchTransactions`, `fetchTransaction`, `fetchScheduleTransactions`, split portions, search | Live rows. Joined payee and category aren't checked for tombstones. | Both mappings | **Divergence** [#711](https://github.com/azimul-kabir/actua/issues/711) |
-| `fetchChildTransactions`, `fetchClearedUnreconciledTransactions`, `fetchTransactionsForReports` | Live rows. Children need a live parent (reconciliation, reports). | Both mappings | Match, apart from #711 |
+| `fetchTransactions`, `fetchTransaction`, `fetchScheduleTransactions`, split portions, search | Live rows, joined to live payees and categories only | Both mappings | Match (fixed in [#711](https://github.com/azimul-kabir/actua/issues/711)); `ActualBudgetReadModelTest.deletedPayeesAndCategoriesReadAsNoneLikeActualsTransactionView` |
+| `fetchChildTransactions`, `fetchClearedUnreconciledTransactions`, `fetchTransactionsForReports` | Live rows, joined to live payees and categories only. Children need a live parent (reconciliation, reports). | Both mappings | Match |
 | `fetchSchedules`, `fetchPaidScheduleIds`, `fetchSchedulePaymentDates`, `hasScheduleTransaction` | Live schedules, rules and transactions | `payee_mapping` | Match |
 | `fetchDiscoveryTransactions` | Live only | `payee_mapping` | Match |
 | `fetchNote(s)`, preferences, `zero_budget_months`, budget cells | No tombstone column | – | Match |
@@ -144,8 +144,8 @@ work on API 28.
   migration ids made Actua backups fail to open in Actual
 - [#710](https://github.com/azimul-kabir/actua/issues/710) (P2, fixed): backup creation used
   `VACUUM INTO` on Android 10 (SQLite 3.22)
-- [#711](https://github.com/azimul-kabir/actua/issues/711) (P2): transaction reads show deleted
-  payees and categories where Actual shows none
+- [#711](https://github.com/azimul-kabir/actua/issues/711) (P2, fixed): transaction reads showed
+  deleted payees and categories where Actual shows none
 - [#716](https://github.com/azimul-kabir/actua/issues/716) (P2): budgets created in Actua have no
   dashboard page in Actual
 - [#719](https://github.com/azimul-kabir/actua/issues/719) (**P1**, round trip): budgets last
