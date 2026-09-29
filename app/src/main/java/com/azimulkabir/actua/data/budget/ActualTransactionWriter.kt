@@ -98,9 +98,12 @@ class ActualTransactionWriter(
         saveClock()
     }
 
+    /** Link or unlink a schedule; a transfer's other leg follows, as in loot-core `updateTransfer`. */
+    @Synchronized
     fun setScheduleLink(transaction: ActualTransaction, scheduleId: String?) {
-        if (transaction.scheduleId == scheduleId) return
-        updateTransaction(transaction.copy(scheduleId = scheduleId), setOf("schedule"))
+        val legs = listOf(transaction) + listOfNotNull(transaction.transferId?.let(database::fetchTransactionRow))
+        val updates = legs.filter { it.scheduleId != scheduleId }.map { it to it.copy(scheduleId = scheduleId) }
+        if (updates.isNotEmpty()) mutate(updates = updates)
     }
 
     /** Change cleared state while keeping split children aligned with their parent. */
