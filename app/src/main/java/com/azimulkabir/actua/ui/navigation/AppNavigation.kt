@@ -115,6 +115,7 @@ import com.azimulkabir.actua.ui.transactions.NearbyPayeeSearchResult
 import com.azimulkabir.actua.ui.transactions.PayeeLocationSaveResult
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.transactions.upcomingTransactionsFrom
+import com.azimulkabir.actua.ui.transactions.recurringScheduleIds
 import com.azimulkabir.actua.ui.transactions.UpcomingTransactionAction
 import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
@@ -393,6 +394,7 @@ fun AppNavigation(
     // showing — matching the existing pattern `payeeLocations` already used below.
     val schedules = remember(dataVersion) { repository.schedules() }
     val upcomingTransactions = remember(schedules) { upcomingTransactionsFrom(schedules) }
+    val upcomingRecurringScheduleIds = remember(schedules) { recurringScheduleIds(schedules) }
     val linkableSchedules = remember(schedules) {
         schedules.filterNot { it.schedule.completed }.map {
             com.azimulkabir.actua.ui.transactions.ScheduleOption(it.schedule.id, it.title)
@@ -591,6 +593,8 @@ fun AppNavigation(
                 mutate("Posting schedule today") { repository.postScheduleTransaction(id, today = true) }
             UpcomingTransactionAction.SKIP ->
                 mutate("Skipping next date") { repository.skipScheduleNextDate(id) }
+            UpcomingTransactionAction.COMPLETE ->
+                mutate("Completing schedule") { repository.setScheduleCompleted(id, true) }
         }
     }
 
@@ -1493,6 +1497,7 @@ fun AppNavigation(
                     displayPreferences.showUpcomingTransactions = it
                     showUpcomingTransactions = it
                 },
+                recurringScheduleIds = upcomingRecurringScheduleIds,
                 onUpcomingAction = ::onUpcomingAction,
                 hasFab = hasFab,
             )
@@ -2557,7 +2562,8 @@ fun AppNavigation(
                         displayPreferences.showUpcomingTransactions = it
                         showUpcomingTransactions = it
                     },
-                        onUpcomingAction = ::onUpcomingAction,
+                    recurringScheduleIds = upcomingRecurringScheduleIds,
+                    onUpcomingAction = ::onUpcomingAction,
                     hasFab = hasFab,
                 )
                 MainDestination.Reports -> ReportsScreen(

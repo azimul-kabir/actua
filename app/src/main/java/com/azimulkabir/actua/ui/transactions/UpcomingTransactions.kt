@@ -32,4 +32,14 @@ enum class UpcomingTransactionAction(val label: String) {
     POST("Post transaction"),
     POST_TODAY("Post transaction today"),
     SKIP("Skip next scheduled date"),
+    COMPLETE("Mark as completed"),
 }
+
+/** As in Actual, recurring schedules can skip their next date and one-off schedules can be completed instead. */
+fun upcomingTransactionActions(recurring: Boolean): List<UpcomingTransactionAction> =
+    listOf(UpcomingTransactionAction.POST, UpcomingTransactionAction.POST_TODAY) +
+        if (recurring) UpcomingTransactionAction.SKIP else UpcomingTransactionAction.COMPLETE
+
+/** Ids of the recurring schedules among [schedules], used to pick which upcoming-row actions apply. */
+fun recurringScheduleIds(schedules: List<ScheduleListItem>): Set<String> =
+    schedules.filter { it.schedule.isRecurring }.mapTo(mutableSetOf()) { it.schedule.id }

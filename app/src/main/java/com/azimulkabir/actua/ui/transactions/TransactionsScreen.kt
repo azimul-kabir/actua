@@ -167,6 +167,7 @@ fun TransactionsScreen(
     upcomingTransactions: List<Transaction> = emptyList(),
     showUpcomingTransactions: Boolean = true,
     onShowUpcomingTransactionsChange: (Boolean) -> Unit = {},
+    recurringScheduleIds: Set<String> = emptySet(),
     onUpcomingAction: (Transaction, UpcomingTransactionAction) -> Unit = { _, _ -> },
     hasFab: Boolean = true,
     categoryOptions: List<String> = emptyList(),
@@ -670,7 +671,7 @@ fun TransactionsScreen(
                     Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold)
                 }
-                UpcomingTransactionAction.entries.forEach { action ->
+                upcomingTransactionActions(recurring = scheduleId in recurringScheduleIds).forEach { action ->
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Action(action.label) {
                         upcomingMenuFor = null
