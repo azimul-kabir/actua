@@ -14,6 +14,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Deleting a transfer, or changing it to an expense or income, now also removes it from the other account ([#754](https://github.com/azimul-kabir/actua/pull/754))
 - Editing a transfer no longer changes the other account's cleared state or date ([#755](https://github.com/azimul-kabir/actua/pull/755))
 - Transfers to off-budget accounts can now have a category, and editing one keeps it ([#756](https://github.com/azimul-kabir/actua/pull/756))
+- Duplicating, categorizing, moving or labeling the receiving side of a transfer no longer reverses it ([#758](https://github.com/azimul-kabir/actua/pull/758))
 
 ## [1.3.0] - 2026-09-29
 
