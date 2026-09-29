@@ -42,6 +42,7 @@ fun EditScheduleScreen(
     onSave: (ScheduleFormFields, String) -> Unit,
     onDelete: (() -> Unit)? = null,
     onUnlinkTransaction: ((String) -> Unit)? = null,
+    onEditAsRule: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val schedule = item?.schedule
@@ -304,6 +305,21 @@ fun EditScheduleScreen(
                         }
                     }
                 }
+            }
+
+            val ruleId = schedule?.ruleId
+            if (onEditAsRule != null && ruleId != null) {
+                if (schedule?.isCustom == true) {
+                    Text(
+                        "This schedule has custom conditions and actions",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                OutlinedButton(
+                    onClick = { onEditAsRule(ruleId) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Edit as rule") }
             }
 
             if (onDelete != null) {
