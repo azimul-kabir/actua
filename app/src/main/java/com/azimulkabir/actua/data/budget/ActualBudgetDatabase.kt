@@ -830,15 +830,6 @@ class ActualBudgetDatabase private constructor(
     }
 
     @Synchronized
-    fun tombstoneTransactions(ids: List<String>, messages: List<CrdtMessage>) = transaction {
-        ids.forEach { id ->
-            val values = ContentValues().apply { put("tombstone", 1) }
-            database.update("transactions", values, "id = ?", arrayOf(id))
-        }
-        insertMessageRows(messages)
-    }
-
-    @Synchronized
     fun mutateTransactions(
         updates: List<ActualTransaction>,
         inserts: List<ActualTransaction>,
@@ -1051,6 +1042,12 @@ class ActualBudgetDatabase private constructor(
     @Synchronized
     fun fetchTransaction(id: String): ActualTransaction? = database.rawQuery(
         transactionSelect + " AND t.id = ?", arrayOf(id),
+    ).use { cursor -> if (cursor.moveToFirst()) cursor.toActualTransaction() else null }
+
+    /** A live row by id, split children included (loot-core's `db.getTransaction`). */
+    @Synchronized
+    fun fetchTransactionRow(id: String): ActualTransaction? = database.rawQuery(
+        transactionChildSelect + " AND t.id = ?", arrayOf(id),
     ).use { cursor -> if (cursor.moveToFirst()) cursor.toActualTransaction() else null }
 
     @Synchronized

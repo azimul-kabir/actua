@@ -110,15 +110,22 @@ class ActualTransactionFormService(
                     null
                 } else if (original != null) {
                     val payee = resolvePayee(normalizedForm.payeeName, original)
-                    writer.mutate(updates = listOf(original to original.copy(
-                        accountId = normalizedForm.accountId,
-                        date = normalizedForm.date,
-                        amountCents = if (original.isParent) original.amountCents else plan.amountCents,
-                        payeeId = payee?.id,
-                        categoryId = if (original.isParent) null else normalizedForm.categoryId,
-                        notes = notes,
-                        cleared = normalizedForm.cleared,
-                    )))
+                    // A transfer saved as an expense/income stops being a transfer (loot-core
+                    // `transfer.onUpdate` → `removeTransfer`).
+                    val detached = writer.detachTransfers(listOf(original))
+                    writer.mutate(
+                        updates = listOf(original to original.copy(
+                            accountId = normalizedForm.accountId,
+                            date = normalizedForm.date,
+                            amountCents = if (original.isParent) original.amountCents else plan.amountCents,
+                            payeeId = payee?.id,
+                            categoryId = if (original.isParent) null else normalizedForm.categoryId,
+                            notes = notes,
+                            cleared = normalizedForm.cleared,
+                            transferId = null,
+                        )) + detached.updates.filterNot { it.first.id == original.id },
+                        tombstoneIds = detached.tombstoneIds,
+                    )
                     null
                 } else {
                     val payee = resolvePayee(normalizedForm.payeeName, null)
@@ -267,7 +274,10 @@ class ActualTransactionFormService(
             }
         }
         updates += original to parent
-        writer.mutate(updates, inserts, existing.map(ActualTransaction::id).filterNot(retained::contains))
+        val removed = existing.filterNot { it.id in retained }
+        val removedIds = removed.mapTo(mutableSetOf(), ActualTransaction::id)
+        val detached = writer.detachTransfers(removed, removedIds)
+        writer.mutate(updates + detached.updates, inserts, removedIds.toList() + detached.tombstoneIds)
     }
 
     private fun convertToSplit(original: ActualTransaction, form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
@@ -298,9 +308,12 @@ class ActualTransactionFormService(
             payeeId = payee?.id, categoryId = form.categoryId, notes = notes,
             cleared = form.cleared, isParent = false,
         )
+        val children = database.fetchChildTransactions(original.id)
+        val childIds = children.mapTo(mutableSetOf(), ActualTransaction::id)
+        val detached = writer.detachTransfers(children, childIds)
         writer.mutate(
-            updates = listOf(original to updated),
-            tombstoneIds = database.fetchChildTransactions(original.id).map(ActualTransaction::id),
+            updates = listOf(original to updated) + detached.updates,
+            tombstoneIds = childIds.toList() + detached.tombstoneIds,
         )
     }
 
