@@ -263,6 +263,8 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
     fun getFileInfo(serverUrl: String, token: String, fileId: String): ActualFileInfo {
         val response = request(serverUrl, "/sync/get-user-file-info", "GET", actualHeaders(token) + ("X-ACTUAL-FILE-ID" to fileId))
         checkAuthorization(response)
+        // Actual answers a missing or deleted file with 400 {reason: "file-not-found"}.
+        if (response.status == 400 || response.status == 404) throw ActualServerException.FileNotFound
         requireSuccess(response)
         val root = response.json()
         val data = if (root.optString("status") == "ok") root.optJSONObject("data") else null
