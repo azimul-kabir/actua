@@ -56,7 +56,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Sync convergence loop and Android Keystore-backed credentials/keys
 - Stored sync clock validation and legacy/epoch recovery from the message-log
   high-water mark, preserving pending edits and Merkle-guided restart recovery
-- Actual schema migrations required by current Android reads
+- Actual schema migrations required by current Android reads; schema, view, tombstone and
+  archive parity is audited in [docs/DATABASE_ARCHIVE_PARITY.md](docs/DATABASE_ARCHIVE_PARITY.md)
 - Accounts, payees, category groups/categories, transactions, transfers, splits
 - Actual's experimental account grouping: existing `account_groups` data synced from the server is
   detected and the Accounts screen displays on/off-budget accounts nested under their configured
