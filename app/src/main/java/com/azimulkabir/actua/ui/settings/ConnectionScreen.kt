@@ -321,6 +321,9 @@ fun ConnectionScreen(
                     attemptedUrl = normalized
                     val fallback = fallbackServerUrl.trim().takeIf(String::isNotEmpty)?.let(client::normalizeServerUrl).orEmpty()
                     runCatching { Triple(normalized, fallback, client.login(normalized, password)) }.getOrElse { primary ->
+                        // The server answered; the fallback is the same server and would count the
+                        // rejected password against its sign-in rate limit again.
+                        if (primary is ActualServerException.LoginRejected) throw primary
                         if (fallback.isEmpty() || fallback == normalized) throw primary
                         attemptedUrl = fallback
                         Triple(normalized, fallback, client.login(fallback, password))
@@ -418,7 +421,7 @@ fun ConnectionScreen(
                 connected = true
                 message = if (result.budgets.isEmpty()) "Connected with OpenID. No budgets found." else "Connected with OpenID"
             }.onFailure { error ->
-                message = when (error.message) {
+                message = when ((error as? ActualServerException.LoginRejected)?.reason) {
                     "invalid-password" -> "Actual requires the current server password for this first OpenID sign-in. Enter it above and try again."
                     else -> {
                         if (isCertificateTrustFailure(error)) {
@@ -660,7 +663,12 @@ fun ConnectionScreen(
                             pendingDelete = null; deleteConfirmation = ""
                             message = "${remote.name} deleted."; loadBudgets(); refreshBackups(); onBudgetInstalled()
                         }.onFailure { error ->
-                            showServerError(error, "Could not delete budget."); onBudgetInstalled()
+                            if (error is ActualServerException.FileAccessDenied) {
+                                message = "Only this budget's owner or a server admin can delete it from the server. Nothing was removed."
+                            } else {
+                                showServerError(error, "Could not delete budget.")
+                            }
+                            onBudgetInstalled()
                         }
                         loading = false
                     }
@@ -835,7 +843,7 @@ fun ConnectionScreen(
                     Text("Sign in with OpenID")
                 }
                 Text(
-                    "OpenID Connect sign-in opens your browser and returns the Actual session securely to this device. If Actual reports invalid-password on the first OpenID login, enter the current server password above and retry.",
+                    "OpenID Connect sign-in opens your browser and returns the Actual session securely to this device. If Actual asks for the server password on the first OpenID sign-in, enter it above and retry.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

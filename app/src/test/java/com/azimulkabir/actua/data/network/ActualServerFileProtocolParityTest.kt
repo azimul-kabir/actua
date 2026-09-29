@@ -87,9 +87,9 @@ class ActualServerFileProtocolParityTest {
             ActualHttpResponse(200, """{"status":"error","reason":"proxy-not-trusted"}""".encodeToByteArray())
         })
 
-        val error = assertThrows(IllegalStateException::class.java) { client.login("https://actual.test", "secret") }
+        val error = assertThrows(ActualServerException.LoginRejected::class.java) { client.login("https://actual.test", "secret") }
 
-        assertEquals("proxy-not-trusted", error.message)
+        assertEquals("proxy-not-trusted", error.reason)
     }
 
     @Test
