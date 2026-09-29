@@ -82,7 +82,7 @@ A missing or deleted file returns **400** (not 404), and a user without access g
 
 | Behavior | Actua | Effect on requests | Status | Test evidence |
 | --- | --- | --- | --- | --- |
-| Custom HTTP headers (e.g. Cloudflare Access) | Added to every request before the protocol headers, so they can't replace `X-ACTUAL-*`, `Content-Type` or `Accept` (`ActualServerClient.kt:117-118,456-461`). They're used by the connection screen, sync worker and bank sync. | Adds headers only. The token, file id and content type are unchanged. | Match for request semantics. Storage: [#700](https://github.com/azimul-kabir/actua/issues/700). | **New:** `ActualServerFileProtocolParityTest.custom headers never replace Actual protocol headers` |
+| Custom HTTP headers (e.g. Cloudflare Access) | Added to every request before the protocol headers, so they can't replace `X-ACTUAL-*`, `Content-Type` or `Accept` (`ActualServerClient.kt:117-118,456-461`). They're used by the connection screen, sync worker and bank sync. | Adds headers only. The token, file id and content type are unchanged. | Match for request semantics. Values are Keystore-encrypted at rest (fixed in [#700](https://github.com/azimul-kabir/actua/issues/700)). | **New:** `ActualServerFileProtocolParityTest.custom headers never replace Actual protocol headers` |
 | Fallback server URL | Login, file listing and sync retry the same request once against the fallback URL after **any** primary failure (`ConnectionScreen.kt:240-256,279-317`, `data/sync/ActualSyncWorker.kt:96-106`). Downloads, uploads and deletes use whichever URL listed the files. | The request is the same, sent to a second address of the same server. A non-network failure (e.g. wrong password, `file-has-reset`) is repeated once against the fallback, which counts toward the server's login rate limit twice if both URLs reach the same server. | **Intentional** (the user configures it). Error-specific retries are tracked in [#692](https://github.com/azimul-kabir/actua/issues/692). | – |
 | Per-host certificate trust after fingerprint review | `data/network/TrustedCertificateStore.kt`, `UrlConnectionTransport` | TLS only; hostname verification is kept | Intentional | – |
 
@@ -108,13 +108,19 @@ turn 401/403 into `Unauthorized`, turn any other non-200 into `Http(status, body
 ## 7. Credentials and logging
 
 - **The session token** is AES-256-GCM encrypted with a non-exportable Android Keystore key
-  (`actua_server_token`) before it is stored in SharedPreferences (`data/security/CredentialStore.kt:40-63`).
+  (`actua_server_token`) before it is stored in SharedPreferences (`data/security/CredentialStore.kt`).
   Budget encryption keys are wrapped the same way (`data/security/BudgetEncryptionKeyStore.kt`).
-  `android:allowBackup="false"`, and a transferred ciphertext can't be decrypted on another device.
+  `android:allowBackup="false"` turns off cloud backup, and `res/xml/data_extraction_rules.xml` and
+  `backup_rules.xml` also exclude `connection.xml`, `budget_encryption.xml` and
+  `trusted_server_certificates.xml` from cloud backup and device-to-device transfer. A ciphertext
+  copied some other way can't be decrypted without the device's Keystore key.
   The token is sent only in `X-ACTUAL-TOKEN` or a JSON body, never in a URL. The OpenID callback
   token is read from the loopback request and never logged.
-- **Custom header values** are stored as plaintext JSON, and `data_extraction_rules.xml` doesn't
-  exclude them from device-to-device transfer: [#700](https://github.com/azimul-kabir/actua/issues/700).
+- **Custom header values** are encrypted with the same Keystore key as the token. Plaintext values
+  saved by older versions are encrypted, and the plaintext removed, on first read
+  ([#700](https://github.com/azimul-kabir/actua/issues/700); `src/androidTest/.../data/security/CredentialStoreHeadersTest`,
+  `src/test/.../data/security/BackupRulesTest`). Downloaded budget directories are still eligible
+  for device-to-device transfer, since they are the user's own data and hold no credentials.
 - **Logging:** `app/src/main` has only three `Log.e` calls (`data/ActuaRepository.kt:142,154,163`),
   and they log exception class names only. No token, password, header value, key or server
   response body is logged. `ActualServerException.Http` puts the server's response body in its
@@ -134,5 +140,5 @@ headers, the path prefix being kept, the `login-methods` 404 fallback, header-au
 - [#697](https://github.com/azimul-kabir/actua/issues/697) (**P1**, fixed): selecting an already-downloaded budget re-downloaded it and discarded unsynced local edits
 - [#698](https://github.com/azimul-kabir/actua/issues/698) (P2, fixed): an expired or revoked session could only be fixed by Disconnect & reset
 - [#699](https://github.com/azimul-kabir/actua/issues/699) (P2, fixed): budget download kept a stale `encryptKeyId` from the archive instead of the server file info
-- [#700](https://github.com/azimul-kabir/actua/issues/700) (P2, privacy): custom HTTP header secrets are stored unencrypted and are eligible for device transfer
+- [#700](https://github.com/azimul-kabir/actua/issues/700) (P2, privacy, fixed): custom HTTP header secrets were stored unencrypted and were eligible for device transfer
 - [#701](https://github.com/azimul-kabir/actua/issues/701) (lower, fixed): login and budget-file errors showed raw server codes instead of specific messages

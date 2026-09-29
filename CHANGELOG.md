@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Custom HTTP header values are now stored encrypted and are no longer copied when moving to a new device ([#706](https://github.com/azimul-kabir/actua/pull/706))
 - The Add Credit Card picker now lists credit accounts first ([#687](https://github.com/azimul-kabir/actua/pull/687))
 - Tapping a credit card payment reminder now opens that card's account ([#685](https://github.com/azimul-kabir/actua/pull/685))
 
