@@ -5,6 +5,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.sync.CrdtMessage
 import com.azimulkabir.actua.data.sync.HlcTimestamp
+import com.azimulkabir.actua.model.TransactionStatusFilter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -223,6 +224,90 @@ class TransactionParityTest {
         assertNull(database.fetchTransaction(source.id)?.scheduleId)
         assertNull(database.fetchTransaction(target.id)?.scheduleId)
     }
+
+    @Test
+    fun newOnOffBudgetTransfersCategorizeOnlyTheOnBudgetLeg() = withDatabase { database ->
+        val brokerage = offBudgetAccount(database)
+        val service = formService(database, "mixed-new")
+
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "40", transferToAccountId = brokerage, categoryId = "grocery", date = 20260910,
+        ))
+        val outgoing = database.fetchTransactions("checking").single { it.transferId != null }
+        assertEquals("grocery", outgoing.categoryId)
+        assertNull(database.fetchTransaction(requireNotNull(outgoing.transferId))?.categoryId)
+
+        service.save(ActualTransactionForm(
+            accountId = brokerage, type = ActualTransactionType.TRANSFER,
+            amount = "15", transferToAccountId = "checking", categoryId = "rent", date = 20260911,
+        ))
+        val incoming = database.fetchTransactions("checking").single { it.transferId != null && it.date == 20260911 }
+        assertEquals("rent", incoming.categoryId)
+        assertNull(database.fetchTransaction(requireNotNull(incoming.transferId))?.categoryId)
+
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "5", transferToAccountId = "savings", categoryId = "grocery", date = 20260912,
+        ))
+        val internal = database.fetchTransactions("checking").single { it.transferId != null && it.date == 20260912 }
+        assertNull(internal.categoryId)
+        assertNull(database.fetchTransaction(requireNotNull(internal.transferId))?.categoryId)
+    }
+
+    @Test
+    fun editingAnOnOffBudgetTransferKeepsItsCategory() = withDatabase { database ->
+        val brokerage = offBudgetAccount(database)
+        val service = formService(database, "mixed-edit")
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "40", transferToAccountId = brokerage, categoryId = "grocery", date = 20260910,
+        ))
+        val onBudget = database.fetchTransactions("checking").single { it.transferId != null }
+        val offBudgetLeg = requireNotNull(database.fetchTransaction(requireNotNull(onBudget.transferId)))
+
+        // From the on-budget leg the editor sends the (unchanged) category back.
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "45", transferToAccountId = brokerage, categoryId = "grocery", date = 20260910,
+        ), onBudget)
+        assertEquals("grocery", database.fetchTransaction(onBudget.id)?.categoryId)
+
+        // From the off-budget leg the editor has no category field, so it sends none.
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "50", transferToAccountId = brokerage, date = 20260910,
+        ), requireNotNull(database.fetchTransaction(offBudgetLeg.id)))
+        assertEquals("grocery", database.fetchTransaction(onBudget.id)?.categoryId)
+        assertEquals(-5_000L, database.fetchTransaction(onBudget.id)?.amountCents)
+        assertNull(database.fetchTransaction(offBudgetLeg.id)?.categoryId)
+    }
+
+    @Test
+    fun uncategorizedFilterIncludesTransfersLeavingTheBudgetOnly() = withDatabase { database ->
+        val brokerage = offBudgetAccount(database)
+        val service = formService(database, "uncategorized")
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "40", transferToAccountId = brokerage, date = 20260910,
+        ))
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "5", transferToAccountId = "savings", date = 20260911,
+        ))
+
+        val uncategorized = database.fetchTransactions(statusFilter = TransactionStatusFilter.UNCATEGORIZED)
+        val leaving = database.fetchTransactions("checking").single { it.date == 20260910 }
+        val internal = database.fetchTransactions("checking").single { it.date == 20260911 }
+        assertTrue(uncategorized.any { it.id == leaving.id })
+        assertTrue(uncategorized.none { it.id == internal.id || it.id == internal.transferId })
+        // The off-budget leg never needs a category.
+        assertTrue(uncategorized.none { it.accountId == brokerage })
+    }
+
+    private fun offBudgetAccount(database: ActualBudgetDatabase): String =
+        ActualEntityWriter(database, idFactory = { "off-${UUID.randomUUID()}" })
+            .createAccount("Brokerage", offBudget = true, startingBalanceCents = 0)
 
     /** A checking → savings transfer on 2026-09-10 whose savings leg is cleared and reconciled. */
     private fun reconciledTransfer(database: ActualBudgetDatabase): Pair<ActualTransaction, ActualTransaction> {
