@@ -120,6 +120,16 @@ object AmountTypography {
         fontFeatureSettings = "tnum",
     )
 
+    /** The large, centered amount on Add/Edit transaction. */
+    val heroAmount = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 44.sp,
+        lineHeight = 52.sp,
+        letterSpacing = 0.sp,
+        fontFeatureSettings = "tnum",
+    )
+
     val headlineAmount = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,

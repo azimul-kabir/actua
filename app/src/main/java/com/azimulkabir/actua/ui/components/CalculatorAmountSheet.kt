@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 @Composable
 fun CalculatorAmountSheet(
@@ -42,6 +44,9 @@ fun CalculatorAmountSheet(
     onApply: (Long) -> Unit,
     onExpressionChange: (String) -> Unit = {},
     onDone: () -> Unit = {},
+    /** When set, the ± key calls this (e.g. expense ↔ income) instead of negating the amount. */
+    onToggleSign: (() -> Unit)? = null,
+    toggleSignLabel: String? = null,
 ) {
     val calculator = remember(conventionalAmountEntry) {
         CalculatorAmountState(initialCents, conventionalAmountEntry = conventionalAmountEntry)
@@ -63,6 +68,8 @@ fun CalculatorAmountSheet(
                 onValueChange = onApply,
                 onExpressionChange = onExpressionChange,
                 onDone = { onApply(calculator.finish()); onDismiss(); onDone() },
+                onToggleSign = onToggleSign,
+                toggleSignLabel = toggleSignLabel,
             )
         }
     }
@@ -81,13 +88,15 @@ fun CompactCalculatorPad(
     onExpressionChange: (String) -> Unit = {},
     canFinish: (Long) -> Boolean = { true },
     onClose: (() -> Unit)? = null,
+    onToggleSign: (() -> Unit)? = null,
+    toggleSignLabel: String? = null,
     onDone: () -> Unit,
 ) {
     var revision by remember { mutableIntStateOf(0) }
     fun press(key: String) {
         when (key) {
             "C" -> calculator.clear()
-            "±" -> calculator.toggleSign()
+            "±" -> onToggleSign?.invoke() ?: calculator.toggleSign()
             "⌫" -> calculator.backspace()
             "00" -> { calculator.digit(0); calculator.digit(0) }
             "." -> calculator.decimalPoint()
@@ -155,6 +164,7 @@ fun CompactCalculatorPad(
                         operator = key in setOf("÷", "×", "−", "+"),
                         confirm = key == "✓",
                         enabled = key != "✓" || canFinish(calculator.cents),
+                        description = toggleSignLabel.takeIf { key == "±" && onToggleSign != null },
                         modifier = Modifier.weight(if (columnIndex < 3) 1.1f else 0.9f),
                         onClick = { press(key) },
                     )
@@ -172,13 +182,15 @@ private fun CompactCalculatorKey(
     operator: Boolean,
     confirm: Boolean = false,
     enabled: Boolean = true,
+    description: String? = null,
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
     Surface(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.height(40.dp),
+        modifier = modifier.height(40.dp)
+            .then(if (description != null) Modifier.semantics { contentDescription = description } else Modifier),
         shape = MaterialTheme.shapes.large,
         color = when {
             confirm -> MaterialTheme.colorScheme.primaryContainer

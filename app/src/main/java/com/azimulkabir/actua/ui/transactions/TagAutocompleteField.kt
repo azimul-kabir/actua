@@ -8,6 +8,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.DropdownMenu
@@ -56,6 +62,9 @@ internal fun TagAutocompleteField(
     onCreateTag: (String) -> ActualTag?,
     label: String = "Notes",
     modifier: Modifier = Modifier,
+    /** Renders the field as an icon row inside Add transaction's form cards instead of an outlined field. */
+    rowIcon: ImageVector? = null,
+    placeholder: String = "",
 ) {
     var fieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
     val focusRequester = remember { FocusRequester() }
@@ -80,7 +89,8 @@ internal fun TagAutocompleteField(
             value = fieldValue,
             onValueChange = { next -> fieldValue = next; onValueChange(next.text) },
             singleLine = true,
-            textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface),
+            textStyle = (if (rowIcon != null) MaterialTheme.typography.bodyLarge else LocalTextStyle.current)
+                .copy(color = MaterialTheme.colorScheme.onSurface),
             visualTransformation = tagHighlight,
             interactionSource = interactionSource,
             modifier = Modifier
@@ -88,7 +98,35 @@ internal fun TagAutocompleteField(
                 .focusRequester(focusRequester)
                 .onFocusChanged { focused = it.isFocused },
             decorationBox = { innerTextField ->
-                OutlinedTextFieldDefaults.DecorationBox(
+                val insertTag: @Composable () -> Unit = {
+                    IconButton(onClick = {
+                        val cursor = fieldValue.selection.end
+                        val text = fieldValue.text.replaceRange(cursor, cursor, "#")
+                        fieldValue = TextFieldValue(text, TextRange(cursor + 1))
+                        onValueChange(text)
+                        focusRequester.requestFocus()
+                    }) { Text("#", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+                if (rowIcon != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)
+                            .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(rowIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(16.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Box {
+                                if (fieldValue.text.isEmpty()) {
+                                    Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                innerTextField()
+                            }
+                        }
+                        insertTag()
+                    }
+                } else OutlinedTextFieldDefaults.DecorationBox(
                     value = fieldValue.text,
                     innerTextField = innerTextField,
                     enabled = true,
@@ -97,15 +135,7 @@ internal fun TagAutocompleteField(
                     visualTransformation = tagHighlight,
                     interactionSource = interactionSource,
                     label = { Text(label) },
-                    trailingIcon = {
-                        IconButton(onClick = {
-                            val cursor = fieldValue.selection.end
-                            val text = fieldValue.text.replaceRange(cursor, cursor, "#")
-                            fieldValue = TextFieldValue(text, TextRange(cursor + 1))
-                            onValueChange(text)
-                            focusRequester.requestFocus()
-                        }) { Text("#", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    },
+                    trailingIcon = insertTag,
                 )
             },
         )

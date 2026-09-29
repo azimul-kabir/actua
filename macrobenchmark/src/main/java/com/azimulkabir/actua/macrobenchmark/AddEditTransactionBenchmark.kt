@@ -40,7 +40,7 @@ class AddEditTransactionBenchmark {
         iterations = 5,
         setupBlock = { launchToBudget(); click(By.text("Transaction")) },
     ) {
-        click(By.text("Amount"))
+        click(By.descStartsWith("Amount"))
         for (digit in listOf("1", "2", ".", "5", "0")) {
             click(By.text(digit))
         }
