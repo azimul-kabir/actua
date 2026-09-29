@@ -4,6 +4,16 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.3.0] - 2026-09-29
+
+### Upgrade notes
+
+- This release changes a lot of how Actua syncs, stores and backs up budgets. Sync before updating, and keep an independent backup from Actual before using it with a real budget ([release notes](https://github.com/azimul-kabir/actua/blob/main/docs/releases/1.3.0.md))
+- If Actua 1.0.0–1.2.0 linked or unlinked a bank account in a budget you also use in Actual, and Actual shows "Update required" on every sync, follow the [recovery steps](https://github.com/azimul-kabir/actua/blob/main/docs/ACCOUNTS_PARITY.md#recovery-for-budgets-linked-by-actua-v100v120) ([#721](https://github.com/azimul-kabir/actua/pull/721))
+- After moving Actua to a new phone, sign in again, re-enter custom HTTP headers and budget encryption passwords, and re-trust any self-signed certificate; they are no longer copied ([#706](https://github.com/azimul-kabir/actua/pull/706))
+- Opening a budget last saved by an older Actual now upgrades it to Actual's current database format ([#726](https://github.com/azimul-kabir/actua/pull/726))
+- Closing an account with no transactions now deletes it, and closing one with a balance requires moving that balance to another account ([#729](https://github.com/azimul-kabir/actua/pull/729))
+
 ### Changed
 
 - Custom HTTP header values are now stored encrypted and are no longer copied when moving to a new device ([#706](https://github.com/azimul-kabir/actua/pull/706))
