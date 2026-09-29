@@ -163,6 +163,13 @@ jobs:
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
 
+      # API 28 cold-boots the cached AVD instead of restoring `default_boot`.
+      # sys.boot_completed is part of the snapshot's saved state, so after a
+      # restore it reads 1 as soon as adbd reconnects. The runner then sends
+      # `adb shell input keyevent 82` while the API 28 guest is still
+      # re-establishing adbd, and that shell is killed (adb exit 137) before the
+      # test script starts (#727). A cold boot only sets the property once
+      # boot really finishes. API 35/36 restore their snapshots reliably.
       - name: Run compatibility instrumentation tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -171,7 +178,7 @@ jobs:
           arch: x86_64
           force-avd-creation: false
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none${{ matrix.api_level == 28 && ' -no-snapshot-load' || '' }}
           script: ./gradlew --no-daemon --stacktrace connectedInstrumentedAndroidTest
 
       - name: Upload compatibility test reports
