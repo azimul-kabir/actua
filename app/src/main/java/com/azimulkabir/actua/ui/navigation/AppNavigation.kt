@@ -126,6 +126,7 @@ import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.model.ReportSnapshot
 import com.azimulkabir.actua.model.asDuplicate
+import com.azimulkabir.actua.model.asTransferDraft
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.location.AndroidLocationProvider
 import com.azimulkabir.actua.data.location.CurrentLocationResult
@@ -1412,13 +1413,13 @@ fun AppNavigation(
                     }
                 },
                 onDuplicate = { transaction ->
-                    val duplicate = transaction.asDuplicate()
+                    val duplicate = transaction.asDuplicate().asTransferDraft()
                     mutateWithImpactCue("Duplicating transaction", budgetCategoriesOf(duplicate)) {
                         repository.saveTransaction(duplicate); true
                     }
                 },
                 onDuplicateMultiple = { transactionsToDuplicate ->
-                    val duplicates = transactionsToDuplicate.map { it.asDuplicate() }
+                    val duplicates = transactionsToDuplicate.map { it.asDuplicate().asTransferDraft() }
                     val categories = duplicates.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                     mutateWithImpactCue("Duplicating transactions", categories) {
                         duplicates.forEach { repository.saveTransaction(it) }
@@ -1444,7 +1445,7 @@ fun AppNavigation(
                 },
                 categoryOptions = categoryNames,
                 onCategorizeMultiple = { transactionsToCategorize, category ->
-                    val updated = transactionsToCategorize.map { it.copy(category = category, categoryIsExplicit = true) }
+                    val updated = transactionsToCategorize.map { it.copy(category = category, categoryIsExplicit = true).asTransferDraft() }
                     val categories = (transactionsToCategorize + updated).flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                     mutateWithImpactCue("Categorizing transactions", categories) {
                         updated.forEach { repository.saveTransaction(it) }
@@ -1453,7 +1454,7 @@ fun AppNavigation(
                 },
                 accountOptions = accounts.filterNot { it.closed }.map { it.name },
                 onMoveMultiple = { transactionsToMove, accountName ->
-                    val updated = transactionsToMove.map { it.copy(account = accountName) }
+                    val updated = transactionsToMove.map { it.copy(account = accountName).asTransferDraft() }
                     val categories = transactionsToMove.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                     mutateWithImpactCue("Moving transactions", categories) {
                         updated.forEach { repository.saveTransaction(it) }
@@ -1461,7 +1462,7 @@ fun AppNavigation(
                     }
                 },
                 onLabelMultiple = { transactionsToLabel, tag ->
-                    val updated = transactionsToLabel.mapNotNull { withTagAppended(it, tag) }
+                    val updated = transactionsToLabel.mapNotNull { withTagAppended(it, tag)?.asTransferDraft() }
                     mutate("Labeling transactions") {
                         updated.forEach { repository.saveTransaction(it) }
                         true
@@ -2512,13 +2513,13 @@ fun AppNavigation(
                         }
                     },
                     onDuplicate = { transaction ->
-                        val duplicate = transaction.asDuplicate()
+                        val duplicate = transaction.asDuplicate().asTransferDraft()
                         mutateWithImpactCue("Duplicating transaction", budgetCategoriesOf(duplicate)) {
                             repository.saveTransaction(duplicate); true
                         }
                     },
                     onDuplicateMultiple = { transactionsToDuplicate ->
-                        val duplicates = transactionsToDuplicate.map { it.asDuplicate() }
+                        val duplicates = transactionsToDuplicate.map { it.asDuplicate().asTransferDraft() }
                         val categories = duplicates.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                         mutateWithImpactCue("Duplicating transactions", categories) {
                             duplicates.forEach { repository.saveTransaction(it) }
@@ -2544,7 +2545,7 @@ fun AppNavigation(
                     },
                     categoryOptions = categoryNames,
                     onCategorizeMultiple = { transactionsToCategorize, category ->
-                        val updated = transactionsToCategorize.map { it.copy(category = category, categoryIsExplicit = true) }
+                        val updated = transactionsToCategorize.map { it.copy(category = category, categoryIsExplicit = true).asTransferDraft() }
                         val categories = (transactionsToCategorize + updated).flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                         mutateWithImpactCue("Categorizing transactions", categories) {
                             updated.forEach { repository.saveTransaction(it) }
@@ -2553,7 +2554,7 @@ fun AppNavigation(
                     },
                     accountOptions = accounts.filterNot { it.closed }.map { it.name },
                     onMoveMultiple = { transactionsToMove, accountName ->
-                        val updated = transactionsToMove.map { it.copy(account = accountName) }
+                        val updated = transactionsToMove.map { it.copy(account = accountName).asTransferDraft() }
                         val categories = transactionsToMove.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                         mutateWithImpactCue("Moving transactions", categories) {
                             updated.forEach { repository.saveTransaction(it) }
@@ -2561,7 +2562,7 @@ fun AppNavigation(
                         }
                     },
                     onLabelMultiple = { transactionsToLabel, tag ->
-                        val updated = transactionsToLabel.mapNotNull { withTagAppended(it, tag) }
+                        val updated = transactionsToLabel.mapNotNull { withTagAppended(it, tag)?.asTransferDraft() }
                         mutate("Labeling transactions") {
                             updated.forEach { repository.saveTransaction(it) }
                             true
