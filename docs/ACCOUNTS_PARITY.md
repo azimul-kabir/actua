@@ -124,7 +124,7 @@ Actua: `ActualBudgetDatabase.fetchAccounts` (`:78`), `ActuaRepository.accounts` 
 | Uncleared | `… AND cleared = 0` | working − cleared | Match. Differs only for a row whose `cleared` was explicitly synced as `NULL` (the column defaults to 1). |
 | Reconciled | no binding; reconcile UI works from cleared (#664) | `SUM(CASE WHEN reconciled = 1 …)`, display only | **Intentional** (read-only extra figure) |
 | On-budget / off-budget / closed totals | filter on `account.offbudget` / `account.closed` | sums of the per-account balances in the same partitions | Match |
-| Running balance: bottom-up sum over the register ordered `date DESC, starting_balance_flag, sort_order DESC, id` (`splits: 'none'`) | `$sumOver` | full-history fold ordered `date DESC, sort_order DESC, id` | **Divergence** on the opening day only: [#715](https://github.com/azimul-kabir/actua/issues/715). Final balances match. |
+| Running balance: bottom-up sum over the register ordered `date DESC, starting_balance_flag, sort_order DESC, id` (`splits: 'none'`) | `$sumOver` | full-history fold ordered `date DESC, starting_balance_flag, sort_order DESC, id` | Match (fixed by [#731](https://github.com/azimul-kabir/actua/pull/731) for [#715](https://github.com/azimul-kabir/actua/issues/715)) |
 | Running balance with search, filters or non-date sort | hidden (`canCalculateBalance`) | computed over the unfiltered history, so visible rows show correct values | **Intentional** |
 | Hide reconciled keeps reconciled rows in the running balance | rows loaded but not shown | folds `allTransactions` (includes hidden rows) | Match |
 
@@ -134,7 +134,7 @@ an on→off-budget transfer; a split; a split with a tombstoned child; a child o
 parent; an orphan child; tombstoned, dateless and `NULL`-amount rows; and cleared, uncleared and
 reconciled rows. It then runs Actual's view and aggregate SQL and Actua's `fetchAccounts` SQL /
 running-balance fold against the same data. Result: all 24 per-account and group balance checks
-match. Running balances match for four of five accounts; the fifth is the known #715 case. Run it
+match, and running balances match for all five accounts. Run it
 with `python3 docs/tools/accounts_balance_crosscheck.py` (exit 0 = no unexpected mismatch).
 
 **Limitation:** the upstream side is Actual's SQL, transcribed from the pinned sources, not a
@@ -223,5 +223,5 @@ Tests: `src/test/.../ui/accounts/AccountMonthlySummaryCalculatorTest`.
 - [#712](https://github.com/azimul-kabir/actua/issues/712): Bank link/unlink synced a non-Actual `accounts.gocardless_requisition_id` column (P1, sync). Fixed by [#721](https://github.com/azimul-kabir/actua/pull/721) under duplicate [#708](https://github.com/azimul-kabir/actua/issues/708); recovery steps in §7.
 - [#713](https://github.com/azimul-kabir/actua/issues/713): Close account doesn't follow Actual's close flow (P2).
 - [#714](https://github.com/azimul-kabir/actua/issues/714): Account actions resolve accounts by name (P2).
-- [#715](https://github.com/azimul-kabir/actua/issues/715): Running balance ignores `starting_balance_flag` ordering (low).
+- [#715](https://github.com/azimul-kabir/actua/issues/715): Running balance ignores `starting_balance_flag` ordering (low). Fixed by [#731](https://github.com/azimul-kabir/actua/pull/731).
 - Credit-card slice, already fixed: #675–#682.
