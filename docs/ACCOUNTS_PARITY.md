@@ -170,8 +170,35 @@ The acceptance criterion: Actua-only features must not write fields that Actual 
 | Credit-card config (statement day, due day, limit, …) | `preferences` row `actuali:credit_card:<accountId>`, the cross-platform Actuali contract | Match. `preferences` is Actual's generic synced key/value table; Actual ignores unknown ids. Out-of-range values are skipped on read (#675). |
 | Credit-card statements, dues, reminders, picker order, accessibility (#676–#682) | derived at read time from transactions + the preference above | Match (no extra columns) |
 | `accounts.type` | real Actual column | Match (see §3) |
-| `accounts.gocardless_requisition_id` | CRDT messages from `linkBankAccount`/`unlinkBankAccount` (`ActualEntityWriter.kt:42-55`), even with a `null` value; the column exists only in Actua's local migration (`ActualBudgetDatabase.kt:1655`) | **Divergence (P1)** [#712](https://github.com/azimul-kabir/actua/issues/712). Actual applies messages with raw `INSERT`/`UPDATE` ([`LC/server/sync/index.ts#L80-L108`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/sync/index.ts#L80-L108)), so an unknown column raises `invalid-schema` and the PWA reports an apply failure. Upstream keeps the requisition in `banks.bank_id` through `accounts.bank`. |
+| GoCardless requisition | Before [#721](https://github.com/azimul-kabir/actua/pull/721) (released v1.0.0–v1.2.0): `accounts.gocardless_requisition_id` CRDT cells on every link/unlink, even with a `null` value, for a column Actual doesn't have. Now: a `banks` row (`bank_id` = requisition id, reused on relink) referenced by `accounts.bank`, cleared on unlink (`ActualEntityWriter.kt:47-66`); `fetchBankSyncAccounts` (`ActualBudgetDatabase.kt:154`) reads `banks.bank_id`, falling back to the legacy local column | Match since #721 (fixes [#708](https://github.com/azimul-kabir/actua/issues/708) / [#712](https://github.com/azimul-kabir/actua/issues/712)), matching `link.findOrCreateBank`. Budgets that already synced the old cells need the recovery below. |
 | Favorites, running-balance toggle, collapsed sections | device-local preferences | Match (not synced) |
+
+### Recovery for budgets linked by Actua v1.0.0–v1.2.0
+
+The messages those versions sent stay in the server's sync log; an Actua update can't recall them.
+
+- **Who is affected:** a budget where one of those versions linked or unlinked a bank account
+  (GoCardless or SimpleFIN) and that is also used in Actual (web, desktop or another client).
+  Budgets used only in Actua are not affected, because Actua applies or safely skips the column.
+- **Symptom in Actual:** every sync shows "Update required: We couldn't apply changes from the
+  server…" ([`DC/sync-events.ts#L333-L343`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/sync-events.ts#L333-L343)).
+  Actual applies each downloaded batch in one transaction
+  ([`LC/server/sync/index.ts#L330-L378`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/sync/index.ts#L330-L378)),
+  so that client stops receiving *all* changes from other devices until it recovers. Its own
+  edits still upload.
+- **Recovery:** update Actua and let it sync. Then, in the Actual client that has the most complete
+  data, use *Settings → Advanced → Reset sync*
+  ([`DC/components/settings/Reset.tsx`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/settings/Reset.tsx)).
+  That uploads its local copy under a new sync ID and drops the old log, including the bad
+  messages. Other devices, including Actua, must then download the budget again.
+- **What can be lost:** Reset sync keeps only what the resetting client has. Changes other devices
+  made after that client got stuck never reached it, so they are dropped. Before resetting,
+  compare recent activity in Actua with the Actual client and re-enter anything missing
+  afterwards. Actua has no "reset sync from this device" action, so Actua can't be the source.
+- **Bank links afterwards:** a fresh download no longer carries the legacy column, so Actua reports
+  GoCardless accounts linked by those versions as "missing its GoCardless connection"
+  (`data/bank/BankSyncService.kt:57`). Relink them in Actua (Manage → Bank Sync). The new link
+  writes Actual's `banks` row, which also lets Actual's own bank sync use the account.
 
 ## 8. Monthly income/expense summary
 
@@ -193,7 +220,7 @@ Tests: `src/test/.../ui/accounts/AccountMonthlySummaryCalculatorTest`.
 
 ## Filed divergences
 
-- [#712](https://github.com/azimul-kabir/actua/issues/712): Bank link/unlink syncs a non-Actual `accounts.gocardless_requisition_id` column (P1, sync).
+- [#712](https://github.com/azimul-kabir/actua/issues/712): Bank link/unlink synced a non-Actual `accounts.gocardless_requisition_id` column (P1, sync). Fixed by [#721](https://github.com/azimul-kabir/actua/pull/721) under duplicate [#708](https://github.com/azimul-kabir/actua/issues/708); recovery steps in §7.
 - [#713](https://github.com/azimul-kabir/actua/issues/713): Close account doesn't follow Actual's close flow (P2).
 - [#714](https://github.com/azimul-kabir/actua/issues/714): Account actions resolve accounts by name (P2).
 - [#715](https://github.com/azimul-kabir/actua/issues/715): Running balance ignores `starting_balance_flag` ordering (low).
