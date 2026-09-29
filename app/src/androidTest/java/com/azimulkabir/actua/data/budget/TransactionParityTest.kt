@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.budget
 
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.sync.CrdtMessage
 import com.azimulkabir.actua.data.sync.HlcTimestamp
 import org.junit.Assert.assertEquals
@@ -157,8 +158,87 @@ class TransactionParityTest {
     private fun transactionMessages(database: ActualBudgetDatabase): List<CrdtMessage> =
         database.getMessagesSince(HlcTimestamp.ZERO.toString()).filter { it.dataset == "transactions" }
 
-    private fun withDatabase(block: (ActualBudgetDatabase) -> Unit) {
-        val file = createDatabaseFile()
+    @Test
+    fun aNewTransfersOtherLegIsUncleared() = withDatabase { database ->
+        formService(database, "cleared").save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "25", transferToAccountId = "savings", date = 20260910, cleared = true,
+        ))
+
+        val source = database.fetchTransactions("checking").single { it.transferId != null }
+        val target = requireNotNull(database.fetchTransaction(requireNotNull(source.transferId)))
+        assertTrue(source.cleared)
+        // addTransfer inserts the other leg with `cleared: false`.
+        assertFalse(target.cleared)
+    }
+
+    @Test
+    fun editingOneLegKeepsTheOtherLegsClearedReconciledAndDate() = withDatabase { database ->
+        val (source, target) = reconciledTransfer(database)
+        val before = transactionMessages(database).size
+
+        formService(database, "edit").save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "30", transferToAccountId = "savings", notes = "moved", date = 20260915, cleared = false,
+        ), source)
+
+        val edited = requireNotNull(database.fetchTransaction(source.id))
+        val other = requireNotNull(database.fetchTransaction(target.id))
+        assertEquals(20260915, edited.date)
+        assertFalse(edited.cleared)
+        // updateTransfer copies account, payee, notes, amount and schedule only.
+        assertEquals(3_000L, other.amountCents)
+        assertEquals("moved", other.notes)
+        assertEquals(20260910, other.date)
+        assertTrue(other.cleared)
+        assertTrue(other.reconciled)
+        val otherColumns = transactionMessages(database).drop(before).filter { it.row == target.id }.map { it.column }
+        assertEquals(setOf("amount", "notes"), otherColumns.toSet())
+    }
+
+    @Test
+    fun syncTransferDatePreferenceMovesTheOtherLegsDate() = withDatabase(syncTransferDate = true) { database ->
+        val (source, target) = reconciledTransfer(database)
+
+        formService(database, "sync").save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "25", transferToAccountId = "savings", date = 20260915, cleared = true,
+        ), source)
+
+        val other = requireNotNull(database.fetchTransaction(target.id))
+        assertEquals(20260915, other.date)
+        assertTrue(other.cleared && other.reconciled)
+    }
+
+    @Test
+    fun linkingAScheduleToOneTransferLegLinksBothLegs() = withDatabase { database ->
+        val (source, target) = reconciledTransfer(database)
+        val writer = ActualTransactionWriter(database)
+
+        writer.setScheduleLink(source, "rent-schedule")
+        assertEquals("rent-schedule", database.fetchTransaction(source.id)?.scheduleId)
+        assertEquals("rent-schedule", database.fetchTransaction(target.id)?.scheduleId)
+
+        writer.setScheduleLink(requireNotNull(database.fetchTransaction(target.id)), null)
+        assertNull(database.fetchTransaction(source.id)?.scheduleId)
+        assertNull(database.fetchTransaction(target.id)?.scheduleId)
+    }
+
+    /** A checking → savings transfer on 2026-09-10 whose savings leg is cleared and reconciled. */
+    private fun reconciledTransfer(database: ActualBudgetDatabase): Pair<ActualTransaction, ActualTransaction> {
+        val writer = ActualTransactionWriter(database)
+        ActualTransactionFormService(database, writer, idFactory = { UUID.randomUUID().toString() }).save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "25", transferToAccountId = "savings", date = 20260910,
+        ))
+        val source = database.fetchTransactions("checking").single { it.transferId != null }
+        val target = requireNotNull(database.fetchTransaction(requireNotNull(source.transferId)))
+        writer.mutate(updates = listOf(target to target.copy(cleared = true, reconciled = true)))
+        return source to requireNotNull(database.fetchTransaction(target.id))
+    }
+
+    private fun withDatabase(syncTransferDate: Boolean = false, block: (ActualBudgetDatabase) -> Unit) {
+        val file = createDatabaseFile(syncTransferDate)
         try {
             ActualBudgetDatabase.open(file).use(block)
         } finally {
@@ -166,7 +246,7 @@ class TransactionParityTest {
         }
     }
 
-    private fun createDatabaseFile(): File {
+    private fun createDatabaseFile(syncTransferDate: Boolean): File {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "transaction-parity-${UUID.randomUUID()}.sqlite")
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
@@ -195,6 +275,7 @@ class TransactionParityTest {
                 "INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 arrayOf<Any?>("ordinary", 0, 0, "checking", "grocery", -1000, "store", null, 20260901, null, null, 1, 0, 1.0, 0, null, null, 0, null),
             )
+            if (syncTransferDate) db.execSQL("INSERT INTO preferences VALUES ('sync-transfer-date','true')")
         }
         return file
     }

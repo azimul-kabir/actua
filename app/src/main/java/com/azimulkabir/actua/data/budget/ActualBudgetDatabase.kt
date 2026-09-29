@@ -333,6 +333,15 @@ class ActualBudgetDatabase private constructor(
         }
     }
 
+    /** Actual's synced `sync-transfer-date` preference: a transfer date edit moves the other leg too. */
+    @Synchronized
+    fun syncTransferDate(): Boolean {
+        if (!hasTable("preferences")) return false
+        return database.rawQuery(
+            "SELECT value FROM preferences WHERE id = 'sync-transfer-date'", null,
+        ).use { it.moveToFirst() && it.stringOrNull(0) == "true" }
+    }
+
     /** Actuali's cross-platform card metadata stored in Actual's synced preferences table. */
     @Synchronized
     fun fetchCreditCardConfigs(): Map<String, CreditCardConfig> {

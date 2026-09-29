@@ -168,16 +168,25 @@ class ActualTransactionFormService(
         val toPayee = transferPayee(plan.toAccountId)
         val sourceId = idFactory()
         val targetId = idFactory()
+        // loot-core `addTransfer` inserts the other leg with `cleared: false`.
         writer.createTransfer(
             baseTransaction(sourceId, form.accountId, form.date, -plan.amountCents, toPayee.id, null, notes, form.cleared, transferId = targetId),
-            baseTransaction(targetId, plan.toAccountId, form.date, plan.amountCents, fromPayee.id, null, notes, form.cleared, transferId = sourceId),
+            baseTransaction(targetId, plan.toAccountId, form.date, plan.amountCents, fromPayee.id, null, notes, false, transferId = sourceId),
         )
     }
 
+    /**
+     * loot-core `updateTransfer` copies only account, payee, notes, amount and schedule to the other
+     * leg; its cleared/reconciled state is its own account's. The date follows only when the synced
+     * `sync-transfer-date` preference is on (desktop register), together with a split-child leg's parent.
+     */
     private fun updateTransfer(original: ActualTransaction, form: ActualTransactionForm, plan: ActualTransactionFormPlan.Transfer, notes: String?) {
         if (form.accountId == plan.toAccountId) throw ActualTransactionFormException.TransferAccountsMatch
-        val partner = original.transferId?.let(database::fetchTransaction)
+        val partner = original.transferId?.let(database::fetchTransactionRow)
             ?: throw ActualTransactionFormException.TransferPartnerMissing
+        val syncDate = database.syncTransferDate()
+        fun date(leg: ActualTransaction) = if (leg.id == original.id || syncDate) form.date else leg.date
+        fun cleared(leg: ActualTransaction) = if (leg.id == original.id) form.cleared else leg.cleared
         val sourceOriginal = if (original.amountCents < 0) original else partner
         val targetOriginal = if (original.amountCents < 0) partner else original
         val fromPayee = transferPayee(form.accountId)
@@ -188,16 +197,20 @@ class ActualTransactionFormService(
                 if (leg.id == original.id) form.categoryId else leg.categoryId
             } else null
         val source = sourceOriginal.copy(
-            accountId = form.accountId, date = form.date, amountCents = -plan.amountCents,
+            accountId = form.accountId, date = date(sourceOriginal), amountCents = -plan.amountCents,
             payeeId = toPayee.id, categoryId = category(sourceOriginal, form.accountId, plan.toAccountId),
-            notes = notes, cleared = form.cleared,
+            notes = notes, cleared = cleared(sourceOriginal), scheduleId = original.scheduleId,
         )
         val target = targetOriginal.copy(
-            accountId = plan.toAccountId, date = form.date, amountCents = plan.amountCents,
+            accountId = plan.toAccountId, date = date(targetOriginal), amountCents = plan.amountCents,
             payeeId = fromPayee.id, categoryId = category(targetOriginal, plan.toAccountId, form.accountId),
-            notes = notes, cleared = form.cleared,
+            notes = notes, cleared = cleared(targetOriginal), scheduleId = original.scheduleId,
         )
-        writer.mutate(updates = listOf(sourceOriginal to source, targetOriginal to target))
+        val partnerParent = partner.parentId
+            ?.takeIf { syncDate && partner.date != form.date }
+            ?.let(database::fetchTransaction)
+            ?.let { it to it.copy(date = form.date) }
+        writer.mutate(updates = listOfNotNull(sourceOriginal to source, targetOriginal to target, partnerParent))
     }
 
     private fun convertToTransfer(original: ActualTransaction, form: ActualTransactionForm, plan: ActualTransactionFormPlan.Transfer, notes: String?) {

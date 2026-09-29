@@ -12,6 +12,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Deleting a transfer, or changing it to an expense or income, now also removes it from the other account ([#754](https://github.com/azimul-kabir/actua/pull/754))
+- Editing a transfer no longer changes the other account's cleared state or date ([#755](https://github.com/azimul-kabir/actua/pull/755))
 
 ## [1.3.0] - 2026-09-29
 

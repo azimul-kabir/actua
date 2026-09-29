@@ -430,7 +430,8 @@ class ActualBudgetReadModelTest {
         ), originalTransfer)
         val updatedSource = requireNotNull(database.fetchTransaction("transfer-out"))
         val updatedTarget = requireNotNull(database.fetchTransaction("transfer-in"))
-        assertTransferPair(updatedSource, updatedTarget, -1_234L, 20260908)
+        // loot-core `updateTransfer` leaves the other leg's date alone unless `sync-transfer-date` is on.
+        assertTransferPair(updatedSource, updatedTarget, -1_234L, 20260908, targetDate = 20260902)
         assertEquals("updated pair", updatedSource.notes)
         assertEquals("updated pair", updatedTarget.notes)
 
@@ -1261,13 +1262,14 @@ class ActualBudgetReadModelTest {
         target: ActualTransaction,
         sourceAmount: Long,
         date: Int,
+        targetDate: Int = date,
     ) {
         assertEquals(target.id, source.transferId)
         assertEquals(source.id, target.transferId)
         assertEquals(sourceAmount, source.amountCents)
         assertEquals(-sourceAmount, target.amountCents)
         assertEquals(date, source.date)
-        assertEquals(date, target.date)
+        assertEquals(targetDate, target.date)
         assertEquals("checking", source.accountId)
         assertEquals("savings", target.accountId)
         assertEquals(target.accountId, source.transferAccountId)
