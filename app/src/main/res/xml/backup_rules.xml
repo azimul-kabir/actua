@@ -1,13 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Backup rules for Android 11 and lower. android:allowBackup="false" already turns
+   backup off there; the credential stores are excluded as well in case that changes.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <exclude domain="sharedpref" path="connection.xml" />
+    <exclude domain="sharedpref" path="budget_encryption.xml" />
+    <exclude domain="sharedpref" path="trusted_server_certificates.xml" />
 </full-backup-content>
