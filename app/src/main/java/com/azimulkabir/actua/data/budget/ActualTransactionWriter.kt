@@ -127,13 +127,52 @@ class ActualTransactionWriter(
         return originals.size
     }
 
-    fun deleteTransaction(transaction: ActualTransaction) {
-        val ids = if (transaction.isParent) {
-            database.fetchChildTransactions(transaction.id).map(ActualTransaction::id) + transaction.id
-        } else listOf(transaction.id)
-        database.tombstoneTransactions(ids, ids.map { message("transactions", it, "tombstone", 1) })
-        saveClock()
+    fun deleteTransaction(transaction: ActualTransaction) = deleteTransactions(listOf(transaction))
+
+    /**
+     * Tombstone [transactions] and their split children in one batch. Each deleted transfer leg
+     * also loses its counterpart, like loot-core's `transfer.onDelete`.
+     */
+    @Synchronized
+    fun deleteTransactions(transactions: List<ActualTransaction>) {
+        val rows = transactions.flatMap { transaction ->
+            if (transaction.isParent) listOf(transaction) + database.fetchChildTransactions(transaction.id)
+            else listOf(transaction)
+        }.distinctBy(ActualTransaction::id)
+        if (rows.isEmpty()) return
+        val deletedIds = rows.mapTo(linkedSetOf(), ActualTransaction::id)
+        val detached = detachTransfers(rows, deletedIds)
+        mutate(updates = detached.updates, tombstoneIds = deletedIds.toList() + detached.tombstoneIds)
     }
+
+    /**
+     * loot-core's `removeTransfer` for every leg in [legs] that has a counterpart: the counterpart is
+     * tombstoned, or unlinked (`transferred_id` and payee cleared) when it is a split child, and the
+     * leg's own `transferred_id` is cleared. Counterparts in [removedIds] are already being deleted.
+     */
+    fun detachTransfers(legs: List<ActualTransaction>, removedIds: Set<String> = emptySet()): TransferDetach {
+        val updates = mutableListOf<Pair<ActualTransaction, ActualTransaction>>()
+        val tombstones = mutableListOf<String>()
+        legs.filter { it.transferId != null }.forEach { leg ->
+            val partnerId = requireNotNull(leg.transferId)
+            if (partnerId !in removedIds && partnerId !in tombstones) {
+                database.fetchTransactionRow(partnerId)?.let { partner ->
+                    if (partner.parentId != null) {
+                        updates += partner to partner.copy(transferId = null, payeeId = null)
+                    } else {
+                        tombstones += partner.id
+                    }
+                }
+            }
+            updates += leg to leg.copy(transferId = null)
+        }
+        return TransferDetach(updates, tombstones)
+    }
+
+    data class TransferDetach(
+        val updates: List<Pair<ActualTransaction, ActualTransaction>>,
+        val tombstoneIds: List<String>,
+    )
 
     fun mutate(
         updates: List<Pair<ActualTransaction, ActualTransaction>> = emptyList(),

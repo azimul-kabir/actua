@@ -1492,13 +1492,9 @@ class ActuaRepository(context: Context) {
     fun deleteTransactions(ids: Collection<String>): Int {
         val db = actualDatabase ?: return 0
         val writer = actualWriter ?: return 0
-        var count = 0
-        for (id in ids) {
-            val transaction = db.fetchTransaction(id) ?: continue
-            writer.deleteTransaction(transaction)
-            count++
-        }
-        return count
+        val transactions = ids.mapNotNull(db::fetchTransaction)
+        writer.deleteTransactions(transactions)
+        return transactions.size
     }
 
     fun linkScheduleTransactions(scheduleId: String, transactionIds: Collection<String>): Int {
