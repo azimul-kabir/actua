@@ -1,0 +1,201 @@
+package com.azimulkabir.actua.data.budget
+
+import android.database.sqlite.SQLiteDatabase
+import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.data.sync.CrdtMessage
+import com.azimulkabir.actua.data.sync.HlcTimestamp
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
+import java.util.UUID
+
+/**
+ * Transfer-pair and split invariants that match Actual v26.9.0 (see docs/TRANSACTIONS_PARITY.md).
+ * Upstream: loot-core `server/transactions/transfer.ts` and `shared/transactions.ts` at 59fe126f.
+ */
+class TransactionParityTest {
+    @Test
+    fun newTransferWritesBothLegsWithEachOthersTransferPayee() = withDatabase { database ->
+        val service = formService(database, "pair")
+
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "25", transferToAccountId = "savings", notes = "rent pot", date = 20260910,
+        ))
+
+        val source = database.fetchTransactions("checking").single { it.transferId != null }
+        val target = requireNotNull(database.fetchTransaction(requireNotNull(source.transferId)))
+        // addTransfer: amount negated, payee is the *from* account's transfer payee, notes copied.
+        assertEquals(source.id, target.transferId)
+        assertEquals(-2_500L, source.amountCents)
+        assertEquals(2_500L, target.amountCents)
+        assertEquals("transfer-savings", source.payeeId)
+        assertEquals("transfer-checking", target.payeeId)
+        assertEquals("rent pot", target.notes)
+        assertEquals(source.date, target.date)
+        // clearCategory: two on-budget accounts never keep a category.
+        assertNull(source.categoryId)
+        assertNull(target.categoryId)
+
+        val messages = transactionMessages(database)
+        for (leg in listOf(source, target)) {
+            val columns = messages.filter { it.row == leg.id }.map { it.column }.toSet()
+            assertTrue(columns.containsAll(setOf("acct", "amount", "date", "description", "transferred_id")))
+        }
+        assertEquals("S:${target.id}", messages.single { it.row == source.id && it.column == "transferred_id" }.value)
+        assertEquals("S:${source.id}", messages.single { it.row == target.id && it.column == "transferred_id" }.value)
+    }
+
+    @Test
+    fun convertingToTransferInsertsAnUnclearedPartnerAndClearsOnBudgetCategory() = withDatabase { database ->
+        val service = formService(database, "convert")
+        val original = requireNotNull(database.fetchTransaction("ordinary"))
+        assertTrue(original.cleared)
+
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "10", transferToAccountId = "savings", date = 20260901, cleared = true,
+        ), original)
+
+        val leg = requireNotNull(database.fetchTransaction("ordinary"))
+        val partner = requireNotNull(database.fetchTransaction(requireNotNull(leg.transferId)))
+        assertEquals("ordinary", partner.transferId)
+        assertEquals("transfer-checking", partner.payeeId)
+        // addTransfer inserts the other leg with `cleared: false`.
+        assertFalse(partner.cleared)
+        assertTrue(leg.cleared)
+        assertNull(leg.categoryId)
+        assertNull(partner.categoryId)
+    }
+
+    @Test
+    fun onBudgetToOffBudgetConversionKeepsTheOnBudgetLegCategory() = withDatabase { database ->
+        val offBudget = ActualEntityWriter(database, idFactory = { "off-${UUID.randomUUID()}" })
+            .createAccount("Brokerage", offBudget = true, startingBalanceCents = 0)
+        val service = formService(database, "mixed")
+        val original = requireNotNull(database.fetchTransaction("ordinary"))
+
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.TRANSFER,
+            amount = "10", transferToAccountId = offBudget, categoryId = "grocery", date = 20260901,
+        ), original)
+
+        val leg = requireNotNull(database.fetchTransaction("ordinary"))
+        val partner = requireNotNull(database.fetchTransaction(requireNotNull(leg.transferId)))
+        // clearCategory returns false when exactly one side is off-budget.
+        assertEquals("grocery", leg.categoryId)
+        assertEquals(offBudget, partner.accountId)
+        assertNull(partner.categoryId)
+    }
+
+    @Test
+    fun splitParentEditsFlowToChildrenAndInheritedChildPayeesFollowTheParent() = withDatabase { database ->
+        val service = formService(database, "split")
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", date = 20260910,
+            splits = listOf(
+                ActualSplitLineForm(categoryId = "grocery", amount = "6"),
+                ActualSplitLineForm(categoryId = "rent", amount = "4", payeeName = "Landlord"),
+            ),
+        ))
+        val parent = database.fetchTransactions("checking").single { it.isParent }
+        val children = database.fetchChildTransactions(parent.id)
+        val inherited = children.single { it.categoryId == "grocery" }
+        val own = children.single { it.categoryId == "rent" }
+        assertEquals(parent.payeeId, inherited.payeeId)
+
+        service.save(ActualTransactionForm(
+            accountId = "savings", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Market", date = 20260912, cleared = true,
+            splits = listOf(
+                // The form leaves an inherited child payee blank, as ActuaRepository.toTransaction does.
+                ActualSplitLineForm(childId = inherited.id, categoryId = "grocery", amount = "6"),
+                ActualSplitLineForm(childId = own.id, categoryId = "rent", amount = "4", payeeName = "Landlord"),
+            ),
+        ), parent)
+
+        val editedParent = requireNotNull(database.fetchTransaction(parent.id))
+        val edited = database.fetchChildTransactions(parent.id).associateBy { it.id }
+        assertNull(editedParent.categoryId)
+        assertEquals(editedParent.amountCents, edited.values.sumOf { it.amountCents })
+        // makeChild: account, date and cleared always follow the parent.
+        assertTrue(edited.values.all { it.accountId == "savings" && it.date == 20260912 && it.cleared })
+        // updateTransaction: a child whose payee equalled the old parent payee takes the new one.
+        assertEquals(editedParent.payeeId, edited.getValue(inherited.id).payeeId)
+        assertEquals(own.payeeId, edited.getValue(own.id).payeeId)
+    }
+
+    @Test
+    fun movingAStandardTransactionOffBudgetClearsItsCategory() = withDatabase { database ->
+        val offBudget = ActualEntityWriter(database, idFactory = { "off-${UUID.randomUUID()}" })
+            .createAccount("Brokerage", offBudget = true, startingBalanceCents = 0)
+        val service = formService(database, "move")
+        val original = requireNotNull(database.fetchTransaction("ordinary"))
+        assertEquals("grocery", original.categoryId)
+
+        service.save(ActualTransactionForm(
+            accountId = offBudget, type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", categoryId = "grocery", date = 20260901,
+        ), original)
+
+        val moved = requireNotNull(database.fetchTransaction("ordinary"))
+        assertEquals(offBudget, moved.accountId)
+        assertNull(moved.categoryId)
+        assertEquals("0:", transactionMessages(database).last { it.row == "ordinary" && it.column == "category" }.value)
+    }
+
+    private fun formService(database: ActualBudgetDatabase, prefix: String): ActualTransactionFormService {
+        var next = 0
+        val ids = { "$prefix-${++next}" }
+        return ActualTransactionFormService(database, ActualTransactionWriter(database, idFactory = ids), idFactory = ids)
+    }
+
+    private fun transactionMessages(database: ActualBudgetDatabase): List<CrdtMessage> =
+        database.getMessagesSince(HlcTimestamp.ZERO.toString()).filter { it.dataset == "transactions" }
+
+    private fun withDatabase(block: (ActualBudgetDatabase) -> Unit) {
+        val file = createDatabaseFile()
+        try {
+            ActualBudgetDatabase.open(file).use(block)
+        } finally {
+            file.delete()
+        }
+    }
+
+    private fun createDatabaseFile(): File {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = File(context.cacheDir, "transaction-parity-${UUID.randomUUID()}.sqlite")
+        SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
+            db.execSQL("CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT, type TEXT, offbudget INTEGER, closed INTEGER, tombstone INTEGER, sort_order REAL)")
+            db.execSQL("CREATE TABLE category_groups (id TEXT PRIMARY KEY, name TEXT, is_income INTEGER, hidden INTEGER, tombstone INTEGER, sort_order REAL)")
+            db.execSQL("CREATE TABLE categories (id TEXT PRIMARY KEY, name TEXT, cat_group TEXT, is_income INTEGER, hidden INTEGER, tombstone INTEGER, sort_order REAL)")
+            db.execSQL("CREATE TABLE category_mapping (id TEXT PRIMARY KEY, transferId TEXT)")
+            db.execSQL("CREATE TABLE payees (id TEXT PRIMARY KEY, name TEXT, transfer_acct TEXT, tombstone INTEGER)")
+            db.execSQL("CREATE TABLE payee_mapping (id TEXT PRIMARY KEY, targetId TEXT)")
+            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY, isParent INTEGER, isChild INTEGER, acct TEXT, category TEXT, amount INTEGER, description TEXT, notes TEXT, date INTEGER, imported_description TEXT, transferred_id TEXT, cleared INTEGER, reconciled INTEGER, sort_order REAL, tombstone INTEGER, parent_id TEXT, financial_id TEXT, pending INTEGER DEFAULT 0, raw_synced_data TEXT)")
+            db.execSQL("CREATE TABLE zero_budgets (id TEXT PRIMARY KEY, month INTEGER, category TEXT, amount INTEGER, carryover INTEGER)")
+            db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
+            db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, `column` TEXT NOT NULL, value BLOB NOT NULL)")
+            db.execSQL("CREATE TABLE preferences (id TEXT PRIMARY KEY, value TEXT)")
+            db.execSQL("CREATE TABLE rules (id TEXT PRIMARY KEY, stage TEXT, conditions_op TEXT, conditions TEXT, actions TEXT, tombstone INTEGER)")
+            db.execSQL("CREATE TABLE schedules (id TEXT PRIMARY KEY, rule TEXT, name TEXT, posts_transaction INTEGER, completed INTEGER, custom_upcoming_length TEXT, tombstone INTEGER)")
+            db.execSQL("CREATE TABLE schedules_next_date (id TEXT PRIMARY KEY, schedule_id TEXT, local_next_date INTEGER, local_next_date_ts INTEGER, base_next_date INTEGER, base_next_date_ts INTEGER)")
+
+            db.execSQL("INSERT INTO accounts VALUES ('checking','Checking','checking',0,0,0,1), ('savings','Savings','savings',0,0,0,2)")
+            db.execSQL("INSERT INTO category_groups VALUES ('essential','Essentials',0,0,0,1)")
+            db.execSQL("INSERT INTO categories VALUES ('grocery','Groceries','essential',0,0,0,1), ('rent','Rent','essential',0,0,0,2)")
+            db.execSQL("INSERT INTO category_mapping VALUES ('grocery','grocery'), ('rent','rent')")
+            db.execSQL("INSERT INTO payees VALUES ('store','Store',NULL,0), ('transfer-savings','','savings',0), ('transfer-checking','','checking',0)")
+            db.execSQL("INSERT INTO payee_mapping VALUES ('store','store'), ('transfer-savings','transfer-savings'), ('transfer-checking','transfer-checking')")
+            db.execSQL(
+                "INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                arrayOf<Any?>("ordinary", 0, 0, "checking", "grocery", -1000, "store", null, 20260901, null, null, 1, 0, 1.0, 0, null, null, 0, null),
+            )
+        }
+        return file
+    }
+}
