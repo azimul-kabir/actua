@@ -92,6 +92,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
+import com.azimulkabir.actua.ui.accounts.CloseAccountOptions
+import com.azimulkabir.actua.ui.accounts.CloseCategoryGroup
 import com.azimulkabir.actua.ui.automation.BudgetAutomationScreen
 import com.azimulkabir.actua.ui.budget.BudgetScreen
 import com.azimulkabir.actua.ui.settings.SettingsScreen
@@ -2390,10 +2392,23 @@ fun AppNavigation(
                         transactionSearch = ""
                         detail = DetailDestination.Transactions
                     },
-                    onCloseAccount = { account ->
-                        mutate(if (account.closed) "Reopening account" else "Closing account") {
-                            repository.setAccountClosed(account.name, !account.closed)
+                    loadCloseOptions = { account ->
+                        withContext(Dispatchers.IO) {
+                            CloseAccountOptions(
+                                hasTransactions = repository.accountHasTransactions(account.id),
+                                categoryGroups = repository.categoryGroupsForReorder().map { group ->
+                                    CloseCategoryGroup(group.name, group.categories.map { it.id to it.name })
+                                },
+                            )
                         }
+                    },
+                    onCloseAccount = { account, transferAccountId, categoryId, forced ->
+                        mutate(if (forced) "Force closing account" else "Closing account") {
+                            repository.closeAccount(account.id, transferAccountId, categoryId, forced)
+                        }
+                    },
+                    onReopenAccount = { account ->
+                        mutate("Reopening account") { repository.reopenAccount(account.id) }
                     },
                     onRenameAccount = { account, name ->
                         mutate("Renaming account") { repository.renameAccount(account.name, name) }

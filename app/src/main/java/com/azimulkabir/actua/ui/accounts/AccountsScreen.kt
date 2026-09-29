@@ -122,7 +122,9 @@ fun AccountsScreen(
     creditCards: List<CreditCardStatus> = emptyList(),
     onAccountClick: (String) -> Unit = {},
     onAllAccountsClick: () -> Unit = {},
-    onCloseAccount: (Account) -> Unit = {},
+    loadCloseOptions: suspend (Account) -> CloseAccountOptions = { CloseAccountOptions(true, emptyList()) },
+    onCloseAccount: (Account, transferAccountId: String?, categoryId: String?, forced: Boolean) -> Unit = { _, _, _, _ -> },
+    onReopenAccount: (Account) -> Unit = {},
     onRenameAccount: (Account, String) -> Unit = { _, _ -> },
     onChangeAccountType: (Account, String) -> Unit = { _, _ -> },
     onCreateAccount: (String, Boolean, String, String) -> Unit = { _, _, _, _ -> },
@@ -160,6 +162,7 @@ fun AccountsScreen(
     var showNewAccountDialog by remember { mutableStateOf(false) }
     var accountMenuExpanded by remember { mutableStateOf(false) }
     var renamingAccount by remember { mutableStateOf<Account?>(null) }
+    var closingAccount by remember { mutableStateOf<Account?>(null) }
     var changingTypeAccount by remember { mutableStateOf<Account?>(null) }
     // Otherwise this re-filters the whole account list on every recomposition of this screen
     // (e.g. opening the overflow menu or selecting an account), not just when `accounts` changes.
@@ -302,9 +305,25 @@ fun AccountsScreen(
             onViewTransactions = { selectedAccount = null; onAccountClick(account.name) },
             onRename = { selectedAccount = null; renamingAccount = account },
             onChangeType = { selectedAccount = null; changingTypeAccount = account },
-            onClose = { selectedAccount = null; onCloseAccount(account) },
+            onClose = {
+                selectedAccount = null
+                if (account.closed) onReopenAccount(account) else closingAccount = account
+            },
             favorite = account.id in favoriteAccountIds,
             onFavoriteChange = { onFavoriteAccountChange(account.id, it) },
+        )
+    }
+    closingAccount?.let { account ->
+        CloseAccountSheet(
+            account = account,
+            accounts = accounts,
+            hideDecimalPlaces = hideDecimalPlaces,
+            loadOptions = loadCloseOptions,
+            onDismiss = { closingAccount = null },
+            onClose = { transferAccountId, categoryId ->
+                closingAccount = null; onCloseAccount(account, transferAccountId, categoryId, false)
+            },
+            onForceClose = { closingAccount = null; onCloseAccount(account, null, null, true) },
         )
     }
     if (showAddSheet) AddAccountSheet(
