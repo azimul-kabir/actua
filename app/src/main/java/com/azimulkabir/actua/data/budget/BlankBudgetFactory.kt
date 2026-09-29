@@ -34,7 +34,7 @@ internal object BlankBudgetFactory {
         DEFAULT_DASHBOARD.forEach { widget ->
             database.execSQL(
                 "INSERT INTO dashboard (id, type, width, height, x, y, meta, dashboard_page_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                arrayOf(UUID.randomUUID().toString(), widget.type, widget.width, widget.height, widget.x, widget.y, widget.meta, pageId),
+                arrayOf<Any?>(UUID.randomUUID().toString(), widget.type, widget.width, widget.height, widget.x, widget.y, widget.meta, pageId),
             )
         }
     }
