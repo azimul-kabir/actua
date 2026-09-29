@@ -1009,7 +1009,7 @@ class ActualBudgetDatabase private constructor(
         args += limit.toString()
         args += offset.toString()
         val rows = mutableListOf<ActualTransaction>()
-        database.rawQuery(transactionSelect + accountClause + dateClause + stateClause + searchClause + " ORDER BY t.date DESC, t.sort_order DESC, t.id LIMIT ? OFFSET ?", args.toTypedArray()).use { cursor ->
+        database.rawQuery(transactionSelect + accountClause + dateClause + stateClause + searchClause + " ORDER BY t.date DESC, t.starting_balance_flag, t.sort_order DESC, t.id LIMIT ? OFFSET ?", args.toTypedArray()).use { cursor ->
             while (cursor.moveToNext()) rows += cursor.toActualTransaction()
         }
         val parentIds = rows.filter(ActualTransaction::isParent).map(ActualTransaction::id)
@@ -1057,7 +1057,7 @@ class ActualBudgetDatabase private constructor(
     fun fetchScheduleTransactions(scheduleId: String): List<ActualTransaction> {
         val rows = mutableListOf<ActualTransaction>()
         database.rawQuery(
-            transactionSelect + " AND t.schedule = ? ORDER BY t.date DESC, t.sort_order DESC, t.id",
+            transactionSelect + " AND t.schedule = ? ORDER BY t.date DESC, t.starting_balance_flag, t.sort_order DESC, t.id",
             arrayOf(scheduleId),
         ).use { cursor -> while (cursor.moveToNext()) rows += cursor.toActualTransaction() }
         return rows
@@ -1088,7 +1088,7 @@ class ActualBudgetDatabase private constructor(
                     WHERE parent.id = t.parent_id
                       AND (parent.tombstone = 0 OR parent.tombstone IS NULL)
                   ))
-              ORDER BY t.date DESC, t.sort_order DESC, t.id
+              ORDER BY t.date DESC, t.starting_balance_flag, t.sort_order DESC, t.id
             """.trimIndent(),
             arrayOf(accountId),
         ).use { cursor -> while (cursor.moveToNext()) rows += cursor.toActualTransaction() }

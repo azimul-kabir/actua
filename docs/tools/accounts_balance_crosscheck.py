@@ -14,7 +14,7 @@ closed accounts, reconciled rows, tombstones, orphaned split children) and compa
   `splits: 'none'` (`parent_id IS NULL`).
 * Actua: the `ActualBudgetDatabase.fetchAccounts()` balance query and the
   `accountRunningBalances()` fold over `fetchTransactions()` rows
-  (`ORDER BY t.date DESC, t.sort_order DESC, t.id`).
+  (`ORDER BY t.date DESC, t.starting_balance_flag, t.sort_order DESC, t.id`).
 
 Run: python3 docs/tools/accounts_balance_crosscheck.py  (exit status 1 on any unexpected mismatch)
 All data is synthetic.
@@ -99,9 +99,7 @@ TX = [
 ]
 
 # Mismatches already filed as issues; remove an entry when its fix lands.
-KNOWN_DIVERGENCES = {
-    "card: running balance per row": "#715 (register order ignores starting_balance_flag)",
-}
+KNOWN_DIVERGENCES: dict[str, str] = {}
 
 UPSTREAM_ACCOUNT = """
   SELECT IFNULL(SUM(amount), 0) FROM v_transactions_internal_alive
@@ -136,7 +134,7 @@ UPSTREAM_RUNNING = """
 ACTUA_REGISTER = """
   SELECT id, IFNULL(amount, 0) FROM transactions t
   WHERE acct = ? AND date IS NOT NULL AND IFNULL(tombstone, 0) = 0 AND IFNULL(isChild, 0) = 0
-  ORDER BY t.date DESC, t.sort_order DESC, t.id
+  ORDER BY t.date DESC, t.starting_balance_flag, t.sort_order DESC, t.id
 """
 
 

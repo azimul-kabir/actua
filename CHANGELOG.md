@@ -12,6 +12,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Running balances on an account's opening day now match Actual ([#731](https://github.com/azimul-kabir/actua/pull/731))
 - Fixed renaming or changing the type of an account acting on a different account with the same name ([#730](https://github.com/azimul-kabir/actua/pull/730))
 - Closing an account now transfers its balance, deletes empty accounts, offers force close and unlinks bank sync like Actual ([#729](https://github.com/azimul-kabir/actua/pull/729))
 - Fixed budgets last saved by an older version of Actual being rejected by Actual after opening them in Actua ([#726](https://github.com/azimul-kabir/actua/pull/726))
