@@ -38,19 +38,29 @@ class ActualEntityWriter(
         },
     )
 
-    /** Links an existing Actual account to a discovered provider account. */
-    fun linkBankAccount(id: String, externalAccountId: String, source: String, requisitionId: String? = null) = update(
-        "accounts", id, buildMap {
-            put("account_id", externalAccountId)
-            put("account_sync_source", source)
-            put("gocardless_requisition_id", requisitionId)
-        },
-    )
+    /**
+     * Links an existing Actual account to a discovered provider account. Like Actual, a GoCardless
+     * requisition is kept as a `banks` row (`bank_id` = requisition id) that `accounts.bank` points
+     * to; the row is reused when the same requisition is linked again.
+     */
+    @Synchronized
+    fun linkBankAccount(id: String, externalAccountId: String, source: String, requisitionId: String? = null) {
+        require(id.isNotBlank() && externalAccountId.isNotBlank() && source.isNotBlank())
+        val messages = mutableListOf<CrdtMessage>()
+        val account = linkedMapOf<String, Any?>("account_id" to externalAccountId, "account_sync_source" to source)
+        if (requisitionId != null) {
+            account["bank"] = database.findBankId(requisitionId) ?: idFactory().also { bankId ->
+                messages += fields("banks", bankId, linkedMapOf("bank_id" to requisitionId, "name" to null, "tombstone" to 0))
+            }
+        }
+        messages += fields("accounts", id, account)
+        persist(messages)
+    }
 
     fun unlinkBankAccount(id: String) = update(
         "accounts", id, mapOf(
             "account_id" to null, "account_sync_source" to null,
-            "gocardless_requisition_id" to null, "bank_sync_status" to null, "last_sync" to null,
+            "bank" to null, "bank_sync_status" to null, "last_sync" to null,
         ),
     )
     fun renameCategory(id: String, name: String) = update("categories", id, mapOf("name" to requiredName(name)))
@@ -282,9 +292,9 @@ class ActualEntityWriter(
     private fun flag(value: Boolean) = if (value) 1 else 0
 
     companion object {
-        private val allowedFields = mapOf(
+        internal val allowedFields = mapOf(
             "accounts" to setOf("name", "type", "closed", "offbudget", "tombstone", "sort_order",
-                "bank_sync_status", "last_sync", "account_id", "account_sync_source", "gocardless_requisition_id"),
+                "bank_sync_status", "last_sync", "account_id", "account_sync_source", "bank"),
             "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order", "goal_def", "template_settings", "cleanup_def"),
             "category_groups" to setOf("name", "hidden", "tombstone", "sort_order"),
             "cleanup_groups" to setOf("name", "tombstone"),

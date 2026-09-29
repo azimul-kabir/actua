@@ -31,7 +31,7 @@ are in [SERVER_FILE_PARITY.md](SERVER_FILE_PARITY.md). `/sync/sync` and message 
 | Opening: `checkDatabaseValidity` requires `__migrations__` to be an exact ordered prefix of the known list, otherwise `out-of-sync-migrations`. Budgets newer than the client are refused. `patchBadMigrations` renames `1685375406832`. | [`L/migrate/migrations.ts#L53-L65`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/migrate/migrations.ts#L53-L65), [`#L146-L192`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/migrate/migrations.ts#L146-L192) | `DB.open` → `runMigrations` (`DB:1684-1744`) never refuses a budget. Required tables are checked by `DB.validate` (`DB:1787`), and core reads by `BudgetOpenProbe`. | **Intentional.** Actua opens newer budgets and leaves unknown tables and columns alone (see §4). | `BudgetDownloadServiceTest.downloadedBudgetThatFailsOpenValidationIsRejectedBeforeInstall` |
 | Older budgets: pending SQL/JS migrations run in full, in order | [`L/migrate/migrations.ts#L178-L192`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/migrate/migrations.ts#L178-L192) | `runMigrations` adds only the tables, columns and indexes Actua reads (`columnMigrations`, `DB:1640-1656`) in one transaction, then replays the latest stored CRDT value into each new column | Match for data: nothing is dropped or rewritten, and the new columns get their synced values. **Divergence** in bookkeeping, see next row. | `ActualBudgetReadModelTest.migrationAddsScheduleAndReplaysLatestStoredValue`, `migrationAddsCurrentActualAccountGroupSchema`, `cleanupSchemaMigratesAndRoundTripsThroughOneAtomicBatch`, `PayeeLocationDatabaseTest.migrationCreatesUpstreamTableAndIndexes` |
 | `__migrations__` bookkeeping | Only ids from `M/` | Private column-step ids live in one list, `ActualBudgetDatabase.PRIVATE_MIGRATION_IDS`. `runMigrations` never records them and deletes any that older versions recorded, and `BackupService.cleanSnapshot` strips the same list from backups. For a budget last uploaded by an older Actual, Actua can still record an upstream id without the full migration or the ones before it. | Match for private ids (fixed in [#709](https://github.com/azimul-kabir/actua/issues/709)). **Divergence** [#719](https://github.com/azimul-kabir/actua/issues/719) for older snapshots. | `src/test/.../data/budget/MigrationBookkeepingTest`, `BackupServiceTest.openedBudgetAndItsBackupListOnlyActualsMigrationsInOrder` |
-| Only upstream columns are synced | The AQL schema and migrations define every syncable column. `apply()` raises `invalid-schema` for unknown ones. | `ActualEntityWriter` also syncs `accounts.gocardless_requisition_id`, which Actual doesn't have | **Divergence** [#708](https://github.com/azimul-kabir/actua/issues/708) | – |
+| Only upstream columns are synced | The AQL schema and migrations define every syncable column. `apply()` raises `invalid-schema` for unknown ones. A GoCardless requisition is a `banks` row (`bank_id`) that `accounts.bank` points to, reused when relinked ([`L/accounts/link.ts`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/accounts/link.ts), [`L/accounts/app.ts#L169-L201`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/accounts/app.ts#L169-L201)). Unlinking clears `accounts.bank`. | `ActualEntityWriter` writes only fields in Actual's schema. GoCardless links create or reuse a `banks` row and set `accounts.bank`, and unlinking clears it. The local-only `gocardless_requisition_id` column is no longer created or synced; `fetchBankSyncAccounts` still reads it for accounts linked by earlier versions. | Match (fixed in [#708](https://github.com/azimul-kabir/actua/issues/708)). Messages already sent by earlier versions stay in the server log. | `BankLinkWriterTest` |
 
 ## 2. Views
 
@@ -103,10 +103,10 @@ The round trip was checked from source, not on a live PWA:
 2. **Actua → PWA import.** Tables and columns are Actual's own schema, and since
    [#709](https://github.com/azimul-kabir/actua/issues/709) the archive's `__migrations__` lists
    only Actual's ids, in order. The exception is a budget last uploaded by an older Actual
-   ([#719](https://github.com/azimul-kabir/actua/issues/719)). A budget that Actua has
-   linked to a bank provider also carries `accounts.gocardless_requisition_id` values. They don't
-   stop the file from opening, but syncing them breaks Actual
-   ([#708](https://github.com/azimul-kabir/actua/issues/708)).
+   ([#719](https://github.com/azimul-kabir/actua/issues/719)). A budget linked to GoCardless
+   by an Actua version before [#708](https://github.com/azimul-kabir/actua/issues/708) may still
+   carry a local `accounts.gocardless_requisition_id` column; an extra column doesn't stop Actual
+   from opening the file.
 
 The full round trip (PWA export → Actua import → Actua backup export → PWA
 import) should be run manually against a real Actual server with a synthetic budget, and the result
@@ -137,9 +137,9 @@ work on API 28.
 
 ## Divergences filed
 
-- [#708](https://github.com/azimul-kabir/actua/issues/708) (**P1**, sync): linking or unlinking a
-  bank account syncs `accounts.gocardless_requisition_id`, a column Actual doesn't have, which
-  causes `invalid-schema` in Actual clients
+- [#708](https://github.com/azimul-kabir/actua/issues/708) (**P1**, sync, fixed): linking or
+  unlinking a bank account synced `accounts.gocardless_requisition_id`, a column Actual doesn't
+  have, which causes `invalid-schema` in Actual clients
 - [#709](https://github.com/azimul-kabir/actua/issues/709) (**P1**, round trip, fixed): private
   migration ids made Actua backups fail to open in Actual
 - [#710](https://github.com/azimul-kabir/actua/issues/710) (P2, fixed): backup creation used
