@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.data.budget
 
 import com.azimulkabir.actua.data.network.ActualServerClient
+import com.azimulkabir.actua.data.network.ActualServerException
+import com.azimulkabir.actua.data.network.FileEncryptionMetadata
 import com.azimulkabir.actua.data.network.RemoteBudgetFile
 import com.azimulkabir.actua.data.security.BudgetEncryptionKeyStore
 import com.azimulkabir.actua.data.sync.EncryptionKeyManager
@@ -38,24 +40,32 @@ class BudgetDownloadService(
     fun openOrDownload(serverUrl: String, token: String, remote: RemoteBudgetFile): BudgetMetadata =
         localCopy(remote) ?: download(serverUrl, token, remote)
 
+    /**
+     * Like Actual's `download()`, the server's file info is authoritative: its `encryptMeta` decides
+     * whether to decrypt, and its group and key id replace whatever the archive's own metadata says.
+     * Actual only re-uploads snapshots every few days, so the archive's copy can be stale.
+     */
     fun download(serverUrl: String, token: String, remote: RemoteBudgetFile): BudgetMetadata {
-        val key = if (remote.encryptedKeyId != null) {
+        val info = server.getFileInfo(serverUrl, token, remote.fileId)
+        if (info.deleted) throw ActualServerException.FileNotFound
+        val encryption = info.encryption
+        val key = encryption?.let {
             keyStore.load(remote.fileId) ?: throw BudgetDownloadException.EncryptionPasswordRequired
-        } else null
+        }
         var archive = server.downloadFile(serverUrl, token, remote.fileId)
-        if (key != null) archive = decryptArchive(serverUrl, token, remote.fileId, key, archive)
-        return files.importBudget(ByteArrayInputStream(archive), remote.fileId, remote.groupId)
+        if (encryption != null && key != null) archive = decryptArchive(remote.fileId, encryption, key, archive)
+        return files.importBudget(
+            ByteArrayInputStream(archive),
+            CloudFileIdentity(remote.fileId, info.groupId, encryption?.keyId),
+        )
     }
 
     private fun decryptArchive(
-        serverUrl: String,
-        token: String,
         fileId: String,
+        metadata: FileEncryptionMetadata,
         key: LoadedEncryptionKey,
         ciphertext: ByteArray,
     ): ByteArray {
-        val metadata = server.getFileInfo(serverUrl, token, fileId).encryption
-            ?: throw BudgetDownloadException.InvalidEncryptionMetadata
         if (metadata.keyId != key.keyId) {
             keyStore.remove(fileId)
             throw BudgetDownloadException.EncryptionKeyChanged
