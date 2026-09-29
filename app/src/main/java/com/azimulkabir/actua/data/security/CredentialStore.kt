@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.security
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
@@ -25,26 +26,34 @@ class CredentialStore(context: Context) {
         get() = preferences.getString("fallback_server_url", "").orEmpty()
         private set(value) { preferences.edit().putString("fallback_server_url", value).apply() }
 
-    /** Sent with every request to the server, e.g. Cloudflare Access service-token headers. */
+    /**
+     * Sent with every request to the server, e.g. Cloudflare Access service-token headers. The values
+     * are secrets, so they are encrypted with the same Keystore key as the token. Headers saved as
+     * plaintext by older versions are encrypted, and the plaintext removed, on first read.
+     */
     var customHeaders: Map<String, String>
         get() {
-            val raw = preferences.getString("custom_headers", null) ?: return emptyMap()
-            val json = JSONObject(raw)
-            return json.keys().asSequence().associateWith { json.getString(it) }
+            preferences.getString(LEGACY_HEADERS, null)?.let { legacy ->
+                val headers = runCatching { parseHeaders(legacy) }.getOrDefault(emptyMap())
+                writeHeaders(headers, preferences.edit()).commit()
+                return headers
+            }
+            val encrypted = preferences.getString(HEADERS, null) ?: return emptyMap()
+            val iv = preferences.getString(HEADERS_IV, null) ?: return emptyMap()
+            // Like the token, unreadable after a device transfer because the Keystore key stays behind.
+            return runCatching { parseHeaders(decrypt(encrypted, iv)) }.getOrDefault(emptyMap())
         }
         set(value) {
-            val json = JSONObject().apply { value.forEach { (name, headerValue) -> put(name, headerValue) } }
-            preferences.edit().putString("custom_headers", json.toString()).apply()
+            writeHeaders(value, preferences.edit()).apply()
         }
 
     fun saveConnection(url: String, token: String, fallbackUrl: String = "") {
-        val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, secretKey()) }
-        val encrypted = cipher.doFinal(token.toByteArray())
+        val (encrypted, iv) = encrypt(token)
         preferences.edit()
             .putString("server_url", url)
             .putString("fallback_server_url", fallbackUrl)
-            .putString("token", Base64.encodeToString(encrypted, Base64.NO_WRAP))
-            .putString("token_iv", Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
+            .putString("token", encrypted)
+            .putString("token_iv", iv)
             .remove(SESSION_EXPIRED)
             .apply()
     }
@@ -66,12 +75,7 @@ class CredentialStore(context: Context) {
     }
 
     fun token(): String? = runCatching {
-        val encrypted = Base64.decode(preferences.getString("token", null), Base64.NO_WRAP)
-        val iv = Base64.decode(preferences.getString("token_iv", null), Base64.NO_WRAP)
-        val cipher = Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(128, iv))
-        }
-        cipher.doFinal(encrypted).toString(Charsets.UTF_8)
+        decrypt(preferences.getString("token", null)!!, preferences.getString("token_iv", null)!!)
     }.getOrNull()
 
     /** Manual disconnect is protected by a final-sync/reset confirmation flow. */
@@ -83,6 +87,33 @@ class CredentialStore(context: Context) {
 
     internal fun clearCredentialsNow() {
         preferences.edit().clear().commit()
+    }
+
+    private fun writeHeaders(headers: Map<String, String>, editor: SharedPreferences.Editor): SharedPreferences.Editor {
+        editor.remove(LEGACY_HEADERS)
+        if (headers.isEmpty()) return editor.remove(HEADERS).remove(HEADERS_IV)
+        val json = JSONObject().apply { headers.forEach { (name, headerValue) -> put(name, headerValue) } }
+        val (encrypted, iv) = encrypt(json.toString())
+        return editor.putString(HEADERS, encrypted).putString(HEADERS_IV, iv)
+    }
+
+    private fun parseHeaders(raw: String): Map<String, String> {
+        val json = JSONObject(raw)
+        return json.keys().asSequence().associateWith { json.getString(it) }
+    }
+
+    /** Returns the Base64 ciphertext and IV. */
+    private fun encrypt(plaintext: String): Pair<String, String> {
+        val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, secretKey()) }
+        val encrypted = cipher.doFinal(plaintext.toByteArray())
+        return Base64.encodeToString(encrypted, Base64.NO_WRAP) to Base64.encodeToString(cipher.iv, Base64.NO_WRAP)
+    }
+
+    private fun decrypt(encrypted: String, iv: String): String {
+        val cipher = Cipher.getInstance(TRANSFORMATION).apply {
+            init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(128, Base64.decode(iv, Base64.NO_WRAP)))
+        }
+        return cipher.doFinal(Base64.decode(encrypted, Base64.NO_WRAP)).toString(Charsets.UTF_8)
     }
 
     private fun secretKey(): SecretKey {
@@ -102,5 +133,8 @@ class CredentialStore(context: Context) {
         private const val KEY_ALIAS = "actua_server_token"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val SESSION_EXPIRED = "session_expired"
+        private const val LEGACY_HEADERS = "custom_headers"
+        private const val HEADERS = "custom_headers_encrypted"
+        private const val HEADERS_IV = "custom_headers_iv"
     }
 }
