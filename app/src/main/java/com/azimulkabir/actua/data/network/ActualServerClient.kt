@@ -60,7 +60,15 @@ sealed class GoCardlessAccountsResult {
 }
 
 sealed class ActualServerException(message: String) : Exception(message) {
-    data object Unauthorized : ActualServerException("Unauthorized")
+    data object Unauthorized : ActualServerException(
+        "The server or a proxy in front of it refused the request. Check the server address and custom headers.",
+    )
+    /** Actual's `file-access-not-allowed`: the budget belongs to someone else on a multi-user server. */
+    data object FileAccessDenied : ActualServerException(
+        "You don't have access to do this with this budget. Only its owner or a server admin can.",
+    )
+    /** `/account/login` refused to sign in; [reason] is Actual's reason code. */
+    class LoginRejected(val reason: String) : ActualServerException(loginReasonMessage(reason))
     /** Actual rejected the session token because it expired or was revoked. Signing in again fixes it. */
     data object SessionExpired : ActualServerException(
         "Your Actual server session has expired. Sign in again to resume syncing.",
@@ -169,12 +177,25 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
                 .toString()
                 .encodeToByteArray(),
         )
-        if (response.status == 400 || response.status == 401) error(loginError(response, "Incorrect server password."))
-        requireSuccess(response)
-        val json = response.json()
-        if (json.optString("status") != "ok") error(json.optString("reason", "Login failed."))
-        return json.getJSONObject("data").getString("token")
+        try {
+            checkLogin(response, fallbackReason = "invalid-password")
+        } catch (rejected: ActualServerException.LoginRejected) {
+            // A server nobody has set up also answers invalid-password; say so instead.
+            if (rejected.reason == "invalid-password" && needsBootstrap(serverUrl) == true) {
+                throw ActualServerException.LoginRejected(REASON_NEEDS_BOOTSTRAP)
+            }
+            throw rejected
+        }
+        return response.json().getJSONObject("data").getString("token")
     }
+
+    /** Actual's `/account/needs-bootstrap`, or null when the server doesn't say. Never bootstraps. */
+    fun needsBootstrap(serverUrl: String): Boolean? = runCatching {
+        val response = request(serverUrl, "/account/needs-bootstrap", "GET")
+        if (response.status != 200) return@runCatching null
+        val data = response.json().optJSONObject("data") ?: return@runCatching null
+        if (!data.has("bootstrapped")) null else !data.getBoolean("bootstrapped")
+    }.getOrNull()
 
     /**
      * Starts Actual's server-mediated OpenID Connect flow. The returned URL is the identity-provider
