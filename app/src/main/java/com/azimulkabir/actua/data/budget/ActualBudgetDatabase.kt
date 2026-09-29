@@ -1742,7 +1742,10 @@ class ActualBudgetDatabase private constructor(
             // PRAGMA busy_timeout returns the applied value as a result row, which execSQL()
             // (update/delete only) rejects; rawQuery consumes that row instead.
             database.rawQuery("PRAGMA busy_timeout=5000", null).use { it.moveToFirst() }
-            if (!readOnly) runMigrations(database)
+            if (!readOnly) {
+                ActualMigrations.upgrade(database, File(file.absoluteFile.parentFile, "metadata.json"))
+                runMigrations(database)
+            }
             return ActualBudgetDatabase(database)
         }
 
@@ -1750,6 +1753,7 @@ class ActualBudgetDatabase private constructor(
             database.beginTransaction()
             try {
                 database.execSQL("CREATE TABLE IF NOT EXISTS __migrations__ (id INTEGER PRIMARY KEY)")
+                val schemaBefore = StoredMessageReplay.schema(database)
                 database.execSQL(
                     "DELETE FROM __migrations__ WHERE id IN (${PRIVATE_MIGRATION_IDS.joinToString()})",
                 )
@@ -1786,14 +1790,12 @@ class ActualBudgetDatabase private constructor(
                         )""".trimIndent(),
                     )
                 }
-                val added = mutableListOf<Pair<String, String>>()
                 columnMigrations.filterNot { it.id in applied }.forEach { migration ->
                     if (!database.hasTable(migration.table)) return@forEach
                     if (!database.hasColumn(migration.table, migration.column)) {
                         database.execSQL(
                             "ALTER TABLE ${quote(migration.table)} ADD COLUMN ${quote(migration.column)} ${migration.declaration}",
                         )
-                        added += migration.table to migration.column
                     }
                     if (migration.id !in PRIVATE_MIGRATION_IDS) {
                         database.execSQL("INSERT OR IGNORE INTO __migrations__ (id) VALUES (?)", arrayOf(migration.id))
@@ -1806,37 +1808,10 @@ class ActualBudgetDatabase private constructor(
                 if (database.hasTable("transactions") && database.hasColumn("transactions", "schedule")) {
                     database.execSQL("CREATE INDEX IF NOT EXISTS idx_transactions_schedule ON transactions(schedule)")
                 }
-                replayStoredMessages(database, added)
+                StoredMessageReplay.replay(database, schemaBefore)
                 database.setTransactionSuccessful()
             } finally {
                 database.endTransaction()
-            }
-        }
-
-        private fun replayStoredMessages(database: SQLiteDatabase, columns: List<Pair<String, String>>) {
-            if (columns.isEmpty() || !database.hasTable("messages_crdt")) return
-            columns.forEach { (table, column) ->
-                database.rawQuery(
-                    """
-                        SELECT m.row, m.value FROM messages_crdt m
-                        JOIN (SELECT row, MAX(timestamp) timestamp FROM messages_crdt
-                              WHERE dataset = ? AND `column` = ? GROUP BY row) latest
-                          ON latest.row = m.row AND latest.timestamp = m.timestamp
-                        WHERE m.dataset = ? AND m.`column` = ?
-                    """.trimIndent(), arrayOf(table, column, table, column),
-                ).use { cursor ->
-                    while (cursor.moveToNext()) {
-                        val values = ContentValues().apply {
-                            when (val value = CrdtValue.deserialize(cursor.getString(1))) {
-                                CrdtValue.Null -> putNull(column)
-                                is CrdtValue.Integer -> put(column, value.value)
-                                is CrdtValue.Decimal -> put(column, value.value)
-                                is CrdtValue.Text -> put(column, value.value)
-                            }
-                        }
-                        database.update(quote(table), values, "id = ?", arrayOf(cursor.getString(0)))
-                    }
-                }
             }
         }
 

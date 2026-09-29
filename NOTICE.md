@@ -20,6 +20,10 @@ its CRDT synchronization and loot-core packages.
 
 Those portions are MIT-licensed and retain the copyright notice for James Long. Actual Budget is a separate project and does not endorse or support this app.
 
+`app/src/main/resources/actual-migrations/` contains verbatim copies of Actual Budget's SQL
+migrations from `packages/loot-core/migrations`, used to upgrade budgets last saved by an older
+Actual. They are covered by the same MIT license and copyright notice.
+
 ## Artwork
 
 The original Actuali app icon was designed by
