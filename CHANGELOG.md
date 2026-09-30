@@ -31,6 +31,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Restored the category pill on transaction rows, gave new note tags a color, and tidied the calculator, Add tab, note editor and Manage shortcuts after the redesign ([#794](https://github.com/azimul-kabir/actua/pull/794))
 - Deleting a transfer, or changing it to an expense or income, now also removes it from the other account ([#754](https://github.com/azimul-kabir/actua/pull/754))
 - Editing a transfer no longer changes the other account's cleared state or date ([#755](https://github.com/azimul-kabir/actua/pull/755))
@@ -55,6 +56,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Sync errors that need you to act, such as a sync reset in Actual or a wrong device clock, now explain what to do and are no longer retried ([#733](https://github.com/azimul-kabir/actua/pull/733))
 - Fixed large catch-up syncs reporting out of sync where Actual would still finish ([#733](https://github.com/azimul-kabir/actua/pull/733))
 - Fixed edits made shortly after syncing with a device whose clock runs fast being overridden on other devices ([#732](https://github.com/azimul-kabir/actua/pull/732))
@@ -88,6 +90,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Reorder Accounts now shows On budget/Off budget/Closed sections and account groups, both collapsible, with each account's position number, instead of one flat unordered list ([#618](https://github.com/azimul-kabir/actua/pull/618))
 - Collapsed category groups on Budget and account sections on Accounts now stay collapsed after leaving and returning to the tab ([#620](https://github.com/azimul-kabir/actua/pull/620))
 - Balance Forecast no longer drops scheduled transactions that have no linked account, which was undercounting the scheduled-transaction total and ending/low balance ([#625](https://github.com/azimul-kabir/actua/pull/625))
@@ -112,6 +115,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Bank sync now reconciles with an existing manually entered transaction instead of importing it as a duplicate ([#604](https://github.com/azimul-kabir/actua/pull/604))
 - Show category balances while picking a category, and preselect the account when adding a transaction from an Account Detail screen ([#608](https://github.com/azimul-kabir/actua/pull/608))
 - Off-budget-account transactions with no category are no longer shown or filtered as "Uncategorized" ([#611](https://github.com/azimul-kabir/actua/pull/611))
@@ -132,6 +136,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Saving, categorizing, reconciling, and other transaction/category actions no longer briefly freeze the app while the write completes ([#585](https://github.com/azimul-kabir/actua/pull/585))
 - Transactions can now be saved with a $0.00 amount instead of the Save button staying disabled ([#578](https://github.com/azimul-kabir/actua/pull/578))
 - Auto-Assign now suggests the linked schedule's amount for a "Cover schedule" target instead of always suggesting $0 ([#576](https://github.com/azimul-kabir/actua/pull/576))
@@ -148,6 +153,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - The back gesture from Customize Home and Customize Tab Bar now returns to the Settings page they were opened from instead of the Manage root ([#571](https://github.com/azimul-kabir/actua/pull/571))
 - The back gesture's final stop before exiting the app now follows the Start page setting instead of always landing on Home ([#569](https://github.com/azimul-kabir/actua/pull/569))
 - The Accounts tab's monthly summary now counts a transfer into or out of an off-budget account as an expense or income instead of excluding every transfer ([#562](https://github.com/azimul-kabir/actua/pull/562))
@@ -157,6 +163,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - The Cash Flow report widget no longer counts a post-dated transaction inside the current/in-progress month, matching PWA/Actuali ([#556](https://github.com/azimul-kabir/actua/pull/556))
 - The Formula report widget's `query("name")` sub-queries now default to no date restriction (all-time) when no `timeFrame` is saved, and evaluate to 0 for an unknown query name, instead of silently clamping to the current month or matching every current-month transaction ([#555](https://github.com/azimul-kabir/actua/pull/555))
 - A saved custom report no longer hard-excludes every transfer; it now follows the "Show uncategorized" toggle and buckets transfers into a synthetic "Transfers" row when grouping by category, matching PWA/Actuali ([#554](https://github.com/azimul-kabir/actua/pull/554))
@@ -171,6 +178,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - The Age of Money report widget now counts a transfer to an account outside the widget's account filter as an expense, matching the PWA, instead of dropping it whenever the counterpart account is on-budget ([#536](https://github.com/azimul-kabir/actua/pull/536))
 - The Crossover report widget now uses the PWA's historical-balance CAGR for its default return, Hampel/median/mean expense projection, and last-historical-balance seeding instead of a safe-withdrawal-rate fallback and plain expense average ([#535](https://github.com/azimul-kabir/actua/pull/535))
 - The Budget Analysis report widget now respects its category/category-group filters and shows the budget engine's carried-over balance instead of an unfiltered, non-rolling total ([#534](https://github.com/azimul-kabir/actua/pull/534))
@@ -193,6 +201,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Recognized `#tags` in a transaction's notes field now get the same pill background as saved tag chips ([#506](https://github.com/azimul-kabir/actua/pull/506))
 - Manage Tags' color picker now offers Actual web's full tag color set ([#506](https://github.com/azimul-kabir/actua/pull/506))
 - Manage Tags' per-row actions menu now opens anchored to the tapped row instead of the top of the list ([#506](https://github.com/azimul-kabir/actua/pull/506))
@@ -212,6 +221,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Progress bars for categories with a goal, by-date or cover-schedule target now use customizable colors instead of always drawing in the theme's primary color: Settings → Category status colors gains "Goal in progress" (defaults to the previous primary color) and "Goal reached" (defaults to the Funded green) entries, and a goal only reads as reached once the full target balance is funded, not just this month's installment (#491)
 - Fixed the Schedules list's status badge sitting inline with the title next to the amount, where its variable width shifted the amount's position between rows; it now sits on its own row alongside the account name and repeat/date text
 
@@ -225,6 +235,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed the Reports dashboard-picker dropdown wrapping to its text content's width and using the default menu styling instead of matching the picker card's width, shape and color
 
 ## [1.0.0-beta.37] - 2026-09-22
@@ -258,6 +269,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed Home's This Month card counting transfers between on-budget accounts as income and spending; it now uses the same category-aware cash-flow calculation as Accounts
 - Fixed the certificate trust prompt inspecting and pinning the primary server URL even when a fallback server URL was the one whose connection attempt actually failed with an untrusted certificate
 - Fixed Post Transaction Today leaving a just-completed recurring schedule occurrence looking due after it advanced the schedule to its next date; the Bills calendar now still shows that occurrence as paid
@@ -274,6 +286,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed recurring schedules manually posted on their due date not advancing to their next occurrence
 - Fixed the connection screen remaining in its OpenID loading state after returning from a browser authorization flow that does not complete successfully
 - Fixed budget changes appearing unresponsive while the newly selected budget opens; a loader now remains visible until its data is ready
@@ -306,6 +319,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed the budget group summary row's balance pill not lining up with the category rows below it: the pill compensates for its own centered text padding by offsetting itself past its column's edge, which only stayed on-screen because nothing clipped the overflow — once the totals row's `animateContentSize` (beta.32) started clipping content to its own bounds, that offset got cut off. The first attempted fix dropped the offset, which un-clipped the pill but left its digits sitting inset instead of flush; the second attempt dropped the pill's own text padding instead, which realigned the digits but made the pill's background look lopsided (no breathing room on the trailing side) compared to the nicely padded pill elsewhere on the screen. The actual fix moves the balance pill out of the totals row's `animateContentSize` scope (which now only wraps Budgeted/Spent, the part that actually needs it) so the original offset — and its normal, symmetric padding — works exactly as it does in the category rows below, with nothing left to clip
 - Fixed the Connection screen showing the raw `Trust anchor for certification path not found` Java exception message on a failed connection (password or OpenID) instead of telling the user what to do about it; an untrusted server certificate now shows guidance for both causes: a self-signed/private-CA cert needs installing as a user CA certificate scoped to "VPN and apps" (a certificate scoped to Wi-Fi only reproduces this exact error even after installing it), and a publicly-issued cert (e.g. Let's Encrypt via Tailscale) hitting this error usually means the server is sending only its own certificate instead of the full chain, which Android — unlike browsers — won't complete on its own
 - Hardened the trusted-certificate hostname check: SANs are verified explicitly during trust inspection, wildcard matching is limited to a single leftmost label, IP-address certificates only match IP hosts, and IPv4 parsing accepts ASCII digits only
@@ -320,6 +334,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed saving or deleting a transaction running its local database write on the main thread; it now runs off the main thread so the editor dismisses as soon as the transaction is durably committed locally, without any extra wait for (already-asynchronous) server sync
 - Fixed connecting to a self-hosted Actual server over plain HTTP on a local/private network: Android's network security config only allowlisted one developer's hardcoded test IP (`192.168.68.109`) for cleartext traffic, so every other private/local HTTP server was rejected with "Cleartext HTTP traffic not permitted" even though the app's own connection validation already restricts HTTP to localhost/`.local`/RFC1918/link-local/ULA addresses and requires HTTPS everywhere else
 - Enabled WAL mode (with a busy timeout) on the local budget database so the background sync worker's connection no longer contends with the UI's connection, reducing SQLITE_BUSY stalls and the app feeling unresponsive while syncing
@@ -340,6 +355,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed the Transactions search/filter list and its date-grouping, Budget's category-visibility filtering and a category's recent-transactions list, Accounts' section filtering and per-row credit-card lookups, and the Add/Edit Transaction payee/category/account picker all recomputing on every recomposition (e.g. every keystroke or row-selection tap) instead of only when the underlying data actually changes
 - Fixed the Budget list re-diffing incompatible row layouts while scrolling between income/Plan/Table sections, reallocating a copy of each group on every header recomposition, and animating the whole Table-view sticky header instead of just the totals row that resizes; money amounts no longer construct a new number formatter on every render
 - Fixed loading a budget month's or the accounts list's notes with one synchronous database round-trip per category/account (plus a repeated table-existence check on each one) instead of a single batched query
@@ -363,6 +379,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed progress bars still reading as fully funded for non-monthly "Cover scheduled transaction" and "Save by a date" goals: a locally-known target definition now always wins over Actual's server-synced goal cell, since that cell can be left over from before an automation was last (re-)applied and represent only the current month's installment rather than the true end goal; "Cover scheduled transaction" goals also now resolve their full occurrence amount from the linked schedule directly, instead of only falling back to month-to-month spend progress when no server goal was synced
 - Fixed the system back button skipping past credit card statement screens instead of returning to the account page
 - Fixed the budget month selector's tap ripple stretching across the full toolbar width instead of hugging the month label
@@ -382,6 +399,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed schedule-owned rules never matching through `RulesEngine`: a posted or edited schedule transaction now always applies its own linked rule's actions and never another schedule's rule
 - Fixed the scheduled-transaction catch-up dedup check only bounding by a lower date, which could let an out-of-order or future-dated linked transaction mask and skip an earlier due/missed occurrence
 - Fixed transaction row alignment: the running balance line now has proper spacing from the amount, and the amount column top-aligns with the payee text instead of centering against the taller stack
@@ -400,6 +418,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed a percentage budget automation's selected income category being silently discarded and replaced with the default on decode
 
 ## [1.0.0-beta.27] - 2026-09-17
@@ -413,6 +432,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed budget progress bars ignoring "Have amount by a date" and "% of income"/goal-based (`BY_DATE`/`GOAL`) targets until an unrelated whole-budget "Apply Templates" run synced the goal amount from the server; the goal is now computed locally from the target definition so progress reflects it immediately
 - Fixed the target editor excluding "Cover schedule" targets from its type picker and silently dropping the linked schedule when saving an existing schedule-linked target; added a schedule picker to select, change, or clear the link, and fixed the details card to show the linked schedule's name/amount instead of $0.00
 
@@ -425,6 +445,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed the "Syncing budget… Showing local data." banner appearing on every local edit (adding/editing transactions, budgeting a category, toggling cleared, etc.); it now only appears for app-open and background syncs, which can bring in changes the screen doesn't have yet, not for the upload triggered by an edit you just made
 
 ## [1.0.0-beta.25] - 2026-09-16
@@ -444,6 +465,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed "View schedule" (from the Transactions multi-select bulk menu) not returning to the Transactions screen after back/save/delete on the opened schedule; it previously always dropped you onto the Schedules list or Bills calendar
 - Fixed the budget progress bar for "Have amount by a date" and "Cover scheduled transaction" targets tracking only this month's installment instead of the overall goal; a category funded 10% toward a multi-month target now shows 10% progress instead of 100% once that month's slice is met
 
@@ -455,6 +477,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed a spurious error banner (e.g. a raw `CertPathValidatorException`) appearing on cold app launch, most noticeably via the Add Expense/Income/Transfer/Search home-screen shortcuts; the automatic app-open sync is opportunistic and no longer surfaces transient network failures as a Snackbar, since they're already recorded for the Connection screen and resolved by the next sync attempt
 - Fixed the transaction notes `#` tag autocomplete dropdown dismissing and reopening the on-screen keyboard on every keystroke while a tag token is active; the suggestion popup no longer takes window focus, so the keyboard stays open while suggestions update live underneath
 
@@ -471,6 +494,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed transaction notes `#` tag autocomplete never appearing in Add/Edit Transaction; typing `#` in the main Notes field or a split note now shows matching-tag suggestions and an inline "Create #tag" option, as already documented
 
 ### Safety
@@ -490,6 +514,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed colored transaction-note tags rendering inconsistently across transaction lists, including tag metadata schema handling and cache invalidation after sync
 - Fixed transfer transactions not applying matching Actual rules; selecting a destination account now triggers rule evaluation and applies supported actions such as Notes and Cleared
 
@@ -512,6 +537,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Corrected ongoing sync-status layout on Connection & Data so the progress indicator remains visible, aligned, and properly spaced on narrow screens
 
 ### Safety
@@ -533,6 +559,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Hardened encrypted budget download and open recovery so invalid or incomplete local state is detected before it can be restored or used
 
 ### Safety
@@ -544,6 +571,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Account monthly Income, Expenses, and Net now use Actual category classification, exclude transfers and uncategorized cash flow, and count categorized split portions without double-counting their parent
 - Ongoing synchronization status now stays below the Android system status bar, and nearby payee results have clear compact spacing below the refresh action
 - Matching Actual rules now populate supported account, category, cleared, notes, date, amount, and payee fields immediately in the new-transaction form
@@ -597,6 +625,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Blank transaction amount fields no longer shift when focused or while their caret blinks
 
 ### Safety
@@ -608,6 +637,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Successful OpenID Connect sign-in now returns directly from the browser to Actua instead of leaving the user on a stale or expired OIDC interaction page
 
 ### Safety
@@ -629,6 +659,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Blank transaction and split amount fields no longer shift layout when focused or when the custom cursor starts blinking
 
 ### Safety
@@ -699,6 +730,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Replaced the Add expense launcher shortcut artwork with an unambiguous minus icon so it no longer appears like Add income on Pixel Launcher
 
 ## [1.0.0-beta.10] - 2026-09-11
@@ -738,6 +770,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Made transaction and split amount fields consistently follow the selected
   display currency, including Use Remaining and split remainder text
 - Added currency-formatting regression coverage for supported display modes
@@ -746,6 +779,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Fixed a startup crash when creating or opening the built-in demo budget
 
 ## [1.0.0-beta.6] - 2026-09-10
@@ -779,6 +813,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Moved Bills calendar database loading off the UI thread
 - Added confirmation before deleting a schedule from the Bills calendar and
   limited Skip Next Date to applicable recurring schedules
@@ -792,6 +827,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Removed the global Transaction button from the Reconcile workflow so it no
   longer covers the reconciliation keypad
 
@@ -815,6 +851,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Kept split parents and children aligned when their cleared status changes and
   preserved reconciled transactions as locked records
 
@@ -862,6 +899,7 @@ First beta of the 1.0 release line.
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Aligned Scheduled Transaction names, status chips, amounts, recurrence details,
   accounts, and overflow actions into consistent responsive rows
 - Corrected nested Settings navigation so Android Back returns directly to More
@@ -890,6 +928,7 @@ First beta of the 1.0 release line.
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Kept report aggregation split-aware and excluded transfers, off-budget accounts,
   and income categories where required by Actual's report calculations
 - Corrected backup restore and archive display handling for all backup item types
@@ -910,6 +949,7 @@ First beta of the 1.0 release line.
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Made backspace visually remove every part of calculator expressions such as `100 + 100`, including the pending operator
 - Revalidated notification permission at delivery time so revoked access cannot crash a due-date reminder
 
@@ -929,6 +969,7 @@ First public beta release.
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Recovered missing, malformed and epoch-like sync clocks from the local message-log high-water mark without discarding pending changes
 - Removed categories from off-budget standard and split transactions during creation, editing, account changes and rule processing
 
@@ -961,6 +1002,7 @@ Thirteenth public testing release.
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Kept Plan expense-category and account separators above opaque row backgrounds so they remain visible
 - Removed excessive spacing between the transaction Save action and the amount keypad
 
@@ -975,6 +1017,7 @@ Twelfth public testing release.
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Removed the blocked focus overlay shown after tapping the Amount field in Add or Edit Transaction
 
 ## [0.1.0-alpha.11] - 2026-09-08
@@ -995,6 +1038,7 @@ Eleventh public testing release.
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Opening a zero transaction or split amount now clears the displayed 0.00 before the first digit is entered
 
 ## [0.1.0-alpha.10] - 2026-09-08
@@ -1018,6 +1062,7 @@ Tenth public testing release.
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Allowed large Plan group balances to use enough width instead of being clipped to a minus sign
 
 ## [0.1.0-alpha.9] - 2026-09-07
@@ -1038,6 +1083,7 @@ Bugfix testing release.
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Replaced the transaction editor's bottom action row with a fixed extended Save button
 - Moved Cancel to the top-left close control and Edit-mode Delete to the top-right
 - Kept transaction fields scrollable above the floating Save button
@@ -1160,6 +1206,7 @@ Second public testing release.
 
 ### Fixed
 
+- Bank sync no longer re-imports transactions that a bank sends again under a new ID ([#799](https://github.com/azimul-kabir/actua/pull/799))
 - Transaction forms now scroll through fields and actions within the available screen and keyboard space
 - Expense, Income, and Transfer selector labels are centered consistently
 - Add mode now has an explicit Cancel action; Edit mode has working Save, Delete, and Cancel actions
