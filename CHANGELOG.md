@@ -18,6 +18,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Import transactions and Connection & Data now group their steps and settings into labeled cards ([#788](https://github.com/azimul-kabir/actua/pull/788))
 - Closing an account and adding accounts or categories now use the same grouped cards as Add transaction ([#782](https://github.com/azimul-kabir/actua/pull/782))
 - Customize Home, Customize Tab Bar and the reorder screens now show their rows in rounded cards ([#784](https://github.com/azimul-kabir/actua/pull/784))
+- Budget automation amounts and notes, the Table view overview, Manage Categories and Connection & Data now match the card design, and category balance pills use the status color ([#804](https://github.com/azimul-kabir/actua/pull/804))
 - Home now shows Ready to Budget as a hero amount and groups its sections into the same cards as Add transaction ([#790](https://github.com/azimul-kabir/actua/pull/790))
 - Accounts now shows your total up top and groups accounts into rounded cards with type icons ([#785](https://github.com/azimul-kabir/actua/pull/785))
 - Tags, payee locations, backups, schedules and bank sync now show their lists in rounded cards ([#787](https://github.com/azimul-kabir/actua/pull/787))
