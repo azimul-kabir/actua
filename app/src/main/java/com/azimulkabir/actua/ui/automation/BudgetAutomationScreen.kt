@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DateRange
@@ -24,7 +23,6 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
@@ -39,7 +37,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -62,6 +59,22 @@ import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.theme.Sizes
+import com.azimulkabir.actua.ui.theme.Spacing
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 /**
  * Dedicated full-page Budget Automation editor (issue #265).
@@ -133,24 +146,17 @@ fun BudgetAutomationScreen(
     val hasGoal = entries.any { it.type == BudgetTarget.Type.GOAL }
     val errors = BudgetAutomationDocument.validate(entries)
     Column(modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
-            Column(Modifier.weight(1f)) {
-                Text("Budget Automation", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(
-                    "${group.name} · ${category.name}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        ActuaScreenHeader(title = "Budget Automation", onBack = onBack)
+        Text(
+            "${group.name} · ${category.name}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs),
+        )
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             SectionHeader("Automations")
             if (contributionEntries.isEmpty()) EmptyAutomationsNote()
@@ -159,7 +165,7 @@ fun BudgetAutomationScreen(
             }
             AddButton(enabled = entries.size < 20, onClick = { addingType = BudgetTarget.Type.FIXED }) { Text("+ Add an automation") }
 
-            SectionHeader("Options", modifier = Modifier.padding(top = 12.dp))
+            SectionHeader("Options", modifier = Modifier.padding(top = Spacing.md))
             optionEntries.forEach { (index, target) ->
                 AutomationSummaryCard(target = target, hideDecimalPlaces = hideDecimalPlaces, onClick = { editingIndex = index })
             }
@@ -168,11 +174,11 @@ fun BudgetAutomationScreen(
 
             errors.forEach { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             Spacer(Modifier.height(8.dp))
-            Button(
+            SaveButton(
+                text = if (entries.isEmpty()) "Save (remove automations)" else "Save automations",
                 enabled = errors.isEmpty(),
                 onClick = { onSave(entries); onBack() },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(if (entries.isEmpty()) "Save (remove automations)" else "Save automations") }
+            )
             Spacer(Modifier.height(20.dp))
         }
     }
@@ -198,11 +204,8 @@ private fun UnsupportedAutomationNotice(category: BudgetCategory, onBack: () -> 
         if (category.automationReadOnly) listOf("notes-managed") else listOf("advanced")
     }.joinToString()
     Column(modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
-            Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        }
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ActuaScreenHeader(title = category.name, onBack = onBack)
+        Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Text("Automations are read-only", style = MaterialTheme.typography.titleMedium)
             Text(
                 "This category contains $types automation settings that Actua cannot safely edit yet. Nothing has been changed. Continue managing this category in Actual Budget.",
@@ -300,9 +303,7 @@ private fun EditorScaffold(
 ) {
     var confirmingDelete by remember { mutableStateOf(false) }
     Column(modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }
-            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        ActuaScreenHeader(title = title, onBack = onBack) {
             if (onDelete != null) {
                 IconButton(onClick = { confirmingDelete = true }) {
                     Icon(Icons.Outlined.Delete, contentDescription = "Remove automation", tint = MaterialTheme.colorScheme.error)
@@ -310,8 +311,9 @@ private fun EditorScaffold(
             }
         }
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
             content = content,
         )
     }
@@ -364,15 +366,10 @@ private fun LimitEditor(
             label = { Text("Amount") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         )
         Text("Every", style = MaterialTheme.typography.titleSmall)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BudgetTarget.LimitPeriod.entries.forEach { option ->
-                FilledTonalButton(
-                    onClick = { period = option }, modifier = Modifier.weight(1f),
-                    colors = if (period == option) ButtonDefaults.filledTonalButtonColors()
-                        else ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                ) { Text(option.jsonValue.replaceFirstChar(Char::uppercase)) }
-            }
-        }
+        SegmentedChoice(
+            options = BudgetTarget.LimitPeriod.entries.map { it to it.jsonValue.replaceFirstChar(Char::uppercase) },
+            selected = period,
+        ) { period = it }
         Text(
             "A weekly or daily cap is scaled by the number of weeks/days in the month.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -380,18 +377,16 @@ private fun LimitEditor(
         if (period == BudgetTarget.LimitPeriod.WEEKLY) {
             DateField("Weekly start date", startDate) { datePickerOpen = true }
         }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Retain existing funds over the cap")
-                Text(
-                    if (hold) "Excess carryover stays in the category." else "Excess carryover is released to Ready to Budget.",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(checked = hold, onCheckedChange = { hold = it })
-        }
+        SwitchCard(
+            icon = Icons.Outlined.Savings,
+            label = "Retain existing funds over the cap",
+            caption = if (hold) "Excess carryover stays in the category." else "Excess carryover is released to Ready to Budget.",
+            checked = hold,
+        ) { hold = it }
         NoteField(note) { note = it }
-        Button(
+        SaveButton(
+            text = if (initial == null) "Add balance cap" else "Update balance cap",
+            enabled = canSave,
             onClick = {
                 onSave(
                     BudgetTarget(
@@ -401,8 +396,7 @@ private fun LimitEditor(
                     ),
                 )
             },
-            enabled = canSave, modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (initial == null) "Add balance cap" else "Update balance cap") }
+        )
         Spacer(Modifier.height(20.dp))
     }
     simpleDatePicker(datePickerOpen, startDate, { datePickerOpen = false }) { startDate = it }
@@ -428,10 +422,11 @@ private fun GoalEditor(
             label = { Text("Target amount") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         )
         NoteField(note) { note = it }
-        Button(
+        SaveButton(
+            text = if (initial == null) "Add long-term goal" else "Update long-term goal",
+            enabled = amountCents != null && amountCents > 0L,
             onClick = { onSave(BudgetTarget(BudgetTarget.Type.GOAL, amountCents = amountCents ?: 0L, note = note.trim().ifBlank { null })) },
-            enabled = amountCents != null && amountCents > 0L, modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (initial == null) "Add long-term goal" else "Update long-term goal") }
+        )
         Spacer(Modifier.height(20.dp))
     }
 }
@@ -609,32 +604,20 @@ private fun ContributionEditor(
                     label = { Text("Total amount") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
                 DateField("Target month", targetMonth.take(7) + "-01") { datePickerFor = DateTarget.TARGET_MONTH }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Repeats", Modifier.weight(1f))
-                    Switch(checked = repeats, onCheckedChange = { repeats = it })
-                }
+                SwitchCard(icon = Icons.Outlined.Repeat, label = "Repeats", checked = repeats) { repeats = it }
                 if (repeats) {
                     NumberStepper("Repeat every", repeatEvery, 1..50) { repeatEvery = it }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(false to "Months", true to "Years").forEach { (annual, label) ->
-                            FilledTonalButton(
-                                onClick = { repeatAnnual = annual }, modifier = Modifier.weight(1f),
-                                colors = if (repeatAnnual == annual) ButtonDefaults.filledTonalButtonColors()
-                                    else ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                            ) { Text(label) }
-                        }
-                    }
+                    SegmentedChoice(
+                        options = listOf(false to "Months", true to "Years"),
+                        selected = repeatAnnual,
+                    ) { repeatAnnual = it }
                 }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Allow early spending")
-                        Text(
-                            "Spend from the category before the target month without the automation recalculating.",
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(checked = allowEarlySpending, onCheckedChange = { allowEarlySpending = it })
-                }
+                SwitchCard(
+                    icon = Icons.Outlined.Bolt,
+                    label = "Allow early spending",
+                    caption = "Spend from the category before the target month without the automation recalculating.",
+                    checked = allowEarlySpending,
+                ) { allowEarlySpending = it }
                 if (allowEarlySpending) {
                     DateField("Start spending in", spendFromMonth.take(7) + "-01") { datePickerFor = DateTarget.SPEND_FROM }
                 }
@@ -756,10 +739,7 @@ private fun ContributionEditor(
                     DateField("Weekly start date", limitStartDate) { datePickerFor = DateTarget.LIMIT_START }
                 }
                 if (limitPeriod != null) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Hold excess carryover", Modifier.weight(1f))
-                        Switch(checked = limitHold, onCheckedChange = { limitHold = it })
-                    }
+                    SwitchCard(icon = Icons.Outlined.Savings, label = "Hold excess carryover", checked = limitHold) { limitHold = it }
                 }
             }
             else -> Unit
@@ -767,26 +747,17 @@ private fun ContributionEditor(
 
         if (adjustmentApplicable) {
             SectionTitle("Adjustment")
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Increase or decrease the computed amount")
-                    Text(
-                        "Matches Actual's \"increase\"/\"decrease\" modifier.",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(checked = adjustmentEnabled, onCheckedChange = { adjustmentEnabled = it })
-            }
+            SwitchCard(
+                icon = Icons.Outlined.Tune,
+                label = "Increase or decrease the computed amount",
+                caption = "Matches Actual's \"increase\"/\"decrease\" modifier.",
+                checked = adjustmentEnabled,
+            ) { adjustmentEnabled = it }
             if (adjustmentEnabled) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(true to "Increase", false to "Decrease").forEach { (increase, label) ->
-                        FilledTonalButton(
-                            onClick = { adjustmentIncrease = increase }, modifier = Modifier.weight(1f),
-                            colors = if (adjustmentIncrease == increase) ButtonDefaults.filledTonalButtonColors()
-                                else ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                        ) { Text(label) }
-                    }
-                }
+                SegmentedChoice(
+                    options = listOf(true to "Increase", false to "Decrease"),
+                    selected = adjustmentIncrease,
+                ) { adjustmentIncrease = it }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = adjustmentMagnitude, onValueChange = { adjustmentMagnitude = it }, modifier = Modifier.weight(1f),
@@ -808,9 +779,11 @@ private fun ContributionEditor(
         NoteField(note) { note = it }
         Text(type.explanation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-        Button(onClick = { onSave(buildTarget()) }, enabled = canSave, modifier = Modifier.fillMaxWidth()) {
-            Text(if (initial == null) "Add automation" else "Update automation")
-        }
+        SaveButton(
+            text = if (initial == null) "Add automation" else "Update automation",
+            enabled = canSave,
+            onClick = { onSave(buildTarget()) },
+        )
         Spacer(Modifier.height(20.dp))
     }
 
@@ -898,56 +871,125 @@ private fun TypeCard(type: BudgetTarget.Type, selected: Boolean, enabled: Boolea
 
 @Composable
 private fun AddButton(enabled: Boolean = true, onClick: () -> Unit, label: @Composable () -> Unit) {
-    TextButton(enabled = enabled, onClick = onClick, modifier = Modifier.fillMaxWidth()) { label() }
+    FilledTonalButton(
+        enabled = enabled,
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(Sizes.secondaryButtonHeight),
+        shape = MaterialTheme.shapes.large,
+    ) { label() }
 }
 
+/** The editor's main action; it stays in the scrolling column after the fields it saves. */
 @Composable
-private fun NumberStepper(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, modifier = Modifier.weight(1f))
-        FilledTonalIconButton(onClick = { onChange((value - 1).coerceIn(range)) }, enabled = value > range.first) { Text("−") }
-        Text(value.toString(), modifier = Modifier.padding(horizontal = 14.dp))
-        FilledTonalIconButton(onClick = { onChange((value + 1).coerceIn(range)) }, enabled = value < range.last) { Text("+") }
+private fun SaveButton(text: String, enabled: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth().height(Sizes.primaryButtonHeight),
+        shape = MaterialTheme.shapes.large,
+    ) {
+        Icon(Icons.Outlined.Check, contentDescription = null)
+        Text(text, modifier = Modifier.padding(start = Spacing.sm))
     }
 }
 
+/** A labelled −/+ stepper as a form-card row. */
 @Composable
-private fun ChoiceField(label: String, value: String, onClick: () -> Unit) {
-    Surface(onClick = onClick, color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(value, fontWeight = FontWeight.SemiBold)
-            }
-            Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Choose $label")
+private fun NumberStepper(label: String, value: Int, range: IntRange, onChange: (Int) -> Unit) {
+    ActuaFormCard {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = Sizes.formRowMinHeight)
+                .padding(start = Spacing.lg, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            FilledTonalIconButton(
+                onClick = { onChange((value - 1).coerceIn(range)) },
+                enabled = value > range.first,
+                modifier = Modifier.semantics { contentDescription = "Decrease $label" },
+            ) { Text("−") }
+            Text(value.toString(), modifier = Modifier.padding(horizontal = 14.dp))
+            FilledTonalIconButton(
+                onClick = { onChange((value + 1).coerceIn(range)) },
+                enabled = value < range.last,
+                modifier = Modifier.semantics { contentDescription = "Increase $label" },
+            ) { Text("+") }
         }
     }
 }
 
 @Composable
+private fun ChoiceField(label: String, value: String, onClick: () -> Unit) {
+    ActuaFormCard {
+        ActuaFormRow(
+            icon = Icons.Outlined.Tune,
+            label = label,
+            value = value,
+            trailing = { Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Choose $label") },
+            onClick = onClick,
+        )
+    }
+}
+
+@Composable
 private fun DateField(label: String, isoDate: String, onClick: () -> Unit) {
-    Surface(onClick = onClick, color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(isoDate, fontWeight = FontWeight.SemiBold)
-            }
-            Icon(Icons.Outlined.DateRange, contentDescription = "Choose $label")
+    ActuaFormCard {
+        ActuaFormRow(
+            icon = Icons.Outlined.CalendarMonth,
+            label = label,
+            value = isoDate,
+            trailing = { Icon(Icons.Outlined.DateRange, contentDescription = "Choose $label") },
+            onClick = onClick,
+        )
+    }
+}
+
+/** A switch row with an optional [caption], in its own card. */
+@Composable
+private fun SwitchCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    checked: Boolean,
+    caption: String? = null,
+    onChange: (Boolean) -> Unit,
+) {
+    ActuaFormCard {
+        ActuaFormRow(icon = icon, label = label, value = null, caption = caption, checked = checked,
+            onClick = { onChange(!checked) })
+    }
+}
+
+/** One choice out of [options] (value to label) as full-width segmented buttons. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> SegmentedChoice(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        options.forEachIndexed { index, (value, label) ->
+            SegmentedButton(
+                selected = value == selected,
+                onClick = { onSelect(value) },
+                shape = SegmentedButtonDefaults.itemShape(index, options.size),
+            ) { Text(label) }
         }
     }
 }
 
 @Composable
 private fun SectionTitle(value: String) {
-    Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    Text(
+        value,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = Spacing.xs, top = Spacing.xs),
+    )
 }
 
 @Composable
 private fun SectionHeader(value: String, modifier: Modifier = Modifier) {
     Text(
-        value.uppercase(), modifier = modifier,
-        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        value, modifier = modifier.padding(start = Spacing.xs, top = Spacing.xs),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
     )
 }
 

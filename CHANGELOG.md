@@ -9,6 +9,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Add and Edit transaction is now a single page: the amount's sign sets expense or income, and choosing an account as the payee makes a transfer ([#760](https://github.com/azimul-kabir/actua/pull/760))
 - Settings and Manage are now grouped into cards with icons, like Add transaction ([#783](https://github.com/azimul-kabir/actua/pull/783))
 - Account details now show the balance up top and group transactions into rounded cards by day ([#786](https://github.com/azimul-kabir/actua/pull/786))
+- Budget automations now use the same cards, segmented choices and switches as Add transaction ([#789](https://github.com/azimul-kabir/actua/pull/789))
 - The schedule editor now matches Add transaction, with the amount up top and fields grouped into cards ([#780](https://github.com/azimul-kabir/actua/pull/780))
 - The rule editor and credit card setup now use the same grouped cards as Add transaction ([#781](https://github.com/azimul-kabir/actua/pull/781))
 - Import transactions and Connection & Data now group their steps and settings into labeled cards ([#788](https://github.com/azimul-kabir/actua/pull/788))
