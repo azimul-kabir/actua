@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Account details now show the balance up top and group transactions into rounded cards by day ([#786](https://github.com/azimul-kabir/actua/pull/786))
 - Budget automations now use the same cards, segmented choices and switches as Add transaction ([#789](https://github.com/azimul-kabir/actua/pull/789))
 - The schedule editor now matches Add transaction, with the amount up top and fields grouped into cards ([#780](https://github.com/azimul-kabir/actua/pull/780))
+- Reports now show each widget in a rounded card under its title, with headline amounts up top ([#791](https://github.com/azimul-kabir/actua/pull/791))
 - The rule editor and credit card setup now use the same grouped cards as Add transaction ([#781](https://github.com/azimul-kabir/actua/pull/781))
 - Import transactions and Connection & Data now group their steps and settings into labeled cards ([#788](https://github.com/azimul-kabir/actua/pull/788))
 - Closing an account and adding accounts or categories now use the same grouped cards as Add transaction ([#782](https://github.com/azimul-kabir/actua/pull/782))
