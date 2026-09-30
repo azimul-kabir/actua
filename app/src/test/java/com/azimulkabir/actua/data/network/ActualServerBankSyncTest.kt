@@ -42,4 +42,28 @@ class ActualServerBankSyncTest {
         assertEquals("Reconnect this bank", download.problem)
         assertEquals(emptyList<BankSyncTransaction>(), download.transactions)
     }
+
+    @Test
+    fun `bank-sync downloads get a longer read timeout and other requests keep the default`() {
+        val requests = mutableListOf<ActualHttpRequest>()
+        val client = ActualServerClient { request ->
+            requests += request
+            val body = if (request.url.path.endsWith("/transactions")) """{"data":{"transactions":{"all":[]}}}"""
+                else """{"status":"ok","data":{"configured":true}}"""
+            ActualHttpResponse(200, body.encodeToByteArray())
+        }
+
+        client.downloadSimpleFinTransactions("https://actual.test", "token", listOf("a"), listOf("2026-09-01"))
+        client.downloadGoCardlessTransactions("https://actual.test", "token", "req", "a", "2026-09-01", "2026-09-30")
+        client.simpleFinStatus("https://actual.test", "token")
+
+        assertEquals(
+            listOf(
+                "/simplefin/transactions" to BANK_SYNC_READ_TIMEOUT_MILLIS,
+                "/gocardless/transactions" to BANK_SYNC_READ_TIMEOUT_MILLIS,
+                "/simplefin/status" to null,
+            ),
+            requests.map { it.url.path to it.readTimeoutMillis },
+        )
+    }
 }

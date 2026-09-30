@@ -98,7 +98,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   Imports preserve provider IDs, pending/cleared state, integer cents, rules, CRDT mutation
   logging, per-account status/last-sync fields, exact-ID deduplication, and Actual's bank-sync
   fuzzy matching (same amount within 7 days, including rows already imported under a different
-  provider ID).
+  provider ID). Downloads get Actual's 5-minute bank-sync read timeout; a timeout is stored as
+  `timed-out`, an account left out of a SimpleFIN batch as `account-missing`, and other download
+  errors as `failed`, as in Actual. Accounts linked through providers Actua can't download yet
+  (Pluggy.ai, Enable Banking, Akahu) are named as unsupported and their stored status is left to
+  Actual.
 - On-device financial-message parsing for explicitly pasted/shared text and opt-in future
   notifications from an explicit allowed-app list, with configurable debit/credit terms, amount/date/reference/payee extraction,
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion

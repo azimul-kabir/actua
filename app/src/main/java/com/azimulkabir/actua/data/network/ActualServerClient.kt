@@ -85,7 +85,19 @@ data class ActualHttpRequest(
     val method: String,
     val headers: Map<String, String> = emptyMap(),
     val body: ByteArray? = null,
+    /** Overrides the transport's default read timeout, e.g. for slow bank-sync downloads. */
+    val readTimeoutMillis: Int? = null,
 )
+
+/** Default read timeout for server requests. */
+const val DEFAULT_READ_TIMEOUT_MILLIS = 30_000
+
+/**
+ * Read timeout for bank-sync downloads. The server waits on the bank's bridge, so Actual gives its
+ * SimpleFIN batch download 5 minutes (`downloadSimpleFinTransactions` in loot-core
+ * `server/accounts/sync.ts`) and sets no client timeout on GoCardless downloads.
+ */
+const val BANK_SYNC_READ_TIMEOUT_MILLIS = 300_000
 data class ActualHttpResponse(val status: Int, val body: ByteArray)
 fun interface ActualHttpTransport { fun execute(request: ActualHttpRequest): ActualHttpResponse }
 
@@ -112,7 +124,7 @@ class UrlConnectionTransport(
         return try {
             connection.requestMethod = request.method
             connection.connectTimeout = 15_000
-            connection.readTimeout = 30_000
+            connection.readTimeout = request.readTimeoutMillis ?: DEFAULT_READ_TIMEOUT_MILLIS
             request.headers.forEach(connection::setRequestProperty)
             request.body?.let { body ->
                 connection.doOutput = true
@@ -333,6 +345,7 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         val response = request(
             serverUrl, "/simplefin/transactions", "POST",
             actualHeaders(token) + ("Content-Type" to "application/json"), body,
+            readTimeoutMillis = BANK_SYNC_READ_TIMEOUT_MILLIS,
         )
         checkAuthorization(response)
         if (response.status in setOf(404, 405, 501)) {
@@ -459,6 +472,7 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         val response = request(
             serverUrl, "/gocardless/transactions", "POST",
             actualHeaders(token) + ("Content-Type" to "application/json"), body,
+            readTimeoutMillis = BANK_SYNC_READ_TIMEOUT_MILLIS,
         )
         checkAuthorization(response)
         if (response.status in setOf(404, 405, 501)) {
@@ -481,10 +495,11 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         method: String,
         headers: Map<String, String> = emptyMap(),
         body: ByteArray? = null,
+        readTimeoutMillis: Int? = null,
     ): ActualHttpResponse = transport.execute(
         ActualHttpRequest(
             URL(normalizeServerUrl(serverUrl) + path), method,
-            mapOf("Accept" to "application/json") + customHeaders + headers, body,
+            mapOf("Accept" to "application/json") + customHeaders + headers, body, readTimeoutMillis,
         ),
     )
 
