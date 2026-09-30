@@ -62,7 +62,47 @@ class BankSyncReconciliationTest {
         assertTrue(reconciled.cleared)
     }
 
-    @Test fun fuzzyMatchCandidatesOnlyReturnsUnlinkedRowsInTheDateWindow() = withDatabase { database, _ ->
+    // Issue #762: some providers send a new id for a transaction already imported under another
+    // one. Actual's bank sync (strictIdChecking off) fuzzy-matches it instead of duplicating it.
+    @Test fun reDownloadUnderANewIdMatchesTheAlreadyImportedTransaction() = withDatabase { database, _ ->
+        val writer = writer(database)
+        writer.createTransaction(
+            manualTransaction("imported-1", date = 20260913, amount = -1_200).copy(financialId = "old-bank-id", cleared = true),
+            applyRules = false,
+        )
+        val service = service(database, writer, simpleFinResponse(bankRow("new-bank-id", "2026-09-13", "-12.00")))
+
+        val result = service.sync("https://actual.test", "token")
+
+        assertEquals(0, result.imported)
+        assertEquals(1, result.matched)
+        assertEquals(listOf("imported-1"), transactionIds(database))
+        assertEquals("new-bank-id", requireNotNull(database.fetchTransaction("imported-1")).financialId)
+    }
+
+    @Test fun identicalPurchasesWithTheirOwnIdsAreStillImportedSeparately() = withDatabase { database, _ ->
+        val writer = writer(database)
+        val first = service(database, writer, simpleFinResponse(
+            bankRow("coffee-a", "2026-09-13", "-12.00"), bankRow("coffee-b", "2026-09-13", "-12.00"),
+        ), idPrefix = "first")
+        assertEquals(2, first.sync("https://actual.test", "token").imported)
+
+        // The next download still sends both under their own ids, plus a third identical purchase.
+        val second = service(database, writer, simpleFinResponse(
+            bankRow("coffee-a", "2026-09-13", "-12.00"), bankRow("coffee-b", "2026-09-13", "-12.00"),
+            bankRow("coffee-c", "2026-09-14", "-12.00"),
+        ), idPrefix = "second")
+        val result = second.sync("https://actual.test", "token")
+
+        assertEquals(1, result.imported)
+        assertEquals(0, result.matched)
+        assertEquals(
+            setOf("coffee-a", "coffee-b", "coffee-c"),
+            transactionIds(database).mapTo(mutableSetOf()) { requireNotNull(database.fetchTransaction(it)).financialId },
+        )
+    }
+
+    @Test fun fuzzyMatchCandidatesReturnsManualAndImportedRowsInTheDateWindow() = withDatabase { database, _ ->
         val writer = writer(database)
         writer.createTransaction(manualTransaction("in-window", date = 20260910, amount = -1_200), applyRules = false)
         writer.createTransaction(manualTransaction("too-far", date = 20260101, amount = -1_200), applyRules = false)
@@ -76,8 +116,38 @@ class BankSyncReconciliationTest {
             "checking", amountCents = -1_200, dateFrom = 20260903, dateTo = 20260917,
         )
 
-        assertEquals(listOf("in-window"), candidates.map { it.id })
+        assertEquals(
+            mapOf("in-window" to null, "already-linked" to "already-linked-ext"),
+            candidates.associate { it.id to it.financialId },
+        )
     }
+
+    private fun service(database: ActualBudgetDatabase, writer: ActualTransactionWriter, response: String, idPrefix: String = "new") =
+        BankSyncService(
+            database = database, transactions = writer,
+            entities = ActualEntityWriter(database = database, nodeId = "6363636363636363", nowMillis = { FIXED_MILLIS }),
+            server = ActualServerClient { request ->
+                if (request.url.path.contains("simplefin/transactions")) ActualHttpResponse(200, response.encodeToByteArray())
+                else ActualHttpResponse(404, ByteArray(0))
+            },
+            idFactory = idSequence(idPrefix),
+            today = { java.time.LocalDate.of(2026, 9, 16) },
+        )
+
+    private fun idSequence(prefix: String): () -> String {
+        var next = 0
+        return { "$prefix-${++next}" }
+    }
+
+    /** Every live -12.00 transaction in the account; all rows these tests create use that amount. */
+    private fun transactionIds(database: ActualBudgetDatabase): List<String> =
+        database.fuzzyMatchCandidates("checking", amountCents = -1_200, dateFrom = 20260101, dateTo = 20261231).map { it.id }
+
+    private fun bankRow(id: String, date: String, amount: String) =
+        """{"transactionId":"$id","date":"$date","transactionAmount":{"amount":"$amount"},"payeeName":"Coffee Shop","booked":true}"""
+
+    private fun simpleFinResponse(vararg rows: String) =
+        """{"data":{"ext-1":{"transactions":{"all":[${rows.joinToString(",")}]}}}}"""
 
     private fun writer(database: ActualBudgetDatabase) = ActualTransactionWriter(
         database = database, nodeId = "5252525252525252", nowMillis = { FIXED_MILLIS },

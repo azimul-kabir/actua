@@ -69,6 +69,8 @@ class ActualBudgetDatabase private constructor(
         val date: Int,
         val payeeId: String?,
         val reconciled: Boolean,
+        /** The bank id this row was already imported under, or null for a manually entered row. */
+        val financialId: String? = null,
     )
 
     override fun close() = database.close()
@@ -265,18 +267,18 @@ class ActualBudgetDatabase private constructor(
     }
 
     /**
-     * Candidate rows a bank-sync import might reconcile with: same account/amount, no
-     * `financial_id` of their own yet (so not already linked to a different bank row), within
-     * the caller's date window. Mirrors the dataset upstream Actual's fuzzy matcher queries
-     * before picking a payee match or the closest remaining date.
+     * Candidate rows a bank-sync import might reconcile with: same account/amount within the
+     * caller's date window, whether or not they already carry a `financial_id`. Mirrors the
+     * dataset upstream Actual's fuzzy matcher queries for bank-sync accounts, which turn off
+     * `strictIdChecking` because providers can send a new id for the same transaction.
      */
     @Synchronized
     fun fuzzyMatchCandidates(accountId: String, amountCents: Long, dateFrom: Int, dateTo: Int): List<FuzzyMatchCandidate> =
         database.rawQuery(
-            """SELECT t.id, t.date, COALESCE(pm.targetId, t.description), t.reconciled
+            """SELECT t.id, t.date, COALESCE(pm.targetId, t.description), t.reconciled, t.financial_id
                 FROM transactions t LEFT JOIN payee_mapping pm ON pm.id = t.description
                 WHERE t.acct = ? AND (t.tombstone = 0 OR t.tombstone IS NULL)
-                  AND t.financial_id IS NULL AND t.amount = ? AND t.date >= ? AND t.date <= ?""",
+                  AND t.amount = ? AND t.date >= ? AND t.date <= ?""",
             arrayOf(accountId, amountCents.toString(), dateFrom.toString(), dateTo.toString()),
         ).use { cursor -> buildList {
             while (cursor.moveToNext()) add(FuzzyMatchCandidate(
@@ -284,6 +286,7 @@ class ActualBudgetDatabase private constructor(
                 date = cursor.getInt(1),
                 payeeId = cursor.stringOrNull(2),
                 reconciled = cursor.getInt(3) == 1,
+                financialId = cursor.stringOrNull(4),
             ))
         } }
 
