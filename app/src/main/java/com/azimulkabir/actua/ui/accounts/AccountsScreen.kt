@@ -7,7 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,18 +17,34 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,26 +66,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.model.Account
-import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.CreditCardStatus
-import com.azimulkabir.actua.ui.components.RenameDialog
-import com.azimulkabir.actua.ui.components.NewAccountDialog
-import com.azimulkabir.actua.ui.components.ChangeAccountTypeDialog
+import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaGroupedItem
+import com.azimulkabir.actua.ui.components.ActuaHeroAmount
+import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
+import com.azimulkabir.actua.ui.components.ChangeAccountTypeDialog
+import com.azimulkabir.actua.ui.components.GroupPosition
 import com.azimulkabir.actua.ui.components.MonetaryText
+import com.azimulkabir.actua.ui.components.NewAccountDialog
+import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.formatMoneyCents
-import com.azimulkabir.actua.ui.theme.AmountTypography
+import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
-import java.text.NumberFormat
-import kotlin.math.absoluteValue
 
 private data class AccountSection(val title: String, val accounts: List<Account>)
 
@@ -284,7 +304,7 @@ fun AccountsScreen(
                                 AccountRow(
                                     account = account,
                                     creditCard = creditCardByAccountId[account.id],
-                                    showTopDivider = index > 0,
+                                    position = GroupPosition.of(index, chunk.accounts.size),
                                     onClick = { onAccountClick(account.name) },
                                 onLongClick = { selectedAccount = account },
                                     hideDecimalPlaces = hideDecimalPlaces,
@@ -362,33 +382,45 @@ private fun AccountsSummary(
             AccountMonthlySummaryCalculator.calculate(monthTransactions, offBudgetAccountNames)
         }
     } else null
-    Surface(
-        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = {}),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-    ) {
-        Column(modifier = Modifier.padding(start = Spacing.screenHorizontal, top = Spacing.md, end = Spacing.md, bottom = Spacing.md)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("All accounts", style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f))
-                MonetaryText(total, hideDecimalPlaces, style = AmountTypography.rowAmount.copy(fontWeight = FontWeight.Bold))
-                Icon(Icons.Outlined.ChevronRight, contentDescription = "View all transactions")
-            }
-            if (summary != null) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.md),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
-                Text(java.text.SimpleDateFormat("MMMM yyyy", locale).format(java.util.Date()), style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
-                    horizontalArrangement = Arrangement.SpaceBetween) {
-                    SummaryStat("Income", summary.incomeCents, hideDecimalPlaces = hideDecimalPlaces)
-                    SummaryStat("Expenses", summary.expenseCents, Alignment.CenterHorizontally, hideDecimalPlaces)
-                    SummaryStat("Net", summary.netCents, Alignment.End, hideDecimalPlaces,
-                        Modifier.padding(end = Spacing.xl))
+    val totalText = formatMoneyCents(total, hideDecimalPlaces)
+    Column(modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.sm)) {
+        ActuaHeroAmount(
+            amount = totalText,
+            caption = "All accounts",
+            captionColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            amountColor = amountColor(total),
+            size = ActuaHeroSize.Medium,
+            contentDescription = "All accounts, $totalText",
+            onClickLabel = "View all transactions",
+            onClick = onClick,
+        )
+        if (summary != null) {
+            ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+                Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
+                    Text(
+                        java.text.SimpleDateFormat("MMMM yyyy", locale).format(java.util.Date()),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        SummaryStat("Income", summary.incomeCents, hideDecimalPlaces = hideDecimalPlaces)
+                        SummaryStat("Expenses", summary.expenseCents, Alignment.CenterHorizontally, hideDecimalPlaces)
+                        SummaryStat("Net", summary.netCents, Alignment.End, hideDecimalPlaces)
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun amountColor(cents: Long) = when {
+    cents > 0 -> MaterialTheme.colorScheme.primary
+    cents < 0 -> MaterialTheme.colorScheme.error
+    else -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
 @Composable
@@ -401,41 +433,62 @@ private fun SummaryStat(label: String, amount: Long, alignment: Alignment.Horizo
     }
 }
 
+/** Sticky section label with its total; it keeps the page background so rows don't show through. */
 @Composable
 private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
     hideDecimalPlaces: Boolean, onClick: () -> Unit) {
     val rotation by animateFloatAsState(if (collapsed) -90f else 0f, tween(220), label = "account section")
     val total = section.accounts.sumOf { it.balanceCents }
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 1.dp) {
+    Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier.fillMaxWidth().combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = {},
-            ).padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
+            ).padding(
+                start = Spacing.screenHorizontal + Spacing.xs,
+                end = Spacing.screenHorizontal,
+                top = Spacing.lg,
+                bottom = Spacing.sm,
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Text(section.title, style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+            MonetaryText(total, hideDecimalPlaces)
             Icon(Icons.Outlined.KeyboardArrowDown,
                 contentDescription = if (collapsed) "Expand ${section.title}" else "Collapse ${section.title}",
-                modifier = Modifier.rotate(rotation))
-            Text(section.title, style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.weight(1f))
-            MonetaryText(total, hideDecimalPlaces)
-            // Match the space occupied by the account-row disclosure chevron.
-            Spacer(Modifier.width(Spacing.screenHorizontal))
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = Spacing.xs).rotate(rotation))
         }
     }
 }
 
-/** A lightweight, non-collapsible sub-header for an Actual account group nested inside an on/off-budget section. */
+/** A lightweight, non-collapsible label for an Actual account group nested inside an on/off-budget section. */
 @Composable
 private fun AccountGroupHeader(groupName: String) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
-        Text(
-            groupName,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
-        )
+    Text(
+        groupName,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().padding(
+            start = Spacing.screenHorizontal + Spacing.xs,
+            end = Spacing.screenHorizontal,
+            top = Spacing.md,
+            bottom = Spacing.xs,
+        ),
+    )
+}
+
+/** Display-only icon for an account row, from its credit-card status or free-text Actual account type. */
+internal fun accountTypeIcon(type: String, isCreditCard: Boolean): ImageVector {
+    val normalized = type.lowercase()
+    return when {
+        isCreditCard || "credit" in normalized -> Icons.Outlined.CreditCard
+        "saving" in normalized -> Icons.Outlined.Savings
+        "invest" in normalized -> Icons.AutoMirrored.Outlined.TrendingUp
+        "mortgage" in normalized -> Icons.Outlined.Home
+        "debt" in normalized || "loan" in normalized -> Icons.AutoMirrored.Outlined.ReceiptLong
+        "cash" in normalized -> Icons.Outlined.Payments
+        else -> Icons.Outlined.AccountBalance
     }
 }
 
@@ -444,34 +497,29 @@ private fun AccountGroupHeader(groupName: String) {
 private fun AccountRow(
     account: Account,
     creditCard: CreditCardStatus?,
-    showTopDivider: Boolean,
+    position: GroupPosition,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     hideDecimalPlaces: Boolean,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
-        if (showTopDivider) {
-            HorizontalDivider(
-                modifier = Modifier.padding(start = Spacing.screenHorizontal, end = Spacing.md),
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.32f),
-            )
-        }
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    ActuaGroupedItem(position = position) {
         Row(
             modifier = Modifier.fillMaxWidth()
+                .heightIn(min = Sizes.compactRowMinHeight)
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                .padding(start = Spacing.screenHorizontal, top = 15.dp, end = Spacing.md, bottom = 15.dp),
+                .padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Icon(accountTypeIcon(account.type, creditCard != null), contentDescription = null, tint = muted)
+            Spacer(Modifier.width(Spacing.lg))
             Column(modifier = Modifier.weight(1f)) {
-                Text(account.name, style = MaterialTheme.typography.bodyMedium)
+                Text(account.name, style = MaterialTheme.typography.bodyLarge)
                 Text(creditCard?.let { "${it.cycle.dueShortSummary(dueDate = it.pendingStatementDue()?.dueDate)} · Spend ${formatMoneyCents(it.cycleSpendCents, hideDecimalPlaces)}" }
-                    ?: account.type, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ?: account.type, style = MaterialTheme.typography.bodySmall, color = muted)
             }
-            MonetaryText(account.balanceCents, hideDecimalPlaces)
-            Icon(Icons.Outlined.ChevronRight, contentDescription = "Open ${account.name}",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            MonetaryText(account.balanceCents, hideDecimalPlaces, modifier = Modifier.padding(start = Spacing.sm))
+            Icon(Icons.Outlined.ChevronRight, contentDescription = "Open ${account.name}", tint = muted)
         }
     }
 }
@@ -489,13 +537,29 @@ private fun AccountActionsSheet(
     onFavoriteChange: (Boolean) -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+        Column(modifier = Modifier.padding(bottom = Spacing.xl)) {
             ActuaSheetTitle(account.name)
-            AccountSheetAction(if (favorite) "Remove from favorites" else "Add to favorites", onClick = { onFavoriteChange(!favorite) })
-            AccountSheetAction("View transactions", onViewTransactions)
-            AccountSheetAction("Rename account", onRename)
-            AccountSheetAction("Change account type", onChangeType)
-            AccountSheetAction(if (account.closed) "Reopen account" else "Close account", onClose, destructive = !account.closed)
+            ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+                AccountSheetAction(
+                    if (favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                    if (favorite) "Remove from favorites" else "Add to favorites",
+                    onClick = { onFavoriteChange(!favorite) },
+                )
+                ActuaCardDivider()
+                AccountSheetAction(Icons.AutoMirrored.Outlined.ReceiptLong, "View transactions", onViewTransactions)
+                ActuaCardDivider()
+                AccountSheetAction(Icons.Outlined.Edit, "Rename account", onRename)
+                ActuaCardDivider()
+                AccountSheetAction(Icons.Outlined.Category, "Change account type", onChangeType)
+            }
+            ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md)) {
+                AccountSheetAction(
+                    if (account.closed) Icons.Outlined.LockOpen else Icons.Outlined.Lock,
+                    if (account.closed) "Reopen account" else "Close account",
+                    onClose,
+                    destructive = !account.closed,
+                )
+            }
         }
     }
 }
@@ -504,20 +568,31 @@ private fun AccountActionsSheet(
 @Composable
 private fun AddAccountSheet(onDismiss: () -> Unit, onCreateLocal: () -> Unit, onSetUpBankSync: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(bottom = 28.dp)) {
+        Column(modifier = Modifier.padding(bottom = Spacing.xl)) {
             ActuaSheetTitle("Add account")
-            AccountSheetAction("Create a local account", onCreateLocal)
-            AccountSheetAction("Set up bank sync", onSetUpBankSync)
+            ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+                AccountSheetAction(Icons.Outlined.AccountBalanceWallet, "Create a local account", onCreateLocal)
+                ActuaCardDivider()
+                AccountSheetAction(Icons.Outlined.Sync, "Set up bank sync", onSetUpBankSync)
+            }
         }
     }
 }
 
+/** An icon action row in a sheet card; [destructive] actions use the error color. */
 @Composable
-private fun AccountSheetAction(label: String, onClick: () -> Unit, destructive: Boolean = false) {
-    DropdownMenuItem(
-        text = { Text(label, color = if (destructive) MaterialTheme.colorScheme.error
-        else MaterialTheme.colorScheme.onSurface) },
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-    )
+private fun AccountSheetAction(icon: ImageVector, label: String, onClick: () -> Unit, destructive: Boolean = false) {
+    val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .heightIn(min = Sizes.compactRowMinHeight)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null,
+            tint = if (destructive) color else MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.width(Spacing.lg))
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = color)
+    }
 }
