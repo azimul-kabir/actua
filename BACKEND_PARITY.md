@@ -96,7 +96,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Server-hosted SimpleFIN and GoCardless transaction download for linked accounts, triggered by
   pulling down the Accounts list (all linked accounts) or a single linked account's register.
   Imports preserve provider IDs, pending/cleared state, integer cents, rules, CRDT mutation
-  logging, per-account status/last-sync fields, and exact-ID deduplication.
+  logging, per-account status/last-sync fields, exact-ID deduplication, and Actual's bank-sync
+  fuzzy matching (same amount within 7 days, including rows already imported under a different
+  provider ID).
 - On-device financial-message parsing for explicitly pasted/shared text and opt-in future
   notifications from an explicit allowed-app list, with configurable debit/credit terms, amount/date/reference/payee extraction,
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion
