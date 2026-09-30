@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -81,6 +80,9 @@ import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaSheetAction
+import com.azimulkabir.actua.ui.components.ActuaSheetCard
+import com.azimulkabir.actua.ui.components.ActuaSheetContent
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.components.ChangeAccountTypeDialog
 import com.azimulkabir.actua.ui.components.GroupPosition
@@ -537,9 +539,9 @@ private fun AccountActionsSheet(
     onFavoriteChange: (Boolean) -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(bottom = Spacing.xl)) {
+        ActuaSheetContent {
             ActuaSheetTitle(account.name)
-            ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+            ActuaSheetCard {
                 AccountSheetAction(
                     if (favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                     if (favorite) "Remove from favorites" else "Add to favorites",
@@ -552,7 +554,7 @@ private fun AccountActionsSheet(
                 ActuaCardDivider()
                 AccountSheetAction(Icons.Outlined.Category, "Change account type", onChangeType)
             }
-            ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md)) {
+            ActuaSheetCard {
                 AccountSheetAction(
                     if (account.closed) Icons.Outlined.LockOpen else Icons.Outlined.Lock,
                     if (account.closed) "Reopen account" else "Close account",
@@ -568,9 +570,9 @@ private fun AccountActionsSheet(
 @Composable
 private fun AddAccountSheet(onDismiss: () -> Unit, onCreateLocal: () -> Unit, onSetUpBankSync: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(bottom = Spacing.xl)) {
+        ActuaSheetContent {
             ActuaSheetTitle("Add account")
-            ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+            ActuaSheetCard {
                 AccountSheetAction(Icons.Outlined.AccountBalanceWallet, "Create a local account", onCreateLocal)
                 ActuaCardDivider()
                 AccountSheetAction(Icons.Outlined.Sync, "Set up bank sync", onSetUpBankSync)
@@ -582,17 +584,5 @@ private fun AddAccountSheet(onDismiss: () -> Unit, onCreateLocal: () -> Unit, on
 /** An icon action row in a sheet card; [destructive] actions use the error color. */
 @Composable
 private fun AccountSheetAction(icon: ImageVector, label: String, onClick: () -> Unit, destructive: Boolean = false) {
-    val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .heightIn(min = Sizes.compactRowMinHeight)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null,
-            tint = if (destructive) color else MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.width(Spacing.lg))
-        Text(label, style = MaterialTheme.typography.bodyLarge, color = color)
-    }
+    ActuaSheetAction(label, onClick = onClick, icon = icon, destructive = destructive)
 }

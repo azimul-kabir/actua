@@ -2,17 +2,14 @@ package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,10 +31,8 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -59,8 +54,13 @@ import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
 import com.azimulkabir.actua.data.schedules.ScheduledAmount
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaSheetAction
+import com.azimulkabir.actua.ui.components.ActuaSheetCard
+import com.azimulkabir.actua.ui.components.ActuaSheetContent
+import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.components.GroupPosition
 import com.azimulkabir.actua.ui.components.formatDate as formatDisplayDate
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -292,56 +292,32 @@ private fun ScheduleActionsSheet(
     onDelete: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Text(
-            item.title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-        )
-        if (!item.schedule.completed) {
-            ScheduleAction("Post Transaction", Icons.Outlined.AddCircleOutline) {
-                onPost(false)
+        ActuaSheetContent {
+            ActuaSheetTitle(item.title)
+            if (!item.schedule.completed) {
+                ActuaSheetCard {
+                    ActuaSheetAction("Post Transaction", icon = Icons.Outlined.AddCircleOutline, onClick = { onPost(false) })
+                    ActuaCardDivider()
+                    ActuaSheetAction("Post Transaction Today", icon = Icons.Outlined.EventAvailable,
+                        onClick = { onPost(true) })
+                    if (item.schedule.isRecurring) {
+                        ActuaCardDivider()
+                        ActuaSheetAction("Skip Next Date", icon = Icons.Outlined.SkipNext, onClick = onSkip)
+                    }
+                }
             }
-            ScheduleAction("Post Transaction Today", Icons.Outlined.EventAvailable) {
-                onPost(true)
+            ActuaSheetCard {
+                ActuaSheetAction(
+                    if (item.schedule.completed) "Restart" else "Mark Completed",
+                    icon = if (item.schedule.completed) Icons.Outlined.RestartAlt
+                    else Icons.Outlined.CheckCircleOutline,
+                    onClick = onSetCompleted,
+                )
+                ActuaCardDivider()
+                ActuaSheetAction("Delete", icon = Icons.Outlined.DeleteOutline, destructive = true, onClick = onDelete)
             }
-            if (item.schedule.isRecurring) {
-                ScheduleAction("Skip Next Date", Icons.Outlined.SkipNext, onClick = onSkip)
-            }
-            HorizontalDivider(Modifier.padding(vertical = 4.dp))
         }
-        ScheduleAction(
-            if (item.schedule.completed) "Restart" else "Mark Completed",
-            if (item.schedule.completed) Icons.Outlined.RestartAlt
-            else Icons.Outlined.CheckCircleOutline,
-            onClick = onSetCompleted,
-        )
-        ScheduleAction(
-            "Delete",
-            Icons.Outlined.DeleteOutline,
-            destructive = true,
-            onClick = onDelete,
-        )
-        Spacer(Modifier.height(20.dp))
     }
-}
-
-@Composable
-private fun ScheduleAction(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    destructive: Boolean = false,
-    onClick: () -> Unit,
-) {
-    val color = if (destructive) MaterialTheme.colorScheme.error
-        else MaterialTheme.colorScheme.onSurface
-    ListItem(
-        headlineContent = { Text(label, color = color) },
-        leadingContent = { Icon(icon, contentDescription = null, tint = color) },
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-    )
 }
 
 @Composable

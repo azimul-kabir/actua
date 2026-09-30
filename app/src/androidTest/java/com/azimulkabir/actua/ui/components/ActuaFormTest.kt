@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -139,6 +140,30 @@ class ActuaFormTest {
         }
 
         listOf("Checking", "Savings", "Cash").forEach { compose.onNodeWithText(it).assertExists() }
+    }
+
+    @Test fun sheetActionsAreButtonsThatRunTheirAction() {
+        var edits = 0
+        var deletes = 0
+        compose.setContent {
+            MaterialTheme {
+                ActuaSheetContent {
+                    ActuaSheetTitle("Rent")
+                    ActuaSheetCard {
+                        ActuaSheetAction("Edit schedule", icon = Icons.Outlined.CalendarMonth, onClick = { edits++ })
+                        ActuaCardDivider()
+                        ActuaSheetAction("Delete schedule", destructive = true, onClick = { deletes++ })
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("Rent").assertExists()
+        compose.onNode(hasText("Edit schedule") and hasRole(Role.Button)).performClick()
+        compose.onNode(hasText("Delete schedule") and hasRole(Role.Button)).performClick()
+
+        assertEquals(1, edits)
+        assertEquals(1, deletes)
     }
 
     private fun hasRole(role: Role) = SemanticsMatcher.expectValue(SemanticsProperties.Role, role)

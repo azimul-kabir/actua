@@ -32,7 +32,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,7 +62,12 @@ import com.azimulkabir.actua.data.schedules.BillsCalendarEngine
 import com.azimulkabir.actua.data.schedules.BillsTabMode
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaSheetAction
+import com.azimulkabir.actua.ui.components.ActuaSheetCard
+import com.azimulkabir.actua.ui.components.ActuaSheetContent
+import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.success
 import java.time.Month
@@ -388,30 +392,29 @@ private fun BillActionsSheet(
     onDelete: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-        if (item.scheduleId != null && item.isCurrentOccurrence && item.status != ScheduleStatus.COMPLETED) {
-            ActionRow(Icons.Outlined.Add, "Post transaction", onClick = { onPost(false) })
-            ActionRow(Icons.Outlined.EventAvailable, "Post transaction today", onClick = { onPost(true) })
-            if (item.isRecurring) ActionRow(Icons.Outlined.SkipNext, "Skip next date", onSkip)
-            HorizontalDivider(Modifier.padding(horizontal = 20.dp))
-        }
-        ActionRow(Icons.Outlined.Edit, if (item.isCreditCard) "Configure credit cards" else "Edit schedule", onEdit)
-        if (item.scheduleId != null) {
-            ActionRow(Icons.Outlined.DeleteOutline, "Delete schedule", onDelete, MaterialTheme.colorScheme.error)
-        }
-        Spacer(Modifier.height(24.dp))
-    }
-}
-
-@Composable
-private fun ActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String,
-    onClick: () -> Unit, tint: Color = MaterialTheme.colorScheme.onSurface) {
-    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Icon(icon, null, tint = tint)
-            Text(label, color = tint)
+        ActuaSheetContent {
+            ActuaSheetTitle(item.title)
+            if (item.scheduleId != null && item.isCurrentOccurrence && item.status != ScheduleStatus.COMPLETED) {
+                ActuaSheetCard {
+                    ActuaSheetAction("Post transaction", icon = Icons.Outlined.Add, onClick = { onPost(false) })
+                    ActuaCardDivider()
+                    ActuaSheetAction("Post transaction today", icon = Icons.Outlined.EventAvailable,
+                        onClick = { onPost(true) })
+                    if (item.isRecurring) {
+                        ActuaCardDivider()
+                        ActuaSheetAction("Skip next date", icon = Icons.Outlined.SkipNext, onClick = onSkip)
+                    }
+                }
+            }
+            ActuaSheetCard {
+                ActuaSheetAction(if (item.isCreditCard) "Configure credit cards" else "Edit schedule",
+                    icon = Icons.Outlined.Edit, onClick = onEdit)
+                if (item.scheduleId != null) {
+                    ActuaCardDivider()
+                    ActuaSheetAction("Delete schedule", icon = Icons.Outlined.DeleteOutline, destructive = true,
+                        onClick = onDelete)
+                }
+            }
         }
     }
 }

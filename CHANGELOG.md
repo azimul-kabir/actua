@@ -19,6 +19,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Home now shows Ready to Budget as a hero amount and groups its sections into the same cards as Add transaction ([#790](https://github.com/azimul-kabir/actua/pull/790))
 - Accounts now shows your total up top and groups accounts into rounded cards with type icons ([#785](https://github.com/azimul-kabir/actua/pull/785))
 - Tags, payee locations, backups, schedules and bank sync now show their lists in rounded cards ([#787](https://github.com/azimul-kabir/actua/pull/787))
+- Transaction, account, schedule and bank sync sheets now show their actions in rounded cards with icons ([#792](https://github.com/azimul-kabir/actua/pull/792))
 
 ### Added
 
