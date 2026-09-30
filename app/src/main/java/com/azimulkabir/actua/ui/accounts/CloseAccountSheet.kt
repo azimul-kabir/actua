@@ -11,13 +11,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,10 +30,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.Spacing
@@ -76,75 +81,82 @@ internal fun CloseAccountSheet(
     val categoryName = categories.firstOrNull { it.first == categoryId }?.second
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.lg).padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            ActuaSheetTitle("Close account")
-            val loaded = options
-            if (loaded == null) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                return@Column
-            }
-            Text(
-                "Are you sure you want to close ${account.name}? " + if (loaded.hasTransactions) {
-                    "This account has transactions so it can't be permanently deleted."
-                } else {
-                    "This account has no transactions so it will be permanently deleted."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (hasBalance) {
+        Column(Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.screenHorizontal),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                ActuaSheetTitle("Close account")
+                val loaded = options
+                if (loaded == null) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.xl),
+                    )
+                    return@Column
+                }
                 Text(
-                    "This account has a balance of ${formatMoneyCents(account.balanceCents, hideDecimalPlaces)}. " +
-                        "To close it, choose another account to transfer this balance to:",
+                    "Are you sure you want to close ${account.name}? " + if (loaded.hasTransactions) {
+                        "This account has transactions so it can't be permanently deleted."
+                    } else {
+                        "This account has no transactions so it will be permanently deleted."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                PickerField(
-                    label = "Transfer to",
-                    value = transferAccount?.name,
-                    placeholder = "Select account…",
-                    error = if (showErrors && transferAccount == null) "Transfer is required" else null,
-                    onClick = { pickingAccount = true },
-                )
-                if (needsCategory) {
+                if (hasBalance) {
                     Text(
-                        "Since the balance moves from an on-budget account to an off-budget account, " +
-                            "this transaction must be categorized:",
+                        "This account has a balance of ${formatMoneyCents(account.balanceCents, hideDecimalPlaces)}. " +
+                            "To close it, choose another account to transfer this balance to:",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     PickerField(
-                        label = "Category",
-                        value = categoryName,
-                        placeholder = "Select category…",
-                        error = if (showErrors && categoryName == null) "Category is required" else null,
-                        onClick = { pickingCategory = true },
+                        icon = Icons.Outlined.AccountBalanceWallet,
+                        label = "Transfer to",
+                        value = transferAccount?.name,
+                        placeholder = "Select account…",
+                        error = if (showErrors && transferAccount == null) "Transfer is required" else null,
+                        onClick = { pickingAccount = true },
                     )
+                    if (needsCategory) {
+                        Text(
+                            "Since the balance moves from an on-budget account to an off-budget account, " +
+                                "this transaction must be categorized:",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        PickerField(
+                            icon = Icons.Outlined.Category,
+                            label = "Category",
+                            value = categoryName,
+                            placeholder = "Select category…",
+                            error = if (showErrors && categoryName == null) "Category is required" else null,
+                            onClick = { pickingCategory = true },
+                        )
+                    }
                 }
-            }
-            if (loaded.hasTransactions) {
-                Text(
-                    "You can also force close the account, which permanently deletes it and all its " +
-                        "transactions. Doing so may change your budget unexpectedly since money in it may vanish.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                TextButton(onClick = { confirmingForce = true }) {
-                    Text("Force close", color = MaterialTheme.colorScheme.error)
+                if (loaded.hasTransactions) {
+                    Text(
+                        "You can also force close the account, which permanently deletes it and all its " +
+                            "transactions. Doing so may change your budget unexpectedly since money in it may vanish.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = { confirmingForce = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Force close", color = MaterialTheme.colorScheme.error)
+                    }
                 }
+                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                Button(onClick = {
+            if (options != null) ActuaPrimaryActionBar(
+                text = "Close account",
+                onClick = {
                     showErrors = true
                     val missingTransfer = hasBalance && transferAccount == null
                     val missingCategory = needsCategory && categoryName == null
                     if (!missingTransfer && !missingCategory) {
                         onClose(transferAccount?.id, categoryId.takeIf { needsCategory })
                     }
-                }) { Text("Close account") }
-            }
+                },
+            )
         }
     }
 
@@ -175,25 +187,29 @@ internal fun CloseAccountSheet(
     )
 }
 
+/** A picker as a form-card row, with its validation [error] under the card. */
 @Composable
-private fun PickerField(label: String, value: String?, placeholder: String, error: String?, onClick: () -> Unit) {
+private fun PickerField(
+    icon: ImageVector,
+    label: String,
+    value: String?,
+    placeholder: String,
+    error: String?,
+    onClick: () -> Unit,
+) {
     Column {
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                .clickable(onClickLabel = "Choose ${label.lowercase()}", role = Role.Button, onClick = onClick),
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    value ?: placeholder,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (value == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                )
-            }
+        ActuaFormCard {
+            ActuaFormRow(
+                icon = icon,
+                label = label,
+                value = value ?: placeholder,
+                valueIsPlaceholder = value == null,
+                onClick = onClick,
+            )
         }
         if (error != null) Text(
             error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+            modifier = Modifier.padding(start = Spacing.lg, top = Spacing.xs),
         )
     }
 }
