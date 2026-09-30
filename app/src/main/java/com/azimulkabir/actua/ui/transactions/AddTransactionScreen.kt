@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,7 +24,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,7 +36,6 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.outlined.Calculate
-import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Surface
@@ -62,12 +59,38 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material.icons.automirrored.outlined.CallSplit
+import androidx.compose.material.icons.automirrored.outlined.Notes
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.CheckCircleOutline
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.model.Transaction
@@ -111,6 +134,7 @@ fun AddTransactionScreen(
     onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
     onForgetPayeeLocation: (suspend (String) -> Boolean)? = null,
 ) {
+    val start = remember(editing, defaultType) { transactionFormStart(editing, defaultType) }
     var amountCents by remember(editing) { mutableStateOf(abs(editing?.amountCents ?: 0L)) }
     // A new transaction opens straight into the amount calculator, then walks the user through
     // the payee, category and account pickers; each step is skipped if it isn't shown.
@@ -118,31 +142,24 @@ fun AddTransactionScreen(
     var autoStep by remember(editing) { mutableStateOf<AddStep?>(null) }
     var amountExpression by remember(editing) { mutableStateOf<String?>(null) }
     var confirmDelete by remember(editing) { mutableStateOf(false) }
-    var payee by remember(editing) { mutableStateOf(editing?.payee ?: "") }
+    // Like Actual's mobile editor there is no type selector: a `Transfer: <account>` payee makes a
+    // transfer, otherwise the sign decides expense or income. [account] is always the edited
+    // transaction's own account, so either side of a transfer is edited without swapping.
+    var payee by remember(editing) { mutableStateOf(start.payee) }
+    var incoming by remember(editing, defaultType) { mutableStateOf(start.incoming) }
     var category by remember(editing, defaultCategory) {
         mutableStateOf(editing?.category ?: defaultCategory?.takeIf(categoryOptions::contains).orEmpty())
     }
     var account by remember(editing, accountOptions) {
         mutableStateOf(
-            if (editing?.type == Type.TRANSFER && editing.amountCents >= 0) {
-                editing.transferAccount ?: editing.account
-            } else editing?.account ?: defaultAccount?.takeIf(accountOptions::contains)
-                ?: accountOptions.firstOrNull().orEmpty()
-        )
-    }
-    var transferAccount by remember(editing) {
-        mutableStateOf(
-            if (editing?.type == Type.TRANSFER && editing.amountCents >= 0) editing.account
-            else editing?.transferAccount.orEmpty()
+            editing?.account ?: defaultAccount?.takeIf(accountOptions::contains)
+                ?: accountOptions.firstOrNull().orEmpty(),
         )
     }
     var date by remember(editing) { mutableStateOf(editing?.date?.let(::parseStoredDate) ?: LocalDate.now()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var notes by remember(editing) { mutableStateOf(editing?.notes ?: "") }
     var cleared by remember(editing) { mutableStateOf(editing?.cleared ?: false) }
-    var transactionType by remember(editing, defaultType) {
-        mutableStateOf((editing?.type ?: defaultType).displayName)
-    }
     var splitLines by remember(editing) { mutableStateOf(editing?.splits.orEmpty()) }
     var splitCalculatorIndex by remember { mutableStateOf<Int?>(null) }
     var splitAmountExpression by remember(editing) { mutableStateOf<String?>(null) }
@@ -154,14 +171,13 @@ fun AddTransactionScreen(
     val tagRepository = remember { ActiveTagRepository(context) }
     var tagVersion by remember { mutableStateOf(0L) }
     val availableTags = remember(tagVersion) { tagRepository.tags(tagVersion) }
+    val transferTarget = transferTargetOf(payee)
+    val isTransfer = transferTarget != null
     val isOffBudget = account in offBudgetAccountOptions
-    val isTransferType = transactionType == Type.TRANSFER.displayName
-    // Like Actual's mobile editor, an on/off-budget transfer takes a category for its on-budget leg,
-    // edited from that leg only; transfers within the budget (or outside it) never have one.
-    val transferTakesCategory = isTransferType && transferAccount.isNotBlank() &&
-        isOffBudget != (transferAccount in offBudgetAccountOptions) && editing?.accountOffBudget != true
-    LaunchedEffect(isOffBudget, isTransferType) {
-        if (isOffBudget && !isTransferType) {
+    // Actual's mobile editor: only the on-budget leg of an on/off-budget transfer takes a category.
+    val transferTakesCategory = isTransfer && !isOffBudget && transferTarget in offBudgetAccountOptions
+    LaunchedEffect(isOffBudget, isTransfer) {
+        if (isOffBudget && !isTransfer) {
             category = ""
             categoryIsExplicit = false
             splitLines = splitLines.map { it.copy(category = "") }
@@ -172,16 +188,10 @@ fun AddTransactionScreen(
     val splitIsValid = !isSplit || (splitLines.size >= 2 && splitLines.all {
         (isOffBudget || it.category.isNotBlank()) && it.amountCents > 0
     } && splitTotal == amountCents)
-    val canSave = amountCents >= 0 && account.isNotBlank() &&
-        (transactionType != Type.TRANSFER.displayName || transferAccount.isNotBlank()) && splitIsValid
-    val showsCategory = (!isTransferType && !isSplit && !isOffBudget) || transferTakesCategory
-    LaunchedEffect(autoStep, isTransferType, showsCategory) {
-        autoStep = when (autoStep) {
-            AddStep.Payee -> if (isTransferType) AddStep.Account else AddStep.Payee
-            AddStep.Category -> if (showsCategory) AddStep.Category else AddStep.Account
-            AddStep.To -> if (isTransferType) AddStep.To else null
-            else -> autoStep
-        }
+    val canSave = amountCents >= 0 && account.isNotBlank() && transferTarget != account && splitIsValid
+    val categoryApplies = if (isTransfer) transferTakesCategory else !isSplit && !isOffBudget
+    LaunchedEffect(autoStep, categoryApplies) {
+        if (autoStep == AddStep.Category && !categoryApplies) autoStep = AddStep.Account
     }
     val cursorTransition = rememberInfiniteTransition(label = "Amount cursor")
     val cursorAlpha by cursorTransition.animateFloat(
@@ -192,35 +202,59 @@ fun AddTransactionScreen(
     )
     val blinkingCursor = if (cursorAlpha > 0.5f) " │" else ""
     val currencyPrefix = currencyInputPrefix()
-    val saveTransaction = {
-        if (canSave) {
-            onSave(
-                Transaction(
-                    id = editing?.id.orEmpty(),
-                    date = storageDate(date),
-                    payee = payee,
-                    category = when {
-                        isTransferType -> if (transferTakesCategory) category else ""
-                        isOffBudget -> ""
-                        else -> category.ifBlank { "Uncategorized" }
-                    },
-                    account = account,
-                    amount = (amountCents / 100L).toInt() * if (transactionType == "Income") 1 else -1,
-                    cleared = cleared,
-                    amountCents = amountCents * if (transactionType == "Income") 1 else -1,
-                    type = Type.entries.first { it.displayName == transactionType },
-                    transferAccount = transferAccount.takeIf { transactionType == "Transfer" },
-                    notes = notes,
-                    splits = if (isOffBudget) splitLines.map { it.copy(category = "") } else splitLines,
-                    rulesApplied = rulesApplied,
-                    categoryIsExplicit = categoryIsExplicit,
-                ),
-            )
+    val signToggleLabel = when {
+        isTransfer -> "Reverse transfer"
+        incoming -> "Switch to expense"
+        else -> "Switch to income"
+    }
+    val draft = {
+        transactionFromForm(
+            id = editing?.id.orEmpty(),
+            date = storageDate(date),
+            payee = payee,
+            category = when {
+                isTransfer -> if (transferTakesCategory) category else ""
+                isOffBudget -> ""
+                else -> category.ifBlank { "Uncategorized" }
+            },
+            account = account,
+            incoming = incoming,
+            amountCents = amountCents,
+            cleared = cleared,
+            notes = notes,
+            splits = if (isOffBudget) splitLines.map { it.copy(category = "") } else splitLines,
+            rulesApplied = rulesApplied,
+            categoryIsExplicit = categoryIsExplicit,
+        )
+    }
+    val saveTransaction = { if (canSave) onSave(draft()) }
+    val onPayeeChange: (String) -> Unit = { value ->
+        val target = transferTargetOf(value)
+        payee = value
+        if (target != null) {
+            splitLines = emptyList()
+            if (isOffBudget || target !in offBudgetAccountOptions) category = ""
+        }
+        if (editing == null && !isSplit && (target != null || !isOffBudget)) {
+            val preview = onPreviewRules(draft().copy(category = category))
+            if (target == null) {
+                payee = preview.payee
+                // A picker choice survives a rule the payee edit triggers; the rule
+                // may still fill in a category the user hasn't touched.
+                if (!categoryIsExplicit || category.isBlank()) category = preview.category
+                account = preview.account
+                incoming = preview.type == Type.INCOME
+            }
+            cleared = preview.cleared
+            notes = preview.notes
+            parseStoredDate(preview.date)?.let { date = it }
+            amountCents = abs(preview.amountCents)
+            rulesApplied = preview.rulesApplied
         }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().imePadding()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
@@ -240,109 +274,42 @@ fun AddTransactionScreen(
             }
         }
         Column(
-            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).imePadding()
-                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.screenHorizontal),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Type.entries.forEach { type ->
-                    FilterChip(
-                        selected = transactionType == type.displayName,
-                        onClick = {
-                            if (transactionType != type.displayName) rulesApplied = false
-                            transactionType = type.displayName
-                            if (type == Type.TRANSFER) splitLines = emptyList()
-                        },
-                        label = {
-                            Text(
-                                type.displayName,
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.Center,
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-            Box(Modifier.fillMaxWidth()) {
-                val amountInput = when {
+            AmountHero(
+                amountText = when {
                     showCalculator && amountExpression != null -> amountExpression.orEmpty()
-                    amountCents == 0L -> ""
+                    amountCents == 0L -> "0"
                     else -> centsToInput(amountCents)
-                }
-                val amountPresentation = amountFieldPresentation(
-                    currencyPrefix = currencyPrefix,
-                    input = amountInput,
-                    active = showCalculator,
-                    cursor = blinkingCursor,
-                )
-                OutlinedTextField(
-                    value = amountPresentation.value,
-                    onValueChange = {}, readOnly = true,
-                    placeholder = { if (amountPresentation.placeholder.isNotEmpty()) Text(amountPresentation.placeholder) },
-                    singleLine = true,
-                    trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
-                    supportingText = { if (hideDecimalPlaces) Text("Decimal places are hidden in lists") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                EmptyAmountCaret(
-                    visible = amountPresentation.showEmptyCaret,
-                    alpha = cursorAlpha,
-                    modifier = Modifier.align(Alignment.TopStart).fillMaxWidth(),
-                )
-                Box(
-                    Modifier.matchParentSize().pointerInput(Unit) {
-                        detectTapGestures {
-                            amountExpression = null
-                            showCalculator = true
-                        }
-                    },
-                )
-            }
-            if (transactionType != Type.TRANSFER.displayName) {
+                },
+                currencyPrefix = currencyPrefix,
+                kind = when {
+                    isTransfer -> AmountKind.Transfer
+                    incoming -> AmountKind.Income
+                    else -> AmountKind.Expense
+                },
+                isZero = amountCents == 0L && amountExpression.isNullOrEmpty(),
+                direction = transferTarget?.let { target ->
+                    if (incoming) "$target → $account" else "$account → $target"
+                },
+                editing = showCalculator,
+                cursorAlpha = cursorAlpha,
+                toggleLabel = signToggleLabel,
+                hint = if (hideDecimalPlaces) "Decimal places are hidden in lists" else null,
+                onAmountClick = {
+                    amountExpression = null
+                    showCalculator = true
+                },
+                onToggleSign = { incoming = !incoming },
+            )
+            FormCard {
                 PickerTextField(
-                    label = "Payee", value = payee, options = payeeOptions,
-                    supportingValues = accountBalanceLabels.mapKeys { "Transfer: ${it.key}" },
-                    onValueChange = { value ->
-                        val transferTarget = value.takeIf { it.startsWith("Transfer: ") }
-                            ?.removePrefix("Transfer: ")?.takeIf(accountOptions::contains)
-                        if (transferTarget != null) {
-                            if (transferTarget != account) {
-                                payee = ""
-                                transferAccount = transferTarget
-                                transactionType = Type.TRANSFER.displayName
-                                category = ""
-                                splitLines = emptyList()
-                            }
-                            return@PickerTextField
-                        }
-                        payee = value
-                        if (editing == null && !isOffBudget && !isSplit) {
-                            val preview = onPreviewRules(Transaction(
-                                id = "",
-                                account = account,
-                                payee = value,
-                                category = category,
-                                amount = (amountCents / 100).toInt(),
-                                amountCents = amountCents,
-                                type = Type.entries.first { it.displayName == transactionType },
-                                date = storageDate(date),
-                                notes = notes,
-                                cleared = cleared,
-                            ))
-                            payee = preview.payee
-                            // A picker choice survives a rule the payee edit triggers; the rule
-                            // may still fill in a category the user hasn't touched.
-                            if (!categoryIsExplicit || category.isBlank()) category = preview.category
-                            account = preview.account
-                            cleared = preview.cleared
-                            notes = preview.notes
-                            parseStoredDate(preview.date)?.let { date = it }
-                            amountCents = abs(preview.amountCents)
-                            transactionType = preview.type.displayName
-                            rulesApplied = preview.rulesApplied
-                        }
-                    },
+                    label = "Payee", value = payee,
+                    options = payeeOptions.filterNot { it == TRANSFER_PAYEE_PREFIX + account },
+                    supportingValues = accountBalanceLabels.mapKeys { TRANSFER_PAYEE_PREFIX + it.key },
+                    onValueChange = onPayeeChange,
                     allowCustom = true,
                     autoOpen = autoStep == AddStep.Payee,
                     onAutoOpenHandled = { autoStep = null },
@@ -350,79 +317,56 @@ fun AddTransactionScreen(
                     onFindNearby = onFindNearbyPayees,
                     onSavePayeeLocation = onSavePayeeLocation,
                     onForgetPayeeLocation = onForgetPayeeLocation,
+                    rowIcon = if (isTransfer) Icons.Outlined.SwapHoriz else Icons.Outlined.Storefront,
+                    rowValue = transferTarget,
+                    rowCaption = if (isTransfer) "Transfer" else null,
+                    placeholder = "Choose or add a payee",
                 )
-            }
-            if (showsCategory) {
-                PickerTextField(
-                    label = "Category", value = category, options = categoryOptions,
-                    supportingValues = categoryBalanceLabels,
-                    onValueChange = { category = it; categoryIsExplicit = it.isNotBlank() },
-                    autoOpen = autoStep == AddStep.Category,
-                    onAutoOpenHandled = { autoStep = null },
-                    onPicked = { if (editing == null) autoStep = AddStep.Account },
-                )
-            }
-            PickerTextField(
-                label = if (transactionType == Type.TRANSFER.displayName) "From" else "Account",
-                value = account, options = accountOptions,
-                supportingValues = accountBalanceLabels,
-                onValueChange = {
-                    account = it
-                    if (it in offBudgetAccountOptions && !isTransferType) {
-                        category = ""
-                        splitLines = splitLines.map { line -> line.copy(category = "") }
+                if (!isSplit) {
+                    FormCardDivider()
+                    if (categoryApplies) {
+                        PickerTextField(
+                            label = "Category", value = category, options = categoryOptions,
+                            supportingValues = categoryBalanceLabels,
+                            onValueChange = { category = it; categoryIsExplicit = it.isNotBlank() },
+                            autoOpen = autoStep == AddStep.Category,
+                            onAutoOpenHandled = { autoStep = null },
+                            onPicked = { if (editing == null) autoStep = AddStep.Account },
+                            rowIcon = Icons.Outlined.Category,
+                            placeholder = "Uncategorized",
+                        )
+                    } else {
+                        TransactionFormRow(
+                            icon = Icons.Outlined.Category,
+                            label = "Category",
+                            value = if (isOffBudget) "Off budget" else "Transfer",
+                            caption = when {
+                                isOffBudget -> "Off-budget accounts don't use categories"
+                                else -> "Transfers between budget accounts aren't categorized"
+                            },
+                            enabled = false,
+                        )
                     }
-                    if (transferAccount == it) { transferAccount = ""; rulesApplied = false }
-                },
-                autoOpen = autoStep == AddStep.Account,
-                onAutoOpenHandled = { autoStep = null },
-                onPicked = { if (editing == null) autoStep = AddStep.To },
-            )
-            if (transactionType == Type.TRANSFER.displayName) {
-                IconButton(
-                    onClick = {
-                        val from = account
-                        account = transferAccount
-                        transferAccount = from
-                        rulesApplied = false
-                    },
-                    enabled = account.isNotBlank() && transferAccount.isNotBlank(),
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                ) {
-                    Icon(Icons.Outlined.SwapVert, contentDescription = "Reverse transfer accounts")
                 }
+                FormCardDivider()
                 PickerTextField(
-                    label = "To", value = transferAccount,
-                    options = accountOptions.filterNot { it == account },
+                    label = "Account",
+                    value = account, options = accountOptions.filterNot { it == transferTarget },
                     supportingValues = accountBalanceLabels,
-                    onValueChange = { value ->
-                        if (value == transferAccount) return@PickerTextField
-                        transferAccount = value
-                        if (editing == null && value.isNotBlank()) {
-                            val preview = onPreviewRules(Transaction(
-                                id = "",
-                                account = account,
-                                payee = payee,
-                                category = category,
-                                amount = (amountCents / 100).toInt(),
-                                amountCents = amountCents,
-                                type = Type.TRANSFER,
-                                transferAccount = value,
-                                date = storageDate(date),
-                                notes = notes,
-                                cleared = cleared,
-                            ))
-                            cleared = preview.cleared
-                            notes = preview.notes
-                            parseStoredDate(preview.date)?.let { date = it }
-                            amountCents = abs(preview.amountCents)
-                            rulesApplied = preview.rulesApplied
+                    onValueChange = {
+                        account = it
+                        if (it in offBudgetAccountOptions && !isTransfer) {
+                            category = ""
+                            splitLines = splitLines.map { line -> line.copy(category = "") }
                         }
                     },
-                    autoOpen = autoStep == AddStep.To,
+                    autoOpen = autoStep == AddStep.Account,
                     onAutoOpenHandled = { autoStep = null },
+                    rowIcon = Icons.Outlined.AccountBalanceWallet,
+                    placeholder = "Choose an account",
                 )
-            } else {
+            }
+            if (!isTransfer) {
                 if (!isSplit) {
                     FilledTonalButton(
                         onClick = {
@@ -431,9 +375,15 @@ fun AddTransactionScreen(
                                 SplitLine(category = category, amountCents = amountCents), SplitLine(),
                             )
                         },
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = MaterialTheme.shapes.large,
-                    ) { Text(if (isOffBudget) "Split transaction" else "Split into multiple categories") }
+                    ) {
+                        Icon(Icons.AutoMirrored.Outlined.CallSplit, contentDescription = null)
+                        Text(
+                            if (isOffBudget) "Split transaction" else "Split into multiple categories",
+                            modifier = Modifier.padding(start = Spacing.sm),
+                        )
+                    }
                 } else {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -532,7 +482,7 @@ fun AddTransactionScreen(
                                     label = "Payee (optional)",
                                     value = line.payee,
                                     options = payeeOptions,
-                                    supportingValues = accountBalanceLabels.mapKeys { "Transfer: ${it.key}" },
+                                    supportingValues = accountBalanceLabels.mapKeys { TRANSFER_PAYEE_PREFIX + it.key },
                                     onValueChange = { value ->
                                         splitLines = splitLines.toMutableList().also {
                                             it[index] = line.copy(payee = value)
@@ -562,7 +512,7 @@ fun AddTransactionScreen(
                         }
                         FilledTonalButton(
                             onClick = { splitLines = splitLines + SplitLine() },
-                            modifier = Modifier.fillMaxWidth().height(54.dp),
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = MaterialTheme.shapes.large,
                         ) { Text("Add another split") }
                         Text(
@@ -575,33 +525,40 @@ fun AddTransactionScreen(
                     }
                 }
             }
-            Box(Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = formatDate(date), onValueChange = {}, readOnly = true,
-                    label = { Text("Date") }, singleLine = true,
-                    trailingIcon = { Icon(Icons.Outlined.DateRange, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth(),
+            FormCard {
+                TransactionFormRow(
+                    icon = Icons.Outlined.CalendarMonth,
+                    label = "Date",
+                    value = formatDate(date),
+                    onClick = { showDatePicker = true },
                 )
-                Box(Modifier.matchParentSize().clickable { showDatePicker = true })
+                FormCardDivider()
+                TransactionFormRow(
+                    icon = Icons.Outlined.CheckCircleOutline,
+                    label = "Cleared",
+                    value = null,
+                    checked = cleared,
+                    onClick = { cleared = !cleared },
+                )
+                FormCardDivider()
+                TagAutocompleteField(
+                    value = notes,
+                    tags = availableTags,
+                    onValueChange = { notes = it },
+                    onCreateTag = { name -> tagRepository.create(name)?.also { tagVersion += 1 } },
+                    label = "Notes",
+                    modifier = Modifier.fillMaxWidth(),
+                    rowIcon = Icons.AutoMirrored.Outlined.Notes,
+                    placeholder = "Add a note or #tag",
+                )
             }
-            TagAutocompleteField(
-                value = notes,
-                tags = availableTags,
-                onValueChange = { notes = it },
-                onCreateTag = { name -> tagRepository.create(name)?.also { tagVersion += 1 } },
-                label = "Notes",
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Cleared", modifier = Modifier.weight(1f))
-                Switch(checked = cleared, onCheckedChange = { cleared = it })
-            }
-            TransactionSaveButton(
-                canSave = canSave,
-                onClick = saveTransaction,
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
+        TransactionSaveButton(
+            canSave = canSave,
+            onClick = saveTransaction,
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
+        )
         }
     }
     if (showCalculator) CalculatorAmountSheet(
@@ -615,6 +572,8 @@ fun AddTransactionScreen(
         onApply = { amountCents = it },
         onExpressionChange = { amountExpression = it },
         onDone = { if (editing == null) autoStep = AddStep.Payee },
+        onToggleSign = { incoming = !incoming },
+        toggleSignLabel = signToggleLabel,
     )
     splitCalculatorIndex?.let { index ->
         val line = splitLines.getOrNull(index)
@@ -667,9 +626,7 @@ fun AddTransactionScreen(
     }
 }
 
-private enum class AddStep { Payee, Category, Account, To }
-
-private val Type.displayName: String get() = name.lowercase().replaceFirstChar(Char::uppercase)
+private enum class AddStep { Payee, Category, Account }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -689,6 +646,248 @@ private fun TransactionSaveButton(
     }
 }
 
+internal const val TRANSFER_PAYEE_PREFIX = "Transfer: "
+
+/** The other account when [payee] is a `Transfer: <account>` picker entry, else null. */
+internal fun transferTargetOf(payee: String): String? = payee
+    .takeIf { it.startsWith(TRANSFER_PAYEE_PREFIX) }
+    ?.removePrefix(TRANSFER_PAYEE_PREFIX)
+    ?.takeIf(String::isNotBlank)
+
+internal data class TransactionFormStart(val payee: String, val incoming: Boolean)
+
+/**
+ * Opening state of the single-page form. A transfer is shown from its own leg: the payee is the
+ * other account and money arriving in this account is `incoming`, like Actual's mobile editor.
+ */
+internal fun transactionFormStart(editing: Transaction?, defaultType: Type): TransactionFormStart = when {
+    editing == null -> TransactionFormStart(payee = "", incoming = defaultType == Type.INCOME)
+    editing.type == Type.TRANSFER && editing.transferAccount != null -> TransactionFormStart(
+        payee = TRANSFER_PAYEE_PREFIX + editing.transferAccount,
+        incoming = editing.amountCents >= 0,
+    )
+    else -> TransactionFormStart(payee = editing.payee, incoming = editing.type == Type.INCOME)
+}
+
+/**
+ * The form as the save model. A `Transfer:` payee makes a transfer whose `account` is the sending
+ * side: this account for money going out, the payee account for money coming in.
+ */
+internal fun transactionFromForm(
+    id: String,
+    date: String,
+    payee: String,
+    category: String,
+    account: String,
+    incoming: Boolean,
+    amountCents: Long,
+    cleared: Boolean,
+    notes: String,
+    splits: List<SplitLine>,
+    rulesApplied: Boolean,
+    categoryIsExplicit: Boolean,
+): Transaction {
+    val target = transferTargetOf(payee)
+    val signed = if (incoming && target == null) amountCents else -amountCents
+    return Transaction(
+        id = id,
+        date = date,
+        payee = if (target != null) "" else payee,
+        category = category,
+        account = if (target != null && incoming) target else account,
+        amount = (signed / 100L).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt(),
+        cleared = cleared,
+        amountCents = signed,
+        type = when {
+            target != null -> Type.TRANSFER
+            incoming -> Type.INCOME
+            else -> Type.EXPENSE
+        },
+        transferAccount = target?.let { if (incoming) account else it },
+        notes = notes,
+        splits = if (target != null) emptyList() else splits,
+        rulesApplied = rulesApplied,
+        categoryIsExplicit = categoryIsExplicit,
+    )
+}
+
+private enum class AmountKind { Expense, Income, Transfer }
+
+/** Centered amount with its sign, direction (for transfers) and a switch for the sign. */
+@Composable
+private fun AmountHero(
+    amountText: String,
+    currencyPrefix: String,
+    kind: AmountKind,
+    isZero: Boolean,
+    direction: String?,
+    editing: Boolean,
+    cursorAlpha: Float,
+    toggleLabel: String,
+    hint: String?,
+    onAmountClick: () -> Unit,
+    onToggleSign: () -> Unit,
+) {
+    val kindColor = when (kind) {
+        AmountKind.Expense -> MaterialTheme.colorScheme.error
+        AmountKind.Income -> MaterialTheme.colorScheme.primary
+        AmountKind.Transfer -> MaterialTheme.colorScheme.onSurface
+    }
+    val caption = when (kind) {
+        AmountKind.Expense -> "Expense"
+        AmountKind.Income -> "Income"
+        AmountKind.Transfer -> "Transfer"
+    }
+    val sign = when (kind) {
+        AmountKind.Expense -> "−"
+        AmountKind.Income -> "+"
+        AmountKind.Transfer -> ""
+    }
+    val shown = "$sign$currencyPrefix$amountText"
+    val style = AmountTypography.heroAmount.let { if (shown.length > 11) it.copy(fontSize = 32.sp) else it }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm, bottom = Spacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Text(caption, style = MaterialTheme.typography.labelLarge, color = kindColor)
+        Row(
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.large)
+                .clickable(onClickLabel = "Edit amount", onClick = onAmountClick)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
+                .semantics(mergeDescendants = true) { contentDescription = "Amount, $caption $shown" },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                shown,
+                style = style,
+                color = if (isZero) MaterialTheme.colorScheme.onSurfaceVariant else kindColor,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
+            )
+            if (editing) {
+                Box(
+                    Modifier.padding(start = 3.dp).height(36.dp).width(2.dp)
+                        .clip(RoundedCornerShape(1.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = cursorAlpha)),
+                )
+            }
+        }
+        direction?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        AssistChip(
+            onClick = onToggleSign,
+            label = { Text(toggleLabel) },
+            leadingIcon = {
+                Icon(Icons.Outlined.SwapVert, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
+            },
+        )
+        hint?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** A rounded group of [TransactionFormRow]s, styled like the app's picker groups. */
+@Composable
+private fun FormCard(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(content = content)
+    }
+}
+
+@Composable
+private fun FormCardDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 56.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+}
+
+/**
+ * One form field as an icon row: label over value, an optional caption, and a trailing value,
+ * switch ([checked]) or chevron. A null [value] shows [label] as the row's only line.
+ */
+@Composable
+internal fun TransactionFormRow(
+    icon: ImageVector,
+    label: String,
+    value: String?,
+    modifier: Modifier = Modifier,
+    valueIsPlaceholder: Boolean = false,
+    caption: String? = null,
+    supportingValue: String? = null,
+    enabled: Boolean = true,
+    checked: Boolean? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val interaction = when {
+        onClick == null || !enabled -> Modifier
+        checked != null -> Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = { onClick() })
+        else -> Modifier.clickable(role = Role.Button, onClick = onClick)
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .then(interaction)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = if (enabled) muted else muted.copy(alpha = 0.6f))
+        Spacer(Modifier.width(Spacing.lg))
+        Column(Modifier.weight(1f)) {
+            if (value == null) {
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+            } else {
+                Text(label, style = MaterialTheme.typography.labelMedium, color = muted)
+                Text(
+                    value,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (valueIsPlaceholder || !enabled) muted else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            caption?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = muted) }
+        }
+        supportingValue?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = muted,
+                maxLines = 1,
+                modifier = Modifier.padding(start = Spacing.sm),
+            )
+        }
+        when {
+            checked != null -> Switch(
+                checked = checked,
+                onCheckedChange = null,
+                enabled = enabled,
+                modifier = Modifier.padding(start = Spacing.sm),
+            )
+            trailing != null -> trailing()
+            onClick != null && enabled -> Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = muted)
+        }
+    }
+}
+
 @Composable
 internal fun PickerTextField(
     label: String,
@@ -703,6 +902,12 @@ internal fun PickerTextField(
     autoOpen: Boolean = false,
     onAutoOpenHandled: () -> Unit = {},
     onPicked: () -> Unit = {},
+    /** Shows the field as an icon row inside a [FormCard] instead of an outlined text field. */
+    rowIcon: ImageVector? = null,
+    /** Row text when it differs from [value], e.g. the account name for a `Transfer:` payee. */
+    rowValue: String? = null,
+    rowCaption: String? = null,
+    placeholder: String = "",
 ) {
     var showPicker by remember { mutableStateOf(false) }
     LaunchedEffect(autoOpen) {
@@ -772,38 +977,51 @@ internal fun PickerTextField(
             locationActionMessage = "Location permission was not granted. You can still choose a payee normally."
         }
     }
-    Box(Modifier.fillMaxWidth()) {
+    val locationButton: (@Composable () -> Unit)? = inlineAction?.let { action ->
+        {
+            TextButton(
+                onClick = {
+                    if (ForegroundLocationPermission.isGranted(context)) {
+                        runLocationAction(action)
+                    } else {
+                        pendingPermissionAction = action
+                        showPermissionExplanation = true
+                    }
+                },
+                enabled = !locationActionLoading,
+            ) {
+                if (locationActionLoading) {
+                    CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Outlined.LocationOn, contentDescription = null)
+                    Text(
+                        if (action == PayeeLocationInlineAction.Nearby) "Nearby" else "Save location",
+                        modifier = Modifier.padding(start = 4.dp),
+                    )
+                }
+            }
+        }
+    }
+    if (rowIcon != null) {
+        val shown = rowValue ?: value
+        TransactionFormRow(
+            icon = rowIcon,
+            label = label,
+            value = shown.ifEmpty { placeholder },
+            valueIsPlaceholder = shown.isEmpty(),
+            caption = locationActionMessage ?: rowCaption,
+            supportingValue = supportingValues[value],
+            trailing = locationButton,
+            onClick = { showPicker = true },
+        )
+    } else Box(Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = value,
             onValueChange = {},
             label = { Text(label) },
             singleLine = true,
             readOnly = true,
-            trailingIcon = inlineAction?.let { action ->
-                {
-                    TextButton(
-                        onClick = {
-                            if (ForegroundLocationPermission.isGranted(context)) {
-                                runLocationAction(action)
-                            } else {
-                                pendingPermissionAction = action
-                                showPermissionExplanation = true
-                            }
-                        },
-                        enabled = !locationActionLoading,
-                    ) {
-                        if (locationActionLoading) {
-                            CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Outlined.LocationOn, contentDescription = null)
-                            Text(
-                                if (action == PayeeLocationInlineAction.Nearby) "Nearby" else "Save location",
-                                modifier = Modifier.padding(start = 4.dp),
-                            )
-                        }
-                    }
-                }
-            },
+            trailingIcon = locationButton,
             supportingText = locationActionMessage?.let { message -> { Text(message) } },
             modifier = Modifier.fillMaxWidth(),
         )

@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Add and Edit transaction is now a single page: the amount's sign sets expense or income, and choosing an account as the payee makes a transfer ([#760](https://github.com/azimul-kabir/actua/pull/760))
+
 ### Added
 
 - Tap an upcoming transaction to post it, post it today, skip its next date or complete its schedule ([#740](https://github.com/azimul-kabir/actua/pull/740))

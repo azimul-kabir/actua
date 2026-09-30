@@ -2,10 +2,8 @@ package com.azimulkabir.actua.ui.transactions
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
@@ -18,7 +16,7 @@ import org.junit.runner.RunWith
 class AddTransactionScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    @Test fun reverseTransferAccountsSwapsOnlyTheTransferDirection() {
+    @Test fun reverseTransferSwapsOnlyTheTransferDirection() {
         val editing = Transaction(
             id = "transfer",
             date = "20260920",
@@ -44,8 +42,8 @@ class AddTransactionScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Reverse transfer accounts").performClick()
-        compose.onNodeWithText("Save").performScrollTo().performClick()
+        compose.onNodeWithText("Reverse transfer").performClick()
+        compose.onNodeWithText("Save").performClick()
 
         assertEquals("Savings", saved?.account)
         assertEquals("Checking", saved?.transferAccount)
@@ -97,8 +95,77 @@ class AddTransactionScreenTest {
             }
         }
 
-        compose.onNodeWithText("Save").performScrollTo().performClick()
+        compose.onNodeWithText("Save").performClick()
 
         assertEquals(0L, saved?.amountCents)
+    }
+
+    @Test fun editingTheIncomingLegOfATransferKeepsItsDirection() {
+        // Savings' leg of a Checking → Savings transfer, as the Savings register shows it.
+        val editing = Transaction(
+            id = "transfer-in", date = "20260920", payee = "", category = "", account = "Savings",
+            transferAccount = "Checking", amountCents = 1_250, amount = 12, type = Type.TRANSFER,
+            cleared = false,
+        )
+        var saved: Transaction? = null
+        compose.setContent {
+            MaterialTheme {
+                AddTransactionScreen(
+                    editing = editing, onBack = {}, onSave = { saved = it },
+                    accountOptions = listOf("Checking", "Savings"),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Checking → Savings").assertExists()
+        compose.onNodeWithText("Save").performClick()
+
+        assertEquals(Type.TRANSFER, saved?.type)
+        assertEquals("Checking", saved?.account)
+        assertEquals("Savings", saved?.transferAccount)
+        assertEquals(-1_250L, saved?.amountCents)
+    }
+
+    @Test fun signSwitchTurnsAnExpenseIntoIncome() {
+        val editing = Transaction(
+            id = "coffee", date = "20260920", payee = "Cafe", category = "Dining", account = "Checking",
+            amountCents = -450, amount = -4, type = Type.EXPENSE, cleared = false,
+        )
+        var saved: Transaction? = null
+        compose.setContent {
+            MaterialTheme {
+                AddTransactionScreen(
+                    editing = editing, onBack = {}, onSave = { saved = it },
+                    accountOptions = listOf("Checking"), categoryOptions = listOf("Dining"),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Switch to income").performClick()
+        compose.onNodeWithText("Income").assertExists()
+        compose.onNodeWithText("Save").performClick()
+
+        assertEquals(Type.INCOME, saved?.type)
+        assertEquals(450L, saved?.amountCents)
+        assertEquals("Cafe", saved?.payee)
+        assertEquals("Dining", saved?.category)
+    }
+
+    @Test fun transferBetweenBudgetAccountsShowsALockedCategory() {
+        val editing = Transaction(
+            id = "transfer", date = "20260920", payee = "", category = "", account = "Checking",
+            transferAccount = "Savings", amountCents = -1_000, amount = -10, type = Type.TRANSFER, cleared = false,
+        )
+        compose.setContent {
+            MaterialTheme {
+                AddTransactionScreen(
+                    editing = editing, onBack = {}, onSave = {},
+                    accountOptions = listOf("Checking", "Savings"),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Transfers between budget accounts aren't categorized").assertExists()
+        compose.onNodeWithText("Split into multiple categories").assertDoesNotExist()
     }
 }
