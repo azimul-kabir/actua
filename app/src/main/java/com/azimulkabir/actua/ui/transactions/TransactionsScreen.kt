@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -97,7 +98,12 @@ import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import com.azimulkabir.actua.ui.components.coloredTagText
 import com.azimulkabir.actua.ui.components.rememberActualTagColors
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaGroupedItem
+import com.azimulkabir.actua.ui.components.ActuaHeroAmount
+import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.GroupPosition
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.ui.theme.AmountTypography
@@ -569,18 +575,49 @@ fun TransactionsScreen(
                 if (groupTransactionsByDate) {
                     groupedByDate.forEach { (date, transactions) ->
                         stickyHeader(key = date) {
-                            Text(formatTransactionDate(date), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer)
-                                    .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm))
+                            // Sticky, so it keeps the opaque page background under the day label.
+                            Text(formatTransactionDate(date), style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)
+                                    .padding(start = Spacing.screenHorizontal + Spacing.xs, end = Spacing.screenHorizontal,
+                                        top = Spacing.md, bottom = Spacing.xs))
                         }
-                        items(transactions, key = { it.id }) { transaction ->
+                        itemsIndexed(transactions, key = { _, transaction -> transaction.id }) { index, transaction ->
                             // Every visible row reads the same `selectedIds` set, so a plain
                             // `transaction.id in selectedIds` recomposes every visible row on any
                             // selection toggle. derivedStateOf only reports a change (and thus only
                             // recomposes) the row(s) whose membership actually flipped.
                             val isSelected by remember(transaction.id) { derivedStateOf { transaction.id in selectedIds } }
-                            TransactionRow(transaction, hideDecimalPlaces, showDate = false,
+                            ActuaGroupedItem(GroupPosition.of(index, transactions.size), dividerInset = TRANSACTION_DIVIDER_INSET) {
+                                TransactionRow(transaction, hideDecimalPlaces, showDate = false,
+                                    onClick = {
+                                        if (transaction.isUpcoming) {
+                                            if (!selectionModeOn) upcomingMenuFor = transaction
+                                        } else if (selectionModeOn) {
+                                            selectedIds = selectedIds.toggle(transaction.id)
+                                        } else viewed = transaction
+                                    },
+                                    showAccount = accountName == null,
+                                    onLongClick = {
+                                        if (!transaction.isUpcoming) {
+                                            if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
+                                            else {
+                                                selectionModeOn = true
+                                                selectedIds = setOf(transaction.id)
+                                            }
+                                        }
+                                    },
+                                    onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
+                                    selectionMode = selectionModeOn, selected = isSelected,
+                                    runningBalanceCents = runningBalances[transaction.id], showDivider = false)
+                            }
+                        }
+                    }
+                } else {
+                    itemsIndexed(visible, key = { _, transaction -> transaction.id }) { index, transaction ->
+                        val isSelected by remember(transaction.id) { derivedStateOf { transaction.id in selectedIds } }
+                        ActuaGroupedItem(GroupPosition.of(index, visible.size), dividerInset = TRANSACTION_DIVIDER_INSET) {
+                            TransactionRow(transaction, hideDecimalPlaces, showDate = true,
                                 onClick = {
                                     if (transaction.isUpcoming) {
                                         if (!selectionModeOn) upcomingMenuFor = transaction
@@ -600,33 +637,8 @@ fun TransactionsScreen(
                                 },
                                 onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
                                 selectionMode = selectionModeOn, selected = isSelected,
-                                runningBalanceCents = runningBalances[transaction.id])
+                                runningBalanceCents = runningBalances[transaction.id], showDivider = false)
                         }
-                    }
-                } else {
-                    items(visible, key = { it.id }) { transaction ->
-                        val isSelected by remember(transaction.id) { derivedStateOf { transaction.id in selectedIds } }
-                        TransactionRow(transaction, hideDecimalPlaces, showDate = true,
-                            onClick = {
-                                if (transaction.isUpcoming) {
-                                    if (!selectionModeOn) upcomingMenuFor = transaction
-                                } else if (selectionModeOn) {
-                                    selectedIds = selectedIds.toggle(transaction.id)
-                                } else viewed = transaction
-                            },
-                            showAccount = accountName == null,
-                            onLongClick = {
-                                if (!transaction.isUpcoming) {
-                                    if (selectionModeOn) selectedIds = selectedIds.toggle(transaction.id)
-                                    else {
-                                        selectionModeOn = true
-                                        selectedIds = setOf(transaction.id)
-                                    }
-                                }
-                            },
-                            onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
-                            selectionMode = selectionModeOn, selected = isSelected,
-                            runningBalanceCents = runningBalances[transaction.id])
                     }
                 }
             }
@@ -1017,16 +1029,28 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
     )
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (showSummary) Surface(
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = MaterialTheme.shapes.large,
-        ) {
+        if (showSummary) {
+            val balanceText = formatMoneyCents(account.balanceCents, hideDecimals)
+            ActuaHeroAmount(
+                amount = balanceText,
+                caption = "Balance",
+                captionColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                amountColor = when {
+                    account.balanceCents > 0 -> MaterialTheme.colorScheme.primary
+                    account.balanceCents < 0 -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                size = ActuaHeroSize.Medium,
+                contentDescription = "Balance $balanceText",
+            )
+        }
+        if (showSummary) ActuaFormCard {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     BalanceColumn("Cleared", account.clearedCents, hideDecimals, Modifier.weight(1f), alignment = Alignment.Start)
-                    BalanceColumn("Balance", account.balanceCents, hideDecimals, Modifier.weight(1f), emphasized = true, alignment = Alignment.CenterHorizontally)
                     BalanceColumn("Uncleared", account.unclearedCents, hideDecimals, Modifier.weight(1f), alignment = Alignment.End)
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(
                     Modifier.fillMaxWidth().clickable(onClick = toggleBalance),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1058,7 +1082,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
             }
         }
         if (showCreditCardSection) card?.let {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
+            ActuaFormCard {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Billing cycle", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     val (cycleStart, cycleEnd) = it.cycle.cycleRange()
@@ -1193,12 +1217,16 @@ private fun ToggleItem(label: String, checked: Boolean, onChange: (Boolean) -> U
     }, onClick = { onChange(!checked) })
 }
 
+/** Card divider inset lining up with a transaction row's text, after its cleared indicator. */
+private val TRANSACTION_DIVIDER_INSET = Spacing.screenHorizontal + 18.dp + 10.dp
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     showDate: Boolean, showAccount: Boolean, onClick: () -> Unit, onLongClick: () -> Unit,
     onClearedClick: (() -> Unit)? = null, tagColors: Map<String, String>? = null,
-    selectionMode: Boolean = false, selected: Boolean = false, runningBalanceCents: Long? = null) {
+    selectionMode: Boolean = false, selected: Boolean = false, runningBalanceCents: Long? = null,
+    showDivider: Boolean = true) {
     val presentation = transactionRowPresentation(transaction, showAccount)
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     val upcoming = transaction.isUpcoming
@@ -1255,7 +1283,7 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
             }
         }
     }
-    HorizontalDivider(
+    if (showDivider) HorizontalDivider(
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
 }
 
