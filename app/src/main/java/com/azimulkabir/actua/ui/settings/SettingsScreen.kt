@@ -502,12 +502,12 @@ fun SettingsScreen(
                             uriHandler.openUri("https://github.com/azimul-kabir/actua")
                         }
                         SettingsDivider()
-                        AboutRow("Website", "azimul-kabir.github.io/actua-website") {
-                            uriHandler.openUri("https://azimul-kabir.github.io/actua-website")
+                        AboutRow("Website", "actua.pages.dev") {
+                            uriHandler.openUri("https://actua.pages.dev")
                         }
                         SettingsDivider()
                         AboutRow("FAQ", "Answers to common questions about Actua") {
-                            uriHandler.openUri("https://azimul-kabir.github.io/actua-website#faq")
+                            uriHandler.openUri("https://actua.pages.dev#faq")
                         }
                         SettingsDivider()
                         AboutRow("Join Discord", "Discuss Actua, test beta builds and help with development") {

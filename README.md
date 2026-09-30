@@ -2,7 +2,7 @@
 
 **A native Android client for [Actual Budget](https://actualbudget.org/), built with Kotlin and Jetpack Compose.**
 
-[Website](https://azimul-kabir.github.io/actua-website) • [Download APK](https://github.com/azimul-kabir/actua/releases/latest) • [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) • [Discord](https://discord.gg/FyGxRjmhw) • [Report an issue](https://github.com/azimul-kabir/actua/issues/new/choose)
+[Website](https://actua.pages.dev) • [Download APK](https://github.com/azimul-kabir/actua/releases/latest) • [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) • [Discord](https://discord.gg/FyGxRjmhw) • [Report an issue](https://github.com/azimul-kabir/actua/issues/new/choose)
 
 ![Android 9+](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack_Compose-7F52FF?logo=kotlin&logoColor=white)
