@@ -1,6 +1,5 @@
 package com.azimulkabir.actua.ui.settings
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -9,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,7 +18,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,15 +32,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.net.Uri
 import com.azimulkabir.actua.data.budget.BackupDestinationManager
 import com.azimulkabir.actua.data.budget.BackupItem
 import com.azimulkabir.actua.data.budget.BackupService
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
+import com.azimulkabir.actua.ui.theme.Sizes
+import com.azimulkabir.actua.ui.theme.Spacing
+import java.text.DateFormat
+import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.DateFormat
-import java.util.Date
 
 @Composable
 fun BackupsScreen(
@@ -150,11 +156,12 @@ fun BackupsScreen(
     Column(modifier.fillMaxSize()) {
         ActuaScreenHeader(title = "Backups", onBack = onBack)
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Text("Destination", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Surface(shape = MaterialTheme.shapes.large, tonalElevation = 1.dp) {
+            ActuaGroupLabel("Destination")
+            ActuaFormCard {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -182,34 +189,40 @@ fun BackupsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(enabled = !busy, modifier = Modifier.fillMaxWidth(), onClick = {
-                if (backups.any { it is BackupItem.Latest }) confirmBackup = true else makeBackup()
-            }) {
+            Button(
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth().height(Sizes.primaryButtonHeight),
+                shape = MaterialTheme.shapes.large,
+                onClick = { if (backups.any { it is BackupItem.Latest }) confirmBackup = true else makeBackup() },
+            ) {
                 if (busy) CircularProgressIndicator(Modifier.padding(end = 8.dp))
                 Text("Back up now")
             }
-            OutlinedButton(enabled = !busy, modifier = Modifier.fillMaxWidth(), onClick = {
+            ActuaSecondaryButton(text = "Import backup", enabled = !busy, onClick = {
                 importBackup.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
-            }) { Text("Import backup") }
+            })
             message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
-            Text("Available backups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            backups.forEachIndexed { index, backup ->
-                Row(
-                    Modifier.fillMaxWidth().clickable(enabled = !busy) { pendingRestore = backup }.padding(vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(when (backup) {
-                            BackupItem.Latest -> "Pre-restore version"
-                            is BackupItem.Archive -> DateFormat.getDateTimeInstance().format(Date.from(backup.modifiedAt))
-                        })
-                        Text("Tap to ${if (backup is BackupItem.Latest) "revert" else "restore"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ActuaGroupLabel("Available backups")
+            if (backups.isNotEmpty()) ActuaFormCard {
+                backups.forEachIndexed { index, backup ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable(enabled = !busy) { pendingRestore = backup }
+                            .padding(start = Spacing.lg, end = Spacing.sm, top = Spacing.md, bottom = Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(when (backup) {
+                                BackupItem.Latest -> "Pre-restore version"
+                                is BackupItem.Archive -> DateFormat.getDateTimeInstance().format(Date.from(backup.modifiedAt))
+                            })
+                            Text("Tap to ${if (backup is BackupItem.Latest) "revert" else "restore"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (backup is BackupItem.Archive) OutlinedButton(enabled = !busy, onClick = {
+                            pendingExport = backup; export.launch(backup.id)
+                        }) { Text("Export") }
                     }
-                    if (backup is BackupItem.Archive) OutlinedButton(enabled = !busy, onClick = {
-                        pendingExport = backup; export.launch(backup.id)
-                    }) { Text("Export") }
+                    if (index != backups.lastIndex) ActuaCardDivider(inset = Spacing.lg)
                 }
-                if (index != backups.lastIndex) HorizontalDivider()
             }
             if (backups.isEmpty()) Text("No backups yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

@@ -2,11 +2,12 @@ package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,29 +16,29 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.EventAvailable
-import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -58,10 +59,13 @@ import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
 import com.azimulkabir.actua.data.schedules.ScheduledAmount
+import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
-import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.components.GroupPosition
 import com.azimulkabir.actua.ui.components.formatDate as formatDisplayDate
+import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.PillShape
+import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.success
 import com.azimulkabir.actua.ui.theme.warning
 import java.time.LocalDate
@@ -152,18 +156,16 @@ fun SchedulesScreen(
                     TextButton(onClick = onAdd, enabled = canAdd) { Text("New Schedule") }
                 }
             }
-            else -> LazyColumn(Modifier.fillMaxSize()) {
-                items(visible, key = { it.schedule.id }) { item ->
-                    ScheduleRow(
-                        item = item,
-                        hideDecimals = hideDecimalPlaces,
-                        onClick = { onEdit(item.schedule.id) },
-                        onLongClick = { actionItem = item },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 20.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
-                    )
+            else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl)) {
+                itemsIndexed(visible, key = { _, item -> item.schedule.id }) { index, item ->
+                    ActuaGroupedItem(GroupPosition.of(index, visible.size), dividerInset = Spacing.lg) {
+                        ScheduleRow(
+                            item = item,
+                            hideDecimals = hideDecimalPlaces,
+                            onClick = { onEdit(item.schedule.id) },
+                            onLongClick = { actionItem = item },
+                        )
+                    }
                 }
                 if (!showCompleted && completedCount > 0) item("completed-footer") {
                     Text("$completedCount completed ${if (completedCount == 1) "schedule" else "schedules"} hidden.",
@@ -228,7 +230,7 @@ private fun ScheduleRow(
     val schedule = item.schedule
     Row(
         Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(start = 20.dp, top = 14.dp, end = 12.dp, bottom = 14.dp),
+            .padding(start = Spacing.lg, top = 14.dp, end = Spacing.md, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {

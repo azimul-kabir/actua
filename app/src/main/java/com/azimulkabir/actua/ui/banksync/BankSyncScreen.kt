@@ -18,11 +18,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
@@ -93,66 +93,73 @@ fun BankSyncScreen(
         ActuaScreenHeader(title = "Bank Sync", onBack = onBack)
         Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.xl)) {
             SectionLabel("Providers")
-            ProviderRow(
-                name = "SimpleFIN", configured = simpleFinConfigured,
-                expanded = expanded == "simpleFin",
-                onClick = { expanded = if (expanded == "simpleFin") null else "simpleFin" },
-            ) {
-                SimpleFinSetup(
-                    configured = simpleFinConfigured,
-                    onSaveToken = onSaveSimpleFinToken,
-                    discovery = simpleFinDiscovery,
-                    onDiscover = onDiscoverSimpleFin,
-                    onLink = { linkingSource = it to "simpleFin" },
-                )
-            }
-            ProviderRow(
-                name = "GoCardless", configured = goCardlessConfigured,
-                expanded = expanded == "goCardless",
-                onClick = { expanded = if (expanded == "goCardless") null else "goCardless" },
-            ) {
-                GoCardlessSetup(
-                    configured = goCardlessConfigured,
-                    onSaveCredentials = onSaveGoCardlessCredentials,
-                    institutions = goCardlessInstitutions,
-                    institutionsLoading = goCardlessInstitutionsLoading,
-                    onLoadInstitutions = onLoadGoCardlessInstitutions,
-                    onAuthorize = onStartGoCardlessAuthorization,
-                    discovery = goCardlessDiscovery,
-                    onCheckAccounts = onCheckGoCardlessAccounts,
-                    onLink = { linkingSource = it to "goCardless" },
-                )
-            }
-            ProviderRow(
-                name = "Pluggy.ai", configured = false, notSupported = true,
-                expanded = expanded == "pluggyai",
-                onClick = { expanded = if (expanded == "pluggyai") null else "pluggyai" },
-            ) {
-                Text(
-                    "Pluggy.ai account discovery and linking isn't available in Actua yet. " +
-                        "Credentials can still be configured directly on your Actual server.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
-                )
+            ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+                ProviderRow(
+                    name = "SimpleFIN", configured = simpleFinConfigured,
+                    expanded = expanded == "simpleFin",
+                    onClick = { expanded = if (expanded == "simpleFin") null else "simpleFin" },
+                ) {
+                    SimpleFinSetup(
+                        configured = simpleFinConfigured,
+                        onSaveToken = onSaveSimpleFinToken,
+                        discovery = simpleFinDiscovery,
+                        onDiscover = onDiscoverSimpleFin,
+                        onLink = { linkingSource = it to "simpleFin" },
+                    )
+                }
+                ActuaCardDivider(inset = Spacing.screenHorizontal)
+                ProviderRow(
+                    name = "GoCardless", configured = goCardlessConfigured,
+                    expanded = expanded == "goCardless",
+                    onClick = { expanded = if (expanded == "goCardless") null else "goCardless" },
+                ) {
+                    GoCardlessSetup(
+                        configured = goCardlessConfigured,
+                        onSaveCredentials = onSaveGoCardlessCredentials,
+                        institutions = goCardlessInstitutions,
+                        institutionsLoading = goCardlessInstitutionsLoading,
+                        onLoadInstitutions = onLoadGoCardlessInstitutions,
+                        onAuthorize = onStartGoCardlessAuthorization,
+                        discovery = goCardlessDiscovery,
+                        onCheckAccounts = onCheckGoCardlessAccounts,
+                        onLink = { linkingSource = it to "goCardless" },
+                    )
+                }
+                ActuaCardDivider(inset = Spacing.screenHorizontal)
+                ProviderRow(
+                    name = "Pluggy.ai", configured = false, notSupported = true,
+                    expanded = expanded == "pluggyai",
+                    onClick = { expanded = if (expanded == "pluggyai") null else "pluggyai" },
+                ) {
+                    Text(
+                        "Pluggy.ai account discovery and linking isn't available in Actua yet. " +
+                            "Credentials can still be configured directly on your Actual server.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+                    )
+                }
             }
 
             if (linkedAccounts.isNotEmpty()) {
                 SectionLabel("Linked accounts")
-                linkedAccounts.forEach { account ->
-                    val statusLabel = bankSyncStatusLabel(account.bankSyncStatus)
-                    ActuaListRow(
-                        title = { Text(account.name) },
-                        subtitle = {
-                            Text(
-                                statusLabel ?: (account.bankSyncSource.orEmpty().ifBlank { "Linked" }),
-                                color = if (statusLabel != null) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        },
-                        trailing = { TextButton(onClick = { onUnlink(account) }) { Text("Unlink") } },
-                    )
+                ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+                    linkedAccounts.forEachIndexed { index, account ->
+                        if (index > 0) ActuaCardDivider(inset = Spacing.screenHorizontal)
+                        val statusLabel = bankSyncStatusLabel(account.bankSyncStatus)
+                        ActuaListRow(
+                            title = { Text(account.name) },
+                            subtitle = {
+                                Text(
+                                    statusLabel ?: (account.bankSyncSource.orEmpty().ifBlank { "Linked" }),
+                                    color = if (statusLabel != null) MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            },
+                            trailing = { TextButton(onClick = { onUnlink(account) }) { Text("Unlink") } },
+                        )
+                    }
                 }
             }
         }
@@ -174,7 +181,10 @@ private fun SectionLabel(text: String) {
     Text(
         text, style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+        modifier = Modifier.padding(
+            start = Spacing.screenHorizontal + Spacing.xs, end = Spacing.screenHorizontal,
+            top = 20.dp, bottom = 6.dp,
+        ),
     )
 }
 
@@ -200,11 +210,8 @@ private fun ProviderRow(
             onClick = onClick,
         )
         if (expanded) {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                Column(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)) { content() }
-            }
+            Column(Modifier.padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.md)) { content() }
         }
-        HorizontalDivider()
     }
 }
 
