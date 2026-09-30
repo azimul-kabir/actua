@@ -1,28 +1,55 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.EventAvailable
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.schedules.*
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaFormTextField
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.components.ActuaHeroAmount
+import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
 import com.azimulkabir.actua.ui.components.centsToInput
+import com.azimulkabir.actua.ui.components.currencyInputPrefix
+import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.theme.Sizes
+import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.transactions.PickerTextField
 import java.time.Instant
 import java.time.LocalDate
@@ -121,22 +148,33 @@ fun EditScheduleScreen(
         return
     }
 
+    val currencyPrefix = currencyInputPrefix()
+    val sign = if (income) "+" else "−"
+    val kindColor = if (income) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val caption = if (income) "Income" else "Expense"
+    val shownAmount = "$sign$currencyPrefix${heroAmountText(amountLow)}"
+
     BackHandler(onBack = onBack)
-    Column(modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize().imePadding()) {
         ActuaScreenHeader(
             title = if (schedule == null) "New Schedule" else "Edit Schedule",
             onBack = onBack,
         ) {
-            TextButton(
-                enabled = canSave,
-                onClick = { onSave(fields(), payeeName) },
-            ) { Text("Save") }
+            if (onDelete != null) {
+                IconButton(onClick = { showDelete = true }) {
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = "Delete schedule",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
         }
 
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            Modifier.weight(1f).verticalScroll(rememberScrollState())
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             if (unreadableDate) {
                 Surface(
@@ -146,7 +184,7 @@ fun EditScheduleScreen(
                     Text(
                         "This schedule uses a repeat pattern Actua cannot read. Edit it in Actual to avoid replacing that pattern.",
                         color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(Spacing.lg),
                     )
                 }
             } else if (schedule?.isCustom == true) {
@@ -154,154 +192,168 @@ fun EditScheduleScreen(
                     "Extra rule conditions created in Actual will be preserved.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.xs),
                 )
             }
 
-            SectionTitle("Details")
-            OutlinedTextField(
-                name, { name = it }, label = { Text("Schedule name") },
-                singleLine = true, modifier = Modifier.fillMaxWidth(),
-            )
-            PickerTextField(
-                label = "Payee (optional)",
-                value = payeeName,
-                options = payeeOptions,
-                onValueChange = { payeeName = it },
-                allowCustom = true,
-            )
-            PickerTextField(
-                label = "Account",
-                value = accountName,
-                options = accounts.filterNot { it.closed }.map { it.name },
-                onValueChange = { accountName = it },
-            )
-
-            SectionTitle("Amount")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = !income,
-                    onClick = { income = false },
-                    label = { Text("Expense") },
-                    leadingIcon = if (!income) {
-                        { Icon(Icons.Outlined.Check, null) }
-                    } else null,
-                    modifier = Modifier.weight(1f),
-                )
-                FilterChip(
-                    selected = income,
-                    onClick = { income = true },
-                    label = { Text("Income") },
-                    leadingIcon = if (income) {
-                        { Icon(Icons.Outlined.Check, null) }
-                    } else null,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ScheduleAmountOp.entries.forEach { op ->
-                    FilterChip(
-                        selected = amountOp == op,
-                        onClick = { amountOp = op },
-                        label = {
-                            Text(
-                                when (op) {
-                                    ScheduleAmountOp.EXACT -> "Exact"
-                                    ScheduleAmountOp.APPROXIMATE -> "Approx."
-                                    ScheduleAmountOp.BETWEEN -> "Between"
-                                },
+            ActuaHeroAmount(
+                amount = shownAmount,
+                caption = caption,
+                amountColor = if (amountLow == 0L) MaterialTheme.colorScheme.onSurfaceVariant else kindColor,
+                captionColor = kindColor,
+                supportingText = when (amountOp) {
+                    ScheduleAmountOp.EXACT -> "Exact amount"
+                    ScheduleAmountOp.APPROXIMATE -> "Approximate amount"
+                    ScheduleAmountOp.BETWEEN -> "to $sign$currencyPrefix${heroAmountText(amountHigh)}"
+                },
+                contentDescription = if (amountOp == ScheduleAmountOp.BETWEEN) {
+                    "Amount, $caption between $shownAmount and $sign$currencyPrefix${heroAmountText(amountHigh)}"
+                } else "Amount, $caption $shownAmount",
+                onClickLabel = "Edit amount",
+                onClick = { calculatorTarget = 0 },
+                action = {
+                    AssistChip(
+                        onClick = { income = !income },
+                        label = { Text(if (income) "Switch to expense" else "Switch to income") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.SwapVert,
+                                contentDescription = null,
+                                modifier = Modifier.size(AssistChipDefaults.IconSize),
                             )
                         },
-                        modifier = Modifier.weight(1f),
                     )
-                }
-            }
-            AmountField(
-                label = if (amountOp == ScheduleAmountOp.BETWEEN) "From" else "Amount",
-                cents = amountLow,
-            ) { calculatorTarget = 0 }
-            if (amountOp == ScheduleAmountOp.BETWEEN) {
-                AmountField("To", amountHigh) { calculatorTarget = 1 }
-            }
-
-            SectionTitle("Date")
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Repeats", modifier = Modifier.weight(1f))
-                Switch(repeats, { repeats = it })
-            }
-            if (repeats) {
-                Row(
-                    Modifier.fillMaxWidth().clickable { showRepeatEditor = true }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Repeat", modifier = Modifier.weight(1f))
-                    Text(
-                        recurrenceSummary(recurrence),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Icon(
-                        Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                        contentDescription = "Edit repeat pattern",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Text(
-                    nextDateSummary(recurrence),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                DateField("Date", oneOffDate) { datePickerTarget = DateTarget.ONE_OFF }
-            }
-
-            SectionTitle("Options")
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Automatically Add Transaction")
-                    Text(
-                        "Create it when Actua syncs on or after the scheduled date.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(automaticallyAdd, { automaticallyAdd = it })
-            }
-            PickerTextField(
-                label = "Upcoming window",
-                value = upcomingLabel,
-                options = upcomingOptions.keys.toList(),
-                onValueChange = { upcomingLabel = it },
+                },
             )
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                ScheduleAmountOp.entries.forEachIndexed { index, op ->
+                    SegmentedButton(
+                        selected = amountOp == op,
+                        onClick = { amountOp = op },
+                        shape = SegmentedButtonDefaults.itemShape(index, ScheduleAmountOp.entries.size),
+                    ) {
+                        Text(
+                            when (op) {
+                                ScheduleAmountOp.EXACT -> "Exact"
+                                ScheduleAmountOp.APPROXIMATE -> "Approx."
+                                ScheduleAmountOp.BETWEEN -> "Between"
+                            },
+                        )
+                    }
+                }
+            }
+            if (amountOp == ScheduleAmountOp.BETWEEN) {
+                ActuaFormCard {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Calculate,
+                        label = "From",
+                        value = "$currencyPrefix${centsToInput(amountLow)}",
+                        onClick = { calculatorTarget = 0 },
+                    )
+                    ActuaCardDivider()
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Calculate,
+                        label = "To",
+                        value = "$currencyPrefix${centsToInput(amountHigh)}",
+                        onClick = { calculatorTarget = 1 },
+                    )
+                }
+            }
+
+            ActuaFormCard {
+                ActuaFormTextField(
+                    icon = Icons.Outlined.Edit,
+                    label = "Schedule name",
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = "Optional",
+                )
+                ActuaCardDivider()
+                PickerTextField(
+                    label = "Payee",
+                    value = payeeName,
+                    options = payeeOptions,
+                    onValueChange = { payeeName = it },
+                    allowCustom = true,
+                    rowIcon = Icons.Outlined.Storefront,
+                    placeholder = "None",
+                )
+                ActuaCardDivider()
+                PickerTextField(
+                    label = "Account",
+                    value = accountName,
+                    options = accounts.filterNot { it.closed }.map { it.name },
+                    onValueChange = { accountName = it },
+                    rowIcon = Icons.Outlined.AccountBalanceWallet,
+                    placeholder = "Choose an account",
+                )
+            }
+
+            ActuaFormCard {
+                ActuaFormRow(
+                    icon = Icons.Outlined.Repeat,
+                    label = "Repeats",
+                    value = null,
+                    checked = repeats,
+                    onClick = { repeats = !repeats },
+                )
+                ActuaCardDivider()
+                if (repeats) {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.EventAvailable,
+                        label = "Repeat",
+                        value = recurrenceSummary(recurrence),
+                        caption = nextDateSummary(recurrence),
+                        onClick = { showRepeatEditor = true },
+                    )
+                } else {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.CalendarMonth,
+                        label = "Date",
+                        value = formatDate(oneOffDate.toLocalDate()),
+                        onClick = { datePickerTarget = DateTarget.ONE_OFF },
+                    )
+                }
+            }
+
+            ActuaFormCard {
+                ActuaFormRow(
+                    icon = Icons.Outlined.Bolt,
+                    label = "Automatically add transaction",
+                    value = null,
+                    caption = "Create it when Actua syncs on or after the scheduled date.",
+                    checked = automaticallyAdd,
+                    onClick = { automaticallyAdd = !automaticallyAdd },
+                )
+                ActuaCardDivider()
+                PickerTextField(
+                    label = "Upcoming window",
+                    value = upcomingLabel,
+                    options = upcomingOptions.keys.toList(),
+                    onValueChange = { upcomingLabel = it },
+                    rowIcon = Icons.Outlined.DateRange,
+                )
+            }
 
             if (schedule != null) {
-                SectionTitle("Linked Transactions")
+                ActuaGroupLabel("Linked transactions")
                 if (linkedTransactions.isEmpty()) {
                     Text(
                         "No transactions linked yet.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = Spacing.xs),
                     )
                 } else {
-                    Surface(
-                        shape = MaterialTheme.shapes.large,
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                    ) {
-                        Column {
-                            linkedTransactions.forEachIndexed { index, transaction ->
-                                LinkedTransactionRow(
-                                    transaction = transaction,
-                                    hideDecimalPlaces = hideDecimalPlaces,
-                                    onUnlink = onUnlinkTransaction?.let { unlink ->
-                                        { unlink(transaction.id) }
-                                    },
-                                )
-                                if (index != linkedTransactions.lastIndex) HorizontalDivider()
-                            }
+                    ActuaFormCard {
+                        linkedTransactions.forEachIndexed { index, transaction ->
+                            LinkedTransactionRow(
+                                transaction = transaction,
+                                hideDecimalPlaces = hideDecimalPlaces,
+                                onUnlink = onUnlinkTransaction?.let { unlink ->
+                                    { unlink(transaction.id) }
+                                },
+                            )
+                            if (index != linkedTransactions.lastIndex) ActuaCardDivider(inset = Spacing.lg)
                         }
                     }
                 }
@@ -314,23 +366,19 @@ fun EditScheduleScreen(
                         "This schedule has custom conditions and actions",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = Spacing.xs),
                     )
                 }
-                OutlinedButton(
-                    onClick = { onEditAsRule(ruleId) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Edit as rule") }
-            }
-
-            if (onDelete != null) {
-                TextButton(
-                    onClick = { showDelete = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Delete Schedule", color = MaterialTheme.colorScheme.error)
-                }
+                ActuaSecondaryButton(text = "Edit as rule", onClick = { onEditAsRule(ruleId) })
             }
         }
+
+        ActuaPrimaryActionBar(
+            text = "Save",
+            onClick = { onSave(fields(), payeeName) },
+            enabled = canSave,
+            icon = Icons.Outlined.Check,
+        )
     }
 
     calculatorTarget?.let { target ->
@@ -405,7 +453,7 @@ private fun LinkedTransactionRow(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(transaction.payeeName, maxLines = 1)
             Text(
-                listOfNotNull(transaction.date?.iso, transaction.accountName).joinToString(" · "),
+                listOfNotNull(transaction.date?.let { formatDate(it.toLocalDate()) }, transaction.accountName).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -436,63 +484,80 @@ private fun RepeatEditorScreen(
         ActuaScreenHeader(title = "Repeat", onBack = onBack)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            SectionTitle("Repeats")
-            ChoiceField(
-                label = "Frequency",
-                value = recurrence.frequency.name.lowercase().replaceFirstChar(Char::uppercase),
-                choices = RecurConfig.Frequency.entries.map {
-                    it.name.lowercase().replaceFirstChar(Char::uppercase) to it
-                },
-            ) { frequency ->
-                onChange(recurrence.copy(
-                    frequency = frequency,
-                    patterns = if (frequency == RecurConfig.Frequency.MONTHLY) {
-                        recurrence.patterns
-                    } else emptyList(),
-                ))
+            ActuaFormCard {
+                ChoiceRow(
+                    icon = Icons.Outlined.Repeat,
+                    label = "Frequency",
+                    value = recurrence.frequency.name.lowercase().replaceFirstChar(Char::uppercase),
+                    choices = RecurConfig.Frequency.entries.map {
+                        it.name.lowercase().replaceFirstChar(Char::uppercase) to it
+                    },
+                ) { frequency ->
+                    onChange(recurrence.copy(
+                        frequency = frequency,
+                        patterns = if (frequency == RecurConfig.Frequency.MONTHLY) {
+                            recurrence.patterns
+                        } else emptyList(),
+                    ))
+                }
+                ActuaCardDivider()
+                StepperRow(
+                    icon = Icons.Outlined.History,
+                    label = "Every",
+                    value = recurrence.interval,
+                    valueLabel = intervalLabel(recurrence),
+                    range = 1..365,
+                ) { onChange(recurrence.copy(interval = it)) }
+                ActuaCardDivider()
+                ActuaFormRow(
+                    icon = Icons.Outlined.CalendarMonth,
+                    label = "Starting",
+                    value = formatDate(recurrence.start.toLocalDate()),
+                    onClick = { dateTarget = RepeatDateTarget.START },
+                )
             }
-            NumberStepper(
-                label = "Every",
-                value = recurrence.interval,
-                valueLabel = intervalLabel(recurrence),
-                range = 1..365,
-            ) { onChange(recurrence.copy(interval = it)) }
-            DateField("Starting", recurrence.start) { dateTarget = RepeatDateTarget.START }
 
             if (recurrence.frequency == RecurConfig.Frequency.MONTHLY) {
-                SectionTitle("On These Days")
-                recurrence.patterns.forEachIndexed { index, pattern ->
-                    MonthlyPatternRow(
-                        pattern = pattern,
-                        onChange = { replacement ->
-                            onChange(recurrence.copy(patterns = recurrence.patterns.toMutableList().also {
-                                it[index] = replacement
-                            }))
-                        },
-                        onDelete = {
-                            onChange(recurrence.copy(patterns = recurrence.patterns.filterIndexed { i, _ -> i != index }))
-                        },
-                    )
+                ActuaGroupLabel("On these days")
+                if (recurrence.patterns.isNotEmpty()) {
+                    ActuaFormCard {
+                        recurrence.patterns.forEachIndexed { index, pattern ->
+                            MonthlyPatternRow(
+                                pattern = pattern,
+                                onChange = { replacement ->
+                                    onChange(recurrence.copy(patterns = recurrence.patterns.toMutableList().also {
+                                        it[index] = replacement
+                                    }))
+                                },
+                                onDelete = {
+                                    onChange(recurrence.copy(patterns = recurrence.patterns.filterIndexed { i, _ -> i != index }))
+                                },
+                            )
+                            if (index != recurrence.patterns.lastIndex) ActuaCardDivider(inset = Spacing.lg)
+                        }
+                    }
                 }
-                TextButton(onClick = {
-                    onChange(recurrence.copy(
-                        patterns = recurrence.patterns + RecurConfig.Pattern("day", recurrence.start.day),
-                    ))
-                }) {
-                    Icon(Icons.Outlined.AddCircleOutline, null)
-                    Text("Add day", Modifier.padding(start = 8.dp))
-                }
+                ActuaSecondaryButton(
+                    text = "Add day",
+                    icon = Icons.Outlined.AddCircleOutline,
+                    onClick = {
+                        onChange(recurrence.copy(
+                            patterns = recurrence.patterns + RecurConfig.Pattern("day", recurrence.start.day),
+                        ))
+                    },
+                )
                 Text(
                     monthlyPatternSummary(recurrence),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.xs),
                 )
             }
 
-            SectionTitle("Ends")
+            ActuaGroupLabel("Ends")
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 repeatEndOptions.forEachIndexed { index, option ->
                     SegmentedButton(
@@ -513,49 +578,65 @@ private fun RepeatEditorScreen(
                 }
             }
             if (recurrence.endMode == "after_n_occurrences") {
-                NumberStepper(
-                    label = "Occurrences",
-                    value = recurrence.endOccurrences ?: 1,
-                    valueLabel = (recurrence.endOccurrences ?: 1).toString(),
-                    range = 1..999,
-                ) { onChange(recurrence.copy(endOccurrences = it)) }
+                ActuaFormCard {
+                    StepperRow(
+                        icon = Icons.Outlined.Tune,
+                        label = "Occurrences",
+                        value = recurrence.endOccurrences ?: 1,
+                        valueLabel = (recurrence.endOccurrences ?: 1).toString(),
+                        range = 1..999,
+                    ) { onChange(recurrence.copy(endOccurrences = it)) }
+                }
             }
             if (recurrence.endMode == "on_date") {
-                DateField("End date", recurrence.endDate ?: recurrence.start) {
-                    dateTarget = RepeatDateTarget.END
-                }
-            }
-
-            SectionTitle("Weekend Handling")
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Skip weekends")
-                    Text(
-                        "Move weekend occurrences to a weekday.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                ActuaFormCard {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.CalendarMonth,
+                        label = "End date",
+                        value = formatDate((recurrence.endDate ?: recurrence.start).toLocalDate()),
+                        onClick = { dateTarget = RepeatDateTarget.END },
                     )
                 }
-                Switch(recurrence.skipWeekend, {
-                    onChange(recurrence.copy(skipWeekend = it))
-                })
-            }
-            if (recurrence.skipWeekend) {
-                ChoiceField(
-                    label = "Move to",
-                    value = if (recurrence.weekendSolveMode == "before") "Friday before" else "Monday after",
-                    choices = listOf("Friday before" to "before", "Monday after" to "after"),
-                ) { onChange(recurrence.copy(weekendSolveMode = it)) }
             }
 
-            SectionTitle("Next Dates")
+            ActuaGroupLabel("Weekend handling")
+            ActuaFormCard {
+                ActuaFormRow(
+                    icon = Icons.Outlined.SkipNext,
+                    label = "Skip weekends",
+                    value = null,
+                    caption = "Move weekend occurrences to a weekday.",
+                    checked = recurrence.skipWeekend,
+                    onClick = { onChange(recurrence.copy(skipWeekend = !recurrence.skipWeekend)) },
+                )
+                if (recurrence.skipWeekend) {
+                    ActuaCardDivider()
+                    ChoiceRow(
+                        icon = Icons.Outlined.SwapHoriz,
+                        label = "Move to",
+                        value = if (recurrence.weekendSolveMode == "before") "Friday before" else "Monday after",
+                        choices = listOf("Friday before" to "before", "Monday after" to "after"),
+                    ) { onChange(recurrence.copy(weekendSolveMode = it)) }
+                }
+            }
+
+            ActuaGroupLabel("Next dates")
             val preview = ScheduleRecurrence.upcomingDates(recurrence, 4, DayDate.today())
             if (preview.isEmpty()) {
-                Text("This pattern has no upcoming dates.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else preview.forEach { day ->
-                Row(Modifier.fillMaxWidth()) {
-                    Text(day.iso, modifier = Modifier.weight(1f))
-                    Text(weekdayNames[day.weekday].orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "This pattern has no upcoming dates.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.xs),
+                )
+            } else ActuaFormCard {
+                preview.forEachIndexed { index, day ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                    ) {
+                        Text(formatDate(day.toLocalDate()), modifier = Modifier.weight(1f))
+                        Text(weekdayNames[day.weekday].orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (index != preview.lastIndex) ActuaCardDivider(inset = Spacing.lg)
                 }
             }
         }
@@ -596,9 +677,9 @@ private fun MonthlyPatternRow(
     val max = if (pattern.type == "day") 31 else 5
     val boundedValue = if (pattern.value == -1) -1 else pattern.value.coerceIn(1, max)
     Row(
-        Modifier.fillMaxWidth(),
+        Modifier.fillMaxWidth().padding(start = Spacing.md, top = Spacing.sm, bottom = Spacing.sm, end = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         ChoiceField(
             label = "Which",
@@ -651,65 +732,75 @@ private fun <T> ChoiceField(
     }
 }
 
+/** An [ActuaFormRow] that opens a menu of [choices] under it. */
 @Composable
-private fun NumberStepper(
+private fun <T> ChoiceRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    choices: List<Pair<String, T>>,
+    onSelect: (T) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        ActuaFormRow(
+            icon = icon,
+            label = label,
+            value = value,
+            trailing = {
+                Icon(
+                    Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            onClick = { expanded = true },
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            choices.forEach { (text, choice) ->
+                DropdownMenuItem(
+                    text = { Text(text) },
+                    onClick = { expanded = false; onSelect(choice) },
+                )
+            }
+        }
+    }
+}
+
+/** A form-card row with − and + buttons that step [value] within [range]. */
+@Composable
+private fun StepperRow(
+    icon: ImageVector,
     label: String,
     value: Int,
     valueLabel: String,
     range: IntRange,
     onChange: (Int) -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = Sizes.formRowMinHeight)
+            .padding(start = Spacing.lg, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = muted)
+        Spacer(Modifier.width(Spacing.lg))
         Column(Modifier.weight(1f)) {
-            Text(label)
-            Text(valueLabel, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(label, style = MaterialTheme.typography.labelMedium, color = muted)
+            Text(valueLabel, style = MaterialTheme.typography.bodyLarge)
         }
-        FilledTonalIconButton(onClick = { onChange(value - 1) }, enabled = value > range.first) { Text("−") }
-        Text(value.toString(), modifier = Modifier.padding(horizontal = 14.dp))
-        FilledTonalIconButton(onClick = { onChange(value + 1) }, enabled = value < range.last) { Text("+") }
+        FilledTonalIconButton(
+            onClick = { onChange(value - 1) },
+            enabled = value > range.first,
+            modifier = Modifier.semantics { contentDescription = "Decrease $label" },
+        ) { Text("−") }
+        Text(value.toString(), modifier = Modifier.padding(horizontal = Spacing.md))
+        FilledTonalIconButton(
+            onClick = { onChange(value + 1) },
+            enabled = value < range.last,
+            modifier = Modifier.semantics { contentDescription = "Increase $label" },
+        ) { Text("+") }
     }
-}
-
-@Composable
-private fun AmountField(label: String, cents: Long, onClick: () -> Unit) {
-    Box(Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = centsToInput(cents),
-            onValueChange = {},
-            label = { Text(label) },
-            trailingIcon = { Icon(Icons.Outlined.Calculate, null) },
-            readOnly = true,
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Box(Modifier.matchParentSize().clickable(onClick = onClick))
-    }
-}
-
-@Composable
-private fun DateField(label: String, date: DayDate, onClick: () -> Unit) {
-    Box(Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = date.iso,
-            onValueChange = {},
-            label = { Text(label) },
-            trailingIcon = { Icon(Icons.Outlined.DateRange, null) },
-            readOnly = true,
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Box(Modifier.matchParentSize().clickable(onClick = onClick))
-    }
-}
-
-@Composable
-private fun SectionTitle(value: String) {
-    Text(
-        value,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-    )
 }
 
 private enum class DateTarget { ONE_OFF }
@@ -777,7 +868,7 @@ private fun monthlyPatternSummary(config: RecurConfig): String {
 
 private fun nextDateSummary(config: RecurConfig): String {
     val next = ScheduleRecurrence.upcomingDates(config, 1, DayDate.today()).firstOrNull()
-    return if (next == null) "No upcoming dates" else "Next: ${next.iso}"
+    return if (next == null) "No upcoming dates" else "Next: ${formatDate(next.toLocalDate())}"
 }
 
 private val upcomingOptions = linkedMapOf(
@@ -790,3 +881,5 @@ private val upcomingOptions = linkedMapOf(
 )
 
 private fun DayDate.toLocalDate(): LocalDate = LocalDate.of(year, month, day)
+
+private fun heroAmountText(cents: Long): String = if (cents == 0L) "0" else centsToInput(cents)
