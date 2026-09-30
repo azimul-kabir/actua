@@ -4,10 +4,6 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
-### Added
-
-- Transactions sent from Tasker and other automation apps now wait in the import review queue ([#802](https://github.com/azimul-kabir/actua/pull/802))
-
 ### Changed
 
 - Add and Edit transaction is now a single page: the amount's sign sets expense or income, and choosing an account as the payee makes a transfer ([#760](https://github.com/azimul-kabir/actua/pull/760))
@@ -30,6 +26,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Transactions sent from Tasker and other automation apps now wait in the import review queue ([#802](https://github.com/azimul-kabir/actua/pull/802))
 - Tap an upcoming transaction to post it, post it today, skip its next date or complete its schedule ([#740](https://github.com/azimul-kabir/actua/pull/740))
 - Edit a schedule's underlying rule from the schedule editor with Edit as rule ([#742](https://github.com/azimul-kabir/actua/pull/742))
 
