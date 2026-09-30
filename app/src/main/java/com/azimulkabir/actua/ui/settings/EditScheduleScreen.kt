@@ -16,7 +16,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EventAvailable
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.SkipNext
@@ -40,6 +39,7 @@ import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaFormTextField
 import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.components.ActuaHeroAmount
+import com.azimulkabir.actua.ui.components.ActuaMenuRow
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
@@ -488,7 +488,7 @@ private fun RepeatEditorScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             ActuaFormCard {
-                ChoiceRow(
+                ActuaMenuRow(
                     icon = Icons.Outlined.Repeat,
                     label = "Frequency",
                     value = recurrence.frequency.name.lowercase().replaceFirstChar(Char::uppercase),
@@ -611,7 +611,7 @@ private fun RepeatEditorScreen(
                 )
                 if (recurrence.skipWeekend) {
                     ActuaCardDivider()
-                    ChoiceRow(
+                    ActuaMenuRow(
                         icon = Icons.Outlined.SwapHoriz,
                         label = "Move to",
                         value = if (recurrence.weekendSolveMode == "before") "Friday before" else "Monday after",
@@ -722,41 +722,6 @@ private fun <T> ChoiceField(
             modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            choices.forEach { (text, choice) ->
-                DropdownMenuItem(
-                    text = { Text(text) },
-                    onClick = { expanded = false; onSelect(choice) },
-                )
-            }
-        }
-    }
-}
-
-/** An [ActuaFormRow] that opens a menu of [choices] under it. */
-@Composable
-private fun <T> ChoiceRow(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    choices: List<Pair<String, T>>,
-    onSelect: (T) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        ActuaFormRow(
-            icon = icon,
-            label = label,
-            value = value,
-            trailing = {
-                Icon(
-                    Icons.Outlined.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            onClick = { expanded = true },
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             choices.forEach { (text, choice) ->
                 DropdownMenuItem(
                     text = { Text(text) },

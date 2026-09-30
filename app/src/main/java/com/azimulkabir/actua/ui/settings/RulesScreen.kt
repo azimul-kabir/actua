@@ -1,6 +1,5 @@
 package com.azimulkabir.actua.ui.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,23 +10,29 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,7 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.rules.RuleChoice
@@ -46,7 +51,16 @@ import com.azimulkabir.actua.data.rules.RuleEditorData
 import com.azimulkabir.actua.data.rules.RuleFieldType
 import com.azimulkabir.actua.data.rules.RuleSchema
 import com.azimulkabir.actua.data.rules.RuleValue
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaFormTextField
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.components.ActuaMenuRow
+import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
+import com.azimulkabir.actua.ui.theme.Spacing
 import java.time.LocalDate
 
 @Composable
@@ -128,107 +142,169 @@ private fun RuleEditor(rule: Rule, data: RuleEditorData, scheduleOwned: Boolean,
     onDismiss: () -> Unit, onSave: (Rule) -> Unit, onDelete: () -> Unit) {
     var draft by remember(rule.id) { mutableStateOf(rule) }
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(if (rule.conditions.isEmpty() && rule.actions.isEmpty()) "New rule" else "Edit rule",
-                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Stage", style = MaterialTheme.typography.labelLarge)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Rule.Stage.entries.forEach { stage -> FilterChip(selected = draft.stage == stage,
-                    onClick = { draft = draft.copy(stage = stage) }, label = { Text(stage.name.lowercase().replaceFirstChar(Char::uppercase)) }) }
+        Column(Modifier.fillMaxWidth()) {
+            Column(
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.screenHorizontal),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                Text(if (rule.conditions.isEmpty() && rule.actions.isEmpty()) "New rule" else "Edit rule",
+                    style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                ActuaGroupLabel("Stage")
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    Rule.Stage.entries.forEachIndexed { index, stage ->
+                        SegmentedButton(
+                            selected = draft.stage == stage,
+                            onClick = { draft = draft.copy(stage = stage) },
+                            shape = SegmentedButtonDefaults.itemShape(index, Rule.Stage.entries.size),
+                        ) { Text(stage.name.lowercase().replaceFirstChar(Char::uppercase)) }
+                    }
+                }
+                ActuaGroupLabel("Match")
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    listOf(Rule.ConditionsOp.AND to "All conditions", Rule.ConditionsOp.OR to "Any condition")
+                        .forEachIndexed { index, (op, label) ->
+                            SegmentedButton(
+                                selected = draft.conditionsOp == op,
+                                onClick = { draft = draft.copy(conditionsOp = op) },
+                                shape = SegmentedButtonDefaults.itemShape(index, 2),
+                            ) { Text(label) }
+                        }
+                }
+                ActuaGroupLabel("If")
+                draft.conditions.forEachIndexed { index, condition ->
+                    ConditionEditor(index, condition, data, onChange = { changed ->
+                        draft = draft.copy(conditions = draft.conditions.toMutableList().also { it[index] = changed })
+                    }, onRemove = { draft = draft.copy(conditions = draft.conditions.toMutableList().also { it.removeAt(index) }) })
+                }
+                ActuaSecondaryButton(
+                    text = "Add condition",
+                    icon = Icons.Outlined.Add,
+                    onClick = {
+                        draft = draft.copy(conditions = draft.conditions +
+                            Rule.Condition("is", "imported_payee", RuleValue.Text("")))
+                    },
+                )
+                ActuaGroupLabel("Then")
+                draft.actions.forEachIndexed { index, action ->
+                    ActionEditor(index, action, data, onChange = { changed ->
+                        draft = draft.copy(actions = draft.actions.toMutableList().also { it[index] = changed })
+                    }, onRemove = { draft = draft.copy(actions = draft.actions.toMutableList().also { it.removeAt(index) }) })
+                }
+                ActuaSecondaryButton(
+                    text = "Add action",
+                    icon = Icons.Outlined.Add,
+                    onClick = {
+                        draft = draft.copy(actions = draft.actions + Rule.Action("set", "category", RuleValue.Null))
+                    },
+                )
+                if (!scheduleOwned && rule.conditions.isNotEmpty()) TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error)
+                    Text("Delete rule", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(start = Spacing.sm))
+                }
+                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
             }
-            Text("Match", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(draft.conditionsOp == Rule.ConditionsOp.AND,
-                    { draft = draft.copy(conditionsOp = Rule.ConditionsOp.AND) }, { Text("All conditions") })
-                FilterChip(draft.conditionsOp == Rule.ConditionsOp.OR,
-                    { draft = draft.copy(conditionsOp = Rule.ConditionsOp.OR) }, { Text("Any condition") })
-            }
-            Text("If", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            draft.conditions.forEachIndexed { index, condition ->
-                ConditionEditor(condition, data, onChange = { changed ->
-                    draft = draft.copy(conditions = draft.conditions.toMutableList().also { it[index] = changed })
-                }, onRemove = { draft = draft.copy(conditions = draft.conditions.toMutableList().also { it.removeAt(index) }) })
-            }
-            TextButton(onClick = { draft = draft.copy(conditions = draft.conditions +
-                Rule.Condition("is", "imported_payee", RuleValue.Text(""))) }) {
-                Icon(Icons.Outlined.Add, null); Text("Add condition")
-            }
-            Text("Then", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            draft.actions.forEachIndexed { index, action ->
-                ActionEditor(action, data, onChange = { changed ->
-                    draft = draft.copy(actions = draft.actions.toMutableList().also { it[index] = changed })
-                }, onRemove = { draft = draft.copy(actions = draft.actions.toMutableList().also { it.removeAt(index) }) })
-            }
-            TextButton(onClick = { draft = draft.copy(actions = draft.actions +
-                Rule.Action("set", "category", RuleValue.Null)) }) {
-                Icon(Icons.Outlined.Add, null); Text("Add action")
-            }
-            HorizontalDivider()
-            Button(onClick = { onSave(draft) }, enabled = draft.conditions.isNotEmpty() && draft.actions.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth()) { Text("Save rule") }
-            if (!scheduleOwned && rule.conditions.isNotEmpty()) TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Outlined.Delete, null); Text("Delete rule")
-            }
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
-            Spacer(Modifier.height(24.dp))
+            ActuaPrimaryActionBar(
+                text = "Save rule",
+                onClick = { onSave(draft) },
+                enabled = draft.conditions.isNotEmpty() && draft.actions.isNotEmpty(),
+                icon = Icons.Outlined.Check,
+            )
         }
     }
 }
 
+/** Title row of a condition or action card, with its remove button. */
 @Composable
-private fun ConditionEditor(condition: Rule.Condition, data: RuleEditorData,
+private fun RulePartHeader(title: String, removeDescription: String, onRemove: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f))
+        IconButton(onClick = onRemove) { Icon(Icons.Outlined.Delete, removeDescription) }
+    }
+}
+
+@Composable
+private fun ConditionEditor(index: Int, condition: Rule.Condition, data: RuleEditorData,
     onChange: (Rule.Condition) -> Unit, onRemove: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
-        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SelectField(RuleSchema.fieldLabel(condition.field), RuleSchema.conditionFields.map { it to RuleSchema.fieldLabel(it) }) { field ->
-                    val op = RuleSchema.validOps(field).firstOrNull() ?: "is"
-                    onChange(condition.copy(field = field, op = op, value = defaultValue(field, op), options = emptyMap()))
-                }
-                Spacer(Modifier.weight(1f)); IconButton(onClick = onRemove) { Icon(Icons.Outlined.Delete, "Remove condition") }
+    ActuaFormCard {
+        RulePartHeader("Condition ${index + 1}", "Remove condition", onRemove)
+        ActuaMenuRow(
+            icon = Icons.AutoMirrored.Outlined.FormatListBulleted,
+            label = "Field",
+            value = RuleSchema.fieldLabel(condition.field),
+            choices = RuleSchema.conditionFields.map { RuleSchema.fieldLabel(it) to it },
+        ) { field ->
+            val op = RuleSchema.validOps(field).firstOrNull() ?: "is"
+            onChange(condition.copy(field = field, op = op, value = defaultValue(field, op), options = emptyMap()))
+        }
+        ActuaCardDivider()
+        ActuaMenuRow(
+            icon = Icons.Outlined.Tune,
+            label = "Operator",
+            value = RuleSchema.opLabel(condition.op),
+            choices = RuleSchema.validOps(condition.field).map { RuleSchema.opLabel(it) to it },
+        ) { op ->
+            onChange(condition.copy(op = op, value = defaultValue(condition.field, op)))
+        }
+        if (condition.op !in setOf("onBudget", "offBudget")) {
+            ActuaCardDivider()
+            RuleValueEditor(condition.field, condition.op, condition.value, condition.options, data) { value, options ->
+                onChange(condition.copy(value = value, options = options))
             }
-            SelectField(RuleSchema.opLabel(condition.op), RuleSchema.validOps(condition.field).map { it to RuleSchema.opLabel(it) }) { op ->
-                onChange(condition.copy(op = op, value = defaultValue(condition.field, op)))
-            }
-            if (condition.op !in setOf("onBudget", "offBudget")) RuleValueEditor(condition.field, condition.op,
-                condition.value, condition.options, data) { value, options -> onChange(condition.copy(value = value, options = options)) }
         }
     }
 }
 
 @Composable
-private fun ActionEditor(action: Rule.Action, data: RuleEditorData,
+private fun ActionEditor(index: Int, action: Rule.Action, data: RuleEditorData,
     onChange: (Rule.Action) -> Unit, onRemove: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
-        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SelectField(RuleSchema.opLabel(action.op), listOf("set", "prepend-notes", "append-notes", "delete-transaction")
-                    .map { it to RuleSchema.opLabel(it) }) { op ->
-                    onChange(when (op) {
-                        "set" -> Rule.Action(op, "category", RuleValue.Null)
-                        "delete-transaction" -> Rule.Action(op, null, RuleValue.Null)
-                        else -> Rule.Action(op, "notes", RuleValue.Text(""))
-                    })
-                }
-                Spacer(Modifier.weight(1f)); IconButton(onClick = onRemove) { Icon(Icons.Outlined.Delete, "Remove action") }
+    ActuaFormCard {
+        RulePartHeader("Action ${index + 1}", "Remove action", onRemove)
+        ActuaMenuRow(
+            icon = Icons.Outlined.Bolt,
+            label = "Action",
+            value = RuleSchema.opLabel(action.op),
+            choices = listOf("set", "prepend-notes", "append-notes", "delete-transaction")
+                .map { RuleSchema.opLabel(it) to it },
+        ) { op ->
+            onChange(when (op) {
+                "set" -> Rule.Action(op, "category", RuleValue.Null)
+                "delete-transaction" -> Rule.Action(op, null, RuleValue.Null)
+                else -> Rule.Action(op, "notes", RuleValue.Text(""))
+            })
+        }
+        if (action.op == "set") {
+            val field = action.field ?: "category"
+            ActuaCardDivider()
+            ActuaMenuRow(
+                icon = Icons.AutoMirrored.Outlined.FormatListBulleted,
+                label = "Field",
+                value = RuleSchema.fieldLabel(field),
+                choices = RuleSchema.actionFields.map { RuleSchema.fieldLabel(it) to it },
+            ) {
+                onChange(action.copy(field = it, value = defaultValue(it, "is"), options = emptyMap()))
             }
-            if (action.op == "set") {
-                val field = action.field ?: "category"
-                SelectField(RuleSchema.fieldLabel(field), RuleSchema.actionFields.map { it to RuleSchema.fieldLabel(it) }) {
-                    onChange(action.copy(field = it, value = defaultValue(it, "is"), options = emptyMap()))
-                }
-                RuleValueEditor(field, "is", action.value, action.options, data) { value, options ->
-                    onChange(action.copy(value = value, options = options))
-                }
-            } else if (action.op != "delete-transaction") {
-                OutlinedTextField(action.value.text.orEmpty(), { onChange(action.copy(value = RuleValue.Text(it))) },
-                    label = { Text("Text") }, modifier = Modifier.fillMaxWidth())
+            ActuaCardDivider()
+            RuleValueEditor(field, "is", action.value, action.options, data) { value, options ->
+                onChange(action.copy(value = value, options = options))
             }
+        } else if (action.op != "delete-transaction") {
+            ActuaCardDivider()
+            ActuaFormTextField(
+                icon = Icons.Outlined.Edit,
+                label = "Text",
+                value = action.value.text.orEmpty(),
+                onValueChange = { onChange(action.copy(value = RuleValue.Text(it))) },
+            )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RuleValueEditor(field: String, op: String, value: RuleValue, options: Map<String, RuleValue>,
     data: RuleEditorData, onChange: (RuleValue, Map<String, RuleValue>) -> Unit) {
@@ -237,66 +313,90 @@ private fun RuleValueEditor(field: String, op: String, value: RuleValue, options
     when (RuleSchema.type(field)) {
         RuleFieldType.ID -> {
             if (op in setOf("oneOf", "notOneOf")) MultiChoice(value.list.orEmpty(), choices) { onChange(RuleValue.ListValue(it), options) }
-            else SelectField(data.names[value.text] ?: choices.firstOrNull { it.id == value.text }?.name ?: "Select value",
-                choices.map { it.id to it.name }) { onChange(RuleValue.Text(it), options) }
+            else {
+                val selectedName = data.names[value.text] ?: choices.firstOrNull { it.id == value.text }?.name
+                ActuaMenuRow(
+                    icon = Icons.Outlined.Edit,
+                    label = "Value",
+                    value = selectedName ?: "Select value",
+                    valueIsPlaceholder = selectedName == null,
+                    choices = choices.map { it.name to it.id },
+                ) { onChange(RuleValue.Text(it), options) }
+            }
         }
-        RuleFieldType.BOOLEAN -> Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Value", Modifier.weight(1f)); Switch(value.flag == true, { onChange(RuleValue.Flag(it), options) })
-        }
+        RuleFieldType.BOOLEAN -> ActuaFormRow(
+            icon = Icons.Outlined.Edit,
+            label = "Value",
+            value = null,
+            checked = value.flag == true,
+            onClick = { onChange(RuleValue.Flag(value.flag != true), options) },
+        )
         RuleFieldType.NUMBER -> {
             if (op == "isbetween") {
                 val map = (value as? RuleValue.ObjectValue)?.value.orEmpty()
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NumberInput("From", map["num1"]?.number, Modifier.weight(1f)) { a -> onChange(RuleValue.ObjectValue(map + ("num1" to RuleValue.Number(a))), options) }
-                    NumberInput("To", map["num2"]?.number, Modifier.weight(1f)) { b -> onChange(RuleValue.ObjectValue(map + ("num2" to RuleValue.Number(b))), options) }
-                }
-            } else NumberInput("Amount", value.number, Modifier.fillMaxWidth()) { onChange(RuleValue.Number(it), options) }
-            if (field == "amount" && op != "isbetween") Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Any" to null, "Outflow" to "outflow", "Inflow" to "inflow").forEach { (label, key) ->
-                    val selected = if (key == null) options["outflow"]?.flag != true && options["inflow"]?.flag != true else options[key]?.flag == true
-                    FilterChip(selected, { onChange(value, key?.let { mapOf(it to RuleValue.Flag(true)) }.orEmpty()) }, { Text(label) })
+                NumberInput("From", map["num1"]?.number) { a -> onChange(RuleValue.ObjectValue(map + ("num1" to RuleValue.Number(a))), options) }
+                ActuaCardDivider()
+                NumberInput("To", map["num2"]?.number) { b -> onChange(RuleValue.ObjectValue(map + ("num2" to RuleValue.Number(b))), options) }
+            } else NumberInput("Amount", value.number) { onChange(RuleValue.Number(it), options) }
+            if (field == "amount" && op != "isbetween") {
+                val directions = listOf("Any" to null, "Outflow" to "outflow", "Inflow" to "inflow")
+                SingleChoiceSegmentedButtonRow(
+                    Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md),
+                ) {
+                    directions.forEachIndexed { index, (label, key) ->
+                        val selected = if (key == null) options["outflow"]?.flag != true && options["inflow"]?.flag != true
+                            else options[key]?.flag == true
+                        SegmentedButton(
+                            selected = selected,
+                            onClick = { onChange(value, key?.let { mapOf(it to RuleValue.Flag(true)) }.orEmpty()) },
+                            shape = SegmentedButtonDefaults.itemShape(index, directions.size),
+                        ) { Text(label) }
+                    }
                 }
             }
         }
-        else -> OutlinedTextField(
-            if (op in setOf("oneOf", "notOneOf")) value.list.orEmpty().mapNotNull { it.text }.joinToString(", ")
-            else value.text.orEmpty(), { text ->
-            onChange(if (op in setOf("oneOf", "notOneOf")) RuleValue.ListValue(text.split(',').map { RuleValue.Text(it.trim()) }.filter { it.value.isNotEmpty() })
-                else RuleValue.Text(text), options)
-        }, label = { Text(if (field == "date") "Date (YYYY-MM-DD)" else if (op == "matches") "Regular expression" else "Value") },
-            modifier = Modifier.fillMaxWidth())
+        else -> ActuaFormTextField(
+            icon = Icons.Outlined.Edit,
+            label = if (field == "date") "Date (YYYY-MM-DD)" else if (op == "matches") "Regular expression" else "Value",
+            value = if (op in setOf("oneOf", "notOneOf")) value.list.orEmpty().mapNotNull { it.text }.joinToString(", ")
+                else value.text.orEmpty(),
+            onValueChange = { text ->
+                onChange(if (op in setOf("oneOf", "notOneOf")) RuleValue.ListValue(text.split(',').map { RuleValue.Text(it.trim()) }.filter { it.value.isNotEmpty() })
+                    else RuleValue.Text(text), options)
+            },
+        )
     }
 }
 
 @Composable
-private fun NumberInput(label: String, cents: Double?, modifier: Modifier, onChange: (Double) -> Unit) {
-    OutlinedTextField(if (cents == null) "" else "%.2f".format(cents / 100.0), { text ->
-        text.toDoubleOrNull()?.let { onChange(it * 100.0) }
-    }, label = { Text(label) }, modifier = modifier, singleLine = true)
+private fun NumberInput(label: String, cents: Double?, onChange: (Double) -> Unit) {
+    ActuaFormTextField(
+        icon = Icons.Outlined.Calculate,
+        label = label,
+        value = if (cents == null) "" else "%.2f".format(cents / 100.0),
+        onValueChange = { text -> text.toDoubleOrNull()?.let { onChange(it * 100.0) } },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+    )
 }
 
+/** A form row listing how many [choices] are selected; its menu toggles each one. */
 @Composable
 private fun MultiChoice(selected: List<RuleValue>, choices: List<RuleChoice>, onChange: (List<RuleValue>) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val ids = selected.mapNotNull { it.text }.toSet()
     Box {
-        TextButton(onClick = { open = true }) { Text(if (ids.isEmpty()) "Select values" else "${ids.size} selected") }
+        ActuaFormRow(
+            icon = Icons.Outlined.Edit,
+            label = "Values",
+            value = if (ids.isEmpty()) "Select values" else "${ids.size} selected",
+            valueIsPlaceholder = ids.isEmpty(),
+            onClick = { open = true },
+        )
         DropdownMenu(open, { open = false }) { choices.forEach { choice ->
             DropdownMenuItem(text = { Text(choice.name) }, leadingIcon = { Checkbox(choice.id in ids, null) }, onClick = {
                 val updated = if (choice.id in ids) ids - choice.id else ids + choice.id
                 onChange(updated.map { RuleValue.Text(it) })
             })
-        } }
-    }
-}
-
-@Composable
-private fun SelectField(label: String, options: List<Pair<String, String>>, onSelect: (String) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        TextButton(onClick = { open = true }) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-        DropdownMenu(open, { open = false }) { options.forEach { (value, title) ->
-            DropdownMenuItem(text = { Text(title) }, onClick = { open = false; onSelect(value) })
         } }
     }
 }
