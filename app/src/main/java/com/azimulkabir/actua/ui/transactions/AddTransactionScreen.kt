@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
@@ -24,7 +25,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +38,6 @@ import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -375,143 +374,131 @@ fun AddTransactionScreen(
                         icon = Icons.AutoMirrored.Outlined.CallSplit,
                     )
                 } else {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                if (isOffBudget) "Split transaction" else "Split categories",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.weight(1f),
-                            )
-                            TextButton(onClick = {
-                                category = if (isOffBudget) "" else splitLines.firstOrNull()?.category.orEmpty()
-                                splitLines = emptyList()
-                            }) { Text("Remove split") }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                        ActuaGroupLabel(
+                            if (isOffBudget) "Split transaction" else "Split categories",
+                            Modifier.weight(1f),
+                        )
+                        TextButton(onClick = {
+                            category = if (isOffBudget) "" else splitLines.firstOrNull()?.category.orEmpty()
+                            splitLines = emptyList()
+                        }) { Text("Remove split") }
+                    }
+                    splitLines.forEachIndexed { index, line ->
+                        fun update(changed: SplitLine) {
+                            splitLines = splitLines.toMutableList().also { it[index] = changed }
                         }
-                        splitLines.forEachIndexed { index, line ->
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text("Split ${index + 1}", style = MaterialTheme.typography.labelLarge)
-                                if (!isOffBudget) PickerTextField(
-                                    label = "Category",
-                                    value = line.category,
-                                    options = categoryOptions,
-                                    supportingValues = categoryBalanceLabels,
-                                    onValueChange = { value ->
-                                        splitLines = splitLines.toMutableList().also {
-                                            it[index] = line.copy(category = value)
-                                        }
-                                    },
-                                )
-                                Box(Modifier.fillMaxWidth()) {
-                                    val splitAmountInput = when {
-                                        splitCalculatorIndex == index && splitAmountExpression != null ->
-                                            splitAmountExpression.orEmpty()
-                                        line.amountCents == 0L -> ""
-                                        else -> centsToInput(line.amountCents)
-                                    }
-                                    val splitAmountPresentation = amountFieldPresentation(
-                                        currencyPrefix = currencyPrefix,
-                                        input = splitAmountInput,
-                                        active = splitCalculatorIndex == index,
-                                        cursor = blinkingCursor,
-                                    )
-                                    OutlinedTextField(
-                                        value = splitAmountPresentation.value,
-                                        onValueChange = {},
-                                        readOnly = true,
-                                        placeholder = {
-                                            if (splitAmountPresentation.placeholder.isNotEmpty()) {
-                                                Text(splitAmountPresentation.placeholder)
-                                            }
-                                        },
-                                        singleLine = true,
-                                        trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                    EmptyAmountCaret(
-                                        visible = splitAmountPresentation.showEmptyCaret,
-                                        alpha = cursorAlpha,
-                                        modifier = Modifier.align(Alignment.TopStart).fillMaxWidth(),
-                                    )
-                                    Box(Modifier.matchParentSize().clickable {
-                                        splitAmountExpression = null
-                                        splitCalculatorIndex = index
-                                    })
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        if (line.isOpposite) "Opposite direction" else "Same direction",
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    Switch(
-                                        checked = line.isOpposite,
-                                        onCheckedChange = { value ->
-                                            splitLines = splitLines.toMutableList().also {
-                                                it[index] = line.copy(isOpposite = value)
-                                            }
-                                        },
-                                    )
-                                }
-                                if (line.amountCents == 0L && amountCents - splitTotal > 0) {
-                                    TextButton(onClick = {
-                                        splitLines = splitLines.toMutableList().also {
-                                            it[index] = line.copy(amountCents = amountCents - splitTotal)
-                                        }
-                                    }) { Text("Use remaining $currencyPrefix${centsToInput(amountCents - splitTotal)}") }
-                                }
-                                PickerTextField(
-                                    label = "Payee (optional)",
-                                    value = line.payee,
-                                    options = payeeOptions,
-                                    supportingValues = accountBalanceLabels.mapKeys { TRANSFER_PAYEE_PREFIX + it.key },
-                                    onValueChange = { value ->
-                                        splitLines = splitLines.toMutableList().also {
-                                            it[index] = line.copy(payee = value)
-                                        }
-                                    },
-                                    allowCustom = true,
-                                )
-                                TagAutocompleteField(
-                                    value = line.notes,
-                                    tags = availableTags,
-                                    onValueChange = { value ->
-                                        splitLines = splitLines.toMutableList().also {
-                                            it[index] = line.copy(notes = value)
-                                        }
-                                    },
-                                    onCreateTag = { name -> tagRepository.create(name, DEFAULT_TAG_COLOR)?.also { tagVersion += 1 } },
-                                    label = "Split note",
-                                    modifier = Modifier.fillMaxWidth(),
+                        val remaining = amountCents - splitTotal
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Split ${index + 1}",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f).padding(start = Spacing.xs),
                                 )
                                 if (splitLines.size > 2) {
                                     TextButton(onClick = {
                                         splitLines = splitLines.toMutableList().also { it.removeAt(index) }
                                     }) { Text("Remove this split", color = MaterialTheme.colorScheme.error) }
                                 }
-                                if (index < splitLines.lastIndex) HorizontalDivider()
+                            }
+                            ActuaFormCard {
+                                if (!isOffBudget) {
+                                    PickerTextField(
+                                        label = "Category",
+                                        value = line.category,
+                                        options = categoryOptions,
+                                        supportingValues = categoryBalanceLabels,
+                                        onValueChange = { value -> update(line.copy(category = value)) },
+                                        rowIcon = Icons.Outlined.Category,
+                                        placeholder = "Uncategorized",
+                                    )
+                                    ActuaCardDivider()
+                                }
+                                val splitAmountInput = when {
+                                    splitCalculatorIndex == index && splitAmountExpression != null ->
+                                        splitAmountExpression.orEmpty()
+                                    line.amountCents == 0L -> ""
+                                    else -> centsToInput(line.amountCents)
+                                }
+                                val splitAmountPresentation = amountFieldPresentation(
+                                    currencyPrefix = currencyPrefix,
+                                    input = splitAmountInput,
+                                    active = splitCalculatorIndex == index,
+                                    cursor = blinkingCursor,
+                                )
+                                ActuaFormRow(
+                                    icon = Icons.Outlined.Calculate,
+                                    label = "Amount",
+                                    value = splitAmountPresentation.value.ifEmpty {
+                                        if (splitAmountPresentation.showEmptyCaret) currencyPrefix + blinkingCursor.trim()
+                                        else "Add amount"
+                                    },
+                                    valueIsPlaceholder = line.amountCents == 0L,
+                                    caption = if (line.amountCents == 0L && remaining > 0) {
+                                        "Remaining $currencyPrefix${centsToInput(remaining)}"
+                                    } else null,
+                                    trailing = if (line.amountCents == 0L && remaining > 0) {
+                                        {
+                                            TextButton(onClick = { update(line.copy(amountCents = remaining)) }) {
+                                                Text("Use remaining")
+                                            }
+                                        }
+                                    } else null,
+                                    onClick = {
+                                        splitAmountExpression = null
+                                        splitCalculatorIndex = index
+                                    },
+                                )
+                                ActuaCardDivider()
+                                ActuaFormRow(
+                                    icon = Icons.Outlined.SwapVert,
+                                    label = "Opposite direction",
+                                    value = null,
+                                    caption = if (line.isOpposite) "Moves money the other way from the transaction"
+                                        else "Same direction as the transaction",
+                                    checked = line.isOpposite,
+                                    onClick = { update(line.copy(isOpposite = !line.isOpposite)) },
+                                )
+                                ActuaCardDivider()
+                                PickerTextField(
+                                    label = "Payee",
+                                    value = line.payee,
+                                    options = payeeOptions,
+                                    supportingValues = accountBalanceLabels.mapKeys { TRANSFER_PAYEE_PREFIX + it.key },
+                                    onValueChange = { value -> update(line.copy(payee = value)) },
+                                    allowCustom = true,
+                                    rowIcon = Icons.Outlined.Storefront,
+                                    placeholder = "Optional",
+                                )
+                                ActuaCardDivider()
+                                TagAutocompleteField(
+                                    value = line.notes,
+                                    tags = availableTags,
+                                    onValueChange = { value -> update(line.copy(notes = value)) },
+                                    onCreateTag = { name -> tagRepository.create(name, DEFAULT_TAG_COLOR)?.also { tagVersion += 1 } },
+                                    label = "Split note",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    rowIcon = Icons.AutoMirrored.Outlined.Notes,
+                                    placeholder = "Add a note or #tag",
+                                )
                             }
                         }
-                        ActuaSecondaryButton(
-                            text = "Add another split",
-                            onClick = { splitLines = splitLines + SplitLine() },
-                        )
-                        Text(
-                            if (splitTotal == amountCents) "Split total matches the transaction amount"
-                            else "Remaining: $currencyPrefix${centsToInput(amountCents - splitTotal)}",
-                            color = if (splitTotal == amountCents) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
                     }
+                    ActuaSecondaryButton(
+                        text = "Add another split",
+                        onClick = { splitLines = splitLines + SplitLine() },
+                        icon = Icons.Outlined.Add,
+                    )
+                    Text(
+                        if (splitTotal == amountCents) "Split total matches the transaction amount"
+                        else "Remaining: $currencyPrefix${centsToInput(amountCents - splitTotal)}",
+                        color = if (splitTotal == amountCents) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = Spacing.xs),
+                    )
                 }
             }
             ActuaFormCard {
@@ -1253,21 +1240,6 @@ internal fun amountFieldPresentation(
         placeholder = "Amount",
         showEmptyCaret = false,
     )
-}
-
-@Composable
-private fun EmptyAmountCaret(
-    visible: Boolean,
-    alpha: Float,
-    modifier: Modifier = Modifier,
-) {
-    if (!visible) return
-    Box(
-        modifier = modifier.height(56.dp).padding(start = 16.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Text("│", color = MaterialTheme.colorScheme.primary.copy(alpha = alpha))
-    }
 }
 
 internal fun filterPickerOptions(options: List<String>, query: String): List<String> {

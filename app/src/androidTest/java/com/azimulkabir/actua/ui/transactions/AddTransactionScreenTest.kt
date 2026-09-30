@@ -1,9 +1,12 @@
 package com.azimulkabir.actua.ui.transactions
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
@@ -167,5 +170,29 @@ class AddTransactionScreenTest {
 
         compose.onNodeWithText("Transfers between budget accounts aren't categorized").assertExists()
         compose.onNodeWithText("Split into multiple categories").assertDoesNotExist()
+    }
+
+    @Test fun splittingShowsEachLineAsAFormCard() {
+        val editing = Transaction(
+            id = "groceries", date = "20260920", payee = "Market", category = "Groceries", account = "Checking",
+            amountCents = -1_000, amount = -10, cleared = false,
+        )
+        compose.setContent {
+            MaterialTheme {
+                AddTransactionScreen(
+                    editing = editing, onBack = {}, onSave = {},
+                    accountOptions = listOf("Checking"),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Split into multiple categories").performScrollTo().performClick()
+
+        compose.onNodeWithText("Split categories").assertExists()
+        compose.onNodeWithText("Split 2").performScrollTo().assertExists()
+        compose.onAllNodesWithText("Opposite direction").assertCountEquals(2)
+        compose.onAllNodesWithText("Add amount").assertCountEquals(1)
+        compose.onNodeWithText("Remove split").performClick()
+        compose.onNodeWithText("Split into multiple categories").performScrollTo().assertExists()
     }
 }

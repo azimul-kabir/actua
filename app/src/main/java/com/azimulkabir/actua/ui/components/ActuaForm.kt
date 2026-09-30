@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -155,7 +156,8 @@ fun ActuaFormRow(
 
 /**
  * A single-line text input styled as an [ActuaFormRow], for free-text fields such as a name
- * inside an [ActuaFormCard]. Tapping anywhere on the row focuses the input.
+ * inside an [ActuaFormCard]. Tapping anywhere on the row focuses the input. An optional
+ * [trailing] slot holds e.g. a show/hide password toggle.
  */
 @Composable
 fun ActuaFormTextField(
@@ -166,14 +168,21 @@ fun ActuaFormTextField(
     modifier: Modifier = Modifier,
     placeholder: String = "",
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    enabled: Boolean = true,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
         singleLine = true,
+        enabled = enabled,
         keyboardOptions = keyboardOptions,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+        visualTransformation = visualTransformation,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else muted,
+        ),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         modifier = modifier.fillMaxWidth(),
         decorationBox = { innerTextField ->
@@ -195,6 +204,7 @@ fun ActuaFormTextField(
                         innerTextField()
                     }
                 }
+                trailing?.invoke()
             }
         },
     )

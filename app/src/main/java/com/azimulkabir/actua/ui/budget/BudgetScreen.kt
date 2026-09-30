@@ -119,6 +119,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.model.BudgetCategory
@@ -1313,6 +1315,7 @@ private fun PlanBudgetCategoryRow(
             BalancePill(
                 category.balanceCents,
                 hideDecimalPlaces,
+                status = category.progressState,
                 textStyle = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 horizontalPadding = 10.dp,
@@ -1440,8 +1443,12 @@ private fun BudgetOverviewRow(
     hideDecimalPlaces: Boolean,
     onToBudgetClick: () -> Unit,
 ) {
-    Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 1.dp) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OverviewCell(
                     "To budget",
@@ -1449,6 +1456,7 @@ private fun BudgetOverviewRow(
                     Modifier.weight(1.35f),
                     Alignment.Start,
                     positive = overview.toBudgetCents?.let { it > 0 } == true,
+                    negative = overview.toBudgetCents?.let { it < 0 } == true,
                     pill = true,
                     pillOffset = (-8).dp,
                     onClick = onToBudgetClick,
@@ -1456,14 +1464,15 @@ private fun BudgetOverviewRow(
                 OverviewCell("Budgeted", formatMoneyCents(overview.budgetedCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
                 if (showSpent) OverviewCell("Spent", formatMoneyCents(overview.spentCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
                 OverviewCell("Balance", formatMoneyCents(overview.availableCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End,
-                    positive = overview.availableCents >= 0, pill = true, pillOffset = 8.dp)
+                    positive = overview.availableCents > 0, negative = overview.availableCents < 0,
+                    pill = true, pillOffset = 8.dp)
             }
             if (overview.bufferedCents != 0L) {
                 Text(
                     "${formatMoneyCents(overview.bufferedCents, hideDecimalPlaces)} held for next month",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = Spacing.sm),
                 )
             }
         }
@@ -1477,41 +1486,47 @@ private fun OverviewCell(
     modifier: Modifier,
     alignment: Alignment.Horizontal,
     positive: Boolean = false,
+    negative: Boolean = false,
     pill: Boolean = false,
     pillOffset: androidx.compose.ui.unit.Dp = 0.dp,
     onClick: (() -> Unit)? = null,
 ) {
-    Column(modifier = modifier, horizontalAlignment = alignment) {
-        Text(label, style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.68f), maxLines = 1)
+    val colors = MaterialTheme.colorScheme
+    Column(modifier = modifier, horizontalAlignment = alignment, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, maxLines = 1)
         if (pill) {
             val pillModifier = Modifier.offset(x = pillOffset)
-            val pillColor = if (positive) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceContainerHighest
+            val pillColor = when {
+                positive -> colors.primaryContainer
+                negative -> colors.errorContainer
+                else -> colors.surfaceContainerHighest
+            }
+            val textColor = when {
+                positive -> colors.onPrimaryContainer
+                negative -> colors.onErrorContainer
+                else -> colors.onSurfaceVariant
+            }
             if (onClick != null) {
                 Surface(onClick = onClick, modifier = pillModifier, color = pillColor,
                     shape = MaterialTheme.shapes.small) {
-                    OverviewPillAmount(amount, positive)
+                    OverviewPillAmount(amount, textColor)
                 }
             } else {
                 Surface(modifier = pillModifier, color = pillColor, shape = MaterialTheme.shapes.small) {
-                    OverviewPillAmount(amount, positive)
+                    OverviewPillAmount(amount, textColor)
                 }
             }
         } else {
             Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-                color = if (positive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer,
-                maxLines = 1)
+                color = colors.onSurface, maxLines = 1)
         }
     }
 }
 
 @Composable
-private fun OverviewPillAmount(amount: String, positive: Boolean) {
+private fun OverviewPillAmount(amount: String, color: Color) {
     Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-        color = if (positive) MaterialTheme.colorScheme.onPrimaryContainer
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+        color = color, maxLines = 1, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -1650,6 +1665,7 @@ private fun CategoryRow(
                     BalancePill(
                         category.balanceCents,
                         hideDecimalPlaces,
+                        status = category.progressState,
                         modifier = Modifier.offset(x = 10.dp),
                         textStyle = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
@@ -1987,10 +2003,15 @@ private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: 
 }
 
 @Composable
+/**
+ * A balance amount on a pill. A category's pill is filled with its [status] color, the same one
+ * its status dot and progress bar use; a group total (no [status]) uses the amount's sign.
+ */
 private fun BalancePill(
     amount: Long,
     hideDecimalPlaces: Boolean,
     modifier: Modifier = Modifier,
+    status: BudgetProgressState? = null,
     textStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodySmall,
     fontWeight: FontWeight = FontWeight.SemiBold,
     horizontalPadding: androidx.compose.ui.unit.Dp = 8.dp,
@@ -1998,10 +2019,12 @@ private fun BalancePill(
 ) {
     val positive = amount > 0
     val negative = amount < 0
+    val statusColor = status?.let { categoryStatusColor(it) }
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
         color = when {
+            statusColor != null -> statusColor
             positive -> MaterialTheme.colorScheme.primaryContainer
             negative -> MaterialTheme.colorScheme.errorContainer
             else -> MaterialTheme.colorScheme.surfaceContainerHighest
@@ -2012,6 +2035,8 @@ private fun BalancePill(
             style = textStyle,
             fontWeight = fontWeight,
             color = when {
+                // Status colors are user-configurable, so pick whichever text color reads on it.
+                statusColor != null -> if (statusColor.luminance() > 0.5f) Color.Black else Color.White
                 positive -> MaterialTheme.colorScheme.onPrimaryContainer
                 negative -> MaterialTheme.colorScheme.onErrorContainer
                 else -> MaterialTheme.colorScheme.onSurfaceVariant
