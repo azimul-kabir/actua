@@ -190,7 +190,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   visible month's totals computed from that month's own days rather than summed across all synced
   months. Presentation and interaction only; the app's synthetic Overview page and all report
   calculations are unaffected
-- Scheduled transactions projected as unposted upcoming rows in the Transactions tab and account registers, excluded from balances and search, matching Actual's mobile PWA
+- Scheduled transactions projected as unposted due, upcoming and missed rows (missed ones marked) in the Transactions tab and account registers, excluded from balances and search, matching Actual's preview transactions
 - Home section customization (show/hide optional sections, drag-to-reorder, restore defaults) as a
   versioned, migration-safe local UI preference; reordering mutates in-memory state during the
   gesture and persists once on drop, not per row crossed
