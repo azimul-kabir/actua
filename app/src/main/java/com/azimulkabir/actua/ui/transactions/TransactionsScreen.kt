@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Edit
@@ -1248,9 +1249,12 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
         if (selectionMode && !upcoming) {
             Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
         }
+        val upcomingLabel = if (transaction.isMissed) "Missed" else "Upcoming"
+        val upcomingColor = if (transaction.isMissed) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.onSurfaceVariant
         if (upcoming) {
-            Icon(Icons.Outlined.Repeat, contentDescription = "Upcoming",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            Icon(if (transaction.isMissed) Icons.Outlined.ErrorOutline else Icons.Outlined.Repeat,
+                contentDescription = upcomingLabel, tint = upcomingColor,
                 modifier = Modifier.padding(end = 10.dp, top = 2.dp).size(18.dp))
         } else {
             ClearedIndicator(transaction.cleared, onClearedClick, modifier = Modifier.padding(end = 10.dp, top = 2.dp))
@@ -1263,8 +1267,8 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (upcoming) {
                 Spacer(Modifier.height(6.dp))
-                Text("Upcoming", style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(upcomingLabel, style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                    color = upcomingColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
                 presentation.transferContext?.let {
                     Spacer(Modifier.height(6.dp))
