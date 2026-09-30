@@ -38,13 +38,17 @@ import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
 
 // A curated, theme-adjacent swatch set rather than a full HSV picker: it keeps every choice
-// legible against both light and dark surfaces and matches the five status meanings we're
-// letting users retint (neutral, success, info/primary, warning, error) plus a few alternates.
+// legible against both light and dark surfaces while covering the status meanings users retint
+// (neutral, success, info/primary, warning, error) with a range of alternates in each hue.
+// Ordered by hue; earlier values are kept so previously saved choices still show as selected.
 private val swatchPalette = listOf(
-    0xFF9AA0A6, 0xFF616161, 0xFF16A34A, 0xFF4ADE80, 0xFF0EA5E9,
-    0xFF6E11FF, 0xFFC026D3, 0xFFF97316, 0xFFFFA726, 0xFFE0201A,
-    0xFFEF4444, 0xFFFACC15,
-).map { Color(it or 0xFF000000) }
+    "Grey" to 0xFF9AA0A6, "Graphite" to 0xFF616161, "Slate" to 0xFF64748B, "Brown" to 0xFF8D6E63,
+    "Red" to 0xFFE0201A, "Coral" to 0xFFEF4444, "Rose" to 0xFFF43F5E, "Pink" to 0xFFEC4899,
+    "Magenta" to 0xFFC026D3, "Lavender" to 0xFFA78BFA, "Violet" to 0xFF6E11FF, "Indigo" to 0xFF6366F1,
+    "Blue" to 0xFF3B82F6, "Sky" to 0xFF0EA5E9, "Cyan" to 0xFF06B6D4, "Teal" to 0xFF14B8A6,
+    "Emerald" to 0xFF10B981, "Green" to 0xFF16A34A, "Mint" to 0xFF4ADE80, "Lime" to 0xFF84CC16,
+    "Yellow" to 0xFFFACC15, "Amber" to 0xFFFFA726, "Orange" to 0xFFF97316, "Burnt orange" to 0xFFC2410C,
+).map { (name, argb) -> name to Color(argb or 0xFF000000) }
 
 /**
  * Settings → Budget → Category status colors. One picker per [BudgetProgressState], a live
@@ -112,7 +116,7 @@ private fun ColorPickerDialog(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                swatchPalette.forEach { swatch ->
+                swatchPalette.forEach { (name, swatch) ->
                     val selected = swatch == currentColor
                     Box(
                         modifier = Modifier
@@ -120,7 +124,7 @@ private fun ColorPickerDialog(
                             .clip(CircleShape)
                             .background(swatch)
                             .clickable { onSelect(swatch) }
-                            .semantics { contentDescription = "${status.label} swatch" },
+                            .semantics { contentDescription = "$name" },
                     ) {
                         if (selected) {
                             Icon(
