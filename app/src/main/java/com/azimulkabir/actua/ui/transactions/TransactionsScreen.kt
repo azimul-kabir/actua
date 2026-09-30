@@ -117,9 +117,12 @@ import com.azimulkabir.actua.ui.components.ActuaSheetContent
 import com.azimulkabir.actua.ui.components.ActuaSheetCard
 import com.azimulkabir.actua.ui.components.ActuaSheetAction
 import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
+import com.azimulkabir.actua.data.budget.DEFAULT_TAG_COLOR
 import com.azimulkabir.actua.ui.theme.AmountTypography
+import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.success
 import java.text.NumberFormat
@@ -802,7 +805,7 @@ fun TransactionsScreen(
                     TextButton(
                         enabled = newTagName.isNotBlank(),
                         onClick = {
-                            val created = runCatching { tagRepository.create(newTagName) }.getOrNull()
+                            val created = runCatching { tagRepository.create(newTagName, DEFAULT_TAG_COLOR) }.getOrNull()
                             if (created != null) {
                                 tagVersion += 1
                                 showLabelPicker = false
@@ -1041,7 +1044,6 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
         mutableStateOf(detailPreferences.getBoolean("balance_expanded_${account.id}", false))
     }
     var noteEditorOpen by remember(account.id) { mutableStateOf(false) }
-    var noteDraft by remember(account.id, noteEditorOpen) { mutableStateOf(note) }
     val toggleBalance = {
         balanceExpanded = !balanceExpanded
         detailPreferences.edit().putBoolean("balance_expanded_${account.id}", balanceExpanded).apply()
@@ -1168,27 +1170,14 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
         }
     }
     if (noteEditorOpen) {
-        AlertDialog(
-            onDismissRequest = { noteEditorOpen = false },
-            title = { Text(if (note.isBlank()) "Add note" else "Edit note") },
-            text = {
-                OutlinedTextField(
-                    value = noteDraft,
-                    onValueChange = { noteDraft = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                    maxLines = 8,
-                    placeholder = { Text("Account note") },
-                )
+        ActuaNoteEditorSheet(
+            initialNote = note,
+            placeholder = "Account note",
+            onDismiss = { noteEditorOpen = false },
+            onSave = {
+                onSaveNote(it)
+                noteEditorOpen = false
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    onSaveNote(noteDraft)
-                    noteEditorOpen = false
-                }) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = { noteEditorOpen = false }) { Text("Cancel") } },
         )
     }
 }
@@ -1360,9 +1349,10 @@ internal fun accountRunningBalances(transactions: List<Transaction>, accountName
 @Composable
 private fun CategoryChip(label: String, transfer: Boolean) {
     Surface(
+        // Rows now sit on surfaceContainer cards, so the category pill uses the next tone up.
         color = if (transfer) MaterialTheme.colorScheme.secondaryContainer
-            else MaterialTheme.colorScheme.surfaceContainer,
-        shape = MaterialTheme.shapes.small,
+            else MaterialTheme.colorScheme.surfaceContainerHighest,
+        shape = PillShape,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium,
             color = if (transfer) MaterialTheme.colorScheme.onSecondaryContainer

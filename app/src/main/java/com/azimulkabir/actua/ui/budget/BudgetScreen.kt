@@ -74,7 +74,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -118,6 +117,7 @@ import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
+import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.components.CategoryStatusDot
 import com.azimulkabir.actua.ui.components.RenameDialog
@@ -2411,29 +2411,14 @@ private fun CategoryDetailsScreen(
         )
     }
     if (noteEditorOpen) {
-        var noteDraft by remember(category, noteEditorOpen) { mutableStateOf(note) }
-        AlertDialog(
-            onDismissRequest = { noteEditorOpen = false },
-            title = { Text(if (note.isBlank()) "Add note" else "Edit note") },
-            text = {
-                OutlinedTextField(
-                    value = noteDraft,
-                    onValueChange = { noteDraft = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                    maxLines = 8,
-                    placeholder = { Text("Category note") },
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    note = noteDraft
-                    onSaveNote(noteDraft)
-                    noteEditorOpen = false
-                }) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = { noteEditorOpen = false }) { Text("Cancel") }
+        ActuaNoteEditorSheet(
+            initialNote = note,
+            placeholder = "Category note",
+            onDismiss = { noteEditorOpen = false },
+            onSave = {
+                note = it
+                onSaveNote(it)
+                noteEditorOpen = false
             },
         )
     }

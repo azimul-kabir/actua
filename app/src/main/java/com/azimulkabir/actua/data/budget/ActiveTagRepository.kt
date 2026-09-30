@@ -5,6 +5,12 @@ import com.azimulkabir.actua.data.budget.model.ActualTag
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.widget.WidgetUpdater
 
+/**
+ * Color given to tags created from a note (Add transaction or bulk Label), so they show a chip
+ * right away. It is the first swatch of Actual's tag color picker, also Manage tags' default.
+ */
+const val DEFAULT_TAG_COLOR = "#690CB0"
+
 /** UI-facing access to the active budget's canonical Actual tag dataset. */
 class ActiveTagRepository(context: Context) {
     private val appContext = context.applicationContext

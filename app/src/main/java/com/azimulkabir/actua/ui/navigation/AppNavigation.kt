@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.text.TextAutoSize
@@ -1210,7 +1211,19 @@ fun AppNavigation(
                                 if (inAccount) openAddTransactionForAccount() else openAddTransaction()
                                 transactionFabExpanded = true
                             },
-                            icon = { Icon(Icons.Outlined.Add, contentDescription = tabItem.label) },
+                            icon = {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Add,
+                                        contentDescription = tabItem.label,
+                                        modifier = Modifier.padding(4.dp).size(24.dp),
+                                    )
+                                }
+                            },
                             label = if (showBottomNavigationLabels) {
                                 {
                                     Text(
@@ -2707,6 +2720,12 @@ fun AppNavigation(
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
                     onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },
                     onReportsClick = { detail = DetailDestination.Reports },
+                    showReportsShortcut = TabItem.REPORTS !in tabBarLayout.visibleTabs,
+                    showHomeShortcut = TabItem.HOME !in tabBarLayout.visibleTabs,
+                    onHomeClick = {
+                        detail = DetailDestination.Main
+                        destination = MainDestination.Home
+                    },
                     onCustomizeHomeClick = { detail = DetailDestination.CustomizeHome },
                     onCustomizeTabBarClick = { detail = DetailDestination.CustomizeTabBar },
                     conventionalAmountEntry = conventionalAmountEntry,

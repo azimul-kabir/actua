@@ -128,6 +128,10 @@ fun SettingsScreen(
     onImportTransactionsClick: () -> Unit = {},
     onPayeeLocationsClick: () -> Unit = {},
     onReportsClick: () -> Unit = {},
+    /** Reports and Home appear under Insights only while they aren't tabs in the bottom bar. */
+    showReportsShortcut: Boolean = true,
+    showHomeShortcut: Boolean = true,
+    onHomeClick: () -> Unit = {},
     onCustomizeHomeClick: () -> Unit = {},
     onCustomizeTabBarClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = true,
@@ -258,9 +262,17 @@ fun SettingsScreen(
             }
             when (shownPage) {
                 SettingsPage.Manage -> {
-                    SettingsGroup("Insights") {
-                        SettingsRow("Reports", "View dashboards and financial reports", true, Icons.Outlined.BarChart) {
-                            openFullScreen(onReportsClick)
+                    if (showHomeShortcut || showReportsShortcut) SettingsGroup("Insights") {
+                        if (showHomeShortcut) {
+                            SettingsRow("Home", "Your dashboard of favorites, upcoming bills and activity", true, Icons.Outlined.Home) {
+                                openFullScreen(onHomeClick)
+                            }
+                        }
+                        if (showHomeShortcut && showReportsShortcut) ActuaCardDivider()
+                        if (showReportsShortcut) {
+                            SettingsRow("Reports", "View dashboards and financial reports", true, Icons.Outlined.BarChart) {
+                                openFullScreen(onReportsClick)
+                            }
                         }
                     }
                     SettingsGroup("Automation") {

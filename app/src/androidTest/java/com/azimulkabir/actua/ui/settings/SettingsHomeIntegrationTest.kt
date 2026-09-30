@@ -37,6 +37,42 @@ class SettingsHomeIntegrationTest {
     }
 
     @Test
+    fun manageScreenHomeRowRoutesToHomeWhenHomeIsNotATab() {
+        var homeClicked = false
+        composeRule.setContent {
+            MaterialTheme {
+                SettingsScreen(showHomeShortcut = true, onHomeClick = { homeClicked = true })
+            }
+        }
+
+        composeRule.onNodeWithText("Home").performScrollTo().performClick()
+
+        assertTrue(homeClicked)
+    }
+
+    @Test
+    fun insightsHidesShortcutsForTabsAlreadyInTheBottomBar() {
+        composeRule.setContent {
+            MaterialTheme {
+                SettingsScreen(showHomeShortcut = false, showReportsShortcut = true)
+            }
+        }
+        composeRule.onNodeWithText("Reports").assertExists()
+        composeRule.onNodeWithText("Home").assertDoesNotExist()
+    }
+
+    @Test
+    fun insightsDisappearsWhenHomeAndReportsAreBothTabs() {
+        composeRule.setContent {
+            MaterialTheme {
+                SettingsScreen(showHomeShortcut = false, showReportsShortcut = false)
+            }
+        }
+        composeRule.onNodeWithText("Insights", ignoreCase = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Reports").assertDoesNotExist()
+    }
+
+    @Test
     fun startPageOffersHomeAsAnOption() {
         var selectedStartPage: String? = null
         composeRule.setContent {
