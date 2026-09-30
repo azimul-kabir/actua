@@ -5,6 +5,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import org.json.JSONArray
 import org.json.JSONObject
+import java.security.SecureRandom
 import java.time.LocalDate
 import java.util.Locale
 
@@ -61,6 +62,22 @@ class NotificationImportPreferences(context: Context) {
     var allowedPackages: Set<String>
         get() = preferences.getStringSet("allowedPackages", emptySet())?.toSet().orEmpty()
         set(value) { preferences.edit().putStringSet("allowedPackages", value).apply() }
+
+    var automationEnabled: Boolean
+        get() = preferences.getBoolean("automationEnabled", false)
+        set(value) {
+            if (value && automationToken == null) regenerateAutomationToken()
+            preferences.edit().putBoolean("automationEnabled", value).apply()
+        }
+
+    val automationToken: String?
+        get() = preferences.getString("automationToken", null)
+
+    fun regenerateAutomationToken(): String {
+        val token = ByteArray(16).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
+        preferences.edit().putString("automationToken", token).apply()
+        return token
+    }
 
     fun profile(): FinancialMessageProfile = FinancialMessageProfile(
         preferences.getStringSet("debitKeywords", FinancialMessageParser.defaultProfile.debitKeywords)

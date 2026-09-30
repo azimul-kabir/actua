@@ -106,6 +106,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - On-device financial-message parsing for explicitly pasted/shared text and opt-in future
   notifications from an explicit allowed-app list, with configurable debit/credit terms, amount/date/reference/payee extraction,
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion
+- Opt-in, token-protected broadcast intent for Tasker and other automation apps that adds
+  pre-parsed transactions to the same review queue; it never writes to the budget directly (see
+  [docs/TRANSACTION_IMPORTS.md](docs/TRANSACTION_IMPORTS.md))
 - Transaction form planning and atomic transaction mutations, including split
   creation, child-preserving edits, opposite-direction lines, and collapse to a
   standard transaction; transfer drafts can reverse their source/destination
