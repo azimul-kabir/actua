@@ -36,10 +36,9 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SpaceDashboard
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -73,6 +72,11 @@ import com.azimulkabir.actua.model.ReportSummary
 import com.azimulkabir.actua.model.ReportSummaryKind
 import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.components.ActuaHeroAmount
+import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
@@ -145,20 +149,14 @@ fun ReportsScreen(
             Spacing.screenHorizontal, Spacing.screenHorizontal, Spacing.screenHorizontal,
             if (hasFab) 96.dp else 0.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Reports", style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f))
-                Surface(
-                    shape = MaterialTheme.shapes.extraLarge,
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    tonalElevation = 2.dp,
-                ) {
-                    IconButton(onClick = onSearch) {
-                        Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
-                    }
+                IconButton(onClick = onSearch) {
+                    Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
                 }
             }
         }
@@ -182,11 +180,11 @@ fun ReportsScreen(
             }
             val unsupported = selected.widgets.filter { it.kind == ReportWidgetKind.UNSUPPORTED }
             if (unsupported.isNotEmpty()) item {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+                ActuaFormCard {
                     Text(
                         "${unsupported.size} dashboard widget${if (unsupported.size == 1) " is" else "s are"} not available in Actua yet: " +
                             unsupported.joinToString { it.name },
-                        Modifier.padding(14.dp),
+                        Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -398,20 +396,21 @@ private fun DashboardPicker(
     var anchorWidth by remember { mutableStateOf(0) }
     val anchorWidthDp = with(LocalDensity.current) { anchorWidth.toDp() }
     Box {
-        Card(
-            Modifier.fillMaxWidth().onSizeChanged { anchorWidth = it.width }
-                .clickable(enabled = pages.size > 1) { onOpenChange(true) },
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        ) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(selected.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f))
-                IconButton(onClick = { onFavoriteChange(!favorite) }) {
-                    Icon(if (favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                        contentDescription = if (favorite) "Remove ${selected.name} from favorites" else "Add ${selected.name} to favorites")
-                }
-                if (pages.size > 1) Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Switch dashboard")
-            }
+        ActuaFormCard(Modifier.onSizeChanged { anchorWidth = it.width }) {
+            ActuaFormRow(
+                icon = Icons.Outlined.SpaceDashboard,
+                label = "Dashboard",
+                value = selected.name,
+                trailing = {
+                    IconButton(onClick = { onFavoriteChange(!favorite) }) {
+                        Icon(if (favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                            contentDescription = if (favorite) "Remove ${selected.name} from favorites" else "Add ${selected.name} to favorites")
+                    }
+                    if (pages.size > 1) Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Switch dashboard",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                },
+                onClick = if (pages.size > 1) ({ onOpenChange(true) }) else null,
+            )
         }
         DropdownMenu(
             expanded = expanded,
@@ -441,62 +440,62 @@ private fun WidgetCard(
     onShowSummaryChange: (Boolean) -> Unit,
     onDrillDown: (ReportCategory) -> Unit,
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(widget.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.semantics { heading() })
-            when (widget.kind) {
-                ReportWidgetKind.SUMMARY -> Text(
-                    widget.percentage?.let { "${"%.2f".format(it)}%" }
-                        ?: formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                ReportWidgetKind.NET_WORTH -> {
-                    Text(formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
-                        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    TrendChart(widget.points, hideDecimals)
-                    PointLabels(widget.points, hideDecimals)
-                }
-                ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals, onDrillDown)
-                ReportWidgetKind.INCOME_EXPENSE -> IncomeExpense(widget, hideDecimals, onDrillDown)
-                ReportWidgetKind.SPENDING -> Spending(widget, hideDecimals, onDrillDown)
-                ReportWidgetKind.MARKDOWN -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
-                ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
-                ReportWidgetKind.CUSTOM_REPORT -> {
-                    CustomReport(widget, hideDecimals, onDrillDown)
-                    widget.summary?.let { CustomReportSummary(it, hideDecimals, showSummary, onShowSummaryChange) }
-                }
-                ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
-                ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
-                ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals)
-                ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals)
-                ReportWidgetKind.BALANCE_FORECAST -> {
-                    Text("Ending: ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
-                        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    if (widget.comparisonCents != null && widget.comparisonCents != widget.valueCents) {
+    Column {
+        ActuaGroupLabel(widget.name, Modifier.semantics { heading() })
+        ActuaFormCard {
+            Column(Modifier.fillMaxWidth().padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                when (widget.kind) {
+                    ReportWidgetKind.SUMMARY -> ActuaHeroAmount(
+                        amount = widget.percentage?.let { "${"%.2f".format(it)}%" }
+                            ?: formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
+                        size = ActuaHeroSize.Medium,
+                    )
+                    ReportWidgetKind.NET_WORTH -> {
+                        ActuaHeroAmount(amount = formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
+                            size = ActuaHeroSize.Medium)
+                        TrendChart(widget.points, hideDecimals)
+                        PointLabels(widget.points, hideDecimals)
+                    }
+                    ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals, onDrillDown)
+                    ReportWidgetKind.INCOME_EXPENSE -> IncomeExpense(widget, hideDecimals, onDrillDown)
+                    ReportWidgetKind.SPENDING -> Spending(widget, hideDecimals, onDrillDown)
+                    ReportWidgetKind.MARKDOWN -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
+                    ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
+                    ReportWidgetKind.CUSTOM_REPORT -> {
+                        CustomReport(widget, hideDecimals, onDrillDown)
+                        widget.summary?.let { CustomReportSummary(it, hideDecimals, showSummary, onShowSummaryChange) }
+                    }
+                    ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
+                    ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
+                    ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals)
+                    ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals)
+                    ReportWidgetKind.BALANCE_FORECAST -> {
+                        Text("Ending: ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
+                            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        if (widget.comparisonCents != null && widget.comparisonCents != widget.valueCents) {
+                            Text(
+                                "Low: ${formatMoneyCents(widget.comparisonCents, hideDecimals)}",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        TrendChart(widget.points, hideDecimals)
+                        PointLabels(widget.points, hideDecimals)
+                        widget.subtitle?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    ReportWidgetKind.MONTE_CARLO -> {
+                        Text("${"%.1f".format(widget.percentage ?: 0.0)}%",
+                            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         Text(
-                            "Low: ${formatMoneyCents(widget.comparisonCents, hideDecimals)}",
+                            "Success rate ${widget.subtitle.orEmpty()}",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        ComparativeTrendChart(widget.points, "Median", "Conservative", hideDecimals)
                     }
-                    TrendChart(widget.points, hideDecimals)
-                    PointLabels(widget.points, hideDecimals)
-                    widget.subtitle?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    ReportWidgetKind.UNSUPPORTED -> Unit
                 }
-                ReportWidgetKind.MONTE_CARLO -> {
-                    Text("${"%.1f".format(widget.percentage ?: 0.0)}%",
-                        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Success rate ${widget.subtitle.orEmpty()}",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    ComparativeTrendChart(widget.points, "Median", "Conservative", hideDecimals)
-                }
-                ReportWidgetKind.UNSUPPORTED -> Unit
             }
         }
     }
