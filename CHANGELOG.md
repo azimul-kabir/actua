@@ -10,6 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - The schedule editor now matches Add transaction, with the amount up top and fields grouped into cards ([#780](https://github.com/azimul-kabir/actua/pull/780))
 - The rule editor and credit card setup now use the same grouped cards as Add transaction ([#781](https://github.com/azimul-kabir/actua/pull/781))
 - Closing an account and adding accounts or categories now use the same grouped cards as Add transaction ([#782](https://github.com/azimul-kabir/actua/pull/782))
+- Customize Home, Customize Tab Bar and the reorder screens now show their rows in rounded cards ([#784](https://github.com/azimul-kabir/actua/pull/784))
 
 ### Added
 
