@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,14 +26,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.PieChartOutline
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -49,6 +45,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -64,10 +61,18 @@ import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.accounts.AccountMonthlySummaryCalculator
+import com.azimulkabir.actua.ui.accounts.accountTypeIcon
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.components.ActuaHeroAmount
+import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.CategoryStatusDot
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.PillShape
+import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
 import com.azimulkabir.actua.ui.theme.success
@@ -103,7 +108,7 @@ fun HomeScreen(
     LazyColumn(
         modifier = modifier.fillMaxSize().testTag("homeList"),
         state = listState,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         contentPadding = PaddingValues(bottom = if (hasFab) 160.dp else 0.dp),
     ) {
         item(key = "home-header") {
@@ -136,39 +141,34 @@ fun HomeScreen(
     }
 }
 
+/** The medium hero amount from Add transaction, inside the tinted Ready to Budget container. */
 @Composable
 private fun ReadyToBudgetHero(overview: BudgetOverview, hideDecimals: Boolean, onClick: () -> Unit) {
     Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
-        Text(HomeSection.READY_TO_BUDGET.title, style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(Spacing.sm))
-        Card(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).testTag("readyToBudgetHero"),
+        ActuaGroupLabel(HomeSection.READY_TO_BUDGET.title)
+        Surface(
+            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge)
+                .clickable(onClickLabel = "Open budget", onClick = onClick).testTag("readyToBudgetHero"),
             shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         ) {
-            Row(Modifier.fillMaxWidth().padding(Spacing.xl), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Available to assign", style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f))
-                    Text(formatMoneyCents(overview.toBudgetCents ?: 0L, hideDecimals),
-                        style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Spacer(Modifier.height(Spacing.sm))
+            ActuaHeroAmount(
+                amount = formatMoneyCents(overview.toBudgetCents ?: 0L, hideDecimals),
+                modifier = Modifier.padding(vertical = Spacing.md),
+                caption = "Available to assign",
+                amountColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                captionColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
+                size = ActuaHeroSize.Medium,
+                action = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(if (overview.toBudgetCents == null) "No budget month selected" else "Open current budget",
                             style = MaterialTheme.typography.labelLarge)
                         Spacer(Modifier.width(Spacing.xs))
                         Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(18.dp))
                     }
-                }
-                Surface(shape = CircleShape,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.10f)) {
-                    Icon(Icons.Outlined.PieChartOutline, null, Modifier.padding(Spacing.md).size(30.dp))
-                }
-            }
+                },
+            )
         }
     }
 }
@@ -195,11 +195,11 @@ private fun CategoryProgressCard(category: BudgetCategory, hideDecimals: Boolean
     val progressColor = categoryProgressColor(category)
     val percent = round(fraction * 100).toInt()
     val largeText = LocalDensity.current.fontScale >= 1.3f
-    Card(
-        modifier = Modifier.width(if (largeText) 208.dp else 176.dp).clickable(onClick = onClick)
-            .testTag("favoriteCategoryCard"),
+    Surface(
+        modifier = Modifier.width(if (largeText) 208.dp else 176.dp).clip(MaterialTheme.shapes.large)
+            .clickable(onClick = onClick).testTag("favoriteCategoryCard"),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(Modifier.heightIn(min = if (largeText) 188.dp else 164.dp).padding(Spacing.lg),
             verticalArrangement = Arrangement.SpaceBetween) {
@@ -260,12 +260,13 @@ private fun FavoriteAccountsSection(accounts: List<Account>, hideDecimals: Boole
 @Composable
 private fun AccountCard(account: Account, hideDecimals: Boolean, onClick: () -> Unit,
     modifier: Modifier = Modifier) {
-    Card(modifier = modifier.clickable(onClick = onClick), shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+    Surface(modifier = modifier.clip(MaterialTheme.shapes.large).clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.fillMaxWidth().padding(Spacing.lg)) {
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer) {
-                Icon(Icons.Outlined.AccountBalanceWallet, null, Modifier.padding(Spacing.sm).size(20.dp))
+                Icon(accountTypeIcon(account.type, isCreditCard = false), null,
+                    Modifier.padding(Spacing.sm).size(20.dp))
             }
             Spacer(Modifier.height(Spacing.md))
             Text(account.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
@@ -300,8 +301,7 @@ private fun UpcomingSection(schedules: List<ScheduleListItem>, hideDecimals: Boo
 @Composable
 private fun UpcomingRow(item: ScheduleListItem, hideDecimals: Boolean, onClick: () -> Unit) {
     val statusColor = scheduleStatusColor(item.status)
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(Spacing.lg),
-        verticalAlignment = Alignment.CenterVertically) {
+    DashboardRow(onClick) {
         Box(Modifier.size(10.dp).background(statusColor, CircleShape))
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
@@ -312,8 +312,8 @@ private fun UpcomingRow(item: ScheduleListItem, hideDecimals: Boolean, onClick: 
                 else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Text(formatMoneyCents(item.schedule.postAmount, hideDecimals), fontWeight = FontWeight.SemiBold,
-            maxLines = 1)
+        Text(formatMoneyCents(item.schedule.postAmount, hideDecimals), style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
@@ -325,9 +325,9 @@ private fun ThisMonthSection(transactions: List<Transaction>, hideDecimals: Bool
     val net = income - spending
     val scale = maxOf(income, spending, 1L).toFloat()
     DashboardSectionHeader(HomeSection.THIS_MONTH.title, "View activity", onClick)
-    Card(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal).fillMaxWidth()
-        .clickable(onClick = onClick), shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
+    Surface(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal).fillMaxWidth()
+        .clip(MaterialTheme.shapes.large).clickable(onClick = onClick), shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.padding(Spacing.lg)) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 MonthMetric("Income", income, hideDecimals, MaterialTheme.colorScheme.success, Modifier.weight(1f))
@@ -398,20 +398,7 @@ private fun ReportsSection(reports: List<ReportDashboardPage>, onReportClick: (S
 
 @Composable
 private fun InsightRow(title: String, subtitle: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(Spacing.lg),
-        verticalAlignment = Alignment.CenterVertically) {
-        Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer) {
-            Icon(Icons.Outlined.BarChart, null, Modifier.padding(Spacing.md).size(24.dp))
-        }
-        Spacer(Modifier.width(Spacing.md))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null)
-    }
+    ActuaFormRow(icon = Icons.Outlined.BarChart, label = title, value = null, caption = subtitle, onClick = onClick)
 }
 
 @Composable
@@ -433,8 +420,7 @@ private fun RecentActivitySection(transactions: List<Transaction>, hideDecimals:
 
 @Composable
 private fun ActivityRow(transaction: Transaction, hideDecimals: Boolean, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(Spacing.lg),
-        verticalAlignment = Alignment.CenterVertically) {
+    DashboardRow(onClick) {
         Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
             contentAlignment = Alignment.Center) {
             Text(transaction.payee.ifBlank { "T" }.take(1).uppercase(),
@@ -448,40 +434,44 @@ private fun ActivityRow(transaction: Transaction, hideDecimals: Boolean, onClick
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
                 overflow = TextOverflow.Ellipsis)
         }
-        Text(formatMoneyCents(transaction.amountCents, hideDecimals), fontWeight = FontWeight.SemiBold,
-            maxLines = 1)
+        Text(formatMoneyCents(transaction.amountCents, hideDecimals), style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
+/** A group label, as on Add transaction, with the section's shortcut on the right. */
 @Composable
 private fun DashboardSectionHeader(title: String, action: String, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
-        verticalAlignment = Alignment.CenterVertically) {
-        Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold)
-        Text(action, modifier = Modifier.clip(PillShape).clickable(onClick = onClick)
+        verticalAlignment = Alignment.Bottom) {
+        ActuaGroupLabel(title, Modifier.weight(1f))
+        Text(action, modifier = Modifier.clip(PillShape).clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
     }
-    Spacer(Modifier.height(Spacing.sm))
 }
 
+/** The shared form-card surface, inset to the screen gutter. */
 @Composable
 private fun DashboardSurface(content: @Composable ColumnScope.() -> Unit) {
-    Card(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal).fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-        Column(content = content)
-    }
+    ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal), content = content)
+}
+
+/** A tappable list row inside a [DashboardSurface], at the compact row height. */
+@Composable
+private fun DashboardRow(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = Sizes.compactRowMinHeight).clickable(onClick = onClick)
+        .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        verticalAlignment = Alignment.CenterVertically, content = content)
 }
 
 @Composable
 private fun DashboardEmptyCard(label: String, onClick: () -> Unit) {
     DashboardSurface {
-        Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(Spacing.lg),
-            verticalAlignment = Alignment.CenterVertically) {
+        DashboardRow(onClick) {
             Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null)
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -489,8 +479,7 @@ private fun DashboardEmptyCard(label: String, onClick: () -> Unit) {
 @Composable
 private fun DashboardFooter(label: String, icon: ImageVector, onClick: () -> Unit) {
     DashboardDivider()
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(Spacing.lg),
-        verticalAlignment = Alignment.CenterVertically) {
+    DashboardRow(onClick) {
         Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.width(Spacing.sm))
         Text(label, Modifier.weight(1f), style = MaterialTheme.typography.labelLarge,
@@ -501,8 +490,7 @@ private fun DashboardFooter(label: String, icon: ImageVector, onClick: () -> Uni
 
 @Composable
 private fun DashboardDivider() {
-    HorizontalDivider(modifier = Modifier.padding(horizontal = Spacing.lg),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+    ActuaCardDivider(inset = Spacing.lg)
 }
 
 @Composable

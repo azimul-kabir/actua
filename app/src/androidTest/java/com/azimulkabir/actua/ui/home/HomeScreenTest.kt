@@ -258,6 +258,27 @@ class HomeScreenTest {
         )
     }
 
+    @Test fun readyToBudgetHeroShowsTheAmountAndOpensTheBudget() {
+        var budgetClicked = false
+        val projection = HomeDashboardProjection.empty().copy(
+            budgetOverview = BudgetOverview(500_00, 200_00, 100_00, 400_00),
+        )
+        compose.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    sections = listOf(HomeSection.READY_TO_BUDGET),
+                    projection = projection,
+                    onBudgetClick = { budgetClicked = true },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Available to assign").assertExists()
+        compose.onNodeWithTag("readyToBudgetHero").performClick()
+
+        assertTrue(budgetClicked)
+    }
+
     @Test fun hidingBalancesMasksTheReadyToBudgetAmount() {
         BalanceVisibility.hidden = true
         val projection = HomeDashboardProjection.empty().copy(
