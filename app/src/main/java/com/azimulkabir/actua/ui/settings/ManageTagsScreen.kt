@@ -7,18 +7,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -31,14 +31,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.model.ActualTag
+import com.azimulkabir.actua.ui.components.ActuaGroupedItem
+import com.azimulkabir.actua.ui.components.ActuaListRow
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.GroupPosition
+import com.azimulkabir.actua.ui.theme.Spacing
 
 // Mirrors Actual's web tag color picker (packages/component-library/src/ColorPicker.tsx DEFAULT_COLOR_SET)
 // so tag colors created/edited on Android match the swatches shown in the web app.
@@ -78,16 +81,17 @@ fun ManageTagsScreen(
         return
     }
 
-    Scaffold(modifier = modifier, topBar = { TopAppBar(title = { Text("Manage Tags") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } }) }, floatingActionButton = { FloatingActionButton(onClick = { creating = true }) { Icon(Icons.Outlined.Add, "Create tag") } }) { padding ->
+    Scaffold(modifier = modifier, topBar = { ActuaScreenHeader(title = "Manage Tags", onBack = onBack) }, floatingActionButton = { FloatingActionButton(onClick = { creating = true }) { Icon(Icons.Outlined.Add, "Create tag") } }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            OutlinedTextField(query, { query = it }, label = { Text("Search tags") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
+            OutlinedTextField(query, { query = it }, label = { Text("Search tags") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm))
             if (filtered.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(if (tags.isEmpty()) "No managed tags yet" else "No tags match your search") }
-            else LazyColumn { items(filtered, key = { it.id }) { tag ->
-                ListItem(
-                    headlineContent = { Text("#${tag.tag}") },
-                    supportingContent = { val detail = listOfNotNull(tag.description?.takeIf(String::isNotBlank), if (tag.hidden) "Hidden" else null); if (detail.isNotEmpty()) Text(detail.joinToString(" · ")) },
-                    leadingContent = { TagColorDot(tag.color) },
-                    trailingContent = {
+            else LazyColumn(contentPadding = PaddingValues(top = Spacing.sm, bottom = 88.dp)) { itemsIndexed(filtered, key = { _, tag -> tag.id }) { index, tag ->
+                ActuaGroupedItem(GroupPosition.of(index, filtered.size), dividerInset = Spacing.lg + 18.dp + Spacing.md) {
+                ActuaListRow(
+                    title = { Text("#${tag.tag}", style = MaterialTheme.typography.bodyLarge) },
+                    subtitle = { val detail = listOfNotNull(tag.description?.takeIf(String::isNotBlank), if (tag.hidden) "Hidden" else null); if (detail.isNotEmpty()) Text(detail.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    leading = { TagColorDot(tag.color) },
+                    trailing = {
                         Box {
                             IconButton(onClick = { actionsFor = tag }) { Icon(Icons.Outlined.Edit, "Actions for #${tag.tag}") }
                             DropdownMenu(expanded = actionsFor?.id == tag.id, onDismissRequest = { actionsFor = null }) {
@@ -97,8 +101,9 @@ fun ManageTagsScreen(
                             }
                         }
                     },
-                    modifier = Modifier.clickable { viewing = tag },
+                    onClick = { viewing = tag },
                 )
+                }
             } }
         }
     }

@@ -1,19 +1,18 @@
 package com.azimulkabir.actua.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,10 +23,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.PayeeLocationSummary
+import com.azimulkabir.actua.ui.components.ActuaGroupedItem
+import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.GroupPosition
+import com.azimulkabir.actua.ui.theme.Spacing
 import java.text.DateFormat
 import java.util.Date
 
@@ -52,33 +54,35 @@ fun PayeeLocationsScreen(
             "Saved coordinates stay in your Actual budget and synchronize with it. Actua never tracks location in the background.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
         )
         if (!writesSupported) {
             Text(
                 "This budget cannot safely synchronize payee-location changes. Existing locations are read-only.",
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
             )
         }
         if (locations.isEmpty()) {
             Text(
                 "No saved payee locations",
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier.padding(Spacing.screenHorizontal),
             )
         } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = Spacing.xl)) {
                 locations.groupBy { it.payeeId to it.payeeName }.forEach { (payee, entries) ->
                     item(key = "heading-" + payee.first) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 14.dp),
+                            modifier = Modifier.fillMaxWidth().padding(
+                                start = Spacing.screenHorizontal + Spacing.xs, end = Spacing.sm, top = Spacing.md,
+                            ),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 payee.second,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f),
                             )
                             TextButton(
@@ -87,15 +91,19 @@ fun PayeeLocationsScreen(
                             ) { Text("Clear all") }
                         }
                     }
-                    items(entries, key = PayeeLocationSummary::id) { location ->
-                        ListItem(
-                            headlineContent = {
-                                Text("%.5f, %.5f".format(location.latitude, location.longitude))
+                    itemsIndexed(entries, key = { _, location -> location.id }) { index, location ->
+                        ActuaGroupedItem(GroupPosition.of(index, entries.size), dividerInset = Spacing.lg) {
+                        ActuaListRow(
+                            title = {
+                                Text("%.5f, %.5f".format(location.latitude, location.longitude),
+                                    style = MaterialTheme.typography.bodyLarge)
                             },
-                            supportingContent = {
-                                Text(DateFormat.getDateTimeInstance().format(Date(location.createdAt)))
+                            subtitle = {
+                                Text(DateFormat.getDateTimeInstance().format(Date(location.createdAt)),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                             },
-                            trailingContent = {
+                            trailing = {
                                 IconButton(
                                     onClick = { pendingDeletion = LocationDeletion.One(location) },
                                     enabled = writesSupported,
@@ -104,8 +112,8 @@ fun PayeeLocationsScreen(
                                 }
                             },
                         )
+                        }
                     }
-                    item(key = "divider-" + payee.first) { HorizontalDivider() }
                 }
             }
         }
