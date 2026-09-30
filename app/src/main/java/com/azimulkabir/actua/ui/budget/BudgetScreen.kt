@@ -45,6 +45,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -60,6 +61,11 @@ import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Output
+import androidx.compose.material.icons.outlined.Input
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.Replay
+import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
@@ -76,7 +82,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -129,12 +134,19 @@ import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.components.GroupPosition
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.model.BudgetProgressState
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.transactions.TransactionDetailsSheet
+import com.azimulkabir.actua.ui.transactions.PickerTextField
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
@@ -1734,40 +1746,76 @@ private fun EditBudgetAmountSheet(
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
-        Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                BudgetEntryAction(
-                    Icons.Outlined.Bolt,
-                    "Auto-Assign",
-                    Modifier.weight(1f),
-                    onClick = {
-                        val expand = !autoAssignMode
-                        moveMode = false
-                        autoAssignMode = expand
-                    },
+    // Picker rows show a readable label per endpoint; a category name shared by two groups gets
+    // its group appended so every label maps back to exactly one endpoint.
+    val endpointLabels = remember(options) {
+        val duplicateNames = options.groupingBy { it.title }.eachCount().filterValues { it > 1 }.keys
+        options.associateWith { endpoint ->
+            if (endpoint.title in duplicateNames && endpoint.subtitle != null) "${endpoint.title} (${endpoint.subtitle})"
+            else endpoint.title
+        }
+    }
+    val endpointByLabel = remember(endpointLabels) { endpointLabels.entries.associate { (endpoint, label) -> label to endpoint } }
+    val endpointBalances = remember(endpointLabels, hideDecimalPlaces) {
+        endpointLabels.entries.associate { (endpoint, label) -> label to formatMoneyCents(endpoint.balanceCents, hideDecimalPlaces) }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth().padding(end = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ActuaSheetTitle(category.name, Modifier.weight(1f))
+                IconButton(onClick = {
+                    coroutineScope.launch { sheetState.hide() }.invokeOnCompletion { onDetails() }
+                }) {
+                    Icon(Icons.Outlined.MoreHoriz, contentDescription = "Details")
+                }
+            }
+            val caretTransition = rememberInfiniteTransition(label = "budget amount cursor")
+            val caretAlpha by caretTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 0f,
+                animationSpec = infiniteRepeatable(tween(520), repeatMode = RepeatMode.Reverse),
+                label = "budget amount cursor alpha",
+            )
+            ActuaHeroAmount(
+                amount = formatMoneyCents(enteredAmount, false),
+                caption = if (moveMode) "Amount" else "Budgeted",
+                captionColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = ActuaHeroSize.Medium,
+                amountTrailing = {
+                    Box(
+                        Modifier.padding(start = 3.dp).height(28.dp).width(2.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = caretAlpha)),
+                    )
+                },
+            )
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                BudgetModeButton(
+                    text = "Auto-Assign",
+                    icon = Icons.Outlined.Bolt,
                     selected = autoAssignMode,
-                )
-                BudgetEntryAction(
-                    Icons.Outlined.SwapHoriz,
-                    "Move Money",
-                    Modifier.weight(1f),
-                    onClick = {
-                        val expand = !moveMode
-                        autoAssignMode = false
-                        moveMode = expand
-                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    val expand = !autoAssignMode
+                    moveMode = false
+                    autoAssignMode = expand
+                }
+                BudgetModeButton(
+                    text = "Move Money",
+                    icon = Icons.Outlined.SwapHoriz,
                     selected = moveMode,
-                )
-                BudgetEntryAction(
-                    Icons.Outlined.MoreHoriz,
-                    "Details",
-                    Modifier.weight(1f),
-                    onClick = {
-                        coroutineScope.launch { sheetState.hide() }.invokeOnCompletion { onDetails() }
-                    },
-                )
+                    modifier = Modifier.weight(1f),
+                ) {
+                    val expand = !moveMode
+                    autoAssignMode = false
+                    moveMode = expand
+                }
             }
             val entryMode = when {
                 autoAssignMode -> EditBudgetMode.AUTO_ASSIGN
@@ -1784,81 +1832,70 @@ private fun EditBudgetAmountSheet(
                 label = "Budget entry mode",
             ) { currentMode ->
                 when (currentMode) {
-                    EditBudgetMode.AUTO_ASSIGN -> Column(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    EditBudgetMode.AUTO_ASSIGN -> ActuaFormCard(
+                        Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.xs),
                     ) {
                         if (autoAssignChoices.isEmpty()) {
                             Text(
                                 "No suggestions available",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 12.dp),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
                             )
                         }
-                        autoAssignChoices.forEach { (label, amount) ->
-                            Surface(
+                        autoAssignChoices.forEachIndexed { index, (label, amount) ->
+                            if (index > 0) ActuaCardDivider()
+                            ActuaFormRow(
+                                icon = Icons.Outlined.Bolt,
+                                label = label,
+                                value = null,
+                                supportingValue = formatMoneyCents(amount, hideDecimalPlaces),
                                 onClick = { onSave(amount) },
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                shape = MaterialTheme.shapes.large,
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                    Text(
-                                        formatMoneyCents(amount, hideDecimalPlaces),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                }
-                            }
+                            )
                         }
                     }
                     EditBudgetMode.MOVE -> Column(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.xs),
                     ) {
-                        MoveEndpointSelector(
-                            label = "From",
-                            selected = from,
-                            options = fromOptions.filterNot { it.group == to.group && it.category == to.category },
-                            hideDecimalPlaces = hideDecimalPlaces,
-                            onSelect = { from = it },
-                        )
-                        IconButton(
-                            onClick = { val oldFrom = from; from = to; to = oldFrom },
-                            modifier = Modifier.align(Alignment.CenterHorizontally).height(30.dp),
-                        ) {
-                            Icon(
-                                Icons.Outlined.SwapHoriz,
-                                contentDescription = "Swap source and destination",
-                                modifier = Modifier.height(20.dp),
+                        ActuaFormCard {
+                            PickerTextField(
+                                label = "From",
+                                value = endpointLabels[from] ?: from.title,
+                                options = fromOptions.filterNot { it.group == to.group && it.category == to.category }
+                                    .map { endpointLabels.getValue(it) },
+                                onValueChange = { label -> endpointByLabel[label]?.let { from = it } },
+                                supportingValues = endpointBalances,
+                                rowIcon = Icons.Outlined.Output,
+                            )
+                            ActuaCardDivider()
+                            PickerTextField(
+                                label = "To",
+                                value = endpointLabels[to] ?: to.title,
+                                options = options.filterNot { it.group == from.group && it.category == from.category }
+                                    .map { endpointLabels.getValue(it) },
+                                onValueChange = { label -> endpointByLabel[label]?.let { to = it } },
+                                supportingValues = endpointBalances,
+                                rowIcon = Icons.Outlined.Input,
                             )
                         }
-                        MoveEndpointSelector(
-                            label = "To",
-                            selected = to,
-                            options = options.filterNot { it.group == from.group && it.category == from.category },
-                            hideDecimalPlaces = hideDecimalPlaces,
-                            onSelect = { to = it },
-                        )
-                        Text(
-                            "Available to move: ${formatMoneyCents(from.balanceCents.coerceAtLeast(0L), hideDecimalPlaces)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                        )
+                        Row(
+                            Modifier.fillMaxWidth().padding(start = Spacing.xs),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Available to move: ${formatMoneyCents(from.balanceCents.coerceAtLeast(0L), hideDecimalPlaces)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f),
+                            )
+                            IconButton(onClick = { val oldFrom = from; from = to; to = oldFrom }) {
+                                Icon(Icons.Outlined.SwapVert, contentDescription = "Swap source and destination")
+                            }
+                        }
                     }
                     EditBudgetMode.NONE -> Box(Modifier.fillMaxWidth())
                 }
             }
-            InlineCalculatorAmount(
-                if (moveMode) "Amount" else "Budgeted",
-                enteredAmount,
-                Modifier.padding(horizontal = 20.dp),
-            )
             CompactCalculatorPad(
                 calculator = calculator,
                 conventionalAmountEntry = moveMode,
@@ -1881,6 +1918,29 @@ private fun EditBudgetAmountSheet(
                 },
             )
         }
+    }
+}
+
+/** A mode toggle for the budget amount sheet: filled while its mode is open, tonal otherwise. */
+@Composable
+private fun BudgetModeButton(
+    text: String,
+    icon: ImageVector,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    if (selected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier.height(Sizes.secondaryButtonHeight),
+            shape = MaterialTheme.shapes.large,
+        ) {
+            Icon(icon, contentDescription = null)
+            Text(text, maxLines = 1, modifier = Modifier.padding(start = Spacing.sm))
+        }
+    } else {
+        ActuaSecondaryButton(text = text, onClick = onClick, modifier = modifier, icon = icon)
     }
 }
 
@@ -2168,63 +2228,6 @@ private data class MoveEndpoint(
 }
 
 @Composable
-private fun MoveEndpointSelector(
-    label: String,
-    selected: MoveEndpoint,
-    options: List<MoveEndpoint>,
-    hideDecimalPlaces: Boolean,
-    onSelect: (MoveEndpoint) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box(Modifier.fillMaxWidth()) {
-        Surface(
-            onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(label, style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(selected.title, style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    selected.subtitle?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Text(formatMoneyCents(selected.balanceCents, hideDecimalPlaces),
-                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null,
-                    modifier = Modifier.padding(start = 6.dp))
-            }
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(option.title)
-                            Text(
-                                listOfNotNull(option.subtitle, formatMoneyCents(option.balanceCents, hideDecimalPlaces))
-                                    .joinToString(" · "),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    onClick = { onSelect(option); expanded = false },
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun CategoryDetailsScreen(
     modifier: Modifier = Modifier,
     category: BudgetCategory,
@@ -2260,19 +2263,7 @@ private fun CategoryDetailsScreen(
     BackHandler(onBack = onDismiss)
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
-                }
-                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(category.name, style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(formatMonth(month), style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+            ActuaScreenHeader(title = category.name, onBack = onDismiss) {
                 Box {
                     IconButton(onClick = { overflowOpen = true }) {
                         Icon(Icons.Outlined.MoreVert, contentDescription = "Category options")
@@ -2299,20 +2290,33 @@ private fun CategoryDetailsScreen(
                     }
                 }
             }
-            Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp)
+            Text(
+                formatMonth(month),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = Spacing.screenHorizontal),
+            )
+            Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = Spacing.screenHorizontal)
                 .verticalScroll(androidx.compose.foundation.rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.large) {
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Spacer(Modifier.height(Spacing.xs))
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = MaterialTheme.shapes.extraLarge,
+                ) {
                     Column(
-                        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
+                        Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
-                        Text("Balance", style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f))
-                        Text(formatMoneyCents(category.balanceCents, hideDecimalPlaces),
-                            style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        ActuaHeroAmount(
+                            amount = formatMoneyCents(category.balanceCents, hideDecimalPlaces),
+                            caption = "Balance",
+                            amountColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            captionColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
+                            size = ActuaHeroSize.Medium,
+                        )
                         if (category.showsProgressBar) {
                             CategoryProgressBar(category, scheduleFunding,
                                 Modifier.fillMaxWidth().height(5.dp))
@@ -2323,79 +2327,75 @@ private fun CategoryDetailsScreen(
                         }
                     }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    BudgetEntryAction(Icons.Outlined.Add, "Budget", Modifier.weight(1f), onEditBudget)
-                    BudgetEntryAction(Icons.Outlined.SwapHoriz, "Move Money", Modifier.weight(1f), onMoveMoney)
-                    BudgetEntryAction(Icons.Outlined.Bolt, "Auto-Assign", Modifier.weight(1f), onAutoAssign)
+                ActuaFormCard {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Add,
+                        label = "Budget",
+                        value = formatMoneyCents(category.assignedCents, hideDecimalPlaces),
+                        onClick = onEditBudget,
+                    )
+                    ActuaCardDivider()
+                    ActuaFormRow(icon = Icons.Outlined.SwapHoriz, label = "Move Money", value = null, onClick = onMoveMoney)
+                    ActuaCardDivider()
+                    ActuaFormRow(icon = Icons.Outlined.Bolt, label = "Auto-Assign", value = null, onClick = onAutoAssign)
                 }
-                TargetDetailsCard(
-                    category = category,
-                    month = month,
-                    hideDecimalPlaces = hideDecimalPlaces,
-                    scheduleFunding = scheduleFunding,
-                    onClick = onEditTarget,
-                )
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
-                    Column {
-                        if (showNotes) {
-                            Row(
-                                Modifier.fillMaxWidth().clickable { noteEditorOpen = true }
-                                    .padding(horizontal = 16.dp, vertical = 13.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text("Note", fontWeight = FontWeight.SemiBold)
-                                    Text(note.ifBlank { "Add note" }, style = MaterialTheme.typography.bodySmall,
-                                        color = if (note.isBlank()) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                }
-                                Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null,
-                                    modifier = Modifier.rotate(-90f))
-                            }
-                            HorizontalDivider()
-                        }
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 11.dp),
+                ActuaFormCard {
+                    TargetDetailsRow(
+                        category = category,
+                        month = month,
+                        hideDecimalPlaces = hideDecimalPlaces,
+                        scheduleFunding = scheduleFunding,
+                        onClick = onEditTarget,
+                    )
+                    if (showNotes) {
+                        ActuaCardDivider()
+                        ActuaFormRow(
+                            icon = Icons.AutoMirrored.Outlined.Notes,
+                            label = "Note",
+                            value = note.ifBlank { "Add note" },
+                            valueIsPlaceholder = note.isBlank(),
+                            onClick = { noteEditorOpen = true },
+                        )
+                    }
+                    ActuaCardDivider()
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Replay,
+                        label = "Rollover overspending",
+                        value = null,
+                        caption = "Carry overspending into the next month",
+                        checked = rollover,
+                        onClick = {
+                            val enabled = !rollover
+                            rollover = enabled
+                            onSetCarryover(enabled)
+                        },
+                    )
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                    ActuaGroupLabel("Recent activity", Modifier.weight(1f))
+                    TextButton(onClick = onAllTransactions) { Text("View all") }
+                }
+                ActuaFormCard {
+                    if (transactions.isEmpty()) {
+                        Text("No recent transactions", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.lg))
+                    } else transactions.forEachIndexed { index, transaction ->
+                        if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                        Row(Modifier.fillMaxWidth().heightIn(min = Sizes.compactRowMinHeight)
+                            .clickable { selectedTransaction = transaction }
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text("Rollover overspending", fontWeight = FontWeight.SemiBold)
-                                Text("Carry overspending into the next month",
+                                Text(transaction.payee.ifBlank { "Unknown payee" }, fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(listOf(formatStoredDate(transaction.date), transaction.account)
+                                    .filter(String::isNotBlank).joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Switch(rollover, { enabled -> rollover = enabled; onSetCarryover(enabled) })
+                            Text(formatMoneyCents(transaction.amountCents, hideDecimalPlaces),
+                                fontWeight = FontWeight.SemiBold)
                         }
-                    }
-                }
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
-                    Column {
-                        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Text("Recent activity", style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                            TextButton(onClick = onAllTransactions) { Text("View all") }
-                        }
-                        if (transactions.isEmpty()) {
-                            Text("No recent transactions", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp))
-                        } else transactions.forEachIndexed { index, transaction ->
-                            if (index > 0) HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
-                            Row(Modifier.fillMaxWidth().clickable { selectedTransaction = transaction }
-                                .padding(horizontal = 16.dp, vertical = 11.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(transaction.payee.ifBlank { "Unknown payee" }, fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(listOf(formatStoredDate(transaction.date), transaction.account)
-                                        .filter(String::isNotBlank).joinToString(" · "),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Text(formatMoneyCents(transaction.amountCents, hideDecimalPlaces),
-                                    fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                        Spacer(Modifier.height(4.dp))
                     }
                 }
                 Spacer(Modifier.height(88.dp))
@@ -2434,8 +2434,9 @@ private fun CategoryDetailsScreen(
     }
 }
 
+/** The category's target as an icon row in Category details' settings card. */
 @Composable
-private fun TargetDetailsCard(
+private fun TargetDetailsRow(
     category: BudgetCategory,
     month: String,
     hideDecimalPlaces: Boolean,
@@ -2518,23 +2519,25 @@ private fun TargetDetailsCard(
             }
         }
     }
-    Surface(onClick = onClick, color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = MaterialTheme.shapes.large) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Target", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(detail, style = MaterialTheme.typography.bodyMedium)
-                Text(supporting, style = MaterialTheme.typography.bodySmall,
-                    color = if (target == null && !category.hasUnsupportedTarget) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-            Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Edit target",
-                modifier = Modifier.rotate(-90f), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    Row(Modifier.fillMaxWidth().heightIn(min = Sizes.formRowMinHeight)
+        .clickable(role = Role.Button, onClick = onClick)
+        .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Outlined.TrackChanges, contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.width(Spacing.lg))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text("Target", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(detail, style = MaterialTheme.typography.bodyMedium)
+            Text(supporting, style = MaterialTheme.typography.bodySmall,
+                color = if (target == null && !category.hasUnsupportedTarget) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
+        Icon(Icons.Outlined.ChevronRight, contentDescription = "Edit target",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
