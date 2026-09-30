@@ -158,6 +158,8 @@ import com.azimulkabir.actua.ui.components.ActuaSheetAction
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.model.BudgetProgressState
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
+import com.azimulkabir.actua.ui.theme.danger
+import com.azimulkabir.actua.ui.theme.warning
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.Sizes
@@ -1110,15 +1112,16 @@ private fun OverspentWarningBanner(
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
 ) {
-    // Matches the OVERSPENT category progress bar/status dot color (colorScheme.error) rather
-    // than the softer errorContainer, so the banner reads as the same severity at a glance.
+    // Tinted with the (user-configurable) Overspent status color, like an overspent category's
+    // balance pill, so the banner and the rows it points to read as the same severity.
+    val overspent = categoryStatusColor(BudgetProgressState.OVERSPENT)
     BudgetWarningCard(
         icon = Icons.Outlined.ErrorOutline,
         title = if (categoryCount == 1) "1 category overspent" else "$categoryCount categories overspent",
         subtitle = "Tap to cover overspending",
         amount = formatMoneyCents(totalOverspentCents, hideDecimalPlaces),
-        containerColor = MaterialTheme.colorScheme.error,
-        contentColor = MaterialTheme.colorScheme.onError,
+        containerColor = overspent.copy(alpha = 0.16f),
+        contentColor = overspent,
         onClick = onClick,
     )
 }
@@ -1130,15 +1133,15 @@ private fun UncategorizedWarningBanner(
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
 ) {
-    // Reuses the errorContainer/onErrorContainer pairing the overspent banner used before it
-    // moved to the stronger colorScheme.error, keeping a distinct but still red-family severity.
+    // A to-do rather than a problem, so it takes the warning tone instead of the overspent red.
+    val warning = MaterialTheme.colorScheme.warning
     BudgetWarningCard(
         icon = Icons.Outlined.Category,
         title = if (transactionCount == 1) "1 uncategorized transaction" else "$transactionCount uncategorized transactions",
         subtitle = "Tap to categorize",
         amount = formatMoneyCents(totalUncategorizedCents, hideDecimalPlaces),
-        containerColor = MaterialTheme.colorScheme.errorContainer,
-        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        containerColor = warning.copy(alpha = 0.16f),
+        contentColor = warning,
         onClick = onClick,
     )
 }
@@ -1498,12 +1501,12 @@ private fun OverviewCell(
             val pillModifier = Modifier.offset(x = pillOffset)
             // Same rule as a category's BalancePill: only a negative amount takes color.
             val pillColor = when {
-                negative -> colors.error.copy(alpha = 0.16f)
+                negative -> colors.danger.copy(alpha = 0.16f)
                 positive -> colors.surfaceContainerHighest
                 else -> Color.Transparent
             }
             val textColor = when {
-                negative -> colors.error
+                negative -> colors.danger
                 positive -> colors.onSurface
                 else -> colors.onSurfaceVariant.copy(alpha = 0.55f)
             }
@@ -1612,7 +1615,7 @@ private fun AmountColumn(
         Text(formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (balance) FontWeight.Bold else FontWeight.SemiBold,
             color = when {
-                balance && amount < 0L -> MaterialTheme.colorScheme.error
+                balance && amount < 0L -> MaterialTheme.colorScheme.danger
                 muted -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                 else -> MaterialTheme.colorScheme.onSurface
             }, maxLines = 1)
