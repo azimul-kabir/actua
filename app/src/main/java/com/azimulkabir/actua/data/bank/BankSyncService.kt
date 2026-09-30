@@ -90,13 +90,17 @@ class BankSyncService(
             val newRows = unambiguous.filterNot { it.financialId in existing }.sortedBy { it.date }
             val payeeByRow = newRows.associateWith { transactions.resolveOrCreatePayee(it.payeeName) }
 
-            // Fuzzy-match each new bank row against an unlinked local transaction (same account and
-            // amount, close date) before inserting, so a manually entered transaction that posts a
-            // few days apart from the bank's own date is reconciled instead of duplicated.
+            // Fuzzy-match each new bank row against a local transaction (same account and amount,
+            // close date) before inserting, so a manually entered transaction that posts a few days
+            // apart from the bank's own date is reconciled instead of duplicated. As in Actual's
+            // bank sync (`strictIdChecking` off), rows already imported under another id are
+            // candidates too, since some providers send a new id for the same transaction. Rows
+            // this download still sends under their own id are taken by that exact match.
+            val downloadIds = download.transactions.mapTo(mutableSetOf()) { it.financialId }
             val candidatesByRow = newRows.associate { row ->
                 row.financialId to database.fuzzyMatchCandidates(
                     account.id, row.amountCents, dateFrom = row.date.shiftDays(-7), dateTo = row.date.shiftDays(7),
-                )
+                ).filterNot { it.financialId != null && it.financialId in downloadIds }
             }
             val matches = BankSyncMatcher.match(
                 rows = newRows.map { BankSyncMatchRow(it.financialId, it.date, payeeByRow.getValue(it).id) },

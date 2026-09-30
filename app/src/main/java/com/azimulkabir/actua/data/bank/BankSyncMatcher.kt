@@ -7,7 +7,7 @@ import kotlin.math.abs
 /** One imported bank row awaiting a match against existing local transactions, keyed by its financial id. */
 data class BankSyncMatchRow(val financialId: String, val date: Int, val payeeId: String?)
 
-/** A local, not-yet-linked transaction that could reconcile with an imported bank row. */
+/** A local transaction (manually entered, or imported under another id) that could reconcile with an imported bank row. */
 data class BankSyncMatchCandidate(val id: String, val date: Int, val payeeId: String?, val reconciled: Boolean)
 
 /**
@@ -15,8 +15,8 @@ data class BankSyncMatchCandidate(val id: String, val date: Int, val payeeId: St
  * `packages/loot-core/src/server/accounts/sync.ts`), so a bank-sync import can reconcile with a
  * manually entered transaction that posted on a different date instead of creating a duplicate.
  *
- * Each row's candidates (same account/amount, no financial id of their own yet, within the
- * caller's date window) are considered closest-date-first. A payee-matching pass runs for every
+ * Each row's candidates (same account/amount within the caller's date window, excluding rows
+ * the same download matches by exact id) are considered closest-date-first. A payee-matching pass runs for every
  * row before any row falls back to its closest date-only candidate, so a high-fidelity match
  * elsewhere never loses its candidate to a lower-fidelity match processed earlier.
  */
