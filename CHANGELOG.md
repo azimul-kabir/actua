@@ -31,6 +31,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Missed scheduled transactions now stay in the account transaction list, marked as missed, so they can still be posted or skipped ([#798](https://github.com/azimul-kabir/actua/pull/798))
 - Restored the category pill on transaction rows, gave new note tags a color, and tidied the calculator, Add tab, note editor and Manage shortcuts after the redesign ([#794](https://github.com/azimul-kabir/actua/pull/794))
 - Deleting a transfer, or changing it to an expense or income, now also removes it from the other account ([#754](https://github.com/azimul-kabir/actua/pull/754))
 - Editing a transfer no longer changes the other account's cleared state or date ([#755](https://github.com/azimul-kabir/actua/pull/755))
