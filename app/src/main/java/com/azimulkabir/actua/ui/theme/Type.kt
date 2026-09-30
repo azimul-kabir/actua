@@ -130,6 +130,16 @@ object AmountTypography {
         fontFeatureSettings = "tnum",
     )
 
+    /** The medium, centered amount on overview screens (e.g. account and budget totals). */
+    val mediumHeroAmount = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
+        letterSpacing = 0.sp,
+        fontFeatureSettings = "tnum",
+    )
+
     val headlineAmount = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,

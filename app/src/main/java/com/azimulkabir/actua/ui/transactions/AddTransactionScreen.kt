@@ -21,7 +21,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -64,19 +63,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.automirrored.outlined.CallSplit
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.CheckCircleOutline
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.AssistChip
@@ -85,12 +79,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
-import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.model.Transaction
@@ -103,6 +91,13 @@ import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.parseStoredDate
 import com.azimulkabir.actua.ui.components.storageDate
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.components.ActuaHeroAmount
+import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
+import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.theme.Spacing
 import java.time.Instant
 import java.time.LocalDate
@@ -304,7 +299,7 @@ fun AddTransactionScreen(
                 },
                 onToggleSign = { incoming = !incoming },
             )
-            FormCard {
+            ActuaFormCard {
                 PickerTextField(
                     label = "Payee", value = payee,
                     options = payeeOptions.filterNot { it == TRANSFER_PAYEE_PREFIX + account },
@@ -323,7 +318,7 @@ fun AddTransactionScreen(
                     placeholder = "Choose or add a payee",
                 )
                 if (!isSplit) {
-                    FormCardDivider()
+                    ActuaCardDivider()
                     if (categoryApplies) {
                         PickerTextField(
                             label = "Category", value = category, options = categoryOptions,
@@ -336,7 +331,7 @@ fun AddTransactionScreen(
                             placeholder = "Uncategorized",
                         )
                     } else {
-                        TransactionFormRow(
+                        ActuaFormRow(
                             icon = Icons.Outlined.Category,
                             label = "Category",
                             value = if (isOffBudget) "Off budget" else "Transfer",
@@ -348,7 +343,7 @@ fun AddTransactionScreen(
                         )
                     }
                 }
-                FormCardDivider()
+                ActuaCardDivider()
                 PickerTextField(
                     label = "Account",
                     value = account, options = accountOptions.filterNot { it == transferTarget },
@@ -368,22 +363,16 @@ fun AddTransactionScreen(
             }
             if (!isTransfer) {
                 if (!isSplit) {
-                    FilledTonalButton(
+                    ActuaSecondaryButton(
+                        text = if (isOffBudget) "Split transaction" else "Split into multiple categories",
                         onClick = {
                             splitLines = if (editing == null) listOf(SplitLine(), SplitLine())
                             else listOf(
                                 SplitLine(category = category, amountCents = amountCents), SplitLine(),
                             )
                         },
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = MaterialTheme.shapes.large,
-                    ) {
-                        Icon(Icons.AutoMirrored.Outlined.CallSplit, contentDescription = null)
-                        Text(
-                            if (isOffBudget) "Split transaction" else "Split into multiple categories",
-                            modifier = Modifier.padding(start = Spacing.sm),
-                        )
-                    }
+                        icon = Icons.AutoMirrored.Outlined.CallSplit,
+                    )
                 } else {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -510,11 +499,10 @@ fun AddTransactionScreen(
                                 if (index < splitLines.lastIndex) HorizontalDivider()
                             }
                         }
-                        FilledTonalButton(
+                        ActuaSecondaryButton(
+                            text = "Add another split",
                             onClick = { splitLines = splitLines + SplitLine() },
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            shape = MaterialTheme.shapes.large,
-                        ) { Text("Add another split") }
+                        )
                         Text(
                             if (splitTotal == amountCents) "Split total matches the transaction amount"
                             else "Remaining: $currencyPrefix${centsToInput(amountCents - splitTotal)}",
@@ -525,22 +513,22 @@ fun AddTransactionScreen(
                     }
                 }
             }
-            FormCard {
-                TransactionFormRow(
+            ActuaFormCard {
+                ActuaFormRow(
                     icon = Icons.Outlined.CalendarMonth,
                     label = "Date",
                     value = formatDate(date),
                     onClick = { showDatePicker = true },
                 )
-                FormCardDivider()
-                TransactionFormRow(
+                ActuaCardDivider()
+                ActuaFormRow(
                     icon = Icons.Outlined.CheckCircleOutline,
                     label = "Cleared",
                     value = null,
                     checked = cleared,
                     onClick = { cleared = !cleared },
                 )
-                FormCardDivider()
+                ActuaCardDivider()
                 TagAutocompleteField(
                     value = notes,
                     tags = availableTags,
@@ -553,11 +541,11 @@ fun AddTransactionScreen(
                 )
             }
         }
-        TransactionSaveButton(
-            canSave = canSave,
+        ActuaPrimaryActionBar(
+            text = "Save",
             onClick = saveTransaction,
-            modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
+            enabled = canSave,
+            icon = Icons.Outlined.Check,
         )
         }
     }
@@ -627,24 +615,6 @@ fun AddTransactionScreen(
 }
 
 private enum class AddStep { Payee, Category, Account }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TransactionSaveButton(
-    canSave: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Button(
-        onClick = onClick,
-        enabled = canSave,
-        modifier = modifier.height(56.dp),
-        shape = MaterialTheme.shapes.large,
-    ) {
-        Icon(Icons.Outlined.Check, contentDescription = null)
-        Text("Save", modifier = Modifier.padding(start = 8.dp))
-    }
-}
 
 internal const val TRANSFER_PAYEE_PREFIX = "Transfer: "
 
@@ -744,148 +714,35 @@ private fun AmountHero(
         AmountKind.Transfer -> ""
     }
     val shown = "$sign$currencyPrefix$amountText"
-    val style = AmountTypography.heroAmount.let { if (shown.length > 11) it.copy(fontSize = 32.sp) else it }
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm, bottom = Spacing.xs),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        Text(caption, style = MaterialTheme.typography.labelLarge, color = kindColor)
-        Row(
-            modifier = Modifier
-                .clip(MaterialTheme.shapes.large)
-                .clickable(onClickLabel = "Edit amount", onClick = onAmountClick)
-                .padding(horizontal = Spacing.lg, vertical = Spacing.xs)
-                .semantics(mergeDescendants = true) { contentDescription = "Amount, $caption $shown" },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                shown,
-                style = style,
-                color = if (isZero) MaterialTheme.colorScheme.onSurfaceVariant else kindColor,
-                maxLines = 1,
-                textAlign = TextAlign.Center,
-            )
-            if (editing) {
+    ActuaHeroAmount(
+        amount = shown,
+        caption = caption,
+        amountColor = if (isZero) MaterialTheme.colorScheme.onSurfaceVariant else kindColor,
+        captionColor = kindColor,
+        supportingText = direction,
+        contentDescription = "Amount, $caption $shown",
+        onClickLabel = "Edit amount",
+        onClick = onAmountClick,
+        amountTrailing = if (editing) {
+            {
                 Box(
                     Modifier.padding(start = 3.dp).height(36.dp).width(2.dp)
                         .clip(RoundedCornerShape(1.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = cursorAlpha)),
                 )
             }
-        }
-        direction?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        } else null,
+        action = {
+            AssistChip(
+                onClick = onToggleSign,
+                label = { Text(toggleLabel) },
+                leadingIcon = {
+                    Icon(Icons.Outlined.SwapVert, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
+                },
             )
-        }
-        AssistChip(
-            onClick = onToggleSign,
-            label = { Text(toggleLabel) },
-            leadingIcon = {
-                Icon(Icons.Outlined.SwapVert, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
-            },
-        )
-        hint?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-/** A rounded group of [TransactionFormRow]s, styled like the app's picker groups. */
-@Composable
-private fun FormCard(content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(content = content)
-    }
-}
-
-@Composable
-private fun FormCardDivider() {
-    HorizontalDivider(
-        modifier = Modifier.padding(start = 56.dp),
-        color = MaterialTheme.colorScheme.outlineVariant,
+        },
+        footnote = hint,
     )
-}
-
-/**
- * One form field as an icon row: label over value, an optional caption, and a trailing value,
- * switch ([checked]) or chevron. A null [value] shows [label] as the row's only line.
- */
-@Composable
-internal fun TransactionFormRow(
-    icon: ImageVector,
-    label: String,
-    value: String?,
-    modifier: Modifier = Modifier,
-    valueIsPlaceholder: Boolean = false,
-    caption: String? = null,
-    supportingValue: String? = null,
-    enabled: Boolean = true,
-    checked: Boolean? = null,
-    trailing: (@Composable () -> Unit)? = null,
-    onClick: (() -> Unit)? = null,
-) {
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    val interaction = when {
-        onClick == null || !enabled -> Modifier
-        checked != null -> Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = { onClick() })
-        else -> Modifier.clickable(role = Role.Button, onClick = onClick)
-    }
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .then(interaction)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = if (enabled) muted else muted.copy(alpha = 0.6f))
-        Spacer(Modifier.width(Spacing.lg))
-        Column(Modifier.weight(1f)) {
-            if (value == null) {
-                Text(label, style = MaterialTheme.typography.bodyLarge)
-            } else {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = muted)
-                Text(
-                    value,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (valueIsPlaceholder || !enabled) muted else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            caption?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = muted) }
-        }
-        supportingValue?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = muted,
-                maxLines = 1,
-                modifier = Modifier.padding(start = Spacing.sm),
-            )
-        }
-        when {
-            checked != null -> Switch(
-                checked = checked,
-                onCheckedChange = null,
-                enabled = enabled,
-                modifier = Modifier.padding(start = Spacing.sm),
-            )
-            trailing != null -> trailing()
-            onClick != null && enabled -> Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = muted)
-        }
-    }
 }
 
 @Composable
@@ -902,7 +759,7 @@ internal fun PickerTextField(
     autoOpen: Boolean = false,
     onAutoOpenHandled: () -> Unit = {},
     onPicked: () -> Unit = {},
-    /** Shows the field as an icon row inside a [FormCard] instead of an outlined text field. */
+    /** Shows the field as an icon row inside a [ActuaFormCard] instead of an outlined text field. */
     rowIcon: ImageVector? = null,
     /** Row text when it differs from [value], e.g. the account name for a `Transfer:` payee. */
     rowValue: String? = null,
@@ -1004,7 +861,7 @@ internal fun PickerTextField(
     }
     if (rowIcon != null) {
         val shown = rowValue ?: value
-        TransactionFormRow(
+        ActuaFormRow(
             icon = rowIcon,
             label = label,
             value = shown.ifEmpty { placeholder },
@@ -1178,7 +1035,7 @@ private fun SearchableTransactionPicker(
                     ),
                 ) {
                     if (selected.isNotBlank() && query.isBlank() && selected in uniqueOptions) {
-                        item { PickerSectionLabel("Selected") }
+                        item { ActuaGroupLabel("Selected") }
                         item {
                             PickerGroup(
                                 listOf(selected), selected, supportingValues = supportingValues,
@@ -1187,7 +1044,7 @@ private fun SearchableTransactionPicker(
                         }
                     }
                     if (query.isBlank() && onFindNearby != null) {
-                        item { PickerSectionLabel("Nearby") }
+                        item { ActuaGroupLabel("Nearby") }
                         item {
                             FilledTonalButton(
                                 onClick = {
@@ -1258,7 +1115,7 @@ private fun SearchableTransactionPicker(
                         }
                     }
                     if (query.isNotBlank() && searchResults.isNotEmpty()) {
-                        item { PickerSectionLabel("Search results") }
+                        item { ActuaGroupLabel("Search results") }
                         item {
                             PickerGroup(
                                 options = searchResults,
@@ -1270,7 +1127,7 @@ private fun SearchableTransactionPicker(
                         }
                     }
                     if (query.isBlank() && transferOptions.isNotEmpty()) {
-                        item { PickerSectionLabel("Payments and transfers") }
+                        item { ActuaGroupLabel("Payments and transfers") }
                         item {
                             PickerGroup(
                                 options = transferOptions,
@@ -1285,7 +1142,7 @@ private fun SearchableTransactionPicker(
                             it.equals(query.trim(), ignoreCase = true)
                         }
                     ) {
-                        item { PickerSectionLabel("New ${title.lowercase()}") }
+                        item { ActuaGroupLabel("New ${title.lowercase()}") }
                         item {
                             PickerGroup(
                                 options = listOf(query.trim()),
@@ -1297,7 +1154,7 @@ private fun SearchableTransactionPicker(
                     }
                     if (query.isBlank()) {
                         grouped.forEach { (letter, entries) ->
-                            item(key = "heading-$letter") { PickerSectionLabel(letter) }
+                            item(key = "heading-$letter") { ActuaGroupLabel(letter) }
                             item(key = "group-$letter") {
                                 PickerGroup(
                                     entries, selected, supportingValues = supportingValues,
@@ -1424,16 +1281,6 @@ internal fun alphabetizePickerOptions(options: List<String>): List<String> = opt
     .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.removePrefix("Transfer: ") })
 
 @Composable
-private fun PickerSectionLabel(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 20.dp, bottom = 6.dp, start = 4.dp),
-    )
-}
-
-@Composable
 private fun PickerGroup(
     options: List<String>,
     selected: String,
@@ -1441,22 +1288,14 @@ private fun PickerGroup(
     supportingValues: Map<String, String> = emptyMap(),
     onSelect: (String) -> Unit,
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column {
-            options.forEachIndexed { index, option ->
-                PickerRow(
-                    text = displayText(option),
-                    supportingText = supportingValues[option],
-                    selected = option == selected,
-                ) { onSelect(option) }
-                if (index < options.lastIndex) {
-                    HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
-                }
-            }
+    ActuaFormCard {
+        options.forEachIndexed { index, option ->
+            PickerRow(
+                text = displayText(option),
+                supportingText = supportingValues[option],
+                selected = option == selected,
+            ) { onSelect(option) }
+            if (index < options.lastIndex) ActuaCardDivider(inset = 52.dp)
         }
     }
 }
@@ -1469,45 +1308,37 @@ private fun NearbyPickerGroup(
     onSelect: (NearbyPayeeOption) -> Unit,
     onForget: ((NearbyPayeeOption) -> Unit)?,
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-    ) {
-        Column {
-            options.forEachIndexed { index, option ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onSelect(option) }
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = option.payee == selected, onClick = { onSelect(option) })
-                    Column(modifier = Modifier.weight(1f).padding(horizontal = 4.dp)) {
-                        Text(option.payee, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-                        Text(
-                            option.distance,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                        )
-                    }
-                    onForget?.let {
-                        TextButton(
-                            onClick = { it(option) },
-                            enabled = forgettingLocationId == null,
-                        ) {
-                            if (forgettingLocationId == option.locationId) {
-                                CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
-                            } else {
-                                Text("Forget", color = MaterialTheme.colorScheme.error)
-                            }
+    ActuaFormCard(modifier = Modifier.padding(top = 8.dp)) {
+        options.forEachIndexed { index, option ->
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { onSelect(option) }
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = option.payee == selected, onClick = { onSelect(option) })
+                Column(modifier = Modifier.weight(1f).padding(horizontal = 4.dp)) {
+                    Text(option.payee, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                    Text(
+                        option.distance,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+                onForget?.let {
+                    TextButton(
+                        onClick = { it(option) },
+                        enabled = forgettingLocationId == null,
+                    ) {
+                        if (forgettingLocationId == option.locationId) {
+                            CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text("Forget", color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
-                if (index < options.lastIndex) {
-                    HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
-                }
             }
+            if (index < options.lastIndex) ActuaCardDivider(inset = 52.dp)
         }
     }
 }

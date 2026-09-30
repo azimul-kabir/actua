@@ -48,6 +48,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
+import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.data.budget.model.ActualTag
 import com.azimulkabir.actua.ui.components.findTagOccurrences
 import com.azimulkabir.actua.ui.components.parseTagColor
@@ -109,7 +110,7 @@ internal fun TagAutocompleteField(
                 }
                 if (rowIcon != null) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)
+                        modifier = Modifier.fillMaxWidth().heightIn(min = Sizes.formRowMinHeight)
                             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
