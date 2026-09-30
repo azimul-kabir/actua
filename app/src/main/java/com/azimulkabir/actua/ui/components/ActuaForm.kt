@@ -3,6 +3,7 @@ package com.azimulkabir.actua.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.ZeroCornerSize
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Button
@@ -30,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -138,6 +141,51 @@ fun ActuaFormRow(
             onClick != null && enabled -> Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = muted)
         }
     }
+}
+
+/**
+ * A single-line text input styled as an [ActuaFormRow], for free-text fields such as a name
+ * inside an [ActuaFormCard]. Tapping anywhere on the row focuses the input.
+ */
+@Composable
+fun ActuaFormTextField(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "",
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        modifier = modifier.fillMaxWidth(),
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Sizes.formRowMinHeight)
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(icon, contentDescription = null, tint = muted)
+                Spacer(Modifier.width(Spacing.lg))
+                Column(Modifier.weight(1f)) {
+                    Text(label, style = MaterialTheme.typography.labelMedium, color = muted)
+                    Box {
+                        if (value.isEmpty()) {
+                            Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = muted)
+                        }
+                        innerTextField()
+                    }
+                }
+            }
+        },
+    )
 }
 
 /** Primary-colored label above a group of cards or rows, e.g. a picker or settings section. */
