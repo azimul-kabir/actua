@@ -38,6 +38,13 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <receiver
+            android:name=".data.importing.AutomationIntentReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.azimulkabir.actua.action.QUEUE_TRANSACTION" />
+            </intent-filter>
+        </receiver>
         <activity
             android:name=".DisconnectResetActivity"
             android:exported="false"

@@ -56,3 +56,37 @@ both a payee and reference are found, medium when a payee is found, and low when
 used as the payee. An unambiguous card/account suffix can select an Actual account whose name contains
 the same digits. Category assignment remains uncategorized rather than being guessed from merchant
 text; users can apply Actual rules or categorize the reviewed transaction after import.
+
+## Tasker and other automation apps
+
+Automation apps such as Tasker, MacroDroid, or Automate can do their own notification parsing and
+hand Actua the result. This helps with apps that post alerts for many cards in changing formats,
+such as Google Pay. The integration is off by default. Turning on **Accept transactions from Tasker**
+on the import screen creates a random per-install token, which can be copied or replaced there.
+
+Send a broadcast (Tasker: *Send Intent*, Target *Broadcast Receiver*) with:
+
+- Action: `com.azimulkabir.actua.action.QUEUE_TRANSACTION`
+- Package: `com.azimulkabir.actua`
+- Extras (Tasker's `key:value` form):
+
+| Extra | Required | Meaning |
+|---|---|---|
+| `token` | yes | The token shown on the import screen |
+| `amount` | yes, unless `text` is sent | Decimal amount with at most two decimals, e.g. `-12.34`. Negative is an outflow. Thousands commas are ignored. |
+| `type` | no | `debit` or `credit`; overrides the sign of `amount` |
+| `payee` | no | Defaults to the source label |
+| `date` | no | `YYYY-MM-DD`; defaults to today |
+| `notes` | no | Transaction notes |
+| `reference` | no | Bank reference or transaction ID |
+| `account` | no | Account hint, such as the last card digits |
+| `source` | no | Label shown during review; defaults to `Tasker` |
+| `text` | no | Raw alert text to run through Actua's own message parser instead of `amount` |
+
+Example Tasker extras: `token:%ACTUA_TOKEN`, `amount:-%amount`, `payee:%merchant`,
+`source:Tasker: GPay`.
+
+Accepted broadcasts join the same bounded review queue as captured notifications and are reviewed
+and imported the same way. Nothing is written to the budget until the user imports it. Broadcasts
+are ignored when the integration is off, the token is missing or wrong, or the fields are invalid.
+Turning the integration off, replacing the token, or deleting notification data stops old senders.

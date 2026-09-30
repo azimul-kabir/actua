@@ -1,6 +1,12 @@
 package com.azimulkabir.actua.ui.settings
 
+import android.content.ClipData
+import android.content.ClipDescription
+import android.content.ClipboardManager
+import android.content.Context
 import android.net.Uri
+import android.os.Build
+import android.os.PersistableBundle
 import android.content.Intent
 import android.provider.OpenableColumns
 import android.provider.Settings
@@ -34,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.data.importing.AutomationIntent
 import com.azimulkabir.actua.data.importing.CsvTransactionCandidateSource
 import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.importing.ImportColumnMapping
@@ -72,9 +79,11 @@ import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.UploadFile
@@ -122,6 +131,8 @@ fun ImportTransactionsScreen(
     val notificationPreferences = remember { NotificationImportPreferences(context) }
     var captureEnabled by remember { mutableStateOf(notificationPreferences.enabled) }
     var queued by remember { mutableStateOf(notificationPreferences.queued()) }
+    var automationEnabled by remember { mutableStateOf(notificationPreferences.automationEnabled) }
+    var automationToken by remember { mutableStateOf(notificationPreferences.automationToken) }
     var pastedText by remember { mutableStateOf(initialSharedText.orEmpty()) }
     var debitKeywords by remember { mutableStateOf(notificationPreferences.profile().debitKeywords.joinToString(", ")) }
     var creditKeywords by remember { mutableStateOf(notificationPreferences.profile().creditKeywords.joinToString(", ")) }
@@ -284,9 +295,48 @@ fun ImportTransactionsScreen(
                 }) { Text("Save parser words") }
                 TextButton(onClick = {
                     notificationPreferences.clearAll(); captureEnabled = false; queued = emptyList()
+                    automationEnabled = false; automationToken = null
                     message = "Deleted captured candidates and parser settings."
                 }) { Text("Delete notification data") }
             }
+            ActuaGroupLabel("Automation apps")
+            ActuaFormCard {
+                ActuaFormRow(
+                    icon = Icons.Outlined.Bolt,
+                    label = "Accept transactions from Tasker",
+                    value = null,
+                    checked = automationEnabled,
+                    onClick = {
+                        automationEnabled = !automationEnabled
+                        notificationPreferences.automationEnabled = automationEnabled
+                        automationToken = notificationPreferences.automationToken
+                    },
+                )
+                automationToken?.let { token ->
+                    ActuaCardDivider()
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Key,
+                        label = "Token",
+                        value = token,
+                        caption = "Tap to copy",
+                        onClick = {
+                            copySensitiveText(context, "Actua automation token", token)
+                            message = "Copied the automation token."
+                        },
+                    )
+                }
+            }
+            Text(
+                "Send a broadcast intent with action ${AutomationIntent.ACTION_QUEUE_TRANSACTION} to package " +
+                    "${context.packageName}. Extras: token, amount (for example -12.34), and optionally type " +
+                    "(debit or credit), payee, date (YYYY-MM-DD), notes, reference, account and source. Send text " +
+                    "instead of amount to use Actua's message parser. Transactions wait here for review.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm))
+            if (automationToken != null) TextButton(onClick = {
+                automationToken = notificationPreferences.regenerateAutomationToken()
+                message = "Created a new token. Update it in Tasker."
+            }) { Text("New token") }
             ActuaGroupLabel("Statement file")
             ActuaFormCard {
                 ActuaMenuRow(
@@ -467,4 +517,12 @@ private fun InputStream.readLimitedStatement(maxBytes: Int = 25 * 1024 * 1024): 
         output.write(buffer, 0, count)
     }
     return output.toByteArray()
+}
+
+private fun copySensitiveText(context: Context, label: String, text: String) {
+    val clip = ClipData.newPlainText(label, text)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
+    }
+    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(clip)
 }

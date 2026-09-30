@@ -35,7 +35,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Accounts, credit cards and payment reminders
 - Actual dashboard and saved custom reports (read-only), with donut and per-interval charts, optional total and average per period, date/account filtering and drill-down to transactions
 - Rules and automatic categorization
-- CSV, XLSX, PDF, SMS and notification imports
+- CSV, XLSX, PDF, SMS and notification imports, plus [Tasker intents](docs/TRANSACTION_IMPORTS.md#tasker-and-other-automation-apps)
 - Location-aware payee suggestions
 - Global search
 - Automatic local backups and restore
