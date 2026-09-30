@@ -3,6 +3,7 @@ package com.azimulkabir.actua.ui.home
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,14 +11,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.RestartAlt
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,8 +42,11 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeLayoutPlanner
 import com.azimulkabir.actua.data.home.HomeSection
+import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.GroupPosition
 import com.azimulkabir.actua.ui.components.dragReorderHandle
+import com.azimulkabir.actua.ui.theme.Spacing
 import kotlinx.coroutines.delay
 
 private const val ROW_HEIGHT_DP = 64
@@ -174,28 +177,34 @@ fun CustomizeHomeScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
-        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-            items(localOrder, key = { it.name }) { section ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl),
+        ) {
+            itemsIndexed(localOrder, key = { _, section -> section.name }) { index, section ->
                 val isDragging = draggingSection == section
                 val reorderIndex = reorderable.indexOf(section)
-                HomeSectionRow(
-                    section = section,
-                    hidden = section in localHidden,
+                ActuaGroupedItem(
+                    position = GroupPosition.of(index, localOrder.size),
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(ROW_HEIGHT_DP.dp)
                         .graphicsLayer { translationY = if (isDragging) dragOffsetPx else 0f }
                         .alpha(if (isDragging) 0.85f else 1f),
-                    onDragStart = { onDragStart(section) },
-                    onDrag = { deltaY -> onDrag(section, deltaY) },
-                    onDragEnd = { onDragEnd(section) },
-                    onMoveUp = { stepByButton(section, -1) },
-                    onMoveDown = { stepByButton(section, +1) },
-                    onHiddenChange = { hidden -> setHidden(section, hidden) },
-                    canMoveUp = reorderIndex > 0,
-                    canMoveDown = reorderIndex in 0 until reorderable.size - 1,
-                )
-                HorizontalDivider()
+                ) {
+                    HomeSectionRow(
+                        section = section,
+                        hidden = section in localHidden,
+                        modifier = Modifier.fillMaxWidth().height(ROW_HEIGHT_DP.dp),
+                        onDragStart = { onDragStart(section) },
+                        onDrag = { deltaY -> onDrag(section, deltaY) },
+                        onDragEnd = { onDragEnd(section) },
+                        onMoveUp = { stepByButton(section, -1) },
+                        onMoveDown = { stepByButton(section, +1) },
+                        onHiddenChange = { hidden -> setHidden(section, hidden) },
+                        canMoveUp = reorderIndex > 0,
+                        canMoveDown = reorderIndex in 0 until reorderable.size - 1,
+                    )
+                }
             }
         }
     }

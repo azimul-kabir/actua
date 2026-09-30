@@ -3,6 +3,7 @@ package com.azimulkabir.actua.ui.categories
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,7 +18,6 @@ import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,8 +42,11 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
 import com.azimulkabir.actua.data.budget.GroupDragReorder
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
+import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.GroupPosition
 import com.azimulkabir.actua.ui.components.dragReorderHandle
+import com.azimulkabir.actua.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 private const val ROW_HEIGHT_DP = 56
@@ -131,27 +134,33 @@ fun ReorderGroupsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
-        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl),
+        ) {
             items(localGroups.size, key = { index -> "group:${localGroups[index].id}" }) { index ->
                 val group = localGroups[index]
                 val isDragging = draggingGroupId == group.id
                 val reorderIndex = reorderable.indexOfFirst { it.id == group.id }
-                GroupReorderRow(
-                    group = group,
+                ActuaGroupedItem(
+                    position = GroupPosition.of(index, localGroups.size),
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(ROW_HEIGHT_DP.dp)
                         .graphicsLayer { translationY = if (isDragging) dragOffsetPx else 0f }
                         .alpha(if (isDragging) 0.85f else 1f),
-                    onDragStart = { onDragStart(group.id) },
-                    onDrag = { deltaY -> onDrag(group.id, deltaY) },
-                    onDragEnd = { onDragEnd(group.id) },
-                    onMoveUp = { stepByButton(group.id, -1) },
-                    onMoveDown = { stepByButton(group.id, +1) },
-                    canMoveUp = reorderIndex > 0,
-                    canMoveDown = reorderIndex in 0 until reorderable.size - 1,
-                )
-                HorizontalDivider()
+                ) {
+                    GroupReorderRow(
+                        group = group,
+                        modifier = Modifier.fillMaxWidth().height(ROW_HEIGHT_DP.dp),
+                        onDragStart = { onDragStart(group.id) },
+                        onDrag = { deltaY -> onDrag(group.id, deltaY) },
+                        onDragEnd = { onDragEnd(group.id) },
+                        onMoveUp = { stepByButton(group.id, -1) },
+                        onMoveDown = { stepByButton(group.id, +1) },
+                        canMoveUp = reorderIndex > 0,
+                        canMoveDown = reorderIndex in 0 until reorderable.size - 1,
+                    )
+                }
             }
         }
     }
