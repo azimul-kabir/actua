@@ -15,17 +15,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,6 +58,29 @@ import java.math.BigDecimal
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.time.LocalDate
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaFormTextField
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.components.ActuaMenuRow
+import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
+import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
+import com.azimulkabir.actua.ui.theme.Spacing
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.UploadFile
+import androidx.compose.material.icons.outlined.ViewColumn
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 
 private data class ReviewRow(
     val sourceRow: Int,
@@ -91,7 +110,6 @@ fun ImportTransactionsScreen(
     var account by remember { mutableStateOf(accounts.firstOrNull()) }
     var problems by remember { mutableStateOf<List<ImportProblem>>(emptyList()) }
     var message by remember { mutableStateOf<String?>(null) }
-    var accountMenu by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     val importPreferences = remember { ImportPreferences(context) }
     var table by remember { mutableStateOf<ImportTable?>(null) }
@@ -100,8 +118,6 @@ fun ImportTransactionsScreen(
     var sourceFormat by remember { mutableStateOf(StatementFormat.CSV) }
     var profileName by remember { mutableStateOf("") }
     var history by remember { mutableStateOf(importPreferences.history()) }
-    var mappingMenuIndex by remember { mutableStateOf<Int?>(null) }
-    var datePatternMenu by remember { mutableStateOf(false) }
     var profileMenu by remember { mutableStateOf(false) }
     val notificationPreferences = remember { NotificationImportPreferences(context) }
     var captureEnabled by remember { mutableStateOf(notificationPreferences.enabled) }
@@ -184,11 +200,12 @@ fun ImportTransactionsScreen(
 
     Column(modifier.fillMaxSize()) {
         ActuaScreenHeader(title = "Import transactions", onBack = onBack)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = Spacing.screenHorizontal)) {
             Text("CSV, XLSX, and text-based PDF files stay on this device. Every valid row is shown for review before anything is saved.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ActuaGroupLabel("Message")
             OutlinedTextField(pastedText, { pastedText = it }, label = { Text("Paste SMS or email alert") },
-                minLines = 3, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
+                minLines = 3, modifier = Modifier.fillMaxWidth())
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(enabled = pastedText.isNotBlank(), onClick = {
                     reviewText(pastedText, "Pasted message", StatementFormat.SHARED_TEXT)
@@ -198,48 +215,63 @@ fun ImportTransactionsScreen(
                     table = null; mapping = null; reviewCandidates(queued, emptyList())
                 }) { Text("Review captured (${queued.size})") }
             }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Capture future bank notifications", Modifier.weight(1f))
-                Switch(captureEnabled, { enabled ->
-                    if (enabled && allowedPackages.isEmpty()) {
-                        message = "Select at least one app before enabling capture."
-                        appMenu = true
-                    } else {
-                        captureEnabled = enabled; notificationPreferences.enabled = enabled
-                        if (enabled) context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            ActuaGroupLabel("Bank notifications")
+            ActuaFormCard {
+                ActuaFormRow(
+                    icon = Icons.Outlined.NotificationsActive,
+                    label = "Capture future bank notifications",
+                    value = null,
+                    checked = captureEnabled,
+                    onClick = {
+                        val enabled = !captureEnabled
+                        if (enabled && allowedPackages.isEmpty()) {
+                            message = "Select at least one app before enabling capture."
+                            appMenu = true
+                        } else {
+                            captureEnabled = enabled; notificationPreferences.enabled = enabled
+                            if (enabled) context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        }
+                    },
+                )
+                ActuaCardDivider()
+                Box(Modifier.fillMaxWidth()) {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Apps,
+                        label = "Notification apps",
+                        value = if (allowedPackages.isEmpty()) "Select notification apps" else "${allowedPackages.size} selected",
+                        valueIsPlaceholder = allowedPackages.isEmpty(),
+                        onClick = { appMenu = true },
+                    )
+                    DropdownMenu(appMenu, { appMenu = false }) {
+                        notificationApps.forEach { (packageName, label) ->
+                            DropdownMenuItem(
+                                text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(packageName in allowedPackages, null)
+                                    Text(label)
+                                } },
+                                onClick = {
+                                    allowedPackages = allowedPackages.toMutableSet().apply {
+                                        if (!add(packageName)) remove(packageName)
+                                    }
+                                    notificationPreferences.allowedPackages = allowedPackages
+                                    if (allowedPackages.isEmpty()) {
+                                        captureEnabled = false; notificationPreferences.enabled = false
+                                    }
+                                },
+                            )
+                        }
                     }
-                })
-            }
-            Box(Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = { appMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (allowedPackages.isEmpty()) "Select notification apps" else "Selected notification apps: ${allowedPackages.size}")
                 }
-                DropdownMenu(appMenu, { appMenu = false }) {
-                    notificationApps.forEach { (packageName, label) ->
-                        DropdownMenuItem(
-                            text = { Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(packageName in allowedPackages, null)
-                                Text(label)
-                            } },
-                            onClick = {
-                                allowedPackages = allowedPackages.toMutableSet().apply {
-                                    if (!add(packageName)) remove(packageName)
-                                }
-                                notificationPreferences.allowedPackages = allowedPackages
-                                if (allowedPackages.isEmpty()) {
-                                    captureEnabled = false; notificationPreferences.enabled = false
-                                }
-                            },
-                        )
-                    }
-                }
+                ActuaCardDivider()
+                ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingDown, label = "Debit keywords",
+                    value = debitKeywords, onValueChange = { debitKeywords = it })
+                ActuaCardDivider()
+                ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingUp, label = "Credit keywords",
+                    value = creditKeywords, onValueChange = { creditKeywords = it })
             }
             Text("Optional notification access processes alerts on-device and stores only recognized candidates, not raw notifications.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            OutlinedTextField(debitKeywords, { debitKeywords = it }, label = { Text("Debit keywords") },
-                modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(creditKeywords, { creditKeywords = it }, label = { Text("Credit keywords") },
-                modifier = Modifier.fillMaxWidth())
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = {
                     val debit = debitKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
@@ -255,61 +287,62 @@ fun ImportTransactionsScreen(
                     message = "Deleted captured candidates and parser settings."
                 }) { Text("Delete notification data") }
             }
-            Box(Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                OutlinedButton(onClick = { accountMenu = true }, enabled = accounts.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
-                    Text(account?.name ?: "No open account")
-                }
-                DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) {
-                    accounts.forEach { option -> DropdownMenuItem(text = { Text(option.name) }, onClick = {
-                        account = option; accountMenu = false
-                    }) }
-                }
+            ActuaGroupLabel("Statement file")
+            ActuaFormCard {
+                ActuaMenuRow(
+                    icon = Icons.Outlined.AccountBalanceWallet,
+                    label = "Import into",
+                    value = account?.name ?: "No open account",
+                    valueIsPlaceholder = account == null,
+                    choices = accounts.map { it.name to it },
+                ) { account = it }
             }
-            Button(onClick = { picker.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/pdf")) },
-                enabled = !busy && account != null, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-                Text(if (busy) "Reading…" else "Choose statement file")
-            }
+            ActuaSecondaryButton(
+                text = if (busy) "Reading…" else "Choose statement file",
+                icon = Icons.Outlined.UploadFile,
+                enabled = !busy && account != null,
+                onClick = { picker.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/pdf")) },
+                modifier = Modifier.padding(vertical = Spacing.md),
+            )
             val activeTable = table
             val activeMapping = mapping
             if (activeTable != null && activeMapping != null) {
-                Text("Column mapping", style = MaterialTheme.typography.titleMedium)
-                activeTable.headers.forEachIndexed { index, header ->
-                    Box(Modifier.fillMaxWidth()) {
-                        OutlinedButton(onClick = { mappingMenuIndex = index }, modifier = Modifier.fillMaxWidth()) {
-                            val role = activeMapping.roles.getOrElse(index) { ImportColumnRole.IGNORE }
-                            Text("${header.ifBlank { "Column ${index + 1}" }}: ${role.displayName()}")
-                        }
-                        DropdownMenu(expanded = mappingMenuIndex == index, onDismissRequest = { mappingMenuIndex = null }) {
-                            ImportColumnRole.entries.forEach { role ->
-                                DropdownMenuItem(text = { Text(role.displayName()) }, onClick = {
-                                    val roles = activeMapping.roles.toMutableList().apply { this[index] = role }
-                                    mappingMenuIndex = null
-                                    review(activeTable, activeMapping.copy(roles = roles))
-                                })
-                            }
+                ActuaGroupLabel("Column mapping")
+                ActuaFormCard {
+                    activeTable.headers.forEachIndexed { index, header ->
+                        if (index > 0) ActuaCardDivider()
+                        ActuaMenuRow(
+                            icon = Icons.Outlined.ViewColumn,
+                            label = header.ifBlank { "Column ${index + 1}" },
+                            value = activeMapping.roles.getOrElse(index) { ImportColumnRole.IGNORE }.displayName(),
+                            choices = ImportColumnRole.entries.map { it.displayName() to it },
+                        ) { role ->
+                            val roles = activeMapping.roles.toMutableList().apply { this[index] = role }
+                            review(activeTable, activeMapping.copy(roles = roles))
                         }
                     }
                 }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Expenses are positive", Modifier.weight(1f))
-                    Switch(checked = activeMapping.expensesArePositive, onCheckedChange = {
-                        review(activeTable, activeMapping.copy(expensesArePositive = it))
-                    })
+                ActuaFormCard(Modifier.padding(top = Spacing.md)) {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.SwapVert,
+                        label = "Expenses are positive",
+                        value = null,
+                        checked = activeMapping.expensesArePositive,
+                        onClick = { review(activeTable, activeMapping.copy(expensesArePositive = !activeMapping.expensesArePositive)) },
+                    )
+                    ActuaCardDivider()
+                    ActuaMenuRow(
+                        icon = Icons.Outlined.CalendarMonth,
+                        label = "Date format",
+                        value = activeMapping.datePattern,
+                        choices = listOf("Auto", "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "dd MMM yyyy")
+                            .map { it to it },
+                    ) { pattern -> review(activeTable, activeMapping.copy(datePattern = pattern)) }
+                    ActuaCardDivider()
+                    ActuaFormTextField(icon = Icons.Outlined.Edit, label = "Mapping profile name",
+                        value = profileName, onValueChange = { profileName = it })
                 }
-                Box(Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = { datePatternMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Date format: ${activeMapping.datePattern}")
-                    }
-                    DropdownMenu(datePatternMenu, { datePatternMenu = false }) {
-                        listOf("Auto", "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "dd MMM yyyy")
-                            .forEach { pattern -> DropdownMenuItem(text = { Text(pattern) }, onClick = {
-                                datePatternMenu = false; review(activeTable, activeMapping.copy(datePattern = pattern))
-                            }) }
-                    }
-                }
-                OutlinedTextField(profileName, { profileName = it }, label = { Text("Mapping profile name") },
-                    singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row {
                     Box {
                         TextButton(enabled = importPreferences.profileNames().isNotEmpty(), onClick = { profileMenu = true }) {
@@ -339,7 +372,7 @@ fun ImportTransactionsScreen(
             )
             message?.let { Text(it, modifier = Modifier.padding(bottom = 8.dp)) }
             if (history.isNotEmpty()) {
-                Text("Recent imports", style = MaterialTheme.typography.titleMedium)
+                ActuaGroupLabel("Recent imports")
                 history.take(3).forEach { entry ->
                     Text("${entry.sourceName}: ${entry.imported} imported, ${entry.skipped} skipped · ${entry.accountName}",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -359,33 +392,38 @@ fun ImportTransactionsScreen(
                     duplicate -> "Repeated in this file"
                     else -> null
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = row.selected, onCheckedChange = { rows[index] = row.copy(selected = it) })
-                    Text("${sourceFormat.name} row ${row.sourceRow}", style = MaterialTheme.typography.labelLarge)
-                    if (duplicateReason != null) Text("  $duplicateReason", color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelMedium)
+                ActuaFormCard(Modifier.padding(top = Spacing.md)) {
+                    Column(Modifier.padding(start = Spacing.xs, end = Spacing.md, bottom = Spacing.sm)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = row.selected, onCheckedChange = { rows[index] = row.copy(selected = it) })
+                        Text("${sourceFormat.name} row ${row.sourceRow}", style = MaterialTheme.typography.labelLarge)
+                        if (duplicateReason != null) Text("  $duplicateReason", color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelMedium)
+                    }
+                    Text("${row.confidence.name.lowercase().replaceFirstChar(Char::uppercase)} confidence · ${row.sourceLabel}",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedTextField(row.date, { rows[index] = row.copy(date = it) }, label = { Text("Date (YYYY-MM-DD)") },
+                        isError = invalid, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(row.payee, { rows[index] = row.copy(payee = it) }, label = { Text("Payee") },
+                        singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(row.amount, { rows[index] = row.copy(amount = it) }, label = { Text("Signed amount") },
+                        isError = invalid, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(row.notes, { rows[index] = row.copy(notes = it) }, label = { Text("Notes") },
+                        modifier = Modifier.fillMaxWidth())
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { rows.removeAt(index) }) { Text("Reject") }
+                    }
+                    }
                 }
-                Text("${row.confidence.name.lowercase().replaceFirstChar(Char::uppercase)} confidence · ${row.sourceLabel}",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedTextField(row.date, { rows[index] = row.copy(date = it) }, label = { Text("Date (YYYY-MM-DD)") },
-                    isError = invalid, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(row.payee, { rows[index] = row.copy(payee = it) }, label = { Text("Payee") },
-                    singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(row.amount, { rows[index] = row.copy(amount = it) }, label = { Text("Signed amount") },
-                    isError = invalid, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(row.notes, { rows[index] = row.copy(notes = it) }, label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth())
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { rows.removeAt(index) }) { Text("Reject") }
-                }
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
             }
+            Spacer(Modifier.height(Spacing.md))
         }
         val selected = rows.filter(ReviewRow::selected)
         val ready = selected.mapNotNull(ReviewRow::toCandidateOrNull)
-        Button(
+        ActuaPrimaryActionBar(
+            text = "Approve and import ${ready.size}",
             onClick = {
-                val target = account ?: return@Button
+                val target = account ?: return@ActuaPrimaryActionBar
                 onImport(target.id, ready) {
                     message = "Imported ${ready.size} transaction${if (ready.size == 1) "" else "s"}."
                     importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, target.name,
@@ -398,8 +436,8 @@ fun ImportTransactionsScreen(
                 }
             },
             enabled = selected.isNotEmpty() && ready.size == selected.size,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-        ) { Text("Approve and import ${ready.size}") }
+            icon = Icons.Outlined.Check,
+        )
         if (history.isNotEmpty()) {
             TextButton(onClick = { importPreferences.clearHistory(); history = emptyList() },
                 modifier = Modifier.align(Alignment.End)) { Text("Clear import history (${history.size})") }
