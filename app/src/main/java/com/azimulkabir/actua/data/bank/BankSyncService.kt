@@ -5,6 +5,8 @@ import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.network.ActualServerClient
+import com.azimulkabir.actua.data.network.BankSyncDownload
+import java.net.SocketTimeoutException
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -42,42 +44,52 @@ class BankSyncService(
         val today = today().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
         val simpleFin = accounts.filter { it.source == "simpleFin" }
-        val simpleFinDownloads = if (simpleFin.isEmpty()) emptyMap() else server.downloadSimpleFinTransactions(
-            serverUrl, token, simpleFin.map { it.externalId }, simpleFin.map { startDateFor(it.id) },
-        ).associateBy { it.externalAccountId }
+        // A SimpleFIN timeout fails the whole batch; Actual reports it as TIMED_OUT for each account.
+        val simpleFinResult: Result<Map<String, BankSyncDownload>> = if (simpleFin.isEmpty()) Result.success(emptyMap()) else runCatching {
+            server.downloadSimpleFinTransactions(
+                serverUrl, token, simpleFin.map { it.externalId }, simpleFin.map { startDateFor(it.id) },
+            ).associateBy { it.externalAccountId }
+        }.onFailure { if (!it.isTimeout()) throw it }
 
         val problems = mutableListOf<String>()
-        val reported = mutableSetOf<String>()
-        val downloads = accounts.associate { account ->
-            val download = when (account.source) {
-                "simpleFin" -> simpleFinDownloads[account.externalId]
+        val outcomes = accounts.associate { account ->
+            val outcome: Result<BankSyncDownload> = when (account.source) {
+                "simpleFin" -> simpleFinResult.fold(
+                    onSuccess = { downloads ->
+                        // Actual's `simpleFinBatchSync` treats an account left out of the batch
+                        // response as ACCOUNT_MISSING and stores `account-missing`.
+                        downloads[account.externalId]?.let { Result.success(it) } ?: Result.failure(BankSyncFailure(
+                            "SimpleFIN did not return this account. Try syncing again, and relink it if this keeps happening.",
+                            status = "account-missing",
+                        ))
+                    },
+                    onFailure = { Result.failure(downloadFailure(it)) },
+                )
                 "goCardless" -> {
                     val requisitionId = account.requisitionId
-                    if (requisitionId == null) {
-                        problems += "${account.name}: this account is missing its GoCardless connection."
-                        reported += account.id
-                        null
-                    } else runCatching {
+                    // Actual skips accounts without a bank link, so no sync status is stored.
+                    if (requisitionId == null) Result.failure(BankSyncFailure("this account is missing its GoCardless connection.", status = null))
+                    else runCatching {
                         server.downloadGoCardlessTransactions(
                             serverUrl, token, requisitionId, account.externalId, startDateFor(account.id), today,
                         )
-                    }.getOrElse {
-                        problems += "${account.name}: ${it.message ?: "GoCardless sync failed."}"
-                        reported += account.id
-                        null
-                    }
+                    }.recoverCatching { throw downloadFailure(it) }
                 }
-                else -> null
+                // Actual syncs these, but Actua can't yet; leave the stored status to Actual.
+                else -> Result.failure(BankSyncFailure(
+                    "Actua can't sync ${providerName(account.source)} accounts yet. Sync this account in Actual.",
+                    status = null,
+                ))
             }
-            account.id to download
+            account.id to outcome
         }
         var imported = 0
         var matched = 0
         accounts.forEach { account ->
-            val download = downloads[account.id]
-            if (download == null) {
-                if (account.id !in reported) problems += "${account.name}: the bank did not return this account."
-                entities.recordBankSyncStatus(account.id, "account-missing")
+            val download = outcomes.getValue(account.id).getOrElse { error ->
+                val failure = error as BankSyncFailure
+                problems += "${account.name}: ${failure.problem}"
+                failure.status?.let { entities.recordBankSyncStatus(account.id, it) }
                 return@forEach
             }
             download.problem?.let { problems += "${account.name}: $it" }
@@ -148,7 +160,29 @@ class BankSyncService(
                 syncedAt = if (download.status == "ok") System.currentTimeMillis().toString() else null,
             )
         }
-        return BankSyncResult(accountsSynced = downloads.size, imported = imported, matched = matched, problems = problems)
+        return BankSyncResult(accountsSynced = outcomes.size, imported = imported, matched = matched, problems = problems)
+    }
+
+    /** Why an account could not be downloaded, and the `bank_sync_status` to store (null leaves it unchanged). */
+    internal class BankSyncFailure(val problem: String, val status: String?) : Exception(problem)
+
+    internal companion object {
+        /**
+         * Maps a download error to Actual's per-account result: a timeout is TIMED_OUT
+         * (`timed-out`), any other error is `failed` (loot-core `getBankSyncStatusFromError`).
+         */
+        fun downloadFailure(error: Throwable): BankSyncFailure =
+            if (error.isTimeout()) BankSyncFailure("the bank took too long to respond. Try syncing again.", "timed-out")
+            else BankSyncFailure(error.message ?: "Bank sync failed.", "failed")
+
+        private fun Throwable.isTimeout(): Boolean = generateSequence(this) { it.cause }.any { it is SocketTimeoutException }
+
+        private fun providerName(source: String): String = when (source) {
+            "pluggyai" -> "Pluggy.ai"
+            "enableBanking" -> "Enable Banking"
+            "akahu" -> "Akahu"
+            else -> source
+        }
     }
 
     private fun Int.shiftDays(days: Long): Int {
