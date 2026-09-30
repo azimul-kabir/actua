@@ -3,6 +3,7 @@ package com.azimulkabir.actua.ui.navigation
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,7 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
@@ -24,7 +25,6 @@ import androidx.compose.material.icons.outlined.PieChartOutline
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,8 +50,11 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.navigation.TabBarLayout
 import com.azimulkabir.actua.data.navigation.TabBarLayoutPlanner
 import com.azimulkabir.actua.data.navigation.TabItem
+import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.GroupPosition
 import com.azimulkabir.actua.ui.components.dragReorderHandle
+import com.azimulkabir.actua.ui.theme.Spacing
 import kotlinx.coroutines.delay
 
 private const val ROW_HEIGHT_DP = 64
@@ -197,32 +200,38 @@ fun CustomizeTabBarScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
-        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-            items(localOrder, key = { it.name }) { tabItem ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl),
+        ) {
+            itemsIndexed(localOrder, key = { _, tabItem -> tabItem.name }) { index, tabItem ->
                 val isDragging = draggingTab == tabItem
                 val reorderIndex = reorderable.indexOf(tabItem)
                 val hidden = tabItem in localHidden
                 val currentLayout = TabBarLayout(localOrder, localHidden)
                 val canToggle = TabBarLayoutPlanner.setHidden(currentLayout, tabItem, !hidden) != currentLayout
-                TabItemRow(
-                    tabItem = tabItem,
-                    hidden = hidden,
-                    canToggleHidden = canToggle,
+                ActuaGroupedItem(
+                    position = GroupPosition.of(index, localOrder.size),
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(ROW_HEIGHT_DP.dp)
                         .graphicsLayer { translationY = if (isDragging) dragOffsetPx else 0f }
                         .alpha(if (isDragging) 0.85f else 1f),
-                    onDragStart = { onDragStart(tabItem) },
-                    onDrag = { deltaY -> onDrag(tabItem, deltaY) },
-                    onDragEnd = { onDragEnd(tabItem) },
-                    onMoveUp = { stepByButton(tabItem, -1) },
-                    onMoveDown = { stepByButton(tabItem, +1) },
-                    onHiddenChange = { h -> setHidden(tabItem, h) },
-                    canMoveUp = reorderIndex > 0,
-                    canMoveDown = reorderIndex in 0 until reorderable.size - 1,
-                )
-                HorizontalDivider()
+                ) {
+                    TabItemRow(
+                        tabItem = tabItem,
+                        hidden = hidden,
+                        canToggleHidden = canToggle,
+                        modifier = Modifier.fillMaxWidth().height(ROW_HEIGHT_DP.dp),
+                        onDragStart = { onDragStart(tabItem) },
+                        onDrag = { deltaY -> onDrag(tabItem, deltaY) },
+                        onDragEnd = { onDragEnd(tabItem) },
+                        onMoveUp = { stepByButton(tabItem, -1) },
+                        onMoveDown = { stepByButton(tabItem, +1) },
+                        onHiddenChange = { h -> setHidden(tabItem, h) },
+                        canMoveUp = reorderIndex > 0,
+                        canMoveDown = reorderIndex in 0 until reorderable.size - 1,
+                    )
+                }
             }
         }
     }

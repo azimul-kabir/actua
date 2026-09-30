@@ -7,6 +7,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,8 +50,11 @@ import com.azimulkabir.actua.data.budget.AccountDragReorder
 import com.azimulkabir.actua.data.budget.AccountReorderPlanner
 import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
+import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.GroupPosition
 import com.azimulkabir.actua.ui.components.dragReorderHandle
+import com.azimulkabir.actua.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 private const val ROW_HEIGHT_DP = 56
@@ -213,7 +216,11 @@ fun ReorderAccountsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
-        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = Spacing.xl),
+        ) {
             val sectionTitles = localChunks.map { it.sectionTitle }.distinct()
             sectionTitles.forEach { sectionTitle ->
                 val sectionCollapsed = sectionTitle in collapsedSections
@@ -247,23 +254,25 @@ fun ReorderAccountsScreen(
                         chunk.accounts.forEachIndexed { index, account ->
                             item(key = "account:${account.id}") {
                                 val isDragging = draggingAccountId == account.id
-                                AccountReorderRow(
-                                    account = account,
-                                    serial = serials[account.id] ?: (index + 1),
+                                ActuaGroupedItem(
+                                    position = GroupPosition.of(index, chunk.accounts.size),
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(ROW_HEIGHT_DP.dp)
                                         .graphicsLayer { translationY = if (isDragging) dragOffsetPx else 0f }
                                         .alpha(if (isDragging) 0.85f else 1f),
-                                    onDragStart = { onDragStart(account.id) },
-                                    onDrag = { deltaY -> onDrag(account.id, deltaY) },
-                                    onDragEnd = { onDragEnd(account.id) },
-                                    onMoveUp = { stepByButton(account.id, -1) },
-                                    onMoveDown = { stepByButton(account.id, +1) },
-                                    canMoveUp = index > 0,
-                                    canMoveDown = index < chunk.accounts.size - 1,
-                                )
-                                HorizontalDivider()
+                                ) {
+                                    AccountReorderRow(
+                                        account = account,
+                                        serial = serials[account.id] ?: (index + 1),
+                                        modifier = Modifier.fillMaxWidth().height(ROW_HEIGHT_DP.dp),
+                                        onDragStart = { onDragStart(account.id) },
+                                        onDrag = { deltaY -> onDrag(account.id, deltaY) },
+                                        onDragEnd = { onDragEnd(account.id) },
+                                        onMoveUp = { stepByButton(account.id, -1) },
+                                        onMoveDown = { stepByButton(account.id, +1) },
+                                        canMoveUp = index > 0,
+                                        canMoveDown = index < chunk.accounts.size - 1,
+                                    )
+                                }
                             }
                         }
                     }
@@ -276,19 +285,26 @@ fun ReorderAccountsScreen(
 @Composable
 private fun ReorderSectionHeader(title: String, collapsed: Boolean, onClick: () -> Unit) {
     val rotation by animateFloatAsState(if (collapsed) -90f else 0f, tween(220), label = "reorder section")
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 1.dp) {
+    // Sticky, so it keeps an opaque page background under the label rather than a tinted bar.
+    Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier.fillMaxWidth()
                 .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.lg, bottom = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f).padding(start = Spacing.xs),
+            )
             Icon(
                 Icons.Outlined.KeyboardArrowDown,
                 contentDescription = if (collapsed) "Expand $title" else "Collapse $title",
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.rotate(rotation),
             )
-            Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f).padding(start = 8.dp))
         }
     }
 }
@@ -296,11 +312,11 @@ private fun ReorderSectionHeader(title: String, collapsed: Boolean, onClick: () 
 @Composable
 private fun ReorderGroupHeader(name: String, collapsed: Boolean, onClick: () -> Unit) {
     val rotation by animateFloatAsState(if (collapsed) -90f else 0f, tween(220), label = "reorder group")
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+    Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier.fillMaxWidth()
                 .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(start = Spacing.screenHorizontal + Spacing.xs, end = Spacing.screenHorizontal, top = Spacing.md, bottom = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
