@@ -109,7 +109,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Opt-in, token-protected broadcast intent for Tasker and other automation apps that adds
   pre-parsed transactions to the same review queue; it never writes to the budget directly (see
   [docs/TRANSACTION_IMPORTS.md](docs/TRANSACTION_IMPORTS.md))
-- Transaction form planning and atomic transaction mutations, including split
+- Single-page Add/Edit transaction form where the amount's sign selects expense or income and
+  choosing an account as the payee makes a transfer, backed by transaction form planning and
+  atomic transaction mutations, including split
   creation, child-preserving edits, opposite-direction lines, and collapse to a
   standard transaction; transfer drafts can reverse their source/destination
   accounts before save, and post-save feedback is an animated balance-impact card showing the
@@ -155,7 +157,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Searchable Scheduled Transactions UI with new-schedule creation,
   paid/due/upcoming/missed/completed status, completed-history visibility,
   recurrence skipping, restart/completion, deletion, and linked transaction
-  history/unlinking through the existing CRDT write path
+  history/unlinking through the existing CRDT write path, plus Edit as rule to open a
+  schedule's own rule in the rule editor and return to the schedule
 - Daily/weekly/monthly/yearly schedule recurrence, monthly day/nth-weekday
   patterns, bounded endings, weekend solving, skipping, and previews, with a
   dedicated Android repeat editor for all supported options
@@ -197,7 +200,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   visible month's totals computed from that month's own days rather than summed across all synced
   months. Presentation and interaction only; the app's synthetic Overview page and all report
   calculations are unaffected
-- Scheduled transactions projected as unposted due, upcoming and missed rows (missed ones marked) in the Transactions tab and account registers, excluded from balances and search, matching Actual's preview transactions
+- Scheduled transactions projected as unposted due, upcoming and missed rows (missed ones marked) in the Transactions tab and account registers, excluded from balances and search, matching Actual's preview transactions; tapping one offers Actual's Post transaction, Post transaction today, and Skip next scheduled date (recurring) or Mark as completed (one-off) actions through the existing schedule CRDT write path
 - Home section customization (show/hide optional sections, drag-to-reorder, restore defaults) as a
   versioned, migration-safe local UI preference; reordering mutates in-memory state during the
   gesture and persists once on drop, not per row crossed
@@ -383,8 +386,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   repeated recategorization (see [docs/RULES_PARITY.md](docs/RULES_PARITY.md))
 - Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
   cleanup source/sink groups already shipped
-- Pluggy.ai account discovery, linking, and transaction download; fuzzy reconciliation of imported
-  bank rows with manually entered transactions; and bank-feed pending-import approval
+- Pluggy.ai, Enable Banking, and Akahu account discovery, linking, and transaction download; and
+  bank-feed pending-import approval
 - Broader country/bank parser templates beyond configurable financial-message keywords
 - General Android transaction notifications and new-transaction detection beyond
   the credit-card payment reminders already shipped

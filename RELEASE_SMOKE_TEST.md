@@ -22,6 +22,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Connect to a self-hosted HTTPS server whose certificate isn't trusted by Android and verify the "Server certificate isn't trusted" dialog shows host, issuer, validity and SHA-256 fingerprint; trust it and confirm the connection succeeds, then swap the server's certificate and confirm the "Server certificate changed" warning appears before anything is re-trusted.
 - [ ] Configure a primary server URL and a fallback server URL where only the fallback's certificate is untrusted; verify the trust prompt shows the fallback server's host/certificate (not the primary's) and trusting it lets login/sync succeed.
 - [ ] From Manage → Bank Sync (or Accounts "+" → Set up bank sync), configure a SimpleFIN setup token or GoCardless Secret ID/Key, discover provider accounts, and link one to a new and to an existing account; verify GoCardless's browser consent flow and "check accounts" return correctly, and that Pluggy.ai is shown as not yet supported.
+- [ ] Sync a linked bank account twice where the provider re-sends a transaction under a new ID and verify it is not imported again; verify a timed-out download and an account linked through an unsupported provider (e.g. Pluggy.ai) show a specific message instead of "did not return the account".
 - [ ] Pull down on Accounts and verify all linked bank accounts sync; pull down on a single linked account's register and verify only that account syncs.
 - [ ] On Connection & data, tap the Budgets section header and verify the budget list collapses/expands with the chevron animating, and other sections (Backups, etc.) are unaffected.
 - [ ] Download/select a real self-hosted Actual budget and verify opening balances/category values against Actual.
@@ -70,8 +71,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 
 ## Transactions and accounts
 
-- [ ] Add expense, income and transfer transactions.
-- [ ] In an unsaved transfer draft, use Reverse and verify its source and destination accounts swap; save it and verify the resulting paired transfer remains balanced after sync.
+- [ ] On the single-page Add transaction form, add an expense, an income (via the sign toggle) and a transfer (by picking an account as the payee); edit each and verify the sign and payee choice round-trip.
+- [ ] In an unsaved transfer draft, use Reverse transfer and verify its source and destination accounts swap; save it and verify the resulting paired transfer remains balanced after sync.
 - [ ] After saving a categorized transaction, verify the confirmation cue shows that category's current available balance.
 - [ ] Pull down on Transactions and verify the list refreshes without leaving the tab or changing any transaction.
 - [ ] Create a new account and pick a non-default type from the picker; verify it syncs with the correct type. Use "Change account type" on an existing account and verify the change persists and syncs.
@@ -137,7 +138,11 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Open a saved `StackedBarGraph` custom report and verify it renders as a per-category stacked bar chart (one color per category, consistent stack order across bars, zero-filled where a category has no activity that interval), and tapping a segment drills down to its contributing transactions.
 - [ ] In Reports, filter by category group and toggle include-off-budget; verify saved reports and Income vs expenses update, chips wrap without horizontal scrolling and survive rotation, and a filter matching nothing shows the empty message.
 - [ ] Open the Reports overview and verify the Income vs expenses card's monthly in/out/net bars respond to taps and the date/account filter, and that the Income and Expenses rows drill down to transactions that sum to the card's totals in Actual.
-- [ ] With a schedule due or upcoming, verify Transactions and an account's register show it as an italic "Upcoming" row that is excluded from balances, and that the "Show upcoming transactions" overflow toggle hides/shows it.
+- [ ] With a schedule due or upcoming, verify Transactions and an account's register show it as an italic "Upcoming" row that is excluded from balances, and that the "Show upcoming transactions" overflow toggle hides/shows it; with a missed schedule, verify its row stays in the list marked "Missed".
+- [ ] Tap an upcoming row and verify Post transaction, Post transaction today, and Skip next scheduled date (recurring) or Mark as completed (one-off) each behave as in Actual after sync.
+- [ ] In the schedule editor, tap Edit as rule, change the rule, close it, and verify you return to the schedule and the change syncs to Actual.
+- [ ] Delete a transfer, and separately change a transfer to an expense, and verify the other account's leg is removed; edit a transfer and verify the other leg's cleared state and date are unchanged; give an on→off-budget transfer a category and verify it is kept after editing and syncing.
+- [ ] Bulk-categorize, duplicate and move the receiving side of a transfer and verify the transfer direction is unchanged.
 - [ ] Add Transaction auto-focuses the amount and advances through the payee/category/account pickers; verify Settings → Budget's hide-income-group switch hides the income group in Budget, and the category status dot shows in the Plan view.
 - [ ] Check Summary, Net Worth, Cash Flow, Spending and at least one advanced report card against known data.
 - [ ] Open a synced dashboard (e.g. "Main") and verify Net Worth/Balance Forecast/Age of Money show a gradient area fill, gridlines and Y-axis labels, and that tapping/dragging shows a tooltip bubble with the value at that point; verify Crossover/Budget Analysis/Monte Carlo behave the same way.
@@ -179,6 +184,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Backup WorkManager job remains configured after relaunch.
 - [ ] Credit-card reminder permission flow behaves correctly and reminders can be enabled/disabled.
 - [ ] Launcher long-press shortcuts open Expense, Income, Transfer and Search in the correct destination.
+- [ ] Turn on "Accept transactions from Tasker" on the import screen, send a `com.azimulkabir.actua.action.QUEUE_TRANSACTION` broadcast with the token and an amount from Tasker (or `adb shell am broadcast`), and verify it appears in the import review queue and nothing is written until imported; verify a wrong token, a replaced token or the switch turned off is ignored.
 - [ ] Budget Snapshot widget works at 2x2 and compact 3x1/4x1 sizes.
 - [ ] Quick Transaction widget works at 2x2 and compact 3x1/4x1 sizes and all three actions open correctly.
 - [ ] Favourite Categories and Account Balances widgets configure, refresh and deep-link correctly.

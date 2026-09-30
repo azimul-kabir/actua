@@ -4,6 +4,12 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.4.0] - 2026-09-30
+
+### Upgrade notes
+
+- Add transaction is now one page: the amount's sign sets expense or income, and pick an account as the payee to make a transfer ([release notes](https://github.com/azimul-kabir/actua/blob/main/docs/releases/1.4.0.md))
+
 ### Changed
 
 - Add and Edit transaction is now a single page: the amount's sign sets expense or income, and choosing an account as the payee makes a transfer ([#760](https://github.com/azimul-kabir/actua/pull/760))
