@@ -80,6 +80,10 @@ import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.theme.Spacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -698,8 +702,9 @@ fun ConnectionScreen(
     Column(modifier = modifier.fillMaxSize()) {
         ActuaScreenHeader(title = "Connection & data", onBack = onBack)
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Try Actua", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            ActuaGroupLabel("Try Actua")
             Text(
                 if (demoActive) {
                     "You are using the local demo budget. Reset it any time to restore the original sample accounts, transactions, targets, rules, schedules and reports."
@@ -724,8 +729,8 @@ fun ConnectionScreen(
             )
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Connection", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f))
+                Text("Connection", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f).padding(start = Spacing.xs, top = Spacing.sm))
                 if (connected && !editingConnection) TextButton(onClick = { editingConnection = true }) { Text("Edit") }
             }
             if (sessionExpired) {
@@ -770,18 +775,22 @@ fun ConnectionScreen(
             if (!connected || editingConnection) {
                 Text("Custom HTTP headers (optional)", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                headerEntries.forEachIndexed { index, (name, value) ->
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(value, style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (headerEntries.isNotEmpty()) ActuaFormCard {
+                    headerEntries.forEachIndexed { index, (name, value) ->
+                        if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                        Row(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(value, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            IconButton(
+                                enabled = !loading,
+                                onClick = { headerEntries = headerEntries.filterIndexed { i, _ -> i != index } },
+                            ) { Icon(Icons.Outlined.Delete, contentDescription = "Remove $name header") }
                         }
-                        IconButton(
-                            enabled = !loading,
-                            onClick = { headerEntries = headerEntries.filterIndexed { i, _ -> i != index } },
-                        ) { Icon(Icons.Outlined.Delete, contentDescription = "Remove $name header") }
                     }
                 }
                 OutlinedButton(
@@ -888,7 +897,7 @@ fun ConnectionScreen(
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             if (connected) {
-                Text("Sync", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                ActuaGroupLabel("Sync")
                 if (demoActive) {
                     Text(
                         "Demo budget is local only. Select a downloaded server budget to sync.",
@@ -896,33 +905,38 @@ fun ConnectionScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Row(Modifier.fillMaxWidth()) {
-                    Text("Status", Modifier.weight(1f))
-                    Text(if (syncStatus.running || syncing) {
-                        syncStatus.activeTrigger?.let { "Syncing · $it" } ?: "Syncing"
-                    } else if (syncStatus.error != null) "Error" else "Idle",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Row(Modifier.fillMaxWidth()) {
-                    Text("Last sync", Modifier.weight(1f))
-                    Text(syncStatus.lastSuccessMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Row(Modifier.fillMaxWidth()) {
-                    Text("Last app-open refresh", Modifier.weight(1f))
-                    Text(syncStatus.lastForegroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Row(Modifier.fillMaxWidth()) {
-                    Text("Last background attempt", Modifier.weight(1f))
-                    Text(syncStatus.lastBackgroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (syncStatus.lastDurationMillis > 0) {
+                ActuaFormCard {
+                    Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(Modifier.fillMaxWidth()) {
-                        Text("Last sync duration", Modifier.weight(1f))
-                        Text(formatSyncDuration(syncStatus.lastDurationMillis),
+                        Text("Status", Modifier.weight(1f))
+                        Text(if (syncStatus.running || syncing) {
+                            syncStatus.activeTrigger?.let { "Syncing · $it" } ?: "Syncing"
+                        } else if (syncStatus.error != null) "Error" else "Idle",
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Row(Modifier.fillMaxWidth()) {
+                        Text("Last sync", Modifier.weight(1f))
+                        Text(syncStatus.lastSuccessMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Row(Modifier.fillMaxWidth()) {
+                        Text("Last app-open refresh", Modifier.weight(1f))
+                        Text(syncStatus.lastForegroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Row(Modifier.fillMaxWidth()) {
+                        Text("Last background attempt", Modifier.weight(1f))
+                        Text(syncStatus.lastBackgroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (syncStatus.lastDurationMillis > 0) {
+                        Row(Modifier.fillMaxWidth()) {
+                            Text("Last sync duration", Modifier.weight(1f))
+                            Text(formatSyncDuration(syncStatus.lastDurationMillis),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                     }
                 }
                 Text(
@@ -964,11 +978,12 @@ fun ConnectionScreen(
                         .clickable(role = Role.Button, onClick = { budgetsExpanded = !budgetsExpanded }),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Budgets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f))
+                    Text("Budgets", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f).padding(start = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm))
                     Icon(
                         Icons.Outlined.KeyboardArrowDown,
                         contentDescription = if (budgetsExpanded) "Collapse Budgets" else "Expand Budgets",
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.rotate(budgetsChevronRotation),
                     )
                 }
@@ -989,70 +1004,74 @@ fun ConnectionScreen(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
-                        remoteBudgets.forEach { remote ->
-                            val local = downloader.localCopy(remote)
-                            val isActive = local != null && activeBudget.budgetId == local.id
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(remote.name, fontWeight = FontWeight.Medium)
-                                    Text(
-                                        when {
-                                            isActive -> "Active"
-                                            local != null -> "Downloaded"
-                                            remote.encryptedKeyId != null -> "Encrypted"
-                                            else -> "Available"
-                                        },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                // The active budget has no button: its local copy is already open, and
-                                // replacing it with the server snapshot would discard unsynced edits.
-                                if (!isActive) OutlinedButton(
-                                    enabled = downloadingId == null,
-                                    onClick = {
-                                        val token = credentials.token() ?: return@OutlinedButton
-                                        onBeforeBudgetReplacement()
-                                        downloadingId = remote.fileId
-                                        message = null
-                                        scope.launch {
-                                            runCatching {
-                                                withContext(Dispatchers.IO) {
-                                                    val needsKey = remote.encryptedKeyId != null &&
-                                                        BudgetEncryptionKeyStore(context).load(remote.fileId) == null
-                                                    if (needsKey && encryptionPassword.isNotBlank()) {
-                                                        downloader.unlock(activeServerUrl, token, remote.fileId, encryptionPassword)
-                                                    }
-                                                    downloader.openOrDownload(activeServerUrl, token, remote)
-                                                }
-                                            }.onSuccess { metadata ->
-                                                activeBudget.budgetId = metadata.id
-                                                message = if (local == null) "${remote.name} is downloaded and active." else "${remote.name} is active."
-                                                onBudgetInstalled()
-                                                // Catch up with the server and send any edits made before switching away.
-                                                ActualSyncScheduler.scheduleMutation(context)
-                                            }.onFailure { error ->
-                                                message = when (error) {
-                                                    BudgetDownloadException.EncryptionPasswordRequired -> "Enter the budget encryption password."
-                                                    else -> connectionErrorMessage(error, "Could not download the budget.")
-                                                }
-                                                if (error is ActualServerException.SessionExpired) showServerError(error, "")
-                                                onBudgetInstalled()
-                                            }
-                                            downloadingId = null
-                                        }
-                                    },
+                        if (remoteBudgets.isNotEmpty()) ActuaFormCard {
+                            remoteBudgets.forEachIndexed { index, remote ->
+                                val local = downloader.localCopy(remote)
+                                val isActive = local != null && activeBudget.budgetId == local.id
+                                if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                        .padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    if (downloadingId == remote.fileId) CircularProgressIndicator(Modifier.padding(end = 8.dp))
-                                    Text(if (local == null) "Download" else "Open")
+                                    Column(Modifier.weight(1f)) {
+                                        Text(remote.name, fontWeight = FontWeight.Medium)
+                                        Text(
+                                            when {
+                                                isActive -> "Active"
+                                                local != null -> "Downloaded"
+                                                remote.encryptedKeyId != null -> "Encrypted"
+                                                else -> "Available"
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    // The active budget has no button: its local copy is already open, and
+                                    // replacing it with the server snapshot would discard unsynced edits.
+                                    if (!isActive) OutlinedButton(
+                                        enabled = downloadingId == null,
+                                        onClick = {
+                                            val token = credentials.token() ?: return@OutlinedButton
+                                            onBeforeBudgetReplacement()
+                                            downloadingId = remote.fileId
+                                            message = null
+                                            scope.launch {
+                                                runCatching {
+                                                    withContext(Dispatchers.IO) {
+                                                        val needsKey = remote.encryptedKeyId != null &&
+                                                            BudgetEncryptionKeyStore(context).load(remote.fileId) == null
+                                                        if (needsKey && encryptionPassword.isNotBlank()) {
+                                                            downloader.unlock(activeServerUrl, token, remote.fileId, encryptionPassword)
+                                                        }
+                                                        downloader.openOrDownload(activeServerUrl, token, remote)
+                                                    }
+                                                }.onSuccess { metadata ->
+                                                    activeBudget.budgetId = metadata.id
+                                                    message = if (local == null) "${remote.name} is downloaded and active." else "${remote.name} is active."
+                                                    onBudgetInstalled()
+                                                    // Catch up with the server and send any edits made before switching away.
+                                                    ActualSyncScheduler.scheduleMutation(context)
+                                                }.onFailure { error ->
+                                                    message = when (error) {
+                                                        BudgetDownloadException.EncryptionPasswordRequired -> "Enter the budget encryption password."
+                                                        else -> connectionErrorMessage(error, "Could not download the budget.")
+                                                    }
+                                                    if (error is ActualServerException.SessionExpired) showServerError(error, "")
+                                                    onBudgetInstalled()
+                                                }
+                                                downloadingId = null
+                                            }
+                                        },
+                                    ) {
+                                        if (downloadingId == remote.fileId) CircularProgressIndicator(Modifier.padding(end = 8.dp))
+                                        Text(if (local == null) "Download" else "Open")
+                                    }
+                                    TextButton(
+                                        enabled = downloadingId == null && !loading,
+                                        onClick = { pendingDelete = remote; deleteConfirmation = "" },
+                                    ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
                                 }
-                                TextButton(
-                                    enabled = downloadingId == null && !loading,
-                                    onClick = { pendingDelete = remote; deleteConfirmation = "" },
-                                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
                             }
                         }
                         OutlinedButton(onClick = { loadBudgets() }, enabled = !loading && downloadingId == null,
@@ -1062,7 +1081,7 @@ fun ConnectionScreen(
             }
 
             activeBudget.budgetId?.let { budgetId ->
-                Text("Backups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                ActuaGroupLabel("Backups")
                 Text(
                     "Private backups are created when you leave the app and can be mirrored to a folder you choose.",
                     style = MaterialTheme.typography.bodySmall,
