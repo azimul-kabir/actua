@@ -145,9 +145,16 @@ private val SuccessGreenLight = Color(0xFF16A34A)
 private val SuccessGreenDark = Color(0xFF4ADE80)
 private val WarningAmberLight = Color(0xFFF97316)
 private val WarningAmberDark = Color(0xFFFFA726)
+// The Material dark error tone is a pale salmon meant for error text, which doesn't read as red
+// in a fill or status color, so overspending uses this saturated red in both themes instead.
+private val DangerRedLight = Color(0xFFE0201A)
+private val DangerRedDark = Color(0xFFEF4444)
 
 val ColorScheme.success: Color
     @Composable get() = if (background.luminance() > 0.5f) SuccessGreenLight else SuccessGreenDark
 
 val ColorScheme.warning: Color
     @Composable get() = if (background.luminance() > 0.5f) WarningAmberLight else WarningAmberDark
+
+val ColorScheme.danger: Color
+    @Composable get() = if (background.luminance() > 0.5f) DangerRedLight else DangerRedDark

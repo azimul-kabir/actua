@@ -158,6 +158,8 @@ import com.azimulkabir.actua.ui.components.ActuaSheetAction
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.model.BudgetProgressState
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
+import com.azimulkabir.actua.ui.theme.danger
+import com.azimulkabir.actua.ui.theme.warning
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.Sizes
@@ -1110,15 +1112,16 @@ private fun OverspentWarningBanner(
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
 ) {
-    // Matches the OVERSPENT category progress bar/status dot color (colorScheme.error) rather
-    // than the softer errorContainer, so the banner reads as the same severity at a glance.
+    // Tinted with the (user-configurable) Overspent status color, like an overspent category's
+    // balance pill, so the banner and the rows it points to read as the same severity.
+    val overspent = categoryStatusColor(BudgetProgressState.OVERSPENT)
     BudgetWarningCard(
         icon = Icons.Outlined.ErrorOutline,
         title = if (categoryCount == 1) "1 category overspent" else "$categoryCount categories overspent",
         subtitle = "Tap to cover overspending",
         amount = formatMoneyCents(totalOverspentCents, hideDecimalPlaces),
-        containerColor = MaterialTheme.colorScheme.error,
-        contentColor = MaterialTheme.colorScheme.onError,
+        containerColor = overspent.copy(alpha = 0.16f),
+        contentColor = overspent,
         onClick = onClick,
     )
 }
@@ -1130,15 +1133,15 @@ private fun UncategorizedWarningBanner(
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
 ) {
-    // Reuses the errorContainer/onErrorContainer pairing the overspent banner used before it
-    // moved to the stronger colorScheme.error, keeping a distinct but still red-family severity.
+    // A to-do rather than a problem, so it takes the warning tone instead of the overspent red.
+    val warning = MaterialTheme.colorScheme.warning
     BudgetWarningCard(
         icon = Icons.Outlined.Category,
         title = if (transactionCount == 1) "1 uncategorized transaction" else "$transactionCount uncategorized transactions",
         subtitle = "Tap to categorize",
         amount = formatMoneyCents(totalUncategorizedCents, hideDecimalPlaces),
-        containerColor = MaterialTheme.colorScheme.errorContainer,
-        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        containerColor = warning.copy(alpha = 0.16f),
+        contentColor = warning,
         onClick = onClick,
     )
 }
@@ -1496,15 +1499,16 @@ private fun OverviewCell(
         Text(label, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, maxLines = 1)
         if (pill) {
             val pillModifier = Modifier.offset(x = pillOffset)
+            // Same rule as a category's BalancePill: only a negative amount takes color.
             val pillColor = when {
-                positive -> colors.primaryContainer
-                negative -> colors.errorContainer
-                else -> colors.surfaceContainerHighest
+                negative -> colors.danger.copy(alpha = 0.16f)
+                positive -> colors.surfaceContainerHighest
+                else -> Color.Transparent
             }
             val textColor = when {
-                positive -> colors.onPrimaryContainer
-                negative -> colors.onErrorContainer
-                else -> colors.onSurfaceVariant
+                negative -> colors.danger
+                positive -> colors.onSurface
+                else -> colors.onSurfaceVariant.copy(alpha = 0.55f)
             }
             if (onClick != null) {
                 Surface(onClick = onClick, modifier = pillModifier, color = pillColor,
@@ -1573,10 +1577,6 @@ private fun BudgetGroupHeader(
             // Scoped to just the part that actually changes size (totals shown/hidden) instead
             // of the whole sticky-header row, so the icon/name on the left — which never
             // resizes — doesn't pay for an extra measure/layout pass on every scroll frame.
-            // The Balance pill lives outside this node deliberately: it's nudged past its own
-            // column's edge (see AmountColumn) to keep its pill background symmetric while its
-            // digits land flush with Budgeted/Spent above, and the weighted column clips anything
-            // placed past its own measured bounds.
             Row(
                 // This is repeated for every visible category row. Toggling the optional
                 // Spent column should update its width once rather than animate remeasurement
@@ -1612,18 +1612,13 @@ private fun AmountColumn(
     Column(modifier = modifier, horizontalAlignment = Alignment.End) {
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-        if (balance) {
-            BalancePill(
-                amount,
-                hideDecimalPlaces,
-                modifier = Modifier.offset(x = 8.dp),
-                textStyle = MaterialTheme.typography.bodyMedium,
-            )
-        } else {
-            Text(formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-                color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
-                else MaterialTheme.colorScheme.onSurface, maxLines = 1)
-        }
+        Text(formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (balance) FontWeight.Bold else FontWeight.SemiBold,
+            color = when {
+                balance && amount < 0L -> MaterialTheme.colorScheme.danger
+                muted -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                else -> MaterialTheme.colorScheme.onSurface
+            }, maxLines = 1)
     }
 }
 
@@ -2004,47 +1999,55 @@ private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: 
 
 @Composable
 /**
- * A balance amount on a pill. A category's pill is filled with its [status] color, the same one
- * its status dot and progress bar use; a group total (no [status]) uses the amount's sign.
+ * A category's balance on a pill. Only a negative balance takes color: a tonal pill tinted with
+ * its [status] color, so overspending is what stands out. Other balances sit on a faint neutral
+ * pill, except an unassigned zero, which keeps the pill's footprint (so digits stay aligned) but
+ * drops its fill and dims the amount to read as "nothing here".
  */
 private fun BalancePill(
     amount: Long,
     hideDecimalPlaces: Boolean,
+    status: BudgetProgressState,
     modifier: Modifier = Modifier,
-    status: BudgetProgressState? = null,
     textStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodySmall,
     fontWeight: FontWeight = FontWeight.SemiBold,
     horizontalPadding: androidx.compose.ui.unit.Dp = 8.dp,
     verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
 ) {
-    val positive = amount > 0
-    val negative = amount < 0
-    val statusColor = status?.let { categoryStatusColor(it) }
+    val colors = MaterialTheme.colorScheme
+    val statusColor = categoryStatusColor(status)
+    val tone = balancePillTone(amount, status)
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
-        color = when {
-            statusColor != null -> statusColor
-            positive -> MaterialTheme.colorScheme.primaryContainer
-            negative -> MaterialTheme.colorScheme.errorContainer
-            else -> MaterialTheme.colorScheme.surfaceContainerHighest
+        color = when (tone) {
+            BalancePillTone.ALERT -> statusColor.copy(alpha = 0.16f)
+            BalancePillTone.NEUTRAL -> colors.surfaceContainerHighest
+            BalancePillTone.EMPTY -> Color.Transparent
         },
     ) {
         Text(
             text = formatMoneyCents(amount, hideDecimalPlaces),
             style = textStyle,
-            fontWeight = fontWeight,
-            color = when {
-                // Status colors are user-configurable, so pick whichever text color reads on it.
-                statusColor != null -> if (statusColor.luminance() > 0.5f) Color.Black else Color.White
-                positive -> MaterialTheme.colorScheme.onPrimaryContainer
-                negative -> MaterialTheme.colorScheme.onErrorContainer
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            fontWeight = if (tone == BalancePillTone.EMPTY) FontWeight.Normal else fontWeight,
+            color = when (tone) {
+                BalancePillTone.ALERT -> statusColor
+                BalancePillTone.NEUTRAL -> colors.onSurface
+                BalancePillTone.EMPTY -> colors.onSurfaceVariant.copy(alpha = 0.55f)
             },
             modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
             maxLines = 1,
         )
     }
+}
+
+/** How loudly a category's balance pill is drawn; see [BalancePill]. */
+internal enum class BalancePillTone { ALERT, NEUTRAL, EMPTY }
+
+internal fun balancePillTone(amount: Long, status: BudgetProgressState): BalancePillTone = when {
+    amount < 0L -> BalancePillTone.ALERT
+    amount == 0L && status == BudgetProgressState.UNASSIGNED -> BalancePillTone.EMPTY
+    else -> BalancePillTone.NEUTRAL
 }
 
 private enum class BudgetSummaryAction { MOVE, HOLD }

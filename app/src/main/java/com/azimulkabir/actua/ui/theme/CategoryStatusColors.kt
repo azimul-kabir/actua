@@ -62,8 +62,8 @@ val LocalCategoryStatusColors = staticCompositionLocalOf<CategoryStatusColorStat
 fun defaultCategoryStatusColor(status: BudgetProgressState): Color {
     val colors = MaterialTheme.colorScheme
     return when (status) {
-        BudgetProgressState.OVERSPENT -> colors.error
-        BudgetProgressState.SPENT -> colors.warning
+        BudgetProgressState.OVERSPENT -> colors.danger
+        BudgetProgressState.SPENT -> colors.primary
         BudgetProgressState.SPENDING -> colors.primary
         BudgetProgressState.FUNDED -> colors.success
         BudgetProgressState.UNASSIGNED -> colors.onSurfaceVariant
