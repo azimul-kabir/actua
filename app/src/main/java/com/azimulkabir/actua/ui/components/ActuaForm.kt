@@ -17,9 +17,13 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -28,6 +32,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -155,12 +163,14 @@ fun ActuaFormTextField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     placeholder: String = "",
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
         singleLine = true,
+        keyboardOptions = keyboardOptions,
         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         modifier = modifier.fillMaxWidth(),
@@ -186,6 +196,44 @@ fun ActuaFormTextField(
             }
         },
     )
+}
+
+/** An [ActuaFormRow] that opens a menu of [choices] (label to value) under it. */
+@Composable
+fun <T> ActuaMenuRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    choices: List<Pair<String, T>>,
+    modifier: Modifier = Modifier,
+    valueIsPlaceholder: Boolean = false,
+    onSelect: (T) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier) {
+        ActuaFormRow(
+            icon = icon,
+            label = label,
+            value = value,
+            valueIsPlaceholder = valueIsPlaceholder,
+            trailing = {
+                Icon(
+                    Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            onClick = { expanded = true },
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            choices.forEach { (text, choice) ->
+                DropdownMenuItem(
+                    text = { Text(text) },
+                    onClick = { expanded = false; onSelect(choice) },
+                )
+            }
+        }
+    }
 }
 
 /** Primary-colored label above a group of cards or rows, e.g. a picker or settings section. */

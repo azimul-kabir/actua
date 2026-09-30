@@ -8,6 +8,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Add and Edit transaction is now a single page: the amount's sign sets expense or income, and choosing an account as the payee makes a transfer ([#760](https://github.com/azimul-kabir/actua/pull/760))
 - The schedule editor now matches Add transaction, with the amount up top and fields grouped into cards ([#780](https://github.com/azimul-kabir/actua/pull/780))
+- The rule editor and credit card setup now use the same grouped cards as Add transaction ([#781](https://github.com/azimul-kabir/actua/pull/781))
 
 ### Added
 

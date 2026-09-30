@@ -10,22 +10,29 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,14 +44,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.CreditCardStatus
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaFormTextField
+import com.azimulkabir.actua.ui.components.ActuaGroupLabel
+import com.azimulkabir.actua.ui.components.ActuaMenuRow
+import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.success
 import com.azimulkabir.actua.ui.theme.warning
-import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Locale
@@ -74,17 +90,15 @@ fun CreditCardsScreen(
         }
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Payment reminders", fontWeight = FontWeight.SemiBold)
-                        Text("Notify 7, 5, 3 and 1 days before an unpaid card is due.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Switch(checked = notificationsEnabled, onCheckedChange = onNotificationsEnabledChange)
+                ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)) {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.NotificationsActive,
+                        label = "Payment reminders",
+                        value = null,
+                        caption = "Notify 7, 5, 3 and 1 days before an unpaid card is due.",
+                        checked = notificationsEnabled,
+                        onClick = { onNotificationsEnabledChange(!notificationsEnabled) },
+                    )
                 }
             }
             if (cards.isEmpty()) item {
@@ -100,10 +114,10 @@ fun CreditCardsScreen(
         }
     }
 
-    if (adding) CardEditorDialog(null, availableAccounts, onDismiss = { adding = false }, onSave = { id, day, paymentDue, limit ->
+    if (adding) CardEditorSheet(null, availableAccounts, onDismiss = { adding = false }, onSave = { id, day, paymentDue, limit ->
         onSave(id, day, paymentDue, limit); adding = false
     })
-    editing?.let { card -> CardEditorDialog(card, accounts, onDismiss = { editing = null }, onSave = { id, day, paymentDue, limit ->
+    editing?.let { card -> CardEditorSheet(card, accounts, onDismiss = { editing = null }, onSave = { id, day, paymentDue, limit ->
         onSave(id, day, paymentDue, limit); editing = null
     }, onRemove = { onRemove(card.accountId); editing = null }) }
 }
@@ -143,7 +157,7 @@ private fun CreditCardRow(
         } ?: summary
     }
     val pillText = dueText(short = true)
-    Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
+    Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.padding(vertical = 0.dp).align(Alignment.CenterVertically)) {
                 Surface(color = urgency, modifier = Modifier.padding(0.dp)) { Box(Modifier.padding(horizontal = 2.dp, vertical = 34.dp)) }
@@ -192,8 +206,9 @@ internal fun creditCardRowDescription(
     availableCredit?.let { append(", available credit $it") }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CardEditorDialog(
+private fun CardEditorSheet(
     card: CreditCardStatus?, accounts: List<Account>, onDismiss: () -> Unit,
     onSave: (String, Int, CreditCardCycle.PaymentDue, Long?) -> Unit, onRemove: (() -> Unit)? = null,
 ) {
@@ -203,7 +218,6 @@ private fun CardEditorDialog(
     var useFixedDueDay by remember { mutableStateOf(card?.config?.dueDay != null) }
     var dueDay by remember { mutableStateOf((card?.config?.dueDay ?: 1).toString()) }
     var limit by remember { mutableStateOf(card?.config?.limitCents?.let { BigDecimal(it).movePointLeft(2).toPlainString() }.orEmpty()) }
-    var accountsExpanded by remember { mutableStateOf(false) }
     val account = accounts.firstOrNull { it.id == accountId }
     val validDay = day.toIntOrNull()?.takeIf { it in 1..31 }
     val validOffset = offset.toIntOrNull()?.takeIf { it in 1..CreditCardCycle.MAX_DUE_OFFSET_DAYS }
@@ -211,49 +225,94 @@ private fun CardEditorDialog(
     val limitCents = runCatching { limit.takeIf(String::isNotBlank)?.let {
         BigDecimal(it).movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact().takeIf { cents -> cents > 0 }
     } }.getOrNull()
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(if (card == null) "Add Credit Card" else "Edit Card") }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (card == null) Box {
-                TextButton(onClick = { accountsExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(account?.name ?: "Select account")
+    val validPaymentDue = if (useFixedDueDay) validDueDay != null else validOffset != null
+    val numberKeyboard = KeyboardOptions(keyboardType = KeyboardType.Number)
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth()) {
+            Column(
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.screenHorizontal),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                Text(if (card == null) "Add Credit Card" else "Edit Card",
+                    style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                ActuaFormCard {
+                    if (card == null) {
+                        ActuaMenuRow(
+                            icon = Icons.Outlined.CreditCard,
+                            label = "Account",
+                            value = account?.name ?: "Select account",
+                            valueIsPlaceholder = account == null,
+                            choices = accounts.map { it.name to it.id },
+                        ) { accountId = it }
+                    } else {
+                        ActuaFormRow(icon = Icons.Outlined.CreditCard, label = "Account", value = card.accountName)
+                    }
+                    ActuaCardDivider()
+                    ActuaFormTextField(
+                        icon = Icons.Outlined.CalendarMonth,
+                        label = "Statement closing day (1–31)",
+                        value = day,
+                        onValueChange = { day = it.filter(Char::isDigit).take(2) },
+                        keyboardOptions = numberKeyboard,
+                    )
                 }
-                DropdownMenu(accountsExpanded, { accountsExpanded = false }) { accounts.forEach { option ->
-                    DropdownMenuItem(text = { Text(option.name) }, onClick = { accountId = option.id; accountsExpanded = false })
-                } }
-            } else Text("Account  ${card.accountName}")
-            OutlinedTextField(day, { day = it.filter(Char::isDigit).take(2) }, label = { Text("Statement closing day (1–31)") }, singleLine = true)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = !useFixedDueDay,
-                    onClick = { useFixedDueDay = false },
-                    label = { Text("Days after") },
-                    modifier = Modifier.weight(1f),
-                )
-                FilterChip(
-                    selected = useFixedDueDay,
-                    onClick = { useFixedDueDay = true },
-                    label = { Text("Day of month") },
-                    modifier = Modifier.weight(1f),
-                )
+                ActuaGroupLabel("Payment due")
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    listOf(false to "Days after", true to "Day of month").forEachIndexed { index, (fixed, label) ->
+                        SegmentedButton(
+                            selected = useFixedDueDay == fixed,
+                            onClick = { useFixedDueDay = fixed },
+                            shape = SegmentedButtonDefaults.itemShape(index, 2),
+                        ) { Text(label) }
+                    }
+                }
+                ActuaFormCard {
+                    if (useFixedDueDay) {
+                        ActuaFormTextField(
+                            icon = Icons.Outlined.Event,
+                            label = "Payment due day (1–31)",
+                            value = dueDay,
+                            onValueChange = { dueDay = it.filter(Char::isDigit).take(2) },
+                            keyboardOptions = numberKeyboard,
+                        )
+                    } else {
+                        ActuaFormTextField(
+                            icon = Icons.Outlined.Event,
+                            label = "Payment due after (1–60 days)",
+                            value = offset,
+                            onValueChange = { offset = it.filter(Char::isDigit).take(2) },
+                            keyboardOptions = numberKeyboard,
+                        )
+                    }
+                    ActuaCardDivider()
+                    ActuaFormTextField(
+                        icon = Icons.Outlined.Payments,
+                        label = "Credit limit (optional)",
+                        value = limit,
+                        onValueChange = { value -> limit = value.filter { it.isDigit() || it == '.' } },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+                }
+                Text(if (useFixedDueDay) "The due date uses the issuer’s fixed calendar day, clamped for shorter months."
+                    else "The due date is the statement closing date plus the issuer’s payment period.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.xs))
+                if (onRemove != null) TextButton(onClick = onRemove, modifier = Modifier.fillMaxWidth()) {
+                    Text("Remove Credit Card Tracking", color = MaterialTheme.colorScheme.error)
+                }
+                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
             }
-            if (useFixedDueDay) {
-                OutlinedTextField(dueDay, { dueDay = it.filter(Char::isDigit).take(2) }, label = { Text("Payment due day (1–31)") }, singleLine = true)
-            } else {
-                OutlinedTextField(offset, { offset = it.filter(Char::isDigit).take(2) }, label = { Text("Payment due after (1–60 days)") }, singleLine = true)
-            }
-            OutlinedTextField(limit, { value -> limit = value.filter { it.isDigit() || it == '.' } }, label = { Text("Credit limit (optional)") }, singleLine = true)
-            Text(if (useFixedDueDay) "The due date uses the issuer’s fixed calendar day, clamped for shorter months."
-                else "The due date is the statement closing date plus the issuer’s payment period.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (onRemove != null) TextButton(onClick = onRemove) { Text("Remove Credit Card Tracking", color = MaterialTheme.colorScheme.error) }
+            ActuaPrimaryActionBar(
+                text = "Save",
+                enabled = accountId.isNotBlank() && validDay != null && validPaymentDue && (limit.isBlank() || limitCents != null),
+                onClick = {
+                    val paymentDue = if (useFixedDueDay) CreditCardCycle.PaymentDue.DayOfMonth(validDueDay!!)
+                    else CreditCardCycle.PaymentDue.DaysAfter(validOffset!!)
+                    onSave(accountId, validDay!!, paymentDue, limitCents)
+                },
+                icon = Icons.Outlined.Check,
+            )
         }
-    }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }, confirmButton = {
-        val validPaymentDue = if (useFixedDueDay) validDueDay != null else validOffset != null
-        Button(enabled = accountId.isNotBlank() && validDay != null && validPaymentDue && (limit.isBlank() || limitCents != null),
-            onClick = {
-                val paymentDue = if (useFixedDueDay) CreditCardCycle.PaymentDue.DayOfMonth(validDueDay!!)
-                else CreditCardCycle.PaymentDue.DaysAfter(validOffset!!)
-                onSave(accountId, validDay!!, paymentDue, limitCents)
-            }) { Text("Save") }
-    })
+    }
 }
