@@ -14,6 +14,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Closing an account and adding accounts or categories now use the same grouped cards as Add transaction ([#782](https://github.com/azimul-kabir/actua/pull/782))
 - Customize Home, Customize Tab Bar and the reorder screens now show their rows in rounded cards ([#784](https://github.com/azimul-kabir/actua/pull/784))
 - Accounts now shows your total up top and groups accounts into rounded cards with type icons ([#785](https://github.com/azimul-kabir/actua/pull/785))
+- Tags, payee locations, backups, schedules and bank sync now show their lists in rounded cards ([#787](https://github.com/azimul-kabir/actua/pull/787))
 
 ### Added
 
