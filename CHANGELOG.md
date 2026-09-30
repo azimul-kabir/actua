@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Transactions sent from Tasker and other automation apps now wait in the import review queue ([#802](https://github.com/azimul-kabir/actua/pull/802))
+
 ### Changed
 
 - Add and Edit transaction is now a single page: the amount's sign sets expense or income, and choosing an account as the payee makes a transfer ([#760](https://github.com/azimul-kabir/actua/pull/760))
