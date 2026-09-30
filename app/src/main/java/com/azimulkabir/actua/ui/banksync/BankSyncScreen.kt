@@ -6,13 +6,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -34,9 +37,14 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormTextField
 import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.ActuaSheetAction
+import com.azimulkabir.actua.ui.components.ActuaSheetCard
+import com.azimulkabir.actua.ui.components.ActuaSheetContent
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
+import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
 
 /** A bank-sync provider account discovered on the server, not yet linked to an Actua account. */
@@ -342,24 +350,36 @@ private fun LinkAccountSheet(
     var creatingNew by remember { mutableStateOf(candidates.isEmpty()) }
     var name by remember { mutableStateOf(discovered.label) }
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(bottom = 24.dp)) {
+        ActuaSheetContent {
             ActuaSheetTitle("Link \"${discovered.label}\"")
             if (!creatingNew) {
-                LazyColumn(Modifier.height(280.dp)) {
-                    items(candidates) { account ->
-                        ActuaListRow(title = { Text(account.name) }, onClick = { onLinkExisting(account) })
+                ActuaSheetCard {
+                    candidates.forEachIndexed { index, account ->
+                        if (index > 0) ActuaCardDivider()
+                        ActuaSheetAction(account.name, icon = Icons.Outlined.AccountBalance,
+                            onClick = { onLinkExisting(account) })
                     }
                 }
-                TextButton(onClick = { creatingNew = true }, modifier = Modifier.padding(horizontal = Spacing.screenHorizontal)) {
-                    Text("Create a new account instead")
+                ActuaSheetCard {
+                    ActuaSheetAction("Create a new account instead", icon = Icons.Outlined.Add,
+                        onClick = { creatingNew = true })
                 }
             } else {
+                ActuaSheetCard {
+                    ActuaFormTextField(icon = Icons.Outlined.Edit, label = "Account name", value = name,
+                        onValueChange = { name = it })
+                }
                 Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
-                    OutlinedTextField(name, { name = it }, label = { Text("Account name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(Spacing.sm))
-                    Button(onClick = { onCreateNew(name.trim(), false) }, enabled = name.isNotBlank()) { Text("Create and link") }
+                    Button(
+                        onClick = { onCreateNew(name.trim(), false) },
+                        enabled = name.isNotBlank(),
+                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = Sizes.primaryButtonHeight),
+                    ) { Text("Create and link") }
                     if (candidates.isNotEmpty()) {
-                        TextButton(onClick = { creatingNew = false }) { Text("Link to an existing account instead") }
+                        TextButton(onClick = { creatingNew = false }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Link to an existing account instead")
+                        }
                     }
                 }
             }

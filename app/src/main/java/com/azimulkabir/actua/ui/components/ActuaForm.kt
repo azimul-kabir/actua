@@ -13,11 +13,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -411,5 +413,52 @@ fun ActuaSecondaryButton(
     ) {
         icon?.let { Icon(it, contentDescription = null) }
         Text(text, modifier = Modifier.padding(start = if (icon != null) Spacing.sm else Spacing.none))
+    }
+}
+
+/**
+ * Body of a bottom sheet: an [ActuaSheetTitle] followed by [ActuaSheetCard]s. It scrolls so long
+ * lists and large font scales still fit; the sheet's own content insets keep it above the
+ * navigation bar.
+ */
+@Composable
+fun ActuaSheetContent(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        content = content,
+    )
+}
+
+/** A card of sheet rows, inset to the screen gutter. */
+@Composable
+fun ActuaSheetCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    ActuaFormCard(modifier.padding(horizontal = Spacing.screenHorizontal), content = content)
+}
+
+/** A sheet action row with an optional [icon]; [destructive] actions use the error color. */
+@Composable
+fun ActuaSheetAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    destructive: Boolean = false,
+) {
+    val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = Sizes.compactRowMinHeight)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null,
+                tint = if (destructive) color else MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.width(Spacing.lg))
+        }
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = color)
     }
 }

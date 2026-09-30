@@ -29,6 +29,14 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.EventAvailable
+import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
@@ -105,6 +113,11 @@ import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.GroupPosition
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
+import com.azimulkabir.actua.ui.components.ActuaSheetContent
+import com.azimulkabir.actua.ui.components.ActuaSheetCard
+import com.azimulkabir.actua.ui.components.ActuaSheetAction
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.ui.theme.Spacing
@@ -112,6 +125,7 @@ import com.azimulkabir.actua.ui.theme.success
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
+import androidx.compose.ui.graphics.vector.ImageVector
 
 private val sampleTransactions = listOf(
     Transaction("1", "Today", "Agora Super Shop", "Groceries", "Everyday account", -2_450, true),
@@ -658,29 +672,27 @@ fun TransactionsScreen(
     }
     upcomingMenuFor?.let { transaction ->
         ModalBottomSheet(onDismissRequest = { upcomingMenuFor = null }) {
-            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            ActuaSheetContent {
                 val scheduleId = transaction.scheduleId
-                Text(transaction.payee, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp))
-                Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 4.dp, bottom = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Scheduled date", style = MaterialTheme.typography.bodyLarge)
-                    Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold)
+                ActuaSheetTitle(transaction.payee)
+                ActuaSheetCard {
+                    ActuaFormRow(icon = Icons.Outlined.CalendarMonth, label = "Scheduled date",
+                        value = formatTransactionDate(transaction.date))
                 }
-                upcomingTransactionActions(recurring = scheduleId in recurringScheduleIds).forEach { action ->
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Action(action.label) {
-                        upcomingMenuFor = null
-                        onUpcomingAction(transaction, action)
+                ActuaSheetCard {
+                    upcomingTransactionActions(recurring = scheduleId in recurringScheduleIds).forEachIndexed { index, action ->
+                        if (index > 0) ActuaCardDivider()
+                        ActuaSheetAction(action.label, icon = upcomingActionIcon(action), onClick = {
+                            upcomingMenuFor = null
+                            onUpcomingAction(transaction, action)
+                        })
                     }
-                }
-                if (scheduleId != null) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Action("Edit schedule") {
-                        upcomingMenuFor = null
-                        onViewSchedule(scheduleId)
+                    if (scheduleId != null) {
+                        ActuaCardDivider()
+                        ActuaSheetAction("Edit schedule", icon = Icons.Outlined.Edit, onClick = {
+                            upcomingMenuFor = null
+                            onViewSchedule(scheduleId)
+                        })
                     }
                 }
             }
@@ -704,18 +716,21 @@ fun TransactionsScreen(
     }
     if (showLinkSchedulePicker) {
         ModalBottomSheet(onDismissRequest = { showLinkSchedulePicker = false }) {
-            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            ActuaSheetContent {
                 ActuaSheetTitle("Link to schedule")
                 if (linkableSchedules.isEmpty()) {
                     Text("No schedules available", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                        modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
                 } else {
                     val ids = selectedIds
-                    linkableSchedules.forEach { schedule ->
-                        Action(schedule.name) {
-                            showLinkSchedulePicker = false
-                            onLinkSchedule(visible.filter { it.id in ids }, schedule.id)
-                            selectionModeOn = false
+                    ActuaSheetCard {
+                        linkableSchedules.forEachIndexed { index, schedule ->
+                            if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                            Action(schedule.name) {
+                                showLinkSchedulePicker = false
+                                onLinkSchedule(visible.filter { it.id in ids }, schedule.id)
+                                selectionModeOn = false
+                            }
                         }
                     }
                 }
@@ -724,18 +739,21 @@ fun TransactionsScreen(
     }
     if (showCategorizePicker) {
         ModalBottomSheet(onDismissRequest = { showCategorizePicker = false }) {
-            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            ActuaSheetContent {
                 ActuaSheetTitle("Categorize")
                 if (categoryOptions.isEmpty()) {
                     Text("No categories available", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                        modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
                 } else {
                     val toCategorize = selectedTransactions
-                    categoryOptions.forEach { category ->
-                        Action(category) {
-                            showCategorizePicker = false
-                            onCategorizeMultiple(toCategorize, category)
-                            selectionModeOn = false
+                    ActuaSheetCard {
+                        categoryOptions.forEachIndexed { index, category ->
+                            if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                            Action(category) {
+                                showCategorizePicker = false
+                                onCategorizeMultiple(toCategorize, category)
+                                selectionModeOn = false
+                            }
                         }
                     }
                 }
@@ -744,18 +762,21 @@ fun TransactionsScreen(
     }
     if (showMovePicker) {
         ModalBottomSheet(onDismissRequest = { showMovePicker = false }) {
-            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            ActuaSheetContent {
                 ActuaSheetTitle("Move to account")
                 if (accountOptions.isEmpty()) {
                     Text("No accounts available", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                        modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
                 } else {
                     val toMove = selectedTransactions
-                    accountOptions.forEach { account ->
-                        Action(account) {
-                            showMovePicker = false
-                            onMoveMultiple(toMove, account)
-                            selectionModeOn = false
+                    ActuaSheetCard {
+                        accountOptions.forEachIndexed { index, account ->
+                            if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                            Action(account) {
+                                showMovePicker = false
+                                onMoveMultiple(toMove, account)
+                                selectionModeOn = false
+                            }
                         }
                     }
                 }
@@ -764,11 +785,11 @@ fun TransactionsScreen(
     }
     if (showLabelPicker) {
         ModalBottomSheet(onDismissRequest = { showLabelPicker = false }) {
-            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            ActuaSheetContent {
                 ActuaSheetTitle("Label")
                 val toLabel = selectedTransactions
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     OutlinedTextField(
@@ -793,13 +814,16 @@ fun TransactionsScreen(
                 }
                 if (availableTags.isEmpty()) {
                     Text("No labels yet", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
+                        modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
                 } else {
-                    availableTags.forEach { tag ->
-                        Action(tag.tag) {
-                            showLabelPicker = false
-                            onLabelMultiple(toLabel, tag.tag)
-                            selectionModeOn = false
+                    ActuaSheetCard {
+                        availableTags.forEachIndexed { index, tag ->
+                            if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                            Action(tag.tag) {
+                                showLabelPicker = false
+                                onLabelMultiple(toLabel, tag.tag)
+                                selectionModeOn = false
+                            }
                         }
                     }
                 }
@@ -1379,34 +1403,37 @@ fun TransactionDetailsSheet(
     val presentation = transactionRowPresentation(transaction, showAccount = true)
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Transaction details", style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        ActuaSheetContent {
+            Row(Modifier.fillMaxWidth().padding(end = Spacing.xl), verticalAlignment = Alignment.CenterVertically) {
+                ActuaSheetTitle("Transaction details", Modifier.weight(1f))
                 Amount(transaction.amountCents, FontWeight.Bold, hideDecimalPlaces)
-                ClearedIndicator(transaction.cleared, modifier = Modifier.padding(start = 8.dp))
+                ClearedIndicator(transaction.cleared, modifier = Modifier.padding(start = Spacing.sm))
             }
-            HorizontalDivider()
-            TransactionDetail("Payee", presentation.title)
-            TransactionDetail("Date", formatTransactionDate(transaction.date))
-            presentation.categoryLabel?.let { TransactionDetail("Category", it) }
-            TransactionDetail("Account", transaction.account)
-            transaction.transferAccount?.takeIf(String::isNotBlank)?.let {
-                TransactionDetail("Transfer account", it)
-            }
-            TransactionDetail("Status", if (transaction.cleared) "Cleared" else "Uncleared")
-            transaction.notes.takeIf(String::isNotBlank)?.let {
-                TransactionTagDetail("Notes", it, effectiveTagColors)
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = { confirmDelete = true }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+            ActuaSheetCard {
+                Column(
+                    Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    TransactionDetail("Payee", presentation.title)
+                    TransactionDetail("Date", formatTransactionDate(transaction.date))
+                    presentation.categoryLabel?.let { TransactionDetail("Category", it) }
+                    TransactionDetail("Account", transaction.account)
+                    transaction.transferAccount?.takeIf(String::isNotBlank)?.let {
+                        TransactionDetail("Transfer account", it)
+                    }
+                    TransactionDetail("Status", if (transaction.cleared) "Cleared" else "Uncleared")
+                    transaction.notes.takeIf(String::isNotBlank)?.let {
+                        TransactionTagDetail("Notes", it, effectiveTagColors)
+                    }
                 }
-                TextButton(onClick = onDuplicate) { Text("Duplicate") }
-                TextButton(onClick = onEdit) { Text("Edit") }
+            }
+            ActuaSheetCard {
+                ActuaSheetAction("Edit", icon = Icons.Outlined.Edit, onClick = onEdit)
+                ActuaCardDivider()
+                ActuaSheetAction("Duplicate", icon = Icons.Outlined.ContentCopy, onClick = onDuplicate)
+                ActuaCardDivider()
+                ActuaSheetAction("Delete", icon = Icons.Outlined.DeleteOutline, destructive = true,
+                    onClick = { confirmDelete = true })
             }
         }
     }
@@ -1451,8 +1478,15 @@ private fun Amount(value: Long, weight: FontWeight, hideDecimalPlaces: Boolean, 
         modifier = modifier)
 }
 
+/** A text-only choice row in a picker sheet's card. */
 @Composable
-private fun Action(label: String, destructive: Boolean = false, onClick: () -> Unit) {
-    DropdownMenuItem(text = { Text(label, color = if (destructive) MaterialTheme.colorScheme.error
-    else MaterialTheme.colorScheme.onSurface) }, onClick = onClick, modifier = Modifier.fillMaxWidth())
+private fun Action(label: String, onClick: () -> Unit) {
+    ActuaSheetAction(label, onClick = onClick)
+}
+
+private fun upcomingActionIcon(action: UpcomingTransactionAction): ImageVector = when (action) {
+    UpcomingTransactionAction.POST -> Icons.Outlined.AddCircleOutline
+    UpcomingTransactionAction.POST_TODAY -> Icons.Outlined.EventAvailable
+    UpcomingTransactionAction.SKIP -> Icons.Outlined.SkipNext
+    UpcomingTransactionAction.COMPLETE -> Icons.Outlined.CheckCircleOutline
 }
