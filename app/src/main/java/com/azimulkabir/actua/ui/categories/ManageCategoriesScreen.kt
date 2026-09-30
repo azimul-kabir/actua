@@ -3,6 +3,7 @@ package com.azimulkabir.actua.ui.categories
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,7 +28,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,14 +42,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.CategoryDragReorder
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
 import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
+import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.GroupPosition
+import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.components.MoveCategoryDialog
 import com.azimulkabir.actua.ui.components.NewCategoryDialog
 import com.azimulkabir.actua.ui.components.RenameDialog
@@ -159,7 +161,11 @@ fun ManageCategoriesScreen(
             IconButton(onClick = onReorderGroupsClick) { Icon(Icons.Outlined.SwapVert, contentDescription = "Reorder Groups") }
             IconButton(onClick = { addingGroup = true }) { Icon(Icons.Outlined.Add, contentDescription = "Add group") }
         }
-        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = Spacing.xl),
+        ) {
             items(rows.size, key = { index ->
                 when (val row = rows[index]) {
                     is ManageRow.GroupHeader -> "group:${row.group.id}"
@@ -177,28 +183,33 @@ fun ManageCategoriesScreen(
                         val group = localGroups.first { it.id == row.groupId }
                         val category = row.category
                         val isDragging = draggingCategoryId == category.id
-                        CategoryManageRow(
-                            category = category,
-                            isFirstInGroup = group.categories.firstOrNull()?.id == category.id,
-                            isLastInGroup = group.categories.lastOrNull()?.id == category.id,
+                        val indexInGroup = group.categories.indexOfFirst { it.id == category.id }
+                        ActuaGroupedItem(
+                            position = GroupPosition.of(indexInGroup.coerceAtLeast(0), group.categories.size.coerceAtLeast(1)),
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(ROW_HEIGHT_DP.dp)
                                 .graphicsLayer { translationY = if (isDragging) dragOffsetPx else 0f }
                                 .alpha(if (isDragging) 0.85f else 1f),
-                            onDragStart = { onDragStart(category.id) },
-                            onDrag = { deltaY -> onDrag(category.id, deltaY) },
-                            onDragEnd = { onDragEnd(category.id) },
-                            onMoveUp = { stepByButton(category.id, -1) },
-                            onMoveDown = { stepByButton(category.id, +1) },
-                            onRename = { renamingCategory = group to category },
-                            onMoveToGroup = { movingCategory = group to category },
-                            onToggleHidden = { onSetCategoryHidden(group.name, category.name, !category.hidden) },
-                            onDelete = { deletingCategory = group to category },
-                        )
+                        ) {
+                            CategoryManageRow(
+                                category = category,
+                                isFirstInGroup = indexInGroup == 0,
+                                isLastInGroup = indexInGroup == group.categories.lastIndex,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(ROW_HEIGHT_DP.dp),
+                                onDragStart = { onDragStart(category.id) },
+                                onDrag = { deltaY -> onDrag(category.id, deltaY) },
+                                onDragEnd = { onDragEnd(category.id) },
+                                onMoveUp = { stepByButton(category.id, -1) },
+                                onMoveDown = { stepByButton(category.id, +1) },
+                                onRename = { renamingCategory = group to category },
+                                onMoveToGroup = { movingCategory = group to category },
+                                onToggleHidden = { onSetCategoryHidden(group.name, category.name, !category.hidden) },
+                                onDelete = { deletingCategory = group to category },
+                            )
+                        }
                     }
                 }
-                HorizontalDivider()
             }
         }
     }
@@ -268,30 +279,38 @@ private fun GroupManageRow(
     onToggleHidden: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
-    Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
-        Row(
-            Modifier.fillMaxWidth().height(ROW_HEIGHT_DP.dp).padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    // A section label above the group's card, the same height as a category row so drag
+    // reordering steps stay one row per move.
+    Row(
+        Modifier.fillMaxWidth().height(ROW_HEIGHT_DP.dp)
+            .padding(start = Spacing.screenHorizontal + Spacing.xs, end = Spacing.screenHorizontal - Spacing.sm),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Row(Modifier.weight(1f).padding(bottom = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 group.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).padding(start = 8.dp),
+                modifier = Modifier.weight(1f, fill = false),
             )
-            if (group.hidden) Icon(Icons.Outlined.VisibilityOff, "Hidden group", modifier = Modifier.size(18.dp).padding(end = 8.dp))
-            Box {
-                IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "${group.name} group options") }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(text = { Text("Rename") }, onClick = { menuExpanded = false; onRename() })
-                    if (!group.isIncome) {
-                        DropdownMenuItem(text = { Text("Add category") }, onClick = { menuExpanded = false; onAddCategory() })
-                        DropdownMenuItem(
-                            text = { Text(if (group.hidden) "Unhide group" else "Hide group") },
-                            onClick = { menuExpanded = false; onToggleHidden() },
-                        )
-                    }
+            if (group.hidden) {
+                Icon(Icons.Outlined.VisibilityOff, "Hidden group",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = Spacing.sm).size(16.dp))
+            }
+        }
+        Box {
+            IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "${group.name} group options") }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(text = { Text("Rename") }, onClick = { menuExpanded = false; onRename() })
+                if (!group.isIncome) {
+                    DropdownMenuItem(text = { Text("Add category") }, onClick = { menuExpanded = false; onAddCategory() })
+                    DropdownMenuItem(
+                        text = { Text(if (group.hidden) "Unhide group" else "Hide group") },
+                        onClick = { menuExpanded = false; onToggleHidden() },
+                    )
                 }
             }
         }
@@ -315,10 +334,11 @@ private fun CategoryManageRow(
     onDelete: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
-    Row(modifier.padding(start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.padding(start = Spacing.xs, end = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
         Icon(
             Icons.Outlined.DragHandle,
             contentDescription = "Drag to reorder ${category.name}",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .size(44.dp)
                 .padding(8.dp)
@@ -336,7 +356,10 @@ private fun CategoryManageRow(
             color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f).padding(start = 8.dp),
         )
-        if (category.hidden) Icon(Icons.Outlined.VisibilityOff, "Hidden category", modifier = Modifier.size(16.dp).padding(end = 8.dp))
+        if (category.hidden) {
+            Icon(Icons.Outlined.VisibilityOff, "Hidden category",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        }
         Box {
             IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "${category.name} category options") }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {

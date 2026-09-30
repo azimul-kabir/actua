@@ -35,7 +35,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,7 +58,19 @@ import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import androidx.compose.material.icons.automirrored.outlined.Notes
+import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.Percent
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormTextField
+import com.azimulkabir.actua.ui.components.ActuaHeroAmount
+import com.azimulkabir.actua.ui.components.ActuaMenuRow
+import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
+import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
+import com.azimulkabir.actua.ui.components.centsToInput
+import com.azimulkabir.actua.ui.components.currencyInputPrefix
+import com.azimulkabir.actua.ui.components.parseInputCents
 import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.theme.Sizes
@@ -93,6 +104,7 @@ fun BudgetAutomationScreen(
     hideDecimalPlaces: Boolean,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
     incomeCategories: List<String> = emptyList(),
+    conventionalAmountEntry: Boolean = false,
     onBack: () -> Unit,
     onSave: (List<BudgetTarget>) -> Unit,
     modifier: Modifier = Modifier,
@@ -121,6 +133,7 @@ fun BudgetAutomationScreen(
             scheduleFunding = scheduleFunding,
             incomeCategories = incomeCategories,
             usedSingletonTypes = usedSingletons,
+            conventionalAmountEntry = conventionalAmountEntry,
             onBack = { editingIndex = null; addingType = null },
             onDelete = if (existing != null) {
                 {
@@ -278,17 +291,18 @@ private fun AutomationEntryEditor(
     scheduleFunding: List<BudgetScheduleFunding>,
     incomeCategories: List<String>,
     usedSingletonTypes: Set<BudgetTarget.Type>,
+    conventionalAmountEntry: Boolean,
     onBack: () -> Unit,
     onDelete: (() -> Unit)?,
     onSave: (BudgetTarget) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (initialType) {
-        BudgetTarget.Type.LIMIT -> LimitEditor(initial, onBack, onDelete, onSave, modifier)
-        BudgetTarget.Type.GOAL -> GoalEditor(initial, onBack, onDelete, onSave, modifier)
+        BudgetTarget.Type.LIMIT -> LimitEditor(initial, conventionalAmountEntry, onBack, onDelete, onSave, modifier)
+        BudgetTarget.Type.GOAL -> GoalEditor(initial, conventionalAmountEntry, onBack, onDelete, onSave, modifier)
         else -> ContributionEditor(
             initial, initialType, month, hideDecimalPlaces, scheduleFunding, incomeCategories,
-            usedSingletonTypes, onBack, onDelete, onSave, modifier,
+            usedSingletonTypes, conventionalAmountEntry, onBack, onDelete, onSave, modifier,
         )
     }
 }
@@ -332,39 +346,100 @@ private fun EditorScaffold(
     }
 }
 
+/** The automation's note as a form row that opens the shared note editor sheet. */
 @Composable
 private fun NoteField(note: String, onChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = note, onValueChange = onChange, modifier = Modifier.fillMaxWidth(),
-        label = { Text("Note") }, minLines = 2, maxLines = 4,
-    )
+    var editing by remember { mutableStateOf(false) }
+    ActuaFormCard {
+        ActuaFormRow(
+            icon = Icons.AutoMirrored.Outlined.Notes,
+            label = "Note",
+            value = note.ifBlank { "Add note" },
+            valueIsPlaceholder = note.isBlank(),
+            onClick = { editing = true },
+        )
+    }
+    if (editing) {
+        ActuaNoteEditorSheet(
+            initialNote = note,
+            placeholder = "Automation note",
+            onDismiss = { editing = false },
+            onSave = { onChange(it); editing = false },
+        )
+    }
 }
+
+/** The editor's main amount as a hero that opens the calculator, like Add transaction. */
+@Composable
+private fun AmountHero(caption: String, cents: Long, conventionalAmountEntry: Boolean, onChange: (Long) -> Unit) {
+    var calculatorOpen by remember { mutableStateOf(false) }
+    val shown = currencyInputPrefix() + amountText(cents)
+    ActuaHeroAmount(
+        amount = shown,
+        caption = caption,
+        amountColor = if (cents == 0L) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+        captionColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        contentDescription = "$caption, $shown",
+        onClickLabel = "Edit $caption",
+        onClick = { calculatorOpen = true },
+    )
+    if (calculatorOpen) {
+        CalculatorAmountSheet(
+            title = caption,
+            initialCents = cents,
+            conventionalAmountEntry = conventionalAmountEntry,
+            onDismiss = { calculatorOpen = false },
+            onApply = { onChange(kotlin.math.abs(it)) },
+        )
+    }
+}
+
+/** A secondary amount as a form row that opens the calculator. */
+@Composable
+private fun AmountRow(label: String, cents: Long, conventionalAmountEntry: Boolean, onChange: (Long) -> Unit) {
+    var calculatorOpen by remember { mutableStateOf(false) }
+    ActuaFormRow(
+        icon = Icons.Outlined.Calculate,
+        label = label,
+        value = currencyInputPrefix() + amountText(cents),
+        valueIsPlaceholder = cents == 0L,
+        onClick = { calculatorOpen = true },
+    )
+    if (calculatorOpen) {
+        CalculatorAmountSheet(
+            title = label,
+            initialCents = cents,
+            conventionalAmountEntry = conventionalAmountEntry,
+            onDismiss = { calculatorOpen = false },
+            onApply = { onChange(kotlin.math.abs(it)) },
+        )
+    }
+}
+
+private fun amountText(cents: Long): String = if (cents == 0L) "0" else centsToInput(cents)
 
 @Composable
 private fun LimitEditor(
     initial: BudgetTarget?,
+    conventionalAmountEntry: Boolean,
     onBack: () -> Unit,
     onDelete: (() -> Unit)?,
     onSave: (BudgetTarget) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var amount by remember { mutableStateOf(initial?.amountCents?.let(::plainAmount) ?: "") }
+    var amountCents by remember { mutableStateOf(initial?.amountCents ?: 0L) }
     var period by remember { mutableStateOf(initial?.limitPeriod ?: BudgetTarget.LimitPeriod.MONTHLY) }
     var startDate by remember { mutableStateOf(initial?.limitStartDate ?: LocalDate.now().toString()) }
     var hold by remember { mutableStateOf(initial?.limitHold ?: false) }
     var note by remember { mutableStateOf(initial?.note ?: "") }
     var datePickerOpen by remember { mutableStateOf(false) }
-    val amountCents = runCatching { java.math.BigDecimal(amount).movePointRight(2).longValueExact() }.getOrNull()
     val validStart = period != BudgetTarget.LimitPeriod.WEEKLY || runCatching { LocalDate.parse(startDate) }.isSuccess
-    val canSave = amountCents != null && amountCents > 0L && validStart
+    val canSave = amountCents > 0L && validStart
 
     EditorScaffold(title = BudgetTarget.Type.LIMIT.label, onBack = onBack, onDelete = onDelete, modifier = modifier) {
+        AmountHero("Amount", amountCents, conventionalAmountEntry) { amountCents = it }
         Text(BudgetTarget.Type.LIMIT.explanation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         SectionTitle("Configuration")
-        OutlinedTextField(
-            value = amount, onValueChange = { amount = it }, modifier = Modifier.fillMaxWidth(),
-            label = { Text("Amount") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        )
         Text("Every", style = MaterialTheme.typography.titleSmall)
         SegmentedChoice(
             options = BudgetTarget.LimitPeriod.entries.map { it to it.jsonValue.replaceFirstChar(Char::uppercase) },
@@ -390,7 +465,7 @@ private fun LimitEditor(
             onClick = {
                 onSave(
                     BudgetTarget(
-                        BudgetTarget.Type.LIMIT, amountCents = amountCents ?: 0L,
+                        BudgetTarget.Type.LIMIT, amountCents = amountCents,
                         limitPeriod = period, limitStartDate = if (period == BudgetTarget.LimitPeriod.WEEKLY) startDate else null,
                         limitHold = hold, note = note.trim().ifBlank { null },
                     ),
@@ -405,27 +480,23 @@ private fun LimitEditor(
 @Composable
 private fun GoalEditor(
     initial: BudgetTarget?,
+    conventionalAmountEntry: Boolean,
     onBack: () -> Unit,
     onDelete: (() -> Unit)?,
     onSave: (BudgetTarget) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var amount by remember { mutableStateOf(initial?.amountCents?.let(::plainAmount) ?: "") }
+    var amountCents by remember { mutableStateOf(initial?.amountCents ?: 0L) }
     var note by remember { mutableStateOf(initial?.note ?: "") }
-    val amountCents = runCatching { java.math.BigDecimal(amount).movePointRight(2).longValueExact() }.getOrNull()
 
     EditorScaffold(title = BudgetTarget.Type.GOAL.label, onBack = onBack, onDelete = onDelete, modifier = modifier) {
+        AmountHero("Target amount", amountCents, conventionalAmountEntry) { amountCents = it }
         Text(BudgetTarget.Type.GOAL.explanation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        SectionTitle("Configuration")
-        OutlinedTextField(
-            value = amount, onValueChange = { amount = it }, modifier = Modifier.fillMaxWidth(),
-            label = { Text("Target amount") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        )
         NoteField(note) { note = it }
         SaveButton(
             text = if (initial == null) "Add long-term goal" else "Update long-term goal",
-            enabled = amountCents != null && amountCents > 0L,
-            onClick = { onSave(BudgetTarget(BudgetTarget.Type.GOAL, amountCents = amountCents ?: 0L, note = note.trim().ifBlank { null })) },
+            enabled = amountCents > 0L,
+            onClick = { onSave(BudgetTarget(BudgetTarget.Type.GOAL, amountCents = amountCents, note = note.trim().ifBlank { null })) },
         )
         Spacer(Modifier.height(20.dp))
     }
@@ -441,13 +512,14 @@ private fun ContributionEditor(
     scheduleFunding: List<BudgetScheduleFunding>,
     incomeCategories: List<String>,
     usedSingletonTypes: Set<BudgetTarget.Type>,
+    conventionalAmountEntry: Boolean,
     onBack: () -> Unit,
     onDelete: (() -> Unit)?,
     onSave: (BudgetTarget) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var type by remember { mutableStateOf(initialType) }
-    var amount by remember { mutableStateOf(initial?.amountCents?.let(::plainAmount) ?: "") }
+    var amountCents by remember { mutableStateOf(initial?.amountCents ?: 0L) }
     var priority by remember { mutableStateOf(initial?.priority?.takeIf { it > 0 } ?: 1) }
     var note by remember { mutableStateOf(initial?.note ?: "") }
 
@@ -509,29 +581,27 @@ private fun ContributionEditor(
     // REMAINDER
     var weight by remember { mutableStateOf(initial?.weight ?: 1) }
     var limitPeriod by remember { mutableStateOf(initial?.limitPeriod) }
-    var limitAmount by remember { mutableStateOf(initial?.limitAmountCents?.let(::plainAmount) ?: "") }
+    var limitAmountCents by remember { mutableStateOf(initial?.limitAmountCents ?: 0L) }
     var limitStartDate by remember { mutableStateOf(initial?.limitStartDate ?: "$month-01") }
     var limitHold by remember { mutableStateOf(initial?.limitHold ?: false) }
 
     var datePickerFor by remember { mutableStateOf<DateTarget?>(null) }
     var periodMenu by remember { mutableStateOf(false) }
 
-    val amountCents = runCatching { java.math.BigDecimal(amount).movePointRight(2).longValueExact() }.getOrNull()
-    val limitAmountCents = runCatching { java.math.BigDecimal(limitAmount).movePointRight(2).longValueExact() }.getOrNull()
     val needsStartingDate = type == BudgetTarget.Type.FIXED && (period == BudgetTarget.Period.WEEK || period == BudgetTarget.Period.DAY)
     val validStartingDate = !needsStartingDate || runCatching { LocalDate.parse(startingDate) }.isSuccess
     val validLimitStartDate = limitPeriod != BudgetTarget.LimitPeriod.WEEKLY ||
         runCatching { LocalDate.parse(limitStartDate) }.isSuccess
     val canSave = when (type) {
-        BudgetTarget.Type.FIXED -> amountCents?.let { it > 0L } == true
-        BudgetTarget.Type.BY_DATE -> amountCents?.let { it > 0L } == true &&
+        BudgetTarget.Type.FIXED -> amountCents > 0L
+        BudgetTarget.Type.BY_DATE -> amountCents > 0L &&
             runCatching { java.time.YearMonth.parse(targetMonth.take(7)) }.isSuccess
         BudgetTarget.Type.SCHEDULE -> !scheduleId.isNullOrBlank() || !scheduleName.isNullOrBlank()
         BudgetTarget.Type.PERCENTAGE -> percentage in 1..100
         BudgetTarget.Type.HISTORICAL -> historicalMonths in 1..24
         BudgetTarget.Type.REFILL -> true
         BudgetTarget.Type.REMAINDER -> weight >= 1 &&
-            (limitPeriod == null || limitAmountCents?.let { it > 0L } == true)
+            (limitPeriod == null || limitAmountCents > 0L)
         else -> false
     } && validStartingDate && validLimitStartDate
 
@@ -542,7 +612,7 @@ private fun ContributionEditor(
 
     fun buildTarget(): BudgetTarget = BudgetTarget(
         type = type,
-        amountCents = amountCents ?: 0L,
+        amountCents = amountCents,
         priority = priority.coerceAtLeast(1),
         note = note.trim().ifBlank { null },
         period = period, everyCount = everyCount.coerceAtLeast(1),
@@ -568,7 +638,7 @@ private fun ContributionEditor(
         } else null,
         weight = weight.coerceAtLeast(1),
         limitPeriod = if (type == BudgetTarget.Type.REMAINDER) limitPeriod else null,
-        limitAmountCents = if (type == BudgetTarget.Type.REMAINDER) limitAmountCents else null,
+        limitAmountCents = if (type == BudgetTarget.Type.REMAINDER) limitAmountCents.takeIf { it > 0L } else null,
         limitStartDate = if (type == BudgetTarget.Type.REMAINDER && limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) limitStartDate else null,
         limitHold = if (type == BudgetTarget.Type.REMAINDER) limitHold else false,
     )
@@ -580,10 +650,7 @@ private fun ContributionEditor(
         SectionTitle("Configuration")
         when (type) {
             BudgetTarget.Type.FIXED -> {
-                OutlinedTextField(
-                    value = amount, onValueChange = { amount = it }, modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Amount") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                )
+                AmountHero("Amount", amountCents, conventionalAmountEntry) { amountCents = it }
                 NumberStepper("Every", everyCount, 1..365) { everyCount = it }
                 Box {
                     ChoiceField("Period", period.jsonValue.replaceFirstChar(Char::uppercase) + "s") { periodMenu = true }
@@ -599,10 +666,7 @@ private fun ContributionEditor(
                 DateField("Starting", startingDate) { datePickerFor = DateTarget.STARTING_DATE }
             }
             BudgetTarget.Type.BY_DATE -> {
-                OutlinedTextField(
-                    value = amount, onValueChange = { amount = it }, modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Total amount") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                )
+                AmountHero("Total amount", amountCents, conventionalAmountEntry) { amountCents = it }
                 DateField("Target month", targetMonth.take(7) + "-01") { datePickerFor = DateTarget.TARGET_MONTH }
                 SwitchCard(icon = Icons.Outlined.Repeat, label = "Repeats", checked = repeats) { repeats = it }
                 if (repeats) {
@@ -721,19 +785,18 @@ private fun ContributionEditor(
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 SectionTitle("Optional cap")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = limitAmount, onValueChange = { limitAmount = it }, modifier = Modifier.weight(1f),
-                        label = { Text("Limit amount") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    )
-                    TextButton(onClick = {
-                        limitPeriod = when (limitPeriod) {
-                            null -> BudgetTarget.LimitPeriod.MONTHLY
-                            BudgetTarget.LimitPeriod.MONTHLY -> BudgetTarget.LimitPeriod.WEEKLY
-                            BudgetTarget.LimitPeriod.WEEKLY -> BudgetTarget.LimitPeriod.DAILY
-                            BudgetTarget.LimitPeriod.DAILY -> null
-                        }
-                    }) { Text(limitPeriod?.jsonValue ?: "No cap") }
+                ActuaFormCard {
+                    ActuaMenuRow(
+                        icon = Icons.Outlined.Savings,
+                        label = "Cap",
+                        value = limitPeriod?.jsonValue?.replaceFirstChar(Char::uppercase) ?: "No cap",
+                        choices = listOf<Pair<String, BudgetTarget.LimitPeriod?>>("No cap" to null) +
+                            BudgetTarget.LimitPeriod.entries.map { it.jsonValue.replaceFirstChar(Char::uppercase) to it },
+                    ) { limitPeriod = it }
+                    if (limitPeriod != null) {
+                        ActuaCardDivider()
+                        AmountRow("Limit amount", limitAmountCents, conventionalAmountEntry) { limitAmountCents = it }
+                    }
                 }
                 if (limitPeriod == BudgetTarget.LimitPeriod.WEEKLY) {
                     DateField("Weekly start date", limitStartDate) { datePickerFor = DateTarget.LIMIT_START }
@@ -758,19 +821,31 @@ private fun ContributionEditor(
                     options = listOf(true to "Increase", false to "Decrease"),
                     selected = adjustmentIncrease,
                 ) { adjustmentIncrease = it }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = adjustmentMagnitude, onValueChange = { adjustmentMagnitude = it }, modifier = Modifier.weight(1f),
-                        label = { Text(if (adjustmentType == BudgetTarget.AdjustmentType.PERCENT) "Percent" else "Amount") },
-                        singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    )
-                    TextButton(onClick = {
-                        adjustmentType = if (adjustmentType == BudgetTarget.AdjustmentType.PERCENT) {
-                            BudgetTarget.AdjustmentType.FIXED
-                        } else {
-                            BudgetTarget.AdjustmentType.PERCENT
+                ActuaFormCard {
+                    ActuaMenuRow(
+                        icon = Icons.Outlined.Tune,
+                        label = "Adjust by",
+                        value = if (adjustmentType == BudgetTarget.AdjustmentType.PERCENT) "Percent" else "Fixed amount",
+                        choices = listOf(
+                            "Percent" to BudgetTarget.AdjustmentType.PERCENT,
+                            "Fixed amount" to BudgetTarget.AdjustmentType.FIXED,
+                        ),
+                    ) { adjustmentType = it }
+                    ActuaCardDivider()
+                    if (adjustmentType == BudgetTarget.AdjustmentType.PERCENT) {
+                        ActuaFormTextField(
+                            icon = Icons.Outlined.Percent,
+                            label = "Percent",
+                            value = adjustmentMagnitude,
+                            onValueChange = { adjustmentMagnitude = it },
+                            placeholder = "0",
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        )
+                    } else {
+                        AmountRow("Amount", parseInputCents(adjustmentMagnitude) ?: 0L, conventionalAmountEntry) {
+                            adjustmentMagnitude = plainAmount(it)
                         }
-                    }) { Text(if (adjustmentType == BudgetTarget.AdjustmentType.PERCENT) "%" else "Fixed") }
+                    }
                 }
             }
         }

@@ -15,6 +15,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,17 +25,29 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -82,6 +96,9 @@ import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
+import com.azimulkabir.actua.ui.components.ActuaFormTextField
+import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.theme.Spacing
 import kotlinx.coroutines.Dispatchers
@@ -714,14 +731,12 @@ fun ConnectionScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(
+            ConnectionAction(
+                text = if (demoActive) "Reset demo budget" else "Try demo budget",
                 onClick = ::openDemoBudget,
                 enabled = !loading && downloadingId == null && !syncing,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (loading) CircularProgressIndicator(Modifier.padding(end = 8.dp))
-                Text(if (demoActive) "Reset demo budget" else "Try demo budget")
-            }
+                busy = loading,
+            )
             Text(
                 "The demo stays on this device and has no cloud file ID, encryption key or sync registration. It cannot change a server budget.",
                 style = MaterialTheme.typography.bodySmall,
@@ -757,25 +772,55 @@ fun ConnectionScreen(
                     modifier = Modifier.clickable { uriHandler.openUri("https://actualbudget.org") },
                 )
             }
-            OutlinedTextField(
-                value = serverUrl, onValueChange = { serverUrl = it }, label = { Text("Server URL") },
-                placeholder = { Text("https://actual.example.com") }, singleLine = true,
-                // Downloaded budgets belong to this server, so re-sign-in can't switch servers.
-                enabled = (!connected || editingConnection) && !sessionExpired && !loading, modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-            )
-            OutlinedTextField(
-                value = fallbackServerUrl, onValueChange = { fallbackServerUrl = it },
-                label = { Text("Fallback server URL (optional)") },
-                placeholder = { Text("https://actual-local.example.com") }, singleLine = true,
-                // Downloaded budgets belong to this server, so re-sign-in can't switch servers.
-                enabled = (!connected || editingConnection) && !sessionExpired && !loading, modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-            )
+            // Downloaded budgets belong to this server, so re-sign-in can't switch servers.
+            val urlsEditable = (!connected || editingConnection) && !sessionExpired && !loading
+            ActuaFormCard {
+                if (connected) {
+                    ActuaFormRow(icon = Icons.Outlined.CloudDone, label = "Status", value = "Connected")
+                    ActuaCardDivider()
+                }
+                ActuaFormTextField(
+                    icon = Icons.Outlined.Link,
+                    label = "Server URL",
+                    value = serverUrl,
+                    onValueChange = { serverUrl = it },
+                    placeholder = "https://actual.example.com",
+                    enabled = urlsEditable,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                )
+                ActuaCardDivider()
+                ActuaFormTextField(
+                    icon = Icons.Outlined.Dns,
+                    label = "Fallback server URL (optional)",
+                    value = fallbackServerUrl,
+                    onValueChange = { fallbackServerUrl = it },
+                    placeholder = "https://actual-local.example.com",
+                    enabled = urlsEditable,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                )
+                if (!connected) {
+                    ActuaCardDivider()
+                    ActuaFormTextField(
+                        icon = Icons.Outlined.Key,
+                        label = "Server password",
+                        value = password,
+                        onValueChange = { password = it },
+                        placeholder = "Required",
+                        enabled = !loading,
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailing = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    contentDescription = if (passwordVisible) "Hide password" else "Show password")
+                            }
+                        },
+                    )
+                }
+            }
             if (!connected || editingConnection) {
-                Text("Custom HTTP headers (optional)", style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (headerEntries.isNotEmpty()) ActuaFormCard {
+                ActuaGroupLabel("Custom HTTP headers (optional)")
+                ActuaFormCard {
                     headerEntries.forEachIndexed { index, (name, value) ->
                         if (index > 0) ActuaCardDivider(inset = Spacing.lg)
                         Row(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
@@ -792,29 +837,29 @@ fun ConnectionScreen(
                             ) { Icon(Icons.Outlined.Delete, contentDescription = "Remove $name header") }
                         }
                     }
+                    if (headerEntries.isNotEmpty()) ActuaCardDivider(inset = Spacing.lg)
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Add,
+                        label = "Add header",
+                        value = null,
+                        enabled = !loading,
+                        onClick = { showAddHeader = true },
+                    )
                 }
-                OutlinedButton(
-                    onClick = { showAddHeader = true }, enabled = !loading, modifier = Modifier.fillMaxWidth(),
-                ) { Text("Add header") }
                 Text(
                     "Sent with every request to this server, such as Cloudflare Access service-token headers.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (!connected) {
-                OutlinedTextField(
-                    value = password, onValueChange = { password = it }, label = { Text("Server password") },
-                    singleLine = true, enabled = !loading, modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                contentDescription = if (passwordVisible) "Hide password" else "Show password")
-                        }
+                ConnectionAction(
+                    text = when {
+                        loading -> "Connecting…"
+                        sessionExpired -> "Sign in again with password"
+                        else -> "Connect with password"
                     },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                )
-                Button(
+                    primary = true,
+                    busy = loading,
                     onClick = {
                         if (Build.VERSION.SDK_INT >= 37 && ContextCompat.checkSelfPermission(
                                 context, Manifest.permission.ACCESS_LOCAL_NETWORK,
@@ -826,16 +871,9 @@ fun ConnectionScreen(
                         }
                     },
                     enabled = serverUrl.isNotBlank() && password.isNotBlank() && !loading,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    if (loading) CircularProgressIndicator(modifier = Modifier.padding(end = 10.dp))
-                    Text(when {
-                        loading -> "Connecting…"
-                        sessionExpired -> "Sign in again with password"
-                        else -> "Connect with password"
-                    })
-                }
-                OutlinedButton(
+                )
+                ConnectionAction(
+                    text = "Sign in with OpenID",
                     onClick = {
                         if (Build.VERSION.SDK_INT >= 37 && ContextCompat.checkSelfPermission(
                                 context, Manifest.permission.ACCESS_LOCAL_NETWORK,
@@ -847,30 +885,24 @@ fun ConnectionScreen(
                         }
                     },
                     enabled = serverUrl.isNotBlank() && !loading,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Sign in with OpenID")
-                }
+                )
                 Text(
                     "OpenID Connect sign-in opens your browser and returns the Actual session securely to this device. If Actual asks for the server password on the first OpenID sign-in, enter it above and retry.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (sessionExpired) {
-                    OutlinedButton(onClick = ::disconnect, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
-                        Text("Disconnect")
-                    }
+                    ConnectionAction(text = "Disconnect", onClick = ::disconnect, enabled = !loading)
                 }
             } else {
-                Text("● Connected", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                if (editingConnection) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(onClick = {
+                if (editingConnection) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    ConnectionAction(text = "Cancel", modifier = Modifier.weight(1f), onClick = {
                         serverUrl = credentials.serverUrl
                         fallbackServerUrl = credentials.fallbackServerUrl
                         headerEntries = credentials.customHeaders.toList()
                         editingConnection = false
-                    }, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    Button(onClick = {
+                    })
+                    ConnectionAction(text = "Save", primary = true, busy = loading, modifier = Modifier.weight(1f), onClick = {
                         loading = true; message = null
                         scope.launch {
                             runCatching { withContext(Dispatchers.IO) {
@@ -886,9 +918,9 @@ fun ConnectionScreen(
                             }.onFailure { message = it.message ?: "Could not reach the new primary server." }
                             loading = false
                         }
-                    }, enabled = serverUrl.isNotBlank() && !loading, modifier = Modifier.weight(1f)) { Text("Save") }
+                    }, enabled = serverUrl.isNotBlank() && !loading)
                 }
-                OutlinedButton(onClick = ::disconnect, modifier = Modifier.fillMaxWidth()) { Text("Disconnect") }
+                ConnectionAction(text = "Disconnect", onClick = ::disconnect)
             }
             message?.let {
                 Text(it, color = if (connected || demoActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
@@ -906,37 +938,43 @@ fun ConnectionScreen(
                     )
                 }
                 ActuaFormCard {
-                    Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Row(Modifier.fillMaxWidth()) {
-                        Text("Status", Modifier.weight(1f))
-                        Text(if (syncStatus.running || syncing) {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Sync,
+                        label = "Status",
+                        value = null,
+                        supportingValue = if (syncStatus.running || syncing) {
                             syncStatus.activeTrigger?.let { "Syncing · $it" } ?: "Syncing"
                         } else if (syncStatus.error != null) "Error" else "Idle",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Row(Modifier.fillMaxWidth()) {
-                        Text("Last sync", Modifier.weight(1f))
-                        Text(syncStatus.lastSuccessMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Row(Modifier.fillMaxWidth()) {
-                        Text("Last app-open refresh", Modifier.weight(1f))
-                        Text(syncStatus.lastForegroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Row(Modifier.fillMaxWidth()) {
-                        Text("Last background attempt", Modifier.weight(1f))
-                        Text(syncStatus.lastBackgroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    )
+                    ActuaCardDivider()
+                    ActuaFormRow(
+                        icon = Icons.Outlined.History,
+                        label = "Last sync",
+                        value = null,
+                        supportingValue = syncStatus.lastSuccessMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
+                    )
+                    ActuaCardDivider()
+                    ActuaFormRow(
+                        icon = Icons.Outlined.PhoneAndroid,
+                        label = "Last app-open refresh",
+                        value = null,
+                        supportingValue = syncStatus.lastForegroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
+                    )
+                    ActuaCardDivider()
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Schedule,
+                        label = "Last background attempt",
+                        value = null,
+                        supportingValue = syncStatus.lastBackgroundRefreshMillis.takeIf { it > 0 }?.let(::relativeTime) ?: "Never",
+                    )
                     if (syncStatus.lastDurationMillis > 0) {
-                        Row(Modifier.fillMaxWidth()) {
-                            Text("Last sync duration", Modifier.weight(1f))
-                            Text(formatSyncDuration(syncStatus.lastDurationMillis),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
+                        ActuaCardDivider()
+                        ActuaFormRow(
+                            icon = Icons.Outlined.Timer,
+                            label = "Last sync duration",
+                            value = null,
+                            supportingValue = formatSyncDuration(syncStatus.lastDurationMillis),
+                        )
                     }
                 }
                 Text(
@@ -945,8 +983,9 @@ fun ConnectionScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 syncStatus.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                OutlinedButton(enabled = !demoActive && !syncing && !loading && downloadingId == null,
-                    modifier = Modifier.fillMaxWidth(), onClick = {
+                FilledTonalButton(enabled = !demoActive && !syncing && !loading && downloadingId == null,
+                    modifier = Modifier.fillMaxWidth().height(Sizes.secondaryButtonHeight),
+                    shape = MaterialTheme.shapes.large, onClick = {
                         syncing = true; message = null
                         scope.launch {
                             runCatching { withContext(Dispatchers.IO) {
@@ -989,19 +1028,20 @@ fun ConnectionScreen(
                 }
                 AnimatedVisibility(visible = budgetsExpanded) {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        OutlinedButton(
+                        ConnectionAction(
+                            text = "Create new budget",
                             onClick = { showCreateBudget = true; newBudgetName = "" },
                             enabled = !loading && downloadingId == null,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Create new budget") }
-                        if (remoteBudgets.any { it.encryptedKeyId != null }) {
-                            OutlinedTextField(
+                        )
+                        if (remoteBudgets.any { it.encryptedKeyId != null }) ActuaFormCard {
+                            ActuaFormTextField(
+                                icon = Icons.Outlined.Key,
+                                label = "Budget encryption password",
                                 value = encryptionPassword,
                                 onValueChange = { encryptionPassword = it },
-                                label = { Text("Budget encryption password") },
-                                singleLine = true,
+                                placeholder = "Needed to open encrypted budgets",
                                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             )
                         }
                         if (remoteBudgets.isNotEmpty()) ActuaFormCard {
@@ -1029,10 +1069,11 @@ fun ConnectionScreen(
                                     }
                                     // The active budget has no button: its local copy is already open, and
                                     // replacing it with the server snapshot would discard unsynced edits.
-                                    if (!isActive) OutlinedButton(
+                                    if (!isActive) FilledTonalButton(
                                         enabled = downloadingId == null,
+                                        shape = MaterialTheme.shapes.large,
                                         onClick = {
-                                            val token = credentials.token() ?: return@OutlinedButton
+                                            val token = credentials.token() ?: return@FilledTonalButton
                                             onBeforeBudgetReplacement()
                                             downloadingId = remote.fileId
                                             message = null
@@ -1064,7 +1105,9 @@ fun ConnectionScreen(
                                             }
                                         },
                                     ) {
-                                        if (downloadingId == remote.fileId) CircularProgressIndicator(Modifier.padding(end = 8.dp))
+                                        if (downloadingId == remote.fileId) {
+                                            CircularProgressIndicator(Modifier.padding(end = Spacing.sm).size(18.dp), strokeWidth = 2.dp)
+                                        }
                                         Text(if (local == null) "Download" else "Open")
                                     }
                                     TextButton(
@@ -1074,8 +1117,8 @@ fun ConnectionScreen(
                                 }
                             }
                         }
-                        OutlinedButton(onClick = { loadBudgets() }, enabled = !loading && downloadingId == null,
-                            modifier = Modifier.fillMaxWidth()) { Text("Refresh budget list") }
+                        ConnectionAction(text = "Refresh budget list", onClick = { loadBudgets() },
+                            enabled = !loading && downloadingId == null)
                     }
                 }
             }
@@ -1087,32 +1130,73 @@ fun ConnectionScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !backupBusy,
-                    onClick = { showBackups = true },
-                ) { Text("Backups  ${backups.count { it is BackupItem.Archive }}") }
-                OutlinedButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !backupBusy && downloadingId == null && !syncing,
-                    onClick = {
-                        if (backups.any { it is BackupItem.Latest }) {
-                            confirmQuickBackup = true
-                            return@OutlinedButton
-                        }
-                        backupBusy = true; message = null
-                        scope.launch {
-                            runCatching { withContext(Dispatchers.IO) { backupService.makeBackup(budgetId) } }
-                                .onSuccess { message = "Backup created." }
-                                .onFailure { message = it.message ?: "Could not create a backup." }
-                            backupBusy = false; refreshBackups()
-                        }
-                    },
-                ) {
-                    if (backupBusy) CircularProgressIndicator(Modifier.padding(end = 8.dp))
-                    Text(if (backupBusy) "Working…" else "Create backup now")
+                ActuaFormCard {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Inventory2,
+                        label = "Backups",
+                        value = null,
+                        supportingValue = backups.count { it is BackupItem.Archive }.toString(),
+                        enabled = !backupBusy,
+                        onClick = { showBackups = true },
+                    )
+                    ActuaCardDivider()
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Backup,
+                        label = if (backupBusy) "Working…" else "Create backup now",
+                        value = null,
+                        enabled = !backupBusy && downloadingId == null && !syncing,
+                        trailing = if (backupBusy) {
+                            { CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) }
+                        } else null,
+                        onClick = {
+                            if (backups.any { it is BackupItem.Latest }) {
+                                confirmQuickBackup = true
+                            } else {
+                                backupBusy = true; message = null
+                                scope.launch {
+                                    runCatching { withContext(Dispatchers.IO) { backupService.makeBackup(budgetId) } }
+                                        .onSuccess { message = "Backup created." }
+                                        .onFailure { message = it.message ?: "Could not create a backup." }
+                                    backupBusy = false; refreshBackups()
+                                }
+                            }
+                        },
+                    )
                 }
             }
         }
+    }
+}
+
+/** A full-width action in the form style: the filled main action when [primary], otherwise tonal. */
+@Composable
+private fun ConnectionAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    primary: Boolean = false,
+    busy: Boolean = false,
+) {
+    val content: @Composable RowScope.() -> Unit = {
+        if (busy) CircularProgressIndicator(Modifier.padding(end = Spacing.sm).size(18.dp), strokeWidth = 2.dp)
+        Text(text)
+    }
+    if (primary) {
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier.fillMaxWidth().height(Sizes.primaryButtonHeight),
+            shape = MaterialTheme.shapes.large,
+            content = content,
+        )
+    } else {
+        FilledTonalButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier.fillMaxWidth().height(Sizes.secondaryButtonHeight),
+            shape = MaterialTheme.shapes.large,
+            content = content,
+        )
     }
 }

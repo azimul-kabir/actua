@@ -2000,6 +2000,7 @@ fun AppNavigation(
                     scheduleFunding = budgetScheduleFunding,
                     incomeCategories = budgetGroups.filter { it.isIncome }.flatMap { it.categories }
                         .map { it.name }.filter { it.isNotBlank() }.distinct(),
+                    conventionalAmountEntry = conventionalAmountEntry,
                     onBack = {
                         reopenBudgetCategory = editingAutomationCategory
                         editingAutomationCategory = null

@@ -5,7 +5,6 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -68,7 +67,7 @@ class BudgetAutomationScreenTest {
         compose.onNodeWithText("+ Add an automation").performClick()
         // Page title reflects the selected type; it also appears once more as the selected type card.
         compose.onAllNodesWithText("Fixed amount").assertCountEquals(2)
-        compose.onNode(hasSetTextAction() and hasText("Amount", substring = true)).performTextInput("25")
+        enterAmount("2", "5")
         compose.onNodeWithText("Add automation").performScrollTo().performClick()
 
         compose.onNodeWithText("Save automations").performScrollTo().performClick()
@@ -93,7 +92,7 @@ class BudgetAutomationScreenTest {
 
         // Add the balance cap Option first.
         compose.onNodeWithText("+ Add balance cap").performClick()
-        compose.onNode(hasSetTextAction() and hasText("Amount", substring = true)).performTextInput("50")
+        enterAmount("5", "5")
         compose.onNodeWithText("Add balance cap").performScrollTo().performClick()
 
         // Now Refill to cap is available with no warning and no fields of its own.
@@ -105,7 +104,7 @@ class BudgetAutomationScreenTest {
         compose.onNodeWithText("Save automations").performScrollTo().performClick()
 
         assertEquals(2, saved?.size)
-        assertTrue(saved?.any { it.type == BudgetTarget.Type.LIMIT && it.amountCents == 5_000L } == true)
+        assertTrue(saved?.any { it.type == BudgetTarget.Type.LIMIT && it.amountCents == 5_500L } == true)
         assertTrue(saved?.any { it.type == BudgetTarget.Type.REFILL } == true)
     }
 
@@ -169,6 +168,41 @@ class BudgetAutomationScreenTest {
         compose.onNodeWithText("No automations yet").assertExists()
         compose.onNodeWithText("Save (remove automations)").performScrollTo().performClick()
         assertTrue(saved?.isEmpty() == true)
+    }
+
+    @Test
+    fun noteIsEditedThroughTheNoteSheet() {
+        val category = BudgetCategory(name = "Rent", assigned = 0, spent = 0)
+        var saved: List<BudgetTarget>? = null
+        compose.setContent {
+            MaterialTheme {
+                BudgetAutomationScreen(
+                    group = group, category = category, month = "2026-09", hideDecimalPlaces = false,
+                    onBack = {}, onSave = { saved = it },
+                )
+            }
+        }
+
+        compose.onNodeWithText("+ Add long-term goal").performClick()
+        enterAmount("5", "5")
+        compose.onNodeWithText("Add note").performScrollTo().performClick()
+        compose.onNode(hasSetTextAction()).performTextInput("Emergency fund")
+        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithText("Emergency fund").assertExists()
+        compose.onNodeWithText("Add long-term goal").performScrollTo().performClick()
+        compose.onNodeWithText("Save automations").performScrollTo().performClick()
+
+        val goal = saved?.single()
+        assertEquals(BudgetTarget.Type.GOAL, goal?.type)
+        assertEquals(5_500L, goal?.amountCents)
+        assertEquals("Emergency fund", goal?.note)
+    }
+
+    /** Opens the amount hero's calculator and types [keys], then confirms. */
+    private fun enterAmount(vararg keys: String) {
+        compose.onNodeWithContentDescription("amount", substring = true, ignoreCase = true).performClick()
+        keys.forEach { compose.onNodeWithText(it).performClick() }
+        compose.onNodeWithText("✓").performClick()
     }
 
     @Test
