@@ -22,6 +22,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Accounts now shows your total up top and groups accounts into rounded cards with type icons ([#785](https://github.com/azimul-kabir/actua/pull/785))
 - Tags, payee locations, backups, schedules and bank sync now show their lists in rounded cards ([#787](https://github.com/azimul-kabir/actua/pull/787))
 - Transaction, account, schedule and bank sync sheets now show their actions in rounded cards with icons ([#792](https://github.com/azimul-kabir/actua/pull/792))
+- The remaining Budget sheets now show their actions and previews in rounded cards with icons ([#797](https://github.com/azimul-kabir/actua/pull/797))
 
 ### Added
 

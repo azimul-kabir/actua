@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -46,6 +47,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.automirrored.outlined.Notes
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -66,6 +68,14 @@ import androidx.compose.material.icons.outlined.Input
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.TrackChanges
+import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.CleaningServices
+import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
@@ -140,6 +150,10 @@ import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
+import com.azimulkabir.actua.ui.components.ActuaSheetContent
+import com.azimulkabir.actua.ui.components.ActuaSheetCard
+import com.azimulkabir.actua.ui.components.ActuaSheetAction
+import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.model.BudgetProgressState
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
 import com.azimulkabir.actua.ui.theme.PillShape
@@ -1173,44 +1187,29 @@ private fun OverspentCategoriesSheet(
     onSelect: (BudgetGroup, BudgetCategory) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Text(
-                "Cover Overspending",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                "Choose a category to cover",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp, bottom = 10.dp),
-            )
-            categories.forEach { (group, category) ->
-                Surface(
-                    onClick = { onSelect(group, category) },
-                    shape = MaterialTheme.shapes.large,
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(category.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                            Text(group.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Text(
-                            formatMoneyCents(category.balanceCents, hideDecimalPlaces),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        ActuaSheetContent {
+            Column {
+                ActuaSheetTitle("Cover Overspending")
+                Text(
+                    "Choose a category to cover",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.xl),
+                )
+            }
+            ActuaSheetCard {
+                categories.forEachIndexed { index, (group, category) ->
+                    if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                    PreviewChangeRow(
+                        title = category.name,
+                        subtitle = group.name,
+                        value = formatMoneyCents(category.balanceCents, hideDecimalPlaces),
+                        valueColor = MaterialTheme.colorScheme.error,
+                        onClick = { onSelect(group, category) },
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
@@ -1945,27 +1944,6 @@ private fun BudgetModeButton(
 }
 
 @Composable
-private fun BudgetEntryAction(
-    icon: ImageVector,
-    label: String,
-    modifier: Modifier,
-    onClick: () -> Unit,
-    selected: Boolean = false,
-) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(onClick = onClick, color = if (selected) MaterialTheme.colorScheme.secondaryContainer
-            else MaterialTheme.colorScheme.surfaceContainer,
-            shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
-            Icon(icon, contentDescription = null, tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 11.dp))
-        }
-        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1,
-            modifier = Modifier.padding(top = 5.dp))
-    }
-}
-
-@Composable
 private fun InlineCalculatorAmount(label: String, amount: Long, modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "$label cursor")
     val cursorAlpha by transition.animateFloat(
@@ -2076,7 +2054,6 @@ private fun BudgetSummarySheet(
         }
     }
     var selectedCategory by remember(options) { mutableStateOf(options.firstOrNull()) }
-    var categoryPickerExpanded by remember { mutableStateOf(false) }
     val moveCalculator = remember(toBudgetCents) {
         CalculatorAmountState(kotlin.math.abs(toBudgetCents), allowsNegative = false)
     }
@@ -2091,59 +2068,45 @@ private fun BudgetSummarySheet(
     }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
+    val optionLabels = remember(options) { options.associateBy { "${it.first} · ${it.second}" } }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             Modifier.fillMaxWidth()
                 .verticalScroll(androidx.compose.foundation.rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .padding(bottom = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            Text(
-                if (covering) "Cover To Budget" else "Budget Summary",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+            ActuaSheetTitle(if (covering) "Cover To Budget" else "Budget Summary")
+            ActuaHeroAmount(
+                amount = formatMoneyCents(toBudgetCents, hideDecimalPlaces),
+                amountColor = if (covering) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                size = ActuaHeroSize.Medium,
+                supportingText = if (bufferedCents != 0L) {
+                    "${formatMoneyCents(bufferedCents, hideDecimalPlaces)} held for next month"
+                } else null,
             )
-            Text(
-                formatMoneyCents(toBudgetCents, hideDecimalPlaces),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = if (covering) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            if (bufferedCents != 0L) {
-                Text(
-                    "${formatMoneyCents(bufferedCents, hideDecimalPlaces)} held for next month",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                BudgetEntryAction(
-                    Icons.Outlined.SwapHoriz,
-                    if (covering) "Cover From" else "Move to Category",
-                    Modifier.weight(1f),
-                    onClick = { action = if (action == BudgetSummaryAction.MOVE) null else BudgetSummaryAction.MOVE },
+                BudgetModeButton(
+                    text = if (covering) "Cover From" else "Move to Category",
+                    icon = Icons.Outlined.SwapHoriz,
                     selected = action == BudgetSummaryAction.MOVE,
-                )
+                    modifier = Modifier.fillMaxWidth(),
+                ) { action = if (action == BudgetSummaryAction.MOVE) null else BudgetSummaryAction.MOVE }
                 if (!covering) {
-                    BudgetEntryAction(
-                        Icons.Outlined.Savings,
-                        "Hold for Next Month",
-                        Modifier.weight(1f),
-                        onClick = { action = if (action == BudgetSummaryAction.HOLD) null else BudgetSummaryAction.HOLD },
+                    BudgetModeButton(
+                        text = "Hold for Next Month",
+                        icon = Icons.Outlined.Savings,
                         selected = action == BudgetSummaryAction.HOLD,
-                    )
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { action = if (action == BudgetSummaryAction.HOLD) null else BudgetSummaryAction.HOLD }
                 }
-                if (bufferedCents != 0L) {
-                    BudgetEntryAction(
-                        Icons.Outlined.RestartAlt,
-                        "Reset Hold",
-                        Modifier.weight(1f),
-                        onClick = onResetNextMonthBuffer,
-                    )
+            }
+            if (bufferedCents != 0L) {
+                ActuaSheetCard {
+                    ActuaSheetAction("Reset Hold", icon = Icons.Outlined.RestartAlt, onClick = onResetNextMonthBuffer)
                 }
             }
             AnimatedContent(
@@ -2156,32 +2119,28 @@ private fun BudgetSummarySheet(
                 label = "Budget summary action",
             ) { currentAction ->
                 when (currentAction) {
-                    BudgetSummaryAction.MOVE -> Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
+                    BudgetSummaryAction.MOVE -> Column(
+                        Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
                         Text(
                             if (covering) "Choose a category to move money from"
                             else "Choose a category to fund from To Budget",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 10.dp),
+                            modifier = Modifier.padding(horizontal = Spacing.xs),
                         )
-                        Box(Modifier.fillMaxWidth()) {
-                            Button(
-                                onClick = { categoryPickerExpanded = true },
-                                enabled = options.isNotEmpty(),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(selectedCategory?.let { "${it.first} · ${it.second}" } ?: "No categories available")
-                            }
-                            DropdownMenu(expanded = categoryPickerExpanded, onDismissRequest = { categoryPickerExpanded = false }) {
-                                options.forEach { option ->
-                                    DropdownMenuItem(
-                                        text = { Text("${option.first} · ${option.second}") },
-                                        onClick = { selectedCategory = option; categoryPickerExpanded = false },
-                                    )
-                                }
-                            }
+                        ActuaFormCard {
+                            PickerTextField(
+                                label = "Category",
+                                value = selectedCategory?.let { "${it.first} · ${it.second}" }.orEmpty(),
+                                options = optionLabels.keys.toList(),
+                                onValueChange = { label -> optionLabels[label]?.let { selectedCategory = it } },
+                                rowIcon = Icons.Outlined.Category,
+                                placeholder = "No categories available",
+                            )
                         }
-                        InlineCalculatorAmount("Amount", moveAmount, Modifier.padding(top = 10.dp))
+                        InlineCalculatorAmount("Amount", moveAmount)
                         CompactCalculatorPad(
                             calculator = moveCalculator,
                             horizontalPadding = 0.dp,
@@ -2195,12 +2154,15 @@ private fun BudgetSummarySheet(
                             },
                         )
                     }
-                    BudgetSummaryAction.HOLD -> Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
+                    BudgetSummaryAction.HOLD -> Column(
+                        Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
                         Text(
                             "Set aside part or all of To Budget instead of budgeting it now",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 10.dp),
+                            modifier = Modifier.padding(horizontal = Spacing.xs),
                         )
                         InlineCalculatorAmount("Amount", holdAmount)
                         CompactCalculatorPad(
@@ -2594,28 +2556,48 @@ private fun CategoryActionsSheet(
     onSetHidden: (Boolean) -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+        ActuaSheetContent {
             ActuaSheetTitle(category.name)
-            SheetAction("Rename category", onRename)
-            SheetAction(
-                if (favorite) "Remove from favorites" else "Add to favorites",
-                onClick = { onFavoriteChange(!favorite) },
-            )
-            if (!category.isIncome) {
-                SheetAction(when {
-                    category.hasUnsupportedTarget -> "View target"
-                    category.automations.isEmpty() -> "Set automations"
-                    else -> "Edit automations"
-                }, onSetTarget)
-                SheetAction("Budget details", onDetails)
-                SheetAction("Edit budgeted amount", onEditBudget)
+            ActuaSheetCard {
+                if (!category.isIncome) {
+                    ActuaSheetAction("Edit budgeted amount", icon = Icons.Outlined.Calculate, onClick = onEditBudget)
+                    ActuaCardDivider()
+                    if (category.available != 0) {
+                        ActuaSheetAction(if (category.available < 0) "Cover overspending" else "Move money",
+                            icon = Icons.Outlined.SwapHoriz, onClick = onMoveMoney)
+                        ActuaCardDivider()
+                    }
+                    ActuaSheetAction(when {
+                        category.hasUnsupportedTarget -> "View target"
+                        category.automations.isEmpty() -> "Set automations"
+                        else -> "Edit automations"
+                    }, icon = Icons.Outlined.AutoAwesome, onClick = onSetTarget)
+                    ActuaCardDivider()
+                    ActuaSheetAction("Budget details", icon = Icons.Outlined.Info, onClick = onDetails)
+                    ActuaCardDivider()
+                }
+                ActuaSheetAction("Transactions this month", icon = Icons.AutoMirrored.Outlined.ReceiptLong,
+                    onClick = onTransactionsThisMonth)
+                ActuaCardDivider()
+                ActuaSheetAction("All transactions", icon = Icons.AutoMirrored.Outlined.FormatListBulleted,
+                    onClick = onAllTransactions)
             }
-            SheetAction("Transactions this month", onTransactionsThisMonth)
-            SheetAction("All transactions", onAllTransactions)
-            if (!category.isIncome && category.available != 0) {
-                SheetAction(if (category.available < 0) "Cover overspending" else "Move money", onMoveMoney)
+            ActuaSheetCard {
+                ActuaSheetAction(
+                    if (favorite) "Remove from favorites" else "Add to favorites",
+                    icon = if (favorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                    onClick = { onFavoriteChange(!favorite) },
+                )
+                ActuaCardDivider()
+                ActuaSheetAction("Rename category", icon = Icons.Outlined.Edit, onClick = onRename)
+                ActuaCardDivider()
+                ActuaSheetAction(
+                    if (hidden) "Unhide category" else "Hide category",
+                    icon = if (hidden) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                    destructive = !hidden,
+                    onClick = { onSetHidden(!hidden) },
+                )
             }
-            SheetAction(if (hidden) "Unhide category" else "Hide category", { onSetHidden(!hidden) }, destructive = !hidden)
         }
     }
 }
@@ -2629,13 +2611,17 @@ private fun FundingActionsSheet(
     onMoveMoney: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+        ActuaSheetContent {
             ActuaSheetTitle(category.name)
-            SheetAction("Edit budgeted amount", onEditAssigned)
-            SheetAction(
-                if (category.balanceCents < 0L) "Cover overspending" else "Move money",
-                onMoveMoney,
-            )
+            ActuaSheetCard {
+                ActuaSheetAction("Edit budgeted amount", icon = Icons.Outlined.Calculate, onClick = onEditAssigned)
+                ActuaCardDivider()
+                ActuaSheetAction(
+                    if (category.balanceCents < 0L) "Cover overspending" else "Move money",
+                    icon = Icons.Outlined.SwapHoriz,
+                    onClick = onMoveMoney,
+                )
+            }
         }
     }
 }
@@ -2645,15 +2631,28 @@ private fun FundingActionsSheet(
 private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRename: () -> Unit,
     hidden: Boolean, onSetHidden: (Boolean) -> Unit, onApplyTemplate: (Boolean) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+        ActuaSheetContent {
             ActuaSheetTitle(group.name)
-            SheetAction("Rename group", onRename)
             if (!group.isIncome && !hidden) {
-                SheetAction("Apply budget templates", onClick = { onApplyTemplate(false) })
-                SheetAction("Overwrite budget templates", onClick = { onApplyTemplate(true) })
+                ActuaSheetCard {
+                    ActuaSheetAction("Apply budget templates", icon = Icons.Outlined.AutoAwesome,
+                        onClick = { onApplyTemplate(false) })
+                    ActuaCardDivider()
+                    ActuaSheetAction("Overwrite budget templates", icon = Icons.Outlined.RestartAlt,
+                        onClick = { onApplyTemplate(true) })
+                }
             }
-            if (!group.isIncome || hidden) {
-                SheetAction(if (hidden) "Unhide group" else "Hide group", { onSetHidden(!hidden) }, destructive = !hidden)
+            ActuaSheetCard {
+                ActuaSheetAction("Rename group", icon = Icons.Outlined.Edit, onClick = onRename)
+                if (!group.isIncome || hidden) {
+                    ActuaCardDivider()
+                    ActuaSheetAction(
+                        if (hidden) "Unhide group" else "Hide group",
+                        icon = if (hidden) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                        destructive = !hidden,
+                        onClick = { onSetHidden(!hidden) },
+                    )
+                }
             }
         }
     }
@@ -2664,12 +2663,21 @@ private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRenam
 private fun AddBudgetSheet(onDismiss: () -> Unit,
     onApplyTemplate: (Boolean) -> Unit, onPreviewCleanup: () -> Unit, onPreviewZeroBudget: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(bottom = 28.dp)) {
+        ActuaSheetContent {
             ActuaSheetTitle("Add to budget")
-            SheetAction("Apply budget templates", onClick = { onApplyTemplate(false) })
-            SheetAction("Overwrite budget templates", onClick = { onApplyTemplate(true) })
-            SheetAction("Month-end cleanup", onClick = onPreviewCleanup)
-            SheetAction("Set budgets to zero", onClick = onPreviewZeroBudget, destructive = true)
+            ActuaSheetCard {
+                ActuaSheetAction("Apply budget templates", icon = Icons.Outlined.AutoAwesome,
+                    onClick = { onApplyTemplate(false) })
+                ActuaCardDivider()
+                ActuaSheetAction("Overwrite budget templates", icon = Icons.Outlined.RestartAlt,
+                    onClick = { onApplyTemplate(true) })
+                ActuaCardDivider()
+                ActuaSheetAction("Month-end cleanup", icon = Icons.Outlined.CleaningServices, onClick = onPreviewCleanup)
+            }
+            ActuaSheetCard {
+                ActuaSheetAction("Set budgets to zero", icon = Icons.Outlined.DeleteSweep, destructive = true,
+                    onClick = onPreviewZeroBudget)
+            }
         }
     }
 }
@@ -2682,69 +2690,50 @@ private fun CleanupPreviewSheet(
     onDismiss: () -> Unit,
     onApply: (CleanupPreview) -> Unit,
 ) {
+    val hasChanges = preview.changes.isNotEmpty() || preview.goalChanges.isNotEmpty()
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        PreviewSheetLayout(
+            title = "Review month-end cleanup",
+            description = "Nothing changes until you confirm. This moves leftover balances between the source and sink " +
+                "categories defined by \"#cleanup\" notes for ${formatMonth(preview.month)}.",
+            confirmLabel = "Apply cleanup",
+            confirmEnabled = hasChanges,
+            onConfirm = { onApply(preview) },
         ) {
-            Text("Review month-end cleanup", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(
-                "Nothing changes until you confirm. This moves leftover balances between the source and sink " +
-                    "categories defined by \"#cleanup\" notes for ${formatMonth(preview.month)}.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (preview.changes.isEmpty() && preview.goalChanges.isEmpty()) {
-                Text(if (preview.isUpToDate) "No cleanup groups need changes." else "No categories are configured for cleanup.")
-            } else {
-                preview.changes.forEach { change ->
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(change.categoryName, fontWeight = FontWeight.Medium)
-                            Text(change.groupName, style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Text(
-                            "${formatMoneyCents(change.currentCents, hideDecimalPlaces)} → ${formatMoneyCents(change.proposedCents, hideDecimalPlaces)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
+            if (!hasChanges) {
+                PreviewNote(if (preview.isUpToDate) "No cleanup groups need changes." else "No categories are configured for cleanup.",
+                    MaterialTheme.colorScheme.onSurface)
+            }
+            if (preview.changes.isNotEmpty()) ActuaSheetCard {
+                preview.changes.forEachIndexed { index, change ->
+                    if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                    PreviewChangeRow(
+                        title = change.categoryName,
+                        subtitle = change.groupName,
+                        value = "${formatMoneyCents(change.currentCents, hideDecimalPlaces)} → ${formatMoneyCents(change.proposedCents, hideDecimalPlaces)}",
+                    )
                 }
             }
-            preview.goalChanges.forEach { change ->
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(change.categoryName, fontWeight = FontWeight.Medium)
-                        Text("${change.groupName} · Goal reset", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Text(
-                        "${change.currentCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "None"} → " +
+            if (preview.goalChanges.isNotEmpty()) ActuaSheetCard {
+                preview.goalChanges.forEachIndexed { index, change ->
+                    if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                    PreviewChangeRow(
+                        title = change.categoryName,
+                        subtitle = "${change.groupName} · Goal reset",
+                        value = "${change.currentCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "None"} → " +
                             (change.proposedCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "None"),
-                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
             if (preview.warnings.isNotEmpty()) {
-                Text(
-                    preview.warnings.joinToString("\n"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary,
-                )
+                PreviewNote(preview.warnings.joinToString("\n"), MaterialTheme.colorScheme.tertiary)
             }
             if (preview.invalidCategories.isNotEmpty()) {
-                Text(
+                PreviewNote(
                     "Left untouched because their cleanup definition is unsupported: ${preview.invalidCategories.joinToString()}.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    MaterialTheme.colorScheme.error,
                 )
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                Button(enabled = preview.changes.isNotEmpty() || preview.goalChanges.isNotEmpty(),
-                    onClick = { onApply(preview) }) { Text("Apply cleanup") }
-            }
-            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -2766,104 +2755,130 @@ private fun BudgetTemplatePreviewSheet(
     else "All supported targets are already up to date.",
     unchangedLabel: String = if (preview.unchangedCount == 1) "supported target is" else "supported targets are",
 ) {
+    val hasChanges = preview.changes.isNotEmpty() || preview.goalChanges.isNotEmpty()
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        PreviewSheetLayout(
+            title = title,
+            description = description,
+            confirmLabel = "Apply changes",
+            confirmEnabled = hasChanges,
+            onConfirm = { onApply(preview) },
         ) {
-            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (preview.changes.isEmpty() && preview.goalChanges.isEmpty()) {
-                Text(upToDateMessage)
-            } else {
-                preview.changes.forEach { change ->
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(change.categoryName, fontWeight = FontWeight.Medium)
-                            Text(change.groupName, style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Text(
-                            "${formatMoneyCents(change.currentCents, hideDecimalPlaces)} → ${formatMoneyCents(change.proposedCents, hideDecimalPlaces)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
+            if (!hasChanges) PreviewNote(upToDateMessage, MaterialTheme.colorScheme.onSurface)
+            if (preview.changes.isNotEmpty()) ActuaSheetCard {
+                preview.changes.forEachIndexed { index, change ->
+                    if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                    PreviewChangeRow(
+                        title = change.categoryName,
+                        subtitle = change.groupName,
+                        value = "${formatMoneyCents(change.currentCents, hideDecimalPlaces)} → ${formatMoneyCents(change.proposedCents, hideDecimalPlaces)}",
+                    )
                 }
-                HorizontalDivider()
-                Row(Modifier.fillMaxWidth()) {
+                ActuaCardDivider(inset = Spacing.none)
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text("Net change", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                     Text(formatMoneyCents(preview.netBudgetChangeCents, hideDecimalPlaces), fontWeight = FontWeight.SemiBold)
                 }
             }
-            preview.goalChanges.forEach { change ->
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(change.categoryName, fontWeight = FontWeight.Medium)
-                        Text("${change.groupName} · Goal", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Text(
-                        "${change.currentCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "None"} → " +
+            if (preview.goalChanges.isNotEmpty()) ActuaSheetCard {
+                preview.goalChanges.forEachIndexed { index, change ->
+                    if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                    PreviewChangeRow(
+                        title = change.categoryName,
+                        subtitle = "${change.groupName} · Goal",
+                        value = "${change.currentCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "None"} → " +
                             (change.proposedCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "None"),
-                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
-            if (preview.unchangedCount > 0) Text(
-                "${preview.unchangedCount} $unchangedLabel already current.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (preview.skippedExistingCount > 0) Text(
+            val muted = MaterialTheme.colorScheme.onSurfaceVariant
+            if (preview.unchangedCount > 0) PreviewNote("${preview.unchangedCount} $unchangedLabel already current.", muted)
+            if (preview.skippedExistingCount > 0) PreviewNote(
                 "${preview.skippedExistingCount} already-budgeted ${if (preview.skippedExistingCount == 1) "category was" else "categories were"} left unchanged.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                muted,
             )
-            if (preview.unsupportedCategories.isNotEmpty()) {
-                Text(
-                    "Not applied because these categories use automation types Actua cannot safely evaluate yet: ${preview.unsupportedCategories.joinToString()}.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            if (preview.limitedCategories.isNotEmpty()) {
-                Text(
-                    "Available funds limited: ${preview.limitedCategories.joinToString()}. Higher-priority automations were funded first.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary,
-                )
-            }
-            if (preview.cappedCategories.isNotEmpty()) {
-                Text(
-                    "Remainder caps apply to: ${preview.cappedCategories.joinToString()}. " +
-                        "The preview includes daily, weekly, or monthly cap and carryover behavior.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary,
-                )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                Button(enabled = preview.changes.isNotEmpty() || preview.goalChanges.isNotEmpty(),
-                    onClick = { onApply(preview) }) { Text("Apply changes") }
-            }
-            Spacer(Modifier.height(16.dp))
+            if (preview.unsupportedCategories.isNotEmpty()) PreviewNote(
+                "Not applied because these categories use automation types Actua cannot safely evaluate yet: ${preview.unsupportedCategories.joinToString()}.",
+                MaterialTheme.colorScheme.error,
+            )
+            if (preview.limitedCategories.isNotEmpty()) PreviewNote(
+                "Available funds limited: ${preview.limitedCategories.joinToString()}. Higher-priority automations were funded first.",
+                MaterialTheme.colorScheme.tertiary,
+            )
+            if (preview.cappedCategories.isNotEmpty()) PreviewNote(
+                "Remainder caps apply to: ${preview.cappedCategories.joinToString()}. " +
+                    "The preview includes daily, weekly, or monthly cap and carryover behavior.",
+                MaterialTheme.colorScheme.tertiary,
+            )
         }
     }
 }
 
+/**
+ * A preview sheet: title and explanation, the scrollable [content] cards, and the confirm action
+ * pinned below them. Nothing is applied until [onConfirm]; dismissing the sheet cancels.
+ */
 @Composable
-private fun SheetAction(
-    label: String,
-    onClick: () -> Unit,
-    destructive: Boolean = false,
+private fun PreviewSheetLayout(
+    title: String,
+    description: String,
+    confirmLabel: String,
+    confirmEnabled: Boolean,
+    onConfirm: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    DropdownMenuItem(
-        text = {
-            Text(label, color = if (destructive) MaterialTheme.colorScheme.error
-            else MaterialTheme.colorScheme.onSurface)
-        },
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-    )
+    Column(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.weight(1f, fill = false).fillMaxWidth()
+                .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Column {
+                ActuaSheetTitle(title)
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.xl),
+                )
+            }
+            content()
+        }
+        ActuaPrimaryActionBar(text = confirmLabel, onClick = onConfirm, enabled = confirmEnabled,
+            icon = Icons.Outlined.Check)
+    }
+}
+
+/** A category row in a preview or picker card: name over group, and the value on the right. */
+@Composable
+private fun PreviewChangeRow(
+    title: String,
+    subtitle: String,
+    value: String,
+    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    onClick: (() -> Unit)? = null,
+) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = Sizes.compactRowMinHeight)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = valueColor,
+            modifier = Modifier.padding(start = Spacing.sm))
+    }
+}
+
+/** An explanatory line under a preview's cards, aligned with the card text. */
+@Composable
+private fun PreviewNote(text: String, color: androidx.compose.ui.graphics.Color) {
+    Text(text, style = MaterialTheme.typography.bodySmall, color = color,
+        modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
 }
