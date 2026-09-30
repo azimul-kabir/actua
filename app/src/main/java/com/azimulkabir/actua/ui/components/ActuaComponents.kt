@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.ui.theme.Spacing
 
@@ -63,14 +64,14 @@ fun ActuaScreenHeader(
 }
 
 /**
- * Shared section-heading style for grouped content (settings pages, budget
- * groups, manage screens, etc.) so equivalent groupings look the same.
+ * Shared section-heading style for grouped content (settings pages, manage screens, etc.): a
+ * primary-colored label above the section's card, matching [ActuaGroupLabel] with screen margins.
  */
 @Composable
 fun ActuaSectionHeader(
     title: String,
     modifier: Modifier = Modifier,
-    showDividerAbove: Boolean = true,
+    showDividerAbove: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         if (showDividerAbove) HorizontalDivider()
@@ -79,10 +80,10 @@ fun ActuaSectionHeader(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(
-                start = Spacing.screenHorizontal,
+                start = Spacing.screenHorizontal + Spacing.xs,
                 end = Spacing.screenHorizontal,
-                top = Spacing.md,
-                bottom = Spacing.xs,
+                top = 20.dp,
+                bottom = 6.dp,
             ),
         )
     }

@@ -12,45 +12,64 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.PieChartOutline
+import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.LocationPreferences
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
+import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSectionHeader
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
+import com.azimulkabir.actua.ui.theme.Spacing
 
 internal enum class SettingsPage(val title: String, val depth: Int) {
     Manage("Manage", 0),
@@ -239,291 +258,287 @@ fun SettingsScreen(
             }
             when (shownPage) {
                 SettingsPage.Manage -> {
-                    SettingsSection("Insights")
-                    SettingsRow("Reports", "View dashboards and financial reports", true) {
-                        openFullScreen(onReportsClick)
+                    SettingsGroup("Insights") {
+                        SettingsRow("Reports", "View dashboards and financial reports", true, Icons.Outlined.BarChart) {
+                            openFullScreen(onReportsClick)
+                        }
                     }
-                    SettingsSection("Automation")
-                    SettingsRow("Bills & Calendar", "Upcoming schedules and credit-card due dates", true) {
-                        openFullScreen(onBillsCalendarClick)
+                    SettingsGroup("Automation") {
+                        SettingsRow("Bills & Calendar", "Upcoming schedules and credit-card due dates", true, Icons.Outlined.CalendarMonth) {
+                            openFullScreen(onBillsCalendarClick)
+                        }
+                        ActuaCardDivider()
+                        SettingsRow("Scheduled Transactions", "Review recurring bills, income and upcoming dates", true, Icons.Outlined.Repeat) {
+                            openFullScreen(onSchedulesClick)
+                        }
+                        ActuaCardDivider()
+                        SettingsRow("Rules", "Automatically categorize and transform transactions", true, Icons.Outlined.AutoAwesome) {
+                            openFullScreen(onRulesClick)
+                        }
                     }
-                    SettingsRow("Scheduled Transactions", "Review recurring bills, income and upcoming dates", true) {
-                        openFullScreen(onSchedulesClick)
+                    SettingsGroup("Transactions & data") {
+                        SettingsRow("Tags", "Create, edit, color, hide and delete managed tags", true, Icons.Outlined.Sell) {
+                            page = SettingsPage.Tags
+                        }
+                        ActuaCardDivider()
+                        SettingsRow("Import Transactions", "Review a CSV bank statement before importing", true, Icons.AutoMirrored.Outlined.ReceiptLong) {
+                            openFullScreen(onImportTransactionsClick)
+                        }
+                        ActuaCardDivider()
+                        SettingsRow("Connection & Data", "Actual server, budgets, sync, backups and restore", true, Icons.Outlined.Sync) {
+                            openFullScreen(onConnectionClick)
+                        }
                     }
-                    SettingsRow("Rules", "Automatically categorize and transform transactions", true) {
-                        openFullScreen(onRulesClick)
-                    }
-                    SettingsSection("Transactions & data")
-                    SettingsRow("Tags", "Create, edit, color, hide and delete managed tags", true) {
-                        page = SettingsPage.Tags
-                    }
-                    SettingsRow("Import Transactions", "Review a CSV bank statement before importing", true) {
-                        openFullScreen(onImportTransactionsClick)
-                    }
-                    SettingsRow("Connection & Data", "Actual server, budgets, sync, backups and restore", true) {
-                        openFullScreen(onConnectionClick)
-                    }
-                    SettingsSection("Financial setup")
-                    SettingsRow("Bank Sync", "Connect SimpleFIN or GoCardless and link accounts", true) {
-                        openFullScreen(onBankSyncClick)
-                    }
-                    SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true) {
-                        openFullScreen(onCreditCardsClick)
+                    SettingsGroup("Financial setup") {
+                        SettingsRow("Bank Sync", "Connect SimpleFIN or GoCardless and link accounts", true, Icons.Outlined.AccountBalance) {
+                            openFullScreen(onBankSyncClick)
+                        }
+                        ActuaCardDivider()
+                        SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, Icons.Outlined.CreditCard) {
+                            openFullScreen(onCreditCardsClick)
+                        }
                     }
                 }
                 SettingsPage.General -> {
-                    SettingsSection("Preferences")
-                    SettingsRow("Home", "Show, hide and reorder the sections on Home", true) {
-                        // Unlike openFullScreen's other destinations, Customize Home is reached
-                        // from this page rather than from Manage root, so the back gesture should
-                        // return here instead of resetting all the way to Manage.
-                        onCustomizeHomeClick()
+                    SettingsGroup("Preferences") {
+                        SettingsRow("Home", "Show, hide and reorder the sections on Home", true, Icons.Outlined.Home) {
+                            // Unlike openFullScreen's other destinations, Customize Home is reached
+                            // from this page rather than from Manage root, so the back gesture should
+                            // return here instead of resetting all the way to Manage.
+                            onCustomizeHomeClick()
+                        }
+                        ActuaCardDivider()
+                        SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists and account summaries", true, Icons.Outlined.AccountBalanceWallet) {
+                            page = SettingsPage.Transactions
+                        }
+                        ActuaCardDivider()
+                        SettingsRow("Display", "Currency, date, numbers, appearance and start page", true, Icons.Outlined.Palette) {
+                            page = SettingsPage.Display
+                        }
+                        ActuaCardDivider()
+                        SettingsRow("Privacy", "Balances and optional location-aware payee controls", true, Icons.Outlined.Lock) {
+                            page = SettingsPage.Privacy
+                        }
+                        ActuaCardDivider()
+                        SettingsRow("Budget", "Category status dot, progress bar colors and income group", true, Icons.Outlined.PieChartOutline) {
+                            page = SettingsPage.Budget
+                        }
                     }
-                    SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists and account summaries", true) {
-                        page = SettingsPage.Transactions
-                    }
-                    SettingsRow("Display", "Currency, date, numbers, appearance and start page", true) {
-                        page = SettingsPage.Display
-                    }
-                    SettingsRow("Privacy", "Balances and optional location-aware payee controls", true) {
-                        page = SettingsPage.Privacy
-                    }
-                    SettingsRow("Budget", "Category status dot, progress bar colors and income group", true) {
-                        page = SettingsPage.Budget
-                    }
-                    SettingsSection("About")
-                    SettingsRow("About Actua", "Version, project information, credits and license", true) {
-                        page = SettingsPage.About
+                    SettingsGroup("About") {
+                        SettingsRow("About Actua", "Version, project information, credits and license", true, Icons.Outlined.Info) {
+                            page = SettingsPage.About
+                        }
                     }
                 }
                 SettingsPage.Transactions -> {
-                    SettingsChoice("Default account", defaultAccount ?: "None", listOf("None") + accountOptions) {
-                        onDefaultAccountChange(it.takeUnless { value -> value == "None" })
+                    SettingsGroup {
+                        SettingsChoice("Default account", defaultAccount ?: "None", listOf("None") + accountOptions) {
+                            onDefaultAccountChange(it.takeUnless { value -> value == "None" })
+                        }
+                        SettingsDivider()
+                        SettingsToggle("Group transactions by date", "Use dated sections in transaction lists", groupTransactionsByDate, onGroupTransactionsByDateChange)
+                        SettingsDivider()
+                        SettingsToggle("Conventional amount entry", "Type 324 as 324.00 instead of filling cents first",
+                            conventionalAmountEntry, onConventionalAmountEntryChange)
+                        SettingsDivider()
+                        SettingsToggle("Account monthly summary", "Show Income, Expenses and Net at the top of Accounts",
+                            showAccountsMonthlySummary, onShowAccountsMonthlySummaryChange)
+                        SettingsDivider()
+                        SettingsToggle(
+                            "Current balance summary",
+                            "Show current, cleared, uncleared and reconciled balances inside accounts",
+                            showCurrentBalanceSummary,
+                            onShowCurrentBalanceSummaryChange,
+                        )
                     }
-                    SettingsToggle("Group transactions by date", "Use dated sections in transaction lists", groupTransactionsByDate, onGroupTransactionsByDateChange)
-                    SettingsToggle("Conventional amount entry", "Type 324 as 324.00 instead of filling cents first",
-                        conventionalAmountEntry, onConventionalAmountEntryChange)
-                    SettingsToggle("Account monthly summary", "Show Income, Expenses and Net at the top of Accounts",
-                        showAccountsMonthlySummary, onShowAccountsMonthlySummaryChange)
-                    SettingsToggle(
-                        "Current balance summary",
-                        "Show current, cleared, uncleared and reconciled balances inside accounts",
-                        showCurrentBalanceSummary,
-                        onShowCurrentBalanceSummaryChange,
-                    )
-                    SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true) {
-                        openFullScreen(onCreditCardsClick)
+                    SettingsGroup {
+                        SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, Icons.Outlined.CreditCard) {
+                            openFullScreen(onCreditCardsClick)
+                        }
                     }
                 }
                 SettingsPage.Display -> {
-                    SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->
-                        onCurrencyCodeChange(currencyOptions.first { it.first == selected }.second)
-                    }
-                    if (currencyCode.isNotBlank()) SettingsToggle("Symbol only",
-                        "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
-                        currencySymbolOnly, onCurrencySymbolOnlyChange)
-                    SettingsChoice(
-                        "Date format",
-                        dateFormat,
-                        listOf("System default", "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"),
-                        onDateFormatChange,
-                    )
-                    Text(
-                        "Preview: ${datePreview(dateFormat)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-                    SettingsChoice(
-                        "Number format",
-                        numberFormat,
-                        listOf("System default", "1,234.56", "1.234,56", "1 234,56", "1234.56", "1,23,456.78"),
-                        onNumberFormatChange,
-                    )
-                    Text(
-                        "Preview: ${numberPreview(numberFormat)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-                    SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                        SettingsToggle(
-                            "Material You colors",
-                            "Match colors to your wallpaper instead of Actua's default theme",
-                            useDynamicColor,
-                            onUseDynamicColorChange,
+                    SettingsGroup {
+                        SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->
+                            onCurrencyCodeChange(currencyOptions.first { it.first == selected }.second)
+                        }
+                        if (currencyCode.isNotBlank()) {
+                            SettingsDivider()
+                            SettingsToggle("Symbol only",
+                                "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
+                                currencySymbolOnly, onCurrencySymbolOnlyChange)
+                        }
+                        SettingsDivider()
+                        SettingsChoice(
+                            "Date format",
+                            dateFormat,
+                            listOf("System default", "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"),
+                            preview = "Preview: ${datePreview(dateFormat)}",
+                            onChange = onDateFormatChange,
                         )
+                        SettingsDivider()
+                        SettingsChoice(
+                            "Number format",
+                            numberFormat,
+                            listOf("System default", "1,234.56", "1.234,56", "1 234,56", "1234.56", "1,23,456.78"),
+                            preview = "Preview: ${numberPreview(numberFormat)}",
+                            onChange = onNumberFormatChange,
+                        )
+                        SettingsDivider()
+                        SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
+                            hideDecimalPlaces, onHideDecimalPlacesChange)
                     }
-                    SettingsChoice(
-                        "Start page",
-                        startPage,
-                        startPageOptions,
-                        onStartPageChange,
-                    )
-                    SettingsChoice(
-                        "Bottom navigation labels",
-                        if (showBottomNavigationLabels) "Icons and names" else "Icons only",
-                        listOf("Icons and names", "Icons only"),
-                    ) { onShowBottomNavigationLabelsChange(it == "Icons and names") }
-                    SettingsRow("Tab Bar", "Show, hide and reorder the bottom navigation tabs", true) {
-                        // Reached from this page (Display), so back should return here rather than
-                        // resetting all the way to Manage the way openFullScreen's other rows do.
-                        onCustomizeTabBarClick()
+                    SettingsGroup {
+                        SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onChange = onAppearanceChange)
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            SettingsDivider()
+                            SettingsToggle(
+                                "Material You colors",
+                                "Match colors to your wallpaper instead of Actua's default theme",
+                                useDynamicColor,
+                                onUseDynamicColorChange,
+                            )
+                        }
                     }
-                    SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
-                        hideDecimalPlaces, onHideDecimalPlacesChange)
-                    SettingsToggle("Notes", "Show the Notes field on accounts and budget categories",
-                        showNotes, onShowNotesChange)
+                    SettingsGroup {
+                        SettingsChoice(
+                            "Start page",
+                            startPage,
+                            startPageOptions,
+                            onChange = onStartPageChange,
+                        )
+                        SettingsDivider()
+                        SettingsChoice(
+                            "Bottom navigation labels",
+                            if (showBottomNavigationLabels) "Icons and names" else "Icons only",
+                            listOf("Icons and names", "Icons only"),
+                        ) { onShowBottomNavigationLabelsChange(it == "Icons and names") }
+                        SettingsDivider()
+                        SettingsRow("Tab Bar", "Show, hide and reorder the bottom navigation tabs", true) {
+                            // Reached from this page (Display), so back should return here rather than
+                            // resetting all the way to Manage the way openFullScreen's other rows do.
+                            onCustomizeTabBarClick()
+                        }
+                        SettingsDivider()
+                        SettingsToggle("Notes", "Show the Notes field on accounts and budget categories",
+                            showNotes, onShowNotesChange)
+                    }
                 }
                 SettingsPage.Privacy -> {
-                    SettingsToggle("Hide balances", "Mask budget, account and transaction amounts",
-                        hideBalances, onHideBalancesChange)
-                    SettingsSection("Location-aware payees")
-                    SettingsToggle(
-                        "Record payee locations",
-                        if (recordPayeeLocations && locationPermissionGranted) {
-                            "Use your location only while Actua is open to remember eligible payees nearby. Coordinates stay in your Actual budget and sync with it."
-                        } else {
-                            "Optional and off by default. Enabling asks for foreground location permission. No background tracking or third-party location service is used."
-                        },
-                        recordPayeeLocations,
-                        ::setRecordPayeeLocations,
-                    )
-                    SettingsRow(
-                        "Payee Locations",
-                        "Inspect or delete coordinates saved in this budget",
-                        true,
-                    ) { openFullScreen(onPayeeLocationsClick) }
-                    Text(
+                    SettingsGroup {
+                        SettingsToggle("Hide balances", "Mask budget, account and transaction amounts",
+                            hideBalances, onHideBalancesChange)
+                    }
+                    SettingsGroup("Location-aware payees") {
+                        SettingsToggle(
+                            "Record payee locations",
+                            if (recordPayeeLocations && locationPermissionGranted) {
+                                "Use your location only while Actua is open to remember eligible payees nearby. Coordinates stay in your Actual budget and sync with it."
+                            } else {
+                                "Optional and off by default. Enabling asks for foreground location permission. No background tracking or third-party location service is used."
+                            },
+                            recordPayeeLocations,
+                            ::setRecordPayeeLocations,
+                        )
+                        SettingsDivider()
+                        SettingsRow(
+                            "Payee Locations",
+                            "Inspect or delete coordinates saved in this budget",
+                            true,
+                        ) { openFullScreen(onPayeeLocationsClick) }
+                    }
+                    SettingsNote(
                         if (locationPermissionGranted) {
                             "Location permission: allowed while using the app"
                         } else {
                             "Location permission: not granted"
                         },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
                 }
                 SettingsPage.Budget -> {
                     val categoryStatusColors = LocalCategoryStatusColors.current
-                    SettingsToggle(
-                        "Category status dot",
-                        "Show a status dot next to category names on Budget and Home",
-                        categoryStatusColors?.showDots ?: true,
-                    ) { categoryStatusColors?.updateShowDots(it) }
-                    SettingsToggle(
-                        "Hide income group",
-                        "Hide the income category group on the Budget tab",
-                        hideIncomeGroupInBudget,
-                        onHideIncomeGroupInBudgetChange,
-                    )
-                    SettingsRow(
-                        "Category status colors",
-                        "Retint the unassigned, funded, spending, spent and overspent status colors",
-                        true,
-                    ) { page = SettingsPage.CategoryColors }
+                    SettingsGroup {
+                        SettingsToggle(
+                            "Category status dot",
+                            "Show a status dot next to category names on Budget and Home",
+                            categoryStatusColors?.showDots ?: true,
+                        ) { categoryStatusColors?.updateShowDots(it) }
+                        SettingsDivider()
+                        SettingsToggle(
+                            "Hide income group",
+                            "Hide the income category group on the Budget tab",
+                            hideIncomeGroupInBudget,
+                            onHideIncomeGroupInBudgetChange,
+                        )
+                        SettingsDivider()
+                        SettingsRow(
+                            "Category status colors",
+                            "Retint the unassigned, funded, spending, spent and overspent status colors",
+                            true,
+                        ) { page = SettingsPage.CategoryColors }
+                    }
                 }
                 SettingsPage.CategoryColors -> {
-                    CategoryStatusColorSettings()
+                    CategoryStatusColorSettings(Modifier.padding(top = Spacing.md))
                 }
                 SettingsPage.About -> {
-                    ListItem(
-                        headlineContent = { Text("Actua") },
-                        supportingContent = {
-                            Text("Native Android client for Actual Budget\nVersion ${BuildConfig.VERSION_NAME}")
-                        },
-                    )
-                    SettingsSection("Project")
-                    ListItem(
-                        headlineContent = { Text("Actua on GitHub") },
-                        supportingContent = { Text("github.com/azimul-kabir/actua") },
-                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-                        modifier = Modifier.clickable {
+                    SettingsGroup {
+                        AboutRow("Actua", "Native Android client for Actual Budget\nVersion ${BuildConfig.VERSION_NAME}")
+                    }
+                    SettingsGroup("Project") {
+                        AboutRow("Actua on GitHub", "github.com/azimul-kabir/actua") {
                             uriHandler.openUri("https://github.com/azimul-kabir/actua")
-                        },
-                    )
-                    ListItem(
-                        headlineContent = { Text("Website") },
-                        supportingContent = { Text("azimul-kabir.github.io/actua-website") },
-                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-                        modifier = Modifier.clickable {
+                        }
+                        SettingsDivider()
+                        AboutRow("Website", "azimul-kabir.github.io/actua-website") {
                             uriHandler.openUri("https://azimul-kabir.github.io/actua-website")
-                        },
-                    )
-                    ListItem(
-                        headlineContent = { Text("FAQ") },
-                        supportingContent = { Text("Answers to common questions about Actua") },
-                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-                        modifier = Modifier.clickable {
+                        }
+                        SettingsDivider()
+                        AboutRow("FAQ", "Answers to common questions about Actua") {
                             uriHandler.openUri("https://azimul-kabir.github.io/actua-website#faq")
-                        },
-                    )
-                    ListItem(
-                        headlineContent = { Text("Join Discord") },
-                        supportingContent = { Text("Discuss Actua, test beta builds and help with development") },
-                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-                        modifier = Modifier.clickable {
+                        }
+                        SettingsDivider()
+                        AboutRow("Join Discord", "Discuss Actua, test beta builds and help with development") {
                             uriHandler.openUri("https://discord.gg/FyGxRjmhw")
-                        },
-                    )
-                    ListItem(
-                        headlineContent = { Text("Independent community project") },
-                        supportingContent = {
-                            Text("Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.")
-                        },
-                    )
-                    ListItem(
-                        headlineContent = { Text("Contact") },
-                        supportingContent = { Text("actua.mobile@gmail.com") },
-                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-                        modifier = Modifier.clickable {
+                        }
+                        SettingsDivider()
+                        AboutRow(
+                            "Independent community project",
+                            "Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.",
+                        )
+                        SettingsDivider()
+                        AboutRow("Contact", "actua.mobile@gmail.com") {
                             uriHandler.openUri("mailto:actua.mobile@gmail.com")
-                        },
-                    )
-                    ListItem(
-                        headlineContent = { Text("Privacy Policy") },
-                        supportingContent = {
-                            Text("What data Actua stores, syncs and never collects")
-                        },
-                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-                        modifier = Modifier.clickable {
+                        }
+                        SettingsDivider()
+                        AboutRow("Privacy Policy", "What data Actua stores, syncs and never collects") {
                             uriHandler.openUri("https://github.com/azimul-kabir/actua/blob/main/PRIVACY.md")
-                        },
-                    )
-                    SettingsSection("Credits")
-                    ListItem(
-                        headlineContent = { Text("Actuali for iOS") },
-                        supportingContent = {
-                            Text("Actua was originally based on and continues to reference Matt Farrell’s open-source Actuali project for tested behavior and design guidance.")
-                        },
-                    )
-                    ListItem(
-                        headlineContent = { Text("Actual Budget") },
-                        supportingContent = {
-                            Text("Synchronization behavior is compatible with the open-source Actual Budget project. Visit actualbudget.org to learn how it works and how to self-host a server.")
-                        },
-                        trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-                        modifier = Modifier.clickable {
-                            uriHandler.openUri("https://actualbudget.org")
-                        },
-                    )
-                    SettingsSection("Compatibility")
-                    ListItem(
-                        headlineContent = { Text("Android 9 or later") },
-                        supportingContent = { Text("Requires a reachable self-hosted Actual Budget server.") },
-                    )
-                    SettingsSection("License")
-                    ListItem(
-                        headlineContent = { Text("MIT License") },
-                        supportingContent = {
-                            Text("Open-source notices and complete attribution are available in the repository’s LICENSE and NOTICE files.")
-                        },
-                    )
+                        }
+                    }
+                    SettingsGroup("Credits") {
+                        AboutRow(
+                            "Actuali for iOS",
+                            "Actua was originally based on and continues to reference Matt Farrell’s open-source Actuali project for tested behavior and design guidance.",
+                        )
+                        SettingsDivider()
+                        AboutRow(
+                            "Actual Budget",
+                            "Synchronization behavior is compatible with the open-source Actual Budget project. Visit actualbudget.org to learn how it works and how to self-host a server.",
+                        ) { uriHandler.openUri("https://actualbudget.org") }
+                    }
+                    SettingsGroup("Compatibility") {
+                        AboutRow("Android 9 or later", "Requires a reachable self-hosted Actual Budget server.")
+                    }
+                    SettingsGroup("License") {
+                        AboutRow(
+                            "MIT License",
+                            "Open-source notices and complete attribution are available in the repository’s LICENSE and NOTICE files.",
+                        )
+                    }
                 }
                 SettingsPage.Tags -> Unit
             }
+            Spacer(Modifier.height(Spacing.xl))
         }
     }
 }
@@ -603,25 +618,62 @@ private val currencyOptions = listOf(
 private fun currencyLabel(code: String): String =
     currencyOptions.firstOrNull { it.second == code }?.first ?: code.ifBlank { "None" }
 
+/** An optional section [label] over a rounded card holding the section's rows. */
 @Composable
-private fun SettingsChoice(label: String, value: String, options: List<String>, onChange: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    ListItem(
-        headlineContent = { Text(label) },
-        trailingContent = {
-            Box {
-                TextButton(onClick = { expanded = true }) { Text(value) }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    options.distinct().forEach { option ->
-                        DropdownMenuItem(text = { Text(option) }, onClick = {
-                            expanded = false
-                            onChange(option)
-                        })
-                    }
-                }
-            }
-        },
+private fun SettingsGroup(label: String? = null, content: @Composable ColumnScope.() -> Unit) {
+    if (label != null) ActuaSectionHeader(label) else Spacer(Modifier.height(Spacing.md))
+    ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal), content = content)
+}
+
+/** Divider between text-only rows of a settings card. */
+@Composable
+private fun SettingsDivider() {
+    ActuaCardDivider(inset = Spacing.screenHorizontal)
+}
+
+@Composable
+private fun SettingsNote(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs, vertical = Spacing.sm),
     )
+}
+
+/** A row showing the current [value] (and an optional [preview]); tapping it opens a menu of [options]. */
+@Composable
+private fun SettingsChoice(
+    label: String,
+    value: String,
+    options: List<String>,
+    preview: String? = null,
+    onChange: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        ActuaListRow(
+            title = { Text(label, style = MaterialTheme.typography.bodyLarge) },
+            subtitle = {
+                Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                preview?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            trailing = {
+                Icon(Icons.Outlined.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            },
+            onClick = { expanded = true },
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.distinct().forEach { option ->
+                DropdownMenuItem(text = { Text(option) }, onClick = {
+                    expanded = false
+                    onChange(option)
+                })
+            }
+        }
+    }
 }
 
 @Composable
@@ -639,24 +691,45 @@ private fun SettingsToggle(
     )
 }
 
+/**
+ * A navigation row. With an [icon] it is an [ActuaFormRow] like the Add transaction fields;
+ * without one it lines up with the text-only toggle and choice rows it shares a card with.
+ */
 @Composable
-private fun SettingsSection(label: String) {
-    ActuaSectionHeader(label)
-}
-
-@Composable
-private fun SettingsRow(label: String, detail: String, enabled: Boolean = false, onClick: () -> Unit = {}) {
-    ActuaListRow(
+private fun SettingsRow(
+    label: String,
+    detail: String,
+    enabled: Boolean = false,
+    icon: ImageVector? = null,
+    onClick: () -> Unit = {},
+) {
+    val shownDetail = if (enabled) detail else "$detail · Coming with backend port"
+    if (icon != null) {
+        ActuaFormRow(icon = icon, label = label, value = null, caption = shownDetail, enabled = enabled, onClick = onClick)
+    } else ActuaListRow(
         title = { Text(label, style = MaterialTheme.typography.bodyLarge) },
         subtitle = {
-            Text(
-                if (enabled) detail else "$detail · Coming with backend port",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(shownDetail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         },
-        trailing = { if (enabled) Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
+        trailing = {
+            if (enabled) Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        },
         enabled = enabled,
+        onClick = onClick,
+    )
+}
+
+/** A text row on the About page; with [onClick] it opens a link and shows a chevron. */
+@Composable
+private fun AboutRow(title: String, detail: String, onClick: (() -> Unit)? = null) {
+    ActuaListRow(
+        title = { Text(title, style = MaterialTheme.typography.bodyLarge) },
+        subtitle = {
+            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        },
+        trailing = onClick?.let {
+            { Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+        },
         onClick = onClick,
     )
 }

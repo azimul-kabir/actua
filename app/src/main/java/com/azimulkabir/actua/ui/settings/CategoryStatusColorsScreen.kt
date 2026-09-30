@@ -30,6 +30,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.BudgetProgressState
+import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.ui.theme.Spacing
@@ -55,20 +57,23 @@ fun CategoryStatusColorSettings(modifier: Modifier = Modifier) {
     var pickerFor by remember { mutableStateOf<BudgetProgressState?>(null) }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        BudgetProgressState.entries.forEach { status ->
-            val color = categoryStatusColor(status)
-            ActuaListRow(
-                title = { Text(status.label) },
-                subtitle = { Text(statusSubtitle(status)) },
-                leading = {
-                    Box(
-                        modifier = Modifier.size(28.dp).clip(CircleShape).background(color)
-                            .semantics { contentDescription = "${status.label} color: current" },
-                    )
-                },
-                enabled = state != null,
-                onClick = { pickerFor = status },
-            )
+        ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+            BudgetProgressState.entries.forEachIndexed { index, status ->
+                if (index > 0) ActuaCardDivider()
+                val color = categoryStatusColor(status)
+                ActuaListRow(
+                    title = { Text(status.label) },
+                    subtitle = { Text(statusSubtitle(status)) },
+                    leading = {
+                        Box(
+                            modifier = Modifier.size(28.dp).clip(CircleShape).background(color)
+                                .semantics { contentDescription = "${status.label} color: current" },
+                        )
+                    },
+                    enabled = state != null,
+                    onClick = { pickerFor = status },
+                )
+            }
         }
         TextButton(
             onClick = { state?.resetToDefaults() },
