@@ -67,7 +67,7 @@ class BudgetAutomationScreenTest {
         compose.onNodeWithText("+ Add an automation").performClick()
         // Page title reflects the selected type; it also appears once more as the selected type card.
         compose.onAllNodesWithText("Fixed amount").assertCountEquals(2)
-        enterAmount("2", "5")
+        enterAmount("2", "5", "0", "0")
         compose.onNodeWithText("Add automation").performScrollTo().performClick()
 
         compose.onNodeWithText("Save automations").performScrollTo().performClick()
@@ -92,7 +92,7 @@ class BudgetAutomationScreenTest {
 
         // Add the balance cap Option first.
         compose.onNodeWithText("+ Add balance cap").performClick()
-        enterAmount("5", "5")
+        enterAmount("5", "0", "0", "0")
         compose.onNodeWithText("Add balance cap").performScrollTo().performClick()
 
         // Now Refill to cap is available with no warning and no fields of its own.
@@ -104,7 +104,7 @@ class BudgetAutomationScreenTest {
         compose.onNodeWithText("Save automations").performScrollTo().performClick()
 
         assertEquals(2, saved?.size)
-        assertTrue(saved?.any { it.type == BudgetTarget.Type.LIMIT && it.amountCents == 5_500L } == true)
+        assertTrue(saved?.any { it.type == BudgetTarget.Type.LIMIT && it.amountCents == 5_000L } == true)
         assertTrue(saved?.any { it.type == BudgetTarget.Type.REFILL } == true)
     }
 
@@ -184,7 +184,7 @@ class BudgetAutomationScreenTest {
         }
 
         compose.onNodeWithText("+ Add long-term goal").performClick()
-        enterAmount("5", "5")
+        enterAmount("5", "5", "0", "0")
         compose.onNodeWithText("Add note").performScrollTo().performClick()
         compose.onNode(hasSetTextAction()).performTextInput("Emergency fund")
         compose.onNodeWithText("Save").performClick()
@@ -198,7 +198,11 @@ class BudgetAutomationScreenTest {
         assertEquals("Emergency fund", goal?.note)
     }
 
-    /** Opens the amount hero's calculator and types [keys], then confirms. */
+    /**
+     * Opens the amount hero's calculator and types [keys], then confirms. Default entry fills
+     * from the cents digit up, so "2", "5", "0", "0" is 25.00. The first key must not be "0",
+     * which would also match the empty hero amount.
+     */
     private fun enterAmount(vararg keys: String) {
         compose.onNodeWithContentDescription("amount", substring = true, ignoreCase = true).performClick()
         keys.forEach { compose.onNodeWithText(it).performClick() }
