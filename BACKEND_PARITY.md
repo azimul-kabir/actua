@@ -282,6 +282,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   table, and details. This follows [Actuali `ffd527a6`](https://github.com/MattFaz/actuali/blob/ffd527a6c27c3dbc7a8e32f55ec1650106f0dba5/Actuali/Actuali/Models/Budget.swift#L154-L185).
   Actua deliberately retains balance-funded progress for goal-only, save-by-date, cover-schedule,
   and synced long-goal targets; monthly goal cells do not change ordinary spending progress.
+  Save-by-date and cover-schedule targets only use balance progress when they are the
+  category's only funding automations; mixed with a spending automation (e.g. from history)
+  the category keeps the spending bar. A long-term goal always uses balance progress, as
+  Actual sets `long_goal` only for `goal` templates ([`category-template-context.ts`](https://github.com/actualbudget/actual/blob/7f74953a5422c480e09175013ff872b9fd29500b/packages/loot-core/src/server/budget/category-template-context.ts#L455-L466)).
 - Budget category view filters (Overspent, Underfunded, Overfunded, Money Available) as a
   persisted FilterChip row alongside the existing hide-fully-spent and show-hidden filters
 - Working previous/next budget month navigation, with reads and budget writes scoped to the selected month
