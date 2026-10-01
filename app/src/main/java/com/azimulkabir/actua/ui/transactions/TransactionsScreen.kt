@@ -198,6 +198,7 @@ fun TransactionsScreen(
     accountOptions: List<String> = emptyList(),
     onMoveMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
     onLabelMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
+    onMergeTransactions: (Transaction, Transaction) -> Unit = { _, _ -> },
 ) {
     val listState = rememberLazyListState()
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
@@ -307,6 +308,11 @@ fun TransactionsScreen(
     // screen (e.g. every selection-mode tap), not just when `visible` actually changes.
     val groupedByDate = remember(visible) { visible.groupBy { it.date } }
     val selectedTransactions = remember(visible, selectedIds) { visible.filter { it.id in selectedIds } }
+    // Selection order, not list order: on a tie Actual keeps the second transaction picked.
+    val mergePair = remember(visible, selectedIds) {
+        val byId = visible.associateBy { it.id }
+        mergeablePair(selectedIds.mapNotNull(byId::get))
+    }
     val runningBalances = remember(allTransactions, accountName, showRunningBalance) {
         if (showRunningBalance && accountName != null) accountRunningBalances(allTransactions, accountName)
         else emptyMap()
@@ -494,6 +500,19 @@ fun TransactionsScreen(
                                     })
                                 }
                             }
+                            DropdownMenuItem(
+                                text = { Text("Merge") },
+                                enabled = mergePair != null,
+                                onClick = {
+                                    bulkMenuOpen = false
+                                    mergePair?.let { (first, second) ->
+                                        confirmReconciled(listOf(first, second)) {
+                                            onMergeTransactions(first, second)
+                                            selectionModeOn = false
+                                        }
+                                    }
+                                },
+                            )
                             HorizontalDivider()
                             DropdownMenuItem(
                                 text = { Text("Delete", color = MaterialTheme.colorScheme.error) },

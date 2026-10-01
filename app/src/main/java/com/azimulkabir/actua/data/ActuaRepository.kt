@@ -1534,6 +1534,13 @@ class ActuaRepository(context: Context) {
         return transactions.size
     }
 
+    /** Merge two transactions, in selection order, into one (Actual's `transactions-merge`). */
+    fun mergeTransactions(firstId: String, secondId: String): Boolean {
+        val writer = actualWriter ?: return false
+        writer.mergeTransactions(firstId, secondId)
+        return true
+    }
+
     fun linkScheduleTransactions(scheduleId: String, transactionIds: Collection<String>): Int {
         val db = actualDatabase ?: return 0
         val writer = actualWriter ?: return 0
