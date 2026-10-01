@@ -287,9 +287,10 @@ class ActualTransactionFormService(
         val inserts = mutableListOf<ActualTransaction>()
         var nextSort = existing.mapNotNull(ActualTransaction::sortOrder).minOrNull()
             ?: original.sortOrder ?: nowMillis().toDouble()
+        val parentChanged = parentFieldsChanged(original, parent)
         plan.lines.forEach { line ->
             val old = line.childId?.let(byId::get)
-            val payee = resolveLinePayee(line, parentPayee, old)
+            val payee = if (keepsNoPayee(old, line, parentChanged)) null else resolveLinePayee(line, parentPayee, old)
             if (old != null) {
                 retained += old.id
                 updates += old to old.copy(
@@ -405,6 +406,24 @@ class ActualTransactionFormService(
                 !updated.cleared -> updated.copy(cleared = true)
                 else -> updated
             }
+
+        /**
+         * The fields that make loot-core's mobile editor run `updateTransaction` on the split parent,
+         * which re-applies the parent payee to its children ([keepsNoPayee]).
+         */
+        internal fun parentFieldsChanged(original: ActualTransaction, updated: ActualTransaction): Boolean =
+            original.accountId != updated.accountId || original.date != updated.date ||
+                original.amountCents != updated.amountCents || original.payeeId != updated.payeeId ||
+                original.notes != updated.notes || original.cleared != updated.cleared
+
+        /**
+         * An existing child with no payee keeps none while only child lines change (#750). The form
+         * shows it blank, like a child that matches the parent, so the stored row decides. When the
+         * parent itself changes, loot-core `updateTransaction` rebuilds the child without a payee and
+         * `makeChild` falls back to the parent's (shared/transactions.ts at 59fe126f), so it is filled.
+         */
+        internal fun keepsNoPayee(old: ActualTransaction?, line: ActualSplitPlanLine, parentChanged: Boolean): Boolean =
+            old != null && old.payeeId == null && line.payeeName == null && !parentChanged
 
         internal fun enforceOffBudgetCategoryPolicy(
             form: ActualTransactionForm,
