@@ -195,6 +195,81 @@ class BudgetCategoryProgressTest {
         assertEquals(BudgetProgressState.FUNDED, category.progressState)
     }
 
+    @Test fun `cover schedule only keeps the goal bar`() {
+        val category = category(assignedCents = 17_810, spentCents = 3_700, balanceCents = 14_110)
+            .copy(automations = listOf(emiSchedule))
+        assertEquals(true, category.usesGoalProgress)
+        assertEquals(1f, category.progressFraction(emiFunding))
+        assertEquals(BudgetProgressState.GOAL_REACHED, category.progressBarState(emiFunding))
+    }
+
+    @Test fun `cover schedule with by-date keeps the goal bar`() {
+        val category = category(assignedCents = 5_000, spentCents = 0, balanceCents = 5_000).copy(
+            automations = listOf(emiSchedule, BudgetTarget(BudgetTarget.Type.BY_DATE, 17_500, "2027-03")),
+        )
+        assertEquals(true, category.usesGoalProgress)
+        assertEquals(0.25f, category.progressFraction(emiFunding))
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.progressBarState(emiFunding))
+    }
+
+    @Test fun `cover schedule mixed with a history automation uses the spending bar`() {
+        // Issue #819: the schedule amount alone was the goal, so any balance above one
+        // payment showed a full green bar regardless of spending.
+        val category = category(assignedCents = 17_810, spentCents = 3_700, balanceCents = 14_110).copy(
+            automations = listOf(emiSchedule, BudgetTarget(BudgetTarget.Type.HISTORICAL, historicalMonths = 3)),
+        )
+        assertEquals(false, category.usesGoalProgress)
+        assertEquals(3_700f / 17_810f, category.progressFraction(emiFunding), 0.0001f)
+        assertEquals(BudgetProgressState.SPENDING, category.progressBarState(emiFunding))
+    }
+
+    @Test fun `by-date mixed with a fixed amount uses the spending bar`() {
+        val category = category(assignedCents = 10_000, spentCents = 5_000).copy(
+            automations = listOf(
+                BudgetTarget(BudgetTarget.Type.BY_DATE, 40_000, "2026-12"),
+                BudgetTarget(BudgetTarget.Type.FIXED, 5_000),
+            ),
+        )
+        assertEquals(false, category.usesGoalProgress)
+        assertEquals(0.5f, category.progressFraction())
+        assertEquals(BudgetProgressState.SPENDING, category.progressBarState())
+    }
+
+    @Test fun `synced long goal does not force the goal bar on a mixed category`() {
+        val category = category(assignedCents = 17_810, spentCents = 3_700, balanceCents = 14_110, goalCents = 2_500)
+            .copy(automations = listOf(emiSchedule, BudgetTarget(BudgetTarget.Type.HISTORICAL, historicalMonths = 3)))
+        assertEquals(true, category.longGoal)
+        assertEquals(false, category.usesGoalProgress)
+        assertEquals(BudgetProgressState.SPENDING, category.progressBarState(emiFunding))
+    }
+
+    @Test fun `synced long goal still applies without supported local automations`() {
+        val category = category(assignedCents = 5_000, spentCents = 0, balanceCents = 5_000, goalCents = 20_000)
+        assertEquals(true, category.usesGoalProgress)
+        val capOnly = category.copy(automations = listOf(BudgetTarget(BudgetTarget.Type.LIMIT, 30_000)))
+        assertEquals(true, capOnly.usesGoalProgress)
+    }
+
+    @Test fun `long-term goal keeps the goal bar alongside spending automations`() {
+        // Actual marks a category long_goal whenever it has a goal template.
+        val category = category(assignedCents = 10_000, spentCents = 0, balanceCents = 10_000).copy(
+            automations = listOf(
+                BudgetTarget(BudgetTarget.Type.GOAL, 40_000),
+                BudgetTarget(BudgetTarget.Type.FIXED, 10_000),
+            ),
+        )
+        assertEquals(true, category.usesGoalProgress)
+        assertEquals(0.25f, category.progressFraction())
+    }
+
+    private val emiSchedule = BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = "emi-1")
+    private val emiFunding = listOf(
+        BudgetScheduleFunding(
+            id = "emi-1", name = "EMI", amountCents = 2_500,
+            occurrencesInMonth = 1, monthsUntilNextOccurrence = 0,
+        ),
+    )
+
     private fun category(
         assignedCents: Long,
         spentCents: Long,

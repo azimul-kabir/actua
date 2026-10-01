@@ -51,10 +51,21 @@ data class BudgetCategory(
         return goalCents?.takeIf { it > 0L }
     }
 
+    /**
+     * Whether the progress bar measures the balance against a full target instead of spending.
+     * A long-term goal always does, matching Actual's `long_goal`. By-date and cover-schedule
+     * targets only do when every other funding automation is also one of them: a category that
+     * also budgets spending money (e.g. from history) keeps the spending bar, because spending
+     * that money would otherwise read as falling behind the schedule. Synced [longGoal] is only
+     * a fallback when no supported funding automation is known locally.
+     */
     val usesGoalProgress: Boolean
-        get() = longGoal || automations.ifEmpty { target?.let(::listOf).orEmpty() }.any {
-            it.type == BudgetTarget.Type.GOAL || it.type == BudgetTarget.Type.BY_DATE ||
-                it.type == BudgetTarget.Type.SCHEDULE
+        get() {
+            val targets = automations.ifEmpty { target?.let(::listOf).orEmpty() }
+            if (targets.any { it.type == BudgetTarget.Type.GOAL }) return true
+            val funding = targets.filterNot { it.type.isOption }
+            if (funding.isEmpty()) return longGoal
+            return funding.all { it.type == BudgetTarget.Type.BY_DATE || it.type == BudgetTarget.Type.SCHEDULE }
         }
 
     val showsProgressBar: Boolean
