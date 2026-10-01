@@ -381,6 +381,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Merging multiple selected transactions (field precedence and split reconciliation
   semantics are not yet defined; deliberately excluded from the multi-select bulk actions)
 - Advanced split, formula, and template rule actions
+- Transfer split lines (a split child whose payee is another account, with its own other leg, as
+  in loot-core `transfer.ts`); the split editor does not offer `Transfer:` payees and saving
+  one is refused
 - "Apply rule now" bulk re-application of a rule to existing transactions, a live
   matching-transaction preview in the rule editor, and automatic category-rule suggestion from
   repeated recategorization (see [docs/RULES_PARITY.md](docs/RULES_PARITY.md))

@@ -132,6 +132,62 @@ class TransactionParityTest {
     }
 
     @Test
+    fun aTransferLabelOnASplitLineNeverCreatesAPayee() = withDatabase { database ->
+        val service = formService(database, "split-transfer")
+        val payeesBefore = database.fetchPayees()
+        val transactionsBefore = database.fetchTransactions("checking")
+        val form = ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", date = 20260910,
+            splits = listOf(
+                ActualSplitLineForm(categoryId = "grocery", amount = "6", payeeName = "Corner Shop"),
+                ActualSplitLineForm(categoryId = "rent", amount = "4", payeeName = "Transfer: Savings"),
+            ),
+        )
+
+        assertEquals(
+            ActualTransactionFormException.SplitLineTransfer,
+            runCatching { service.save(form) }.exceptionOrNull(),
+        )
+        // Checked before anything is written: not even the other line's new payee.
+        assertEquals(payeesBefore, database.fetchPayees())
+        assertEquals(transactionsBefore, database.fetchTransactions("checking"))
+        assertTrue(database.fetchPayees().none { it.name.startsWith("Transfer: ") })
+
+        // A converted transaction is checked the same way.
+        val original = requireNotNull(database.fetchTransaction("ordinary"))
+        assertEquals(
+            ActualTransactionFormException.SplitLineTransfer,
+            runCatching { service.save(form, original) }.exceptionOrNull(),
+        )
+        assertEquals(payeesBefore, database.fetchPayees())
+    }
+
+    @Test
+    fun aPayeeAlreadyNamedLikeATransferStillSavesOnASplitLine() = withDatabase(
+        // A payee the old split editor created from a `Transfer:` label.
+        extraSql = listOf(
+            "INSERT INTO payees VALUES ('legacy','Transfer: Savings',NULL,0)",
+            "INSERT INTO payee_mapping VALUES ('legacy','legacy')",
+        ),
+    ) { database ->
+        formService(database, "legacy").save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", date = 20260910,
+            splits = listOf(
+                ActualSplitLineForm(categoryId = "grocery", amount = "6"),
+                ActualSplitLineForm(categoryId = "rent", amount = "4", payeeName = "Transfer: Savings"),
+            ),
+        ))
+        val parent = database.fetchTransactions("checking").single { it.isParent }
+        assertEquals(
+            listOf("legacy"),
+            database.fetchChildTransactions(parent.id).filter { it.categoryId == "rent" }.map { it.payeeId },
+        )
+        assertEquals(1, database.fetchPayees().count { it.name == "Transfer: Savings" })
+    }
+
+    @Test
     fun movingAStandardTransactionOffBudgetClearsItsCategory() = withDatabase { database ->
         val offBudget = ActualEntityWriter(database, idFactory = { "off-${UUID.randomUUID()}" })
             .createAccount("Brokerage", offBudget = true, startingBalanceCents = 0)
@@ -322,8 +378,12 @@ class TransactionParityTest {
         return source to requireNotNull(database.fetchTransaction(target.id))
     }
 
-    private fun withDatabase(syncTransferDate: Boolean = false, block: (ActualBudgetDatabase) -> Unit) {
-        val file = createDatabaseFile(syncTransferDate)
+    private fun withDatabase(
+        syncTransferDate: Boolean = false,
+        extraSql: List<String> = emptyList(),
+        block: (ActualBudgetDatabase) -> Unit,
+    ) {
+        val file = createDatabaseFile(syncTransferDate, extraSql)
         try {
             ActualBudgetDatabase.open(file).use(block)
         } finally {
@@ -331,7 +391,7 @@ class TransactionParityTest {
         }
     }
 
-    private fun createDatabaseFile(syncTransferDate: Boolean): File {
+    private fun createDatabaseFile(syncTransferDate: Boolean, extraSql: List<String>): File {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "transaction-parity-${UUID.randomUUID()}.sqlite")
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
@@ -361,6 +421,7 @@ class TransactionParityTest {
                 arrayOf<Any?>("ordinary", 0, 0, "checking", "grocery", -1000, "store", null, 20260901, null, null, 1, 0, 1.0, 0, null, null, 0, null),
             )
             if (syncTransferDate) db.execSQL("INSERT INTO preferences VALUES ('sync-transfer-date','true')")
+            extraSql.forEach(db::execSQL)
         }
         return file
     }
