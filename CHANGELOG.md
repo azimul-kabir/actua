@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Merge two selected transactions, such as a bank import and the same purchase entered by hand ([#822](https://github.com/azimul-kabir/actua/pull/822))
+
 ### Fixed
 
 - Categories with a cover-schedule or save-by-date automation plus a spending automation now show spending progress instead of a full goal bar ([#820](https://github.com/azimul-kabir/actua/pull/820))

@@ -336,6 +336,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   reconciled row cleared, moving one to another account clears `reconciled`, and saving or
   deleting a reconciled row (or a transfer whose other leg is reconciled) asks first with
   Actual's `confirm-transaction-edit` texts, in the editor and the bulk actions
+- Merging two selected transactions like Actual's `transactions-merge`: same account and amount,
+  the bank import (then the imported payee, then the earlier date) is kept and fills its empty
+  fields from the other, a dropped split's lines move to the kept row, and transfer links are
+  carried or both transfers' other legs merged, all in one CRDT batch
 - Collapsible account balance details with compact Budget-tab typography
 - Credit-card account details with limit, available credit, current billing cycle
   (including its date range), cycle spending, and calculated payment due date using
@@ -389,8 +393,6 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 
 ## Post-v1 portable features
 
-- Merging multiple selected transactions (field precedence and split reconciliation
-  semantics are not yet defined; deliberately excluded from the multi-select bulk actions)
 - Advanced split, formula, and template rule actions
 - Transfer split lines (a split child whose payee is another account, with its own other leg, as
   in loot-core `transfer.ts`); the split editor does not offer `Transfer:` payees and saving

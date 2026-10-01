@@ -1497,6 +1497,12 @@ fun AppNavigation(
                         true
                     }
                 },
+                onMergeTransactions = { first, second ->
+                    val categories = budgetCategoriesOf(first) + budgetCategoriesOf(second)
+                    mutateWithImpactCue("Merging transactions", categories) {
+                        repository.mergeTransactions(first.id, second.id)
+                    }
+                },
                 linkableSchedules = linkableSchedules,
                 account = accounts.firstOrNull { it.name == transactionAccount },
                 creditCard = creditCards.firstOrNull { card ->
@@ -2609,6 +2615,12 @@ fun AppNavigation(
                         mutate("Labeling transactions") {
                             updated.forEach { repository.saveTransaction(it) }
                             true
+                        }
+                    },
+                    onMergeTransactions = { first, second ->
+                        val categories = budgetCategoriesOf(first) + budgetCategoriesOf(second)
+                        mutateWithImpactCue("Merging transactions", categories) {
+                            repository.mergeTransactions(first.id, second.id)
                         }
                     },
                     linkableSchedules = linkableSchedules,

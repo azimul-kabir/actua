@@ -149,6 +149,29 @@ class ActualTransactionWriter(
     }
 
     /**
+     * Merge [firstId] and [secondId], in the order they were selected, into one row in a single
+     * batch (loot-core `transactions-merge`, see [TransactionMerge]). Returns the kept id.
+     */
+    @Synchronized
+    fun mergeTransactions(firstId: String, secondId: String): String {
+        val first = database.fetchTransactionRow(firstId)
+        val second = database.fetchTransactionRow(secondId)
+        TransactionMerge.invalidReason(first, second)?.let { throw IllegalArgumentException(it) }
+        val onBudgetAccounts = database.fetchAccounts().filterNot { it.offBudget }.mapTo(mutableSetOf()) { it.id }
+        val onBudgetTransferPayees = database.fetchPayees()
+            .filter { it.transferAccountId in onBudgetAccounts }
+            .mapTo(mutableSetOf()) { it.id }
+        val plan = TransactionMerge.plan(
+            requireNotNull(first), requireNotNull(second),
+            rowOf = database::fetchTransactionRow,
+            childrenOf = database::fetchChildTransactions,
+            onBudgetTransferPayee = { it in onBudgetTransferPayees },
+        )
+        mutate(updates = plan.updates, tombstoneIds = plan.tombstoneIds)
+        return plan.keptId
+    }
+
+    /**
      * loot-core's `removeTransfer` for every leg in [legs] that has a counterpart: the counterpart is
      * tombstoned, or unlinked (`transferred_id` and payee cleared) when it is a split child, and the
      * leg's own `transferred_id` is cleared. Counterparts in [removedIds] are already being deleted.

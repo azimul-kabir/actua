@@ -119,7 +119,7 @@ Actua: `ActualTransactionFormService.createSplit`/`updateSplit`/`convertToSplit`
 | `notes` stored as entered; an empty note is `null` | – | `takeIf(String::isNotEmpty)` | Match |
 | `financial_id`, `imported_description`, `pending`, `raw_synced_data` are kept through edits | diffed update | only written when they change | Match; import semantics are in [#673](https://github.com/azimul-kabir/actua/issues/673) |
 | Manual reorder within a day (`transaction-move`, `shoveSortOrdersDescending`) | desktop | not offered | N/A |
-| Merge two transactions (`transactions-merge`) | desktop | not offered | N/A |
+| Merge two transactions (`transactions-merge`): same account and amount, transfers only to the same account; keep the bank import, then the imported payee, then the earlier date; fill empty payee, category, notes and schedule; cleared/reconciled if either was; move a dropped split's lines; carry or merge transfer legs | `server/transactions/merge.ts`, `shared/merge.ts`; desktop and mobile selection menus | `TransactionMerge` planned, applied by `ActualTransactionWriter.mergeTransactions` in one batch; Merge in the selection menu, enabled only for a valid pair and confirmed when a row is reconciled | Match ([#821](https://github.com/azimul-kabir/actua/issues/821)). Merging two transfers whose other legs are split lines is refused (**Intentional**: Actual would need split recalculation there). A kept split parent never takes the dropped row's category (**Intentional**: loot-core's raw `db.updateTransaction` would copy it, which `batchUpdateTransactions` never allows). Tests: `TransactionMergeTest`, `MergeSelectionTest`, `TransactionMergeWriterTest` |
 
 ## 6. Transaction list semantics
 
