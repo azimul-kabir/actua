@@ -198,6 +198,45 @@ class TransactionParityTest {
     }
 
     @Test
+    fun aReconciledRowStaysClearedAndMovingItUnreconcilesIt() = withDatabase { database ->
+        val writer = ActualTransactionWriter(database)
+        val ordinary = requireNotNull(database.fetchTransaction("ordinary"))
+        writer.mutate(updates = listOf(ordinary to ordinary.copy(cleared = true, reconciled = true)))
+        val reconciled = requireNotNull(database.fetchTransaction("ordinary"))
+        val service = formService(database, "reconciled")
+        val before = transactionMessages(database).size
+
+        // The editor never writes cleared = 0 on a row that stays reconciled.
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "12", payeeName = "Store", categoryId = "grocery", date = 20260901, cleared = false,
+        ), reconciled)
+        val edited = requireNotNull(database.fetchTransaction("ordinary"))
+        assertTrue(edited.cleared)
+        assertTrue(edited.reconciled)
+        val columns = transactionMessages(database).drop(before).filter { it.row == "ordinary" }.map { it.column }
+        assertTrue("amount" in columns)
+        assertFalse("cleared" in columns || "reconciled" in columns)
+
+        // Moving it to another account writes reconciled = 0 (desktop TransactionsTable onUpdate).
+        service.save(ActualTransactionForm(
+            accountId = "savings", type = ActualTransactionType.EXPENSE,
+            amount = "12", payeeName = "Store", categoryId = "grocery", date = 20260901, cleared = true,
+        ), edited)
+        val moved = requireNotNull(database.fetchTransaction("ordinary"))
+        assertEquals("savings", moved.accountId)
+        assertFalse(moved.reconciled)
+        assertTrue(moved.cleared)
+    }
+
+    @Test
+    fun fetchReconciledIdsFindsTheReconciledOtherLeg() = withDatabase { database ->
+        val (source, target) = reconciledTransfer(database)
+        assertEquals(setOf(target.id), database.fetchReconciledIds(listOf(source.id, target.id, "missing")))
+        assertEquals(emptySet<String>(), database.fetchReconciledIds(emptyList()))
+    }
+
+    @Test
     fun syncTransferDatePreferenceMovesTheOtherLegsDate() = withDatabase(syncTransferDate = true) { database ->
         val (source, target) = reconciledTransfer(database)
 

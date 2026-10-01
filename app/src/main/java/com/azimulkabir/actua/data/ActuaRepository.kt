@@ -800,15 +800,27 @@ class ActuaRepository(context: Context) {
             // older synced transactions exist locally but silently disappear from Accounts.
             return db.fetchTransactions(limit = limit, offset = offset, query = query,
                 unclearedOnly = unclearedOnly, hideReconciled = hideReconciled, statusFilter = statusFilter)
-                .map { toTransaction(it, accountNames, offBudgetAccountIds) }
+                .let { rows -> toTransactions(db, rows, accountNames, offBudgetAccountIds) }
         }
         return emptyList()
+    }
+
+    /** List rows, each flagged when its other transfer leg is reconciled (#746). */
+    private fun toTransactions(
+        db: ActualBudgetDatabase,
+        rows: List<ActualTransaction>,
+        accountNames: Map<String, String>,
+        offBudgetAccountIds: Set<String>,
+    ): List<Transaction> {
+        val reconciledPartners = db.fetchReconciledIds(rows.mapNotNull { it.transferId })
+        return rows.map { toTransaction(it, accountNames, offBudgetAccountIds, reconciledPartners) }
     }
 
     private fun toTransaction(
         it: ActualTransaction,
         accountNames: Map<String, String>,
         offBudgetAccountIds: Set<String> = emptySet(),
+        reconciledPartnerIds: Set<String> = emptySet(),
     ): Transaction {
         val isTransfer = it.transferId != null
         val accountOffBudget = it.accountId in offBudgetAccountIds
@@ -844,6 +856,7 @@ class ActuaRepository(context: Context) {
             accountId = it.accountId,
             transferAccountId = it.transferAccountId,
             categoryId = if (it.isParent) null else it.categoryId,
+            transferReconciled = it.transferId != null && it.transferId in reconciledPartnerIds,
             splits = it.splitPortions.map { part ->
                 SplitLine(
                     category = part.categoryName.orEmpty(),
@@ -876,7 +889,7 @@ class ActuaRepository(context: Context) {
         val accountNames = accounts.associate { it.id to it.name }
         val offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id }
         return db.fetchTransactions(accountId = accountId, limit = Int.MAX_VALUE, startDate = startDate, endDate = endDate)
-            .map { toTransaction(it, accountNames, offBudgetAccountIds) }
+            .let { rows -> toTransactions(db, rows, accountNames, offBudgetAccountIds) }
     }
 
     fun importDuplicateKeys(accountId: String): Set<String> {
@@ -931,7 +944,7 @@ class ActuaRepository(context: Context) {
         val offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id }
         return ids.mapNotNull(db::fetchTransaction).filterNot { it.tombstone }
             .sortedWith(compareByDescending<ActualTransaction> { it.date }.thenBy { it.id })
-            .map { toTransaction(it, accountNames, offBudgetAccountIds) }
+            .let { rows -> toTransactions(db, rows, accountNames, offBudgetAccountIds) }
     }
 
     private class ReportInputs(

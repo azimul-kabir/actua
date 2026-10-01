@@ -32,6 +32,8 @@ data class Transaction(
     val accountId: String? = null,
     val transferAccountId: String? = null,
     val categoryId: String? = null,
+    /** True when this is a transfer whose other leg is reconciled in its own account. */
+    val transferReconciled: Boolean = false,
 )
 
 data class SplitLine(

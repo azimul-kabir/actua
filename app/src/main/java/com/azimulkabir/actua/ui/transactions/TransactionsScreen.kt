@@ -211,6 +211,12 @@ fun TransactionsScreen(
     var bulkMenuOpen by remember { mutableStateOf(false) }
     var showLinkSchedulePicker by remember { mutableStateOf(false) }
     var confirmBulkDelete by remember { mutableStateOf(false) }
+    // A bulk edit of reconciled rows waits here for confirmation (#746).
+    var pendingReconciledEdit by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
+    fun confirmReconciled(rows: List<Transaction>, edit: () -> Unit) {
+        val warning = reconciledWarning(rows, ReconciledAction.BULK_EDIT)
+        if (warning == null) edit() else pendingReconciledEdit = warning to edit
+    }
     var showCategorizePicker by remember { mutableStateOf(false) }
     var showMovePicker by remember { mutableStateOf(false) }
     var showLabelPicker by remember { mutableStateOf(false) }
@@ -707,7 +713,12 @@ fun TransactionsScreen(
         AlertDialog(
             onDismissRequest = { confirmBulkDelete = false },
             title = { Text("Delete $count ${if (count == 1) "transaction" else "transactions"}?") },
-            text = { Text("These transactions will be deleted.") },
+            text = {
+                Text(
+                    reconciledWarning(visible.filter { it.id in selectedIds }, ReconciledAction.DELETE)
+                        ?: "These transactions will be deleted.",
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     onDeleteMultiple(visible.filter { it.id in selectedIds })
@@ -716,6 +727,16 @@ fun TransactionsScreen(
                 }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = { TextButton(onClick = { confirmBulkDelete = false }) { Text("Cancel") } },
+        )
+    }
+    pendingReconciledEdit?.let { (warning, edit) ->
+        ReconciledConfirmDialog(
+            message = warning,
+            onConfirm = {
+                pendingReconciledEdit = null
+                edit()
+            },
+            onDismiss = { pendingReconciledEdit = null },
         )
     }
     if (showLinkSchedulePicker) {
@@ -755,8 +776,10 @@ fun TransactionsScreen(
                             if (index > 0) ActuaCardDivider(inset = Spacing.lg)
                             Action(category) {
                                 showCategorizePicker = false
-                                onCategorizeMultiple(toCategorize, category)
-                                selectionModeOn = false
+                                confirmReconciled(toCategorize) {
+                                    onCategorizeMultiple(toCategorize, category)
+                                    selectionModeOn = false
+                                }
                             }
                         }
                     }
@@ -778,8 +801,10 @@ fun TransactionsScreen(
                             if (index > 0) ActuaCardDivider(inset = Spacing.lg)
                             Action(account) {
                                 showMovePicker = false
-                                onMoveMultiple(toMove, account)
-                                selectionModeOn = false
+                                confirmReconciled(toMove) {
+                                    onMoveMultiple(toMove, account)
+                                    selectionModeOn = false
+                                }
                             }
                         }
                     }
