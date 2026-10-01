@@ -1084,6 +1084,21 @@ class ActualBudgetDatabase private constructor(
         return rows
     }
 
+    /** Those of [ids] that are live reconciled rows, e.g. to warn before editing a transfer (#746). */
+    @Synchronized
+    fun fetchReconciledIds(ids: Collection<String>): Set<String> {
+        val reconciled = mutableSetOf<String>()
+        // Stay below SQLite's bind limit even for complete-history results.
+        ids.distinct().chunked(500).forEach { batch ->
+            database.rawQuery(
+                "SELECT id FROM transactions WHERE id IN (${batch.joinToString { "?" }}) " +
+                    "AND COALESCE(reconciled, 0) = 1 AND (tombstone = 0 OR tombstone IS NULL)",
+                batch.toTypedArray(),
+            ).use { cursor -> while (cursor.moveToNext()) reconciled += cursor.getString(0) }
+        }
+        return reconciled
+    }
+
     /** Every live cleared row that has not yet been locked by reconciliation. */
     @Synchronized
     fun fetchClearedUnreconciledTransactions(accountId: String): List<ActualTransaction> {

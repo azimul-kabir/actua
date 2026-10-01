@@ -114,7 +114,7 @@ class ActualTransactionFormService(
                     // A transfer saved as an expense/income stops being a transfer (loot-core
                     // `transfer.onUpdate` → `removeTransfer`).
                     val detached = writer.detachTransfers(listOf(original))
-                    writer.mutate(
+                    mutate(
                         updates = listOf(original to original.copy(
                             accountId = normalizedForm.accountId,
                             date = normalizedForm.date,
@@ -140,6 +140,17 @@ class ActualTransactionFormService(
             }
         }
     }
+
+    /** Every form update goes through [keepReconciledInvariant] (#746). */
+    private fun mutate(
+        updates: List<Pair<ActualTransaction, ActualTransaction>> = emptyList(),
+        inserts: List<ActualTransaction> = emptyList(),
+        tombstoneIds: List<String> = emptyList(),
+    ) = writer.mutate(
+        updates.map { (original, updated) -> original to keepReconciledInvariant(original, updated) },
+        inserts,
+        tombstoneIds,
+    )
 
     private fun offBudgetAccountIds(): Set<String> = database.fetchAccounts()
         .filter { it.offBudget }
@@ -217,7 +228,7 @@ class ActualTransactionFormService(
             ?.takeIf { syncDate && partner.date != form.date }
             ?.let(database::fetchTransaction)
             ?.let { it to it.copy(date = form.date) }
-        writer.mutate(updates = listOfNotNull(sourceOriginal to source, targetOriginal to target, partnerParent))
+        mutate(updates = listOfNotNull(sourceOriginal to source, targetOriginal to target, partnerParent))
     }
 
     private fun convertToTransfer(original: ActualTransaction, form: ActualTransactionForm, plan: ActualTransactionFormPlan.Transfer, notes: String?) {
@@ -238,7 +249,7 @@ class ActualTransactionFormService(
             partnerId, plan.toAccountId, form.date, -signed, legPayee.id, null, notes,
             false, transferId = original.id,
         )
-        writer.mutate(updates = listOf(original to leg), inserts = listOf(partner))
+        mutate(updates = listOf(original to leg), inserts = listOf(partner))
     }
 
     private fun createSplit(form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
@@ -299,7 +310,7 @@ class ActualTransactionFormService(
         val removed = existing.filterNot { it.id in retained }
         val removedIds = removed.mapTo(mutableSetOf(), ActualTransaction::id)
         val detached = writer.detachTransfers(removed, removedIds)
-        writer.mutate(updates + detached.updates, inserts, removedIds.toList() + detached.tombstoneIds)
+        mutate(updates + detached.updates, inserts, removedIds.toList() + detached.tombstoneIds)
     }
 
     private fun convertToSplit(original: ActualTransaction, form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
@@ -321,7 +332,7 @@ class ActualTransactionFormService(
                 sortOrder = nextSort,
             )
         }
-        writer.mutate(updates = listOf(original to parent), inserts = children)
+        mutate(updates = listOf(original to parent), inserts = children)
     }
 
     private fun collapseSplit(original: ActualTransaction, form: ActualTransactionForm, amount: Long, notes: String?) {
@@ -334,7 +345,7 @@ class ActualTransactionFormService(
         val children = database.fetchChildTransactions(original.id)
         val childIds = children.mapTo(mutableSetOf(), ActualTransaction::id)
         val detached = writer.detachTransfers(children, childIds)
-        writer.mutate(
+        mutate(
             updates = listOf(original to updated) + detached.updates,
             tombstoneIds = childIds.toList() + detached.tombstoneIds,
         )
@@ -381,6 +392,19 @@ class ActualTransactionFormService(
         /** The editor's `Transfer: <account>` payee label, which names an account, not a payee. */
         internal fun isTransferLabel(name: String): Boolean =
             name.trim().let { it.startsWith("Transfer: ") && it.length > "Transfer: ".length }
+
+        /**
+         * A reconciled row moved to another account is no longer reconciled there (desktop
+         * `TransactionsTable` `onUpdate`); one that stays reconciled stays cleared, since the
+         * mobile editor locks its Cleared toggle (`TransactionEdit.tsx`, Actual 59fe126f).
+         */
+        internal fun keepReconciledInvariant(original: ActualTransaction, updated: ActualTransaction): ActualTransaction =
+            when {
+                !updated.reconciled -> updated
+                updated.accountId != original.accountId -> updated.copy(reconciled = false)
+                !updated.cleared -> updated.copy(cleared = true)
+                else -> updated
+            }
 
         internal fun enforceOffBudgetCategoryPolicy(
             form: ActualTransactionForm,

@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.budget
 
+import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -11,6 +12,23 @@ class ActualTransactionFormPlanTest {
         assertEquals(false, ActualTransactionFormService.isTransferLabel("Transfer: "))
         assertEquals(false, ActualTransactionFormService.isTransferLabel("Transfers R Us"))
         assertEquals(false, ActualTransactionFormService.isTransferLabel("Store"))
+    }
+
+    @Test
+    fun aReconciledRowStaysClearedUnlessItMovesAccount() {
+        val reconciled = row(cleared = true, reconciled = true)
+        fun guard(updated: ActualTransaction) = ActualTransactionFormService.keepReconciledInvariant(reconciled, updated)
+
+        val uncleared = guard(reconciled.copy(cleared = false, amountCents = -500))
+        assertEquals(true to true, uncleared.cleared to uncleared.reconciled)
+        assertEquals(-500L, uncleared.amountCents)
+
+        val moved = guard(reconciled.copy(accountId = "savings", cleared = false))
+        assertEquals(false to false, moved.cleared to moved.reconciled)
+
+        val ordinary = row(cleared = true, reconciled = false)
+        val unclearedOrdinary = ordinary.copy(cleared = false)
+        assertEquals(unclearedOrdinary, ActualTransactionFormService.keepReconciledInvariant(ordinary, unclearedOrdinary))
     }
 
     @Test
@@ -70,4 +88,11 @@ class ActualTransactionFormPlanTest {
         splits = splits,
     )
 
+    private fun row(cleared: Boolean, reconciled: Boolean) = ActualTransaction(
+        id = "row", accountId = "checking", date = 20260901, amountCents = -1000,
+        payeeId = null, payeeName = null, categoryId = null, categoryName = null,
+        notes = null, cleared = cleared, reconciled = reconciled, transferId = null,
+        isParent = false, parentId = null, tombstone = false, sortOrder = null,
+        importedPayee = null, scheduleId = null, transferAccountId = null,
+    )
 }

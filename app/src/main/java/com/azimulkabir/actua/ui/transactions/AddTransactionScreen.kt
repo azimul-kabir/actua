@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -147,6 +148,7 @@ fun AddTransactionScreen(
     var autoStep by remember(editing) { mutableStateOf<AddStep?>(null) }
     var amountExpression by remember(editing) { mutableStateOf<String?>(null) }
     var confirmDelete by remember(editing) { mutableStateOf(false) }
+    var confirmReconciledSave by remember(editing) { mutableStateOf(false) }
     // Like Actual's mobile editor there is no type selector: a `Transfer: <account>` payee makes a
     // transfer, otherwise the sign decides expense or income. [account] is always the edited
     // transaction's own account, so either side of a transfer is edited without swapping.
@@ -191,6 +193,9 @@ fun AddTransactionScreen(
             splitLines = splitLines.map { it.copy(category = "") }
         }
     }
+    // Like Actual's mobile editor, a reconciled row shows a locked Reconciled toggle and stays
+    // cleared; moving it to another account unreconciles it there (#746).
+    val staysReconciled = editing?.reconciled == true && account == editingLabels?.account
     val isSplit = splitLines.isNotEmpty()
     val splitTotal = splitLines.sumOf { if (it.isOpposite) -it.amountCents else it.amountCents }
     val splitIsValid = !isSplit || (splitLines.size >= 2 && splitLines.all {
@@ -224,7 +229,7 @@ fun AddTransactionScreen(
             account = account,
             incoming = incoming,
             amountCents = amountCents,
-            cleared = cleared,
+            cleared = cleared || staysReconciled,
             notes = notes,
             splits = if (isOffBudget) splitLines.map { it.copy(category = "") } else splitLines,
             rulesApplied = rulesApplied,
@@ -240,7 +245,12 @@ fun AddTransactionScreen(
             },
         )
     }
-    val saveTransaction = { if (canSave) onSave(draft()) }
+    val saveWarning = editing?.let { reconciledWarning(listOf(it), ReconciledAction.EDIT) }
+    val saveTransaction = {
+        if (canSave) {
+            if (saveWarning != null) confirmReconciledSave = true else onSave(draft())
+        }
+    }
     val onPayeeChange: (String) -> Unit = { value ->
         val target = transferTargetOf(value)
         payee = value
@@ -528,13 +538,24 @@ fun AddTransactionScreen(
                     onClick = { showDatePicker = true },
                 )
                 ActuaCardDivider()
-                ActuaFormRow(
-                    icon = Icons.Outlined.CheckCircleOutline,
-                    label = "Cleared",
-                    value = null,
-                    checked = cleared,
-                    onClick = { cleared = !cleared },
-                )
+                if (staysReconciled) {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.Lock,
+                        label = "Reconciled",
+                        value = null,
+                        caption = "Reconciled transactions stay cleared",
+                        checked = true,
+                        enabled = false,
+                    )
+                } else {
+                    ActuaFormRow(
+                        icon = Icons.Outlined.CheckCircleOutline,
+                        label = "Cleared",
+                        value = null,
+                        checked = cleared,
+                        onClick = { cleared = !cleared },
+                    )
+                }
                 ActuaCardDivider()
                 TagAutocompleteField(
                     value = notes,
@@ -586,11 +607,26 @@ fun AddTransactionScreen(
             onExpressionChange = { splitAmountExpression = it },
         ) else splitCalculatorIndex = null
     }
+    if (confirmReconciledSave && saveWarning != null) {
+        ReconciledConfirmDialog(
+            message = saveWarning,
+            onConfirm = {
+                confirmReconciledSave = false
+                if (canSave) onSave(draft())
+            },
+            onDismiss = { confirmReconciledSave = false },
+        )
+    }
     if (confirmDelete && editing != null) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete transaction?") },
-            text = { Text("This transaction will be removed from your budget.") },
+            text = {
+                Text(
+                    reconciledWarning(listOf(editing), ReconciledAction.DELETE)
+                        ?: "This transaction will be removed from your budget.",
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
