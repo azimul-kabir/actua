@@ -56,7 +56,7 @@ Actua: `AddTransactionScreen` → `ActuaRepository.saveTransaction` (`data/Actua
 | New transaction defaults: uncleared; account from the entry point or the last transaction; date = the last transaction's date or today | mobile `useEffect` defaults | uncleared; the entry point's or the first account; today | **Intentional.** Only the pre-filled date and account differ; nothing different is stored. |
 | Payee typed as new text creates a payee plus its `payee_mapping` | `createPayee` | `resolveOrCreatePayee` (case-insensitive reuse) | Match |
 | `imported_payee` left empty for hand-entered rows | no `imported_payee` on the mobile draft | set to the payee name | **Divergence** [#749](https://github.com/azimul-kabir/actua/issues/749) |
-| Account, transfer account and categories referenced by id | ids from pickers | re-resolved from display names in `saveTransaction`/`previewRules` | **Divergence** [#747](https://github.com/azimul-kabir/actua/issues/747) |
+| Account, transfer account and categories referenced by id | ids from pickers | list rows carry the ids; pickers show unique labels ("Misc (Food)", "Checking (2)" only when names repeat) that map back to one id, and `saveTransaction`/`previewRules` prefer the id while it still matches the name | Match ([#747](https://github.com/azimul-kabir/actua/issues/747), [#811](https://github.com/azimul-kabir/actua/pull/811)). Tests: `ActuaRepositoryDuplicateNamesTest`, `PickerChoicesTest` |
 | Rules pre-fill empty fields while editing a new transaction (`rules-run` + `shouldApplyRuleChange`) | mobile `onUpdate` | `previewRules`, then `RulesEngine.apply` on save with `preserveCategory` | Rule semantics are in [#669](https://github.com/azimul-kabir/actua/issues/669) |
 | Category learning (`learnCategories`) | desktop only; the mobile editor doesn't pass it | not done | Match (mobile) |
 | Zero amounts allowed | yes | yes (`canSave` requires `amountCents >= 0`) | Match. Test: `formServiceAllowsZeroAmountButRejectsNegative` |
@@ -85,7 +85,7 @@ Actua: `ActualTransactionFormService.createTransfer`/`updateTransfer`/`convertTo
 | Changing a transfer into a split removes the transfer | `onUpdate` (`is_parent`) → `removeTransfer` | refused (`CannotConvertToSplit`); the editor clears split lines for transfers | **Intentional** (stricter) |
 | Moving one leg to another account updates the other leg's payee | `updateTransfer` | `updateTransfer` rewrites both legs' payees | Match |
 | Same account on both sides is rejected | the transfer payee for the same account isn't offered | `TransferAccountsMatch` | Match |
-| A split child can be a transfer | `onInsert`/`onUpdate` run per child | the split line picker offers `Transfer: …` but creates an ordinary payee with that name | **Divergence** [#748](https://github.com/azimul-kabir/actua/issues/748) |
+| A split child can be a transfer | `onInsert`/`onUpdate` run per child | not offered: the split line picker leaves out `Transfer: …` entries and the form service refuses such a label before writing; an existing payee with that name still resolves | **N/A** (refused, [#748](https://github.com/azimul-kabir/actua/issues/748), [#812](https://github.com/azimul-kabir/actua/pull/812)); listed as deferred in BACKEND_PARITY.md. Tests: `TransactionParityTest.aTransferLabelOnASplitLineNeverCreatesAPayee`, `aPayeeAlreadyNamedLikeATransferStillSavesOnASplitLine`, `TransactionFormMappingTest.splitLinePayeeOptionsLeaveOutTransfers` |
 | Link an existing pair of transactions as a transfer (`validForTransfer`) | desktop "Make transfer" | not offered | N/A |
 
 ## 4. Splits
@@ -101,7 +101,7 @@ Actua: `ActualTransactionFormService.createSplit`/`updateSplit`/`convertToSplit`
 | Parent: `isParent = 1`, no category, amount = the sum of its children | `batchUpdateTransactions` nulls the parent category; `recalculateSplit` | `createSplit` requires `categoryId == null` and a matching sum | Match. Test: `standardTransactionConvertsToSplitWithoutLeavingParentCategory` |
 | Child: `isChild = 1`, `parent_id`; account, date, cleared, reconciled and `starting_balance_flag` copied from the parent | `makeChild` | account, date and cleared copied on create and on every parent edit | Match. Test: `TransactionParityTest.splitParentEditsFlowToChildrenAndInheritedChildPayeesFollowTheParent` |
 | A child whose payee equals the old parent payee follows a parent payee change | `updateTransaction` | inherited lines are blank in the form and resolve to the new parent payee | Match (same test) |
-| A child with no payee keeps no payee when the parent is edited | `updateTransaction` | filled with the parent payee | **Divergence** [#750](https://github.com/azimul-kabir/actua/issues/750) |
+| A child with no payee keeps no payee until the parent itself changes | `updateTransaction` (re-applies the parent payee through `makeChild` only when the parent is updated) | `updateSplit` keeps a stored payee-less child payee-less unless the parent's account, date, amount, payee, notes or cleared state changed | Match ([#750](https://github.com/azimul-kabir/actua/issues/750), [#814](https://github.com/azimul-kabir/actua/pull/814)). Tests: `TransactionParityTest.aPayeelessChildKeepsNoPayeeUntilTheParentIsEdited`, `ActualTransactionFormPlanTest.aPayeelessChildKeepsNoPayeeUntilTheParentChanges` |
 | A split whose children don't add up can't be saved | the mobile footer offers "Amount left" in place of Save; the desktop stores `error` | `SplitAmountMismatch`; Save disabled | Match (mobile) |
 | Minimum number of children | 1 (deleting down to one child keeps the split) | 2 in the editor | **Intentional** (stricter). Synced one-child splits still display, and editing one requires adding a line or collapsing it. |
 | A new split's parent payee | cleared to `null` by `splitTransaction` | kept | **Intentional**; children inherit it in both clients |
@@ -144,15 +144,16 @@ Actua: `ActualBudgetDatabase.fetchTransactions` (`:963`), `transactionSearchClau
 Upstream: mobile editor (`TransactionEdit.tsx#L748-L797`, `#L1091-L1128`, `#L1475-L1489`), desktop
 account change (`TransactionsTable.tsx#L1258-L1260`).
 Actua: `ActualTransactionWriter.setCleared`/`reconcileClearedTransactions` (`:106-128`), editor
-Cleared switch (`ui/transactions/AddTransactionScreen.kt:588`).
+Cleared/Reconciled toggle (`ui/transactions/AddTransactionScreen.kt`), confirmations
+(`ui/transactions/ReconciledWarnings.kt`), `ActualTransactionFormService.keepReconciledInvariant`.
 
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | Toggling cleared on a parent updates its children | `makeChild` | `setCleared` includes the children | Match. Test: `clearingASplitKeepsItsStoredChildrenAligned` |
 | Toggling cleared on a transfer leg leaves the other leg alone | `updateTransfer` omits `cleared` | neither the list toggle nor an editor save changes it | Match ([#744](https://github.com/azimul-kabir/actua/issues/744)) |
-| A reconciled row shows a locked Reconciled toggle, not Cleared | mobile editor | the list toggle is blocked; the editor still shows Cleared and can write `cleared = 0` | **Divergence** [#746](https://github.com/azimul-kabir/actua/issues/746) |
-| Confirm before saving or deleting a reconciled row, or one whose other transfer leg is reconciled | `confirm-transaction-edit` | no confirmation | **Divergence** [#746](https://github.com/azimul-kabir/actua/issues/746) |
-| Moving a row to another account clears `reconciled` | desktop `onEdit('account')` | kept | **Divergence** [#746](https://github.com/azimul-kabir/actua/issues/746) |
+| A reconciled row shows a locked Reconciled toggle, not Cleared | mobile editor | the list toggle is blocked; the editor shows a locked Reconciled toggle, and every form-service update keeps a reconciled row cleared | Match ([#746](https://github.com/azimul-kabir/actua/issues/746), [#813](https://github.com/azimul-kabir/actua/pull/813)). Tests: `TransactionParityTest.aReconciledRowStaysClearedAndMovingItUnreconcilesIt`, `ActualTransactionFormPlanTest.aReconciledRowStaysClearedUnlessItMovesAccount` |
+| Confirm before saving or deleting a reconciled row, or one whose other transfer leg is reconciled | `confirm-transaction-edit` | the editor and the bulk Categorize/Move/Delete actions ask first with Actual's texts; list rows carry whether the other leg is reconciled | Match ([#746](https://github.com/azimul-kabir/actua/issues/746), [#813](https://github.com/azimul-kabir/actua/pull/813)). Tests: `ReconciledWarningsTest`, `TransactionParityTest.fetchReconciledIdsFindsTheReconciledOtherLeg` |
+| Moving a row to another account clears `reconciled` | desktop `onEdit('account')` | the form service writes `reconciled = 0` when the account changes | Match ([#746](https://github.com/azimul-kabir/actua/issues/746), [#813](https://github.com/azimul-kabir/actua/pull/813)). Test: `TransactionParityTest.aReconciledRowStaysClearedAndMovingItUnreconcilesIt` |
 | Reconcile locks every cleared, unreconciled row in the account | – | `reconcileClearedTransactions` | Audited in [#664](https://github.com/azimul-kabir/actua/issues/664) |
 
 ## 8. Bulk actions
@@ -164,8 +165,8 @@ matrices above apply to each row.
 | Action | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | Mark cleared / uncleared | desktop bulk edit | `setCleared` per row; for a reconciled row it shows a "Reconciled transactions are locked" error | Match |
-| Categorize | desktop bulk edit | `saveTransaction` per row | Match, apart from name lookup [#747](https://github.com/azimul-kabir/actua/issues/747) and reconciled confirmation [#746](https://github.com/azimul-kabir/actua/issues/746) |
-| Move to another account | desktop bulk edit (clears `reconciled`) | `saveTransaction` per row | **Divergence** [#746](https://github.com/azimul-kabir/actua/issues/746) |
+| Categorize | desktop bulk edit | `saveTransaction` per row, by category id, after the reconciled confirmation | Match ([#746](https://github.com/azimul-kabir/actua/issues/746), [#747](https://github.com/azimul-kabir/actua/issues/747)) |
+| Move to another account | desktop bulk edit (clears `reconciled`) | `saveTransaction` per row, by account id, after the reconciled confirmation; clears `reconciled` | Match ([#746](https://github.com/azimul-kabir/actua/issues/746), [#747](https://github.com/azimul-kabir/actua/issues/747)) |
 | Duplicate | `onBatchDuplicate` ([`DC/hooks/useTransactionBatchActions.ts#L286-L318`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/hooks/useTransactionBatchActions.ts#L286-L318)) inserts copies with `cleared: false`, `reconciled: false` and the schedule kept; transfers get a new pair through `onInsert` | `Transaction.asDuplicate` (`model/Transaction.kt:41`) keeps `cleared` and drops the schedule; transfers go through `createTransfer` | **Divergence** [#752](https://github.com/azimul-kabir/actua/issues/752) |
 | Delete | `batchUpdateTransactions({deleted})` with `removeTransfer` | `deleteTransactions` in one batch | Match ([#743](https://github.com/azimul-kabir/actua/issues/743)) |
 | Link / unlink schedule | batch update (copied to the other transfer leg) | `setScheduleLink` updates both legs in one batch | Match ([#744](https://github.com/azimul-kabir/actua/issues/744)). Test: `TransactionParityTest`.`linkingAScheduleToOneTransferLegLinksBothLegs`; schedule semantics in [#670](https://github.com/azimul-kabir/actua/issues/670) |

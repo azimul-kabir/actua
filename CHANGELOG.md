@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.4.1] - 2026-10-01
+
 ### Changed
 
 - Budget balances now only use strong color when overspent, Overspent is a clearer red, zero balances are neutral, and Fully spent defaults to the Partially spent color ([#808](https://github.com/azimul-kabir/actua/pull/808))

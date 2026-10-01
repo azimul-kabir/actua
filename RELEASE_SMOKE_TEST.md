@@ -49,6 +49,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Ready to Budget/To Budget, Budgeted and Balance values agree with Actual for the test month.
 - [ ] Verify ordinary category progress bars show spending (including carryover) and match Actual/Actuali for a category with carryover, and that goal-only/save-by-date targets still show balance-funded progress.
 - [ ] Category rows/cards show a status dot matching the progress bar's color; customize a status color (and reset to defaults) from Settings → Budget → Category status colors and verify it updates everywhere immediately; toggle the "Category status dot" switch off/on and verify the dot stops/resumes composing.
+- [ ] On Budget (Plan and Table views), verify only overspent (negative) balances get a colored pill in the Overspent red, positive and fully spent balances sit on a neutral pill, an unassigned zero has no fill, and group totals have no pill; verify the status color picker offers the expanded swatch set.
 - [ ] Rapidly switch bottom-navigation tabs and confirm the selection indicator updates immediately, each tab keeps its scroll position, and Reports shows a loading state then data without freezing the UI.
 - [ ] Edit a category budget amount with the keypad and verify exact-cent persistence.
 - [ ] Move money category-to-category and category-to-budget and verify both sides.
@@ -87,6 +88,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Collapse a category group on Budget and an account section on Accounts, switch tabs and return, and verify both stay collapsed.
 - [ ] Merge a payee and a category in Actual, sync, and verify transactions on the merged-away payee/category count toward the target in reports and filters; edit one of those transactions (e.g. toggle cleared) and verify its payee and category are not cleared.
 - [ ] Add and edit a split transaction.
+- [ ] In a split, verify the split-line payee picker offers no `Transfer: …` entries; leave one line's payee blank, edit only the line amounts and verify that line stays payee-less, then change the parent payee and verify the blank line takes the new payee.
+- [ ] With two accounts sharing a name and a category name repeated in two groups, verify the pickers show disambiguated labels and that a saved transaction, a transfer and bulk Categorize/Move land on the picked account and category in Actual.
 - [ ] Typing `#` (or deleting characters) in a transaction note while suggestions are showing keeps the on-screen keyboard open without flicker.
 - [ ] Long-press a transaction to enter selection mode with it pre-selected (there is no separate app-bar Select button); select several more and verify the floating selection bar's always-visible Categorize and Label icon actions apply to every selected transaction, and that Edit (single selection), Mark cleared/uncleared, Delete (with confirmation naming the count), Move, Link to schedule and Unlink schedule are available from the 3-dot overflow menu.
 - [ ] From the overflow menu, use "Duplicate" and verify an unlinked copy is created immediately without opening the editor.
@@ -113,6 +116,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] In a transaction row: the cleared/selection indicator sits left of the payee and top-aligns with it; the category chip and notes sit flush left under the payee; the right side shows amount, then running balance (or, in the cross-account Transactions tab, the account name colored like the category chip), then date; the cleared checkmark uses the theme's primary color.
 - [ ] Open a transaction's details sheet and verify spacing between the amount and the cleared tick in the header.
 - [ ] Reconcile an account using a known bank balance and verify the resulting locked/reconciled rows.
+- [ ] Open a reconciled transaction and verify the editor shows a locked Reconciled toggle; verify saving, deleting, bulk Categorize/Move/Delete, and editing a transfer whose other leg is reconciled each ask for confirmation first, and that moving a reconciled transaction to another account leaves it unreconciled after sync.
 - [ ] Reconciled-transaction filtering works in account and all-transactions views.
 - [ ] Credit-card limit, cycle spending and due-date information render correctly when configured; the account's Billing cycle card shows the current cycle's date range and a "Statement history" link.
 - [ ] Tap a credit card's history icon (or the Billing cycle card's "Statement history" link) and verify the last 3 closed statements list with correct due amounts; opening a statement shows the correct transactions for that billing cycle; use the system back gesture/button from the statements list and from a statement's transaction list and verify it returns to the account page instead of skipping to Main.

@@ -328,6 +328,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Full mobile account reconciliation with bank-balance comparison, difference display,
   uncleared-transaction review, optional cleared adjustment, and atomic CRDT locking
   of every cleared stored row including split parents and children
+- Actual's reconciled-row guards: the editor shows a locked Reconciled toggle, edits keep a
+  reconciled row cleared, moving one to another account clears `reconciled`, and saving or
+  deleting a reconciled row (or a transfer whose other leg is reconciled) asks first with
+  Actual's `confirm-transaction-edit` texts, in the editor and the bulk actions
 - Collapsible account balance details with compact Budget-tab typography
 - Credit-card account details with limit, available credit, current billing cycle
   (including its date range), cycle spending, and calculated payment due date using
@@ -351,7 +355,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   `hide-reconciled-<accountId>` preference, so the setting is shared with the PWA;
   a selected status chip supersedes it
 - Add/edit split transaction UI with per-line category, amount, direction, payee,
-  notes, remaining allocation, and Actual-compatible child-row persistence
+  notes, remaining allocation, and Actual-compatible child-row persistence, where a payee-less
+  line stays payee-less until the parent itself changes
+- Account, transfer-account and category pickers that save by id, with disambiguated labels when
+  account names or category names (across groups) repeat
 - Off-budget transaction category enforcement for standard and split create/edit
   flows, including clearing stale categories when an account changes
 - Regression coverage for interrupted sync retries, transfer-pair symmetry,
