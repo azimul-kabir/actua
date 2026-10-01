@@ -6,6 +6,15 @@ import org.junit.Test
 
 class ActualTransactionFormPlanTest {
     @Test
+    fun transferLabelsNameAnAccount() {
+        assertEquals(true, ActualTransactionFormService.isTransferLabel("Transfer: Savings"))
+        assertEquals(true, ActualTransactionFormService.isTransferLabel("  Transfer: Savings "))
+        assertEquals(false, ActualTransactionFormService.isTransferLabel("Transfer: "))
+        assertEquals(false, ActualTransactionFormService.isTransferLabel("Transfers R Us"))
+        assertEquals(false, ActualTransactionFormService.isTransferLabel("Store"))
+    }
+
+    @Test
     fun aReconciledRowStaysClearedUnlessItMovesAccount() {
         val reconciled = row(cleared = true, reconciled = true)
         fun guard(updated: ActualTransaction) = ActualTransactionFormService.keepReconciledInvariant(reconciled, updated)

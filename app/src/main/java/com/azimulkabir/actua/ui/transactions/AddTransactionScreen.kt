@@ -495,8 +495,7 @@ fun AddTransactionScreen(
                                 PickerTextField(
                                     label = "Payee",
                                     value = line.payee,
-                                    options = payeeOptions,
-                                    supportingValues = accountBalanceLabels.mapKeys { TRANSFER_PAYEE_PREFIX + it.key },
+                                    options = splitLinePayeeOptions(payeeOptions),
                                     onValueChange = { value -> update(line.copy(payee = value)) },
                                     allowCustom = true,
                                     rowIcon = Icons.Outlined.Storefront,
@@ -667,6 +666,10 @@ internal fun transferTargetOf(payee: String): String? = payee
     .takeIf { it.startsWith(TRANSFER_PAYEE_PREFIX) }
     ?.removePrefix(TRANSFER_PAYEE_PREFIX)
     ?.takeIf(String::isNotBlank)
+
+/** A split line's payee choices: transfer split lines aren't supported, so no `Transfer:` entries (#748). */
+internal fun splitLinePayeeOptions(payeeOptions: List<String>): List<String> =
+    payeeOptions.filter { transferTargetOf(it) == null }
 
 internal data class TransactionFormStart(val payee: String, val incoming: Boolean)
 

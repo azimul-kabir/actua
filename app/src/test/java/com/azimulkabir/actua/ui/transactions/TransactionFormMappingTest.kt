@@ -80,4 +80,12 @@ class TransactionFormMappingTest {
         assertNull(transferTargetOf("Transfer Savings"))
         assertNull(transferTargetOf("Cafe"))
     }
+
+    @Test
+    fun splitLinePayeeOptionsLeaveOutTransfers() {
+        assertEquals(
+            listOf("Store", "Transfer: "),
+            splitLinePayeeOptions(listOf("Store", "Transfer: Savings", "Transfer: ", "Transfer: Checking")),
+        )
+    }
 }

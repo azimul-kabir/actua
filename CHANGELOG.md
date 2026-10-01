@@ -12,6 +12,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Transactions now save to the account and category you picked when names repeat across accounts or category groups ([#811](https://github.com/azimul-kabir/actua/pull/811))
+- Choosing a transfer on a split line no longer creates a payee named "Transfer: …" ([#812](https://github.com/azimul-kabir/actua/pull/812))
 - Reconciled transactions now stay cleared, ask before being edited or deleted, and are unreconciled when moved to another account ([#813](https://github.com/azimul-kabir/actua/pull/813))
 
 ## [1.4.0] - 2026-09-30
