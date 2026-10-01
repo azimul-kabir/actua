@@ -25,6 +25,13 @@ data class Transaction(
     val isMissed: Boolean = false,
     /** True when [account] is an off-budget account, which Actual never requires a category for. */
     val accountOffBudget: Boolean = false,
+    /**
+     * Ids behind [account], [transferAccount] and [category]. Actual allows duplicate account names
+     * and the same category name in different groups, so saving prefers these over the names.
+     */
+    val accountId: String? = null,
+    val transferAccountId: String? = null,
+    val categoryId: String? = null,
 )
 
 data class SplitLine(
@@ -35,6 +42,7 @@ data class SplitLine(
     val isOpposite: Boolean = false,
     val childId: String? = null,
     val categoryIsIncome: Boolean? = null,
+    val categoryId: String? = null,
 )
 
 enum class Type { EXPENSE, INCOME, TRANSFER }
@@ -46,7 +54,11 @@ enum class Type { EXPENSE, INCOME, TRANSFER }
  */
 fun Transaction.asTransferDraft(): Transaction =
     if (type == Type.TRANSFER && amountCents >= 0 && transferAccount != null) {
-        copy(account = transferAccount, transferAccount = account, amountCents = -amountCents, amount = -amount)
+        copy(
+            account = transferAccount, transferAccount = account,
+            accountId = transferAccountId, transferAccountId = accountId,
+            amountCents = -amountCents, amount = -amount,
+        )
     } else this
 
 /** A copy of this transaction detached from its schedule link and split children, ready to be saved as a new one. */

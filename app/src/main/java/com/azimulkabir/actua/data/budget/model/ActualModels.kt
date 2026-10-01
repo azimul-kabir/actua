@@ -103,5 +103,6 @@ data class ActualTransaction(
         val notes: String?,
         val payeeName: String?,
         val categoryIsIncome: Boolean? = null,
+        val categoryId: String? = null,
     )
 }

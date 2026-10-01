@@ -16,10 +16,17 @@ internal object TransactionRulePreview {
         val changed = result.changedFields
         val preview = result.transaction
         val validAccountId = preview.accountId.takeIf(choices.accountNames::containsKey)
-        val account = if ("account" in changed) {
-            validAccountId?.let(choices.accountNames::get) ?: draft.account
-        } else draft.account
+        val newAccountId = validAccountId?.takeIf { "account" in changed }
+        val account = newAccountId?.let(choices.accountNames::getValue) ?: draft.account
         val offBudget = validAccountId?.let { it in choices.offBudgetAccountIds } == true
+        // The id follows the same branches as the name, so the editor can label the exact row.
+        val categoryId = when {
+            draft.type == Type.TRANSFER || offBudget -> null
+            "category" !in changed -> draft.categoryId
+            preview.categoryId == null -> null
+            preview.categoryId in choices.categoryNames -> preview.categoryId
+            else -> draft.categoryId
+        }
         val category = when {
             draft.type == Type.TRANSFER -> ""
             offBudget -> ""
@@ -43,7 +50,9 @@ internal object TransactionRulePreview {
         }
         return draft.copy(
             account = account,
+            accountId = newAccountId ?: draft.accountId,
             category = category,
+            categoryId = categoryId,
             payee = payee,
             amount = (amount / 100L).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt(),
             amountCents = amount,

@@ -123,6 +123,7 @@ import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.ui.home.HomeScreen
 import com.azimulkabir.actua.ui.home.HomeDashboardProjection
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.model.PickerChoices
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.model.ReportSnapshot
@@ -384,6 +385,11 @@ fun AppNavigation(
         } }
     }
     val categoryNames = remember(dataVersion) { repository.categoryNames() }
+    // Transaction pickers show these labels and save the ids behind them (#747).
+    val categoryChoices = remember(dataVersion) { repository.categoryChoices() }
+    val accountChoices = remember(accounts) {
+        PickerChoices.accounts(accounts.filterNot { it.closed }.map { it.id to it.name })
+    }
     val payeeNames = remember(dataVersion) { repository.payeeNames() }
     val creditCards = remember(dataVersion) { repository.creditCards() }
     // reportSnapshot, rules/rulesSupported/scheduleOwnedRuleIds/ruleEditorData, and
@@ -1456,18 +1462,28 @@ fun AppNavigation(
                     scheduleReturnsToTransactionsTab = false
                     detail = DetailDestination.EditSchedule
                 },
-                categoryOptions = categoryNames,
+                categoryOptions = categoryChoices.labels,
                 onCategorizeMultiple = { transactionsToCategorize, category ->
-                    val updated = transactionsToCategorize.map { it.copy(category = category, categoryIsExplicit = true).asTransferDraft() }
+                    val picked = categoryChoices.choice(category)
+                    val updated = transactionsToCategorize.map {
+                        it.copy(
+                            category = picked?.name ?: category,
+                            categoryId = picked?.id,
+                            categoryIsExplicit = true,
+                        ).asTransferDraft()
+                    }
                     val categories = (transactionsToCategorize + updated).flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                     mutateWithImpactCue("Categorizing transactions", categories) {
                         updated.forEach { repository.saveTransaction(it) }
                         updated.isNotEmpty()
                     }
                 },
-                accountOptions = accounts.filterNot { it.closed }.map { it.name },
+                accountOptions = accountChoices.labels,
                 onMoveMultiple = { transactionsToMove, accountName ->
-                    val updated = transactionsToMove.map { it.copy(account = accountName).asTransferDraft() }
+                    val picked = accountChoices.choice(accountName)
+                    val updated = transactionsToMove.map {
+                        it.copy(account = picked?.name ?: accountName, accountId = picked?.id).asTransferDraft()
+                    }
                     val categories = transactionsToMove.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                     mutateWithImpactCue("Moving transactions", categories) {
                         updated.forEach { repository.saveTransaction(it) }
@@ -1529,22 +1545,23 @@ fun AppNavigation(
             // every keystroke/amount-entry change, instead of only when the underlying data or
             // display toggles actually change.
             val nonClosedAccounts = remember(accounts) { accounts.filterNot { it.closed } }
-            val accountOptions = remember(nonClosedAccounts) { nonClosedAccounts.map { it.name } }
-            val offBudgetAccountOptions = remember(nonClosedAccounts) {
-                nonClosedAccounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.name }
+            // Options, off-budget flags and balances are keyed by picker label, not name (#747).
+            val accountOptions = accountChoices.labels
+            val offBudgetAccountOptions = remember(nonClosedAccounts, accountChoices) {
+                nonClosedAccounts.filter { it.offBudget }.mapTo(mutableSetOf()) { accountChoices.labelOf(it.id, it.name) }
             }
-            val accountBalanceLabels = remember(nonClosedAccounts, hideBalances, hideDecimalPlaces) {
+            val accountBalanceLabels = remember(nonClosedAccounts, accountChoices, hideBalances, hideDecimalPlaces) {
                 if (hideBalances) emptyMap() else nonClosedAccounts
-                    .associate { it.name to formatMoneyCents(it.balanceCents, hideDecimalPlaces) }
+                    .associate { accountChoices.labelOf(it.id, it.name) to formatMoneyCents(it.balanceCents, hideDecimalPlaces) }
             }
-            val categoryBalanceLabels = remember(budgetGroups, hideBalances, hideDecimalPlaces) {
+            val categoryBalanceLabels = remember(budgetGroups, categoryChoices, hideBalances, hideDecimalPlaces) {
                 if (hideBalances) emptyMap() else budgetGroups
                     .asSequence()
                     .flatMap { it.categories.asSequence() }
-                    .associate { it.name to formatMoneyCents(it.balanceCents, hideDecimalPlaces) }
+                    .associate { categoryChoices.labelOf(it.id, it.name) to formatMoneyCents(it.balanceCents, hideDecimalPlaces) }
             }
-            val payeeOptions = remember(payeeNames, nonClosedAccounts) {
-                (payeeNames + nonClosedAccounts.map { "Transfer: ${it.name}" }).distinct()
+            val payeeOptions = remember(payeeNames, accountOptions) {
+                (payeeNames + accountOptions.map { "Transfer: $it" }).distinct()
             }
             AddTransactionScreen(
                 editing = editingTransaction,
@@ -1649,7 +1666,9 @@ fun AppNavigation(
                     offBudgetAccountOptions = offBudgetAccountOptions,
                     accountBalanceLabels = accountBalanceLabels,
                     categoryBalanceLabels = categoryBalanceLabels,
-                    categoryOptions = categoryNames,
+                    categoryOptions = categoryChoices.labels,
+                    accountChoices = accountChoices,
+                    categoryChoices = categoryChoices,
                     payeeOptions = payeeOptions,
                     defaultAccount = if (editingTransaction == null && editorReturnsToTransactions) {
                         transactionAccount ?: defaultAccount
@@ -2557,18 +2576,28 @@ fun AppNavigation(
                         scheduleReturnsToTransactionsTab = true
                         detail = DetailDestination.EditSchedule
                     },
-                    categoryOptions = categoryNames,
+                    categoryOptions = categoryChoices.labels,
                     onCategorizeMultiple = { transactionsToCategorize, category ->
-                        val updated = transactionsToCategorize.map { it.copy(category = category, categoryIsExplicit = true).asTransferDraft() }
+                        val picked = categoryChoices.choice(category)
+                        val updated = transactionsToCategorize.map {
+                            it.copy(
+                                category = picked?.name ?: category,
+                                categoryId = picked?.id,
+                                categoryIsExplicit = true,
+                            ).asTransferDraft()
+                        }
                         val categories = (transactionsToCategorize + updated).flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                         mutateWithImpactCue("Categorizing transactions", categories) {
                             updated.forEach { repository.saveTransaction(it) }
                             updated.isNotEmpty()
                         }
                     },
-                    accountOptions = accounts.filterNot { it.closed }.map { it.name },
+                    accountOptions = accountChoices.labels,
                     onMoveMultiple = { transactionsToMove, accountName ->
-                        val updated = transactionsToMove.map { it.copy(account = accountName).asTransferDraft() }
+                        val picked = accountChoices.choice(accountName)
+                        val updated = transactionsToMove.map {
+                            it.copy(account = picked?.name ?: accountName, accountId = picked?.id).asTransferDraft()
+                        }
                         val categories = transactionsToMove.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
                         mutateWithImpactCue("Moving transactions", categories) {
                             updated.forEach { repository.saveTransaction(it) }

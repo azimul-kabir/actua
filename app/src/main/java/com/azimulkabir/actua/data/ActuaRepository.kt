@@ -38,6 +38,8 @@ import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
+import com.azimulkabir.actua.model.PickerChoices
+import com.azimulkabir.actua.model.byIdOrName
 import com.azimulkabir.actua.model.BudgetHistory
 import com.azimulkabir.actua.model.BudgetTarget
 import com.azimulkabir.actua.model.BudgetAutomationDocument
@@ -168,6 +170,13 @@ class ActuaRepository(context: Context) {
         ?.filterNot { it.hidden }
         ?.map { it.name }
         ?: emptyList()
+
+    /** Visible categories in [categoryNames] order, labelled apart when names repeat across groups. */
+    fun categoryChoices(): PickerChoices = PickerChoices.categories(
+        actualDatabase?.fetchCategoryGroups().orEmpty().flatMap { group ->
+            group.categories.filterNot { it.hidden }.map { group.name to (it.id to it.name) }
+        },
+    )
 
     fun payeeNames(): List<String> = actualDatabase?.fetchPayees()
         ?.filter { it.transferAccountId == null && it.name != "Unknown" }
@@ -832,6 +841,9 @@ class ActuaRepository(context: Context) {
             categoryIsIncome = it.categoryIsIncome,
             scheduleId = it.scheduleId,
             accountOffBudget = accountOffBudget,
+            accountId = it.accountId,
+            transferAccountId = it.transferAccountId,
+            categoryId = if (it.isParent) null else it.categoryId,
             splits = it.splitPortions.map { part ->
                 SplitLine(
                     category = part.categoryName.orEmpty(),
@@ -841,6 +853,7 @@ class ActuaRepository(context: Context) {
                     isOpposite = (part.amountCents < 0) != (it.amountCents < 0),
                     childId = part.id,
                     categoryIsIncome = part.categoryIsIncome,
+                    categoryId = part.categoryId,
                 )
             },
         )
@@ -1024,10 +1037,11 @@ class ActuaRepository(context: Context) {
 
     fun saveTransaction(transaction: Transaction) {
         actualDatabase?.let { db ->
-            val account = db.fetchAccounts().firstOrNull { it.name == transaction.account && !it.closed }
+            val accounts = db.fetchAccounts().filterNot { it.closed }
+            val account = accounts.byIdOrName(transaction.accountId, transaction.account, { it.id }, { it.name })
                 ?: error("Select an account")
             val transferAccount = transaction.transferAccount?.let { name ->
-                db.fetchAccounts().firstOrNull { it.name == name && !it.closed }
+                accounts.byIdOrName(transaction.transferAccountId, name, { it.id }, { it.name })
                     ?: error("Select a destination account")
             }
             // A transfer carries a category only on the on-budget leg of an on/off-budget pair.
@@ -1035,7 +1049,8 @@ class ActuaRepository(context: Context) {
                 transferAccount != null && account.offBudget != transferAccount.offBudget
             } else !account.offBudget
             val categories = db.fetchCategoryGroups().flatMap { it.categories }
-            val category = categories.firstOrNull { it.name == transaction.category && !it.hidden }
+            val category = categories.filterNot { it.hidden }
+                .byIdOrName(transaction.categoryId, transaction.category, { it.id }, { it.name })
                 ?.takeIf { categoriesAllowed }
             if (categoriesAllowed && transaction.splits.isEmpty() && transaction.category.isNotBlank() &&
                 transaction.category != "Uncategorized" && category == null) {
@@ -1059,7 +1074,7 @@ class ActuaRepository(context: Context) {
                     cleared = transaction.cleared,
                     splits = transaction.splits.map { line ->
                         val lineCategory = if (categoriesAllowed) {
-                            categories.firstOrNull { it.name == line.category }
+                            categories.byIdOrName(line.categoryId, line.category, { it.id }, { it.name })
                                 ?: error("Select a category for every split")
                         } else null
                         ActualSplitLineForm(
@@ -1086,11 +1101,14 @@ class ActuaRepository(context: Context) {
         val db = actualDatabase ?: return transaction
         if (transaction.splits.isNotEmpty()) return transaction
         val accounts = db.fetchAccounts().filterNot { it.closed }
-        val account = accounts.firstOrNull { it.name == transaction.account } ?: return transaction
+        val account = accounts.byIdOrName(transaction.accountId, transaction.account, { it.id }, { it.name })
+            ?: return transaction
         val categories = db.fetchCategoryGroups().filterNot { it.hidden }
             .flatMap { group -> group.categories.filterNot { it.hidden } }
         val ruleTransaction = if (transaction.type == Type.TRANSFER) {
-            val destination = accounts.firstOrNull { it.name == transaction.transferAccount } ?: return transaction
+            val destination = transaction.transferAccount?.let { name ->
+                accounts.byIdOrName(transaction.transferAccountId, name, { it.id }, { it.name })
+            } ?: return transaction
             // Actual represents a transfer's destination through the destination account's
             // canonical transfer payee, not a plain account id, so rules keyed to that
             // destination match on this payee rather than on `transferAccountId` directly.
@@ -1121,7 +1139,8 @@ class ActuaRepository(context: Context) {
             val payee = db.fetchPayees().firstOrNull {
                 it.transferAccountId == null && it.name.equals(transaction.payee.trim(), ignoreCase = true)
             }
-            val currentCategory = categories.firstOrNull { it.name == transaction.category }?.id
+            val currentCategory = categories
+                .byIdOrName(transaction.categoryId, transaction.category, { it.id }, { it.name })?.id
             val signedAmount = when (transaction.type) {
                 Type.EXPENSE -> -kotlin.math.abs(transaction.amountCents)
                 Type.INCOME -> kotlin.math.abs(transaction.amountCents)
