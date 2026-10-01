@@ -81,9 +81,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.budget.DEFAULT_TAG_COLOR
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
+import com.azimulkabir.actua.model.PickerChoices
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.SplitLine
 import com.azimulkabir.actua.model.Type
+import com.azimulkabir.actua.model.resolveChoices
+import com.azimulkabir.actua.model.withChoiceLabels
 import com.azimulkabir.actua.ui.components.centsToInput
 import com.azimulkabir.actua.ui.components.currencyInputPrefix
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
@@ -128,8 +131,15 @@ fun AddTransactionScreen(
     onFindNearbyPayees: (suspend () -> NearbyPayeeSearchResult)? = null,
     onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
     onForgetPayeeLocation: (suspend (String) -> Boolean)? = null,
+    /** Map the account and category option labels to ids; see [PickerChoices]. */
+    accountChoices: PickerChoices = PickerChoices.EMPTY,
+    categoryChoices: PickerChoices = PickerChoices.EMPTY,
 ) {
-    val start = remember(editing, defaultType) { transactionFormStart(editing, defaultType) }
+    // The form works in picker labels, which stay unique when Actual names repeat.
+    val editingLabels = remember(editing, accountChoices, categoryChoices) {
+        editing?.withChoiceLabels(accountChoices, categoryChoices)
+    }
+    val start = remember(editing, defaultType) { transactionFormStart(editingLabels, defaultType) }
     var amountCents by remember(editing) { mutableStateOf(abs(editing?.amountCents ?: 0L)) }
     // A new transaction opens straight into the amount calculator, then walks the user through
     // the payee, category and account pickers; each step is skipped if it isn't shown.
@@ -143,11 +153,14 @@ fun AddTransactionScreen(
     var payee by remember(editing) { mutableStateOf(start.payee) }
     var incoming by remember(editing, defaultType) { mutableStateOf(start.incoming) }
     var category by remember(editing, defaultCategory) {
-        mutableStateOf(editing?.category ?: defaultCategory?.takeIf(categoryOptions::contains).orEmpty())
+        mutableStateOf(
+            editingLabels?.category
+                ?: defaultCategory?.let { categoryChoices.labelOf(null, it) }?.takeIf(categoryOptions::contains).orEmpty(),
+        )
     }
     var account by remember(editing, accountOptions) {
         mutableStateOf(
-            editing?.account ?: defaultAccount?.takeIf(accountOptions::contains)
+            editingLabels?.account ?: defaultAccount?.let { accountChoices.labelOf(null, it) }?.takeIf(accountOptions::contains)
                 ?: accountOptions.firstOrNull().orEmpty(),
         )
     }
@@ -155,7 +168,7 @@ fun AddTransactionScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var notes by remember(editing) { mutableStateOf(editing?.notes ?: "") }
     var cleared by remember(editing) { mutableStateOf(editing?.cleared ?: false) }
-    var splitLines by remember(editing) { mutableStateOf(editing?.splits.orEmpty()) }
+    var splitLines by remember(editing) { mutableStateOf(editingLabels?.splits.orEmpty()) }
     var splitCalculatorIndex by remember { mutableStateOf<Int?>(null) }
     var splitAmountExpression by remember(editing) { mutableStateOf<String?>(null) }
     var rulesApplied by remember(editing) { mutableStateOf(false) }
@@ -202,16 +215,12 @@ fun AddTransactionScreen(
         incoming -> "Switch to expense"
         else -> "Switch to income"
     }
-    val draft = {
+    val formDraft = { formCategory: String ->
         transactionFromForm(
             id = editing?.id.orEmpty(),
             date = storageDate(date),
             payee = payee,
-            category = when {
-                isTransfer -> if (transferTakesCategory) category else ""
-                isOffBudget -> ""
-                else -> category.ifBlank { "Uncategorized" }
-            },
+            category = formCategory,
             account = account,
             incoming = incoming,
             amountCents = amountCents,
@@ -220,6 +229,15 @@ fun AddTransactionScreen(
             splits = if (isOffBudget) splitLines.map { it.copy(category = "") } else splitLines,
             rulesApplied = rulesApplied,
             categoryIsExplicit = categoryIsExplicit,
+        ).resolveChoices(accountChoices, categoryChoices)
+    }
+    val draft = {
+        formDraft(
+            when {
+                isTransfer -> if (transferTakesCategory) category else ""
+                isOffBudget -> ""
+                else -> category.ifBlank { "Uncategorized" }
+            },
         )
     }
     val saveTransaction = { if (canSave) onSave(draft()) }
@@ -231,13 +249,15 @@ fun AddTransactionScreen(
             if (isOffBudget || target !in offBudgetAccountOptions) category = ""
         }
         if (editing == null && !isSplit && (target != null || !isOffBudget)) {
-            val preview = onPreviewRules(draft().copy(category = category))
+            val preview = onPreviewRules(formDraft(category))
             if (target == null) {
                 payee = preview.payee
                 // A picker choice survives a rule the payee edit triggers; the rule
                 // may still fill in a category the user hasn't touched.
-                if (!categoryIsExplicit || category.isBlank()) category = preview.category
-                account = preview.account
+                if (!categoryIsExplicit || category.isBlank()) {
+                    category = categoryChoices.labelOf(preview.categoryId, preview.category)
+                }
+                account = accountChoices.labelOf(preview.accountId, preview.account)
                 incoming = preview.type == Type.INCOME
             }
             cleared = preview.cleared
