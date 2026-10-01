@@ -56,6 +56,7 @@ sealed class ActualTransactionFormException(message: String) : IllegalArgumentEx
     data object SplitNeedsTwoLines : ActualTransactionFormException("A split needs at least two lines")
     data object SplitAmountMismatch : ActualTransactionFormException("Split amounts must equal the transaction total")
     data object CannotConvertToSplit : ActualTransactionFormException("This transaction cannot be converted to a split")
+    data object SplitLineTransfer : ActualTransactionFormException("A split line can't be a transfer; choose a payee")
 }
 
 /** Pure planning plus persistence routing ported from BudgetStore.saveTransaction. */
@@ -241,6 +242,7 @@ class ActualTransactionFormService(
     }
 
     private fun createSplit(form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
+        rejectTransferLines(plan)
         val parentPayee = resolvePayee(form.payeeName, null)
         val parentId = idFactory()
         val sort = nowMillis().toDouble()
@@ -261,6 +263,7 @@ class ActualTransactionFormService(
     }
 
     private fun updateSplit(original: ActualTransaction, form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
+        rejectTransferLines(plan)
         val parentPayee = resolvePayee(form.payeeName, original)
         val parent = original.copy(
             accountId = form.accountId, date = form.date, amountCents = plan.amountCents,
@@ -301,6 +304,7 @@ class ActualTransactionFormService(
 
     private fun convertToSplit(original: ActualTransaction, form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
         if (original.transferId != null || original.parentId != null) throw ActualTransactionFormException.CannotConvertToSplit
+        rejectTransferLines(plan)
         val payee = resolvePayee(form.payeeName, original)
         val parent = original.copy(
             accountId = form.accountId, date = form.date, amountCents = plan.amountCents,
@@ -348,6 +352,17 @@ class ActualTransactionFormService(
     private fun resolveLinePayee(line: ActualSplitPlanLine, parent: ActualPayee?, original: ActualTransaction?): ActualPayee? =
         line.payeeName?.takeIf { it != parent?.name }?.let { resolvePayee(it, original) } ?: parent
 
+    /**
+     * Split-line transfers aren't supported (#748), so a `Transfer: <account>` picker label must
+     * never become an ordinary payee. Checked before anything is written; a payee that already
+     * has that name still resolves, so rows saved before this check stay editable.
+     */
+    private fun rejectTransferLines(plan: ActualTransactionFormPlan.Split) {
+        if (plan.lines.any { line ->
+                line.payeeName?.let { isTransferLabel(it) && database.findPayeeByName(it.trim()) == null } == true
+            }) throw ActualTransactionFormException.SplitLineTransfer
+    }
+
     private fun transferPayee(accountId: String) = database.fetchPayees().firstOrNull {
         it.transferAccountId == accountId
     } ?: throw ActualTransactionFormException.TransferPayeeMissing
@@ -363,6 +378,10 @@ class ActualTransactionFormService(
     )
 
     companion object {
+        /** The editor's `Transfer: <account>` payee label, which names an account, not a payee. */
+        internal fun isTransferLabel(name: String): Boolean =
+            name.trim().let { it.startsWith("Transfer: ") && it.length > "Transfer: ".length }
+
         internal fun enforceOffBudgetCategoryPolicy(
             form: ActualTransactionForm,
             offBudgetAccountIds: Set<String>,

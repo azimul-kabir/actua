@@ -5,6 +5,15 @@ import org.junit.Test
 
 class ActualTransactionFormPlanTest {
     @Test
+    fun transferLabelsNameAnAccount() {
+        assertEquals(true, ActualTransactionFormService.isTransferLabel("Transfer: Savings"))
+        assertEquals(true, ActualTransactionFormService.isTransferLabel("  Transfer: Savings "))
+        assertEquals(false, ActualTransactionFormService.isTransferLabel("Transfer: "))
+        assertEquals(false, ActualTransactionFormService.isTransferLabel("Transfers R Us"))
+        assertEquals(false, ActualTransactionFormService.isTransferLabel("Store"))
+    }
+
+    @Test
     fun centsRoundsHalfAwayFromZero() {
         assertEquals(820L, ActualTransactionFormService.cents("8.20"))
         assertEquals(1L, ActualTransactionFormService.cents("0.005"))
