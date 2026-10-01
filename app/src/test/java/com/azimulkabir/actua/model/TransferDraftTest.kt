@@ -9,6 +9,7 @@ class TransferDraftTest {
         id = "leg", date = "2026-09-10", payee = "", category = "", account = account,
         amount = (cents / 100).toInt(), cleared = false, amountCents = cents,
         type = Type.TRANSFER, transferAccount = other,
+        accountId = account.lowercase(), transferAccountId = other.lowercase(),
     )
 
     @Test
@@ -16,6 +17,7 @@ class TransferDraftTest {
         val draft = transfer("Savings", "Checking", 2_500).asTransferDraft()
         assertEquals("Checking", draft.account)
         assertEquals("Savings", draft.transferAccount)
+        assertEquals("checking" to "savings", draft.accountId to draft.transferAccountId)
         assertEquals(-2_500L, draft.amountCents)
     }
 

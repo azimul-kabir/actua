@@ -4,6 +4,7 @@ import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -33,7 +34,9 @@ class TransactionRulePreviewTest {
         val preview = TransactionRulePreview.map(draft(), result, choices)
 
         assertEquals("Cash", preview.account)
+        assertEquals("cash", preview.accountId)
         assertEquals("Food", preview.category)
+        assertEquals("food", preview.categoryId)
         assertTrue(preview.cleared)
         assertEquals("Rule note", preview.notes)
         assertEquals("Coffee Shop", preview.payee)
@@ -50,14 +53,18 @@ class TransactionRulePreviewTest {
         )
         val invalidPreview = TransactionRulePreview.map(draft(), invalid, choices)
         assertEquals("Checking", invalidPreview.account)
+        assertEquals("checking", invalidPreview.accountId)
         assertEquals("Existing", invalidPreview.category)
+        assertEquals("existing", invalidPreview.categoryId)
 
         val offBudget = invalid.copy(
             transaction = actual().copy(accountId = "tracking", categoryId = "food"),
         )
         val offBudgetPreview = TransactionRulePreview.map(draft(), offBudget, choices)
         assertEquals("Tracking", offBudgetPreview.account)
+        assertEquals("tracking", offBudgetPreview.accountId)
         assertEquals("", offBudgetPreview.category)
+        assertNull(offBudgetPreview.categoryId)
     }
 
     @Test fun `transfer draft keeps payee, category and type fixed while notes and cleared apply`() {
@@ -87,7 +94,7 @@ class TransactionRulePreviewTest {
     private fun draft() = Transaction(
         id = "", date = "20260913", payee = "Shop", category = "Existing",
         account = "Checking", amount = -10, cleared = false, amountCents = 1000,
-        type = Type.EXPENSE,
+        type = Type.EXPENSE, accountId = "checking", categoryId = "existing",
     )
 
     private fun actual() = ActualTransaction(

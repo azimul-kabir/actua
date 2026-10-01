@@ -1025,7 +1025,7 @@ class ActualBudgetDatabase private constructor(
             database.rawQuery(
                 """
                     SELECT ct.parent_id, ct.id, ct.amount, c.name, ct.notes,
-                           COALESCE(p.name, ct.imported_description), c.is_income
+                           COALESCE(p.name, ct.imported_description), c.is_income, c.id
                     FROM transactions ct
                     LEFT JOIN category_mapping cm ON cm.id = ct.category
                     LEFT JOIN categories c ON c.id = COALESCE(cm.transferId, ct.category)
@@ -1046,6 +1046,7 @@ class ActualBudgetDatabase private constructor(
                         notes = cursor.stringOrNull(4),
                         payeeName = cursor.stringOrNull(5),
                         categoryIsIncome = cursor.intOrNull(6)?.let { it == 1 },
+                        categoryId = cursor.stringOrNull(7),
                     )
             }
         }
