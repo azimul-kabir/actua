@@ -188,6 +188,50 @@ class TransactionParityTest {
     }
 
     @Test
+    fun aPayeelessChildKeepsNoPayeeUntilTheParentIsEdited() = withDatabase { database ->
+        val service = formService(database, "payeeless")
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", date = 20260910,
+            splits = listOf(
+                ActualSplitLineForm(categoryId = "grocery", amount = "6"),
+                ActualSplitLineForm(categoryId = "rent", amount = "4"),
+            ),
+        ))
+        val parent = database.fetchTransactions("checking").single { it.isParent }
+        val children = database.fetchChildTransactions(parent.id)
+        val payeeless = children.single { it.categoryId == "grocery" }
+        val inherited = children.single { it.categoryId == "rent" }
+        // A child with no payee, e.g. one another client cleared.
+        ActualTransactionWriter(database).mutate(updates = listOf(payeeless to payeeless.copy(payeeId = null)))
+        // The form leaves both blank, as ActuaRepository.toTransaction does.
+        fun lines(groceries: String, rent: String) = listOf(
+            ActualSplitLineForm(childId = payeeless.id, categoryId = "grocery", amount = groceries),
+            ActualSplitLineForm(childId = inherited.id, categoryId = "rent", amount = rent),
+        )
+        fun child(id: String) = database.fetchChildTransactions(parent.id).single { it.id == id }
+        val before = transactionMessages(database).size
+
+        // Only child lines change: the payee-less child keeps no payee and no description is written.
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", date = 20260910, splits = lines("7", "3"),
+        ), requireNotNull(database.fetchTransaction(parent.id)))
+        assertNull(child(payeeless.id).payeeId)
+        assertTrue(transactionMessages(database).drop(before).none { it.row == payeeless.id && it.column == "description" })
+
+        // The parent payee changes: loot-core updateTransaction + makeChild fill it with the new
+        // parent payee, and the child that matched the old parent payee follows too.
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Market", date = 20260910, splits = lines("7", "3"),
+        ), requireNotNull(database.fetchTransaction(parent.id)))
+        val editedParent = requireNotNull(database.fetchTransaction(parent.id))
+        assertEquals(editedParent.payeeId, child(payeeless.id).payeeId)
+        assertEquals(editedParent.payeeId, child(inherited.id).payeeId)
+    }
+
+    @Test
     fun movingAStandardTransactionOffBudgetClearsItsCategory() = withDatabase { database ->
         val offBudget = ActualEntityWriter(database, idFactory = { "off-${UUID.randomUUID()}" })
             .createAccount("Brokerage", offBudget = true, startingBalanceCents = 0)

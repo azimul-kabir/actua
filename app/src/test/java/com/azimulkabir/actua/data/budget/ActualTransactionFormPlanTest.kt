@@ -32,6 +32,29 @@ class ActualTransactionFormPlanTest {
     }
 
     @Test
+    fun aPayeelessChildKeepsNoPayeeUntilTheParentChanges() {
+        val blank = ActualSplitPlanLine("child", "grocery", -600, null, null)
+        val payeeless = splitRow(payeeId = null)
+        assertEquals(true, ActualTransactionFormService.keepsNoPayee(payeeless, blank, parentChanged = false))
+        // loot-core updateTransaction + makeChild: a parent edit gives it the parent payee.
+        assertEquals(false, ActualTransactionFormService.keepsNoPayee(payeeless, blank, parentChanged = true))
+        // A child matching the parent, a named line, or a new line is resolved as before.
+        assertEquals(false, ActualTransactionFormService.keepsNoPayee(splitRow(payeeId = "store"), blank, false))
+        assertEquals(false, ActualTransactionFormService.keepsNoPayee(payeeless, blank.copy(payeeName = "Landlord"), false))
+        assertEquals(false, ActualTransactionFormService.keepsNoPayee(null, blank, false))
+    }
+
+    @Test
+    fun parentFieldsChangedIgnoresUntouchedParents() {
+        val parent = splitRow(payeeId = "store")
+        assertEquals(false, ActualTransactionFormService.parentFieldsChanged(parent, parent.copy(payeeName = "Stale")))
+        listOf(
+            parent.copy(accountId = "savings"), parent.copy(date = 20260902), parent.copy(amountCents = -1),
+            parent.copy(payeeId = "market"), parent.copy(notes = "note"), parent.copy(cleared = true),
+        ).forEach { assertEquals(true, ActualTransactionFormService.parentFieldsChanged(parent, it)) }
+    }
+
+    @Test
     fun centsRoundsHalfAwayFromZero() {
         assertEquals(820L, ActualTransactionFormService.cents("8.20"))
         assertEquals(1L, ActualTransactionFormService.cents("0.005"))
@@ -92,6 +115,14 @@ class ActualTransactionFormPlanTest {
         id = "row", accountId = "checking", date = 20260901, amountCents = -1000,
         payeeId = null, payeeName = null, categoryId = null, categoryName = null,
         notes = null, cleared = cleared, reconciled = reconciled, transferId = null,
+        isParent = false, parentId = null, tombstone = false, sortOrder = null,
+        importedPayee = null, scheduleId = null, transferAccountId = null,
+    )
+
+    private fun splitRow(payeeId: String?) = ActualTransaction(
+        id = "split", accountId = "checking", date = 20260901, amountCents = -1000,
+        payeeId = payeeId, payeeName = null, categoryId = null, categoryName = null,
+        notes = null, cleared = false, reconciled = false, transferId = null,
         isParent = false, parentId = null, tombstone = false, sortOrder = null,
         importedPayee = null, scheduleId = null, transferAccountId = null,
     )
