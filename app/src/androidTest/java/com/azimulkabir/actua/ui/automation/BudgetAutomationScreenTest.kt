@@ -201,10 +201,14 @@ class BudgetAutomationScreenTest {
     /**
      * Opens the amount hero's calculator and types [keys], then confirms. Default entry fills
      * from the cents digit up, so "2", "5", "0", "0" is 25.00. The first key must not be "0",
-     * which would also match the empty hero amount.
+     * which would also match the empty hero amount. The hero is scrolled into view first: in the
+     * contribution editor the type grid pushes it below the fold on small screens such as the
+     * API 28 emulator, where a click would land outside the window (#815).
      */
     private fun enterAmount(vararg keys: String) {
-        compose.onNodeWithContentDescription("amount", substring = true, ignoreCase = true).performClick()
+        compose.onNodeWithContentDescription("amount", substring = true, ignoreCase = true)
+            .performScrollTo()
+            .performClick()
         keys.forEach { compose.onNodeWithText(it).performClick() }
         compose.onNodeWithText("✓").performClick()
     }
