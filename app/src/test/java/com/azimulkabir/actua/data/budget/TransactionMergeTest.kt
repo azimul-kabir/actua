@@ -116,6 +116,20 @@ class TransactionMergeTest {
     }
 
     @Test
+    fun aKeptSplitDoesNotTakeTheDroppedRowsCategory() {
+        val split = row("split", isParent = true, financialId = "bank-1")
+        val manual = row("manual", categoryId = "groceries", notes = "shop")
+
+        val plan = plan(manual, split, children = mapOf("split" to listOf(row("line", parentId = "split"))))
+
+        assertEquals("split", plan.keptId)
+        assertEquals(listOf("manual"), plan.tombstoneIds)
+        val parent = plan.updated("split")
+        assertNull(parent.categoryId)
+        assertEquals("shop", parent.notes)
+    }
+
+    @Test
     fun whenBothAreSplitsTheDroppedSplitAndItsLinesAreDeleted() {
         val kept = row("kept", isParent = true, financialId = "bank-1")
         val dropped = row("dropped", isParent = true)

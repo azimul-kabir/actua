@@ -128,7 +128,11 @@ object TransactionMerge {
                 edit(keep) { it.filledFrom(drop).copy(isParent = true, categoryId = null) }
                 tombstones += drop.id
             } else {
-                edit(keep) { it.filledFrom(drop).copy(categoryId = it.categoryId ?: drop.categoryId) }
+                // A split parent's lines carry its categories; loot-core's raw `db.updateTransaction`
+                // would copy the dropped category onto it, which `batchUpdateTransactions` never allows.
+                edit(keep) {
+                    it.filledFrom(drop).copy(categoryId = if (it.isParent) null else it.categoryId ?: drop.categoryId)
+                }
                 tombstones += drop.id
                 tombstones += dropChildren.map(ActualTransaction::id)
             }
