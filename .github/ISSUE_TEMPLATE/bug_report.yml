@@ -12,7 +12,7 @@ body:
     id: version
     attributes:
       label: App version / build
-      placeholder: "e.g. 0.1.0-alpha.1 (release APK or commit SHA)"
+      placeholder: "e.g. 1.4.1 (release APK or commit SHA)"
     validations:
       required: true
   - type: input
@@ -36,6 +36,39 @@ body:
       placeholder: "Version/tag, unknown, or not connected"
     validations:
       required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Accounts / transactions
+        - Budget / goals / templates
+        - Schedules
+        - Rules / payees / categories
+        - Reports
+        - Sync / server connection
+        - Encryption / security / login
+        - Backup / restore / import
+        - UI / navigation / accessibility
+        - Performance / battery
+        - Other / not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Data impact
+      description: Choose the most serious effect. Data loss or sync divergence is treated as high priority.
+      options:
+        - None (cosmetic or usability only)
+        - Wrong balance, budget or date shown
+        - Wrong data saved
+        - Data loss or corruption
+        - Sync diverges from Actual server or other clients
+        - Crash or unrecoverable state
+        - Not sure
+    validations:
+      required: true
   - type: textarea
     id: behavior
     attributes:
@@ -49,8 +82,26 @@ body:
       placeholder: "1. Open…"
     validations:
       required: true
+  - type: dropdown
+    id: sync-state
+    attributes:
+      label: Sync and encryption state
+      description: Relevant for sync, offline or data issues.
+      options:
+        - Online, budget not encrypted
+        - Online, end-to-end encrypted budget
+        - Offline or edited while offline
+        - Local-only / not connected
+        - Not relevant
   - type: textarea
     id: context
     attributes:
       label: Redacted screenshots / additional context
-      description: For sync issues, mention offline/online state and whether the budget is encrypted. Do not attach real budgets.
+      description: Does it also happen in the Actual web app or Actuali? Do not attach real budgets.
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: Privacy
+      options:
+        - label: I removed credentials, encryption keys, server URLs and real financial data from everything I attached.
+          required: true
