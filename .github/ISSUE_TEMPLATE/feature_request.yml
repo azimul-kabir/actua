@@ -7,6 +7,24 @@ body:
     attributes:
       value: |
         Search existing issues and BACKEND_PARITY.md first. Never include secrets or sensitive budget data in examples or screenshots.
+        Keep one concern per request so it can become one focused branch and PR.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Accounts / transactions
+        - Budget / goals / templates
+        - Schedules
+        - Rules / payees / categories
+        - Reports
+        - Sync / server connection
+        - Encryption / security / login
+        - Backup / restore / import
+        - UI / navigation / accessibility
+        - Other / not sure
+    validations:
+      required: true
   - type: textarea
     id: problem
     attributes:
@@ -20,7 +38,29 @@ body:
     validations:
       required: true
   - type: textarea
+    id: scope
+    attributes:
+      label: Scope and out of scope
+      description: What is included, and what should not change (for example stored data or sync messages).
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Observable outcomes that show this is done, ideally as a checklist.
+      placeholder: "- [ ] …"
+  - type: dropdown
+    id: parity
+    attributes:
+      label: Upstream behavior
+      options:
+        - Matches existing Actual Budget behavior
+        - Matches existing Actuali behavior
+        - Android-specific / Actua-only
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
     id: context
     attributes:
       label: Alternatives / upstream reference / additional context
-      description: Link relevant Actual Budget or Actuali behavior when available.
+      description: Link relevant Actual Budget or Actuali source, docs or commits when available.
