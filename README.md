@@ -23,13 +23,14 @@ Actua is an independent community project and is not affiliated with or endorsed
 ## Features
 
 - Native Material You Android interface
-- Home dashboard with an at-a-glance financial overview (ready to budget, favorite categories/accounts, upcoming bills, this month, reports and recent activity), customizable via show/hide and drag-to-reorder
+- Home dashboard with an at-a-glance financial overview (ready to budget, favorite categories/accounts, upcoming bills, this month, reports and recent activity), customizable via show/hide and drag-to-reorder, with an optional start day for the This Month summary to match mid-month pay cycles
 - Customizable bottom tab bar: show/hide and reorder tabs (Reports can be added as its own tab), plus an optional "Add" quick-add tab
 - App-wide favorites for categories, accounts and reports, shared by Home, the Budget favorites filter and the home-screen widget
 - Password and OpenID/OIDC login
 - Offline budgets with encrypted Actual sync
 - Budgeting, categories and money movement
-- Transactions, splits, transfers and reconciliation
+- Transactions, splits, transfers, merging duplicates and reconciliation
+- Bank sync through your Actual server (SimpleFIN and GoCardless), plus experimental Enable Banking for European banks
 - Category targets and budget automations
 - Scheduled transactions and Bills calendar
 - Accounts, credit cards and payment reminders
@@ -37,7 +38,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Rules and automatic categorization
 - CSV, XLSX, PDF, SMS and notification imports, plus [Tasker intents](docs/TRANSACTION_IMPORTS.md#tasker-and-other-automation-apps)
 - Location-aware payee suggestions
-- Global search
+- Global search, and transaction search that also matches amounts and dates
 - Automatic local backups and restore
 - Home-screen widgets and launcher shortcuts
 - Configurable currency, dates, numbers and appearance, with an optional Material You dynamic-color mode (Android 12+)

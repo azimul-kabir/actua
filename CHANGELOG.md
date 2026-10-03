@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.5.0] - 2026-10-03
+
 ### Added
 
 - Experimental Enable Banking bank sync for European banks, switched on under Settings → Experimental ([#833](https://github.com/azimul-kabir/actua/pull/833))
