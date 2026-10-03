@@ -47,6 +47,7 @@ import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.paymentDue
 import java.io.Closeable
 import java.io.File
+import java.time.LocalDate
 
 /** A thin boundary around an Actual budget's own db.sqlite file. */
 class ActualBudgetDatabase private constructor(
@@ -334,6 +335,14 @@ class ActualBudgetDatabase private constructor(
         ).use { cursor ->
             buildSet { while (cursor.moveToNext()) cursor.stringOrNull(0)?.let { add(it.removePrefix(prefix)) } }
         }
+    }
+
+    /** Actual's synced `dateFormat` preference, which search reads typed dates with. */
+    @Synchronized
+    fun fetchDateFormat(): String? {
+        if (!hasTable("preferences")) return null
+        return database.rawQuery("SELECT value FROM preferences WHERE id = 'dateFormat'", null)
+            .use { if (it.moveToFirst()) it.stringOrNull(0) else null }
     }
 
     /** Actual's synced `sync-transfer-date` preference: a transfer date edit moves the other leg too. */
@@ -973,6 +982,7 @@ class ActualBudgetDatabase private constructor(
         statusFilter: TransactionStatusFilter? = null,
         startDate: Int? = null,
         endDate: Int? = null,
+        today: LocalDate = LocalDate.now(),
     ): List<ActualTransaction> {
         require(limit >= 0 && offset >= 0)
         val args = mutableListOf<String>()
@@ -1007,8 +1017,22 @@ class ActualBudgetDatabase private constructor(
         val searchClause = if (query.isNullOrBlank()) "" else {
             // Bind a literal substring: %, _ and backslash are user text, not wildcards.
             val pattern = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
-            repeat(10) { args += pattern }
+            val terms = TransactionSearchTerms.parse(query, fetchDateFormat(), today)
+            val amountMatch = terms.amountRangeCents?.let { range ->
+                " OR ABS(%s.amount) BETWEEN CAST(? AS INTEGER) AND CAST(? AS INTEGER)" to
+                    listOf(range.first.toString(), range.last.toString())
+            }
+            val dateMatch = terms.dates.takeIf { it.isNotEmpty() }?.let { dates ->
+                " OR t.date IN (${dates.joinToString { "CAST(? AS INTEGER)" }})" to dates.map(Int::toString)
+            }
+            repeat(5) { args += pattern }
+            dateMatch?.let { args += it.second }
+            amountMatch?.let { args += it.second }
+            repeat(5) { args += pattern }
+            amountMatch?.let { args += it.second }
             transactionSearchClause
+                .replace("/*PARENT_EXTRA*/", (dateMatch?.first.orEmpty()) + (amountMatch?.first?.format("t").orEmpty()))
+                .replace("/*CHILD_EXTRA*/", amountMatch?.first?.format("child").orEmpty())
         }
         args += limit.toString()
         args += offset.toString()
@@ -1685,6 +1709,7 @@ class ActualBudgetDatabase private constructor(
                 OR t.notes LIKE ? ESCAPE '\'
                 OR t.imported_description LIKE ? ESCAPE '\'
                 OR EXISTS (SELECT 1 FROM accounts a WHERE a.id = t.acct AND a.name LIKE ? ESCAPE '\')
+                /*PARENT_EXTRA*/
                 OR (t.isParent = 1 AND EXISTS (
                     SELECT 1 FROM transactions child
                     LEFT JOIN payee_mapping spm ON spm.id = child.description
@@ -1698,7 +1723,8 @@ class ActualBudgetDatabase private constructor(
                       AND (child.tombstone = 0 OR child.tombstone IS NULL)
                       AND (sp.name LIKE ? ESCAPE '\' OR child.notes LIKE ? ESCAPE '\'
                            OR child.imported_description LIKE ? ESCAPE '\'
-                           OR sa.name LIKE ? ESCAPE '\' OR sc.name LIKE ? ESCAPE '\')
+                           OR sa.name LIKE ? ESCAPE '\' OR sc.name LIKE ? ESCAPE '\'
+                           /*CHILD_EXTRA*/)
                 ))
             )
         """
