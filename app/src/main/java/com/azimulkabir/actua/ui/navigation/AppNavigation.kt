@@ -319,6 +319,7 @@ fun AppNavigation(
     val favoritePreferences = remember { FavoritePreferences(context) }
     val homePreferences = remember { HomePreferences(context) }
     var homeLayout by remember { mutableStateOf(homePreferences.layout()) }
+
     val tabBarPreferences = remember { TabBarPreferences(context) }
     var tabBarLayout by remember { mutableStateOf(tabBarPreferences.layout()) }
     // The bottom bar's rendered destinations, in configured order. The "+ Add" pseudo-tab isn't a
@@ -341,6 +342,7 @@ fun AppNavigation(
     var budgetReplacementInProgress by remember { mutableStateOf(false) }
     var budgetReplacementCompleted by remember { mutableStateOf(false) }
     val favoriteBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
+    var homeSummaryStartDay by remember(favoriteBudgetId) { mutableStateOf(homePreferences.summaryStartDay(favoriteBudgetId)) }
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
     var sharedImportText by remember { mutableStateOf<String?>(null) }
@@ -2003,6 +2005,12 @@ fun AppNavigation(
                     homePreferences.save(updated)
                     homeLayout = updated
                 },
+                summaryStartDay = homeSummaryStartDay,
+                onSummaryStartDayChange = { day ->
+                    val clamped = day.coerceIn(1, 31)
+                    homePreferences.setSummaryStartDay(favoriteBudgetId, clamped)
+                    homeSummaryStartDay = clamped
+                },
                 modifier = contentModifier,
             )
             DetailDestination.CustomizeTabBar -> CustomizeTabBarScreen(
@@ -2234,6 +2242,7 @@ fun AppNavigation(
                         favoriteReportIds,
                         reportSnapshot,
                         budgetMonth,
+                        homeSummaryStartDay,
                     ) {
                         HomeDashboardProjection.from(
                             budgetOverview = budgetOverview,
@@ -2246,6 +2255,7 @@ fun AppNavigation(
                             favoriteAccountIds = favoriteAccountIds,
                             favoriteReportIds = favoriteReportIds,
                             month = budgetMonth,
+                            summaryStartDay = homeSummaryStartDay,
                         )
                     },
                     sections = homeLayout.visibleSections,

@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.home.HomeSection
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
@@ -69,6 +70,7 @@ import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.CategoryStatusDot
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.PillShape
@@ -130,7 +132,7 @@ fun HomeScreen(
                     HomeSection.UPCOMING -> UpcomingSection(
                         projection.upcomingSchedules, hideDecimalPlaces, onSchedulesClick)
                     HomeSection.THIS_MONTH -> ThisMonthSection(
-                        projection.monthTransactions, hideDecimalPlaces, onTransactionsClick)
+                        projection.monthTransactions, hideDecimalPlaces, onTransactionsClick, projection.summaryPeriod)
                     HomeSection.REPORTS -> ReportsSection(
                         projection.favoriteReports, onReportClick, onReportsClick)
                     HomeSection.RECENT_ACTIVITY -> RecentActivitySection(
@@ -318,7 +320,8 @@ private fun UpcomingRow(item: ScheduleListItem, hideDecimals: Boolean, onClick: 
 }
 
 @Composable
-private fun ThisMonthSection(transactions: List<Transaction>, hideDecimals: Boolean, onClick: () -> Unit) {
+private fun ThisMonthSection(transactions: List<Transaction>, hideDecimals: Boolean, onClick: () -> Unit,
+    period: HomeSummaryPeriod? = null) {
     val summary = homeMonthActivity(transactions)
     val income = summary.incomeCents
     val spending = summary.expenseCents
@@ -329,6 +332,12 @@ private fun ThisMonthSection(transactions: List<Transaction>, hideDecimals: Bool
         .clip(MaterialTheme.shapes.large).clickable(onClick = onClick), shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.padding(Spacing.lg)) {
+            if (period != null) {
+                Text("${formatDate(period.start)} – ${formatDate(period.endInclusive)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Spacing.sm).testTag("homeSummaryPeriod"))
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 MonthMetric("Income", income, hideDecimals, MaterialTheme.colorScheme.success, Modifier.weight(1f))
                 MonthMetric("Spent", spending, hideDecimals, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
