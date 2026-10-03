@@ -153,6 +153,9 @@ fun AccountsScreen(
     onReorderAccounts: () -> Unit = {},
     onSearch: () -> Unit = {},
     onSetUpBankSync: () -> Unit = {},
+    bankSyncAvailable: Boolean = false,
+    bankSyncing: Boolean = false,
+    onBankSync: () -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     favoriteAccountIds: Set<String> = emptySet(),
@@ -225,6 +228,20 @@ fun AccountsScreen(
                             expanded = accountMenuExpanded,
                             onDismissRequest = { accountMenuExpanded = false },
                         ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(if (bankSyncing) "Syncing bank connections…" else "Sync bank connections")
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.Sync, contentDescription = null)
+                                },
+                                enabled = bankSyncAvailable && !bankSyncing,
+                                onClick = {
+                                    accountMenuExpanded = false
+                                    onBankSync()
+                                },
+                            )
+                            HorizontalDivider()
                             DropdownMenuItem(
                                 text = { Text("Monthly summary") },
                                 trailingIcon = {

@@ -455,6 +455,7 @@ fun AppNavigation(
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var transactionsRefreshing by remember { mutableStateOf(false) }
     var accountsRefreshing by remember { mutableStateOf(false) }
+    var bankSyncing by remember { mutableStateOf(false) }
     var simpleFinConfigured by remember { mutableStateOf(false) }
     var goCardlessConfigured by remember { mutableStateOf(false) }
     var simpleFinDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
@@ -667,7 +668,7 @@ fun AppNavigation(
     }
 
     fun refreshAccounts() {
-        if (accountsRefreshing) return
+        if (accountsRefreshing || bankSyncing) return
         accountsRefreshing = true
         coroutineScope.launch {
             try {
@@ -690,6 +691,24 @@ fun AppNavigation(
                 errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Sync failed."
             } finally {
                 accountsRefreshing = false
+            }
+        }
+    }
+
+    fun syncBankConnections() {
+        if (accountsRefreshing || bankSyncing || accounts.none { it.bankSyncSource != null }) return
+        bankSyncing = true
+        coroutineScope.launch {
+            try {
+                val bankResult = withContext(Dispatchers.IO) { repository.syncBanks() }
+                dataVersion += 1
+                snackbarHostState.showSnackbar(bankResult.summary)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Bank sync failed."
+            } finally {
+                bankSyncing = false
             }
         }
     }
@@ -2559,6 +2578,9 @@ fun AppNavigation(
                     onReorderAccounts = { detail = DetailDestination.ReorderAccounts },
                     onSearch = { detail = DetailDestination.Search },
                     onSetUpBankSync = { loadBankSyncProviderStatus(); detail = DetailDestination.BankSync },
+                    bankSyncAvailable = accounts.any { it.bankSyncSource != null },
+                    bankSyncing = bankSyncing,
+                    onBankSync = ::syncBankConnections,
                     isRefreshing = accountsRefreshing,
                     onRefresh = ::refreshAccounts,
                     favoriteAccountIds = favoriteAccountIds,
