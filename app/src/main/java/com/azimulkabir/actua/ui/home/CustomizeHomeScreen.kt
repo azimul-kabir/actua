@@ -14,9 +14,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeLayoutPlanner
 import com.azimulkabir.actua.data.home.HomeSection
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.GroupPosition
@@ -67,6 +71,8 @@ fun CustomizeHomeScreen(
     onBack: () -> Unit,
     onLayoutChange: (HomeLayout) -> Unit,
     modifier: Modifier = Modifier,
+    summaryStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
+    onSummaryStartDayChange: (Int) -> Unit = {},
 ) {
     val sanitized = remember(layout) { HomeLayoutPlanner.sanitize(layout) }
     var localOrder by remember(sanitized) { mutableStateOf(sanitized.order) }
@@ -206,7 +212,46 @@ fun CustomizeHomeScreen(
                     )
                 }
             }
+            item(key = "summary-period") {
+                SummaryPeriodRow(summaryStartDay, onSummaryStartDayChange)
+            }
         }
+    }
+}
+
+/** Stepper for the day the This Month summary period starts; 1 keeps the calendar month. */
+@Composable
+private fun SummaryPeriodRow(startDay: Int, onChange: (Int) -> Unit) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = Spacing.lg)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "This Month starts on day",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(
+                onClick = { onChange(startDay - 1) },
+                enabled = startDay > 1,
+                modifier = Modifier.semantics { contentDescription = "Start the period one day earlier" },
+            ) { Icon(Icons.Outlined.Remove, null) }
+            Text(
+                startDay.toString(),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.testTag("summaryStartDay"),
+            )
+            IconButton(
+                onClick = { onChange(startDay + 1) },
+                enabled = startDay < 31,
+                modifier = Modifier.semantics { contentDescription = "Start the period one day later" },
+            ) { Icon(Icons.Outlined.Add, null) }
+        }
+        Text(
+            "Day 1 is the calendar month. Choose another day if you are paid mid-month; the Home summary then " +
+                "runs from that day to the day before the next one. Short months use their last day.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

@@ -37,4 +37,22 @@ class HomePreferencesTest {
         assertEquals(HomeLayout.default(), reloaded.restoreDefaults())
         assertEquals(HomeLayout.default(), reloaded.layout())
     }
+
+    @Test
+    fun summaryStartDayDefaultsToTheCalendarMonthPersistsAndIsPerBudget() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("home_preferences", Context.MODE_PRIVATE).edit().clear().commit()
+
+        val fresh = HomePreferences(context)
+        assertEquals(1, fresh.summaryStartDay("budget-a"))
+
+        fresh.setSummaryStartDay("budget-a", 27)
+        assertEquals(27, HomePreferences(context).summaryStartDay("budget-a"))
+        assertEquals(1, HomePreferences(context).summaryStartDay("budget-b"))
+
+        fresh.setSummaryStartDay("budget-a", 99)
+        assertEquals(31, fresh.summaryStartDay("budget-a"))
+        fresh.setSummaryStartDay("budget-a", 0)
+        assertEquals(1, fresh.summaryStartDay("budget-a"))
+    }
 }

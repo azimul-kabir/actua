@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Choose the day your Home Income, Spent and Net summary period starts, for pay cycles that don't begin on the 1st ([#830](https://github.com/azimul-kabir/actua/pull/830))
 - Merge two selected transactions, such as a bank import and the same purchase entered by hand ([#822](https://github.com/azimul-kabir/actua/pull/822))
 
 ### Fixed

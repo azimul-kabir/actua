@@ -3,6 +3,7 @@ package com.azimulkabir.actua.data.preferences
 import android.content.Context
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeLayoutCodec
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
 
 /** Home dashboard section order and visibility; device-local UI preference, not budget data. */
 class HomePreferences(context: Context) {
@@ -16,5 +17,18 @@ class HomePreferences(context: Context) {
 
     fun restoreDefaults(): HomeLayout = HomeLayout.default().also { save(it) }
 
-    private companion object { const val LAYOUT = "layout" }
+    /** Start day (1–31) of the Home summary period for [budgetId]; 1 is the calendar month. */
+    fun summaryStartDay(budgetId: String): Int =
+        preferences.getInt(summaryStartDayKey(budgetId), HomeSummaryPeriod.CALENDAR_MONTH_START_DAY).coerceIn(1, 31)
+
+    fun setSummaryStartDay(budgetId: String, day: Int) {
+        preferences.edit().putInt(summaryStartDayKey(budgetId), day.coerceIn(1, 31)).apply()
+    }
+
+    private fun summaryStartDayKey(budgetId: String) = "$SUMMARY_START_DAY:$budgetId"
+
+    private companion object {
+        const val LAYOUT = "layout"
+        const val SUMMARY_START_DAY = "summary_start_day"
+    }
 }
