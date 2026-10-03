@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Hand-entered transactions no longer record their payee as the imported payee, so imported-payee rules and the Imported payee column match Actual ([#827](https://github.com/azimul-kabir/actua/pull/827))
 - Categories with a cover-schedule or save-by-date automation plus a spending automation now show spending progress instead of a full goal bar ([#820](https://github.com/azimul-kabir/actua/pull/820))
 
 ## [1.4.1] - 2026-10-01
