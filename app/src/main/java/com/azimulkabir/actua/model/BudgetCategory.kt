@@ -89,10 +89,22 @@ data class BudgetCategory(
     fun progressBarState(schedules: List<BudgetScheduleFunding> = emptyList()): BudgetProgressState {
         if (!usesGoalProgress) return progressState
         if (balanceCents < 0L) return BudgetProgressState.OVERSPENT
-        val goal = effectiveGoalCents(schedules)?.takeIf { it > 0L } ?: assignedCents.takeIf { it > 0L }
+        val explicitGoal = effectiveGoalCents(schedules)?.takeIf { it > 0L }
+        // Only a real goal can be overshot; the assigned-amount fallback below just reads as reached.
+        if (explicitGoal != null && balanceCents > explicitGoal) return BudgetProgressState.GOAL_OVERFUNDED
+        val goal = explicitGoal ?: assignedCents.takeIf { it > 0L }
         return if (goal != null && balanceCents >= goal) BudgetProgressState.GOAL_REACHED
         else BudgetProgressState.GOAL_IN_PROGRESS
     }
+
+    /**
+     * The state behind the status dot and the budgeted-amount pill: [progressState], except a goal
+     * category funded past its target reads [BudgetProgressState.GOAL_OVERFUNDED].
+     */
+    fun statusState(schedules: List<BudgetScheduleFunding> = emptyList()): BudgetProgressState =
+        if (usesGoalProgress && progressBarState(schedules) == BudgetProgressState.GOAL_OVERFUNDED)
+            BudgetProgressState.GOAL_OVERFUNDED
+        else progressState
 
     fun progressFraction(schedules: List<BudgetScheduleFunding> = emptyList()): Float {
         // Preserve Actua's long-term targets, including unresolved schedule fallback.
@@ -117,6 +129,7 @@ enum class BudgetProgressState(val label: String) {
     OVERSPENT("Overspent"),
     GOAL_IN_PROGRESS("Goal in progress"),
     GOAL_REACHED("Goal reached"),
+    GOAL_OVERFUNDED("Funded past goal"),
 }
 
 enum class BudgetCategoryView(val label: String) {

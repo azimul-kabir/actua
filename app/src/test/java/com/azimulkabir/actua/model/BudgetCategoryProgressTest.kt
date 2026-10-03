@@ -174,8 +174,47 @@ class BudgetCategoryProgressTest {
         assertEquals(BudgetProgressState.GOAL_REACHED, category.progressBarState())
     }
 
-    @Test fun `goal overfunded reads as reached`() {
+    @Test fun `goal overfunded reads as funded past goal`() {
         val category = category(assignedCents = 25_000, spentCents = 0, balanceCents = 25_000, goalCents = 20_000)
+        assertEquals(BudgetProgressState.GOAL_OVERFUNDED, category.progressBarState())
+        assertEquals(BudgetProgressState.GOAL_OVERFUNDED, category.statusState())
+    }
+
+    @Test fun `funded past goal starts one cent above the goal`() {
+        fun state(balance: Long) = category(assignedCents = 20_000, spentCents = 0, balanceCents = balance, goalCents = 20_000)
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, state(19_999).progressBarState())
+        assertEquals(BudgetProgressState.GOAL_REACHED, state(20_000).progressBarState())
+        assertEquals(BudgetProgressState.GOAL_OVERFUNDED, state(20_001).progressBarState())
+        // The dot and pill keep the ordinary state until the goal is actually overshot.
+        assertEquals(BudgetProgressState.FUNDED, state(20_000).statusState())
+        assertEquals(BudgetProgressState.GOAL_OVERFUNDED, state(20_001).statusState())
+    }
+
+    @Test fun `carryover past the goal counts as funded past goal`() {
+        // Nothing assigned this month, but carried-over balance already exceeds the goal.
+        val category = category(assignedCents = 0, spentCents = 0, balanceCents = 30_000, goalCents = 20_000)
+        assertEquals(BudgetProgressState.GOAL_OVERFUNDED, category.statusState())
+    }
+
+    @Test fun `spending back below the goal is no longer funded past goal`() {
+        val category = category(assignedCents = 25_000, spentCents = 10_000, balanceCents = 15_000, goalCents = 20_000)
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.progressBarState())
+        assertEquals(BudgetProgressState.SPENDING, category.statusState())
+    }
+
+    @Test fun `negative balance on a goal category is overspent not overfunded`() {
+        val category = category(assignedCents = 5_000, spentCents = 6_000, balanceCents = -1_000, goalCents = 20_000)
+        assertEquals(BudgetProgressState.OVERSPENT, category.statusState())
+    }
+
+    @Test fun `non-goal categories never read as funded past goal`() {
+        val category = category(assignedCents = 5_000, spentCents = 0, balanceCents = 50_000)
+        assertEquals(BudgetProgressState.FUNDED, category.statusState())
+    }
+
+    @Test fun `without an explicit goal the assigned fallback never reads as overfunded`() {
+        val target = BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = "bill-1")
+        val category = category(assignedCents = 10_000, spentCents = 0, balanceCents = 30_000).copy(target = target)
         assertEquals(BudgetProgressState.GOAL_REACHED, category.progressBarState())
     }
 
@@ -200,7 +239,8 @@ class BudgetCategoryProgressTest {
             .copy(automations = listOf(emiSchedule))
         assertEquals(true, category.usesGoalProgress)
         assertEquals(1f, category.progressFraction(emiFunding))
-        assertEquals(BudgetProgressState.GOAL_REACHED, category.progressBarState(emiFunding))
+        // The 2,500 payment is the goal and 14,110 is funded, so this is past goal.
+        assertEquals(BudgetProgressState.GOAL_OVERFUNDED, category.progressBarState(emiFunding))
     }
 
     @Test fun `cover schedule with by-date keeps the goal bar`() {

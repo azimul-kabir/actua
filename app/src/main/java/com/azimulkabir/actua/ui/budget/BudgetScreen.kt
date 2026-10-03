@@ -111,6 +111,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -157,6 +158,7 @@ import com.azimulkabir.actua.ui.components.ActuaSheetCard
 import com.azimulkabir.actua.ui.components.ActuaSheetAction
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.model.BudgetProgressState
+import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
 import com.azimulkabir.actua.ui.theme.danger
 import com.azimulkabir.actua.ui.theme.warning
@@ -1301,7 +1303,7 @@ private fun PlanBudgetCategoryRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    CategoryStatusDot(category.progressState, modifier = Modifier.padding(end = 8.dp))
+                    CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 8.dp))
                     Text(
                         if (category.hidden) "${category.name} · Hidden" else category.name,
                         style = MaterialTheme.typography.bodyLarge,
@@ -1318,7 +1320,7 @@ private fun PlanBudgetCategoryRow(
             BalancePill(
                 category.balanceCents,
                 hideDecimalPlaces,
-                status = category.progressState,
+                status = category.statusState(scheduleFunding),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 horizontalPadding = 10.dp,
@@ -1643,13 +1645,18 @@ private fun CategoryRow(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(modifier = Modifier.weight(1.35f), verticalAlignment = Alignment.CenterVertically) {
-                    CategoryStatusDot(category.progressState, modifier = Modifier.padding(end = 6.dp))
+                    CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
                     Text(if (category.hidden) "${category.name} · Hidden" else category.name,
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                CategoryAmount(category.assignedCents, Modifier.weight(1f), hideDecimalPlaces)
+                if (LocalCategoryStatusColors.current?.colorBudgetedAmounts == true) {
+                    BudgetedAmountPill(
+                        category.assignedCents, category.statusState(scheduleFunding), hideDecimalPlaces,
+                        Modifier.weight(1f),
+                    )
+                } else CategoryAmount(category.assignedCents, Modifier.weight(1f), hideDecimalPlaces)
                 if (showSpent) CategoryAmount(
                     -category.spentCents,
                     Modifier.weight(1f),
@@ -1660,7 +1667,7 @@ private fun CategoryRow(
                     BalancePill(
                         category.balanceCents,
                         hideDecimalPlaces,
-                        status = category.progressState,
+                        status = category.statusState(scheduleFunding),
                         modifier = Modifier.offset(x = 10.dp),
                         textStyle = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
@@ -1981,6 +1988,31 @@ private fun InlineCalculatorAmount(label: String, amount: Long, modifier: Modifi
                 Modifier.padding(start = 3.dp).height(24.dp).width(2.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = cursorAlpha)),
+            )
+        }
+    }
+}
+
+/**
+ * The Budgeted amount on a status-tinted pill (opt-in, see Settings > Budget). It reuses the
+ * status dot's color, and the status label is exposed through semantics so state is never
+ * conveyed by color alone.
+ */
+@Composable
+private fun BudgetedAmountPill(amount: Long, status: BudgetProgressState, hideDecimalPlaces: Boolean,
+    modifier: Modifier = Modifier) {
+    val statusColor = categoryStatusColor(status)
+    val text = formatMoneyCents(amount, hideDecimalPlaces)
+    Box(modifier = modifier, contentAlignment = Alignment.CenterEnd) {
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = statusColor.copy(alpha = 0.16f),
+            modifier = Modifier.semantics { contentDescription = "Budgeted $text, ${status.label}" },
+        ) {
+            Text(
+                text, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold,
+                color = statusColor, maxLines = 1,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
             )
         }
     }

@@ -477,6 +477,12 @@ fun SettingsScreen(
                         ) { categoryStatusColors?.updateShowDots(it) }
                         SettingsDivider()
                         SettingsToggle(
+                            "Color budgeted amounts",
+                            "Draw the category status color behind the Budgeted amount on Budget rows",
+                            categoryStatusColors?.colorBudgetedAmounts ?: false,
+                        ) { categoryStatusColors?.updateColorBudgetedAmounts(it) }
+                        SettingsDivider()
+                        SettingsToggle(
                             "Hide income group",
                             "Hide the income category group on the Budget tab",
                             hideIncomeGroupInBudget,
@@ -485,7 +491,7 @@ fun SettingsScreen(
                         SettingsDivider()
                         SettingsRow(
                             "Category status colors",
-                            "Retint the unassigned, funded, spending, spent and overspent status colors",
+                            "Retint the unassigned, funded, spending, spent, overspent and goal status colors",
                             true,
                         ) { page = SettingsPage.CategoryColors }
                     }

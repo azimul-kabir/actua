@@ -46,6 +46,15 @@ class CategoryStatusColorState(context: Context) {
         preferences.resetToDefaults()
     }
 
+    /** Opt-in: draw the status color as a pill behind the budgeted amount on Budget rows. */
+    var colorBudgetedAmounts by mutableStateOf(displayPreferences.colorBudgetedAmounts)
+        private set
+
+    fun updateColorBudgetedAmounts(enabled: Boolean) {
+        colorBudgetedAmounts = enabled
+        displayPreferences.colorBudgetedAmounts = enabled
+    }
+
     fun updateShowDots(show: Boolean) {
         showDots = show
         displayPreferences.showCategoryStatusDots = show
@@ -69,6 +78,7 @@ fun defaultCategoryStatusColor(status: BudgetProgressState): Color {
         BudgetProgressState.UNASSIGNED -> colors.onSurfaceVariant
         BudgetProgressState.GOAL_IN_PROGRESS -> colors.primary
         BudgetProgressState.GOAL_REACHED -> colors.success
+        BudgetProgressState.GOAL_OVERFUNDED -> colors.tertiary
     }
 }
 
