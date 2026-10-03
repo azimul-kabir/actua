@@ -10,6 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Duplicated transactions are now uncleared, like Actual, instead of keeping the original's cleared state ([#828](https://github.com/azimul-kabir/actua/pull/828))
 - Categories with a cover-schedule or save-by-date automation plus a spending automation now show spending progress instead of a full goal bar ([#820](https://github.com/azimul-kabir/actua/pull/820))
 
 ## [1.4.1] - 2026-10-01
