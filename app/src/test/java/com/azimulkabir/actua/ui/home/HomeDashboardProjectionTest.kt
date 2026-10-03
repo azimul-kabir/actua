@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.home
 
 import com.azimulkabir.actua.data.home.HomeSection
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
@@ -66,6 +67,64 @@ class HomeDashboardProjectionTest {
         )
 
         assertEquals(transactions.take(10), projection.recentTransactions)
+    }
+
+    @Test fun custom_summary_period_selects_transactions_by_day_range_and_sums_in_cents() {
+        fun tx(id: String, date: String, cents: Long) = transaction(id, cents, cents > 0).copy(date = date)
+        val transactions = listOf(
+            tx("before", "20260926", -999),
+            tx("start", "20260927", 100_000),
+            tx("middle", "20261003", -12_345),
+            tx("end", "20261026", -1),
+            tx("after", "20261027", -777),
+        )
+
+        val projection = HomeDashboardProjection.from(
+            budgetOverview = BudgetOverview(null, 0, 0, 0),
+            budgetGroups = emptyList(),
+            accounts = emptyList(),
+            reportDashboards = emptyList(),
+            schedules = emptyList(),
+            transactions = transactions,
+            favoriteCategoryIds = emptySet(),
+            favoriteAccountIds = emptySet(),
+            favoriteReportIds = emptySet(),
+            month = "2026-10",
+            summaryStartDay = 27,
+            today = java.time.LocalDate.of(2026, 10, 5),
+        )
+
+        assertEquals(listOf("start", "middle", "end"), projection.monthTransactions.map { it.id })
+        assertEquals(
+            HomeSummaryPeriod(java.time.LocalDate.of(2026, 9, 27), java.time.LocalDate.of(2026, 10, 26)),
+            projection.summaryPeriod,
+        )
+        val summary = homeMonthActivity(projection.monthTransactions)
+        assertEquals(100_000, summary.incomeCents)
+        assertEquals(12_346, summary.expenseCents)
+        assertEquals(87_654, summary.netCents)
+    }
+
+    @Test fun default_start_day_keeps_the_budget_calendar_month_and_shows_no_range() {
+        val transactions = listOf(
+            Transaction("sep", "20260920", "Shop", "", "Checking", -20, false),
+            Transaction("aug", "20260831", "Shop", "", "Checking", -20, false),
+        )
+        val projection = HomeDashboardProjection.from(
+            budgetOverview = BudgetOverview(null, 0, 0, 0),
+            budgetGroups = emptyList(),
+            accounts = emptyList(),
+            reportDashboards = emptyList(),
+            schedules = emptyList(),
+            transactions = transactions,
+            favoriteCategoryIds = emptySet(),
+            favoriteAccountIds = emptySet(),
+            favoriteReportIds = emptySet(),
+            month = "2026-09",
+        )
+
+        assertEquals(listOf("sep"), projection.monthTransactions.map { it.id })
+        assertEquals(null, projection.summaryPeriod)
     }
 
     @Test fun this_month_activity_uses_category_cash_flow_and_excludes_transfers() {
