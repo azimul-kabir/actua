@@ -462,6 +462,9 @@ fun AppNavigation(
     var goCardlessInstitutions by remember { mutableStateOf<List<com.azimulkabir.actua.ui.banksync.GoCardlessInstitutionUi>>(emptyList()) }
     var goCardlessInstitutionsLoading by remember { mutableStateOf(false) }
     var goCardlessRequisitionId by remember { mutableStateOf<String?>(null) }
+    val experimentalPreferences = remember { com.azimulkabir.actua.data.preferences.ExperimentalPreferences(context) }
+    var enableBankingExperiment by remember { mutableStateOf(experimentalPreferences.enableBanking) }
+    var enableBankingConfigured by remember { mutableStateOf(false) }
     var reconcileOpen by remember { mutableStateOf(false) }
     var scheduleReturnsToBills by rememberSaveable { mutableStateOf(false) }
     var scheduleReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
@@ -699,6 +702,30 @@ fun AppNavigation(
             goCardlessConfigured = withContext(Dispatchers.IO) {
                 runCatching { repository.bankSyncProviderConfigured("goCardless") }.getOrDefault(false)
             }
+            // Enable Banking is experimental: don't touch its server routes unless the user opted in.
+            enableBankingConfigured = enableBankingExperiment && withContext(Dispatchers.IO) {
+                runCatching { repository.bankSyncProviderConfigured("enableBanking") }.getOrDefault(false)
+            }
+        }
+    }
+
+    val enableBankingFlow = remember(repository) {
+        com.azimulkabir.actua.ui.banksync.EnableBankingFlow(
+            scope = coroutineScope,
+            io = Dispatchers.IO,
+            loadBanks = repository::discoverEnableBankingBanks,
+            startAuthorization = repository::startEnableBankingAuthorization,
+            awaitAuthorization = repository::awaitEnableBankingAuthorization,
+            openUrl = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
+            onError = { message -> errorMessage = message },
+        )
+    }
+
+    fun saveEnableBankingCredentials(applicationId: String, secretKey: String) {
+        coroutineScope.launch {
+            runCatching { withContext(Dispatchers.IO) { repository.setEnableBankingCredentials(applicationId, secretKey) } }
+                .onSuccess { loadBankSyncProviderStatus(); snackbarHostState.showSnackbar("Enable Banking credentials saved.") }
+                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: "Could not save Enable Banking credentials." }
         }
     }
 
@@ -801,27 +828,40 @@ fun AppNavigation(
     }
 
     fun linkBankAccount(discovered: com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount, account: Account, source: String) {
-        val (requisitionId, externalId) = if (source == "goCardless") splitGoCardlessId(discovered.id) else null to discovered.id
+        val (requisitionId, externalId) = when (source) {
+            "goCardless" -> splitGoCardlessId(discovered.id)
+            // Enable Banking keeps one `banks` row per account, keyed by the account id itself.
+            "enableBanking" -> discovered.id to discovered.id
+            else -> null to discovered.id
+        }
+        val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else null
         mutate(
             "Linking account",
             onChanged = {
                 goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
                 simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+                enableBankingFlow.reset()
             },
-        ) { repository.linkBankAccount(account.id, externalId, source, requisitionId) }
+        ) { repository.linkBankAccount(account.id, externalId, source, requisitionId, bankName) }
     }
 
     fun createAndLinkBankAccount(
         discovered: com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount, name: String, offBudget: Boolean, source: String,
     ) {
-        val (requisitionId, externalId) = if (source == "goCardless") splitGoCardlessId(discovered.id) else null to discovered.id
+        val (requisitionId, externalId) = when (source) {
+            "goCardless" -> splitGoCardlessId(discovered.id)
+            "enableBanking" -> discovered.id to discovered.id
+            else -> null to discovered.id
+        }
+        val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else null
         mutate(
             "Creating account",
             onChanged = {
                 goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
                 simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+                enableBankingFlow.reset()
             },
-        ) { repository.createLinkedAccount(name, offBudget, externalId, source, requisitionId) }
+        ) { repository.createLinkedAccount(name, offBudget, externalId, source, requisitionId, bankName) }
     }
 
     fun unlinkBankAccount(account: Account) {
@@ -1945,6 +1985,18 @@ fun AppNavigation(
                 onStartGoCardlessAuthorization = ::startGoCardlessAuthorization,
                 goCardlessDiscovery = goCardlessDiscovery,
                 onCheckGoCardlessAccounts = ::checkGoCardlessAccounts,
+                enableBanking = com.azimulkabir.actua.ui.banksync.EnableBankingUiState(
+                    visible = enableBankingExperiment,
+                    configured = enableBankingConfigured,
+                    banks = enableBankingFlow.banks.map { it.name },
+                    banksLoading = enableBankingFlow.banksLoading,
+                    discovery = enableBankingFlow.discovery,
+                ),
+                onSaveEnableBankingCredentials = ::saveEnableBankingCredentials,
+                onLoadEnableBankingBanks = enableBankingFlow::loadBanks,
+                onAuthorizeEnableBanking = { name ->
+                    enableBankingFlow.banks.firstOrNull { it.name == name }?.let(enableBankingFlow::authorize)
+                },
                 onLinkExisting = { discovered, account, source -> linkBankAccount(discovered, account, source) },
                 onCreateAndLink = { discovered, name, offBudget, source -> createAndLinkBankAccount(discovered, name, offBudget, source) },
                 onUnlink = ::unlinkBankAccount,
@@ -2763,6 +2815,12 @@ fun AppNavigation(
                     onBankSyncClick = {
                         loadBankSyncProviderStatus()
                         detail = DetailDestination.BankSync
+                    },
+                    enableBankingExperiment = enableBankingExperiment,
+                    onEnableBankingExperimentChange = {
+                        experimentalPreferences.enableBanking = it
+                        enableBankingExperiment = it
+                        if (!it) enableBankingFlow.reset()
                     },
                     onRulesClick = {
                         scheduleRuleId = null

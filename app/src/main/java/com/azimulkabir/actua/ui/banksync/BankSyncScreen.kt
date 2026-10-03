@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.banksync
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
@@ -60,6 +63,21 @@ sealed class DiscoveryState {
 }
 
 data class GoCardlessInstitutionUi(val id: String, val name: String)
+
+/** Enable Banking is experimental (Settings → Experimental); it is only shown while [visible]. */
+data class EnableBankingUiState(
+    val visible: Boolean = false,
+    val configured: Boolean = false,
+    val banks: List<String> = emptyList(),
+    val banksLoading: Boolean = false,
+    val discovery: DiscoveryState = DiscoveryState.Idle,
+)
+
+/** Countries Enable Banking offers banks in; the server filters `/aspsps` by ISO code. */
+internal val enableBankingCountries = listOf(
+    "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IS", "IE", "IT",
+    "LV", "LT", "LU", "MT", "NL", "NO", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "CH", "GB",
+)
 
 private fun bankSyncStatusLabel(status: String?): String? = when (status) {
     null, "ok" -> null
@@ -90,6 +108,10 @@ fun BankSyncScreen(
     onStartGoCardlessAuthorization: (institutionId: String) -> Unit,
     goCardlessDiscovery: DiscoveryState,
     onCheckGoCardlessAccounts: () -> Unit,
+    enableBanking: EnableBankingUiState = EnableBankingUiState(),
+    onSaveEnableBankingCredentials: (applicationId: String, secretKey: String) -> Unit = { _, _ -> },
+    onLoadEnableBankingBanks: (country: String) -> Unit = {},
+    onAuthorizeEnableBanking: (bankName: String) -> Unit = {},
     onLinkExisting: (DiscoveredBankAccount, Account, source: String) -> Unit,
     onCreateAndLink: (DiscoveredBankAccount, name: String, offBudget: Boolean, source: String) -> Unit,
     onUnlink: (Account) -> Unit,
@@ -132,6 +154,22 @@ fun BankSyncScreen(
                         onCheckAccounts = onCheckGoCardlessAccounts,
                         onLink = { linkingSource = it to "goCardless" },
                     )
+                }
+                if (enableBanking.visible) {
+                    ActuaCardDivider(inset = Spacing.screenHorizontal)
+                    ProviderRow(
+                        name = "Enable Banking (experimental)", configured = enableBanking.configured,
+                        expanded = expanded == "enableBanking",
+                        onClick = { expanded = if (expanded == "enableBanking") null else "enableBanking" },
+                    ) {
+                        EnableBankingSetup(
+                            state = enableBanking,
+                            onSaveCredentials = onSaveEnableBankingCredentials,
+                            onLoadBanks = onLoadEnableBankingBanks,
+                            onAuthorize = onAuthorizeEnableBanking,
+                            onLink = { linkingSource = it to "enableBanking" },
+                        )
+                    }
                 }
                 ActuaCardDivider(inset = Spacing.screenHorizontal)
                 ProviderRow(
@@ -308,6 +346,88 @@ private fun GoCardlessSetup(
                 Text("I've authorized — check accounts")
             }
             DiscoveryResults(discovery, onLink)
+        }
+    }
+}
+
+@Composable
+private fun EnableBankingSetup(
+    state: EnableBankingUiState,
+    onSaveCredentials: (String, String) -> Unit,
+    onLoadBanks: (String) -> Unit,
+    onAuthorize: (String) -> Unit,
+    onLink: (DiscoveredBankAccount) -> Unit,
+) {
+    val context = LocalContext.current
+    var applicationId by remember { mutableStateOf("") }
+    var secretKey by remember { mutableStateOf("") }
+    var keyFileName by remember { mutableStateOf<String?>(null) }
+    var keyFileError by remember { mutableStateOf<String?>(null) }
+    var country by remember { mutableStateOf("DE") }
+    var countryMenuOpen by remember { mutableStateOf(false) }
+    var bankMenuOpen by remember { mutableStateOf(false) }
+    val pickKey = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            val text = context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
+                ?: error("Could not open the key file.")
+            require(text.isNotBlank()) { "The key file is empty." }
+            secretKey = text
+            keyFileName = uri.lastPathSegment?.substringAfterLast('/') ?: "key file"
+            keyFileError = null
+        }.onFailure {
+            secretKey = ""; keyFileName = null
+            keyFileError = it.message ?: "Could not read the key file."
+        }
+    }
+    Column {
+        Text(
+            "Experimental, like in Actual. Create an application at enablebanking.com and allow the redirect URL " +
+                "<your Actual server>/enablebanking/auth_callback. Enter its Application ID and choose the private key file. " +
+                "Both go to your Actual server and are not kept on this device.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        OutlinedTextField(
+            applicationId, { applicationId = it }, label = { Text("Application ID") },
+            singleLine = true, modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(Spacing.xs))
+        TextButton(onClick = { pickKey.launch(arrayOf("*/*")) }) { Text(keyFileName?.let { "Key file: $it" } ?: "Choose private key file") }
+        keyFileError?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+        Spacer(Modifier.height(Spacing.sm))
+        Button(
+            onClick = { onSaveCredentials(applicationId.trim(), secretKey); applicationId = ""; secretKey = ""; keyFileName = null },
+            enabled = applicationId.isNotBlank() && secretKey.isNotBlank(),
+        ) { Text("Save") }
+        if (state.configured) {
+            Spacer(Modifier.height(Spacing.md))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { countryMenuOpen = true }) { Text("Country: $country") }
+                DropdownMenu(countryMenuOpen, { countryMenuOpen = false }) {
+                    enableBankingCountries.forEach { code ->
+                        DropdownMenuItem(text = { Text(code) }, onClick = { country = code; countryMenuOpen = false; onLoadBanks(code) })
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                if (state.banksLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp))
+            }
+            if (state.banks.isEmpty() && !state.banksLoading) {
+                TextButton(onClick = { onLoadBanks(country) }) { Text("Load banks for $country") }
+            }
+            if (state.banks.isNotEmpty()) {
+                Box {
+                    TextButton(onClick = { bankMenuOpen = true }) { Text("Choose bank to link") }
+                    DropdownMenu(bankMenuOpen, { bankMenuOpen = false }) {
+                        state.banks.forEach { name ->
+                            DropdownMenuItem(text = { Text(name) }, onClick = { bankMenuOpen = false; onAuthorize(name) })
+                        }
+                    }
+                }
+            }
+            DiscoveryResults(state.discovery, onLink)
         }
     }
 }

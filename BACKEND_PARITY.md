@@ -93,6 +93,21 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   (see [docs/ACCOUNTS_PARITY.md](docs/ACCOUNTS_PARITY.md) for recovering budgets linked by
   Actua 1.0.0–1.2.0). Pluggy.ai is not yet implemented (server-side credential storage
   only; no account discovery/linking/download).
+- **Experimental** Enable Banking (EU banks) bank sync, following Actual's `enableBanking` flag
+  ([`59fe126f`](https://github.com/actualbudget/actual/tree/59fe126f637d858c061e1eeedbef5436c8f2225a),
+  `sync-server/src/app-enablebanking`, `loot-core/src/server/accounts/app.ts`): off by default
+  behind a device-local Settings → Experimental switch, which also hides it from Bank Sync. When on,
+  the Application ID and private key are sent to the server's `/enablebanking/configure` (not kept on
+  the device), the user picks a country and bank (`/aspsps`), authorizes it in the browser
+  (`/start-auth` with `<server>/enablebanking/auth_callback`, then a long `/poll-auth`), and links a
+  returned account to an existing or new Actual account. A link writes `accounts.account_id`,
+  `account_sync_source = 'enableBanking'` and one `banks` row per account (`bank_id` = account id,
+  named for the institution), as Actual's `linkEnableBankingAccount` does. Transactions download
+  through `/enablebanking/transactions` into the same importer as SimpleFIN/GoCardless;
+  `ITEM_LOGIN_REQUIRED` is stored as `reauth-required`. Not covered: the account-level
+  "import pending" option, starting-balance handling (the importer treats pending rows as for
+  other providers), business (non-personal) bank accounts (Actua always authorizes as personal),
+  and testing against a live Enable Banking application.
 - Server-hosted SimpleFIN and GoCardless transaction download for linked accounts, triggered by
   pulling down the Accounts list (all linked accounts) or a single linked account's register.
   Imports preserve provider IDs, pending/cleared state, integer cents, rules, CRDT mutation
@@ -101,8 +116,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   provider ID). Downloads get Actual's 5-minute bank-sync read timeout; a timeout is stored as
   `timed-out`, an account left out of a SimpleFIN batch as `account-missing`, and other download
   errors as `failed`, as in Actual. Accounts linked through providers Actua can't download yet
-  (Pluggy.ai, Enable Banking, Akahu) are named as unsupported and their stored status is left to
-  Actual.
+  (Pluggy.ai, Akahu, and Enable Banking while its experiment is off) are named as unsupported and
+  their stored status is left to Actual.
 - On-device financial-message parsing for explicitly pasted/shared text and opt-in future
   notifications from an explicit allowed-app list, with configurable debit/credit terms, amount/date/reference/payee extraction,
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion
@@ -402,8 +417,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   repeated recategorization (see [docs/RULES_PARITY.md](docs/RULES_PARITY.md))
 - Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
   cleanup source/sink groups already shipped
-- Pluggy.ai, Enable Banking, and Akahu account discovery, linking, and transaction download; and
-  bank-feed pending-import approval
+- Pluggy.ai and Akahu account discovery, linking, and transaction download (Enable Banking is
+  available as an experiment); and bank-feed pending-import approval
 - Broader country/bank parser templates beyond configurable financial-message keywords
 - General Android transaction notifications and new-transaction detection beyond
   the credit-card payment reminders already shipped

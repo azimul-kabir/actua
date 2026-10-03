@@ -45,6 +45,20 @@ data class GoCardlessInstitution(val id: String, val name: String, val transacti
 data class GoCardlessWebToken(val link: String, val requisitionId: String)
 data class GoCardlessAccount(val id: String, val iban: String?, val name: String?, val institutionId: String?)
 
+/** A bank (ASPSP) Enable Banking can connect, from `/enablebanking/aspsps`. */
+data class EnableBankingBank(
+    val name: String, val country: String, val maxConsentValiditySeconds: Int?, val psuTypes: List<String>,
+)
+/** Where to send the user to authorize a bank, and the `state` that [ActualServerClient.enableBankingPollAuth] waits on. */
+data class EnableBankingAuthStart(val url: String, val state: String)
+data class EnableBankingAccount(val accountId: String, val name: String, val institution: String, val iban: String?)
+
+/** Accounts the bank returned once the user authorized it, or why none came back. */
+sealed class EnableBankingAuthResult {
+    data class Available(val accounts: List<EnableBankingAccount>) : EnableBankingAuthResult()
+    data class Error(val reason: String) : EnableBankingAuthResult()
+}
+
 /** A discovered SimpleFIN account, or why none could be listed. */
 sealed class SimpleFinAccountsResult {
     data class Available(val accounts: List<SimpleFinAccount>) : SimpleFinAccountsResult()
@@ -91,6 +105,9 @@ data class ActualHttpRequest(
 
 /** Default read timeout for server requests. */
 const val DEFAULT_READ_TIMEOUT_MILLIS = 30_000
+
+/** Actual's `poll-auth` request waits slightly longer than the server's own 5-minute poll timeout. */
+const val ENABLE_BANKING_POLL_TIMEOUT_MILLIS = 310_000
 
 /**
  * Read timeout for bank-sync downloads. The server waits on the bank's bridge, so Actual gives its
@@ -477,6 +494,136 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         checkAuthorization(response)
         if (response.status in setOf(404, 405, 501)) {
             throw IllegalStateException("This Actual server does not support GoCardless bank sync.")
+        }
+        requireSuccess(response)
+        return parseSingleBankSyncDownload(response.json(), accountId)
+    }
+
+    fun enableBankingStatus(serverUrl: String, token: String): Boolean =
+        providerConfigured(serverUrl, token, "/enablebanking/status")
+
+    /**
+     * Sends the Enable Banking Application ID and private key to the server, which validates them
+     * against Enable Banking before storing them (`/enablebanking/configure`). They aren't kept here.
+     */
+    fun enableBankingConfigure(serverUrl: String, token: String, applicationId: String, secretKey: String) {
+        val body = JSONObject().put("applicationId", applicationId).put("secretKey", secretKey)
+            .toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/enablebanking/configure", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        if (response.status in setOf(404, 405, 501)) {
+            throw IllegalStateException("This Actual server doesn't support Enable Banking. Update it and turn on Enable Banking there.")
+        }
+        requireSuccess(response)
+        val data = response.json().optJSONObject("data") ?: throw ActualServerException.InvalidResponse
+        data.optionalString("error_code")?.let {
+            error(data.optionalString("error_type") ?: "Enable Banking rejected these credentials ($it).")
+        }
+        if (!data.optBoolean("configured", false)) throw ActualServerException.InvalidResponse
+    }
+
+    fun enableBankingBanks(serverUrl: String, token: String, country: String): List<EnableBankingBank> {
+        val body = JSONObject().put("country", country).toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/enablebanking/aspsps", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        requireSuccess(response)
+        val root = response.json()
+        root.optJSONObject("data")?.optionalString("error")?.let { error(it) }
+        val data = root.optJSONArray("data") ?: return emptyList()
+        return buildList {
+            for (index in 0 until data.length()) {
+                val item = data.optJSONObject(index) ?: continue
+                val name = item.optString("name").takeIf(String::isNotBlank) ?: continue
+                val psuTypes = item.optJSONArray("psu_types")?.let { types ->
+                    (0 until types.length()).mapNotNull { types.optString(it).takeIf(String::isNotBlank) }
+                }.orEmpty()
+                add(EnableBankingBank(
+                    name, item.optString("country", country),
+                    item.optInt("maximum_consent_validity", 0).takeIf { it > 0 }, psuTypes,
+                ))
+            }
+        }.sortedBy { it.name.lowercase() }
+    }
+
+    /** Starts a bank authorization. Open [EnableBankingAuthStart.url] in a browser, then call [enableBankingPollAuth]. */
+    fun enableBankingStartAuth(
+        serverUrl: String, token: String, bank: EnableBankingBank, redirectUrl: String, psuType: String = "personal",
+    ): EnableBankingAuthStart {
+        val body = JSONObject()
+            .put("aspsp", JSONObject().put("name", bank.name).put("country", bank.country))
+            .put("redirectUrl", redirectUrl)
+            .put("psuType", psuType)
+            .apply { bank.maxConsentValiditySeconds?.let { put("maxConsentValidity", it) } }
+            .toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/enablebanking/start-auth", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        requireSuccess(response)
+        val data = response.json().optJSONObject("data") ?: throw ActualServerException.InvalidResponse
+        (data.optionalString("error") ?: data.optionalString("error_type"))?.let { error(it) }
+        val url = data.optionalString("url") ?: throw ActualServerException.InvalidResponse
+        val state = data.optionalString("state") ?: throw ActualServerException.InvalidResponse
+        return EnableBankingAuthStart(url, state)
+    }
+
+    /**
+     * Waits (up to the server's 5 minutes) for the user to finish authorizing the bank in the browser,
+     * then returns the accounts the bank granted. Run it off the main thread; it blocks.
+     */
+    fun enableBankingPollAuth(serverUrl: String, token: String, state: String): EnableBankingAuthResult {
+        val body = JSONObject().put("state", state).toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/enablebanking/poll-auth", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+            readTimeoutMillis = ENABLE_BANKING_POLL_TIMEOUT_MILLIS,
+        )
+        checkAuthorization(response)
+        requireSuccess(response)
+        return parseEnableBankingAuth(response.json())
+    }
+
+    internal fun parseEnableBankingAuth(root: JSONObject): EnableBankingAuthResult {
+        val data = root.optJSONObject("data") ?: throw ActualServerException.InvalidResponse
+        (data.optionalString("error") ?: data.optionalString("error_type"))?.let {
+            return EnableBankingAuthResult.Error(it)
+        }
+        val accounts = data.optJSONArray("accounts") ?: return EnableBankingAuthResult.Available(emptyList())
+        return EnableBankingAuthResult.Available(buildList {
+            for (index in 0 until accounts.length()) {
+                val item = accounts.optJSONObject(index) ?: continue
+                val id = item.optionalString("account_id") ?: continue
+                add(EnableBankingAccount(
+                    accountId = id,
+                    name = item.optionalString("name") ?: item.optionalString("iban") ?: id,
+                    institution = item.optionalString("institution") ?: "Unknown",
+                    iban = item.optionalString("iban"),
+                ))
+            }
+        })
+    }
+
+    /** Downloads Actual's normalized Enable Banking feed for a single linked account. */
+    fun downloadEnableBankingTransactions(
+        serverUrl: String, token: String, accountId: String, startDate: String,
+    ): BankSyncDownload {
+        val body = JSONObject().put("accountId", accountId).put("startDate", startDate)
+            .toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/enablebanking/transactions", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+            readTimeoutMillis = BANK_SYNC_READ_TIMEOUT_MILLIS,
+        )
+        checkAuthorization(response)
+        if (response.status in setOf(404, 405, 501)) {
+            throw IllegalStateException("This Actual server does not support Enable Banking bank sync.")
         }
         requireSuccess(response)
         return parseSingleBankSyncDownload(response.json(), accountId)
