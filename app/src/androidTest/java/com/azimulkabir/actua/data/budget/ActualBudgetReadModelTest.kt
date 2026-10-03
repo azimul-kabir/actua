@@ -910,6 +910,43 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun searchMatchesAbsoluteAmountsAndDatesInTheBudgetDateFormat() = withDatabase { db ->
+        val writer = ActualTransactionWriter(db)
+        val exact = transaction("amt-exact", "checking", -4250, 20271105, "store", "grocery")
+        val whole = transaction("amt-whole", "checking", 4299, 20271106, "store", "grocery")
+        val other = transaction("amt-other", "checking", -4300, 20271107, "store", "grocery")
+        db.insertTransactions(listOf(exact, whole, other), emptyList())
+        val parent = transaction("amt-parent", "checking", -777, 20271108, "store", null, parentFlag = true)
+        writer.createSplit(parent, listOf(
+            transaction("amt-child-a", "checking", -321, 20271108, "store", "grocery", parent = parent.id),
+            transaction("amt-child-b", "checking", -456, 20271108, "store", "rent", parent = parent.id),
+        ))
+        fun ids(query: String) = db.fetchTransactions(query = query, limit = Int.MAX_VALUE).map { it.id }
+
+        // A decimal is exact cents on the absolute amount, so income and expense both match.
+        assertEquals(listOf("amt-exact"), ids("42.50"))
+        assertEquals(listOf("amt-exact"), ids("-42.50"))
+        // A whole number matches the whole unit: 42.00 through 42.99.
+        assertEquals(setOf("amt-exact", "amt-whole"), ids("42").toSet())
+        assertEquals(listOf("amt-whole"), ids("42.99"))
+        assertTrue(ids("42.51").isEmpty())
+        // The parent is found by its own total or by a split line's amount, once.
+        assertEquals(listOf("amt-parent"), ids("7.77"))
+        assertEquals(listOf("amt-parent"), ids("3.21"))
+        assertEquals(listOf("amt-parent"), ids("4.56"))
+
+        // With no synced dateFormat, Actual's month-first default applies; the synced format wins.
+        assertEquals(listOf("amt-exact"), ids("11/05/2027"))
+        ActualEntityWriter(db, nodeId = "eeeeeeeeeeeeeeee").setPreference("dateFormat", "dd/MM/yyyy")
+        assertEquals(listOf("amt-exact"), ids("05/11/2027"))
+        assertEquals(listOf("amt-exact"), ids("5/11/27"))
+        assertEquals(listOf("amt-parent"), ids("08/11/2027"))
+        assertTrue(ids("11/05/2027").none { it == "amt-exact" })
+        assertTrue(db.fetchTransactions(accountId = "savings", query = "05/11/2027").isEmpty())
+        assertEquals(listOf("amt-exact"), db.fetchTransactions(query = "05/11", today = java.time.LocalDate.of(2027, 1, 1)).map { it.id })
+    }
+
+    @Test
     fun searchFiltersBeforePagingAndFindsOldHistory() = withDatabase { db ->
         val history = (0..600).map { index ->
             transaction("history-${index.toString().padStart(4, '0')}", "checking", -100, 20260904, "store", "grocery")
