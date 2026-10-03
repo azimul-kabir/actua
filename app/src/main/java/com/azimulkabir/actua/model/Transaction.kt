@@ -63,9 +63,13 @@ fun Transaction.asTransferDraft(): Transaction =
         )
     } else this
 
-/** A copy of this transaction detached from its schedule link and split children, ready to be saved as a new one. */
+/**
+ * A copy of this transaction, uncleared and unreconciled like Actual's Duplicate, detached from its
+ * schedule link and split children and ready to be saved as a new one.
+ */
 fun Transaction.asDuplicate(): Transaction = copy(
     id = "",
+    cleared = false,
     reconciled = false,
     rulesApplied = true,
     scheduleId = null,

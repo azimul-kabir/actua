@@ -36,4 +36,19 @@ class TransferDraftTest {
             account = "Checking", amount = 10, cleared = false)
         assertSame(income, income.asTransferDraft())
     }
+
+    @Test
+    fun duplicatesAreUnclearedAndUnreconciled() {
+        val cleared = Transaction(id = "c", date = "2026-09-10", payee = "Store", category = "Food",
+            account = "Checking", amount = -10, cleared = true, reconciled = true,
+            scheduleId = "sched", splits = listOf(SplitLine(category = "Food", amountCents = -1_000, childId = "child")))
+        val copy = cleared.asDuplicate()
+        assertEquals("", copy.id)
+        assertEquals(false, copy.cleared)
+        assertEquals(false, copy.reconciled)
+        assertEquals(null, copy.scheduleId)
+        assertEquals(listOf<String?>(null), copy.splits.map { it.childId })
+        val transfer = transfer("Checking", "Savings", -2_500).copy(cleared = true).asDuplicate()
+        assertEquals(false, transfer.cleared)
+    }
 }
