@@ -1176,7 +1176,7 @@ class ActuaRepository(context: Context) {
                 parentId = null,
                 tombstone = false,
                 sortOrder = null,
-                importedPayee = transaction.payee.trim().takeIf(String::isNotEmpty),
+                importedPayee = null,
                 scheduleId = null,
                 transferAccountId = null,
             )
