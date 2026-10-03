@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Transaction search now matches amounts and dates typed in the budget's date format, like Actual ([#829](https://github.com/azimul-kabir/actua/pull/829))
 - Merge two selected transactions, such as a bank import and the same purchase entered by hand ([#822](https://github.com/azimul-kabir/actua/pull/822))
 
 ### Fixed
