@@ -250,6 +250,27 @@ class TransactionParityTest {
         assertEquals("0:", transactionMessages(database).last { it.row == "ordinary" && it.column == "category" }.value)
     }
 
+    @Test
+    fun handEnteredTransactionsAndSplitParentsWriteNoImportedDescription() = withDatabase { database ->
+        val service = formService(database, "hand")
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "5", payeeName = "Store", date = 20260910,
+        ))
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", date = 20260911,
+            splits = listOf(
+                ActualSplitLineForm(categoryId = "grocery", amount = "6"),
+                ActualSplitLineForm(categoryId = "rent", amount = "4"),
+            ),
+        ))
+        val messages = transactionMessages(database)
+        assertTrue(messages.isNotEmpty())
+        assertTrue(messages.none { it.column == "imported_description" })
+        assertTrue(database.fetchTransactions("checking").all { it.importedPayee == null })
+    }
+
     private fun formService(database: ActualBudgetDatabase, prefix: String): ActualTransactionFormService {
         var next = 0
         val ids = { "$prefix-${++next}" }

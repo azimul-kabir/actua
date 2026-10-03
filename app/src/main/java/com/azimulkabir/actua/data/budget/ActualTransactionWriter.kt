@@ -224,7 +224,10 @@ class ActualTransactionWriter(
     }
 
     private fun fieldsForInsert(transaction: ActualTransaction) =
-        fields("transactions", transaction.id, transactionFields(transaction))
+        // Actual leaves imported_description unset for hand-entered rows, so insert it only when present.
+        fields("transactions", transaction.id, transactionFields(transaction).filterNot { (column, value) ->
+            column == "imported_description" && value == null
+        })
 
     /** Diffed update fields; changed import fields are sent even when they revert to null/false. */
     private fun transactionFields(transaction: ActualTransaction, changed: Set<String>): Map<String, Any?> =

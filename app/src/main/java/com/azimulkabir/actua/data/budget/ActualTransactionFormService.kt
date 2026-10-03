@@ -133,7 +133,7 @@ class ActualTransactionFormService(
                     val id = idFactory()
                     writer.createTransaction(baseTransaction(
                         id, normalizedForm.accountId, normalizedForm.date, plan.amountCents, payee?.id,
-                        normalizedForm.categoryId, notes, normalizedForm.cleared, importedPayee = payee?.name,
+                        normalizedForm.categoryId, notes, normalizedForm.cleared,
                     ), applyRules = applyRules, preserveCategory = normalizedForm.categoryIsExplicit && normalizedForm.categoryId != null)
                     id
                 }
@@ -260,7 +260,6 @@ class ActualTransactionFormService(
         val parent = baseTransaction(
             parentId, form.accountId, form.date, plan.amountCents, parentPayee?.id,
             null, notes, form.cleared, isParent = true, sortOrder = sort,
-            importedPayee = parentPayee?.name,
         )
         val children = plan.lines.mapIndexed { index, line ->
             val payee = resolveLinePayee(line, parentPayee, null)
