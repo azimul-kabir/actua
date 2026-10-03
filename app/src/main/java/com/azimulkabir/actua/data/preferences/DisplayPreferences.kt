@@ -41,6 +41,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_CATEGORY_STATUS_DOTS, true)
         set(value) { preferences.edit().putBoolean(SHOW_CATEGORY_STATUS_DOTS, value).apply() }
 
+    var colorBudgetedAmounts: Boolean
+        get() = preferences.getBoolean(COLOR_BUDGETED_AMOUNTS, false)
+        set(value) { preferences.edit().putBoolean(COLOR_BUDGETED_AMOUNTS, value).apply() }
+
     var budgetView: String
         get() = preferences.getString(BUDGET_VIEW, "Table") ?: "Table"
         set(value) { preferences.edit().putString(BUDGET_VIEW, value).apply() }
@@ -166,6 +170,7 @@ class DisplayPreferences(context: Context) {
         const val SHOW_SPENT_COLUMN = "show_spent_column"
         const val SHOW_BUDGET_PROGRESS_BARS = "show_budget_progress_bars"
         const val SHOW_CATEGORY_STATUS_DOTS = "show_category_status_dots"
+        const val COLOR_BUDGETED_AMOUNTS = "color_budgeted_amounts"
         const val BUDGET_VIEW = "budget_view"
         const val SHOW_BUDGET_OVERVIEW = "show_budget_overview"
         const val SHOW_OVERSPENT_WARNING = "show_overspent_warning"

@@ -205,7 +205,7 @@ private fun CategoryProgressCard(category: BudgetCategory, hideDecimals: Boolean
             verticalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    CategoryStatusDot(category.progressState, modifier = Modifier.padding(end = 6.dp))
+                    CategoryStatusDot(category.statusState(), modifier = Modifier.padding(end = 6.dp))
                     Text(category.name, style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }

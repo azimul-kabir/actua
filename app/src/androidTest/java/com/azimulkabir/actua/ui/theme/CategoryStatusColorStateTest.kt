@@ -49,6 +49,23 @@ class CategoryStatusColorStateTest {
     }
 
     @Test
+    fun coloredBudgetedAmountsDefaultOffAndTogglePersistsAcrossInstances() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
+            .edit().remove("color_budgeted_amounts").commit()
+
+        val state = CategoryStatusColorState(context)
+        assertEquals(false, state.colorBudgetedAmounts)
+
+        state.updateColorBudgetedAmounts(true)
+        assertEquals(true, state.colorBudgetedAmounts)
+        assertEquals(true, CategoryStatusColorState(context).colorBudgetedAmounts)
+
+        context.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
+            .edit().remove("color_budgeted_amounts").commit()
+    }
+
+    @Test
     fun resetToDefaultsClearsEveryOverride() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         context.getSharedPreferences("category_status_color_preferences", Context.MODE_PRIVATE)
