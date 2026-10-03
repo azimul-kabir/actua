@@ -23,7 +23,7 @@ data class BankSyncResult(val accountsSynced: Int, val imported: Int, val matche
     }.joinToString("\n\n")
 }
 
-/** Imports server-hosted bank-sync rows (SimpleFIN, GoCardless) through the same CRDT writers as manual edits. */
+/** Imports server-hosted bank-sync rows (SimpleFIN, GoCardless, and experimental Enable Banking) through the same CRDT writers as manual edits. */
 class BankSyncService(
     private val database: ActualBudgetDatabase,
     private val transactions: ActualTransactionWriter,
@@ -31,6 +31,8 @@ class BankSyncService(
     private val server: ActualServerClient,
     private val idFactory: () -> String = { UUID.randomUUID().toString() },
     private val today: () -> LocalDate = LocalDate::now,
+    /** Actual's experimental `enableBanking` flag; Enable Banking accounts only sync while it is on. */
+    private val enableBankingEnabled: Boolean = false,
 ) {
     fun sync(serverUrl: String, token: String, accountId: String? = null): BankSyncResult {
         val accounts = database.fetchBankSyncAccounts().filter { !it.closed && (accountId == null || it.id == accountId) }
@@ -75,11 +77,12 @@ class BankSyncService(
                         )
                     }.recoverCatching { throw downloadFailure(it) }
                 }
+                // Experimental: with the flag off this falls through to the unsupported-provider message below.
+                "enableBanking" -> if (enableBankingEnabled) runCatching {
+                    server.downloadEnableBankingTransactions(serverUrl, token, account.externalId, startDateFor(account.id))
+                }.recoverCatching { throw downloadFailure(it) } else unsupportedProvider(account)
                 // Actual syncs these, but Actua can't yet; leave the stored status to Actual.
-                else -> Result.failure(BankSyncFailure(
-                    "Actua can't sync ${providerName(account.source)} accounts yet. Sync this account in Actual.",
-                    status = null,
-                ))
+                else -> unsupportedProvider(account)
             }
             account.id to outcome
         }
@@ -166,6 +169,12 @@ class BankSyncService(
         }
         return BankSyncResult(accountsSynced = outcomes.size, imported = imported, matched = matched, problems = problems)
     }
+
+    private fun unsupportedProvider(account: ActualBudgetDatabase.BankSyncAccount): Result<BankSyncDownload> =
+        Result.failure(BankSyncFailure(
+            "Actua can't sync ${providerName(account.source)} accounts yet. Sync this account in Actual.",
+            status = null,
+        ))
 
     /** Why an account could not be downloaded, and the `bank_sync_status` to store (null leaves it unchanged). */
     internal class BankSyncFailure(val problem: String, val status: String?) : Exception(problem)

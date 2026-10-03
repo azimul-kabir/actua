@@ -12,8 +12,12 @@ import com.azimulkabir.actua.data.budget.ActualSplitLineForm
 import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.bank.BankSyncResult
+import com.azimulkabir.actua.data.preferences.ExperimentalPreferences
 import com.azimulkabir.actua.data.bank.BankSyncService
 import com.azimulkabir.actua.data.network.ActualServerClient
+import com.azimulkabir.actua.data.network.EnableBankingAuthResult
+import com.azimulkabir.actua.data.network.EnableBankingAuthStart
+import com.azimulkabir.actua.data.network.EnableBankingBank
 import com.azimulkabir.actua.data.network.GoCardlessAccountsResult
 import com.azimulkabir.actua.data.network.GoCardlessInstitution
 import com.azimulkabir.actua.data.network.GoCardlessWebToken
@@ -656,6 +660,7 @@ class ActuaRepository(context: Context) {
         val (server, serverUrl, token) = bankSyncClient()
         return BankSyncService(
             database, requireNotNull(actualWriter), requireNotNull(actualEntities), server,
+            enableBankingEnabled = ExperimentalPreferences(appContext).enableBanking,
         ).sync(serverUrl, token, accountId)
     }
 
@@ -678,6 +683,7 @@ class ActuaRepository(context: Context) {
         return when (provider) {
             "simpleFin" -> server.simpleFinStatus(serverUrl, token)
             "goCardless" -> server.goCardlessStatus(serverUrl, token)
+            "enableBanking" -> server.enableBankingStatus(serverUrl, token)
             else -> false
         }
     }
@@ -691,6 +697,33 @@ class ActuaRepository(context: Context) {
         val (server, serverUrl, token) = bankSyncClient()
         server.setSecret(serverUrl, token, "gocardless_secretId", secretId)
         server.setSecret(serverUrl, token, "gocardless_secretKey", secretKey)
+    }
+
+    /** Sends the Enable Banking Application ID and private key to the server; nothing is stored on the device. */
+    fun setEnableBankingCredentials(applicationId: String, secretKey: String) {
+        val (server, serverUrl, token) = bankSyncClient()
+        server.enableBankingConfigure(serverUrl, token, applicationId, secretKey)
+    }
+
+    fun discoverEnableBankingBanks(country: String): List<EnableBankingBank> {
+        val (server, serverUrl, token) = bankSyncClient()
+        return server.enableBankingBanks(serverUrl, token, country)
+    }
+
+    /** Starts an Enable Banking authorization; open the returned URL in a browser, then [awaitEnableBankingAuthorization]. */
+    fun startEnableBankingAuthorization(bank: EnableBankingBank): EnableBankingAuthStart {
+        val (server, serverUrl, token) = bankSyncClient()
+        // The server's own callback page receives the bank's redirect; it must be an allowed redirect
+        // URL of the Enable Banking application (`<server>/enablebanking/auth_callback`).
+        return server.enableBankingStartAuth(
+            serverUrl, token, bank, redirectUrl = server.normalizeServerUrl(serverUrl) + "/enablebanking/auth_callback",
+        )
+    }
+
+    /** Blocks until the user finishes authorizing in the browser (up to 5 minutes); call off the main thread. */
+    fun awaitEnableBankingAuthorization(state: String): EnableBankingAuthResult {
+        val (server, serverUrl, token) = bankSyncClient()
+        return server.enableBankingPollAuth(serverUrl, token, state)
     }
 
     fun discoverSimpleFinAccounts(): SimpleFinAccountsResult {
@@ -715,9 +748,12 @@ class ActuaRepository(context: Context) {
     }
 
     /** Links an existing Actual account to a discovered provider account. */
-    fun linkBankAccount(accountId: String, externalAccountId: String, source: String, requisitionId: String? = null): Boolean {
+    fun linkBankAccount(
+        accountId: String, externalAccountId: String, source: String, requisitionId: String? = null,
+        bankName: String? = null,
+    ): Boolean {
         val entities = actualEntities ?: return false
-        entities.linkBankAccount(accountId, externalAccountId, source, requisitionId)
+        entities.linkBankAccount(accountId, externalAccountId, source, requisitionId, bankName)
         return true
     }
 
@@ -730,10 +766,11 @@ class ActuaRepository(context: Context) {
     /** Creates a new local Actual account and immediately links it to a discovered provider account. */
     fun createLinkedAccount(
         name: String, offBudget: Boolean, externalAccountId: String, source: String, requisitionId: String? = null,
+        bankName: String? = null,
     ): Boolean {
         val entities = actualEntities ?: return false
         val accountId = entities.createAccount(name, offBudget, 0L, ActualAccountType.CHECKING.name.lowercase())
-        entities.linkBankAccount(accountId, externalAccountId, source, requisitionId)
+        entities.linkBankAccount(accountId, externalAccountId, source, requisitionId, bankName)
         return true
     }
 

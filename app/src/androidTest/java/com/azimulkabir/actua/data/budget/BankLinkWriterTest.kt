@@ -60,6 +60,41 @@ class BankLinkWriterTest {
         }
     }
 
+    @Test fun enableBankingLinkUsesOneBanksRowPerAccountNamedAfterTheInstitution() = withBudget { database, file ->
+        val writer = ActualEntityWriter(database)
+        val first = writer.createAccount("Main", offBudget = false, startingBalanceCents = 0)
+        val second = writer.createAccount("Savings", offBudget = false, startingBalanceCents = 0)
+
+        // Actual's `linkEnableBankingAccount`: bank_id is the account id, so each account gets its own banks row.
+        writer.linkBankAccount(first, "uid-1", "enableBanking", requisitionId = "uid-1", bankName = "Test Bank")
+        writer.linkBankAccount(second, "uid-2", "enableBanking", requisitionId = "uid-2", bankName = "Test Bank")
+
+        val schema = columnsByTable(file)
+        syncedCells(file).forEach { (dataset, column) ->
+            assertTrue("$dataset.$column is not in Actual's schema", column in schema[dataset].orEmpty())
+        }
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { raw ->
+            raw.rawQuery("SELECT bank_id, name FROM banks ORDER BY bank_id", null).use { cursor ->
+                assertEquals(2, cursor.count)
+                cursor.moveToFirst(); assertEquals("uid-1", cursor.getString(0)); assertEquals("Test Bank", cursor.getString(1))
+                cursor.moveToNext(); assertEquals("uid-2", cursor.getString(0)); assertEquals("Test Bank", cursor.getString(1))
+            }
+            raw.rawQuery("SELECT account_sync_source, account_id FROM accounts WHERE id = ?", arrayOf(first)).use {
+                it.moveToFirst(); assertEquals("enableBanking", it.getString(0)); assertEquals("uid-1", it.getString(1))
+            }
+        }
+        val linked = database.fetchBankSyncAccounts().associateBy { it.id }
+        assertEquals("enableBanking", linked.getValue(first).source)
+        assertEquals("uid-1", linked.getValue(first).externalId)
+
+        // Relinking the same account reuses its banks row.
+        writer.unlinkBankAccount(first)
+        writer.linkBankAccount(first, "uid-1", "enableBanking", requisitionId = "uid-1", bankName = "Test Bank")
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { raw ->
+            raw.rawQuery("SELECT COUNT(*) FROM banks", null).use { it.moveToFirst(); assertEquals(2, it.getInt(0)) }
+        }
+    }
+
     @Test fun otherProvidersDoNotCreateBanksRows() = withBudget { database, file ->
         val writer = ActualEntityWriter(database)
         val account = writer.createAccount("Card", offBudget = false, startingBalanceCents = 0)

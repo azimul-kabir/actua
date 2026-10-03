@@ -42,16 +42,21 @@ class ActualEntityWriter(
     /**
      * Links an existing Actual account to a discovered provider account. Like Actual, a GoCardless
      * requisition is kept as a `banks` row (`bank_id` = requisition id) that `accounts.bank` points
-     * to; the row is reused when the same requisition is linked again.
+     * to; the row is reused when the same requisition is linked again. Enable Banking keeps one row per
+     * account (`bank_id` = its account id) and names it after the institution, as Actual's
+     * `linkEnableBankingAccount` does; [bankName] is that name.
      */
     @Synchronized
-    fun linkBankAccount(id: String, externalAccountId: String, source: String, requisitionId: String? = null) {
+    fun linkBankAccount(
+        id: String, externalAccountId: String, source: String, requisitionId: String? = null,
+        bankName: String? = null,
+    ) {
         require(id.isNotBlank() && externalAccountId.isNotBlank() && source.isNotBlank())
         val messages = mutableListOf<CrdtMessage>()
         val account = linkedMapOf<String, Any?>("account_id" to externalAccountId, "account_sync_source" to source)
         if (requisitionId != null) {
             account["bank"] = database.findBankId(requisitionId) ?: idFactory().also { bankId ->
-                messages += fields("banks", bankId, linkedMapOf("bank_id" to requisitionId, "name" to null, "tombstone" to 0))
+                messages += fields("banks", bankId, linkedMapOf("bank_id" to requisitionId, "name" to bankName, "tombstone" to 0))
             }
         }
         messages += fields("accounts", id, account)

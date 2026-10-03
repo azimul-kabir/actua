@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.PieChartOutline
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Sell
@@ -80,6 +81,7 @@ internal enum class SettingsPage(val title: String, val depth: Int) {
     Privacy("Privacy", 2),
     Budget("Budget", 2),
     CategoryColors("Category status colors", 3),
+    Experimental("Experimental", 2),
     About("About", 2),
 }
 
@@ -122,6 +124,9 @@ fun SettingsScreen(
     onShowAccountsMonthlySummaryChange: (Boolean) -> Unit = {},
     onCreditCardsClick: () -> Unit = {},
     onBankSyncClick: () -> Unit = {},
+    /** Actual's experimental `enableBanking` flag; device-local and off by default. */
+    enableBankingExperiment: Boolean = false,
+    onEnableBankingExperimentChange: (Boolean) -> Unit = {},
     onBillsCalendarClick: () -> Unit = {},
     onRulesClick: () -> Unit = {},
     onSchedulesClick: () -> Unit = {},
@@ -194,7 +199,7 @@ fun SettingsScreen(
     fun parentPage(current: SettingsPage): SettingsPage = when (current) {
         SettingsPage.Tags -> SettingsPage.Manage
         SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.Budget,
-        SettingsPage.About,
+        SettingsPage.Experimental, SettingsPage.About,
         -> SettingsPage.General
         SettingsPage.CategoryColors -> SettingsPage.Budget
         SettingsPage.General -> SettingsPage.Manage
@@ -334,6 +339,11 @@ fun SettingsScreen(
                         ActuaCardDivider()
                         SettingsRow("Budget", "Category status dot, progress bar colors and income group", true, Icons.Outlined.PieChartOutline) {
                             page = SettingsPage.Budget
+                        }
+                    }
+                    SettingsGroup("Labs") {
+                        SettingsRow("Experimental", "Opt-in features that follow Actual's experimental flags", true, Icons.Outlined.Science) {
+                            page = SettingsPage.Experimental
                         }
                     }
                     SettingsGroup("About") {
@@ -498,6 +508,21 @@ fun SettingsScreen(
                 }
                 SettingsPage.CategoryColors -> {
                     CategoryStatusColorSettings(Modifier.padding(top = Spacing.md))
+                }
+                SettingsPage.Experimental -> {
+                    SettingsGroup {
+                        SettingsToggle(
+                            "Enable Banking",
+                            "Bank sync for European banks through Enable Banking, as in Actual's experimental flag. " +
+                                "Needs an Actual server with Enable Banking set up. Shows in Manage → Bank Sync.",
+                            enableBankingExperiment,
+                            onEnableBankingExperimentChange,
+                        )
+                    }
+                    SettingsNote(
+                        "Experimental features can change or be removed. They are stored on this device only " +
+                            "and don't change your budget until you link an account.",
+                    )
                 }
                 SettingsPage.About -> {
                     SettingsGroup {
