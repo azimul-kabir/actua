@@ -487,8 +487,8 @@ fun SettingsScreen(
                         ) { categoryStatusColors?.updateShowDots(it) }
                         SettingsDivider()
                         SettingsToggle(
-                            "Color budgeted amounts",
-                            "Draw the category status color behind the Budgeted amount on Budget rows",
+                            "Color balances",
+                            "Draw the category status color behind the Balance on Budget rows",
                             categoryStatusColors?.colorBudgetedAmounts ?: false,
                         ) { categoryStatusColors?.updateColorBudgetedAmounts(it) }
                         SettingsDivider()
