@@ -1651,12 +1651,7 @@ private fun CategoryRow(
                         color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                if (LocalCategoryStatusColors.current?.colorBudgetedAmounts == true) {
-                    BudgetedAmountPill(
-                        category.assignedCents, category.statusState(scheduleFunding), hideDecimalPlaces,
-                        Modifier.weight(1f),
-                    )
-                } else CategoryAmount(category.assignedCents, Modifier.weight(1f), hideDecimalPlaces)
+                CategoryAmount(category.assignedCents, Modifier.weight(1f), hideDecimalPlaces)
                 if (showSpent) CategoryAmount(
                     -category.spentCents,
                     Modifier.weight(1f),
@@ -1668,6 +1663,7 @@ private fun CategoryRow(
                         category.balanceCents,
                         hideDecimalPlaces,
                         status = category.statusState(scheduleFunding),
+                        colorByStatus = LocalCategoryStatusColors.current?.colorBudgetedAmounts == true,
                         modifier = Modifier.offset(x = 10.dp),
                         textStyle = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
@@ -2007,31 +2003,6 @@ private fun InlineCalculatorAmount(label: String, amount: Long, modifier: Modifi
     }
 }
 
-/**
- * The Budgeted amount on a status-tinted pill (opt-in, see Settings > Budget). It reuses the
- * status dot's color, and the status label is exposed through semantics so state is never
- * conveyed by color alone.
- */
-@Composable
-private fun BudgetedAmountPill(amount: Long, status: BudgetProgressState, hideDecimalPlaces: Boolean,
-    modifier: Modifier = Modifier) {
-    val statusColor = categoryStatusColor(status)
-    val text = formatMoneyCents(amount, hideDecimalPlaces)
-    Box(modifier = modifier, contentAlignment = Alignment.CenterEnd) {
-        Surface(
-            shape = MaterialTheme.shapes.small,
-            color = statusColor.copy(alpha = 0.16f),
-            modifier = Modifier.semantics { contentDescription = "Budgeted $text, ${status.label}" },
-        ) {
-            Text(
-                text, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold,
-                color = statusColor, maxLines = 1,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            )
-        }
-    }
-}
-
 @Composable
 private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: Boolean, muted: Boolean = false) {
     Text(
@@ -2045,8 +2016,9 @@ private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: 
 
 @Composable
 /**
- * A category's balance on a pill. Only a negative balance takes color: a tonal pill tinted with
- * its [status] color, so overspending is what stands out. Other balances sit on a faint neutral
+ * A category's balance on a pill. By default only a negative balance takes color: a tonal pill
+ * tinted with its [status] color, so overspending is what stands out. With [colorByStatus] (opt-in,
+ * see Settings > Budget) every balance takes its status color, as in YNAB. Other balances sit on a faint neutral
  * pill, except an unassigned zero, which keeps the pill's footprint (so digits stay aligned) but
  * drops its fill and dims the amount to read as "nothing here".
  */
@@ -2054,6 +2026,7 @@ private fun BalancePill(
     amount: Long,
     hideDecimalPlaces: Boolean,
     status: BudgetProgressState,
+    colorByStatus: Boolean = false,
     modifier: Modifier = Modifier,
     textStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodySmall,
     fontWeight: FontWeight = FontWeight.SemiBold,
@@ -2062,7 +2035,7 @@ private fun BalancePill(
 ) {
     val colors = MaterialTheme.colorScheme
     val statusColor = categoryStatusColor(status)
-    val tone = balancePillTone(amount, status)
+    val tone = balancePillTone(amount, status, colorByStatus)
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
@@ -2090,9 +2063,14 @@ private fun BalancePill(
 /** How loudly a category's balance pill is drawn; see [BalancePill]. */
 internal enum class BalancePillTone { ALERT, NEUTRAL, EMPTY }
 
-internal fun balancePillTone(amount: Long, status: BudgetProgressState): BalancePillTone = when {
+internal fun balancePillTone(
+    amount: Long,
+    status: BudgetProgressState,
+    colorByStatus: Boolean = false,
+): BalancePillTone = when {
     amount < 0L -> BalancePillTone.ALERT
     amount == 0L && status == BudgetProgressState.UNASSIGNED -> BalancePillTone.EMPTY
+    colorByStatus -> BalancePillTone.ALERT
     else -> BalancePillTone.NEUTRAL
 }
 
