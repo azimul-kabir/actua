@@ -1,0 +1,5 @@
+• Added experimental Enable Banking bank sync for European banks
+• Added transaction merging and search by amount or date
+• Added a configurable start day for Home summary periods
+• Added optional Budget category status colors, including "Funded past goal"
+• Improved transaction duplication and imported-payee behavior to match Actual
