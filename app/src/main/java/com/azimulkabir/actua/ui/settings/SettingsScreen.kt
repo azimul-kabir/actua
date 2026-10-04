@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -28,9 +29,11 @@ import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
@@ -57,8 +60,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
@@ -87,6 +94,11 @@ internal enum class SettingsPage(val title: String, val depth: Int) {
 
 internal fun isForwardSettingsNavigation(from: SettingsPage, to: SettingsPage): Boolean =
     to.depth > from.depth
+
+data class BudgetSwitcherOption(
+    val id: String,
+    val name: String,
+)
 
 @Composable
 fun SettingsScreen(
@@ -145,6 +157,9 @@ fun SettingsScreen(
     onShowBottomNavigationLabelsChange: (Boolean) -> Unit = {},
     showCurrentBalanceSummary: Boolean = true,
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
+    budgetOptions: List<BudgetSwitcherOption> = emptyList(),
+    activeBudgetId: String? = null,
+    onBudgetChange: (String) -> Unit = {},
     returnToRootRequest: Int = 0,
 ) {
     val context = LocalContext.current
@@ -267,6 +282,13 @@ fun SettingsScreen(
             }
             when (shownPage) {
                 SettingsPage.Manage -> {
+                    if (budgetOptions.isNotEmpty()) SettingsGroup {
+                        BudgetSwitcher(
+                            options = budgetOptions,
+                            activeBudgetId = activeBudgetId,
+                            onBudgetChange = onBudgetChange,
+                        )
+                    }
                     if (showHomeShortcut || showReportsShortcut) SettingsGroup("Insights") {
                         if (showHomeShortcut) {
                             SettingsRow("Home", "Your dashboard of favorites, upcoming bills and activity", true, Icons.Outlined.Home) {
@@ -582,6 +604,70 @@ fun SettingsScreen(
                 SettingsPage.Tags -> Unit
             }
             Spacer(Modifier.height(Spacing.xl))
+        }
+    }
+}
+
+/**
+ * The active budget at the top of Manage. With more than one local budget it opens a menu to switch,
+ * styled like the Reports dashboard picker; with one it simply names the budget in use.
+ */
+@Composable
+private fun BudgetSwitcher(
+    options: List<BudgetSwitcherOption>,
+    activeBudgetId: String?,
+    onBudgetChange: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var anchorWidth by remember { mutableStateOf(0) }
+    val anchorWidthDp = with(LocalDensity.current) { anchorWidth.toDp() }
+    val active = options.firstOrNull { it.id == activeBudgetId }
+    val switchable = options.size > 1
+    Box(Modifier.onSizeChanged { anchorWidth = it.width }) {
+        ActuaFormRow(
+            icon = Icons.Outlined.FolderOpen,
+            label = "Budget",
+            value = active?.name ?: "Select a budget",
+            valueIsPlaceholder = active == null,
+            trailing = if (switchable) {
+                {
+                    Icon(
+                        Icons.Outlined.ExpandMore,
+                        contentDescription = "Switch budget",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else null,
+            onClick = if (switchable) ({ expanded = true }) else null,
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(anchorWidthDp),
+            shape = MaterialTheme.shapes.medium,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            options.forEach { option ->
+                val isActive = option.id == activeBudgetId
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            option.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    trailingIcon = if (isActive) {
+                        { Icon(Icons.Outlined.Check, contentDescription = "Active budget") }
+                    } else null,
+                    onClick = {
+                        expanded = false
+                        if (!isActive) onBudgetChange(option.id)
+                    },
+                )
+            }
         }
     }
 }

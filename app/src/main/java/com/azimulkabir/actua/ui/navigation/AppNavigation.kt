@@ -97,6 +97,7 @@ import com.azimulkabir.actua.ui.accounts.CloseAccountOptions
 import com.azimulkabir.actua.ui.accounts.CloseCategoryGroup
 import com.azimulkabir.actua.ui.automation.BudgetAutomationScreen
 import com.azimulkabir.actua.ui.budget.BudgetScreen
+import com.azimulkabir.actua.ui.settings.BudgetSwitcherOption
 import com.azimulkabir.actua.ui.settings.SettingsScreen
 import com.azimulkabir.actua.ui.settings.ConnectionScreen
 import com.azimulkabir.actua.ui.settings.CreditCardsScreen
@@ -134,6 +135,7 @@ import com.azimulkabir.actua.data.location.AndroidLocationProvider
 import com.azimulkabir.actua.data.location.CurrentLocationResult
 import com.azimulkabir.actua.data.location.LocationUtils
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
+import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_AFTER_CHANGE
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.sync.SyncSignals
@@ -146,6 +148,7 @@ import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
+import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.notifications.CreditCardDueLaunch
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
@@ -341,8 +344,17 @@ fun AppNavigation(
     var repositoryVersion by remember { mutableStateOf(0) }
     var budgetReplacementInProgress by remember { mutableStateOf(false) }
     var budgetReplacementCompleted by remember { mutableStateOf(false) }
-    val favoriteBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
+    val activeBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId }
+    val favoriteBudgetId = activeBudgetId ?: "no-budget"
     var homeSummaryStartDay by remember(favoriteBudgetId) { mutableStateOf(homePreferences.summaryStartDay(favoriteBudgetId)) }
+    val budgetSwitcherOptions = remember(repositoryVersion) {
+        BudgetFileManager(context).listLocalBudgets().map { budget ->
+            BudgetSwitcherOption(
+                id = budget.id,
+                name = budget.budgetName ?: budget.id,
+            )
+        }
+    }
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
     var sharedImportText by remember { mutableStateOf<String?>(null) }
@@ -2852,6 +2864,31 @@ fun AppNavigation(
                     onShowCurrentBalanceSummaryChange = {
                         displayPreferences.showCurrentBalanceSummary = it
                         showCurrentBalanceSummary = it
+                    },
+                    budgetOptions = budgetSwitcherOptions,
+                    activeBudgetId = activeBudgetId,
+                    onBudgetChange = { budgetId ->
+                        if (budgetId != activeBudgetId &&
+                            budgetSwitcherOptions.any { it.id == budgetId } &&
+                            !budgetReplacementInProgress
+                        ) {
+                            budgetReplacementInProgress = true
+                            budgetReplacementCompleted = false
+                            repository.close()
+                            ActiveBudgetStore(context).budgetId = budgetId
+                            // Account, category and month filters hold ids from the previous budget.
+                            transactionAccount = null
+                            transactionCategory = null
+                            transactionMonth = null
+                            transactionSearch = ""
+                            repositoryVersion += 1
+                            dataVersion += 1
+                            budgetReplacementCompleted = true
+                            CreditCardDueNotificationScheduler.refresh(context)
+                            WidgetUpdater.requestAll(context)
+                            // Catch up with the server and send any edits made before switching away.
+                            ActualSyncScheduler.scheduleMutation(context)
+                        }
                     },
                     returnToRootRequest = rootRequests[MainDestination.Manage] ?: 0,
                 )
