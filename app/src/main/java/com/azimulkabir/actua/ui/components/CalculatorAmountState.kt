@@ -1,5 +1,8 @@
 package com.azimulkabir.actua.ui.components
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -18,10 +21,13 @@ class CalculatorAmountState(
     private var decimalDigits: Int? = null
     private val expressionParts = mutableListOf<String>()
 
+    // Bumped by setCents so composables that read `cents` recompose after a programmatic change.
+    private var version by mutableIntStateOf(0)
+
     val cents: Long
-        get() = accumulatorCents?.let { left ->
+        get() = version.let { accumulatorCents?.let { left ->
             if (hasOperand) apply(left, operandCents, requireNotNull(pending)) else left
-        } ?: operandCents
+        } ?: operandCents }
 
     val display: String
         get() {
@@ -93,6 +99,14 @@ class CalculatorAmountState(
         hasOperand = false
         decimalDigits = null
         expressionParts.clear()
+    }
+
+    /** Replaces the entry with [value], discarding any pending expression. */
+    fun setCents(value: Long) {
+        clear()
+        operandCents = if (allowsNegative) value else kotlin.math.abs(value)
+        hasOperand = operandCents != 0L
+        version++
     }
 
     fun toggleSign() {

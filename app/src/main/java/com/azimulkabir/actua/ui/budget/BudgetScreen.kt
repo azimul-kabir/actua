@@ -1905,6 +1905,20 @@ private fun EditBudgetAmountSheet(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f),
                             )
+                            // Moving the whole overspent amount into the target saves keying it in; it is
+                            // capped by what the source has available so the move always stays valid.
+                            val coverAmount = minOf(-to.balanceCents, from.balanceCents)
+                            if (to.balanceCents < 0L && from.balanceCents > 0L) {
+                                TextButton(onClick = {
+                                    calculator.setCents(coverAmount)
+                                    enteredAmount = coverAmount
+                                }) {
+                                    Text(
+                                        "Cover ${formatMoneyCents(coverAmount, hideDecimalPlaces)}",
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
                             IconButton(onClick = { val oldFrom = from; from = to; to = oldFrom }) {
                                 Icon(Icons.Outlined.SwapVert, contentDescription = "Swap source and destination")
                             }
