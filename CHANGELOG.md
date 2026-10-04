@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
-- Cover an overspent category's full amount in one tap from the Move Money sheet ([#837](https://github.com/azimul-kabir/actua/pull/837))
+- Cover an overspent category's full amount in one tap from the Move Money sheet ([#841](https://github.com/azimul-kabir/actua/pull/841))
 
 ## [1.5.0] - 2026-10-03
 
