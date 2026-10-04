@@ -82,4 +82,16 @@ class CalculatorAmountStateTest {
         state.backspace()
         assertEquals("100", state.expressionDisplay)
     }
+
+    @Test fun setCentsReplacesEntryAndPendingExpression() {
+        val state = CalculatorAmountState(conventionalAmountEntry = true)
+        state.digit(5)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.digit(2)
+
+        state.setCents(12345)
+        assertEquals(12345, state.cents)
+        assertEquals("123.45", state.display)
+
+    }
 }
