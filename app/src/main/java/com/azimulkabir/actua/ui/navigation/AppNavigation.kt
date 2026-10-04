@@ -135,6 +135,7 @@ import com.azimulkabir.actua.data.location.AndroidLocationProvider
 import com.azimulkabir.actua.data.location.CurrentLocationResult
 import com.azimulkabir.actua.data.location.LocationUtils
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
+import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_AFTER_CHANGE
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.sync.SyncSignals
@@ -2875,11 +2876,18 @@ fun AppNavigation(
                             budgetReplacementCompleted = false
                             repository.close()
                             ActiveBudgetStore(context).budgetId = budgetId
+                            // Account, category and month filters hold ids from the previous budget.
+                            transactionAccount = null
+                            transactionCategory = null
+                            transactionMonth = null
+                            transactionSearch = ""
                             repositoryVersion += 1
                             dataVersion += 1
                             budgetReplacementCompleted = true
                             CreditCardDueNotificationScheduler.refresh(context)
                             WidgetUpdater.requestAll(context)
+                            // Catch up with the server and send any edits made before switching away.
+                            ActualSyncScheduler.scheduleMutation(context)
                         }
                     },
                     returnToRootRequest = rootRequests[MainDestination.Manage] ?: 0,
