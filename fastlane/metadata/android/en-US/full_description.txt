@@ -7,6 +7,9 @@ Features include:
 • Category details and budget templates/targets
 • Mobile account reconciliation
 • Reports and synced dashboard data
+• CSV, XLSX, PDF and SMS transaction imports
+• Bank-notification transaction import (requires notification access)
+• Location-aware payee suggestions (requires location access)
 • Backup and sync status tools
 • Material 3 interface designed for Android
 
