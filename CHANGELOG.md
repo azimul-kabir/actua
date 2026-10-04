@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
-- Added FAQ and Discord links to the About page, and an optional one-time Play Store "Support Actua" purchase ([#599](https://github.com/azimul-kabir/actua/pull/599))
+- Added an optional one-time "Support Actua" purchase in the Play Store build ([#599](https://github.com/azimul-kabir/actua/pull/599))
 
 ### Fixed
 
@@ -169,11 +169,6 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Bank sync now reconciles with an existing manually entered transaction instead of importing it as a duplicate ([#604](https://github.com/azimul-kabir/actua/pull/604))
 - Show category balances while picking a category, and preselect the account when adding a transaction from an Account Detail screen ([#608](https://github.com/azimul-kabir/actua/pull/608))
 - Off-budget-account transactions with no category are no longer shown or filtered as "Uncategorized" ([#611](https://github.com/azimul-kabir/actua/pull/611))
-=======
-### Added
-
-- Added FAQ and Discord links to the About page, and an optional one-time Play Store "Support Actua" purchase ([#598](https://github.com/azimul-kabir/actua/issues/598))
->>>>>>> 04b0932 (Add About FAQ/Discord links and an in-app Support Actua purchase)
 
 ## [1.0.0] - 2026-09-25
 

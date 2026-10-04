@@ -71,9 +71,12 @@ jobs:
           ACTUA_KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
           ACTUA_KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
         # The "fdroid" flavor excludes Play Billing, so it's the flavor published to GitHub
-        # Releases and built by F-Droid; testInstrumentedUnitTest/lintDebug still aggregate
-        # across both flavors.
-        run: ./gradlew --no-daemon assembleFdroidRelease testInstrumentedUnitTest lintDebug
+        # Releases and built by F-Droid. AGP registers no flavor-aggregating task for unit tests
+        # or lint, so both flavors are named explicitly (see android-ci.yml).
+        run: >-
+          ./gradlew --no-daemon assembleFdroidRelease
+          testFdroidInstrumentedUnitTest testPlaystoreInstrumentedUnitTest
+          lintFdroidDebug lintPlaystoreDebug
       - name: Verify release signature
         run: |
           BUILD_TOOLS_VERSION="$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)"

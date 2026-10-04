@@ -20,6 +20,7 @@ import com.android.billingclient.api.queryPurchasesAsync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -42,6 +43,11 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> purchases?.forEach { handlePurchase(it) }
             BillingClient.BillingResponseCode.USER_CANCELED -> _state.update { it.copy(isProcessing = false) }
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+                // Owned on another device/install before this client had queried purchases.
+                _state.update { it.copy(isProcessing = false) }
+                scope.launch { restoreOwnedPurchase() }
+            }
             else -> {
                 Log.w(TAG, "Purchase flow failed: ${billingResult.debugMessage}")
                 _state.update { it.copy(isProcessing = false) }
@@ -72,8 +78,14 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
         })
     }
 
+    /**
+     * Terminal: a closed BillingClient can't be reused, so callers create a new manager per visit.
+     * Ends the connection even while it is still being set up, and cancels pending queries so a
+     * quick exit from Settings can't leave a Play service connection open.
+     */
     override fun stop() {
-        if (billingClient.isReady) billingClient.endConnection()
+        scope.cancel()
+        billingClient.endConnection()
     }
 
     override fun launchPurchase(activity: Activity) {
@@ -88,7 +100,12 @@ private class PlayStoreSupportBillingManager(context: Context) : SupportBillingM
             )
             .build()
         _state.update { it.copy(isProcessing = true) }
-        billingClient.launchBillingFlow(activity, params)
+        val result = billingClient.launchBillingFlow(activity, params)
+        if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+            // The purchase sheet never opened, so no listener callback will clear the spinner.
+            Log.w(TAG, "Could not launch purchase flow: ${result.debugMessage}")
+            _state.update { it.copy(isProcessing = false) }
+        }
     }
 
     private var cachedProductDetails: ProductDetails? = null
