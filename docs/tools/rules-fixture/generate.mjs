@@ -269,7 +269,7 @@ try {
       accounts: await actual.db.all('SELECT id, name, offbudget FROM accounts WHERE tombstone = 0 ORDER BY sort_order'),
       payees: payeeRows,
       categoryGroups: await actual.db.all("SELECT id, name FROM category_groups WHERE tombstone = 0 AND name IN ('Parity Group', 'Other Group')"),
-      categories: await actual.db.all("SELECT id, name, cat_group FROM categories WHERE tombstone = 0 AND name IN ('Food', 'Fun', 'Hit', 'Misc')"),
+      categories: await actual.db.all('SELECT id, name, cat_group FROM categories WHERE tombstone = 0 AND cat_group IN (?, ?) ORDER BY sort_order', [groups.parity, groups.other]),
       schedules: await actual.db.all('SELECT id, rule FROM schedules WHERE tombstone = 0'),
     },
     rules: await actual.db.all('SELECT id, stage, conditions_op, conditions, actions FROM rules WHERE tombstone = 0'),
