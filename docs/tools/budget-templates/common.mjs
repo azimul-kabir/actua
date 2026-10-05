@@ -161,5 +161,10 @@ export async function createSeededBudget(actual, name) {
   if (!remote) throw new Error(`"${name}" was not uploaded`);
   await seed(actual);
   await api.sync();
+  // Actual creates a month's budget sheet (createAllBudgets) when a budget loads; reload so the
+  // months of the seeded earlier transactions exist, as they do for anyone who reopens the budget.
+  const local = (await actual.send('get-budgets')).find((budget) => budget.groupId === remote.groupId);
+  await actual.send('close-budget');
+  await actual.send('load-budget', { id: local.id });
   return remote;
 }
