@@ -185,3 +185,10 @@ matrices above apply to each row.
   Actual's loot-core (`@actual-app/api` 26.9.0) and through Actua (`TwoClientTransactionParityTest` on an
   API 35 emulator) against one `actual-server` 26.9.0, then compares the synced rows from a fresh client.
   Method, scenarios and limits: [`tools/two-client/README.md`](tools/two-client/README.md).
+  First run ([#845](https://github.com/azimul-kabir/actua/pull/845),
+  [run 37288367980](https://github.com/azimul-kabir/actua/actions/runs/37288367980)): all 17 scenarios
+  left identical rows on both sides, including tombstoned transfer legs, the other leg's kept date and
+  cleared state, on/off-budget categories and child payees following a split parent. The only
+  difference was in CRDT message columns: Actua also wrote explicit null/zero cells (`isParent`,
+  `isChild`, `parent_id`, `tombstone`, …) that Actual leaves out, the §1 **Intentional** case. Actual
+  never wrote a column that Actua didn't. No new divergences.
