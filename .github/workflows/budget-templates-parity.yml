@@ -1,0 +1,133 @@
+name: Budget templates parity
+
+# #668: runs Actual's goal-template and cleanup engine (@actual-app/api) and Actua's (an emulator
+# instrumentation test) on two identical synthetic budgets on one throwaway actual-server, then
+# compares the budgeted amounts and goals. See docs/tools/budget-templates/README.md.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/tools/budget-templates/**'
+      - 'app/src/androidTest/java/com/azimulkabir/actua/data/BudgetTemplateParityTest.kt'
+      - 'app/src/main/java/com/azimulkabir/actua/model/Budget*.kt'
+      - 'app/src/main/java/com/azimulkabir/actua/model/Cleanup*.kt'
+      - 'app/src/main/java/com/azimulkabir/actua/data/budget/ActualBudgetWriter.kt'
+      - 'app/src/main/java/com/azimulkabir/actua/data/budget/ActualBudgetDatabase.kt'
+      - 'app/src/main/java/com/azimulkabir/actua/data/ActuaRepository.kt'
+      - '.github/workflows/budget-templates-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: budget-templates-parity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # A throwaway password for the job's own actual-server container; not a credential.
+  TEMPLATES_PASSWORD: budget-templates-parity
+  API_LEVEL: 35
+
+jobs:
+  budget-templates:
+    name: Actual 26.9.0 vs Actua templates (API 35)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: docs/tools/budget-templates
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Start actual-server 26.9.0
+        run: |
+          docker run -d --name actual-server -p 5006:5006 \
+            actualbudget/actual-server:26.9.0@sha256:552beab3dec8c93d46b8b9245612d63c3f123b8a45063a474f53e229b17621d3
+          for attempt in $(seq 1 60); do
+            curl -fsS http://localhost:5006/account/needs-bootstrap && exit 0
+            sleep 2
+          done
+          docker logs actual-server
+          exit 1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: docs/tools/budget-templates/package-lock.json
+
+      - name: Install @actual-app/api 26.9.0
+        run: npm ci
+
+      - name: Upstream side (seed two budgets, run Actual's templates on one)
+        run: node upstream.mjs
+
+      - uses: ./.github/actions/setup-android-toolchain
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Enable KVM
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.API_LEVEL }}
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      # The emulator reaches the runner's actual-server at 10.0.2.2.
+      - name: Actua side (same steps through Actua's planner, then sync)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./gradlew --no-daemon --stacktrace connectedInstrumentedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.azimulkabir.actua.data.BudgetTemplateParityTest -Pandroid.testInstrumentationRunnerArguments.templatesServerUrl=http://10.0.2.2:5006 -Pandroid.testInstrumentationRunnerArguments.templatesPassword=${{ env.TEMPLATES_PASSWORD }}
+
+      - name: Compare budgeted amounts and goals
+        run: node compare.mjs
+
+      - name: Save actual-server log
+        if: ${{ always() }}
+        run: mkdir -p work && docker logs actual-server > work/actual-server.log 2>&1 || true
+
+      - name: Upload budget-template evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: budget-templates-parity
+          path: |
+            docs/tools/budget-templates/work/budget-templates-report.md
+            docs/tools/budget-templates/work/budget-templates-cells.json
+            docs/tools/budget-templates/work/actual-server.log
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+          if-no-files-found: ignore
+          retention-days: 14
