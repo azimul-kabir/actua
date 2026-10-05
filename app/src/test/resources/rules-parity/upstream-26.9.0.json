@@ -1,0 +1,4664 @@
+{
+  "upstream": "@actual-app/api 26.9.0 (actualbudget/actual 59fe126f)",
+  "generatedBy": "docs/tools/rules-fixture/generate.mjs",
+  "entities": {
+    "accounts": [
+      {
+        "id": "account-on",
+        "name": "On Budget",
+        "offbudget": 0
+      },
+      {
+        "id": "account-off",
+        "name": "Brokerage",
+        "offbudget": 1
+      },
+      {
+        "id": "account-other",
+        "name": "Second Checking",
+        "offbudget": 0
+      }
+    ],
+    "payees": [
+      {
+        "id": "payee-amazon-shop",
+        "name": "Amazon Shop",
+        "transfer_acct": null
+      },
+      {
+        "id": "payee-created-6",
+        "name": "Brand New Payee",
+        "transfer_acct": null
+      },
+      {
+        "id": "payee-grocer",
+        "name": "Grocer",
+        "transfer_acct": null
+      },
+      {
+        "id": "payee-landlord",
+        "name": "Landlord",
+        "transfer_acct": null
+      },
+      {
+        "id": "payee-transfer-account-off",
+        "name": "",
+        "transfer_acct": "account-off"
+      },
+      {
+        "id": "payee-transfer-account-on",
+        "name": "",
+        "transfer_acct": "account-on"
+      },
+      {
+        "id": "payee-transfer-account-other",
+        "name": "",
+        "transfer_acct": "account-other"
+      }
+    ],
+    "categoryGroups": [
+      {
+        "id": "group-parity",
+        "name": "Parity Group"
+      },
+      {
+        "id": "group-other",
+        "name": "Other Group"
+      }
+    ],
+    "categories": [
+      {
+        "id": "category-fun",
+        "name": "Fun",
+        "cat_group": "group-parity"
+      },
+      {
+        "id": "category-misc",
+        "name": "Misc",
+        "cat_group": "group-other"
+      },
+      {
+        "id": "category-food",
+        "name": "Food",
+        "cat_group": "group-parity"
+      },
+      {
+        "id": "category-hit",
+        "name": "Hit",
+        "cat_group": "group-other"
+      }
+    ],
+    "schedules": [
+      {
+        "id": "schedule-s1",
+        "rule": "rule-schedule-s1"
+      },
+      {
+        "id": "schedule-s2",
+        "rule": "rule-schedule-s2"
+      }
+    ]
+  },
+  "rules": [
+    {
+      "id": "rule-0-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"notes\",\"op\":\"is\",\"value\":\"cond-0\"},{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"AMAZON MKTP\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-1-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"notes\",\"op\":\"is\",\"value\":\"cond-1\"},{\"field\":\"imported_description\",\"op\":\"isNot\",\"value\":\"amazon\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-10-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-10\"},{\"field\":\"description\",\"op\":\"is\",\"value\":\"payee-amazon-shop\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-11-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-11\"},{\"field\":\"description\",\"op\":\"isNot\",\"value\":\"payee-amazon-shop\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-12-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-12\"},{\"field\":\"description\",\"op\":\"oneOf\",\"value\":[\"payee-amazon-shop\",\"payee-landlord\"]}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-13-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-13\"},{\"field\":\"description\",\"op\":\"notOneOf\",\"value\":[\"payee-amazon-shop\",\"payee-landlord\"]}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-14-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-14\"},{\"field\":\"description\",\"op\":\"contains\",\"value\":\"Amazon\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-15-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-15\"},{\"field\":\"description\",\"op\":\"doesNotContain\",\"value\":\"Amazon\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-16-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-16\"},{\"field\":\"description\",\"op\":\"matches\",\"value\":\"^amazon\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-17-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-17\"},{\"field\":\"description\",\"op\":\"is\",\"value\":null}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-18-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-18\"},{\"field\":\"notes\",\"op\":\"is\",\"value\":\"Weekly Shop\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-19-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-19\"},{\"field\":\"notes\",\"op\":\"is\",\"value\":\"\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-2-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"notes\",\"op\":\"is\",\"value\":\"cond-2\"},{\"field\":\"imported_description\",\"op\":\"contains\",\"value\":\"MKTP\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-20-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-20\"},{\"field\":\"notes\",\"op\":\"isNot\",\"value\":\"\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-21-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-21\"},{\"field\":\"notes\",\"op\":\"contains\",\"value\":\"Shop\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-22-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-22\"},{\"field\":\"notes\",\"op\":\"doesNotContain\",\"value\":\"shop\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-23-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-23\"},{\"field\":\"notes\",\"op\":\"hasTags\",\"value\":\"#food #weekly\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-24-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-24\"},{\"field\":\"notes\",\"op\":\"hasTags\",\"value\":\"#Food\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-25-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-25\"},{\"field\":\"notes\",\"op\":\"hasAnyTag\",\"value\":\"#food #fun\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-26-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-26\"},{\"field\":\"category\",\"op\":\"is\",\"value\":\"category-fun\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-27-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-27\"},{\"field\":\"category\",\"op\":\"isNot\",\"value\":\"category-fun\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-28-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-28\"},{\"field\":\"category\",\"op\":\"oneOf\",\"value\":[\"category-fun\",\"category-misc\"]}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-29-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-29\"},{\"field\":\"category\",\"op\":\"is\",\"value\":null}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-3-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"notes\",\"op\":\"is\",\"value\":\"cond-3\"},{\"field\":\"imported_description\",\"op\":\"doesNotContain\",\"value\":\"mktp\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-30-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-30\"},{\"field\":\"category\",\"op\":\"is\",\"value\":null}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-31-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-31\"},{\"field\":\"category\",\"op\":\"isNot\",\"value\":null}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-32-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-32\"},{\"field\":\"category\",\"op\":\"contains\",\"value\":\"Foo\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-33-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-33\"},{\"field\":\"category_group\",\"op\":\"is\",\"value\":\"group-other\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-34-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-34\"},{\"field\":\"category_group\",\"op\":\"isNot\",\"value\":\"group-other\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-35-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-35\"},{\"field\":\"acct\",\"op\":\"is\",\"value\":\"account-other\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-36-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-36\"},{\"field\":\"acct\",\"op\":\"oneOf\",\"value\":[\"account-other\",\"account-off\"]}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-37-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-37\"},{\"field\":\"acct\",\"op\":\"contains\",\"value\":\"Second\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-38-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-38\"},{\"field\":\"acct\",\"op\":\"onBudget\",\"value\":null}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-39-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-39\"},{\"field\":\"acct\",\"op\":\"offBudget\",\"value\":null}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-4-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"notes\",\"op\":\"is\",\"value\":\"cond-4\"},{\"field\":\"imported_description\",\"op\":\"doesNotContain\",\"value\":\"mktp\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-40-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-40\"},{\"field\":\"amount\",\"op\":\"is\",\"value\":-2500}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-41-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-41\"},{\"field\":\"amount\",\"op\":\"isapprox\",\"value\":-10000}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-42-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-42\"},{\"field\":\"amount\",\"op\":\"isapprox\",\"value\":-1010}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-43-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-43\"},{\"field\":\"amount\",\"op\":\"isbetween\",\"value\":{\"num1\":-1000,\"num2\":-3000}}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-44-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-44\"},{\"field\":\"amount\",\"op\":\"gt\",\"value\":-2500}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-45-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-45\"},{\"field\":\"amount\",\"op\":\"gte\",\"value\":-2500}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-46-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-46\"},{\"field\":\"amount\",\"op\":\"lt\",\"value\":-2500}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-47-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-47\"},{\"field\":\"amount\",\"op\":\"lte\",\"value\":-2500}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-48-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-48\"},{\"field\":\"amount\",\"op\":\"is\",\"value\":2500,\"options\":{\"outflow\":true}}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-49-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-49\"},{\"field\":\"amount\",\"op\":\"gt\",\"value\":2000,\"options\":{\"outflow\":true}}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-5-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"notes\",\"op\":\"is\",\"value\":\"cond-5\"},{\"field\":\"imported_description\",\"op\":\"oneOf\",\"value\":[\"Grocer\",\"Amazon\"]}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-50-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-50\"},{\"field\":\"amount\",\"op\":\"is\",\"value\":2500,\"options\":{\"inflow\":true}}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-51-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-51\"},{\"field\":\"amount\",\"op\":\"lt\",\"value\":3000,\"options\":{\"inflow\":true}}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-52-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-52\"},{\"field\":\"date\",\"op\":\"is\",\"value\":\"2026-08-15\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-53-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-53\"},{\"field\":\"date\",\"op\":\"is\",\"value\":\"2026-08\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-54-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-54\"},{\"field\":\"date\",\"op\":\"is\",\"value\":\"2026\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-55-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-55\"},{\"field\":\"date\",\"op\":\"isapprox\",\"value\":\"2026-08-15\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-56-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-56\"},{\"field\":\"date\",\"op\":\"gt\",\"value\":\"2026-08-15\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-57-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-57\"},{\"field\":\"date\",\"op\":\"gte\",\"value\":\"2026-08-15\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-58-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-58\"},{\"field\":\"date\",\"op\":\"lt\",\"value\":\"2026-08-15\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-59-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-59\"},{\"field\":\"date\",\"op\":\"lte\",\"value\":\"2026-08-15\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-6-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"notes\",\"op\":\"is\",\"value\":\"cond-6\"},{\"field\":\"imported_description\",\"op\":\"notOneOf\",\"value\":[\"Grocer\",\"Amazon\"]}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-60-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-60\"},{\"field\":\"date\",\"op\":\"is\",\"value\":{\"start\":\"2026-08-15\",\"frequency\":\"monthly\",\"interval\":1,\"endMode\":\"never\",\"patterns\":[],\"skipWeekend\":false,\"weekendSolveMode\":\"after\"}}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-61-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-61\"},{\"field\":\"date\",\"op\":\"isapprox\",\"value\":{\"start\":\"2026-08-15\",\"frequency\":\"monthly\",\"interval\":1,\"endMode\":\"never\",\"patterns\":[],\"skipWeekend\":false,\"weekendSolveMode\":\"after\"}}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-62-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-62\"},{\"field\":\"cleared\",\"op\":\"is\",\"value\":true}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-63-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"cond-63\"},{\"field\":\"transfer\",\"op\":\"is\",\"value\":true}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-64-0",
+      "stage": null,
+      "conditions_op": "or",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"or-a\"},{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"or-b\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-65-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-65\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-misc\"}]"
+    },
+    {
+      "id": "rule-66-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-66\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"description\",\"value\":\"payee-landlord\"}]"
+    },
+    {
+      "id": "rule-67-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-67\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"payee_name\",\"value\":\"landlord\"}]"
+    },
+    {
+      "id": "rule-68-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-68\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"payee_name\",\"value\":\"Brand New Payee\"}]"
+    },
+    {
+      "id": "rule-69-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-69\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"notes\",\"value\":\"rule notes\"}]"
+    },
+    {
+      "id": "rule-7-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"notes\",\"op\":\"is\",\"value\":\"cond-7\"},{\"field\":\"imported_description\",\"op\":\"matches\",\"value\":\"^AMZ\\\\d+\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-70-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-70\"}]",
+      "actions": "[{\"op\":\"prepend-notes\",\"field\":\"notes\",\"value\":\"pre \"}]"
+    },
+    {
+      "id": "rule-71-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-71\"}]",
+      "actions": "[{\"op\":\"prepend-notes\",\"field\":\"notes\",\"value\":\"pre \"}]"
+    },
+    {
+      "id": "rule-72-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-72\"}]",
+      "actions": "[{\"op\":\"append-notes\",\"field\":\"notes\",\"value\":\" post\"}]"
+    },
+    {
+      "id": "rule-73-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-73\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"amount\",\"value\":-1234}]"
+    },
+    {
+      "id": "rule-74-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-74\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"date\",\"value\":\"2026-08-20\"}]"
+    },
+    {
+      "id": "rule-75-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-75\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"cleared\",\"value\":true}]"
+    },
+    {
+      "id": "rule-76-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-76\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"acct\",\"value\":\"account-other\"}]"
+    },
+    {
+      "id": "rule-77-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-77\"}]",
+      "actions": "[{\"op\":\"link-schedule\",\"value\":\"schedule-s1\"}]"
+    },
+    {
+      "id": "rule-78-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-78\"}]",
+      "actions": "[{\"op\":\"delete-transaction\",\"value\":null}]"
+    },
+    {
+      "id": "rule-79-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-79\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"notes\",\"value\":\"\",\"options\":{\"template\":\"{{imported_payee}} via template\"}}]"
+    },
+    {
+      "id": "rule-8-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"notes\",\"op\":\"is\",\"value\":\"cond-8\"},{\"field\":\"imported_description\",\"op\":\"matches\",\"value\":\"^amz\\\\d+\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-80-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-80\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"amount\",\"value\":0,\"options\":{\"formula\":\"=amount*2\"}}]"
+    },
+    {
+      "id": "rule-81-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"act-81\"}]",
+      "actions": "[{\"op\":\"set-split-amount\",\"value\":null,\"options\":{\"splitIndex\":1,\"method\":\"remainder\"}},{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-food\",\"options\":{\"splitIndex\":1}},{\"op\":\"set-split-amount\",\"value\":null,\"options\":{\"splitIndex\":2,\"method\":\"remainder\"}},{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-fun\",\"options\":{\"splitIndex\":2}}]"
+    },
+    {
+      "id": "rule-82-0",
+      "stage": "post",
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"stage-x\"}]",
+      "actions": "[{\"op\":\"append-notes\",\"field\":\"notes\",\"value\":\" post\"}]"
+    },
+    {
+      "id": "rule-82-1",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"stage-x\"}]",
+      "actions": "[{\"op\":\"append-notes\",\"field\":\"notes\",\"value\":\" default\"}]"
+    },
+    {
+      "id": "rule-82-2",
+      "stage": "pre",
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"stage-x\"}]",
+      "actions": "[{\"op\":\"append-notes\",\"field\":\"notes\",\"value\":\" pre\"}]"
+    },
+    {
+      "id": "rule-83-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"score-x\"},{\"field\":\"amount\",\"op\":\"is\",\"value\":-2500}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-fun\"}]"
+    },
+    {
+      "id": "rule-83-1",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"contains\",\"value\":\"score-x\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-misc\"}]"
+    },
+    {
+      "id": "rule-84-0",
+      "stage": "pre",
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"chain-x\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-misc\"}]"
+    },
+    {
+      "id": "rule-84-1",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"category\",\"op\":\"is\",\"value\":\"category-misc\"},{\"field\":\"imported_description\",\"op\":\"is\",\"value\":\"chain-x\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"notes\",\"value\":\"chained\"}]"
+    },
+    {
+      "id": "rule-9-0",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"field\":\"notes\",\"op\":\"is\",\"value\":\"cond-9\"},{\"field\":\"imported_description\",\"op\":\"matches\",\"value\":\"([\"}]",
+      "actions": "[{\"op\":\"set\",\"field\":\"category\",\"value\":\"category-hit\"}]"
+    },
+    {
+      "id": "rule-schedule-s1",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"op\":\"is\",\"field\":\"description\",\"value\":\"payee-landlord\",\"type\":\"id\"},{\"op\":\"is\",\"field\":\"acct\",\"value\":\"account-on\",\"type\":\"id\"},{\"op\":\"isapprox\",\"field\":\"date\",\"value\":{\"start\":\"2026-08-15\",\"frequency\":\"monthly\",\"interval\":1,\"endMode\":\"never\",\"patterns\":[],\"skipWeekend\":false,\"weekendSolveMode\":\"after\"},\"type\":\"date\"},{\"op\":\"is\",\"field\":\"amount\",\"value\":-100000,\"type\":\"number\"}]",
+      "actions": "[{\"op\":\"link-schedule\",\"field\":null,\"value\":\"schedule-s1\",\"type\":\"id\"},{\"op\":\"set\",\"field\":\"notes\",\"value\":\"from schedule 1\",\"type\":\"string\"}]"
+    },
+    {
+      "id": "rule-schedule-s2",
+      "stage": null,
+      "conditions_op": "and",
+      "conditions": "[{\"op\":\"is\",\"field\":\"description\",\"value\":\"payee-grocer\",\"type\":\"id\"},{\"op\":\"is\",\"field\":\"acct\",\"value\":\"account-on\",\"type\":\"id\"},{\"op\":\"isapprox\",\"field\":\"date\",\"value\":{\"start\":\"2026-08-15\",\"frequency\":\"monthly\",\"interval\":1,\"endMode\":\"never\",\"patterns\":[],\"skipWeekend\":false,\"weekendSolveMode\":\"after\"},\"type\":\"date\"},{\"op\":\"is\",\"field\":\"amount\",\"value\":-4200,\"type\":\"number\"}]",
+      "actions": "[{\"op\":\"link-schedule\",\"field\":null,\"value\":\"schedule-s2\",\"type\":\"id\"},{\"op\":\"set\",\"field\":\"notes\",\"value\":\"from schedule 2\",\"type\":\"string\"}]"
+    }
+  ],
+  "cases": [
+    {
+      "name": "imported_payee is (case-insensitive)",
+      "input": {
+        "id": "transaction-0-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-0",
+        "imported_payee": "amazon mktp"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "cond-0",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee is (case-insensitive)",
+      "input": {
+        "id": "transaction-0-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-0",
+        "imported_payee": "amazon"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "cond-0",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee isNot",
+      "input": {
+        "id": "transaction-1-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-1",
+        "imported_payee": "grocer"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "cond-1",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee isNot",
+      "input": {
+        "id": "transaction-1-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-1",
+        "imported_payee": "Amazon"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "cond-1",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee contains",
+      "input": {
+        "id": "transaction-2-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-2",
+        "imported_payee": "amazon mktp 123"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "cond-2",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee contains",
+      "input": {
+        "id": "transaction-2-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-2",
+        "imported_payee": "amazon"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "cond-2",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee doesNotContain",
+      "input": {
+        "id": "transaction-3-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-3",
+        "imported_payee": "grocer"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "cond-3",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee doesNotContain",
+      "input": {
+        "id": "transaction-3-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-3",
+        "imported_payee": "AMAZON MKTP"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "cond-3",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee doesNotContain on empty",
+      "input": {
+        "id": "transaction-4-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-4",
+        "imported_payee": null
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "cond-4",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee oneOf",
+      "input": {
+        "id": "transaction-5-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-5",
+        "imported_payee": "amazon"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "cond-5",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee oneOf",
+      "input": {
+        "id": "transaction-5-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-5",
+        "imported_payee": "amazon mktp"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "cond-5",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee notOneOf",
+      "input": {
+        "id": "transaction-6-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-6",
+        "imported_payee": "landlord"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "cond-6",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee notOneOf",
+      "input": {
+        "id": "transaction-6-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-6",
+        "imported_payee": "GROCER"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "cond-6",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee matches (pattern case)",
+      "input": {
+        "id": "transaction-7-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-7",
+        "imported_payee": "AMZ123"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "cond-7",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee matches (pattern case)",
+      "input": {
+        "id": "transaction-7-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-7",
+        "imported_payee": "amz123"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "cond-7",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee matches lower pattern",
+      "input": {
+        "id": "transaction-8-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-8",
+        "imported_payee": "AMZ123"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "cond-8",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee matches lower pattern",
+      "input": {
+        "id": "transaction-8-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-8",
+        "imported_payee": "xamz1"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "cond-8",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "imported_payee matches invalid regex",
+      "input": {
+        "id": "transaction-9-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "notes": "cond-9",
+        "imported_payee": "(["
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "cond-9",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee is",
+      "input": {
+        "id": "transaction-10-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-10"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee is",
+      "input": {
+        "id": "transaction-10-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-10"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee isNot",
+      "input": {
+        "id": "transaction-11-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-11"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee isNot",
+      "input": {
+        "id": "transaction-11-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-11"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee oneOf",
+      "input": {
+        "id": "transaction-12-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-landlord",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-12"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-landlord",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee oneOf",
+      "input": {
+        "id": "transaction-12-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-12"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee notOneOf",
+      "input": {
+        "id": "transaction-13-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-13"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee notOneOf",
+      "input": {
+        "id": "transaction-13-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-13"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee contains a name fragment",
+      "input": {
+        "id": "transaction-14-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-14"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee contains a name fragment",
+      "input": {
+        "id": "transaction-14-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-14"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee doesNotContain a name fragment",
+      "input": {
+        "id": "transaction-15-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-15"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee doesNotContain a name fragment",
+      "input": {
+        "id": "transaction-15-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-15"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee matches a name pattern",
+      "input": {
+        "id": "transaction-16-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-16"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-amazon-shop",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee matches a name pattern",
+      "input": {
+        "id": "transaction-16-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-16"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee is empty",
+      "input": {
+        "id": "transaction-17-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": null,
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-17"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": null,
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "payee is empty",
+      "input": {
+        "id": "transaction-17-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-17"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes is",
+      "input": {
+        "id": "transaction-18-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-18",
+        "notes": "weekly shop"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "weekly shop",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes is",
+      "input": {
+        "id": "transaction-18-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-18",
+        "notes": "weekly shop!"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "weekly shop!",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes is empty",
+      "input": {
+        "id": "transaction-19-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-19",
+        "notes": null
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes is empty",
+      "input": {
+        "id": "transaction-19-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-19",
+        "notes": "x"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "x",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes isNot empty",
+      "input": {
+        "id": "transaction-20-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-20",
+        "notes": "x"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "x",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes isNot empty",
+      "input": {
+        "id": "transaction-20-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-20",
+        "notes": null
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes contains",
+      "input": {
+        "id": "transaction-21-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-21",
+        "notes": "weekly shop"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "weekly shop",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes contains",
+      "input": {
+        "id": "transaction-21-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-21",
+        "notes": "weekly"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "weekly",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes doesNotContain",
+      "input": {
+        "id": "transaction-22-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-22",
+        "notes": "weekly"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "weekly",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes doesNotContain",
+      "input": {
+        "id": "transaction-22-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-22",
+        "notes": "SHOP"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "SHOP",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes hasTags (all)",
+      "input": {
+        "id": "transaction-23-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-23",
+        "notes": "bought #food #weekly"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "bought #food #weekly",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes hasTags (all)",
+      "input": {
+        "id": "transaction-23-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-23",
+        "notes": "bought #food"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "bought #food",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes hasTags case and prefix",
+      "input": {
+        "id": "transaction-24-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-24",
+        "notes": "x #food"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "x #food",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes hasTags case and prefix",
+      "input": {
+        "id": "transaction-24-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-24",
+        "notes": "x #foodie"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "x #foodie",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes hasAnyTag",
+      "input": {
+        "id": "transaction-25-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-25",
+        "notes": "x #fun"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": "x #fun",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "notes hasAnyTag",
+      "input": {
+        "id": "transaction-25-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-25",
+        "notes": "x #misc"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "x #misc",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category is",
+      "input": {
+        "id": "transaction-26-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-fun",
+        "cleared": false,
+        "imported_payee": "cond-26"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category is",
+      "input": {
+        "id": "transaction-26-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-26"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category isNot",
+      "input": {
+        "id": "transaction-27-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-27"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category isNot",
+      "input": {
+        "id": "transaction-27-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-fun",
+        "cleared": false,
+        "imported_payee": "cond-27"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-fun",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category oneOf",
+      "input": {
+        "id": "transaction-28-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-misc",
+        "cleared": false,
+        "imported_payee": "cond-28"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category oneOf",
+      "input": {
+        "id": "transaction-28-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-28"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category is empty",
+      "input": {
+        "id": "transaction-29-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": null,
+        "cleared": false,
+        "imported_payee": "cond-29"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category is empty",
+      "input": {
+        "id": "transaction-29-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-29"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category is empty on a transfer",
+      "input": {
+        "id": "transaction-30-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-transfer-account-other",
+        "category": null,
+        "cleared": false,
+        "imported_payee": "cond-30"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-transfer-account-other",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category isNot empty",
+      "input": {
+        "id": "transaction-31-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-31"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category isNot empty",
+      "input": {
+        "id": "transaction-31-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": null,
+        "cleared": false,
+        "imported_payee": "cond-31"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": null,
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category contains a name fragment",
+      "input": {
+        "id": "transaction-32-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-32"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category contains a name fragment",
+      "input": {
+        "id": "transaction-32-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-fun",
+        "cleared": false,
+        "imported_payee": "cond-32"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-fun",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category_group is",
+      "input": {
+        "id": "transaction-33-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-misc",
+        "cleared": false,
+        "imported_payee": "cond-33"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category_group is",
+      "input": {
+        "id": "transaction-33-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-33"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category_group isNot",
+      "input": {
+        "id": "transaction-34-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-34"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "category_group isNot",
+      "input": {
+        "id": "transaction-34-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-misc",
+        "cleared": false,
+        "imported_payee": "cond-34"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-misc",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "account is",
+      "input": {
+        "id": "transaction-35-0",
+        "account": "account-other",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-35"
+      },
+      "output": {
+        "account": "account-other",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "account is",
+      "input": {
+        "id": "transaction-35-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-35"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "account oneOf",
+      "input": {
+        "id": "transaction-36-0",
+        "account": "account-off",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-36"
+      },
+      "output": {
+        "account": "account-off",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "account oneOf",
+      "input": {
+        "id": "transaction-36-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-36"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "account contains a name fragment",
+      "input": {
+        "id": "transaction-37-0",
+        "account": "account-other",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-37"
+      },
+      "output": {
+        "account": "account-other",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "account contains a name fragment",
+      "input": {
+        "id": "transaction-37-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-37"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "account onBudget",
+      "input": {
+        "id": "transaction-38-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-38"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "account onBudget",
+      "input": {
+        "id": "transaction-38-1",
+        "account": "account-off",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-38"
+      },
+      "output": {
+        "account": "account-off",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "account offBudget",
+      "input": {
+        "id": "transaction-39-0",
+        "account": "account-off",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-39"
+      },
+      "output": {
+        "account": "account-off",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "account offBudget",
+      "input": {
+        "id": "transaction-39-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-39"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount is",
+      "input": {
+        "id": "transaction-40-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-40"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount is",
+      "input": {
+        "id": "transaction-40-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": 2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-40"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": 2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount isapprox (7.5%)",
+      "input": {
+        "id": "transaction-41-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -10750,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-41"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -10750,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount isapprox (7.5%)",
+      "input": {
+        "id": "transaction-41-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -10751,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-41"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -10751,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount isapprox rounding edge",
+      "input": {
+        "id": "transaction-42-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -1086,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-42"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -1086,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount isapprox rounding edge",
+      "input": {
+        "id": "transaction-42-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -1087,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-42"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -1087,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount isbetween (unordered bounds)",
+      "input": {
+        "id": "transaction-43-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -3000,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-43"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -3000,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount isbetween (unordered bounds)",
+      "input": {
+        "id": "transaction-43-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -3001,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-43"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -3001,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount gt",
+      "input": {
+        "id": "transaction-44-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2499,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-44"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2499,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount gt",
+      "input": {
+        "id": "transaction-44-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-44"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount gte",
+      "input": {
+        "id": "transaction-45-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-45"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount gte",
+      "input": {
+        "id": "transaction-45-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2501,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-45"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2501,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount lt",
+      "input": {
+        "id": "transaction-46-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2501,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-46"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2501,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount lt",
+      "input": {
+        "id": "transaction-46-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-46"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount lte",
+      "input": {
+        "id": "transaction-47-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-47"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount lte",
+      "input": {
+        "id": "transaction-47-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2499,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-47"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2499,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount outflow is",
+      "input": {
+        "id": "transaction-48-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-48"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount outflow is",
+      "input": {
+        "id": "transaction-48-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": 2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-48"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": 2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount outflow gt",
+      "input": {
+        "id": "transaction-49-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-49"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount outflow gt",
+      "input": {
+        "id": "transaction-49-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": 2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-49"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": 2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount inflow is",
+      "input": {
+        "id": "transaction-50-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": 2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-50"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": 2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount inflow is",
+      "input": {
+        "id": "transaction-50-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-50"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount inflow lt",
+      "input": {
+        "id": "transaction-51-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": 2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-51"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": 2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "amount inflow lt",
+      "input": {
+        "id": "transaction-51-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -100,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-51"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -100,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date is (day)",
+      "input": {
+        "id": "transaction-52-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-52"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date is (day)",
+      "input": {
+        "id": "transaction-52-1",
+        "account": "account-on",
+        "date": "2026-08-16",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-52"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-16",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date is (month)",
+      "input": {
+        "id": "transaction-53-0",
+        "account": "account-on",
+        "date": "2026-08-31",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-53"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-31",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date is (month)",
+      "input": {
+        "id": "transaction-53-1",
+        "account": "account-on",
+        "date": "2026-09-01",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-53"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-09-01",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date is (year)",
+      "input": {
+        "id": "transaction-54-0",
+        "account": "account-on",
+        "date": "2026-01-01",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-54"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-01-01",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date is (year)",
+      "input": {
+        "id": "transaction-54-1",
+        "account": "account-on",
+        "date": "2025-12-31",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-54"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2025-12-31",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date isapprox (±2 days)",
+      "input": {
+        "id": "transaction-55-0",
+        "account": "account-on",
+        "date": "2026-08-17",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-55"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-17",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date isapprox (±2 days)",
+      "input": {
+        "id": "transaction-55-1",
+        "account": "account-on",
+        "date": "2026-08-18",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-55"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-18",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date gt",
+      "input": {
+        "id": "transaction-56-0",
+        "account": "account-on",
+        "date": "2026-08-16",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-56"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-16",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date gt",
+      "input": {
+        "id": "transaction-56-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-56"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date gte",
+      "input": {
+        "id": "transaction-57-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-57"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date gte",
+      "input": {
+        "id": "transaction-57-1",
+        "account": "account-on",
+        "date": "2026-08-14",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-57"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-14",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date lt",
+      "input": {
+        "id": "transaction-58-0",
+        "account": "account-on",
+        "date": "2026-08-14",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-58"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-14",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date lt",
+      "input": {
+        "id": "transaction-58-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-58"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date lte",
+      "input": {
+        "id": "transaction-59-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-59"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date lte",
+      "input": {
+        "id": "transaction-59-1",
+        "account": "account-on",
+        "date": "2026-08-16",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-59"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-16",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date is recurring",
+      "input": {
+        "id": "transaction-60-0",
+        "account": "account-on",
+        "date": "2026-09-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-60"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-09-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date is recurring",
+      "input": {
+        "id": "transaction-60-1",
+        "account": "account-on",
+        "date": "2026-09-16",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-60"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-09-16",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date isapprox recurring",
+      "input": {
+        "id": "transaction-61-0",
+        "account": "account-on",
+        "date": "2026-09-13",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-61"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-09-13",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "date isapprox recurring",
+      "input": {
+        "id": "transaction-61-1",
+        "account": "account-on",
+        "date": "2026-09-12",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-61"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-09-12",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "cleared is true",
+      "input": {
+        "id": "transaction-62-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": true,
+        "imported_payee": "cond-62"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": true,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "cleared is true",
+      "input": {
+        "id": "transaction-62-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-62"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "transfer is true",
+      "input": {
+        "id": "transaction-63-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-transfer-account-other",
+        "category": null,
+        "cleared": false,
+        "imported_payee": "cond-63"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-transfer-account-other",
+        "payee_name": null,
+        "category": null,
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "transfer is true",
+      "input": {
+        "id": "transaction-63-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "cond-63"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "conditionsOp or",
+      "input": {
+        "id": "transaction-64-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "or-b"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-hit",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "conditionsOp or",
+      "input": {
+        "id": "transaction-64-1",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "or-c"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set category",
+      "input": {
+        "id": "transaction-65-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-65"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-misc",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set payee",
+      "input": {
+        "id": "transaction-66-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-66"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-landlord",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set payee_name to an existing payee",
+      "input": {
+        "id": "transaction-67-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-67"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-landlord",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set payee_name to a new payee",
+      "input": {
+        "id": "transaction-68-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-68"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-created-6",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set notes",
+      "input": {
+        "id": "transaction-69-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-69",
+        "notes": "typed"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "rule notes",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "prepend-notes",
+      "input": {
+        "id": "transaction-70-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-70",
+        "notes": "typed"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "pre typed",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "prepend-notes onto empty",
+      "input": {
+        "id": "transaction-71-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-71",
+        "notes": null
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "pre ",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "append-notes",
+      "input": {
+        "id": "transaction-72-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-72",
+        "notes": "typed"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "typed post",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set amount",
+      "input": {
+        "id": "transaction-73-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-73"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -1234,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set date",
+      "input": {
+        "id": "transaction-74-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-74"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-20",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set cleared",
+      "input": {
+        "id": "transaction-75-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-75"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": true,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set account",
+      "input": {
+        "id": "transaction-76-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-76"
+      },
+      "output": {
+        "account": "account-other",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "link-schedule",
+      "input": {
+        "id": "transaction-77-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-77"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": "schedule-s1",
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "delete-transaction",
+      "input": {
+        "id": "transaction-78-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-78"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 1,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set notes from a template",
+      "input": {
+        "id": "transaction-79-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-79"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "act-79 via template",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "set amount from a formula",
+      "input": {
+        "id": "transaction-80-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-80"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -500000,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "split by remainder",
+      "input": {
+        "id": "transaction-81-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "act-81"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": null,
+        "payee_name": null,
+        "category": "category-food",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": [
+          {
+            "amount": -1250,
+            "category": "category-food"
+          },
+          {
+            "amount": -1250,
+            "category": "category-fun"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage order: pre, default, post",
+      "input": {
+        "id": "transaction-82-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "stage-x",
+        "notes": "start"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "start pre default post",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "score order: less specific rule runs first",
+      "input": {
+        "id": "transaction-83-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "score-x"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-fun",
+        "notes": null,
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "a later rule sees an earlier rule's changes",
+      "input": {
+        "id": "transaction-84-0",
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "imported_payee": "chain-x"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-08-15",
+        "amount": -2500,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-misc",
+        "notes": "chained",
+        "cleared": false,
+        "schedule": null,
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "schedule-linked transaction: own rule bypasses conditions, other schedule rules skipped",
+      "input": {
+        "id": "transaction-85-0",
+        "account": "account-on",
+        "date": "2026-09-15",
+        "amount": -4200,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false,
+        "schedule": "schedule-s1"
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-09-15",
+        "amount": -4200,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "from schedule 1",
+        "cleared": false,
+        "schedule": "schedule-s1",
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    },
+    {
+      "name": "unlinked transaction matching a schedule rule",
+      "input": {
+        "id": "transaction-86-0",
+        "account": "account-on",
+        "date": "2026-09-15",
+        "amount": -4200,
+        "payee": "payee-grocer",
+        "category": "category-food",
+        "cleared": false
+      },
+      "output": {
+        "account": "account-on",
+        "date": "2026-09-15",
+        "amount": -4200,
+        "payee": "payee-grocer",
+        "payee_name": null,
+        "category": "category-food",
+        "notes": "from schedule 2",
+        "cleared": false,
+        "schedule": "schedule-s2",
+        "tombstone": 0,
+        "subtransactions": []
+      }
+    }
+  ]
+}
