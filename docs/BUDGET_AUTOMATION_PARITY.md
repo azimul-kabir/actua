@@ -19,6 +19,50 @@ Actuali's portable orchestration is in
 and its editor model is in
 [`BudgetAutomations.swift`](https://github.com/MattFaz/actuali/blob/ce60837f1c672eb29e1e1a9a5f285c66fa282be5/Actuali/Actuali/Services/Budget/BudgetAutomations.swift).
 
+## v26.9.0 template matrix ([#668](https://github.com/azimul-kabir/actua/issues/668))
+
+Re-audited against Actual [v26.9.0 (`59fe126f`)](https://github.com/actualbudget/actual/tree/59fe126f637d858c061e1eeedbef5436c8f2225a)
+(`CTC` = [`category-template-context.ts`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts)). The older `2fc69915` references below are kept
+for history.
+
+**Evidence.** The [`budget-templates-parity`](../.github/workflows/budget-templates-parity.yml) workflow
+([`tools/budget-templates/`](tools/budget-templates/README.md)) runs Actual's engine through
+`@actual-app/api` 26.9.0 and Actua's planner on two identical synthetic budgets: apply for 2026-08,
+overwrite for 2026-09 and month-end cleanup for 2026-10. It then compares every category's budgeted
+amount, `goal` and `long_goal`. "Check" names the category in that budget. Cells that still differ
+are listed with their issue in `tools/budget-templates/known-divergences.json`, which the check keeps
+current. First clean run: [run 37292113992](https://github.com/azimul-kabir/actua/actions/runs/37292113992).
+Some cells are knock-ons rather than separate divergences: remainder, percent of available funds,
+and the scarce-funds September schedule all depend on how much other templates took.
+
+| Behavior | Actual | Actua | Status | Check |
+| --- | --- | --- | --- | --- |
+| Simple `#template 50`, `up to N` | [`runSimple`, `checkLimit`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L568-L678) | not decoded by `BudgetTarget.fromGoalDef` | **Divergence** [#854](https://github.com/azimul-kabir/actua/issues/854) | T Simple, T Notes stored |
+| Periodic: every N days/weeks/months/years from `starting` | [`runPeriodic`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L700-L754) | `BudgetTarget.fixedSuggestedBudget` | Match (budget) | T Periodic month/week/2 months |
+| By date (`by`), sibling batching | [`runBy`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L908-L988) | `BudgetTemplatePlanner.combinedByDate` | Match for a future target | T By date |
+| By date, repeating or annual after the target passed | rolls forward and interpolates (`runBy`) | budgets the whole amount | **Divergence** [#856](https://github.com/azimul-kabir/actua/issues/856) | T By annual |
+| Spend (`by … spend from`) | [`runSpend`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L756-L823) | by-date with `allowEarlySpending` | Match in the checked case (no earlier spending) | T Spend |
+| Average of N months, with adjustment | [`runAverage`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L871-L906), [`getCategoryAverage`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/actions.ts#L388-L414) | `suggestedBudget` (`HISTORICAL`/`AVERAGE`) | Match for plain spending; **Divergence** for refunds and rounding [#860](https://github.com/azimul-kabir/actua/issues/860) | T Average, T Average refund, T Average adjusted |
+| Copy from N months ago | [`runCopy`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L687-L698) | `suggestedBudget` (`COPY`) | Match | T Copy |
+| Percentage of an income category / all income | [`runPercentage`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L825-L869) | `requestedAtPriority` | Match | T Percent salary, T Percent all income |
+| Percentage of available funds | `runPercentage` with the priority's starting funds | `requestedAtPriority` with the same start | Same rule; the checked value is a knock-on | T Percent available |
+| Percentage of previous month's income | `runPercentage` (`previous`) | 0 | **Divergence** [#859](https://github.com/azimul-kabir/actua/issues/859) | T Percent previous |
+| Refill to a monthly cap | [`runRefill`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L680-L685) | `requestedAtPriority` | Match | T Refill |
+| Refill or limit with a weekly/daily cap | cap scaled to the month (`checkLimit`) | unscaled cap for refill | **Divergence** [#858](https://github.com/azimul-kabir/actua/issues/858) | T Refill weekly |
+| Limit with carryover over the cap (`hold` false/true) | releases the excess or holds it (`checkLimit`) | `releasedByLimit` | Match (budget) | T Limit release, T Limit hold |
+| Remainder by weight, with a cap | [`distributeRemainder`, `runRemainder`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/goal-template.ts#L17-L36) | `distributeRemainder` | Match for the cap; the checked split is a knock-on (same cent placement) | T Remainder 1–3, T Remainder capped |
+| `#goal` (long-term goal) | `runGoal` | `targetBalanceGoal` | Match | T Goal only, T Goal and fixed |
+| Schedule due this month, `full` | [`runSchedule`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/schedule-template.ts#L315-L400) | `BudgetScheduleFunding.requestedBudget` | Match (budget) | T Schedule monthly, T Schedule full |
+| Schedule not due this month (sinking fund) | `getSinkingContributionBreakdown` | amount ÷ months until due | **Divergence** [#857](https://github.com/azimul-kabir/actua/issues/857) | T Schedule quarterly |
+| Apply skips budgeted categories; Overwrite recalculates | [`processTemplate`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/goal-template.ts#L217-L300) (`force`) | `preview(overwriteExisting)` | Match | T Prebudgeted |
+| Priority order and available-funds clamp (priority 0 unclamped) | `computeTemplates`, `runTemplatesForPriority` | `preview` priority loop | Same rule; September's scarce-funds values are knock-ons, and notes default to priority 1 ([#854](https://github.com/azimul-kabir/actua/issues/854)) | September rows |
+| Notes re-read before applying (`storeNoteTemplates`) | [`applyTemplate`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/goal-template.ts#L71-L91) | only when a note is edited in Actua | **Divergence** [#855](https://github.com/azimul-kabir/actua/issues/855) | T Notes only |
+| Monthly `goal`/`long_goal` cells (underfunded/overfunded status) | `goal` = full request, `long_goal` only for `#goal` | target totals and `long_goal = 1` for by/schedule; none for the rest | **Divergence** [#853](https://github.com/azimul-kabir/actua/issues/853) | every template row |
+| Whole-number rounding when the budget hides decimals | `removeFraction` | not applied | **Divergence** [#861](https://github.com/azimul-kabir/actua/issues/861) (not in the check) | – |
+| One invalid category stops the whole run | `computeTemplates` returns errors and writes nothing | skips and names unsupported categories, applies the rest | **Intentional** | – |
+| Month-end cleanup: global and group sources, weighted sinks, overspent fill | [`cleanup-template.ts`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/cleanup-template.ts) | `CleanupTemplatePlanner` | Match (budget); `long_goal` on sources differs ([#853](https://github.com/azimul-kabir/actua/issues/853)) | C rows |
+| Set budgets to zero | [`setZero`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/actions.ts#L261-L274) | `ZeroBudgetPlanner` | Match for envelope; **Divergence** for tracking income [#862](https://github.com/azimul-kabir/actua/issues/862) (not in the check) | – |
+
 ## Exact behavior to preserve
 
 - Templates are evaluated by priority across all categories, not category-by-category to completion.

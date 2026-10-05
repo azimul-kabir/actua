@@ -68,7 +68,8 @@ for (const name of upstream.categories) {
       const issue = knownByKey.get(key)?.issue;
       if (issue) seenKnown.add(key);
       else unexpected.push(key);
-      diffs.push(`${field}${issue ? ` (#${issue})` : ' ❌'}`);
+      const label = typeof issue === 'number' ? `#${issue}` : issue;
+      diffs.push(`${field}${issue ? ` (${label})` : ' ❌'}`);
     }
     rows.push(`| ${name} | ${month} | ${money(u.budgeted)} | ${money(a.budgeted)} | ${money(u.goal)}${u.long_goal ? ' (long)' : ''} | ${money(a.goal)}${a.long_goal ? ' (long)' : ''} | ${diffs.length ? diffs.join(', ') : '✅'} |`);
   }
