@@ -1,0 +1,131 @@
+name: Two-client parity
+
+# #663: makes the same transaction edits through Actual's loot-core (@actual-app/api) and through
+# Actua (an emulator instrumentation test) against one throwaway actual-server, then compares the
+# synced rows. See docs/tools/two-client/README.md. All data is synthetic.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/tools/two-client/**'
+      - 'app/src/androidTest/java/com/azimulkabir/actua/data/budget/TwoClientTransactionParityTest.kt'
+      - 'app/src/main/java/com/azimulkabir/actua/data/budget/ActualTransaction*.kt'
+      - 'app/src/main/java/com/azimulkabir/actua/data/budget/ActualBudgetDatabase.kt'
+      - 'app/src/main/java/com/azimulkabir/actua/data/sync/**'
+      - '.github/workflows/two-client-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: two-client-parity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # A throwaway password for the job's own actual-server container; not a credential.
+  TWO_CLIENT_PASSWORD: two-client-parity
+  API_LEVEL: 35
+
+jobs:
+  two-client:
+    name: Actual 26.9.0 vs Actua (API 35)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: docs/tools/two-client
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Start actual-server 26.9.0
+        run: |
+          docker run -d --name actual-server -p 5006:5006 \
+            actualbudget/actual-server:26.9.0@sha256:552beab3dec8c93d46b8b9245612d63c3f123b8a45063a474f53e229b17621d3
+          for attempt in $(seq 1 60); do
+            curl -fsS http://localhost:5006/account/needs-bootstrap && exit 0
+            sleep 2
+          done
+          docker logs actual-server
+          exit 1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: docs/tools/two-client/package-lock.json
+
+      - name: Install @actual-app/api 26.9.0
+        run: npm ci
+
+      - name: Upstream side (seed budget and make the edits through loot-core)
+        run: node upstream.mjs
+
+      - uses: ./.github/actions/setup-android-toolchain
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Enable KVM
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.API_LEVEL }}
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      # The emulator reaches the runner's actual-server at 10.0.2.2.
+      - name: Actua side (same edits through Actua's writers, then sync)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./gradlew --no-daemon --stacktrace connectedInstrumentedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.azimulkabir.actua.data.budget.TwoClientTransactionParityTest -Pandroid.testInstrumentationRunnerArguments.twoClientServerUrl=http://10.0.2.2:5006 -Pandroid.testInstrumentationRunnerArguments.twoClientPassword=${{ env.TWO_CLIENT_PASSWORD }}
+
+      - name: Compare the synced rows
+        run: node compare.mjs
+
+      - name: Save actual-server log
+        if: ${{ always() }}
+        run: mkdir -p work && docker logs actual-server > work/actual-server.log 2>&1 || true
+
+      - name: Upload two-client evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: two-client-parity
+          path: |
+            docs/tools/two-client/work/two-client-report.md
+            docs/tools/two-client/work/two-client-rows.json
+            docs/tools/two-client/work/actual-server.log
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+          if-no-files-found: ignore
+          retention-days: 14

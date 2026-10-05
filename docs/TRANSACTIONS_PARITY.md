@@ -179,6 +179,9 @@ matrices above apply to each row.
   Ran on an API 35 emulator (`connectedInstrumentedAndroidTest` filtered to the class): 5/5 passed.
 - Existing coverage used as evidence is named in each row (`ActualBudgetReadModelTest`,
   `ActualDataIntegrityRegressionTest`, `ActualTransactionFormPlanTest`).
-- Divergences are recorded as upstream behavior plus Actua code paths. The audit didn't make the same
-  edit in the Actual PWA and in Actua against a test server and compare the synced rows. That two-client
-  check is still outstanding for #663's second acceptance criterion.
+- Divergences are recorded as upstream behavior plus Actua code paths.
+- Two-client check (#663's second acceptance criterion): the `two-client-parity` workflow makes the same
+  17 edits (standard rows, transfers, splits, zero amounts, cleared toggles, account moves) through
+  Actual's loot-core (`@actual-app/api` 26.9.0) and through Actua (`TwoClientTransactionParityTest` on an
+  API 35 emulator) against one `actual-server` 26.9.0, then compares the synced rows from a fresh client.
+  Method, scenarios and limits: [`tools/two-client/README.md`](tools/two-client/README.md).
