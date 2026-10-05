@@ -36,6 +36,71 @@ is the portable product/behavior reference per `AGENTS.md`; its
 is itself a client-side reimplementation of `condition.ts`/`action.ts` (a `TransactionBag` mirroring
 a plain transaction row) and is the direct model Actua's `RulesEngine.kt` was ported from.
 
+## v26.9.0 audit: operators, actions and invocation sites ([#669](https://github.com/azimul-kabir/actua/issues/669))
+
+**Evidence.** [`tools/rules-fixture/generate.mjs`](tools/rules-fixture/README.md) runs 149 synthetic
+transactions against 91 rules through Actual's own `runRules` (`rules-run`, `@actual-app/api` 26.9.0).
+It writes `app/src/test/resources/rules-parity/upstream-26.9.0.json`, and `RulesParityFixtureTest`
+replays every case through Actua's `RulesEngine`. The [`rules-parity`](../.github/workflows/rules-parity.yml)
+workflow keeps the fixture current. Differences not listed with an issue in the test's `KNOWN_DIVERGENCES`
+fail the JVM test run. "Fixture" names the cases; every condition case pairs a matching transaction with
+a non-matching one, so each row is checked in both directions.
+
+**Correction to the sections below.** When rules run on a transaction, Actual's `Condition.eval` reads the
+raw field. So `contains`/`doesNotContain`/`matches` on id fields (`payee`, `category`, `category_group`,
+`account`) test the **id**. The `category is/isNot (none)` transfer/parent expansion
+(`conditionSpecialCases`) happens only in `conditionsToAQL`, which is used for queries and filters,
+not rule runs. The behaviors described further down as rule-run behaviors are filter behaviors.
+
+### Condition operators
+
+| Field (type) | Operators | Actual | Actua | Status | Fixture |
+| --- | --- | --- | --- | --- | --- |
+| `imported_payee` (string) | is, isNot, contains, doesNotContain, oneOf, notOneOf, matches | case-insensitive; empty treated as `''`; `matches` lowercases the pattern; an invalid regex is false | `evaluateText` | Match | imported_payee … (10 cases) |
+| `notes` (string) | is, isNot (incl. empty), contains, doesNotContain, hasTags, hasAnyTag | tag boundary regex `(?<!#)tag([\s#]\|$)` | `evaluateText`, `TagFilter` | Match | notes … (8 cases) |
+| `payee`, `category`, `category_group`, `account` (id) | is, isNot, oneOf, notOneOf, is (none) | id comparison | `evaluateText` | Match | payee/category/category_group/account … |
+| same | contains, doesNotContain, matches | tested against the **id** | tested against the name | **Divergence** [#864](https://github.com/azimul-kabir/actua/issues/864) | … contains/matches a name fragment |
+| `category` | is (none) on a transfer | matches | excludes transfers and split parents | **Divergence** [#865](https://github.com/azimul-kabir/actua/issues/865) | category is empty on a transfer |
+| `account` | onBudget, offBudget | `_account.offbudget` | `RuleContext.offBudgetAccountIds` | Match | account onBudget/offBudget |
+| `amount` (number) | is, isapprox (`round(abs·0.075)`), isbetween (unordered), gt, gte, lt, lte; `inflow`/`outflow` options | | `evaluateNumber` | Match | amount … (12 cases) |
+| `date` | is (day, month, year, recurring), isapprox (±2 days, recurring), gt, gte, lt, lte | | `RuleDateMatcher` | Match | date … (10 cases) |
+| `cleared` (boolean) | is | | `evaluate` (boolean branch) | Match | cleared is true |
+| `transfer`, `parent` (boolean) | is | never matches: rule runs have no such field | derived from the payee/split | **Divergence** [#865](https://github.com/azimul-kabir/actua/issues/865) | transfer is true |
+| `conditionsOp` | and, or | | `conditionsMatch` | Match | conditionsOp or |
+
+### Actions
+
+| Action | Actual | Actua | Status | Fixture |
+| --- | --- | --- | --- | --- |
+| `set` category, payee, notes, amount, date, cleared, account | [`action.ts`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/rules/action.ts) | `Bag.set` | Match | set … |
+| `set payee_name` (existing name, case-insensitive; or a new payee) | `payee = 'new'`, resolved after each rule | `pendingPayeeName`, resolved by the writer | Match | set payee_name … |
+| `prepend-notes` / `append-notes` (incl. onto empty) | | | Match | prepend-notes, append-notes |
+| `link-schedule` | sets `schedule` | | Match | link-schedule |
+| `delete-transaction` | `tombstone = 1` | `isDeleted` → not inserted | Match | delete-transaction |
+| `set` from a template / formula; `set-split-amount` and `splitIndex` | applied | stored, not applied | **Divergence** [#866](https://github.com/azimul-kabir/actua/issues/866) (post-v1 in `BACKEND_PARITY.md`) | set … from a template/formula, split by remainder |
+
+### Ordering and orchestration
+
+| Behavior | Actual | Actua | Status | Fixture |
+| --- | --- | --- | --- | --- |
+| Stage order pre → default → post | `rankRules` | `RuleRanker.rank` | Match | stage order |
+| Ascending score within a stage | `OP_SCORES` | `RuleRanker.score` | Match | score order |
+| Each rule sees earlier rules' changes | `runRules` applies rules in sequence ([`transaction-rules.ts#L367-L399`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/transactions/transaction-rules.ts#L367-L399)) | conditions all evaluated first | **Divergence** [#863](https://github.com/azimul-kabir/actua/issues/863) | a later rule sees an earlier rule's changes |
+| Schedule-linked transaction: the schedule's rule skips its conditions; other schedules' rules don't run | `runRules` | `RulesEngine.apply` | Match | schedule-linked transaction … |
+| Unlinked transaction matching a schedule's rule | rule applies normally | | Match | unlinked transaction matching a schedule rule |
+| A user rule with a `link-schedule` action | runs with its conditions | treated as the schedule's own rule for that schedule's transactions (it identifies schedule rules by the action, not the schedules table) | Difference only when a non-schedule rule links a schedule; not separately filed | – |
+
+### Where rules run
+
+| Invocation site | Actual | Actua | Status |
+| --- | --- | --- | --- |
+| Manual entry (mobile editor) | `rules-run` while editing, `shouldApplyRuleChange` per field | `ActuaRepository.previewRules` while editing, `RuleChangeGuard`; `createTransaction` on save if not previewed | Match |
+| Transfer's other leg | `runRules` for `notes`, `cleared`, `schedule` ([`transfer.ts#L71`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/transactions/transfer.ts#L71)) | not run | **Divergence** [#852](https://github.com/azimul-kabir/actua/issues/852) |
+| Schedule posting (automatic and "post today") | `addTransactions` → `runRules` with `schedule` set ([`schedules/app.ts#L574-L599`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L574-L599)) | `SchedulePoster` / `postScheduleTransaction` → `createTransaction(applyRules = true)` | Match |
+| Bank sync (SimpleFIN, GoCardless, Enable Banking) | rules run before matching and payee creation; matched rows take rule-derived payee/category/notes where empty ([`accounts/sync.ts#L668-L700`, `#L837`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/accounts/sync.ts#L837)) | payee created from the bank name first; matching first; rules only on unmatched rows | **Divergence** [#851](https://github.com/azimul-kabir/actua/issues/851) |
+| File import (CSV/OFX/QIF/statements) | `reconcileTransactions` runs rules | `ActuaRepository.importTransactions` inserts without rules | **Divergence** [#850](https://github.com/azimul-kabir/actua/issues/850) |
+| Report and transaction filters | `conditionsToAQL` (name joins, transfer/parent exclusions) | `RulesEngine.matches` in the report engines | Same semantics as Actual's filters |
+
 ## Exact behavior to preserve
 
 **Fields, types and operators (`shared/rules.ts`):** each condition/action field has a fixed type
@@ -206,9 +271,9 @@ upstream's class-based `Condition`/`Action`/`Rule`.
 
 ## Deliberate deviations and known gaps
 
-- **`isNot category (none)` does not exclude split parents.** Upstream expands `isNot category null`
-  to also require `parent == false` (a split parent never satisfies "category is not none", even
-  though a transfer does). Actua's `evaluateText` `"isNot"` branch has no such exclusion.
+- **`category is/isNot (none)` and transfers/split parents.** The upstream expansion described above is
+  `conditionsToAQL`'s, used by filters. Rule runs don't apply it, and Actua's rule runs do
+  ([#865](https://github.com/azimul-kabir/actua/issues/865)).
 - **No Handlebars template or HyperFormula formula actions**, and **no split-transaction rule
   actions** (`set-split-amount`, `set` with `options.splitIndex`). These are recognized and preserved
   unmodified in the stored condition/action JSON rather than approximated, and are already tracked as
@@ -220,11 +285,8 @@ upstream's class-based `Condition`/`Action`/`Rule`.
   draft (`ActuaRepository.previewRules`/`TransactionRulePreview.kt`); it has no equivalent to
   re-scanning the transaction table for a rule change. This is a genuinely unsupported UX surface
   today, not a deliberate simplification of an implemented behavior.
-- **No bank-feed/SimpleFIN import path**, so "rules on import vs. manual entry" is not yet a
-  distinction Actua can exercise — every transaction Actua creates today goes through the same
-  manual-entry/schedule-posting write paths, already tracked under Post-v1 portable features in
-  `BACKEND_PARITY.md` ("SimpleFIN linking, download, reconciliation, and bank-feed pending-import
-  approval").
+- **Bank sync and file import** now exist; how they invoke rules differs from Actual
+  ([#851](https://github.com/azimul-kabir/actua/issues/851), [#850](https://github.com/azimul-kabir/actua/issues/850)). See "Where rules run" above.
 - **No automatic category-rule suggestion/creation** (upstream's `updateCategoryRules`, which offers
   to create or extend a payee rule after a user repeatedly recategorizes transactions from the same
   payee). Actua only supports explicit rule creation/editing through the Rules screen.
