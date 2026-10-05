@@ -1,0 +1,64 @@
+name: Rules parity fixture
+
+# #669: regenerates app/src/test/resources/rules-parity/upstream-26.9.0.json from Actual's own rules
+# engine (@actual-app/api 26.9.0, offline) and fails if the committed fixture differs. The fixture is
+# replayed through Actua's RulesEngine by RulesParityFixtureTest in the normal JVM test run.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/tools/rules-fixture/**'
+      - 'app/src/test/resources/rules-parity/**'
+      - '.github/workflows/rules-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rules-parity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixture:
+    name: Regenerate the rules fixture from Actual 26.9.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: docs/tools/rules-fixture
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: docs/tools/rules-fixture/package-lock.json
+
+      - name: Install @actual-app/api 26.9.0
+        run: npm ci
+
+      - name: Run every case through Actual's rules engine
+        run: node generate.mjs
+
+      - name: Check the committed fixture is current
+        working-directory: .
+        run: |
+          git add -N app/src/test/resources/rules-parity
+          if ! git diff --exit-code --stat app/src/test/resources/rules-parity; then
+            echo "::error::The rules fixture differs from Actual's output. Commit the regenerated file from the rules-parity-fixture artifact."
+            exit 1
+          fi
+
+      - name: Upload the regenerated fixture
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: rules-parity-fixture
+          path: app/src/test/resources/rules-parity/upstream-26.9.0.json
+          if-no-files-found: ignore
+          retention-days: 14

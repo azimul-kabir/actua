@@ -1,0 +1,12 @@
+{
+  "name": "actua-rules-parity-fixture",
+  "private": true,
+  "description": "Generates the #669 rules fixture from Actual's own rules engine (see README.md). Synthetic data only.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@actual-app/api": "26.9.0"
+  }
+}
