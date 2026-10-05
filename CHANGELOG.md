@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added an optional one-time "Support Actua" purchase in the Play Store build ([#599](https://github.com/azimul-kabir/actua/pull/599))
+
 ### Fixed
 
 - Status colors now tint the Balance instead of the Budgeted amount on Budget rows ([#843](https://github.com/azimul-kabir/actua/pull/843))
