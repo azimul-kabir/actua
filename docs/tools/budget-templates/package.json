@@ -1,0 +1,12 @@
+{
+  "name": "actua-budget-templates-parity",
+  "private": true,
+  "description": "Upstream side of the #668 budget-template check (see README.md). Synthetic data only.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@actual-app/api": "26.9.0"
+  }
+}
