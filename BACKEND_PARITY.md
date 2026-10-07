@@ -249,7 +249,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   categories through `payee_mapping`/`category_mapping`, as do rule condition and action ids
   (upstream `migrateIds`). Transaction-form saves run Actual's category learning, honouring the
   synced `learn-categories` preference and `payees.learn_categories`. The payee
-  writers have no UI yet (#896); see [docs/PAYEES_PARITY.md](docs/PAYEES_PARITY.md); account deletion
+  writers back Manage → Payees (rename, merge, delete, favorite, category learning); see
+  [docs/PAYEES_PARITY.md](docs/PAYEES_PARITY.md); account deletion
   tombstones its owned transfer payee; transfer payees cannot be independently deleted or merged; group deletion
   tombstones its categories before the group; and reorder uses Actual-compatible
   shove sort orders. Destructive UI remains opt-in only where a safe confirmation

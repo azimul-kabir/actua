@@ -142,7 +142,7 @@ class ActualEntityWriter(
     fun deleteCategory(id: String) = update("categories", id, mapOf("tombstone" to 1))
     fun renameCategoryGroup(id: String, name: String) = update("category_groups", id, mapOf("name" to requiredName(name)))
     fun setCategoryGroupHidden(id: String, hidden: Boolean) = update("category_groups", id, mapOf("hidden" to flag(hidden)))
-    fun renamePayee(id: String, name: String) = update("payees", id, mapOf("name" to requiredName(name)))
+    fun renamePayee(id: String, name: String) = updateOrdinaryPayee(id, "name", requiredName(name))
 
     /**
      * Ordinary payees may be deleted directly. Transfer payees are account-owned and must
@@ -153,6 +153,34 @@ class ActualEntityWriter(
         require(payee.transferAccountId == null) { "Transfer payees cannot be deleted independently" }
         update("payees", id, mapOf("tombstone" to 1))
     }
+
+    /**
+     * Upstream `payees-batch-change` deletions: tombstones every payee in one batch. Transfer payees
+     * belong to their account and are refused.
+     */
+    @Synchronized
+    fun deletePayees(ids: Collection<String>) {
+        val targets = ids.toSet()
+        require(targets.isNotEmpty()) { "Select at least one payee" }
+        val payees = database.fetchPayees().filter { it.id in targets }
+        require(payees.size == targets.size) { "One or more payees no longer exist" }
+        require(payees.all { it.transferAccountId == null }) { "Transfer payees cannot be deleted independently" }
+        persist(targets.sorted().flatMap { id -> fields("payees", id, mapOf("tombstone" to 1)) })
+    }
+
+    /** Payee `favorite` / `learn_categories` (integer booleans), as the Payees page writes them. */
+    fun setPayeeFavorite(id: String, favorite: Boolean) = updateOrdinaryPayee(id, "favorite", flag(favorite))
+    fun setPayeeLearnCategories(id: String, learn: Boolean) = updateOrdinaryPayee(id, "learn_categories", flag(learn))
+
+    private fun updateOrdinaryPayee(id: String, column: String, value: Any?) {
+        val payee = database.fetchPayees().firstOrNull { it.id == id } ?: error("Payee no longer exists")
+        require(payee.transferAccountId == null) { "Transfer payees can't be edited" }
+        update("payees", id, mapOf(column to value))
+    }
+
+    /** Synced `learn-categories` preference, stored as the string `"true"`/`"false"` like the PWA. */
+    fun setLearnCategoriesEnabled(enabled: Boolean) =
+        update("preferences", CategoryLearning.PREFERENCE_ID, mapOf("value" to enabled.toString()))
 
     /**
      * Actual payee merge is mapping-based: old references resolve to the surviving payee. As in
@@ -462,7 +490,7 @@ class ActualEntityWriter(
             "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order", "goal_def", "template_settings", "cleanup_def"),
             "category_groups" to setOf("name", "hidden", "tombstone", "sort_order"),
             "cleanup_groups" to setOf("name", "tombstone"),
-            "payees" to setOf("name", "tombstone"),
+            "payees" to setOf("name", "tombstone", "favorite", "learn_categories"),
             "preferences" to setOf("value"), "notes" to setOf("note"),
             "rules" to setOf("stage", "conditions_op", "conditions", "actions", "tombstone"),
         )

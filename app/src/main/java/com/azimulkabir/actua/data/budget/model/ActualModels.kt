@@ -43,6 +43,15 @@ data class ActualPayee(
     val transferAccountId: String?,
 )
 
+/** A live payee as Actual's Payees page lists it (`db.getPayees`): transfer payees show their account's name. */
+data class ActualManagedPayee(
+    val id: String,
+    val name: String,
+    val transferAccountId: String?,
+    val favorite: Boolean,
+    val learnCategories: Boolean,
+)
+
 data class ActualCategory(
     val id: String,
     val name: String,

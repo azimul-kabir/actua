@@ -1154,6 +1154,47 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun managePayeesReadsAndWritesActualPayeeFields() {
+        // Actual's Payees page: getPayees listing, payees-batch-change fields (actua#896).
+        val file = createDatabaseFile()
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("ALTER TABLE payees ADD COLUMN favorite INTEGER DEFAULT 0")
+                db.execSQL("ALTER TABLE payees ADD COLUMN learn_categories BOOLEAN DEFAULT 1")
+                db.execSQL("INSERT INTO payees(id,name,transfer_acct,tombstone) VALUES ('apple','apple co',NULL,0), ('zed','Zed',NULL,0), ('gone','Gone',NULL,1)")
+            }
+            ActualBudgetDatabase.open(file).use { database ->
+                val listed = database.fetchManagedPayees()
+                assertEquals(listOf("apple", "store", "zed"), listed.filter { it.transferAccountId == null }.map { it.id })
+                assertEquals("Savings", listed.first { it.id == "transfer-savings" }.name)
+                assertTrue(listed.indexOfFirst { it.transferAccountId != null } > listed.indexOfLast { it.transferAccountId == null })
+                assertTrue(listed.none { it.id == "gone" })
+
+                val writer = ActualEntityWriter(database, nodeId = "abababababababab")
+                writer.setPayeeFavorite("apple", true)
+                writer.setPayeeLearnCategories("apple", false)
+                writer.setLearnCategoriesEnabled(false)
+                val apple = database.fetchManagedPayees().first { it.id == "apple" }
+                assertTrue(apple.favorite)
+                assertTrue(!apple.learnCategories)
+                assertEquals("false", database.learnCategoriesPreference())
+                val messages = database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString())
+                assertEquals("N:1", messages.last { it.row == "apple" && it.column == "favorite" }.value)
+                assertEquals("N:0", messages.last { it.row == "apple" && it.column == "learn_categories" }.value)
+                assertEquals("S:false", messages.last { it.dataset == "preferences" && it.row == "learn-categories" }.value)
+
+                writer.deletePayees(listOf("apple", "zed"))
+                assertEquals(listOf("store"), database.fetchManagedPayees().filter { it.transferAccountId == null }.map { it.id })
+                assertThrows(IllegalArgumentException::class.java) { writer.deletePayees(listOf("transfer-savings")) }
+                assertThrows(IllegalArgumentException::class.java) { writer.setPayeeFavorite("transfer-savings", true) }
+                assertThrows(IllegalArgumentException::class.java) { writer.renamePayee("transfer-savings", "Renamed") }
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun savedReportsReadIncludeCurrentAndTolerateOlderSchemas() {
         val file = createDatabaseFile()
         try {

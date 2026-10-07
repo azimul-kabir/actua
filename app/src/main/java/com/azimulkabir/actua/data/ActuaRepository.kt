@@ -31,6 +31,8 @@ import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
+import com.azimulkabir.actua.data.budget.model.ActualManagedPayee
+import com.azimulkabir.actua.data.rules.CategoryLearning
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BudgetOpenProbe
@@ -188,6 +190,25 @@ class ActuaRepository(context: Context) {
         ?.filter { it.transferAccountId == null && it.name != "Unknown" }
         ?.map { it.name }
         ?: emptyList()
+
+    /** Live payees for Manage Payees; transfer payees are listed under their account's name. */
+    fun managedPayees(): List<ActualManagedPayee> = actualDatabase?.fetchManagedPayees().orEmpty()
+
+    fun learnCategoriesEnabled(): Boolean =
+        CategoryLearning.enabled(actualDatabase?.learnCategoriesPreference())
+
+    fun setLearnCategoriesEnabled(enabled: Boolean): Boolean = payeeWrite { it.setLearnCategoriesEnabled(enabled) }
+    fun renamePayee(id: String, name: String): Boolean = payeeWrite { it.renamePayee(id, name) }
+    fun deletePayees(ids: Collection<String>): Boolean = payeeWrite { it.deletePayees(ids) }
+    fun mergePayees(targetId: String, mergeIds: Collection<String>): Boolean = payeeWrite { it.mergePayees(targetId, mergeIds) }
+    fun setPayeeFavorite(id: String, favorite: Boolean): Boolean = payeeWrite { it.setPayeeFavorite(id, favorite) }
+    fun setPayeeLearnCategories(id: String, learn: Boolean): Boolean = payeeWrite { it.setPayeeLearnCategories(id, learn) }
+
+    private inline fun payeeWrite(action: (ActualEntityWriter) -> Unit): Boolean {
+        val writer = actualEntities ?: return false
+        action(writer)
+        return true
+    }
 
     fun payeeLocationWritesSupported(): Boolean =
         actualDatabase?.payeeLocationWritesSupported() == true

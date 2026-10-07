@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.PieChartOutline
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -144,6 +145,7 @@ fun SettingsScreen(
     onSchedulesClick: () -> Unit = {},
     onImportTransactionsClick: () -> Unit = {},
     onPayeeLocationsClick: () -> Unit = {},
+    onManagePayeesClick: () -> Unit = {},
     onReportsClick: () -> Unit = {},
     /** Reports and Home appear under Insights only while they aren't tabs in the bottom bar. */
     showReportsShortcut: Boolean = true,
@@ -318,6 +320,10 @@ fun SettingsScreen(
                     SettingsGroup("Transactions & data") {
                         SettingsRow("Tags", "Create, edit, color, hide and delete managed tags", true, Icons.Outlined.Sell) {
                             page = SettingsPage.Tags
+                        }
+                        ActuaCardDivider()
+                        SettingsRow("Payees", "Rename, merge, delete and favorite payees", true, Icons.Outlined.Storefront) {
+                            openFullScreen(onManagePayeesClick)
                         }
                         ActuaCardDivider()
                         SettingsRow("Import Transactions", "Review a CSV bank statement before importing", true, Icons.AutoMirrored.Outlined.ReceiptLong) {
