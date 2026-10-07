@@ -1,0 +1,65 @@
+name: Budget month parity fixture
+
+# #667: regenerates app/src/androidTest/assets/budget-parity/upstream-26.9.0.json from Actual's own
+# budget spreadsheet (@actual-app/api 26.9.0, offline) and fails if the committed fixture differs. The
+# fixture is replayed through ActualBudgetDatabase.fetchBudgetMonth by BudgetMonthParityFixtureTest
+# in the normal instrumented test run.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/tools/budget-fixture/**'
+      - 'app/src/androidTest/assets/budget-parity/**'
+      - '.github/workflows/budget-month-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: budget-month-parity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixture:
+    name: Regenerate the budget month fixture from Actual 26.9.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: docs/tools/budget-fixture
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: docs/tools/budget-fixture/package-lock.json
+
+      - name: Install @actual-app/api 26.9.0
+        run: npm ci
+
+      - name: Build the synthetic budgets in Actual's budget engine
+        run: node generate.mjs
+
+      - name: Check the committed fixture is current
+        working-directory: .
+        run: |
+          git add -N app/src/androidTest/assets/budget-parity
+          if ! git diff --exit-code --stat app/src/androidTest/assets/budget-parity; then
+            echo "::error::The budget month fixture differs from Actual's output. Commit the regenerated file from the budget-month-parity-fixture artifact."
+            exit 1
+          fi
+
+      - name: Upload the regenerated fixture
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: budget-month-parity-fixture
+          path: app/src/androidTest/assets/budget-parity/upstream-26.9.0.json
+          if-no-files-found: ignore
+          retention-days: 14
