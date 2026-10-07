@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Rules now run on transactions imported from files and notifications, like Actual ([#873](https://github.com/azimul-kabir/actua/pull/873))
 - The Upcoming Schedules widget now scrolls through every schedule in its period instead of showing only four ([#870](https://github.com/azimul-kabir/actua/pull/870))
 - Rules treat transfers like Actual in category-none and transfer conditions ([#872](https://github.com/azimul-kabir/actua/pull/872))
 - Rule contains/matches conditions on payee, category and account now compare ids like Actual instead of names ([#871](https://github.com/azimul-kabir/actua/pull/871))

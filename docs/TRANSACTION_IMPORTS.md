@@ -54,8 +54,8 @@ text is not retained. Captured data, parser settings, and capture state can be d
 Debit and credit keyword sets are configurable for different bank wording. Confidence is high when
 both a payee and reference are found, medium when a payee is found, and low when the source must be
 used as the payee. An unambiguous card/account suffix can select an Actual account whose name contains
-the same digits. Category assignment remains uncategorized rather than being guessed from merchant
-text; users can apply Actual rules or categorize the reviewed transaction after import.
+the same digits. Category assignment is not guessed from merchant text; Actual rules run on every
+imported row, as they do in Actual's import, and can categorize or rename it.
 
 ## Tasker and other automation apps
 
