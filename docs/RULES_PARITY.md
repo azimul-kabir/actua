@@ -274,8 +274,11 @@ upstream's class-based `Condition`/`Action`/`Rule`.
   draft (`ActuaRepository.previewRules`/`TransactionRulePreview.kt`); it has no equivalent to
   re-scanning the transaction table for a rule change. This is a genuinely unsupported UX surface
   today, not a deliberate simplification of an implemented behavior.
-- **Bank sync and file import** now exist; how they invoke rules differs from Actual
+- **Bank sync and file import** run rules in the same order as Actual
   ([#851](https://github.com/azimul-kabir/actua/issues/851), [#850](https://github.com/azimul-kabir/actua/issues/850)). See "Where rules run" above.
+- **Template, formula and split actions are applied but not authored.** Rules created in Actual with
+  these actions run in Actua ([#888](https://github.com/azimul-kabir/actua/pull/888)); Actua's rule
+  editor does not create or edit them and keeps their stored JSON unchanged.
 - **No automatic category-rule suggestion/creation** (upstream's `updateCategoryRules`, which offers
   to create or extend a payee rule after a user repeatedly recategorizes transactions from the same
   payee). Actua only supports explicit rule creation/editing through the Rules screen.

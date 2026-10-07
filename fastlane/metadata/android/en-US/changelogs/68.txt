@@ -1,0 +1,5 @@
+• Rules now run on imports, bank sync and transfers, and apply template, formula and split actions, like Actual
+• Budget templates now budget, round and set goals like Actual
+• Added a budget switcher at the top of Manage
+• Added one-tap cover for overspent categories in Move Money
+• Status colors now tint the Balance, and Budget table amounts shrink to fit
