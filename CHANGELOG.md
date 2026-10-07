@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- "Color balances" now also colors Balance pills in Plan view ([#892](https://github.com/azimul-kabir/actua/pull/892))
+
 ## [1.6.0] - 2026-10-07
 
 ### Added
