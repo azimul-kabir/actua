@@ -4,8 +4,10 @@ import com.azimulkabir.actua.data.budget.ActualBudgetDatabase
 import com.azimulkabir.actua.data.budget.ActualEntityWriter
 import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.importing.ImportRules
 import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.network.BankSyncDownload
+import com.azimulkabir.actua.data.network.BankSyncTransaction
 import java.net.SocketTimeoutException
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -88,6 +90,7 @@ class BankSyncService(
         }
         var imported = 0
         var matched = 0
+        val ruleInputs by lazy { database.fetchRules() to database.ruleContext() }
         accounts.forEach { account ->
             val download = outcomes.getValue(account.id).getOrElse { error ->
                 val failure = error as BankSyncFailure
@@ -103,7 +106,30 @@ class BankSyncService(
             if (conflicts > 0) problems += "${account.name}: skipped $conflicts conflicting bank transactions."
             val existing = database.existingFinancialIds(account.id, unambiguous.mapTo(mutableSetOf()) { it.financialId })
             val newRows = unambiguous.filterNot { it.financialId in existing }.sortedBy { it.date }
-            val payeeByRow = newRows.associateWith { transactions.resolveOrCreatePayee(it.payeeName) }
+            // As in Actual's `matchTransactions`, rules run on every downloaded row first, with the
+            // bank's name as imported_payee and the payee resolved by name (a new name gets a
+            // provisional id). Matching then uses the post-rule values, and a payee is created only
+            // for a name a row still uses, so a payee a rule replaced leaves no orphan.
+            val drafts = newRows.map { row ->
+                ActualTransaction(
+                    id = idFactory(), accountId = account.id, date = row.date,
+                    amountCents = row.amountCents, payeeId = null, payeeName = null,
+                    categoryId = null, categoryName = null, notes = row.notes,
+                    cleared = row.booked, reconciled = false, transferId = null,
+                    isParent = false, parentId = null, tombstone = false, sortOrder = null,
+                    importedPayee = row.payeeName, scheduleId = null, transferAccountId = null,
+                    financialId = row.financialId, pending = !row.booked,
+                )
+            }
+            val ruled = if (drafts.isEmpty()) emptyMap() else ImportRules.apply(
+                drafts, ruleInputs.first, ruleInputs.second,
+                existingPayeeId = { database.findPayeeByName(it)?.id },
+                newId = { UUID.randomUUID().toString() },
+                keepDeleted = true,
+            ).associateBy { it.transaction.financialId!! }
+            fun ruledRow(row: BankSyncTransaction) = ruled.getValue(row.financialId)
+            fun payeeId(prepared: ImportRules.Prepared): String? =
+                prepared.createPayeeName?.let { transactions.resolveOrCreatePayee(it).id } ?: prepared.transaction.payeeId
 
             // Fuzzy-match each new bank row against a local transaction (same account and amount,
             // close date) before inserting, so a manually entered transaction that posts a few days
@@ -113,34 +139,34 @@ class BankSyncService(
             // this download still sends under their own id are taken by that exact match.
             val downloadIds = download.transactions.mapTo(mutableSetOf()) { it.financialId }
             val candidatesByRow = newRows.associate { row ->
+                val transaction = ruledRow(row).transaction
                 row.financialId to database.fuzzyMatchCandidates(
-                    account.id, row.amountCents, dateFrom = row.date.shiftDays(-7), dateTo = row.date.shiftDays(7),
+                    account.id, transaction.amountCents,
+                    dateFrom = transaction.date.shiftDays(-7), dateTo = transaction.date.shiftDays(7),
                 ).filterNot { it.financialId != null && it.financialId in downloadIds }
             }
             val matches = BankSyncMatcher.match(
-                rows = newRows.map { BankSyncMatchRow(it.financialId, it.date, payeeByRow.getValue(it).id) },
+                rows = newRows.map { row ->
+                    val prepared = ruledRow(row)
+                    // A new payee's provisional id never matches; a renamed existing payee does.
+                    val matchPayee = prepared.createPayeeName?.let { database.findPayeeByName(it)?.id }
+                        ?: prepared.transaction.payeeId.takeIf { prepared.createPayeeName == null }
+                    BankSyncMatchRow(row.financialId, prepared.transaction.date, matchPayee)
+                },
                 candidatesByRow = candidatesByRow.mapValues { (_, candidates) ->
                     candidates.map { BankSyncMatchCandidate(it.id, it.date, it.payeeId, it.reconciled) }
                 },
             )
 
             newRows.forEach { row ->
-                val payee = payeeByRow.getValue(row)
+                val prepared = ruledRow(row)
+                val bank = prepared.transaction
                 val match = matches[row.financialId]
                 when {
                     match == null -> {
-                        val created = transactions.createTransaction(
-                            ActualTransaction(
-                                id = idFactory(), accountId = account.id, date = row.date,
-                                amountCents = row.amountCents, payeeId = payee.id, payeeName = payee.name,
-                                categoryId = null, categoryName = null, notes = row.notes,
-                                cleared = row.booked, reconciled = false, transferId = null,
-                                isParent = false, parentId = null, tombstone = false, sortOrder = null,
-                                importedPayee = row.payeeName, scheduleId = null, transferAccountId = null,
-                                financialId = row.financialId, pending = !row.booked,
-                            ),
-                            applyRules = true,
-                        )
+                        // A row a rule deleted is not imported (Actual skips a tombstoned new row).
+                        if (prepared.deleted) return@forEach
+                        val created = transactions.createTransaction(bank.copy(payeeId = payeeId(prepared)), applyRules = false)
                         if (created != null) imported++
                     }
                     match.reconciled -> {
@@ -148,13 +174,16 @@ class BankSyncService(
                         matched++
                     }
                     else -> {
+                        // Actual fills the matched transaction's empty payee, category and notes
+                        // from the rule-processed bank row (`reconcileTransactions`).
                         val original = database.fetchTransaction(match.id) ?: return@forEach
                         val linked = original.copy(
                             financialId = row.financialId,
-                            payeeId = original.payeeId ?: payee.id,
-                            notes = original.notes ?: row.notes,
-                            importedPayee = row.payeeName,
-                            cleared = original.cleared || row.booked,
+                            payeeId = original.payeeId ?: payeeId(prepared),
+                            categoryId = original.categoryId ?: bank.categoryId,
+                            notes = original.notes ?: bank.notes,
+                            importedPayee = bank.importedPayee,
+                            cleared = original.cleared || bank.cleared,
                             pending = !row.booked,
                         )
                         transactions.mutate(updates = listOf(original to linked))
