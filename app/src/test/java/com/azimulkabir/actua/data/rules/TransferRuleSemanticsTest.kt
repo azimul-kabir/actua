@@ -77,6 +77,20 @@ class TransferRuleSemanticsTest {
         ).transaction.notes)
     }
 
+    @Test fun `rule runs match an empty category on a transfer but never a transfer flag`() {
+        fun rule(condition: Rule.Condition) = Rule("r", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND, listOf(condition),
+            listOf(Rule.Action("set", "notes", RuleValue.Text("hit"))))
+        val noCategory = Rule.Condition("is", "category", RuleValue.Null)
+        val isTransfer = Rule.Condition("is", "transfer", RuleValue.Flag(true))
+        val notTransfer = Rule.Condition("is", "transfer", RuleValue.Flag(false))
+        assertEquals("hit", RulesEngine.apply(transfer(), listOf(rule(noCategory))).transaction.notes)
+        assertEquals(null, RulesEngine.apply(transfer(), listOf(rule(isTransfer))).transaction.notes)
+        assertEquals(null, RulesEngine.apply(transfer(), listOf(rule(notTransfer))).transaction.notes)
+        // Report filters keep conditionsToAQL's semantics.
+        assertFalse(RulesEngine.matches(transfer(), listOf(noCategory)))
+        assertTrue(RulesEngine.matches(transfer(), listOf(isTransfer)))
+    }
+
     @Test fun `append action is deterministic from the same pristine draft`() {
         val append = rule(Rule.Action("append-notes", "notes", RuleValue.Text(" #transfer-test")))
         val draft = transfer(notes = "memo")
