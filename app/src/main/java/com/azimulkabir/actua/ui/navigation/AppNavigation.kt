@@ -106,6 +106,7 @@ import com.azimulkabir.actua.ui.settings.SchedulesScreen
 import com.azimulkabir.actua.ui.settings.FindSchedulesScreen
 import com.azimulkabir.actua.ui.settings.BillsCalendarScreen
 import com.azimulkabir.actua.ui.settings.ImportTransactionsScreen
+import com.azimulkabir.actua.ui.settings.ManagePayeesScreen
 import com.azimulkabir.actua.ui.settings.PayeeLocationsScreen
 import com.azimulkabir.actua.ui.categories.ManageCategoriesScreen
 import com.azimulkabir.actua.ui.categories.ReorderGroupsScreen
@@ -197,7 +198,7 @@ private fun TabItem.toMainDestination(): MainDestination? = when (this) {
     TabItem.ADD -> null
 }
 
-private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
+private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, ManagePayees, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -2161,6 +2162,26 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
             )
+            DetailDestination.ManagePayees -> ManagePayeesScreen(
+                payees = remember(dataVersion) { repository.managedPayees() },
+                learnCategoriesEnabled = remember(dataVersion) { repository.learnCategoriesEnabled() },
+                onBack = { detail = DetailDestination.Main },
+                onSetLearnCategoriesEnabled = { enabled ->
+                    mutate("Changing category learning") { repository.setLearnCategoriesEnabled(enabled) }
+                },
+                onRename = { payee, name -> mutate("Renaming payee") { repository.renamePayee(payee.id, name) } },
+                onSetFavorite = { payee, favorite ->
+                    mutate("Updating favorite") { repository.setPayeeFavorite(payee.id, favorite) }
+                },
+                onSetLearnCategories = { payee, learn ->
+                    mutate("Changing category learning") { repository.setPayeeLearnCategories(payee.id, learn) }
+                },
+                onDelete = { targets -> mutate("Deleting payees") { repository.deletePayees(targets.map { it.id }) } },
+                onMerge = { target, merged ->
+                    mutate("Merging payees") { repository.mergePayees(target.id, merged.map { it.id }) }
+                },
+                modifier = contentModifier,
+            )
             DetailDestination.ImportTransactions -> ImportTransactionsScreen(
                 accounts = accounts.filterNot { it.closed },
                 duplicateKeys = repository::importDuplicateKeys,
@@ -2846,6 +2867,7 @@ fun AppNavigation(
                     onSchedulesClick = { detail = DetailDestination.Schedules },
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
                     onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },
+                    onManagePayeesClick = { detail = DetailDestination.ManagePayees },
                     onReportsClick = { detail = DetailDestination.Reports },
                     showReportsShortcut = TabItem.REPORTS !in tabBarLayout.visibleTabs,
                     showHomeShortcut = TabItem.HOME !in tabBarLayout.visibleTabs,

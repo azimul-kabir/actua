@@ -16,6 +16,7 @@ import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
 import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
 import com.azimulkabir.actua.data.budget.model.ActualIncomeBudget
+import com.azimulkabir.actua.data.budget.model.ActualManagedPayee
 import com.azimulkabir.actua.data.sync.CrdtMessage
 import com.azimulkabir.actua.data.sync.CrdtValue
 import com.azimulkabir.actua.data.sync.HlcTimestamp
@@ -511,6 +512,35 @@ class ActualBudgetDatabase private constructor(
             )
         }
         return result
+    }
+
+    /**
+     * Upstream `getPayees`: live payees, transfer payees named after their live account (and hidden
+     * when it's deleted), ordinary payees first, then by name. Older schemas without `favorite` /
+     * `learn_categories` read the column defaults (0 / 1).
+     */
+    @Synchronized
+    fun fetchManagedPayees(): List<ActualManagedPayee> {
+        val payeeColumns = columns("payees")
+        val favorite = if ("favorite" in payeeColumns) "COALESCE(p.favorite, 0)" else "0"
+        val learn = if ("learn_categories" in payeeColumns) "COALESCE(p.learn_categories, 1)" else "1"
+        return database.rawQuery(
+            """SELECT p.id, COALESCE(a.name, p.name), p.transfer_acct, $favorite, $learn
+                FROM payees p
+                LEFT JOIN accounts a ON p.transfer_acct = a.id AND (a.tombstone = 0 OR a.tombstone IS NULL)
+                WHERE (p.tombstone = 0 OR p.tombstone IS NULL)
+                  AND (p.transfer_acct IS NULL OR a.id IS NOT NULL)
+                ORDER BY p.transfer_acct IS NULL DESC, COALESCE(a.name, p.name) COLLATE NOCASE""",
+            null,
+        ).use { cursor -> buildList {
+            while (cursor.moveToNext()) add(ActualManagedPayee(
+                id = cursor.getString(0),
+                name = cursor.stringOrNull(1).orEmpty(),
+                transferAccountId = cursor.stringOrNull(2),
+                favorite = cursor.intOrZero(3) == 1,
+                learnCategories = cursor.intOrZero(4) != 0,
+            ))
+        } }
     }
 
     @Synchronized
