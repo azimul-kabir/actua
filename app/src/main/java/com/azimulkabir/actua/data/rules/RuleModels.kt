@@ -81,6 +81,37 @@ data class Rule(
         })
     } }.toString()
 
+    /**
+     * Upstream `migrateIds`: id-typed `is`/`isNot`/`oneOf`/`notOneOf` condition values and `set`
+     * action values follow `payee_mapping`/`category_mapping`, so rules keep working after a
+     * payee or category merge. Lists are de-duplicated after mapping, as upstream does.
+     */
+    fun withMappedIds(mappings: Map<String, String>): Rule {
+        if (mappings.isEmpty()) return this
+        fun map(value: RuleValue): RuleValue =
+            value.text?.let { id -> mappings[id]?.let(RuleValue::Text) } ?: value
+        return copy(
+            conditions = conditions.map { condition ->
+                if (RuleSchema.type(condition.field) != RuleFieldType.ID) return@map condition
+                when (condition.op) {
+                    "is", "isNot" -> condition.copy(value = map(condition.value))
+                    "oneOf", "notOneOf" -> condition.value.list
+                        ?.let { values -> condition.copy(value = RuleValue.ListValue(values.map(::map).distinct())) }
+                        ?: condition
+                    else -> condition
+                }
+            },
+            actions = actions.map { action ->
+                val field = action.field
+                if (action.op == "set" && field != null && RuleSchema.type(field) == RuleFieldType.ID) {
+                    action.copy(value = map(action.value))
+                } else {
+                    action
+                }
+            },
+        )
+    }
+
     companion object {
         fun empty(id: String = java.util.UUID.randomUUID().toString()) = Rule(
             id, Stage.DEFAULT, ConditionsOp.AND, emptyList(), emptyList(),

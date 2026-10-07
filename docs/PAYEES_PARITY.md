@@ -72,7 +72,7 @@ payee management screen.
 | Delete of a transfer payee is a no-op | early `return` | `require` fails | **Intentional** (writer refuses rather than silently ignoring) |
 | Rules referencing a deleted payee are left alone | no rule changes | no rule changes | Match |
 | Merge: re-point every mapping whose `targetId` is a merged id, then `payee_mapping[id] = target` and tombstone each merged payee, one batch | `mergePayees` | writes the merged payees' own mapping and tombstone only | **Divergence** [#895](https://github.com/azimul-kabir/actua/issues/895): an earlier merge into a now-merged payee keeps pointing at the tombstoned payee (latent while there are no callers) |
-| Merge never touches rules; rules follow merges by id mapping at load time | `migrateIds` | rules read raw ids | **Divergence** [#893](https://github.com/azimul-kabir/actua/issues/893), see §6 |
+| Merge never touches rules; rules follow merges by id mapping at load time | `migrateIds` | `fetchRules` maps ids through `payee_mapping`/`category_mapping` | Match (fixed by [#900](https://github.com/azimul-kabir/actua/pull/900) for [#893](https://github.com/azimul-kabir/actua/issues/893)), see §6 |
 | Transfer target or transfer sources | target: no-op; sources: filtered out | `require` fails | **Intentional** (refuses instead of partially applying) |
 | Undo | `undoable` handlers | Actua has no undo | N/A |
 
@@ -130,8 +130,8 @@ Mapping lookups are one hop in every path.
 | Find Schedules discovery (`fetchDiscoveryTransactions`, `:674`) | `JOIN payee_mapping` | Yes |
 | Bank sync fuzzy match candidates (`fuzzyMatchCandidates`, `:277`) | `COALESCE(pm.targetId, t.description)` | Yes ([#640](https://github.com/azimul-kabir/actua/issues/640)) |
 | Bank sync / import new-payee lookup (`findPayeeByName`) | by name over live payees | N/A (name lookup, not an id) |
-| Rules: condition values and `set payee` actions (`RulesEngine`, `fetchRules` `:589`) | raw stored ids | **No.** Divergence [#893](https://github.com/azimul-kabir/actua/issues/893) |
-| Rule editor and rule-preview payee names (`ruleContext().payeeNames`, `:619`) | live payees by raw id; a merged id shows no name | **No.** Divergence [#893](https://github.com/azimul-kabir/actua/issues/893) |
+| Rules: id-typed `is`/`isNot`/`oneOf`/`notOneOf` condition values and `set` actions (`fetchRules` → `Rule.withMappedIds`) | mapped on read, stored JSON unchanged | Yes ([#893](https://github.com/azimul-kabir/actua/issues/893)) |
+| Rule editor and rule-preview payee names (`ruleContext().payeeNames`) | rules arrive mapped, so names come from the surviving payee; saving an edited rule stores the mapped ids, as upstream `serialize` does | Yes ([#893](https://github.com/azimul-kabir/actua/issues/893)) |
 | Payee locations (`fetchNearbyPayees`, `fetchPayeeLocations`) | raw `payee_id`; locations of a merged payee drop out with the tombstoned payee | Match: upstream `getNearbyPayees` joins `payees` directly without the mapping |
 
 ## 7. Payee picker ordering and filtering
@@ -182,7 +182,7 @@ writer CRDT messages, schema gate, partial rows), `src/test/.../ui/transactions/
 
 ## Filed divergences
 
-- [#893](https://github.com/azimul-kabir/actua/issues/893): Rules keyed to a merged payee or category stop matching after the merge (P2).
+- [#893](https://github.com/azimul-kabir/actua/issues/893): Rules keyed to a merged payee or category stop matching after the merge (P2). Fixed by [#900](https://github.com/azimul-kabir/actua/pull/900).
 - [#894](https://github.com/azimul-kabir/actua/issues/894): Saving a transaction doesn't learn the payee's category (P2).
 - [#895](https://github.com/azimul-kabir/actua/issues/895): Merging a payee leaves earlier merges pointing at the merged payee (latent; blocks #896).
 - [#896](https://github.com/azimul-kabir/actua/issues/896): No payee management (rename, merge, delete, favorite, learn categories).

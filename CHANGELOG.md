@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Rules for a payee or category that was merged keep matching after the merge ([#900](https://github.com/azimul-kabir/actua/pull/900))
 - "Color balances" now also colors Balance pills in Plan view ([#892](https://github.com/azimul-kabir/actua/pull/892))
 
 ## [1.6.0] - 2026-10-07

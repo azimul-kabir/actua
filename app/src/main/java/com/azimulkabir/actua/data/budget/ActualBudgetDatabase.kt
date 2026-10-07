@@ -598,7 +598,21 @@ class ActualBudgetDatabase private constructor(
                     cursor.stringOrNull(3), cursor.stringOrNull(4))
             }.getOrNull()?.let(result::add)
         }
-        return result
+        val mappings = idMappings()
+        return if (mappings.isEmpty()) result else result.map { it.withMappedIds(mappings) }
+    }
+
+    /**
+     * Upstream `db/mappings.ts`: merged payee and category ids, old id -> surviving id. Payee and
+     * category ids are UUIDs, so one map holds both. Self mappings are left out.
+     */
+    private fun idMappings(): Map<String, String> = buildMap {
+        listOf("payee_mapping" to "targetId", "category_mapping" to "transferId").forEach { (table, target) ->
+            if (!hasTable(table)) return@forEach
+            database.rawQuery(
+                "SELECT id, $target FROM $table WHERE $target IS NOT NULL AND $target != id", null,
+            ).use { cursor -> while (cursor.moveToNext()) put(cursor.getString(0), cursor.getString(1)) }
+        }
     }
 
     @Synchronized
