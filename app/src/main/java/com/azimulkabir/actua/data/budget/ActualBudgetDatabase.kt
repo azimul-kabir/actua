@@ -19,6 +19,7 @@ import com.azimulkabir.actua.data.budget.model.ActualIncomeBudget
 import com.azimulkabir.actua.data.sync.CrdtMessage
 import com.azimulkabir.actua.data.sync.CrdtValue
 import com.azimulkabir.actua.data.sync.HlcTimestamp
+import com.azimulkabir.actua.data.rules.CategoryLearning
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.location.Coordinates
 import com.azimulkabir.actua.data.location.LocationUtils
@@ -600,6 +601,66 @@ class ActualBudgetDatabase private constructor(
         }
         val mappings = idMappings()
         return if (mappings.isEmpty()) result else result.map { it.withMappedIds(mappings) }
+    }
+
+    /** Synced `learn-categories` preference value, or null when unset (Actual's default is on). */
+    @Synchronized
+    fun learnCategoriesPreference(): String? {
+        if (!hasTable("preferences")) return null
+        return database.rawQuery(
+            "SELECT value FROM preferences WHERE id = ?", arrayOf(CategoryLearning.PREFERENCE_ID),
+        ).use { cursor -> if (cursor.moveToFirst()) cursor.stringOrNull(0) else null }
+    }
+
+    /**
+     * Upstream `updateCategoryRules` register: non-parent `v_transactions` rows for [payeeIds] dated
+     * [fromDate]..[toDate] in open accounts whose payee has `learn_categories = 1`, newest first.
+     * Payee and category ids are mapped and only live ones are kept, as `v_transactions` does.
+     */
+    @Synchronized
+    fun fetchCategoryLearningRegister(payeeIds: Collection<String>, fromDate: Int, toDate: Int): List<CategoryLearning.RegisterRow> {
+        if (payeeIds.isEmpty() || !hasTable("payee_mapping") || !hasTable("category_mapping")) return emptyList()
+        val learnFilter = if ("learn_categories" in columns("payees")) "AND p.learn_categories = 1" else ""
+        data class Ordered(val row: CategoryLearning.RegisterRow, val date: Int, val startingBalance: Int, val sortOrder: Double?)
+        val rows = mutableListOf<Ordered>()
+        payeeIds.distinct().chunked(500).forEach { batch ->
+            val placeholders = batch.joinToString { "?" }
+            database.rawQuery(
+                """
+                    SELECT t.id, p.id, c.id, t.date, t.starting_balance_flag, t.sort_order
+                    FROM transactions t
+                    LEFT JOIN transactions parent ON t.isChild = 1 AND parent.id = t.parent_id
+                    LEFT JOIN payee_mapping pm ON pm.id = t.description
+                    JOIN payees p ON p.id = COALESCE(pm.targetId, t.description)
+                        AND (p.tombstone = 0 OR p.tombstone IS NULL)
+                    LEFT JOIN category_mapping cm ON cm.id = t.category
+                    LEFT JOIN categories c ON c.id = COALESCE(cm.transferId, t.category)
+                        AND (c.tombstone = 0 OR c.tombstone IS NULL)
+                    JOIN accounts a ON a.id = t.acct AND (a.tombstone = 0 OR a.tombstone IS NULL)
+                    WHERE (t.tombstone = 0 OR t.tombstone IS NULL)
+                      AND t.date IS NOT NULL AND t.date >= ? AND t.date <= ?
+                      AND (t.isParent = 0 OR t.isParent IS NULL)
+                      AND (t.isChild = 0 OR t.isChild IS NULL OR
+                           (t.parent_id IS NOT NULL AND parent.tombstone = 0))
+                      AND (a.closed = 0 OR a.closed IS NULL)
+                      $learnFilter
+                      AND p.id IN ($placeholders)
+                """.trimIndent(),
+                (listOf(fromDate.toString(), toDate.toString()) + batch).toTypedArray(),
+            ).use { cursor ->
+                while (cursor.moveToNext()) rows += Ordered(
+                    CategoryLearning.RegisterRow(cursor.getString(0), cursor.stringOrNull(1), cursor.stringOrNull(2)),
+                    cursor.getInt(3), cursor.intOrZero(4), if (cursor.isNull(5)) null else cursor.getDouble(5),
+                )
+            }
+        }
+        // `v_transactions` order: date DESC, starting_balance_flag, sort_order DESC, id.
+        return rows.sortedWith(
+            compareByDescending<Ordered> { it.date }
+                .thenBy { it.startingBalance }
+                .thenByDescending { it.sortOrder ?: Double.NEGATIVE_INFINITY }
+                .thenBy { it.row.id },
+        ).map(Ordered::row)
     }
 
     /**

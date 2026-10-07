@@ -106,8 +106,9 @@ allowlist is `name`, `tombstone` (`ActualEntityWriter.kt:436`).
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | `favorite` read: favorites lead the picker's Suggested Payees | `getPayeeSuggestions` | ignored | **Divergence** [#897](https://github.com/azimul-kabir/actua/issues/897) |
+| `learn_categories` read: payees set to 0 are left out of learning | `updateCategoryRules` register | same filter (skipped on schemas without the column, where every payee learns) | Match |
 | `favorite` / `learn_categories` written from the Payees page | `payees-batch-change` | not writable | **Divergence** [#896](https://github.com/azimul-kabir/actua/issues/896) |
-| Category learning: after a categorised add/edit, for each payee with `learn_categories = 1`, take its latest 5 non-parent transactions in open accounts (±180 days); a category used ≥ 3 times updates every `payee is X → set category` default-stage rule, or creates one | `updateCategoryRules` | never runs; Actua saves don't create or update these rules | **Divergence** [#894](https://github.com/azimul-kabir/actua/issues/894) |
+| Category learning: after a categorised add/edit, for each payee with `learn_categories = 1`, take its latest 5 non-parent transactions in open accounts (±180 days); a category used ≥ 3 times updates every `payee is X → set category` default-stage rule, or creates one | `updateCategoryRules` | runs after transaction-form saves (rows whose `category` cell the save set to a non-null value), with the same register, 5-row window, ≥ 3 vote rule and setter-rule update/create; all rule writes in one batch (`ActualEntityWriter.learnCategories`, `data/rules/CategoryLearning.kt`) | Match (fixed by [#901](https://github.com/azimul-kabir/actua/pull/901) for [#894](https://github.com/azimul-kabir/actua/issues/894)). Like the desktop register; Actual's mobile editor and bank sync don't learn, and neither do Actua's imports and bank sync. |
 | Learned rules created by other clients are applied | rules engine | applied like any other rule | Match |
 
 ## 6. Every read that accepts a payee id resolves through `payee_mapping`
@@ -183,7 +184,7 @@ writer CRDT messages, schema gate, partial rows), `src/test/.../ui/transactions/
 ## Filed divergences
 
 - [#893](https://github.com/azimul-kabir/actua/issues/893): Rules keyed to a merged payee or category stop matching after the merge (P2). Fixed by [#900](https://github.com/azimul-kabir/actua/pull/900).
-- [#894](https://github.com/azimul-kabir/actua/issues/894): Saving a transaction doesn't learn the payee's category (P2).
+- [#894](https://github.com/azimul-kabir/actua/issues/894): Saving a transaction doesn't learn the payee's category (P2). Fixed by [#901](https://github.com/azimul-kabir/actua/pull/901).
 - [#895](https://github.com/azimul-kabir/actua/issues/895): Merging a payee leaves earlier merges pointing at the merged payee (latent; blocks #896).
 - [#896](https://github.com/azimul-kabir/actua/issues/896): No payee management (rename, merge, delete, favorite, learn categories).
 - [#897](https://github.com/azimul-kabir/actua/issues/897): Payee picker has no Suggested Payees section (low).

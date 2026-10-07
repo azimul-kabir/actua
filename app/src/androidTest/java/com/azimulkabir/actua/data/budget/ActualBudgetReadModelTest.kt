@@ -1062,6 +1062,64 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun categoryLearningCreatesThenUpdatesThePayeeRuleLikeActual() {
+        // Upstream updateCategoryRules (actua#894).
+        val file = createDatabaseFile()
+        val today = DayDate.today()
+        fun day(offset: Int) = today.addingDays(-offset).yyyymmdd
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("ALTER TABLE payees ADD COLUMN learn_categories BOOLEAN DEFAULT 1")
+                db.execSQL("INSERT INTO payees(id,name,transfer_acct,tombstone) VALUES ('cafe','Cafe',NULL,0), ('quiet','Quiet',NULL,0)")
+                db.execSQL("UPDATE payees SET learn_categories = 0 WHERE id = 'quiet'")
+                db.execSQL("INSERT INTO payee_mapping VALUES ('cafe','cafe'), ('quiet','quiet')")
+                insertTransaction(db, "cafe-1", 0, 0, "checking", "grocery", -100, "cafe", day(1), 1.0)
+                insertTransaction(db, "cafe-2", 0, 0, "checking", "grocery", -100, "cafe", day(2), 1.0)
+                insertTransaction(db, "cafe-3", 0, 0, "checking", "grocery", -100, "cafe", day(3), 1.0)
+                insertTransaction(db, "quiet-1", 0, 0, "checking", "grocery", -100, "quiet", day(1), 1.0)
+                insertTransaction(db, "quiet-2", 0, 0, "checking", "grocery", -100, "quiet", day(2), 1.0)
+                insertTransaction(db, "quiet-3", 0, 0, "checking", "grocery", -100, "quiet", day(3), 1.0)
+            }
+            ActualBudgetDatabase.open(file).use { database ->
+                var next = 0
+                val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc", idFactory = { "learned-${++next}" })
+                fun cafeSetters() = database.fetchRules().filter { rule ->
+                    rule.conditions.singleOrNull()?.let { it.field == "payee" && it.value.text == "cafe" } == true
+                }
+
+                writer.learnCategories(listOfNotNull(database.fetchTransactionRow("quiet-1")))
+                assertTrue(database.fetchRules().none { it.id.startsWith("learned-") })
+
+                writer.learnCategories(listOfNotNull(database.fetchTransactionRow("cafe-1")))
+                val created = cafeSetters().single()
+                assertEquals("is", created.conditions.single().op)
+                assertEquals("grocery", created.actions.single().value.text)
+
+                SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                    insertTransaction(db, "cafe-4", 0, 0, "checking", "rent", -100, "cafe", day(0), 1.0)
+                    insertTransaction(db, "cafe-5", 0, 0, "checking", "rent", -100, "cafe", day(0), 2.0)
+                    insertTransaction(db, "cafe-6", 0, 0, "checking", "rent", -100, "cafe", day(0), 3.0)
+                }
+                writer.learnCategories(listOfNotNull(database.fetchTransactionRow("cafe-6")))
+                val updated = cafeSetters().single()
+                assertEquals(created.id, updated.id)
+                assertEquals("rent", updated.actions.single().value.text)
+
+                SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                    db.execSQL("INSERT INTO preferences VALUES ('learn-categories','false')")
+                    insertTransaction(db, "cafe-7", 0, 0, "checking", "grocery", -100, "cafe", day(0), 4.0)
+                    insertTransaction(db, "cafe-8", 0, 0, "checking", "grocery", -100, "cafe", day(0), 5.0)
+                    insertTransaction(db, "cafe-9", 0, 0, "checking", "grocery", -100, "cafe", day(0), 6.0)
+                }
+                writer.learnCategories(listOfNotNull(database.fetchTransactionRow("cafe-9")))
+                assertEquals("rent", cafeSetters().single().actions.single().value.text)
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun savedReportsReadIncludeCurrentAndTolerateOlderSchemas() {
         val file = createDatabaseFile()
         try {

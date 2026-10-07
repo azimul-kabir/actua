@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Categorising a payee's transactions creates or updates its category rule, as Actual's category learning does ([#901](https://github.com/azimul-kabir/actua/pull/901))
+
 ### Fixed
 
 - Rules for a payee or category that was merged keep matching after the merge ([#900](https://github.com/azimul-kabir/actua/pull/900))

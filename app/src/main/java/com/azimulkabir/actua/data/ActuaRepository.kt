@@ -67,6 +67,8 @@ import com.azimulkabir.actua.model.paymentDue
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.model.sortedForPaymentPriority
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
+import com.azimulkabir.actua.data.sync.CrdtMessage
+import com.azimulkabir.actua.data.sync.CrdtValue
 import org.json.JSONObject
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.rules.RuleChoice
@@ -1146,6 +1148,7 @@ class ActuaRepository(context: Context) {
                 error("Select a category from the list")
             }
             val original = transaction.id.takeIf(String::isNotBlank)?.let(db::fetchTransaction)
+            val logBeforeSave = db.maxMessageTimestamp()
             actualForms!!.save(
                 ActualTransactionForm(
                     accountId = account.id,
@@ -1181,9 +1184,26 @@ class ActuaRepository(context: Context) {
                 original = original,
                 applyRules = !transaction.rulesApplied,
             )
+            learnCategoriesFromSave(db, logBeforeSave)
             return
         }
         error("Connect to Actual and download a budget before adding transactions")
+    }
+
+    /**
+     * Actual's register saves pass `learnCategories`, so rows the save added with a category or
+     * whose category it set (a non-null `category` cell written since [logBeforeSave]) feed
+     * category learning. The transaction is already saved, so a learning failure doesn't fail it.
+     */
+    private fun learnCategoriesFromSave(db: ActualBudgetDatabase, logBeforeSave: String?) {
+        runCatching {
+            val touched = db.getMessagesSince(logBeforeSave ?: "")
+                .filter { it.dataset == "transactions" && it.column == "category" && it.value != CrdtValue.serialize(null) }
+                .map(CrdtMessage::row)
+                .distinct()
+                .mapNotNull(db::fetchTransactionRow)
+            actualEntities?.learnCategories(touched)
+        }
     }
 
     fun previewRules(transaction: Transaction): Transaction {

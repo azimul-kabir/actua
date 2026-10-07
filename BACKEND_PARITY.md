@@ -247,7 +247,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   tombstoning source payees (earlier merges into a source aren't re-pointed yet, #895), and
   transaction reads (reports, filters, schedules, bank sync) resolve merged payees and
   categories through `payee_mapping`/`category_mapping`, as do rule condition and action ids
-  (upstream `migrateIds`). The payee
+  (upstream `migrateIds`). Transaction-form saves run Actual's category learning, honouring the
+  synced `learn-categories` preference and `payees.learn_categories`. The payee
   writers have no UI yet (#896); see [docs/PAYEES_PARITY.md](docs/PAYEES_PARITY.md); account deletion
   tombstones its owned transfer payee; transfer payees cannot be independently deleted or merged; group deletion
   tombstones its categories before the group; and reorder uses Actual-compatible
