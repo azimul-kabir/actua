@@ -136,6 +136,48 @@ class BudgetTemplatePlannerTest {
         BudgetTarget(BudgetTarget.Type.REFILL),
     )
 
+    @Test fun percentageOfPreviousMonthUsesLastMonthsIncome() {
+        // Regression for #859: `3% of previous Salary` budgeted nothing.
+        val category = category("savings", "Savings", assigned = 0, automations = listOf(
+            BudgetTarget(
+                BudgetTarget.Type.PERCENTAGE, priority = 1, percentage = 3,
+                percentageSource = "Salary", percentagePrevious = true,
+            ),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category)), income), "2026-09")
+
+        assertEquals(listOf(4_500L), preview.changes.map { it.proposedCents })
+    }
+
+    @Test fun percentageOfPreviousAllIncomeSumsLastMonthsIncomeCategories() {
+        val category = category("savings", "Savings", assigned = 0, automations = listOf(
+            BudgetTarget(
+                BudgetTarget.Type.PERCENTAGE, priority = 1, percentage = 10,
+                percentageSource = "all income", percentagePrevious = true,
+            ),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category)), income), "2026-09")
+
+        assertEquals(listOf(17_000L), preview.changes.map { it.proposedCents })
+    }
+
+    private val income = BudgetGroup(
+        "Income",
+        listOf(
+            incomeCategory("salary", "Salary", previous = 150_000, current = 900_000),
+            incomeCategory("bonus", "Bonus", previous = 20_000, current = 0),
+        ),
+        isIncome = true,
+    )
+
+    private fun incomeCategory(id: String, name: String, previous: Long, current: Long) = BudgetCategory(
+        name = name, assigned = 0, spent = 0, actualAssignedCents = 0, id = id,
+        availableCents = current, isIncome = true,
+        history = listOf(BudgetHistory("2026-08", 0, previous)),
+    )
+
     @Test fun fundsHigherPrioritiesFirstAndReportsAvailableFundsClamp() {
         val first = category("rent", "Rent", assigned = 0, automations = listOf(
             BudgetTarget(BudgetTarget.Type.FIXED, 80_000, priority = 1),

@@ -3,61 +3,37 @@
     "category": "T Schedule monthly",
     "month": "2026-09",
     "field": "budgeted",
-    "issue": "knock-on of #859, #860"
+    "issue": "knock-on of #860"
   },
   {
     "category": "T Remainder 3",
     "month": "2026-08",
     "field": "budgeted",
-    "issue": "knock-on of #859, #860"
+    "issue": "knock-on of #860"
   },
   {
     "category": "T Remainder 2",
     "month": "2026-08",
     "field": "budgeted",
-    "issue": "knock-on of #859, #860"
+    "issue": "knock-on of #860"
   },
   {
     "category": "T Remainder 1",
     "month": "2026-08",
     "field": "budgeted",
-    "issue": "knock-on of #859, #860"
-  },
-  {
-    "category": "T Percent previous",
-    "month": "2026-08",
-    "field": "budgeted",
-    "issue": 859
-  },
-  {
-    "category": "T Percent previous",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 859
-  },
-  {
-    "category": "T Percent previous",
-    "month": "2026-09",
-    "field": "budgeted",
-    "issue": 859
-  },
-  {
-    "category": "T Percent previous",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 859
+    "issue": "knock-on of #860"
   },
   {
     "category": "T Percent available",
     "month": "2026-08",
     "field": "budgeted",
-    "issue": "knock-on of #859, #860"
+    "issue": "knock-on of #860"
   },
   {
     "category": "T Percent available",
     "month": "2026-08",
     "field": "goal",
-    "issue": "knock-on of #859, #860"
+    "issue": "knock-on of #860"
   },
   {
     "category": "T Average refund",

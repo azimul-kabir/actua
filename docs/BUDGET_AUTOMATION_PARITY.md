@@ -46,7 +46,7 @@ and the scarce-funds September schedule all depend on how much other templates t
 | Copy from N months ago | [`runCopy`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L687-L698) | `suggestedBudget` (`COPY`) | Match | T Copy |
 | Percentage of an income category / all income | [`runPercentage`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L825-L869) | `requestedAtPriority` | Match | T Percent salary, T Percent all income |
 | Percentage of available funds | `runPercentage` with the priority's starting funds | `requestedAtPriority` with the same start | Same rule; the checked value is a knock-on | T Percent available |
-| Percentage of previous month's income | `runPercentage` (`previous`) | 0 | **Divergence** [#859](https://github.com/azimul-kabir/actua/issues/859) | T Percent previous |
+| Percentage of previous month's income | `runPercentage` (`previous`) | `requestedAtPriority` (last month's income history) | Match ([#859](https://github.com/azimul-kabir/actua/issues/859)) | T Percent previous |
 | Refill to a monthly cap | [`runRefill`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L680-L685) | `requestedAtPriority` | Match | T Refill |
 | Refill or limit with a weekly/daily cap | cap scaled to the month (`checkLimit`) | `capForMonth` | Match ([#858](https://github.com/azimul-kabir/actua/issues/858)) | T Refill weekly |
 | Limit with carryover over the cap (`hold` false/true) | releases the excess or holds it (`checkLimit`) | `releasedByLimit` | Match (budget) | T Limit release, T Limit hold |
@@ -119,8 +119,8 @@ so repeated previews and applications are deterministic.
 Percentage sources now support current-month `available funds`, `all income`, and exact income
 category IDs/names present in the downloaded budget, editable from the automation editor's
 "Income source" picker (previously limited to `available funds` in the UI, though the codec
-always accepted an arbitrary source). Previous-month sources remain unsupported; their stored
-definitions remain untouched and the preview names affected categories. Percentage automations
+always accepted an arbitrary source). Previous-month sources use the named income category's
+received amount, or all income, from the month before. Percentage automations
 use their source value at the start of the priority and are clamped by the same available-funds
 rules as other positive-priority contributions.
 
