@@ -45,7 +45,7 @@ form (`ActualTransactionFormService.resolvePayee`, `:359`), imports and bank syn
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | New payee = `payees {name}` + `payee_mapping {id → id}` in one batch | `insertPayee` | `payees {name, transfer_acct: null, tombstone: 0}` + mapping, one transaction | Match. The extra cells are the column defaults. |
-| Implicit create from transaction entry, reusing an existing payee with the same name | PWA hides "Create payee" when the top match equals the input after `getNormalisedString` (lower-case, diacritics removed); import/bank sync use `createPayee` (`UNICODE_LOWER`) | create-or-reuse by `UPPER(name) = UPPER(?)` | **Divergence** [#898](https://github.com/azimul-kabir/actua/issues/898): SQLite `UPPER` folds ASCII only, so `CAFÉ` doesn't reuse `Café` |
+| Implicit create from transaction entry, reusing an existing payee with the same name | PWA hides "Create payee" when the top match equals the input after `getNormalisedString` (lower-case, diacritics removed); import/bank sync use `createPayee` (`UNICODE_LOWER`) | create-or-reuse by full Unicode lower-casing (`PayeeNames.unicodeLower`, JavaScript `toLowerCase()` semantics) over live payees | Match ([#905](https://github.com/azimul-kabir/actua/pull/905) for [#898](https://github.com/azimul-kabir/actua/issues/898)). Picker typing doesn't strip diacritics; saving reuses the case-folded match. |
 | Name trimming | name stored as typed | trimmed; empty rejected | **Intentional.** Avoids creating `Shop ` next to `Shop`; other clients see an ordinary name. |
 | Duplicate names | possible (`payee-create` doesn't check) | possible via sync; lookups take the first live match | Match |
 | Payee written before the transaction, not in the same batch | `payee-create` then `transactions-batch-update` | `insertPayee` then the transaction write | Match |
@@ -154,7 +154,7 @@ Actua: `ActuaRepository.payeeNames` (`:185`), `AppNavigation.kt:1624`,
 | Ordinary payees alphabetical, case-insensitive | `COLLATE NOCASE` | `CASE_INSENSITIVE_ORDER`, grouped by first letter | Match (letter headers are Android presentation) |
 | Transfers in their own section after payees | Transfer To/From, ordered on-budget first then `sort_order` | `Transfer:` section, alphabetical | **Intentional.** Same members; Android orders by name. |
 | Typing filters ordinary and transfer entries together | Fzf fuzzy subsequence | case-insensitive substring, alphabetical | **Intentional** (documented in `BACKEND_PARITY.md`). Substring is stricter than fuzzy; no wrong matches. |
-| Exact match suppresses "Create payee" | `getNormalisedString` | saving reuses the payee found by `findPayeeByName` | See §2 / [#898](https://github.com/azimul-kabir/actua/issues/898) |
+| Exact match suppresses "Create payee" | `getNormalisedString` (also strips diacritics) | "Add" is hidden for a case-insensitive exact match; saving reuses the payee found by `findPayeeByName` | **Intentional**: the diacritic-insensitive picker hint is UI-only; the server-visible create-or-reuse rule matches (§2) |
 
 ## 8. Payee locations
 
@@ -189,7 +189,7 @@ writer CRDT messages, schema gate, partial rows), `src/test/.../ui/transactions/
 - [#895](https://github.com/azimul-kabir/actua/issues/895): Merging a payee leaves earlier merges pointing at the merged payee (latent; blocks #896). Fixed by [#902](https://github.com/azimul-kabir/actua/pull/902).
 - [#896](https://github.com/azimul-kabir/actua/issues/896): No payee management (rename, merge, delete, favorite, learn categories). Fixed by [#903](https://github.com/azimul-kabir/actua/pull/903).
 - [#897](https://github.com/azimul-kabir/actua/issues/897): Payee picker has no Suggested Payees section (low). Fixed by [#904](https://github.com/azimul-kabir/actua/pull/904).
-- [#898](https://github.com/azimul-kabir/actua/issues/898): Payee name lookup is ASCII-only case-insensitive (P2).
+- [#898](https://github.com/azimul-kabir/actua/issues/898): Payee name lookup is ASCII-only case-insensitive (P2). Fixed by [#905](https://github.com/azimul-kabir/actua/pull/905).
 
 **Limitations:** this audit compares source at the pinned commit and Actua's code; it doesn't
 run a live PWA. `ActualEntityWriter.renamePayee`/`deletePayee`/`mergePayees` have no test

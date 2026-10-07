@@ -12,6 +12,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Entering a payee in different capitals, like "CAFÉ" for "Café", reuses the existing payee for non-English names too ([#905](https://github.com/azimul-kabir/actua/pull/905))
 - Rules for a payee or category that was merged keep matching after the merge ([#900](https://github.com/azimul-kabir/actua/pull/900))
 - "Color balances" now also colors Balance pills in Plan view ([#892](https://github.com/azimul-kabir/actua/pull/892))
 
