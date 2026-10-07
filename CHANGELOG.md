@@ -4,10 +4,17 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.6.0] - 2026-10-07
+
+### Added
+
+- Switch between downloaded budgets from a row at the top of Manage ([#844](https://github.com/azimul-kabir/actua/pull/844))
+- Cover an overspent category's full amount in one tap from the Move Money sheet ([#841](https://github.com/azimul-kabir/actua/pull/841))
+
 ### Fixed
 
 - Rules now apply Actual-compatible templates, formulas and split actions, saving generated splits atomically ([#888](https://github.com/azimul-kabir/actua/pull/888))
-- Budget table amounts now shrink to fit narrow screens and large font sizes instead of clipping decimals ([#886](https://github.com/azimul-kabir/actua/issues/886))
+- Budget table amounts now shrink to fit narrow screens and large font sizes instead of clipping decimals ([#887](https://github.com/azimul-kabir/actua/pull/887))
 - Set budgets to zero now also clears income category budgets in tracking budgets, like Actual ([#885](https://github.com/azimul-kabir/actua/pull/885))
 - Budget templates round to whole amounts when the budget hides decimals, like Actual ([#884](https://github.com/azimul-kabir/actua/pull/884))
 - Average templates now count refunds and round like Actual ([#883](https://github.com/azimul-kabir/actua/pull/883))
@@ -26,11 +33,6 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Rule contains/matches conditions on payee, category and account now compare ids like Actual instead of names ([#871](https://github.com/azimul-kabir/actua/pull/871))
 - Rules now see changes made by earlier rules, so chained rules such as rename-then-categorize work like Actual ([#867](https://github.com/azimul-kabir/actua/pull/867))
 - Status colors now tint the Balance instead of the Budgeted amount on Budget rows ([#843](https://github.com/azimul-kabir/actua/pull/843))
-
-### Added
-
-- Switch between downloaded budgets from a row at the top of Manage ([#844](https://github.com/azimul-kabir/actua/pull/844))
-- Cover an overspent category's full amount in one tap from the Move Money sheet ([#841](https://github.com/azimul-kabir/actua/pull/841))
 
 ## [1.5.0] - 2026-10-03
 
