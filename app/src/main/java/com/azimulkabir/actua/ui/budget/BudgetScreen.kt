@@ -250,6 +250,12 @@ fun BudgetScreen(
     onHoldForNextMonth: (Long) -> Unit = {},
     onResetNextMonthBuffer: () -> Unit = {},
     onCopyPreviousMonth: () -> Unit = {},
+    /** One category's budget action from its actions sheet (Actual's per-category budget menu). */
+    onCategoryBudgetAction: (categoryId: String, action: CategoryBudgetAction) -> Unit = { _, _ -> },
+    /** Actual's "Set budgets to N month average" for the whole month, as a preview to confirm. */
+    onPreviewAverageBudget: (months: Int) -> BudgetTemplatePreview? = { null },
+    /** Actual's `resetIncomeCarryover`: stops every income category holding automatically this month. */
+    onResetIncomeHold: () -> Unit = {},
     onEditAutomations: (BudgetGroup, BudgetCategory) -> Unit = { _, _ -> },
     onApplyBudgetTemplate: (BudgetTemplatePreview) -> Unit = {},
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
@@ -306,6 +312,8 @@ fun BudgetScreen(
     var templateGroupTarget by remember { mutableStateOf<BudgetGroup?>(null) }
     var zeroBudgetPreviewOpen by remember { mutableStateOf(false) }
     var cleanupPreview by remember { mutableStateOf<CleanupPreview?>(null) }
+    var averagePreview by remember { mutableStateOf<Pair<Int, BudgetTemplatePreview>?>(null) }
+    var copyToYearEnd by remember { mutableStateOf<BudgetCategory?>(null) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(returnToRootRequest) {
@@ -590,6 +598,18 @@ fun BudgetScreen(
             onTransactionsThisMonth = { selectedCategory = null; onShowCategoryTransactions(category.name, true, false) },
             onAllTransactions = { selectedCategory = null; onShowCategoryTransactions(category.name, false, false) },
             onMoveMoney = { selectedCategory = null; movingBudget = parent to category },
+            budgetActions = category.id != null && (!category.isIncome || overview.toBudgetCents == null),
+            onBudgetAction = { action ->
+                selectedCategory = null
+                if (action == CategoryBudgetAction.COPY_TO_YEAR_END) copyToYearEnd = category
+                else category.id?.let { onCategoryBudgetAction(it, action) }
+            },
+            // Envelope income categories hold automatically through their carryover flag.
+            incomeHold = category.carryoverEnabled.takeIf { category.isIncome && overview.toBudgetCents != null && category.id != null },
+            onSetIncomeHold = { enabled ->
+                selectedCategory = null
+                onSetCategoryCarryover(category.id.orEmpty(), enabled)
+            },
             favorite = category.id in favoriteCategoryIds,
             onFavoriteChange = { favorite ->
                 category.id?.let { onFavoriteCategoryChange(it, favorite) }
@@ -610,6 +630,10 @@ fun BudgetScreen(
             onSetHidden = { hidden ->
                 onSetGroupHidden(group.name, hidden) { selectedGroup = null }
             },
+            onResetIncomeHold = if (group.isIncome && overview.toBudgetCents != null) ({
+                selectedGroup = null
+                onResetIncomeHold()
+            }) else null,
             onApplyTemplate = { overwrite ->
                 selectedGroup = null
                 templateGroupTarget = group
@@ -634,6 +658,10 @@ fun BudgetScreen(
             onPreviewZeroBudget = {
                 showAddSheet = false
                 zeroBudgetPreviewOpen = true
+            },
+            onPreviewAverage = { months ->
+                showAddSheet = false
+                averagePreview = onPreviewAverageBudget(months)?.let { months to it }
             })
     }
     if (zeroBudgetPreviewOpen) {
@@ -651,6 +679,36 @@ fun BudgetScreen(
             description = "Nothing changes until you apply this preview. Every category's budgeted amount for ${formatMonth(month)} will be reset to zero.",
             upToDateMessage = "Every category is already at zero.",
             unchangedLabel = if (zeroBudgetPreview.unchangedCount == 1) "category is" else "categories are",
+        )
+    }
+    averagePreview?.let { (months, preview) ->
+        BudgetTemplatePreviewSheet(
+            preview = preview,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { averagePreview = null },
+            onApply = { onApplyBudgetTemplate(it); averagePreview = null },
+            title = averageBudgetTitle(months),
+            description = "Nothing changes until you apply this preview. Each visible category's budget for " +
+                "${formatMonth(month)} will be set to its average activity over up to $months months.",
+            upToDateMessage = "Every category is already at its average.",
+            unchangedLabel = if (preview.unchangedCount == 1) "category is" else "categories are",
+        )
+    }
+    copyToYearEnd?.let { category ->
+        AlertDialog(
+            onDismissRequest = { copyToYearEnd = null },
+            title = { Text("Copy to the rest of the year?") },
+            text = {
+                Text("${category.name}'s budget of ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)} " +
+                    "will replace its budget in every month after ${formatMonth(month)} through December.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    category.id?.let { onCategoryBudgetAction(it, CategoryBudgetAction.COPY_TO_YEAR_END) }
+                    copyToYearEnd = null
+                }) { Text("Copy") }
+            },
+            dismissButton = { TextButton(onClick = { copyToYearEnd = null }) { Text("Cancel") } },
         )
     }
     cleanupPreview?.let { preview ->
@@ -2681,6 +2739,11 @@ private fun CategoryActionsSheet(
     onFavoriteChange: (Boolean) -> Unit,
     hidden: Boolean,
     onSetHidden: (Boolean) -> Unit,
+    budgetActions: Boolean = false,
+    onBudgetAction: (CategoryBudgetAction) -> Unit = {},
+    /** The envelope income category's "automatically hold" flag; null hides the action. */
+    incomeHold: Boolean? = null,
+    onSetIncomeHold: (Boolean) -> Unit = {},
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ActuaSheetContent {
@@ -2725,6 +2788,24 @@ private fun CategoryActionsSheet(
                     onClick = { onSetHidden(!hidden) },
                 )
             }
+            // Below the existing actions, so they keep their place in the half-open sheet.
+            if (budgetActions) {
+                ActuaSheetCard {
+                    CategoryBudgetAction.entries.forEachIndexed { index, action ->
+                        if (index > 0) ActuaCardDivider()
+                        ActuaSheetAction(action.label, icon = action.icon, onClick = { onBudgetAction(action) })
+                    }
+                }
+            }
+            incomeHold?.let { holding ->
+                ActuaSheetCard {
+                    ActuaSheetAction(
+                        if (holding) "Stop holding automatically" else "Hold automatically for next month",
+                        icon = Icons.Outlined.Replay,
+                        onClick = { onSetIncomeHold(!holding) },
+                    )
+                }
+            }
         }
     }
 }
@@ -2756,10 +2837,16 @@ private fun FundingActionsSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRename: () -> Unit,
-    hidden: Boolean, onSetHidden: (Boolean) -> Unit, onApplyTemplate: (Boolean) -> Unit) {
+    hidden: Boolean, onSetHidden: (Boolean) -> Unit, onApplyTemplate: (Boolean) -> Unit,
+    onResetIncomeHold: (() -> Unit)? = null) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ActuaSheetContent {
             ActuaSheetTitle(group.name)
+            onResetIncomeHold?.let { reset ->
+                ActuaSheetCard {
+                    ActuaSheetAction("Stop all automatic holds this month", icon = Icons.Outlined.RestartAlt, onClick = reset)
+                }
+            }
             if (!group.isIncome && !hidden) {
                 ActuaSheetCard {
                     ActuaSheetAction("Apply budget templates", icon = Icons.Outlined.AutoAwesome,
@@ -2785,10 +2872,23 @@ private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRenam
     }
 }
 
+/** Actual's per-category budget menu actions (loot-core `budget/actions.ts`). */
+enum class CategoryBudgetAction(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    COPY_LAST_MONTH("Copy last month's budget", Icons.Outlined.Replay),
+    AVERAGE_3("Set to 3-month average", Icons.Outlined.Calculate),
+    AVERAGE_6("Set to 6-month average", Icons.Outlined.Calculate),
+    AVERAGE_12("Set to yearly average", Icons.Outlined.Calculate),
+    COPY_TO_YEAR_END("Copy to the rest of the year", Icons.Outlined.SwapHoriz),
+}
+
+private fun averageBudgetTitle(months: Int) =
+    if (months == 12) "Set budgets to yearly average" else "Set budgets to $months-month average"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddBudgetSheet(onDismiss: () -> Unit,
-    onApplyTemplate: (Boolean) -> Unit, onPreviewCleanup: () -> Unit, onPreviewZeroBudget: () -> Unit) {
+    onApplyTemplate: (Boolean) -> Unit, onPreviewCleanup: () -> Unit, onPreviewZeroBudget: () -> Unit,
+    onPreviewAverage: (Int) -> Unit = {}) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ActuaSheetContent {
             ActuaSheetTitle("Add to budget")
@@ -2800,6 +2900,13 @@ private fun AddBudgetSheet(onDismiss: () -> Unit,
                     onClick = { onApplyTemplate(true) })
                 ActuaCardDivider()
                 ActuaSheetAction("Month-end cleanup", icon = Icons.Outlined.CleaningServices, onClick = onPreviewCleanup)
+            }
+            ActuaSheetCard {
+                listOf(3, 6, 12).forEachIndexed { index, months ->
+                    if (index > 0) ActuaCardDivider()
+                    ActuaSheetAction(averageBudgetTitle(months), icon = Icons.Outlined.Calculate,
+                        onClick = { onPreviewAverage(months) })
+                }
             }
             ActuaSheetCard {
                 ActuaSheetAction("Set budgets to zero", icon = Icons.Outlined.DeleteSweep, destructive = true,

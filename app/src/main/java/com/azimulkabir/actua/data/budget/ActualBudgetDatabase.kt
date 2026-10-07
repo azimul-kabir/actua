@@ -1525,6 +1525,74 @@ class ActualBudgetDatabase private constructor(
         ).use { cursor -> buildMap { while (cursor.moveToNext()) put(cursor.getString(0), cursor.longOrZero(1)) } }
     }
 
+    /**
+     * Each category's raw on-budget activity (Actual's `sum-amount-<category>` cells) per month,
+     * keyed by YYYYMM, for months [fromMonth]..[toMonth] (YYYYMM). Deleted categories count toward
+     * the category they were merged into.
+     */
+    private fun categoryActivity(fromMonth: Int, toMonth: Int): Map<Int, Map<String, Long>> {
+        val spent = mutableMapOf<Int, MutableMap<String, Long>>()
+        database.rawQuery(
+            """
+                SELECT (t.date / 100), COALESCE(cm.transferId, t.category), SUM(t.amount)
+                FROM transactions t
+                LEFT JOIN category_mapping cm ON cm.id = t.category
+                LEFT JOIN accounts a ON a.id = t.acct
+                LEFT JOIN transactions p ON p.id = t.parent_id
+                WHERE (t.tombstone = 0 OR t.tombstone IS NULL)
+                  AND (t.isChild = 0 OR t.isChild IS NULL OR
+                       (p.id IS NOT NULL AND (p.tombstone = 0 OR p.tombstone IS NULL)))
+                  AND (t.isParent = 0 OR t.isParent IS NULL)
+                  AND t.category IS NOT NULL AND a.offbudget = 0
+                  AND (a.tombstone = 0 OR a.tombstone IS NULL)
+                  AND (t.date / 100) >= CAST(? AS INTEGER) AND (t.date / 100) <= CAST(? AS INTEGER)
+                GROUP BY (t.date / 100), COALESCE(cm.transferId, t.category)
+            """.trimIndent(), arrayOf(fromMonth.toString(), toMonth.toString()),
+        ).use { cursor -> while (cursor.moveToNext()) {
+            val category = cursor.stringOrNull(1) ?: continue
+            spent.getOrPut(cursor.getInt(0)) { mutableMapOf() }[category] = cursor.longOrZero(2)
+        } }
+        return spent
+    }
+
+    /** [categoryActivity] for `yyyy-MM` months, keyed by `yyyy-MM`. */
+    @Synchronized
+    fun categoryActivity(fromMonth: String, toMonth: String): Map<String, Map<String, Long>> {
+        val from = parseMonth(fromMonth) ?: return emptyMap()
+        val to = parseMonth(toMonth) ?: return emptyMap()
+        return categoryActivity(from, to).mapKeys { (month, _) -> String.format(java.util.Locale.ROOT, "%04d-%02d", month / 100, month % 100) }
+    }
+
+    /**
+     * Upstream `getFirstActivityMonth`: the earliest month up to [endMonth] with a budget row or an
+     * on-budget transaction for [categoryId], as `yyyy-MM`, or null when there is none.
+     */
+    @Synchronized
+    fun firstActivityMonth(categoryId: String, endMonth: String): String? {
+        val end = parseMonth(endMonth) ?: return null
+        val table = budgetTable()
+        val budgetMonths = if (table == null) null else database.rawQuery(
+            "SELECT MIN(month) FROM $table WHERE category = ? AND month <= CAST(? AS INTEGER)", arrayOf(categoryId, end.toString()),
+        ).use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getInt(0) else null }
+        val transactionMonth = database.rawQuery(
+            """
+                SELECT MIN(t.date / 100)
+                FROM transactions t
+                LEFT JOIN category_mapping cm ON cm.id = t.category
+                LEFT JOIN accounts a ON a.id = t.acct
+                LEFT JOIN transactions p ON p.id = t.parent_id
+                WHERE (t.tombstone = 0 OR t.tombstone IS NULL)
+                  AND (t.isChild = 0 OR t.isChild IS NULL OR
+                       (p.id IS NOT NULL AND (p.tombstone = 0 OR p.tombstone IS NULL)))
+                  AND (t.isParent = 0 OR t.isParent IS NULL)
+                  AND COALESCE(cm.transferId, t.category) = ? AND a.offbudget = 0
+                  AND (t.date / 100) <= CAST(? AS INTEGER)
+            """.trimIndent(), arrayOf(categoryId, end.toString()),
+        ).use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getInt(0) else null }
+        val first = listOfNotNull(budgetMonths, transactionMonth).minOrNull() ?: return null
+        return String.format(java.util.Locale.ROOT, "%04d-%02d", first / 100, first % 100)
+    }
+
     /** Month walk matching Actuali iOS BudgetDatabase.budgetWalk. */
     @Synchronized
     fun fetchBudgetMonth(month: String): ActualBudgetMonth {
@@ -1545,27 +1613,7 @@ class ActualBudgetDatabase private constructor(
             )
         } }
 
-        val spent = mutableMapOf<Int, MutableMap<String, Long>>()
-        database.rawQuery(
-            """
-                SELECT (t.date / 100), COALESCE(cm.transferId, t.category), SUM(t.amount)
-                FROM transactions t
-                LEFT JOIN category_mapping cm ON cm.id = t.category
-                LEFT JOIN accounts a ON a.id = t.acct
-                LEFT JOIN transactions p ON p.id = t.parent_id
-                WHERE (t.tombstone = 0 OR t.tombstone IS NULL)
-                  AND (t.isChild = 0 OR t.isChild IS NULL OR
-                       (p.id IS NOT NULL AND (p.tombstone = 0 OR p.tombstone IS NULL)))
-                  AND (t.isParent = 0 OR t.isParent IS NULL)
-                  AND t.category IS NOT NULL AND a.offbudget = 0
-                  AND (a.tombstone = 0 OR a.tombstone IS NULL)
-                  AND (t.date / 100) <= ?
-                GROUP BY (t.date / 100), COALESCE(cm.transferId, t.category)
-            """.trimIndent(), arrayOf(target.toString()),
-        ).use { cursor -> while (cursor.moveToNext()) {
-            val category = cursor.stringOrNull(1) ?: continue
-            spent.getOrPut(cursor.getInt(0)) { mutableMapOf() }[category] = cursor.longOrZero(2)
-        } }
+        val spent = categoryActivity(0, target)
 
         val buffered = mutableMapOf<Int, Long>()
         if (envelope && hasTable("zero_budget_months")) database.rawQuery(
@@ -1641,7 +1689,8 @@ class ActualBudgetDatabase private constructor(
         val incomes = categories.filter(Cat::income).mapNotNull { cat ->
             val group = groups[cat.group] ?: return@mapNotNull null
             ActualIncomeBudget(month, cat.id, cat.name, group.name, cat.sort,
-                targetBudgets[cat.id]?.amount ?: 0, targetSpent[cat.id] ?: 0, cat.hidden, group.hidden)
+                targetBudgets[cat.id]?.amount ?: 0, targetSpent[cat.id] ?: 0, cat.hidden, group.hidden,
+                targetBudgets[cat.id]?.flag == true)
         }.sortedBy(ActualIncomeBudget::sortOrder)
         return ActualBudgetMonth(
             month,

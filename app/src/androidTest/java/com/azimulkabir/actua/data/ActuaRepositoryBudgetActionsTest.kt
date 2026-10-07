@@ -97,6 +97,72 @@ class ActuaRepositoryBudgetActionsTest {
         assertEquals("Projected savings" to 150_000L, future.lead())
     }
 
+    @Test
+    fun averagesMatchActualsSetNMonthAvg() = withRepository { repository, db ->
+        // Upstream set3MonthAvg / setNMonthAvg (#910): Math.round over up to N months ending last
+        // month, stopping at the first activity; expense averages negated, income kept positive.
+        db.exec("INSERT INTO zero_budgets (id, month, category, amount, carryover) VALUES ('202502-rent', 202502, 'rent', 5000, 0)")
+        db.exec(
+            """INSERT INTO transactions (id, isParent, isChild, acct, category, amount, date, tombstone) VALUES
+                ('p1', 0, 0, 'checking', 'power', -300, 20250115, 0),
+                ('p2', 0, 0, 'checking', 'power', -600, 20250215, 0),
+                ('p3', 0, 0, 'checking', 'power', -100, 20250220, 0),
+                ('p4', 0, 0, 'checking', 'power', -900, 20250315, 0),
+                ('p5', 0, 0, 'checking', 'power', -5000, 20250410, 0),
+                ('o1', 0, 0, 'checking', 'old', -1200, 20250310, 0),
+                ('s1', 0, 0, 'checking', 'salary', 300000, 20250201, 0),
+                ('s2', 0, 0, 'checking', 'salary', 300000, 20250301, 0)""",
+        )
+
+        // Month-wide: visible expense categories only in an envelope budget. Rent's first activity
+        // is its February budget row, so it averages two empty months to 0 and is unchanged.
+        val preview = repository.averageBudgetPreview("2025-04", 3)
+        assertEquals(listOf("power" to 633L), preview.changes.map { it.categoryId to it.proposedCents })
+        assertEquals(1, preview.unchangedCount)
+        repository.applyBudgetTemplate(preview)
+        assertEquals(mapOf("power" to 633L), db.budgets(202504))
+
+        // One category, including hidden and income ones: Old only has March; Salary is positive.
+        repository.setCategoryAverage("old", "2025-04", 12)
+        repository.setCategoryAverage("salary", "2025-04", 6)
+        assertEquals(mapOf("old" to 1200L, "power" to 633L, "salary" to 300000L), db.budgets(202504))
+    }
+
+    @Test
+    fun copiesOneCategoryFromLastMonthAndToYearEnd() = withRepository { repository, db ->
+        // Upstream copySinglePreviousMonth and copyUntilYearEnd (#910).
+        db.exec(
+            """INSERT INTO zero_budgets (id, month, category, amount, carryover) VALUES
+                ('202501-rent', 202501, 'rent', 1000, 0), ('202502-power', 202502, 'power', 500, 0),
+                ('202510-rent', 202510, 'rent', 2500, 0), ('202512-rent', 202512, 'rent', 1, 0),
+                ('202601-rent', 202601, 'rent', 7, 0)""",
+        )
+
+        repository.copyCategoryFromPreviousMonth("rent", "2025-02")
+        // Power had no January row, so it is copied as 0.
+        repository.copyCategoryFromPreviousMonth("power", "2025-02")
+        assertEquals(mapOf("power" to 0L, "rent" to 1000L), db.budgets(202502))
+
+        repository.copyCategoryToYearEnd("rent", "2025-10")
+        assertEquals(mapOf("rent" to 2500L), db.budgets(202510))
+        assertEquals(mapOf("rent" to 2500L), db.budgets(202511))
+        assertEquals(mapOf("rent" to 2500L), db.budgets(202512))
+        assertEquals(mapOf("rent" to 7L), db.budgets(202601))
+    }
+
+    @Test
+    fun incomeHoldsAutomaticallyAndResetsForOneMonth() = withRepository { repository, db ->
+        // Envelope income carryover ("automatically hold") and upstream resetIncomeCarryover (#910).
+        repository.setCategoryCarryover("salary", true, "2025-05")
+        assertEquals(true, repository.budgetGroups("2025-05").flatMap { it.categories }.first { it.id == "salary" }.carryoverEnabled)
+
+        repository.resetIncomeHold("2025-06")
+
+        assertEquals(1, db.carryover(202505, "salary"))
+        assertEquals(0, db.carryover(202506, "salary"))
+        assertEquals(1, db.carryover(202507, "salary"))
+    }
+
     internal class Db(private val path: String) {
         fun exec(sql: String) = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE).use { it.execSQL(sql) }
 
@@ -105,6 +171,12 @@ class ActuaRepositoryBudgetActionsTest {
                 db.rawQuery("SELECT category, amount FROM zero_budgets WHERE month = ? ORDER BY category", arrayOf(month.toString())).use { c ->
                     buildMap { while (c.moveToNext()) put(c.getString(0), c.getLong(1)) }
                 }
+            }
+
+        fun carryover(month: Int, category: String): Int? =
+            SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT carryover FROM zero_budgets WHERE month = ? AND category = ?", arrayOf(month.toString(), category))
+                    .use { c -> if (c.moveToFirst()) c.getInt(0) else null }
             }
 
         fun note(id: String): String? =

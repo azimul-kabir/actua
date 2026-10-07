@@ -90,9 +90,22 @@ class ActualBudgetWriter(
         onWrite()
     }
 
+    /** Writes [amountCents] to [categoryId] in every one of [months] as one batch (`copyUntilYearEnd`). */
     @Synchronized
-    fun setCarryover(months: List<String>, categoryId: String, enabled: Boolean) {
-        val messages = months.flatMap { month ->
+    fun setAmountInMonths(months: List<String>, categoryId: String, amountCents: Long) {
+        if (months.isEmpty()) return
+        write(months.map { month -> (database.budgetCell(month, categoryId) ?: error("Budget table is missing")) to amountCents })
+    }
+
+    @Synchronized
+    fun setCarryover(months: List<String>, categoryId: String, enabled: Boolean) =
+        setCarryover(months.map { it to categoryId }, enabled)
+
+    /** Sets the carryover flag of each (month, category) cell as one batch (`resetIncomeCarryover`). */
+    @Synchronized
+    fun setCarryover(cells: List<Pair<String, String>>, enabled: Boolean) {
+        if (cells.isEmpty()) return
+        val messages = cells.flatMap { (month, categoryId) ->
             val cell = database.budgetCell(month, categoryId) ?: error("Budget table is missing")
             buildList {
                 if (!cell.exists) {

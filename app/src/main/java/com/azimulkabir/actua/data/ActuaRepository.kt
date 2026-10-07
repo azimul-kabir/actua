@@ -10,6 +10,7 @@ import com.azimulkabir.actua.data.budget.ActualTransactionType
 import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.ActualSplitLineForm
 import com.azimulkabir.actua.data.budget.ActualEntityWriter
+import com.azimulkabir.actua.data.budget.BudgetAverages
 import com.azimulkabir.actua.data.budget.BudgetMovementNote
 import com.azimulkabir.actua.data.budget.PayeeSuggestions
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
@@ -52,6 +53,7 @@ import com.azimulkabir.actua.model.BudgetHistory
 import com.azimulkabir.actua.model.BudgetTarget
 import com.azimulkabir.actua.model.BudgetAutomationDocument
 import com.azimulkabir.actua.model.BudgetNoteAutomationParser
+import com.azimulkabir.actua.model.BudgetTemplateChange
 import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.CleanupGroup
 import com.azimulkabir.actua.model.CleanupNoteParser
@@ -600,6 +602,7 @@ class ActuaRepository(context: Context) {
                                 availableCents = it.receivedCents,
                                 hidden = it.hidden,
                                 spentCents = -it.receivedCents,
+                                carryoverEnabled = it.carryoverEnabled,
                                 note = notes[it.categoryId].orEmpty(),
                                 // spentCents holds the month's raw `sum-amount` (income received).
                                 history = histories.mapNotNull { historyMonth ->
@@ -1477,6 +1480,77 @@ class ActuaRepository(context: Context) {
         val amounts = visible.mapNotNull { id -> stored[id]?.let { id to it } }.toMap()
         if (amounts.isEmpty()) return true
         actualBudgets!!.setAmounts(month, amounts)
+        return true
+    }
+
+    /**
+     * Actual's `set3MonthAvg`/`set6MonthAvg`/`set12MonthAvg` as a preview: every visible category
+     * (income too in tracking budgets) budgeted to its [months]-month average. Apply it with
+     * [applyBudgetTemplate].
+     */
+    fun averageBudgetPreview(month: String, months: Int): BudgetTemplatePreview {
+        val db = actualDatabase ?: return BudgetTemplatePreview(month, emptyList(), 0, emptyList())
+        val budget = db.fetchBudgetMonth(month)
+        data class Row(val group: String, val id: String, val name: String, val current: Long, val income: Boolean)
+        val rows = budget.categories.map { Row(it.groupName, it.categoryId, it.categoryName, it.budgetedCents, false) } +
+            if (budget.isTracking) budget.incomeCategories.map { Row(it.groupName, it.categoryId, it.categoryName, it.budgetedCents, true) } else emptyList()
+        val averages = categoryAverages(db, month, months, rows.associate { it.id to it.income })
+        val changes = rows.mapNotNull { row ->
+            val proposed = averages.getValue(row.id)
+            if (proposed == row.current) null else BudgetTemplateChange(row.group, row.id, row.name, row.current, proposed)
+        }
+        return BudgetTemplatePreview(month, changes, rows.size - changes.size, emptyList())
+    }
+
+    /** Actual's `setNMonthAvg`: budgets one category to its [months]-month average. */
+    fun setCategoryAverage(categoryId: String, month: String, months: Int): Boolean {
+        val db = actualDatabase ?: return false
+        val budget = db.fetchBudgetMonth(month)
+        val isIncome = (budget.incomeCategories + budget.hiddenIncomeCategories).any { it.categoryId == categoryId }
+        val amount = categoryAverages(db, month, months, mapOf(categoryId to isIncome)).getValue(categoryId)
+        actualBudgets?.setAmount(month, categoryId, amount) ?: return false
+        return true
+    }
+
+    /** Upstream `getCategoryAverage` (with the expense sign flip) for each category id → is income. */
+    private fun categoryAverages(db: ActualBudgetDatabase, month: String, months: Int, categories: Map<String, Boolean>): Map<String, Long> {
+        val now = java.time.YearMonth.now()
+        val start = BudgetAverages.startMonth(java.time.YearMonth.parse(month), now)
+        val activity = db.categoryActivity(start.minusMonths(months - 1L).toString(), start.toString())
+        return categories.mapValues { (id, isIncome) ->
+            val first = db.firstActivityMonth(id, start.toString())?.let(java.time.YearMonth::parse)
+            val window = BudgetAverages.months(java.time.YearMonth.parse(month), months, first, now)
+            BudgetAverages.budgetAmount(
+                BudgetAverages.average(window.map { activity[it.toString()]?.get(id) ?: 0L }), isIncome,
+            )
+        }
+    }
+
+    /** Actual's `copySinglePreviousMonth`: last month's budget for one category, 0 when it had none. */
+    fun copyCategoryFromPreviousMonth(categoryId: String, month: String): Boolean {
+        val db = actualDatabase ?: return false
+        val previous = java.time.YearMonth.parse(month).minusMonths(1).toString()
+        actualBudgets?.setAmount(month, categoryId, db.storedBudgetAmounts(previous)[categoryId] ?: 0L) ?: return false
+        return true
+    }
+
+    /** Actual's `copyUntilYearEnd`: this month's budget for one category, written to every later month through December. */
+    fun copyCategoryToYearEnd(categoryId: String, month: String): Boolean {
+        val db = actualDatabase ?: return false
+        val amount = db.storedBudgetAmounts(month)[categoryId] ?: 0L
+        val months = BudgetAverages.monthsUntilYearEnd(java.time.YearMonth.parse(month), java.time.YearMonth.now())
+        actualBudgets?.setAmountInMonths(months.map(java.time.YearMonth::toString), categoryId, amount) ?: return false
+        return true
+    }
+
+    /**
+     * Actual's `resetIncomeCarryover`: turns off "automatically hold" for every income category in
+     * [month] only. Envelope budgets only.
+     */
+    fun resetIncomeHold(month: String): Boolean {
+        val db = actualDatabase ?: return false
+        val incomeIds = db.fetchCategoryGroups().flatMap { it.categories }.filter { it.isIncome }.map { it.id }
+        actualBudgets?.setCarryover(incomeIds.map { month to it }, false) ?: return false
         return true
     }
 
