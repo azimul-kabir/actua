@@ -1,4 +1,4 @@
-// Comparison step of the #668 budget-template check. Downloads both synced budgets into a fresh
+// Comparison step of the #668 budget-template check. Downloads every synced budget into a fresh
 // loot-core client and compares, for every category in the Templates and Cleanup groups and every
 // checked month, the budgeted amount and the `goal`/`long_goal` cells. A difference fails the check
 // unless known-divergences.json lists it with its issue; a listed difference that no longer occurs
@@ -7,26 +7,27 @@ import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import * as api from '@actual-app/api';
-import { BUDGETS, MONTHS, PASSWORD, SERVER_URL, dataDir } from './common.mjs';
+import { MONTHS, PAIRS, PASSWORD, SERVER_URL, dataDir } from './common.mjs';
 
 const dir = dataDir('compare');
 const actual = await api.init({ dataDir: dir, serverURL: SERVER_URL, password: PASSWORD });
 const files = {};
 try {
   const remotes = await actual.send('get-remote-files');
-  for (const [side, name] of Object.entries(BUDGETS)) {
+  for (const name of PAIRS.flatMap((pair) => [pair.upstream, pair.actua])) {
     const remote = remotes?.find((file) => file.name === name);
     if (!remote) throw new Error(`No "${name}" budget on ${SERVER_URL}`);
     await api.downloadBudget(remote.groupId);
     await api.sync();
     const local = (await actual.send('get-budgets')).find((budget) => budget.groupId === remote.groupId);
-    files[side] = join(dir, local.id, 'db.sqlite');
+    files[name] = join(dir, local.id, 'db.sqlite');
   }
 } finally {
   await api.shutdown();
 }
 
-function readCells(path) {
+// Categories of a labelled pair are reported (and listed in known-divergences.json) as "Name (label)".
+function readCells(path, label) {
   const db = new DatabaseSync(path, { readOnly: true });
   const categories = db.prepare(`
     SELECT c.id, c.name, g.name AS grp FROM categories c JOIN category_groups g ON g.id = c.cat_group
@@ -37,18 +38,22 @@ function readCells(path) {
   for (const category of categories) {
     for (const month of MONTHS) {
       const cell = cells.get(`${month.replace('-', '')}|${category.id}`);
-      result.set(`${category.name}|${month}`, {
+      result.set(`${category.name}${label ? ` (${label})` : ''}|${month}`, {
         budgeted: cell?.amount ?? 0,
         goal: cell?.goal ?? null,
         long_goal: cell?.long_goal ? 1 : null,
       });
     }
   }
-  return { categories: categories.map((c) => c.name), result };
+  return { categories: categories.map((c) => `${c.name}${label ? ` (${label})` : ''}`), result };
 }
 
-const upstream = readCells(files.upstream);
-const actua = readCells(files.actua);
+const cellsOf = (side) => {
+  const read = PAIRS.map((pair) => readCells(files[pair[side]], pair.label));
+  return { categories: read.flatMap((r) => r.categories), result: new Map(read.flatMap((r) => [...r.result])) };
+};
+const upstream = cellsOf('upstream');
+const actua = cellsOf('actua');
 const known = JSON.parse(readFileSync(new URL('./known-divergences.json', import.meta.url)));
 const knownKey = (d) => `${d.category}|${d.month}|${d.field}`;
 const knownByKey = new Map(known.map((d) => [knownKey(d), d]));
@@ -78,7 +83,7 @@ const stale = known.map(knownKey).filter((key) => !seenKnown.has(key));
 
 const report = [
   '## Budget-template check (#668)', '',
-  'Actual `@actual-app/api` 26.9.0 vs Actua on two identical synthetic budgets: apply 2026-08, overwrite 2026-09, month-end cleanup 2026-10.', '',
+  'Actual `@actual-app/api` 26.9.0 vs Actua on identical synthetic budgets (plus a `hideFraction` pair, labelled "whole units"): apply 2026-08, overwrite 2026-09, month-end cleanup 2026-10.', '',
   `Unexpected differences: ${unexpected.length}. Known divergences still present: ${seenKnown.size}. Known divergences no longer present: ${stale.length}.`, '',
   ...(unexpected.length ? ['### Unexpected', '', ...unexpected.map((key) => `- ${key}`), ''] : []),
   ...(stale.length ? ['### Listed in known-divergences.json but no longer different', '', ...stale.map((key) => `- ${key}`), ''] : []),

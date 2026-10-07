@@ -6,7 +6,12 @@ import * as api from '@actual-app/api';
 export const SERVER_URL = process.env.TEMPLATES_SERVER_URL ?? 'http://localhost:5006';
 // A throwaway password for a throwaway CI server; not a credential.
 export const PASSWORD = process.env.TEMPLATES_PASSWORD ?? 'budget-templates-parity';
-export const BUDGETS = { upstream: 'Templates upstream', actua: 'Templates actua' };
+// Each pair is seeded identically; Actual's engine runs on `upstream`, Actua's on `actua`. The
+// whole-units pair turns on the synced `hideFraction` preference, which makes templates round.
+export const PAIRS = [
+  { label: '', upstream: 'Templates upstream', actua: 'Templates actua' },
+  { label: 'whole units', upstream: 'Whole units upstream', actua: 'Whole units actua', hideFraction: true },
+];
 export const MONTHS = ['2026-08', '2026-09', '2026-10'];
 
 export function dataDir(name) {
@@ -153,13 +158,14 @@ export async function seed(actual) {
 }
 
 /** Creates, seeds and syncs one budget; leaves it open. */
-export async function createSeededBudget(actual, name) {
+export async function createSeededBudget(actual, name, { hideFraction = false } = {}) {
   await actual.send('close-budget');
   const created = await actual.send('create-budget', { budgetName: name });
   if (created?.error) throw new Error(`create-budget failed: ${created.error}`);
   const remote = (await actual.send('get-remote-files'))?.find((file) => file.name === name);
   if (!remote) throw new Error(`"${name}" was not uploaded`);
   await seed(actual);
+  if (hideFraction) await actual.send('preferences/save', { id: 'hideFraction', value: 'true' });
   await api.sync();
   // Actual creates a month's budget sheet (createAllBudgets) when a budget loads; reload so the
   // months of the seeded earlier transactions exist, as they do for anyone who reopens the budget.

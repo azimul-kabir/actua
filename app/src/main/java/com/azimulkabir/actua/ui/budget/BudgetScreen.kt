@@ -244,6 +244,8 @@ fun BudgetScreen(
     onEditAutomations: (BudgetGroup, BudgetCategory) -> Unit = { _, _ -> },
     onApplyBudgetTemplate: (BudgetTemplatePreview) -> Unit = {},
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
+    /** The budget's synced `hideFraction` preference; templates round to whole units with it. */
+    templateHideFraction: Boolean = false,
     onPreviewCleanup: () -> CleanupPreview = { CleanupPreview("") },
     /** Re-reads notes-managed templates before a template preview opens, as Actual does (#855). */
     onRefreshNoteTemplates: () -> Unit = {},
@@ -647,10 +649,10 @@ fun BudgetScreen(
     if (templatePreviewOpen) {
         val templateGroups = templateGroupTarget?.let { target -> groups.filter { it.name == target.name } } ?: groups
         BudgetTemplatePreviewSheet(
-            preview = remember(templateGroups, month, overview.toBudgetCents, overwriteTemplates, scheduleFunding) {
+            preview = remember(templateGroups, month, overview.toBudgetCents, overwriteTemplates, scheduleFunding, templateHideFraction) {
                 BudgetTemplatePlanner.preview(
                     templateGroups, month, overview.toBudgetCents ?: Long.MAX_VALUE, overwriteTemplates,
-                    scheduleFunding,
+                    scheduleFunding, templateHideFraction,
                 )
             },
             hideDecimalPlaces = hideDecimalPlaces,

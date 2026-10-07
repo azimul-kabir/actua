@@ -15,8 +15,8 @@ import org.junit.Test
 
 /**
  * Actua's side of the #668 budget-template check (docs/tools/budget-templates/README.md). The
- * `budget-templates-parity` workflow seeds two identical budgets on a real actual-server and runs
- * Actual's template engine on one; this test downloads the other and runs the same three steps the
+ * `budget-templates-parity` workflow seeds pairs of identical budgets on a real actual-server and runs
+ * Actual's template engine on one of each; this test downloads the other and runs the same three steps the
  * way the Budget screen does (`BudgetTemplatePlanner.preview` over `ActuaRepository.budgetGroups`,
  * `budgetOverview` and `budgetScheduleFunding`, then `applyBudgetTemplate`; month-end cleanup
  * through `previewCleanup`/`applyCleanup`), then syncs so a third client can compare the cells.
@@ -29,11 +29,17 @@ class BudgetTemplateParityTest {
         val serverUrl = arguments.getString("templatesServerUrl")
         assumeTrue("Runs only from the budget-templates-parity workflow", !serverUrl.isNullOrBlank())
         val password = requireNotNull(arguments.getString("templatesPassword"))
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        // The whole-units budget has Actual's synced `hideFraction` preference on.
+        for (name in listOf("Templates actua", "Whole units actua")) {
+            runBudget(requireNotNull(serverUrl), password, name)
+        }
+    }
 
+    private fun runBudget(serverUrl: String, password: String, name: String) {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
         val server = ActualServerClient()
-        val token = server.login(requireNotNull(serverUrl), password)
-        val remote = server.listFiles(serverUrl, token).single { it.name == "Templates actua" }
+        val token = server.login(serverUrl, password)
+        val remote = server.listFiles(serverUrl, token).single { it.name == name }
         val files = BudgetFileManager(context)
         val budget = BudgetDownloadService(server, files, BudgetEncryptionKeyStore(context))
             .download(serverUrl, token, remote)
@@ -72,6 +78,7 @@ class BudgetTemplateParityTest {
             repository.budgetOverview(month).toBudgetCents ?: Long.MAX_VALUE,
             overwrite,
             repository.budgetScheduleFunding(month),
+            repository.budgetHidesFraction(),
         )
         assertTrue(repository.applyBudgetTemplate(preview))
     }

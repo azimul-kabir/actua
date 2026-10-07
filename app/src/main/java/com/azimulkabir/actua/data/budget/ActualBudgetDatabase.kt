@@ -345,6 +345,15 @@ class ActualBudgetDatabase private constructor(
             .use { if (it.moveToFirst()) it.stringOrNull(0) else null }
     }
 
+    /** Actual's synced `hideFraction` preference: budget templates round to whole units. */
+    @Synchronized
+    fun hideFraction(): Boolean {
+        if (!hasTable("preferences")) return false
+        return database.rawQuery(
+            "SELECT value FROM preferences WHERE id = 'hideFraction'", null,
+        ).use { it.moveToFirst() && it.stringOrNull(0) == "true" }
+    }
+
     /** Actual's synced `sync-transfer-date` preference: a transfer date edit moves the other leg too. */
     @Synchronized
     fun syncTransferDate(): Boolean {

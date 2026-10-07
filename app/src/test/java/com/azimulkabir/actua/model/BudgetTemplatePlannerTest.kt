@@ -178,6 +178,32 @@ class BudgetTemplatePlannerTest {
         history = listOf(BudgetHistory("2026-08", 0, previous)),
     )
 
+    @Test fun hideFractionRoundsEachPriorityToWholeUnits() {
+        // Regression for #861: Actual's synced `hideFraction` rounds template amounts.
+        val up = category("up", "Up", assigned = 0, automations = listOf(BudgetTarget(BudgetTarget.Type.FIXED, 10_050)))
+        val down = category("down", "Down", assigned = 0, automations = listOf(BudgetTarget(BudgetTarget.Type.FIXED, 10_049)))
+
+        val rounded = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Bills", listOf(up, down))), "2026-09", hideFraction = true)
+        val exact = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Bills", listOf(up, down))), "2026-09")
+
+        assertEquals(listOf(10_100L, 10_000L), rounded.changes.map { it.proposedCents })
+        assertEquals(listOf(10_050L, 10_049L), exact.changes.map { it.proposedCents })
+    }
+
+    @Test fun hideFractionGivesTheLastWholeUnitOfARemainderToTheFinalCategory() {
+        val categories = (1..3).map { index ->
+            category("r$index", "Remainder $index", assigned = 0, automations = listOf(
+                BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1),
+            ))
+        }
+
+        val preview = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Fun", categories)), "2026-09", availableBudgetCents = 10_000, hideFraction = true,
+        )
+
+        assertEquals(listOf(3_300L, 3_300L, 3_400L), preview.changes.map { it.proposedCents })
+    }
+
     @Test fun fundsHigherPrioritiesFirstAndReportsAvailableFundsClamp() {
         val first = category("rent", "Rent", assigned = 0, automations = listOf(
             BudgetTarget(BudgetTarget.Type.FIXED, 80_000, priority = 1),
