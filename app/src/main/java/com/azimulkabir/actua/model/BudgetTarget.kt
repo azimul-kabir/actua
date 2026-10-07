@@ -5,7 +5,6 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
-import kotlin.math.ceil
 import kotlin.math.max
 
 /**
@@ -261,11 +260,37 @@ data class BudgetTarget(
         return count
     }
 
-    private fun byDateSuggestedBudget(category: BudgetCategory, month: String): Long {
-        val end = runCatching { YearMonth.parse(targetMonth) }.getOrNull() ?: return 0L
-        val current = runCatching { YearMonth.parse(month) }.getOrNull() ?: return 0L
-        val months = max(1L, ChronoUnit.MONTHS.between(current, end) + 1L)
-        return ceil(max(0L, amountCents - category.carryoverCents).toDouble() / months).toLong()
+    private fun byDateSuggestedBudget(category: BudgetCategory, month: String): Long =
+        max(0L, BudgetTemplatePlanner.byDateRequest(listOf(this), category, month))
+
+    /**
+     * The repeat period in months for a repeating "Save by date" target, or null when it doesn't
+     * repeat (upstream `runBy`: `annual ? (repeat || 1) * 12 : repeat`).
+     */
+    internal val repeatPeriodMonths: Long?
+        get() = when {
+            !repeats -> null
+            repeatAnnual -> repeatEvery.coerceAtLeast(1) * 12L
+            else -> repeatEvery.coerceAtLeast(1).toLong()
+        }
+
+    /** Months from [month] to this target, rolled forward by its repeat period while it has passed. */
+    internal fun monthsUntilTarget(month: YearMonth): Long? {
+        var target = runCatching { YearMonth.parse(targetMonth.orEmpty()) }.getOrNull() ?: return null
+        val period = repeatPeriodMonths
+        var months = ChronoUnit.MONTHS.between(month, target)
+        while (months < 0 && period != null) {
+            target = target.plusMonths(period)
+            months = ChronoUnit.MONTHS.between(month, target)
+        }
+        return months
+    }
+
+    /** A non-repeating "Save by date" target whose month has passed, which Actual refuses to run. */
+    internal fun hasPassedTarget(month: String): Boolean {
+        if (type != Type.BY_DATE || repeats) return false
+        val current = runCatching { YearMonth.parse(month) }.getOrNull() ?: return false
+        return (monthsUntilTarget(current) ?: return false) < 0
     }
 
     /** JSON accepted by Actual's visual budget-automation editor and engine. */
@@ -577,7 +602,8 @@ object BudgetTemplatePlanner {
                                 (schedule.categoryId == null || schedule.categoryId == category.id)
                         })
             }
-            val canRun = category.automationsEvaluable && hasTargets && !unresolvedSchedule
+            val canRun = category.automationsEvaluable && hasTargets && !unresolvedSchedule &&
+                targets.none { it.hasPassedTarget(month) }
             if (canRun && !overwriteExisting && category.assignedCents != 0L) skippedExisting++
             canRun && (overwriteExisting || category.assignedCents == 0L)
         }
@@ -649,7 +675,8 @@ object BudgetTemplatePlanner {
                             (schedule.categoryId == null || schedule.categoryId == category.id)
                     }
             }
-            if (!category.automationsEvaluable || unresolvedSchedule) {
+            // Actual refuses a passed, non-repeating target ("Target month has passed").
+            if (!category.automationsEvaluable || unresolvedSchedule || targets.any { it.hasPassedTarget(month) }) {
                 unsupported += "${group.name} · ${category.name}"
                 continue
             }
@@ -803,7 +830,7 @@ object BudgetTemplatePlanner {
             if (source == Long.MAX_VALUE) 0L
             else Math.round(max(0L, source).toDouble() * target.percentage / 100.0)
             }
-        val byAmount = if (by.isEmpty()) 0L else combinedByDate(by, category, month)
+        val byAmount = if (by.isEmpty()) 0L else byDateRequest(by, category, month)
         val refill = targets.firstOrNull { it.type == BudgetTarget.Type.REFILL }
             ?.let { capTarget(category)?.amountCents }
             ?.let { max(0L, it - category.carryoverCents) } ?: 0L
@@ -837,19 +864,27 @@ object BudgetTemplatePlanner {
         return total.takeIf { it > 0L }
     }
 
-    /** Matches Actual's batch treatment of sibling `by` templates: carryover is deducted once. */
-    private fun combinedByDate(targets: List<BudgetTarget>, category: BudgetCategory, month: String): Long {
+    /**
+     * Upstream `runBy` for sibling `by` templates: passed repeating targets roll forward by their
+     * period; templates due after the shortest window are interpolated back into it; carryover
+     * is deducted once.
+     */
+    internal fun byDateRequest(targets: List<BudgetTarget>, category: BudgetCategory, month: String): Long {
         val current = runCatching { YearMonth.parse(month) }.getOrNull() ?: return 0L
-        val months = targets.map { target ->
-            runCatching { YearMonth.parse(target.targetMonth.orEmpty()) }.getOrNull()
-                ?.let { max(0L, ChronoUnit.MONTHS.between(current, it)) } ?: 0L
-        }
+        val months = targets.map { it.monthsUntilTarget(current) ?: 0L }
         val shortest = months.minOrNull() ?: 0L
+        // A passed, non-repeating target: Actual refuses to run it (see hasPassedTarget).
+        if (shortest < 0L) return 0L
         val needed = targets.zip(months).sumOf { (target, targetMonths) ->
-            if (targetMonths > shortest) {
-                Math.round(target.amountCents.toDouble() / (targetMonths + 1L) * (shortest + 1L))
-            } else target.amountCents
+            val period = target.repeatPeriodMonths
+            when {
+                targetMonths > shortest && period != null ->
+                    Math.round(target.amountCents.toDouble() / period * (period - targetMonths + shortest))
+                targetMonths > shortest ->
+                    Math.round(target.amountCents.toDouble() / (targetMonths + 1L) * (shortest + 1L))
+                else -> target.amountCents
+            }
         }
-        return max(0L, Math.round((needed - category.carryoverCents).toDouble() / (shortest + 1L)))
+        return Math.round((needed - category.carryoverCents).toDouble() / (shortest + 1L))
     }
 }
