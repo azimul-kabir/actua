@@ -24,7 +24,7 @@ class BudgetNoteAutomationParserTest {
                 ),
                 BudgetTarget(
                     BudgetTarget.Type.HISTORICAL,
-                    historicalMode = BudgetTarget.HistoricalMode.AVERAGE, historicalMonths = 3, priority = 1,
+                    historicalMode = BudgetTarget.HistoricalMode.AVERAGE, historicalMonths = 3, priority = 0,
                 ),
                 BudgetTarget(BudgetTarget.Type.GOAL, 50_000),
             ),
