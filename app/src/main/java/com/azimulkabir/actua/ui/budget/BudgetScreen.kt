@@ -626,7 +626,11 @@ fun BudgetScreen(
             })
     }
     if (zeroBudgetPreviewOpen) {
-        val zeroBudgetPreview = remember(groups, month) { ZeroBudgetPlanner.preview(groups, month) }
+        // A tracking budget has no "To Budget" amount.
+        val trackingBudget = overview.toBudgetCents == null
+        val zeroBudgetPreview = remember(groups, month, trackingBudget) {
+            ZeroBudgetPlanner.preview(groups, month, trackingBudget)
+        }
         BudgetTemplatePreviewSheet(
             preview = zeroBudgetPreview,
             hideDecimalPlaces = hideDecimalPlaces,

@@ -41,6 +41,19 @@ class ZeroBudgetPlannerTest {
         assertEquals(listOf("hidden"), preview.changes.map { it.categoryId })
     }
 
+    @Test fun trackingBudgetAlsoZeroesIncomeCategories() {
+        // Regression for #862: upstream setZero skips income only in envelope budgets.
+        val groups = listOf(
+            BudgetGroup("Bills", listOf(category("hidden", "Old subscription", assignedCents = 5_000, hidden = true))),
+            BudgetGroup("Income", listOf(category("paycheck", "Paycheck", assignedCents = 200_000)), isIncome = true),
+        )
+
+        val preview = ZeroBudgetPlanner.preview(groups, "2026-09", trackingBudget = true)
+
+        assertEquals(listOf("hidden", "paycheck"), preview.changes.map { it.categoryId })
+        assertEquals(listOf(0L, 0L), preview.changes.map { it.proposedCents })
+    }
+
     @Test fun repeatedApplicationProducesAnEmptyPreview() {
         val zeroed = category("rent", "Rent", assignedCents = 0)
 
