@@ -49,6 +49,8 @@ class ActualBudgetWriter(
         expectedAmounts: Map<String, Long>,
         goals: Map<String, Long?>,
         expectedGoals: Map<String, Long?>,
+        /** The `long_goal` to write with each goal: 1 for `#goal`, 0 for cleanup, null otherwise. */
+        longGoals: Map<String, Int?> = goals.mapValues { (_, goal) -> goal?.let { 1 } },
     ) {
         require(expectedAmounts.keys == amounts.keys)
         require(expectedGoals.keys == goals.keys)
@@ -73,9 +75,10 @@ class ActualBudgetWriter(
             }
             goals.forEach { (id, goal) ->
                 val cell = cells.getValue(id)
-                if (!cell.exists || cell.goalCents != goal || !cell.longGoal) {
+                val longGoal = longGoals[id]
+                if (!cell.exists || cell.goalCents != goal || cell.longGoalValue != longGoal) {
                     add(message(cell.table, cell.rowId, "goal", goal))
-                    add(message(cell.table, cell.rowId, "long_goal", goal?.let { 1 }))
+                    add(message(cell.table, cell.rowId, "long_goal", longGoal))
                 }
             }
         }
