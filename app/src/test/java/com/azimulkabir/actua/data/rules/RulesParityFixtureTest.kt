@@ -140,7 +140,6 @@ class RulesParityFixtureTest {
             "set amount from a formula #1 amount" to "#866",
             "split by remainder #1 payee" to "#866",
             "split by remainder #1 subtransactions" to "#866",
-            "a later rule sees an earlier rule's changes #1 notes" to "#863",
         )
     }
 }
