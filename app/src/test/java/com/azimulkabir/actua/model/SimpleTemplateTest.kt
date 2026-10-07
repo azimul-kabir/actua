@@ -72,6 +72,22 @@ class SimpleTemplateTest {
         assertEquals(7_000L, preview(upTo, carryover = 3_000))
     }
 
+    @Test fun notesManagedSupportedTemplatesRunWhileUnsupportedOnesDoNot() {
+        val notes = BudgetAutomationDocument.decode(
+            """[{"directive":"template","type":"simple","monthly":20,"limit":null,"priority":0}]""", "notes",
+        )
+        fun preview(unsupportedTypes: List<String>) = BudgetTemplatePlanner.preview(
+            listOf(BudgetGroup("Living", listOf(category(notes.supported.single(), carryover = 0).copy(
+                hasUnsupportedTarget = notes.hasUnsupported,
+                automationReadOnly = !notes.editable,
+                unsupportedAutomationTypes = unsupportedTypes,
+            )))), "2026-09", overwriteExisting = true,
+        )
+
+        assertEquals(2_000L, preview(emptyList()).changes.single().proposedCents)
+        assertEquals(listOf("Living · Food"), preview(listOf("unknown")).unsupportedCategories)
+    }
+
     private fun category(target: BudgetTarget, carryover: Long) = BudgetCategory(
         name = "Food",
         assigned = 0,

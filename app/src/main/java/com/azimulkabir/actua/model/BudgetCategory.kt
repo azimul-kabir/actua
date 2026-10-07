@@ -30,6 +30,13 @@ data class BudgetCategory(
     val carryoverCents: Long get() = balanceCents - assignedCents + spentCents
 
     /**
+     * Whether templates can run for this category. A notes-managed definition (read-only in the
+     * editor) still runs when every directive is supported, as Actual applies note templates.
+     */
+    val automationsEvaluable: Boolean
+        get() = !hasUnsupportedTarget || (automationReadOnly && unsupportedAutomationTypes.isEmpty())
+
+    /**
      * The full balance this category is working toward, independent of this month's
      * installment. A locally-known "goal only", "by date" or "cover schedule" target wins
      * over Actual's server-synced [goalCents]: the server value can be a stale monthly

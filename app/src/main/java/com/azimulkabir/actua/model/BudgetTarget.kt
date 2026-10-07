@@ -575,7 +575,7 @@ object BudgetTemplatePlanner {
                                 (schedule.categoryId == null || schedule.categoryId == category.id)
                         })
             }
-            val canRun = !category.hasUnsupportedTarget && hasTargets && !unresolvedSchedule
+            val canRun = category.automationsEvaluable && hasTargets && !unresolvedSchedule
             if (canRun && !overwriteExisting && category.assignedCents != 0L) skippedExisting++
             canRun && (overwriteExisting || category.assignedCents == 0L)
         }
@@ -638,7 +638,7 @@ object BudgetTemplatePlanner {
                             (schedule.categoryId == null || schedule.categoryId == category.id)
                     }
             }
-            if (category.hasUnsupportedTarget || unresolvedSchedule) {
+            if (!category.automationsEvaluable || unresolvedSchedule) {
                 unsupported += "${group.name} · ${category.name}"
                 continue
             }
