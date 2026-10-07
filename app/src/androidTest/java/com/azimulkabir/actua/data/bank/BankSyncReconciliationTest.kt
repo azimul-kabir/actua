@@ -223,6 +223,10 @@ class BankSyncReconciliationTest {
                     "starting_balance_flag INTEGER DEFAULT 0, financial_id TEXT, pending INTEGER DEFAULT 0, raw_synced_data TEXT)",
             )
             if (rules.isNotEmpty()) {
+                // The category rules set; transaction reads resolve categories through category_mapping.
+                db.execSQL("INSERT INTO category_groups(id,name) VALUES ('spending','Spending')")
+                db.execSQL("INSERT INTO categories(id,name,cat_group) VALUES ('food','Food','spending')")
+                db.execSQL("INSERT INTO category_mapping VALUES ('food','food')")
                 db.execSQL("CREATE TABLE rules (id TEXT PRIMARY KEY, stage TEXT, conditions_op TEXT, conditions TEXT, actions TEXT, tombstone INTEGER DEFAULT 0)")
                 rules.forEach(db::execSQL)
             }
