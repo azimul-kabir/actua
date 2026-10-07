@@ -73,7 +73,11 @@ object RulesEngine {
                 else -> false
             }
             RuleFieldType.NUMBER -> evaluateNumber(condition, bag)
-            RuleFieldType.BOOLEAN -> condition.op == "is" && condition.value.flag != null && bag.flag(condition.field) == condition.value.flag
+            // A rule run's transaction has no transfer/parent field, so upstream's Condition.eval
+            // never matches them; only report filters (conditionsToAQL) can test them.
+            RuleFieldType.BOOLEAN -> condition.op == "is" && condition.value.flag != null &&
+                !(bag.forRuleRun && condition.field in setOf("transfer", "parent")) &&
+                bag.flag(condition.field) == condition.value.flag
             else -> evaluateText(condition, bag)
         }
     }
@@ -107,7 +111,9 @@ object RulesEngine {
         val target = condition.value.text
         return when (condition.op) {
             "is" -> if (target.isNullOrEmpty()) {
-                actual.isNullOrEmpty() && (condition.field != "category" || (!bag.isTransfer && !bag.isParent))
+                // Only conditionsToAQL (report filters) excludes transfers and split parents from
+                // `category is (none)`; a rule run matches any empty category, as Condition.eval does.
+                actual.isNullOrEmpty() && (condition.field != "category" || bag.forRuleRun || (!bag.isTransfer && !bag.isParent))
             } else actual.equals(target, true)
             "isNot" -> if (target == null) actual != null else !actual.equals(target, true)
             "contains" -> actual != null && target != null && actual.contains(target, true)

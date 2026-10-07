@@ -60,12 +60,12 @@ not rule runs. The behaviors described further down as rule-run behaviors are fi
 | `notes` (string) | is, isNot (incl. empty), contains, doesNotContain, hasTags, hasAnyTag | tag boundary regex `(?<!#)tag([\s#]\|$)` | `evaluateText`, `TagFilter` | Match | notes … (8 cases) |
 | `payee`, `category`, `category_group`, `account` (id) | is, isNot, oneOf, notOneOf, is (none) | id comparison | `evaluateText` | Match | payee/category/category_group/account … |
 | same | contains, doesNotContain, matches | tested against the **id** (lowercased id, value as written; no id matches nothing) | `evaluateIdText` during rule runs; report filters keep name matching, as `conditionsToAQL` does | Match ([#864](https://github.com/azimul-kabir/actua/issues/864)) | … contains/matches a name fragment |
-| `category` | is (none) on a transfer | matches | excludes transfers and split parents | **Divergence** [#865](https://github.com/azimul-kabir/actua/issues/865) | category is empty on a transfer |
+| `category` | is (none) on a transfer | matches | matches during rule runs; report filters exclude transfers and split parents, as `conditionsToAQL` does | Match ([#865](https://github.com/azimul-kabir/actua/issues/865)) | category is empty on a transfer |
 | `account` | onBudget, offBudget | `_account.offbudget` | `RuleContext.offBudgetAccountIds` | Match | account onBudget/offBudget |
 | `amount` (number) | is, isapprox (`round(abs·0.075)`), isbetween (unordered), gt, gte, lt, lte; `inflow`/`outflow` options | | `evaluateNumber` | Match | amount … (12 cases) |
 | `date` | is (day, month, year, recurring), isapprox (±2 days, recurring), gt, gte, lt, lte | | `RuleDateMatcher` | Match | date … (10 cases) |
 | `cleared` (boolean) | is | | `evaluate` (boolean branch) | Match | cleared is true |
-| `transfer`, `parent` (boolean) | is | never matches: rule runs have no such field | derived from the payee/split | **Divergence** [#865](https://github.com/azimul-kabir/actua/issues/865) | transfer is true |
+| `transfer`, `parent` (boolean) | is | never matches: rule runs have no such field | never matches during rule runs; report filters derive it from the payee/split | Match ([#865](https://github.com/azimul-kabir/actua/issues/865)) | transfer is true |
 | `conditionsOp` | and, or | | `conditionsMatch` | Match | conditionsOp or |
 
 ### Actions
@@ -271,9 +271,6 @@ upstream's class-based `Condition`/`Action`/`Rule`.
 
 ## Deliberate deviations and known gaps
 
-- **`category is/isNot (none)` and transfers/split parents.** The upstream expansion described above is
-  `conditionsToAQL`'s, used by filters. Rule runs don't apply it, and Actua's rule runs do
-  ([#865](https://github.com/azimul-kabir/actua/issues/865)).
 - **No Handlebars template or HyperFormula formula actions**, and **no split-transaction rule
   actions** (`set-split-amount`, `set` with `options.splitIndex`). These are recognized and preserved
   unmodified in the stored condition/action JSON rather than approximated, and are already tracked as
