@@ -2472,6 +2472,17 @@ fun AppNavigation(
                             repository.transferBudget(fromGroup, fromCategory, toGroup, toCategory, amount, budgetMonth)
                         }
                     },
+                    onSummaryMove = { group, category, amount, covering ->
+                        mutate("Moving budget") {
+                            if (covering) {
+                                repository.transferBudget(group, category, null, null, amount, budgetMonth,
+                                    ActuaRepository.BudgetMoveKind.COVER_OVERBUDGETED)
+                            } else {
+                                repository.transferBudget(null, null, group, category, amount, budgetMonth,
+                                    ActuaRepository.BudgetMoveKind.FROM_TO_BUDGET)
+                            }
+                        }
+                    },
                     onSetBudgetAmount = { group, category, amount ->
                         mutate("Updating budget") { repository.setBudgetAmount(group, category, amount, budgetMonth) }
                     },

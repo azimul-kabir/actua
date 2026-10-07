@@ -21,6 +21,39 @@ class ActuaRepositoryBudgetActionsTest {
         assertEquals(mapOf("power" to 3000L, "rent" to 100000L), db.budgets(202609))
     }
 
+    @Test
+    fun movesAndCoversAppendActualsMovementNote() = withRepository { repository, db ->
+        // Upstream addMovementNotes (#908). Power is overspent by 20.00 in October.
+        db.exec("INSERT INTO zero_budgets (id, month, category, amount, carryover) VALUES ('202610-rent', 202610, 'rent', 100000, 0)")
+        db.exec("INSERT INTO transactions (id, isParent, isChild, acct, category, amount, date, tombstone) VALUES ('p1', 0, 0, 'checking', 'power', -2000, 20261005, 0)")
+        db.exec("INSERT INTO notes (id, note) VALUES ('budget-2026-10', 'Plan')")
+        val day = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("MMMM dd", java.util.Locale.ENGLISH))
+
+        // From To Budget into a category that isn't overspent: transferAvailable, no note.
+        repository.transferBudget(null, null, "Bills", "Rent", 500, "2026-10", ActuaRepository.BudgetMoveKind.FROM_TO_BUDGET)
+        repository.transferBudget(null, null, "Bills", "Rent", 500, "2026-10")
+        assertEquals("Plan", db.note("budget-2026-10"))
+
+        // Category to category (transferCategory) and To Budget covering overspending (coverOverspending).
+        repository.transferBudget("Bills", "Rent", "Bills", "Power", 1_234, "2026-10")
+        repository.transferBudget(null, null, "Bills", "Power", 766, "2026-10")
+        // Category back to To Budget, and covering an overbudgeted To Budget.
+        repository.transferBudget("Bills", "Rent", null, null, 100, "2026-10")
+        repository.transferBudget("Bills", "Rent", null, null, 200, "2026-10", ActuaRepository.BudgetMoveKind.COVER_OVERBUDGETED)
+
+        assertEquals(
+            listOf(
+                "Plan",
+                "- Reassigned 12.34 from Rent → Power on $day",
+                "- Reassigned 7.66 from To Budget → Power on $day",
+                "- Reassigned 1.00 from Rent → To Budget on $day",
+                "- Reassigned 2.00 from Rent → Overbudgeted on $day",
+            ).joinToString("\n"),
+            db.note("budget-2026-10"),
+        )
+        assertEquals(mapOf("power" to 2_000L, "rent" to 99_466L), db.budgets(202610))
+    }
+
     internal class Db(private val path: String) {
         fun exec(sql: String) = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE).use { it.execSQL(sql) }
 
