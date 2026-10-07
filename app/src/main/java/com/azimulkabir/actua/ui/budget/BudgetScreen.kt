@@ -206,6 +206,8 @@ fun BudgetScreen(
     overview: BudgetOverview = BudgetOverview(1_245_000, 8_400_000, -5_620_000, 2_780_000),
     month: String = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date()),
     onMonthChange: (String) -> Unit = {},
+    /** Actual's budget months; the month picker offers only these. Null allows any month. */
+    monthRange: ClosedRange<java.time.YearMonth>? = null,
     hideDecimalPlaces: Boolean = false,
     showHidden: Boolean = false,
     onShowHiddenChange: (Boolean) -> Unit = {},
@@ -355,6 +357,7 @@ fun BudgetScreen(
         BudgetToolbar(
             month = month,
             onMonthChange = onMonthChange,
+            monthRange = monthRange,
             optionsExpanded = optionsExpanded,
             showSpent = showSpent,
             showProgressBars = showProgressBars,
@@ -903,6 +906,7 @@ fun BudgetScreen(
 private fun BudgetToolbar(
     month: String,
     onMonthChange: (String) -> Unit,
+    monthRange: ClosedRange<java.time.YearMonth>?,
     optionsExpanded: Boolean,
     showSpent: Boolean,
     showProgressBars: Boolean,
@@ -1013,6 +1017,7 @@ private fun BudgetToolbar(
     if (monthPickerOpen) {
         BudgetMonthPicker(
             selectedMonth = month,
+            range = monthRange,
             onDismiss = { monthPickerOpen = false },
             onSelect = {
                 onMonthChange(it)
@@ -1057,6 +1062,7 @@ private fun BudgetCategoryFilterRow(
 @Composable
 private fun BudgetMonthPicker(
     selectedMonth: String,
+    range: ClosedRange<java.time.YearMonth>?,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
@@ -1074,7 +1080,7 @@ private fun BudgetMonthPicker(
         onDismissRequest = onDismiss,
         title = {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { displayedYear-- }) {
+                IconButton(onClick = { displayedYear-- }, enabled = range == null || displayedYear > range.start.year) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Previous year")
                 }
                 Text(
@@ -1084,7 +1090,7 @@ private fun BudgetMonthPicker(
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                 )
-                IconButton(onClick = { displayedYear++ }) {
+                IconButton(onClick = { displayedYear++ }, enabled = range == null || displayedYear < range.endInclusive.year) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Next year")
                 }
             }
@@ -1100,6 +1106,7 @@ private fun BudgetMonthPicker(
                                 onClick = {
                                     onSelect(java.time.YearMonth.of(displayedYear, monthNumber).toString())
                                 },
+                                enabled = range == null || java.time.YearMonth.of(displayedYear, monthNumber) in range,
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.textButtonColors(
                                     containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer

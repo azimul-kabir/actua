@@ -14,6 +14,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Budget months follow Actual's budget range: older budget rows no longer change To Budget, and the month picker only offers months Actual budgets ([#918](https://github.com/azimul-kabir/actua/pull/918))
 - Envelope budget totals include hidden categories, and tracking budgets show saved and projected savings, as in Actual ([#916](https://github.com/azimul-kabir/actua/pull/916))
 - Moving money out of To Budget, or covering a negative To Budget, can't move more than is available ([#914](https://github.com/azimul-kabir/actua/pull/914))
 - "Copy last month's budget" no longer resets categories that had no budget last month ([#913](https://github.com/azimul-kabir/actua/pull/913))
