@@ -61,7 +61,7 @@ and the scarce-funds September schedule all depend on how much other templates t
 | Whole-number rounding when the budget hides decimals | `removeFraction` | `BudgetTemplatePlanner.removeFraction` (synced `hideFraction` only) | Match ([#861](https://github.com/azimul-kabir/actua/issues/861)) | every category, "(whole units)" |
 | One invalid category stops the whole run | `computeTemplates` returns errors and writes nothing | skips and names unsupported categories, applies the rest | **Intentional** | – |
 | Month-end cleanup: global and group sources, weighted sinks, overspent fill | [`cleanup-template.ts`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/cleanup-template.ts) | `CleanupTemplatePlanner` | Match; sources write `long_goal = 0` ([#853](https://github.com/azimul-kabir/actua/issues/853)) | C rows |
-| Set budgets to zero | [`setZero`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/actions.ts#L261-L274) | `ZeroBudgetPlanner` | Match for envelope; **Divergence** for tracking income [#862](https://github.com/azimul-kabir/actua/issues/862) (not in the check) | – |
+| Set budgets to zero | [`setZero`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/actions.ts#L261-L274) | `ZeroBudgetPlanner` | Match, including tracking-budget income ([#862](https://github.com/azimul-kabir/actua/issues/862); not in the check) | – |
 
 ## Exact behavior to preserve
 
