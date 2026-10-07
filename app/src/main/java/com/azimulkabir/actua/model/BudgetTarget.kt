@@ -185,12 +185,7 @@ data class BudgetTarget(
             else max(0L, limitForMonth(month) - category.carryoverCents)
         Type.BY_DATE -> byDateSuggestedBudget(category, month)
         Type.HISTORICAL -> when (historicalMode) {
-            HistoricalMode.AVERAGE -> {
-                val values = category.history.take(historicalMonths.coerceIn(1, 24))
-                    .map { kotlin.math.abs(minOf(it.spentCents, 0L)) }
-                val average = if (values.isEmpty()) 0L else (values.sum().toDouble() / values.size).toLong()
-                max(0L, applyAdjustment(average))
-            }
+            HistoricalMode.AVERAGE -> max(0L, applyAdjustment(averageSpending(category, month)))
             HistoricalMode.COPY -> {
                 val selected = runCatching { YearMonth.parse(month) }.getOrNull() ?: return 0L
                 val previous = selected.minusMonths(historicalMonths.coerceAtLeast(1).toLong()).toString()
@@ -231,6 +226,34 @@ data class BudgetTarget(
             Period.WEEK -> amountCents * countQualifyingDates(selected, every) { it.plusWeeks(1) }
             Period.DAY -> amountCents * countQualifyingDates(selected, every) { it.plusDays(1) }
         }
+    }
+
+    /**
+     * Upstream `getCategoryAverage` as `runAverage` uses it: the rounded mean of each month's net
+     * category total (so refunds count), made positive. The window counts back from the month
+     * before [month], or from the month before [currentMonth] for a month at or after it, and
+     * stops before the category's first month with activity in the downloaded history.
+     */
+    internal fun averageSpending(
+        category: BudgetCategory,
+        month: String,
+        currentMonth: YearMonth = YearMonth.now(),
+    ): Long {
+        val selected = runCatching { YearMonth.parse(month) }.getOrNull() ?: return 0L
+        val previous = selected.minusMonths(1)
+        val start = if (previous >= currentMonth) currentMonth.minusMonths(1) else previous
+        val byMonth = category.history.associateBy { runCatching { YearMonth.parse(it.month) }.getOrNull() }
+        val firstActivity = byMonth.filter { (key, value) ->
+            key != null && key <= start && (value.spentCents != 0L || value.assignedCents != 0L)
+        }.keys.filterNotNull().minOrNull()
+        val months = (0 until historicalMonths.coerceIn(1, 24)).map { start.minusMonths(it.toLong()) }
+            .takeWhile { firstActivity == null || it >= firstActivity }
+            .takeWhile { it in byMonth }
+        if (months.isEmpty()) return 0L
+        val sum = months.sumOf { byMonth.getValue(it).spentCents }
+        // JavaScript Math.round: halves round toward positive infinity.
+        val average = kotlin.math.floor(sum.toDouble() / months.size + 0.5).toLong()
+        return kotlin.math.abs(average)
     }
 
     /** Applies an "increase"/"decrease" [adjustmentType] modifier, matching upstream `runAverage`. */
