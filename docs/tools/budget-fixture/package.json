@@ -1,0 +1,12 @@
+{
+  "name": "actua-budget-month-fixture",
+  "private": true,
+  "description": "Upstream side of the #667 budget-month fixture (see README.md). Synthetic data only.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@actual-app/api": "26.9.0"
+  }
+}

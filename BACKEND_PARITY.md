@@ -145,7 +145,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Query-level transaction status filters (Uncategorized, Uncleared, Cleared,
   Reconciled) mapped to database-layer SQL and surfaced as a Transactions FilterChip row
 - Zero/reflect budget month calculations, carryover, To Budget, buffered
-  hold-for-next-month writes, and exact-cent writes
+  hold-for-next-month writes, and exact-cent writes; every month cell is checked against Actual's own
+  engine on a synthetic budget, with actions and filed divergences in
+  [docs/BUDGET_PARITY.md](docs/BUDGET_PARITY.md)
 - Synced account/category notes, per-account working/cleared/uncleared/reconciled
   balances, and category rollover-overspending preferences
 - Shared compact calculator-style amount entry for budget and transaction writes,

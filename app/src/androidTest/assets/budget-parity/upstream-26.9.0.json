@@ -1,0 +1,3441 @@
+{
+  "source": "@actual-app/api 26.9.0 (loot-core budget/envelope.ts, budget/tracking.ts), offline",
+  "months": [
+    "2026-03",
+    "2026-04",
+    "2026-05",
+    "2026-06",
+    "2026-07"
+  ],
+  "envelope": {
+    "rows": {
+      "accounts": [
+        {
+          "id": "checking",
+          "name": "Checking",
+          "offbudget": 0,
+          "closed": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        },
+        {
+          "id": "savings",
+          "name": "Savings",
+          "offbudget": 1,
+          "closed": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        }
+      ],
+      "category_groups": [
+        {
+          "id": "a137772f-cf2f-4089-9432-822d2ddc1466",
+          "name": "Investments and Savings",
+          "is_income": 0,
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 32768
+        },
+        {
+          "id": "archive",
+          "name": "Archive",
+          "is_income": 0,
+          "hidden": 1,
+          "tombstone": 0,
+          "sort_order": 81920
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "is_income": 0,
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 49152
+        },
+        {
+          "id": "fc3825fd-b982-4b72-b768-5b30844cf832",
+          "name": "Usual Expenses",
+          "is_income": 0,
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 16384
+        },
+        {
+          "id": "fun",
+          "name": "Fun",
+          "is_income": 0,
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 65536
+        },
+        {
+          "id": "income",
+          "name": "Income",
+          "is_income": 1,
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 32768
+        }
+      ],
+      "categories": [
+        {
+          "id": "29ec2c58-8cd3-42fe-9187-7b5dfe0f70a6",
+          "name": "Bills (Flexible)",
+          "is_income": 0,
+          "cat_group": "fc3825fd-b982-4b72-b768-5b30844cf832",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 65536
+        },
+        {
+          "id": "3c1699a5-522a-435e-86dc-93d900a14f0e",
+          "name": "Income",
+          "is_income": 1,
+          "cat_group": "income",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 32768
+        },
+        {
+          "id": "506e8d9d-7ed0-4397-84e4-07a9185dc6b2",
+          "name": "Starting Balances",
+          "is_income": 1,
+          "cat_group": "income",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 32768
+        },
+        {
+          "id": "541836f1-e756-4473-a5d0-6c1d3f06c7fa",
+          "name": "Food",
+          "is_income": 0,
+          "cat_group": "fc3825fd-b982-4b72-b768-5b30844cf832",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 16384
+        },
+        {
+          "id": "6bbd8472-25d4-4cee-8a11-5bd9f7e83d61",
+          "name": "Savings",
+          "is_income": 0,
+          "cat_group": "a137772f-cf2f-4089-9432-822d2ddc1466",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 32768
+        },
+        {
+          "id": "af375fd4-d759-46b3-bffe-74a856151d57",
+          "name": "General",
+          "is_income": 0,
+          "cat_group": "fc3825fd-b982-4b72-b768-5b30844cf832",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 32768
+        },
+        {
+          "id": "bonus",
+          "name": "Bonus",
+          "is_income": 1,
+          "cat_group": "income",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 8192
+        },
+        {
+          "id": "coffee",
+          "name": "Coffee",
+          "is_income": 0,
+          "cat_group": "fun",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 4096
+        },
+        {
+          "id": "d4b0f075-3343-4408-91ed-fae94f74e5bf",
+          "name": "Bills",
+          "is_income": 0,
+          "cat_group": "fc3825fd-b982-4b72-b768-5b30844cf832",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 49152
+        },
+        {
+          "id": "dining",
+          "name": "Dining",
+          "is_income": 0,
+          "cat_group": "fun",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        },
+        {
+          "id": "gym",
+          "name": "Gym",
+          "is_income": 0,
+          "cat_group": "archive",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        },
+        {
+          "id": "hobbies",
+          "name": "Hobbies",
+          "is_income": 0,
+          "cat_group": "fun",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 8192
+        },
+        {
+          "id": "old",
+          "name": "Old Bill",
+          "is_income": 0,
+          "cat_group": "bills",
+          "hidden": 1,
+          "tombstone": 0,
+          "sort_order": 4096
+        },
+        {
+          "id": "rent",
+          "name": "Rent",
+          "is_income": 0,
+          "cat_group": "bills",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        },
+        {
+          "id": "salary",
+          "name": "Salary",
+          "is_income": 1,
+          "cat_group": "income",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        },
+        {
+          "id": "utilities",
+          "name": "Utilities",
+          "is_income": 0,
+          "cat_group": "bills",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 8192
+        }
+      ],
+      "category_mapping": [
+        {
+          "id": "29ec2c58-8cd3-42fe-9187-7b5dfe0f70a6",
+          "transferId": "29ec2c58-8cd3-42fe-9187-7b5dfe0f70a6"
+        },
+        {
+          "id": "3c1699a5-522a-435e-86dc-93d900a14f0e",
+          "transferId": "3c1699a5-522a-435e-86dc-93d900a14f0e"
+        },
+        {
+          "id": "506e8d9d-7ed0-4397-84e4-07a9185dc6b2",
+          "transferId": "506e8d9d-7ed0-4397-84e4-07a9185dc6b2"
+        },
+        {
+          "id": "541836f1-e756-4473-a5d0-6c1d3f06c7fa",
+          "transferId": "541836f1-e756-4473-a5d0-6c1d3f06c7fa"
+        },
+        {
+          "id": "6bbd8472-25d4-4cee-8a11-5bd9f7e83d61",
+          "transferId": "6bbd8472-25d4-4cee-8a11-5bd9f7e83d61"
+        },
+        {
+          "id": "af375fd4-d759-46b3-bffe-74a856151d57",
+          "transferId": "af375fd4-d759-46b3-bffe-74a856151d57"
+        },
+        {
+          "id": "bonus",
+          "transferId": "bonus"
+        },
+        {
+          "id": "coffee",
+          "transferId": "dining"
+        },
+        {
+          "id": "d4b0f075-3343-4408-91ed-fae94f74e5bf",
+          "transferId": "d4b0f075-3343-4408-91ed-fae94f74e5bf"
+        },
+        {
+          "id": "dining",
+          "transferId": "dining"
+        },
+        {
+          "id": "gym",
+          "transferId": "gym"
+        },
+        {
+          "id": "hobbies",
+          "transferId": "hobbies"
+        },
+        {
+          "id": "old",
+          "transferId": "old"
+        },
+        {
+          "id": "rent",
+          "transferId": "rent"
+        },
+        {
+          "id": "salary",
+          "transferId": "salary"
+        },
+        {
+          "id": "utilities",
+          "transferId": "utilities"
+        }
+      ],
+      "payees": [
+        {
+          "id": "payee-bistro",
+          "name": "Bistro",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-broker",
+          "name": "Broker",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-cafe",
+          "name": "Cafe",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-craft-shop",
+          "name": "Craft Shop",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-employer",
+          "name": "Employer",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-gym",
+          "name": "Gym",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-landlord",
+          "name": "Landlord",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-market",
+          "name": "Market",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-mistake",
+          "name": "Mistake",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-power-co",
+          "name": "Power Co",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "transfer-checking",
+          "name": "",
+          "transfer_acct": "checking",
+          "tombstone": 0
+        },
+        {
+          "id": "transfer-savings",
+          "name": "",
+          "transfer_acct": "savings",
+          "tombstone": 0
+        }
+      ],
+      "payee_mapping": [
+        {
+          "id": "payee-bistro",
+          "targetId": "payee-bistro"
+        },
+        {
+          "id": "payee-broker",
+          "targetId": "payee-broker"
+        },
+        {
+          "id": "payee-cafe",
+          "targetId": "payee-cafe"
+        },
+        {
+          "id": "payee-craft-shop",
+          "targetId": "payee-craft-shop"
+        },
+        {
+          "id": "payee-employer",
+          "targetId": "payee-employer"
+        },
+        {
+          "id": "payee-gym",
+          "targetId": "payee-gym"
+        },
+        {
+          "id": "payee-landlord",
+          "targetId": "payee-landlord"
+        },
+        {
+          "id": "payee-market",
+          "targetId": "payee-market"
+        },
+        {
+          "id": "payee-mistake",
+          "targetId": "payee-mistake"
+        },
+        {
+          "id": "payee-power-co",
+          "targetId": "payee-power-co"
+        },
+        {
+          "id": "transfer-checking",
+          "targetId": "transfer-checking"
+        },
+        {
+          "id": "transfer-savings",
+          "targetId": "transfer-savings"
+        }
+      ],
+      "transactions": [
+        {
+          "id": "tx-01",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "salary",
+          "amount": 300000,
+          "description": "payee-employer",
+          "date": 20260301,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-02",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "rent",
+          "amount": -120000,
+          "description": "payee-landlord",
+          "date": 20260302,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-03",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "utilities",
+          "amount": -15000,
+          "description": "payee-power-co",
+          "date": 20260305,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-04",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "dining",
+          "amount": -30000,
+          "description": "payee-bistro",
+          "date": 20260308,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-05",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "hobbies",
+          "amount": -5000,
+          "description": "payee-craft-shop",
+          "date": 20260309,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-06",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "coffee",
+          "amount": -2000,
+          "description": "payee-cafe",
+          "date": 20260310,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-07",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "gym",
+          "amount": -3000,
+          "description": "payee-gym",
+          "date": 20260311,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-08",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "salary",
+          "amount": 300000,
+          "description": "payee-employer",
+          "date": 20260401,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-09",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "rent",
+          "amount": -120000,
+          "description": "payee-landlord",
+          "date": 20260402,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-10",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "utilities",
+          "amount": -8000,
+          "description": "payee-power-co",
+          "date": 20260405,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-11",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "dining",
+          "amount": -10000,
+          "description": "payee-bistro",
+          "date": 20260408,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-12",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "hobbies",
+          "amount": 2500,
+          "description": "payee-craft-shop",
+          "date": 20260412,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-13",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "savings",
+          "category": "hobbies",
+          "amount": -50000,
+          "description": "payee-broker",
+          "date": 20260420,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-14",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "rent",
+          "amount": -99900,
+          "description": "payee-mistake",
+          "date": 20260421,
+          "parent_id": null,
+          "tombstone": 1
+        },
+        {
+          "id": "tx-15",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "salary",
+          "amount": 300000,
+          "description": "payee-employer",
+          "date": 20260501,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-16",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "rent",
+          "amount": -120000,
+          "description": "payee-landlord",
+          "date": 20260502,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-17",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "bonus",
+          "amount": 40000,
+          "description": "payee-employer",
+          "date": 20260503,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-18",
+          "isParent": 1,
+          "isChild": 0,
+          "acct": "checking",
+          "category": null,
+          "amount": -9000,
+          "description": "payee-market",
+          "date": 20260509,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-19",
+          "isParent": 0,
+          "isChild": 1,
+          "acct": "checking",
+          "category": "dining",
+          "amount": -6000,
+          "description": "payee-market",
+          "date": 20260509,
+          "parent_id": "tx-18",
+          "tombstone": 0
+        },
+        {
+          "id": "tx-20",
+          "isParent": 0,
+          "isChild": 1,
+          "acct": "checking",
+          "category": "hobbies",
+          "amount": -3000,
+          "description": "payee-market",
+          "date": 20260509,
+          "parent_id": "tx-18",
+          "tombstone": 0
+        },
+        {
+          "id": "tx-21",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "rent",
+          "amount": -130000,
+          "description": "payee-landlord",
+          "date": 20260602,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-22",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "utilities",
+          "amount": -7000,
+          "description": "payee-power-co",
+          "date": 20260606,
+          "parent_id": null,
+          "tombstone": 0
+        }
+      ],
+      "zero_budgets": [
+        {
+          "id": "202603-dining",
+          "month": 202603,
+          "category": "dining",
+          "amount": 20000,
+          "carryover": 1
+        },
+        {
+          "id": "202603-gym",
+          "month": 202603,
+          "category": "gym",
+          "amount": 2500,
+          "carryover": 0
+        },
+        {
+          "id": "202603-hobbies",
+          "month": 202603,
+          "category": "hobbies",
+          "amount": 10000,
+          "carryover": 0
+        },
+        {
+          "id": "202603-old",
+          "month": 202603,
+          "category": "old",
+          "amount": 4000,
+          "carryover": 0
+        },
+        {
+          "id": "202603-rent",
+          "month": 202603,
+          "category": "rent",
+          "amount": 120000,
+          "carryover": 0
+        },
+        {
+          "id": "202603-utilities",
+          "month": 202603,
+          "category": "utilities",
+          "amount": 10000,
+          "carryover": 0
+        },
+        {
+          "id": "202604-dining",
+          "month": 202604,
+          "category": "dining",
+          "amount": 20000,
+          "carryover": 1
+        },
+        {
+          "id": "202604-gym",
+          "month": 202604,
+          "category": "gym",
+          "amount": 2500,
+          "carryover": 0
+        },
+        {
+          "id": "202604-hobbies",
+          "month": 202604,
+          "category": "hobbies",
+          "amount": 5000,
+          "carryover": 0
+        },
+        {
+          "id": "202604-old",
+          "month": 202604,
+          "category": "old",
+          "amount": 4000,
+          "carryover": 0
+        },
+        {
+          "id": "202604-rent",
+          "month": 202604,
+          "category": "rent",
+          "amount": 120000,
+          "carryover": 0
+        },
+        {
+          "id": "202604-utilities",
+          "month": 202604,
+          "category": "utilities",
+          "amount": 10000,
+          "carryover": 0
+        },
+        {
+          "id": "202605-bonus",
+          "month": 202605,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202605-dining",
+          "month": 202605,
+          "category": "dining",
+          "amount": 15000,
+          "carryover": 1
+        },
+        {
+          "id": "202605-hobbies",
+          "month": 202605,
+          "category": "hobbies",
+          "amount": 5000,
+          "carryover": 0
+        },
+        {
+          "id": "202605-rent",
+          "month": 202605,
+          "category": "rent",
+          "amount": 120000,
+          "carryover": 0
+        },
+        {
+          "id": "202605-utilities",
+          "month": 202605,
+          "category": "utilities",
+          "amount": 10000,
+          "carryover": 0
+        },
+        {
+          "id": "202606-bonus",
+          "month": 202606,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202606-dining",
+          "month": 202606,
+          "category": "dining",
+          "amount": 15000,
+          "carryover": 1
+        },
+        {
+          "id": "202606-hobbies",
+          "month": 202606,
+          "category": "hobbies",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202606-rent",
+          "month": 202606,
+          "category": "rent",
+          "amount": 120000,
+          "carryover": 0
+        },
+        {
+          "id": "202606-utilities",
+          "month": 202606,
+          "category": "utilities",
+          "amount": 12000,
+          "carryover": 0
+        },
+        {
+          "id": "202607-bonus",
+          "month": 202607,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202607-dining",
+          "month": 202607,
+          "category": "dining",
+          "amount": 10000,
+          "carryover": 1
+        },
+        {
+          "id": "202607-rent",
+          "month": 202607,
+          "category": "rent",
+          "amount": 125000,
+          "carryover": 0
+        },
+        {
+          "id": "202607-utilities",
+          "month": 202607,
+          "category": "utilities",
+          "amount": 12000,
+          "carryover": 0
+        },
+        {
+          "id": "202608-bonus",
+          "month": 202608,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202608-dining",
+          "month": 202608,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202609-bonus",
+          "month": 202609,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202609-dining",
+          "month": 202609,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202610-bonus",
+          "month": 202610,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202610-dining",
+          "month": 202610,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202611-bonus",
+          "month": 202611,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202611-dining",
+          "month": 202611,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202612-bonus",
+          "month": 202612,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202612-dining",
+          "month": 202612,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202701-bonus",
+          "month": 202701,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202701-dining",
+          "month": 202701,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202702-bonus",
+          "month": 202702,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202702-dining",
+          "month": 202702,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202703-bonus",
+          "month": 202703,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202703-dining",
+          "month": 202703,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202704-bonus",
+          "month": 202704,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202704-dining",
+          "month": 202704,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202705-bonus",
+          "month": 202705,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202705-dining",
+          "month": 202705,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202706-bonus",
+          "month": 202706,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202706-dining",
+          "month": 202706,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202707-bonus",
+          "month": 202707,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202707-dining",
+          "month": 202707,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202708-bonus",
+          "month": 202708,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202708-dining",
+          "month": 202708,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202709-bonus",
+          "month": 202709,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202709-dining",
+          "month": 202709,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202710-bonus",
+          "month": 202710,
+          "category": "bonus",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202710-dining",
+          "month": 202710,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        }
+      ],
+      "zero_budget_months": [
+        {
+          "id": "2026-04",
+          "buffered": 50000
+        },
+        {
+          "id": "2026-06",
+          "buffered": 0
+        }
+      ],
+      "reflect_budgets": [],
+      "preferences": []
+    },
+    "expected": {
+      "2026-03": {
+        "incomeAvailable": 300000,
+        "lastMonthOverspent": 0,
+        "forNextMonth": 0,
+        "totalBudgeted": -166500,
+        "toBudget": 133500,
+        "fromLastMonth": 0,
+        "totalIncome": 300000,
+        "totalSpent": -175000,
+        "totalBalance": -8500,
+        "groups": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 134000,
+            "spent": -135000,
+            "balance": -1000,
+            "categories": [
+              {
+                "id": "old",
+                "name": "Old Bill",
+                "hidden": true,
+                "budgeted": 4000,
+                "spent": 0,
+                "balance": 4000,
+                "carryover": false
+              },
+              {
+                "id": "utilities",
+                "name": "Utilities",
+                "hidden": false,
+                "budgeted": 10000,
+                "spent": -15000,
+                "balance": -5000,
+                "carryover": false
+              },
+              {
+                "id": "rent",
+                "name": "Rent",
+                "hidden": false,
+                "budgeted": 120000,
+                "spent": -120000,
+                "balance": 0,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "fun",
+            "name": "Fun",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 30000,
+            "spent": -37000,
+            "balance": -7000,
+            "categories": [
+              {
+                "id": "hobbies",
+                "name": "Hobbies",
+                "hidden": false,
+                "budgeted": 10000,
+                "spent": -5000,
+                "balance": 5000,
+                "carryover": false
+              },
+              {
+                "id": "dining",
+                "name": "Dining",
+                "hidden": false,
+                "budgeted": 20000,
+                "spent": -32000,
+                "balance": -12000,
+                "carryover": true
+              }
+            ]
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "is_income": false,
+            "hidden": true,
+            "budgeted": 2500,
+            "spent": -3000,
+            "balance": -500,
+            "categories": [
+              {
+                "id": "gym",
+                "name": "Gym",
+                "hidden": false,
+                "budgeted": 2500,
+                "spent": -3000,
+                "balance": -500,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "income",
+            "name": "Income",
+            "is_income": true,
+            "hidden": false,
+            "received": 300000,
+            "categories": [
+              {
+                "id": "bonus",
+                "name": "Bonus",
+                "hidden": false,
+                "received": 0
+              },
+              {
+                "id": "salary",
+                "name": "Salary",
+                "hidden": false,
+                "received": 300000
+              }
+            ]
+          }
+        ]
+      },
+      "2026-04": {
+        "incomeAvailable": 433500,
+        "lastMonthOverspent": -5500,
+        "forNextMonth": 50000,
+        "totalBudgeted": -161500,
+        "toBudget": 216500,
+        "fromLastMonth": 133500,
+        "totalIncome": 300000,
+        "totalSpent": -135500,
+        "totalBalance": 23000,
+        "groups": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 134000,
+            "spent": -128000,
+            "balance": 10000,
+            "categories": [
+              {
+                "id": "old",
+                "name": "Old Bill",
+                "hidden": true,
+                "budgeted": 4000,
+                "spent": 0,
+                "balance": 8000,
+                "carryover": false
+              },
+              {
+                "id": "utilities",
+                "name": "Utilities",
+                "hidden": false,
+                "budgeted": 10000,
+                "spent": -8000,
+                "balance": 2000,
+                "carryover": false
+              },
+              {
+                "id": "rent",
+                "name": "Rent",
+                "hidden": false,
+                "budgeted": 120000,
+                "spent": -120000,
+                "balance": 0,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "fun",
+            "name": "Fun",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 25000,
+            "spent": -7500,
+            "balance": 10500,
+            "categories": [
+              {
+                "id": "hobbies",
+                "name": "Hobbies",
+                "hidden": false,
+                "budgeted": 5000,
+                "spent": 2500,
+                "balance": 12500,
+                "carryover": false
+              },
+              {
+                "id": "dining",
+                "name": "Dining",
+                "hidden": false,
+                "budgeted": 20000,
+                "spent": -10000,
+                "balance": -2000,
+                "carryover": true
+              }
+            ]
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "is_income": false,
+            "hidden": true,
+            "budgeted": 2500,
+            "spent": 0,
+            "balance": 2500,
+            "categories": [
+              {
+                "id": "gym",
+                "name": "Gym",
+                "hidden": false,
+                "budgeted": 2500,
+                "spent": 0,
+                "balance": 2500,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "income",
+            "name": "Income",
+            "is_income": true,
+            "hidden": false,
+            "received": 300000,
+            "categories": [
+              {
+                "id": "bonus",
+                "name": "Bonus",
+                "hidden": false,
+                "received": 0
+              },
+              {
+                "id": "salary",
+                "name": "Salary",
+                "hidden": false,
+                "received": 300000
+              }
+            ]
+          }
+        ]
+      },
+      "2026-05": {
+        "incomeAvailable": 606500,
+        "lastMonthOverspent": 0,
+        "forNextMonth": 0,
+        "totalBudgeted": -150000,
+        "toBudget": 416500,
+        "fromLastMonth": 266500,
+        "totalIncome": 340000,
+        "totalSpent": -129000,
+        "totalBalance": 44000,
+        "groups": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 130000,
+            "spent": -120000,
+            "balance": 20000,
+            "categories": [
+              {
+                "id": "old",
+                "name": "Old Bill",
+                "hidden": true,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 8000,
+                "carryover": false
+              },
+              {
+                "id": "utilities",
+                "name": "Utilities",
+                "hidden": false,
+                "budgeted": 10000,
+                "spent": 0,
+                "balance": 12000,
+                "carryover": false
+              },
+              {
+                "id": "rent",
+                "name": "Rent",
+                "hidden": false,
+                "budgeted": 120000,
+                "spent": -120000,
+                "balance": 0,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "fun",
+            "name": "Fun",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 20000,
+            "spent": -9000,
+            "balance": 21500,
+            "categories": [
+              {
+                "id": "hobbies",
+                "name": "Hobbies",
+                "hidden": false,
+                "budgeted": 5000,
+                "spent": -3000,
+                "balance": 14500,
+                "carryover": false
+              },
+              {
+                "id": "dining",
+                "name": "Dining",
+                "hidden": false,
+                "budgeted": 15000,
+                "spent": -6000,
+                "balance": 7000,
+                "carryover": true
+              }
+            ]
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "is_income": false,
+            "hidden": true,
+            "budgeted": 0,
+            "spent": 0,
+            "balance": 2500,
+            "categories": [
+              {
+                "id": "gym",
+                "name": "Gym",
+                "hidden": false,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 2500,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "income",
+            "name": "Income",
+            "is_income": true,
+            "hidden": false,
+            "received": 340000,
+            "categories": [
+              {
+                "id": "bonus",
+                "name": "Bonus",
+                "hidden": false,
+                "received": 40000
+              },
+              {
+                "id": "salary",
+                "name": "Salary",
+                "hidden": false,
+                "received": 300000
+              }
+            ]
+          }
+        ]
+      },
+      "2026-06": {
+        "incomeAvailable": 456500,
+        "lastMonthOverspent": 0,
+        "forNextMonth": 0,
+        "totalBudgeted": -147000,
+        "toBudget": 309500,
+        "fromLastMonth": 456500,
+        "totalIncome": 0,
+        "totalSpent": -137000,
+        "totalBalance": 54000,
+        "groups": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 132000,
+            "spent": -137000,
+            "balance": 15000,
+            "categories": [
+              {
+                "id": "old",
+                "name": "Old Bill",
+                "hidden": true,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 8000,
+                "carryover": false
+              },
+              {
+                "id": "utilities",
+                "name": "Utilities",
+                "hidden": false,
+                "budgeted": 12000,
+                "spent": -7000,
+                "balance": 17000,
+                "carryover": false
+              },
+              {
+                "id": "rent",
+                "name": "Rent",
+                "hidden": false,
+                "budgeted": 120000,
+                "spent": -130000,
+                "balance": -10000,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "fun",
+            "name": "Fun",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 15000,
+            "spent": 0,
+            "balance": 36500,
+            "categories": [
+              {
+                "id": "hobbies",
+                "name": "Hobbies",
+                "hidden": false,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 14500,
+                "carryover": false
+              },
+              {
+                "id": "dining",
+                "name": "Dining",
+                "hidden": false,
+                "budgeted": 15000,
+                "spent": 0,
+                "balance": 22000,
+                "carryover": true
+              }
+            ]
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "is_income": false,
+            "hidden": true,
+            "budgeted": 0,
+            "spent": 0,
+            "balance": 2500,
+            "categories": [
+              {
+                "id": "gym",
+                "name": "Gym",
+                "hidden": false,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 2500,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "income",
+            "name": "Income",
+            "is_income": true,
+            "hidden": false,
+            "received": 0,
+            "categories": [
+              {
+                "id": "bonus",
+                "name": "Bonus",
+                "hidden": false,
+                "received": 0
+              },
+              {
+                "id": "salary",
+                "name": "Salary",
+                "hidden": false,
+                "received": 0
+              }
+            ]
+          }
+        ]
+      },
+      "2026-07": {
+        "incomeAvailable": 309500,
+        "lastMonthOverspent": -10000,
+        "forNextMonth": 0,
+        "totalBudgeted": -147000,
+        "toBudget": 152500,
+        "fromLastMonth": 309500,
+        "totalIncome": 0,
+        "totalSpent": 0,
+        "totalBalance": 211000,
+        "groups": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 137000,
+            "spent": 0,
+            "balance": 162000,
+            "categories": [
+              {
+                "id": "old",
+                "name": "Old Bill",
+                "hidden": true,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 8000,
+                "carryover": false
+              },
+              {
+                "id": "utilities",
+                "name": "Utilities",
+                "hidden": false,
+                "budgeted": 12000,
+                "spent": 0,
+                "balance": 29000,
+                "carryover": false
+              },
+              {
+                "id": "rent",
+                "name": "Rent",
+                "hidden": false,
+                "budgeted": 125000,
+                "spent": 0,
+                "balance": 125000,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "fun",
+            "name": "Fun",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 10000,
+            "spent": 0,
+            "balance": 46500,
+            "categories": [
+              {
+                "id": "hobbies",
+                "name": "Hobbies",
+                "hidden": false,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 14500,
+                "carryover": false
+              },
+              {
+                "id": "dining",
+                "name": "Dining",
+                "hidden": false,
+                "budgeted": 10000,
+                "spent": 0,
+                "balance": 32000,
+                "carryover": true
+              }
+            ]
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "is_income": false,
+            "hidden": true,
+            "budgeted": 0,
+            "spent": 0,
+            "balance": 2500,
+            "categories": [
+              {
+                "id": "gym",
+                "name": "Gym",
+                "hidden": false,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 2500,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "income",
+            "name": "Income",
+            "is_income": true,
+            "hidden": false,
+            "received": 0,
+            "categories": [
+              {
+                "id": "bonus",
+                "name": "Bonus",
+                "hidden": false,
+                "received": 0
+              },
+              {
+                "id": "salary",
+                "name": "Salary",
+                "hidden": false,
+                "received": 0
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "tracking": {
+    "rows": {
+      "accounts": [
+        {
+          "id": "checking",
+          "name": "Checking",
+          "offbudget": 0,
+          "closed": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        },
+        {
+          "id": "savings",
+          "name": "Savings",
+          "offbudget": 1,
+          "closed": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        }
+      ],
+      "category_groups": [
+        {
+          "id": "a137772f-cf2f-4089-9432-822d2ddc1466",
+          "name": "Investments and Savings",
+          "is_income": 0,
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 32768
+        },
+        {
+          "id": "archive",
+          "name": "Archive",
+          "is_income": 0,
+          "hidden": 1,
+          "tombstone": 0,
+          "sort_order": 81920
+        },
+        {
+          "id": "bills",
+          "name": "Bills",
+          "is_income": 0,
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 49152
+        },
+        {
+          "id": "fc3825fd-b982-4b72-b768-5b30844cf832",
+          "name": "Usual Expenses",
+          "is_income": 0,
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 16384
+        },
+        {
+          "id": "fun",
+          "name": "Fun",
+          "is_income": 0,
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 65536
+        },
+        {
+          "id": "income",
+          "name": "Income",
+          "is_income": 1,
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 32768
+        }
+      ],
+      "categories": [
+        {
+          "id": "29ec2c58-8cd3-42fe-9187-7b5dfe0f70a6",
+          "name": "Bills (Flexible)",
+          "is_income": 0,
+          "cat_group": "fc3825fd-b982-4b72-b768-5b30844cf832",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 65536
+        },
+        {
+          "id": "3c1699a5-522a-435e-86dc-93d900a14f0e",
+          "name": "Income",
+          "is_income": 1,
+          "cat_group": "income",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 32768
+        },
+        {
+          "id": "506e8d9d-7ed0-4397-84e4-07a9185dc6b2",
+          "name": "Starting Balances",
+          "is_income": 1,
+          "cat_group": "income",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 32768
+        },
+        {
+          "id": "541836f1-e756-4473-a5d0-6c1d3f06c7fa",
+          "name": "Food",
+          "is_income": 0,
+          "cat_group": "fc3825fd-b982-4b72-b768-5b30844cf832",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 16384
+        },
+        {
+          "id": "6bbd8472-25d4-4cee-8a11-5bd9f7e83d61",
+          "name": "Savings",
+          "is_income": 0,
+          "cat_group": "a137772f-cf2f-4089-9432-822d2ddc1466",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 32768
+        },
+        {
+          "id": "af375fd4-d759-46b3-bffe-74a856151d57",
+          "name": "General",
+          "is_income": 0,
+          "cat_group": "fc3825fd-b982-4b72-b768-5b30844cf832",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 32768
+        },
+        {
+          "id": "bonus",
+          "name": "Bonus",
+          "is_income": 1,
+          "cat_group": "income",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 8192
+        },
+        {
+          "id": "coffee",
+          "name": "Coffee",
+          "is_income": 0,
+          "cat_group": "fun",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 4096
+        },
+        {
+          "id": "d4b0f075-3343-4408-91ed-fae94f74e5bf",
+          "name": "Bills",
+          "is_income": 0,
+          "cat_group": "fc3825fd-b982-4b72-b768-5b30844cf832",
+          "hidden": 0,
+          "tombstone": 1,
+          "sort_order": 49152
+        },
+        {
+          "id": "dining",
+          "name": "Dining",
+          "is_income": 0,
+          "cat_group": "fun",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        },
+        {
+          "id": "gym",
+          "name": "Gym",
+          "is_income": 0,
+          "cat_group": "archive",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        },
+        {
+          "id": "hobbies",
+          "name": "Hobbies",
+          "is_income": 0,
+          "cat_group": "fun",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 8192
+        },
+        {
+          "id": "old",
+          "name": "Old Bill",
+          "is_income": 0,
+          "cat_group": "bills",
+          "hidden": 1,
+          "tombstone": 0,
+          "sort_order": 4096
+        },
+        {
+          "id": "rent",
+          "name": "Rent",
+          "is_income": 0,
+          "cat_group": "bills",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        },
+        {
+          "id": "salary",
+          "name": "Salary",
+          "is_income": 1,
+          "cat_group": "income",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 16384
+        },
+        {
+          "id": "utilities",
+          "name": "Utilities",
+          "is_income": 0,
+          "cat_group": "bills",
+          "hidden": 0,
+          "tombstone": 0,
+          "sort_order": 8192
+        }
+      ],
+      "category_mapping": [
+        {
+          "id": "29ec2c58-8cd3-42fe-9187-7b5dfe0f70a6",
+          "transferId": "29ec2c58-8cd3-42fe-9187-7b5dfe0f70a6"
+        },
+        {
+          "id": "3c1699a5-522a-435e-86dc-93d900a14f0e",
+          "transferId": "3c1699a5-522a-435e-86dc-93d900a14f0e"
+        },
+        {
+          "id": "506e8d9d-7ed0-4397-84e4-07a9185dc6b2",
+          "transferId": "506e8d9d-7ed0-4397-84e4-07a9185dc6b2"
+        },
+        {
+          "id": "541836f1-e756-4473-a5d0-6c1d3f06c7fa",
+          "transferId": "541836f1-e756-4473-a5d0-6c1d3f06c7fa"
+        },
+        {
+          "id": "6bbd8472-25d4-4cee-8a11-5bd9f7e83d61",
+          "transferId": "6bbd8472-25d4-4cee-8a11-5bd9f7e83d61"
+        },
+        {
+          "id": "af375fd4-d759-46b3-bffe-74a856151d57",
+          "transferId": "af375fd4-d759-46b3-bffe-74a856151d57"
+        },
+        {
+          "id": "bonus",
+          "transferId": "bonus"
+        },
+        {
+          "id": "coffee",
+          "transferId": "dining"
+        },
+        {
+          "id": "d4b0f075-3343-4408-91ed-fae94f74e5bf",
+          "transferId": "d4b0f075-3343-4408-91ed-fae94f74e5bf"
+        },
+        {
+          "id": "dining",
+          "transferId": "dining"
+        },
+        {
+          "id": "gym",
+          "transferId": "gym"
+        },
+        {
+          "id": "hobbies",
+          "transferId": "hobbies"
+        },
+        {
+          "id": "old",
+          "transferId": "old"
+        },
+        {
+          "id": "rent",
+          "transferId": "rent"
+        },
+        {
+          "id": "salary",
+          "transferId": "salary"
+        },
+        {
+          "id": "utilities",
+          "transferId": "utilities"
+        }
+      ],
+      "payees": [
+        {
+          "id": "payee-bistro",
+          "name": "Bistro",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-broker",
+          "name": "Broker",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-cafe",
+          "name": "Cafe",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-craft-shop",
+          "name": "Craft Shop",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-employer",
+          "name": "Employer",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-gym",
+          "name": "Gym",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-landlord",
+          "name": "Landlord",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-market",
+          "name": "Market",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-mistake",
+          "name": "Mistake",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "payee-power-co",
+          "name": "Power Co",
+          "transfer_acct": null,
+          "tombstone": 0
+        },
+        {
+          "id": "transfer-checking",
+          "name": "",
+          "transfer_acct": "checking",
+          "tombstone": 0
+        },
+        {
+          "id": "transfer-savings",
+          "name": "",
+          "transfer_acct": "savings",
+          "tombstone": 0
+        }
+      ],
+      "payee_mapping": [
+        {
+          "id": "payee-bistro",
+          "targetId": "payee-bistro"
+        },
+        {
+          "id": "payee-broker",
+          "targetId": "payee-broker"
+        },
+        {
+          "id": "payee-cafe",
+          "targetId": "payee-cafe"
+        },
+        {
+          "id": "payee-craft-shop",
+          "targetId": "payee-craft-shop"
+        },
+        {
+          "id": "payee-employer",
+          "targetId": "payee-employer"
+        },
+        {
+          "id": "payee-gym",
+          "targetId": "payee-gym"
+        },
+        {
+          "id": "payee-landlord",
+          "targetId": "payee-landlord"
+        },
+        {
+          "id": "payee-market",
+          "targetId": "payee-market"
+        },
+        {
+          "id": "payee-mistake",
+          "targetId": "payee-mistake"
+        },
+        {
+          "id": "payee-power-co",
+          "targetId": "payee-power-co"
+        },
+        {
+          "id": "transfer-checking",
+          "targetId": "transfer-checking"
+        },
+        {
+          "id": "transfer-savings",
+          "targetId": "transfer-savings"
+        }
+      ],
+      "transactions": [
+        {
+          "id": "tx-01",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "salary",
+          "amount": 300000,
+          "description": "payee-employer",
+          "date": 20260301,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-02",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "rent",
+          "amount": -120000,
+          "description": "payee-landlord",
+          "date": 20260302,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-03",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "utilities",
+          "amount": -15000,
+          "description": "payee-power-co",
+          "date": 20260305,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-04",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "dining",
+          "amount": -30000,
+          "description": "payee-bistro",
+          "date": 20260308,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-05",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "hobbies",
+          "amount": -5000,
+          "description": "payee-craft-shop",
+          "date": 20260309,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-06",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "coffee",
+          "amount": -2000,
+          "description": "payee-cafe",
+          "date": 20260310,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-07",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "gym",
+          "amount": -3000,
+          "description": "payee-gym",
+          "date": 20260311,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-08",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "salary",
+          "amount": 300000,
+          "description": "payee-employer",
+          "date": 20260401,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-09",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "rent",
+          "amount": -120000,
+          "description": "payee-landlord",
+          "date": 20260402,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-10",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "utilities",
+          "amount": -8000,
+          "description": "payee-power-co",
+          "date": 20260405,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-11",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "dining",
+          "amount": -10000,
+          "description": "payee-bistro",
+          "date": 20260408,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-12",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "hobbies",
+          "amount": 2500,
+          "description": "payee-craft-shop",
+          "date": 20260412,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-13",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "savings",
+          "category": "hobbies",
+          "amount": -50000,
+          "description": "payee-broker",
+          "date": 20260420,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-14",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "rent",
+          "amount": -99900,
+          "description": "payee-mistake",
+          "date": 20260421,
+          "parent_id": null,
+          "tombstone": 1
+        },
+        {
+          "id": "tx-15",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "salary",
+          "amount": 300000,
+          "description": "payee-employer",
+          "date": 20260501,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-16",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "rent",
+          "amount": -120000,
+          "description": "payee-landlord",
+          "date": 20260502,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-17",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "bonus",
+          "amount": 40000,
+          "description": "payee-employer",
+          "date": 20260503,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-18",
+          "isParent": 1,
+          "isChild": 0,
+          "acct": "checking",
+          "category": null,
+          "amount": -9000,
+          "description": "payee-market",
+          "date": 20260509,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-19",
+          "isParent": 0,
+          "isChild": 1,
+          "acct": "checking",
+          "category": "dining",
+          "amount": -6000,
+          "description": "payee-market",
+          "date": 20260509,
+          "parent_id": "tx-18",
+          "tombstone": 0
+        },
+        {
+          "id": "tx-20",
+          "isParent": 0,
+          "isChild": 1,
+          "acct": "checking",
+          "category": "hobbies",
+          "amount": -3000,
+          "description": "payee-market",
+          "date": 20260509,
+          "parent_id": "tx-18",
+          "tombstone": 0
+        },
+        {
+          "id": "tx-21",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "rent",
+          "amount": -130000,
+          "description": "payee-landlord",
+          "date": 20260602,
+          "parent_id": null,
+          "tombstone": 0
+        },
+        {
+          "id": "tx-22",
+          "isParent": 0,
+          "isChild": 0,
+          "acct": "checking",
+          "category": "utilities",
+          "amount": -7000,
+          "description": "payee-power-co",
+          "date": 20260606,
+          "parent_id": null,
+          "tombstone": 0
+        }
+      ],
+      "zero_budgets": [],
+      "zero_budget_months": [],
+      "reflect_budgets": [
+        {
+          "id": "202603-dining",
+          "month": 202603,
+          "category": "dining",
+          "amount": 20000,
+          "carryover": 1
+        },
+        {
+          "id": "202603-gym",
+          "month": 202603,
+          "category": "gym",
+          "amount": 2500,
+          "carryover": 0
+        },
+        {
+          "id": "202603-hobbies",
+          "month": 202603,
+          "category": "hobbies",
+          "amount": 10000,
+          "carryover": 0
+        },
+        {
+          "id": "202603-old",
+          "month": 202603,
+          "category": "old",
+          "amount": 4000,
+          "carryover": 0
+        },
+        {
+          "id": "202603-rent",
+          "month": 202603,
+          "category": "rent",
+          "amount": 120000,
+          "carryover": 0
+        },
+        {
+          "id": "202603-salary",
+          "month": 202603,
+          "category": "salary",
+          "amount": 300000,
+          "carryover": 0
+        },
+        {
+          "id": "202603-utilities",
+          "month": 202603,
+          "category": "utilities",
+          "amount": 10000,
+          "carryover": 0
+        },
+        {
+          "id": "202604-dining",
+          "month": 202604,
+          "category": "dining",
+          "amount": 20000,
+          "carryover": 1
+        },
+        {
+          "id": "202604-gym",
+          "month": 202604,
+          "category": "gym",
+          "amount": 2500,
+          "carryover": 0
+        },
+        {
+          "id": "202604-hobbies",
+          "month": 202604,
+          "category": "hobbies",
+          "amount": 5000,
+          "carryover": 0
+        },
+        {
+          "id": "202604-old",
+          "month": 202604,
+          "category": "old",
+          "amount": 4000,
+          "carryover": 0
+        },
+        {
+          "id": "202604-rent",
+          "month": 202604,
+          "category": "rent",
+          "amount": 120000,
+          "carryover": 0
+        },
+        {
+          "id": "202604-salary",
+          "month": 202604,
+          "category": "salary",
+          "amount": 300000,
+          "carryover": 1
+        },
+        {
+          "id": "202604-utilities",
+          "month": 202604,
+          "category": "utilities",
+          "amount": 10000,
+          "carryover": 0
+        },
+        {
+          "id": "202605-bonus",
+          "month": 202605,
+          "category": "bonus",
+          "amount": 40000,
+          "carryover": 0
+        },
+        {
+          "id": "202605-dining",
+          "month": 202605,
+          "category": "dining",
+          "amount": 15000,
+          "carryover": 1
+        },
+        {
+          "id": "202605-hobbies",
+          "month": 202605,
+          "category": "hobbies",
+          "amount": 5000,
+          "carryover": 0
+        },
+        {
+          "id": "202605-rent",
+          "month": 202605,
+          "category": "rent",
+          "amount": 120000,
+          "carryover": 0
+        },
+        {
+          "id": "202605-salary",
+          "month": 202605,
+          "category": "salary",
+          "amount": 300000,
+          "carryover": 1
+        },
+        {
+          "id": "202605-utilities",
+          "month": 202605,
+          "category": "utilities",
+          "amount": 10000,
+          "carryover": 0
+        },
+        {
+          "id": "202606-dining",
+          "month": 202606,
+          "category": "dining",
+          "amount": 15000,
+          "carryover": 1
+        },
+        {
+          "id": "202606-hobbies",
+          "month": 202606,
+          "category": "hobbies",
+          "amount": 0,
+          "carryover": 0
+        },
+        {
+          "id": "202606-rent",
+          "month": 202606,
+          "category": "rent",
+          "amount": 120000,
+          "carryover": 0
+        },
+        {
+          "id": "202606-salary",
+          "month": 202606,
+          "category": "salary",
+          "amount": 300000,
+          "carryover": 1
+        },
+        {
+          "id": "202606-utilities",
+          "month": 202606,
+          "category": "utilities",
+          "amount": 12000,
+          "carryover": 0
+        },
+        {
+          "id": "202607-dining",
+          "month": 202607,
+          "category": "dining",
+          "amount": 10000,
+          "carryover": 1
+        },
+        {
+          "id": "202607-rent",
+          "month": 202607,
+          "category": "rent",
+          "amount": 125000,
+          "carryover": 0
+        },
+        {
+          "id": "202607-salary",
+          "month": 202607,
+          "category": "salary",
+          "amount": 300000,
+          "carryover": 1
+        },
+        {
+          "id": "202607-utilities",
+          "month": 202607,
+          "category": "utilities",
+          "amount": 12000,
+          "carryover": 0
+        },
+        {
+          "id": "202608-dining",
+          "month": 202608,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202608-salary",
+          "month": 202608,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202609-dining",
+          "month": 202609,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202609-salary",
+          "month": 202609,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202610-dining",
+          "month": 202610,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202610-salary",
+          "month": 202610,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202611-dining",
+          "month": 202611,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202611-salary",
+          "month": 202611,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202612-dining",
+          "month": 202612,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202612-salary",
+          "month": 202612,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202701-dining",
+          "month": 202701,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202701-salary",
+          "month": 202701,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202702-dining",
+          "month": 202702,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202702-salary",
+          "month": 202702,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202703-dining",
+          "month": 202703,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202703-salary",
+          "month": 202703,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202704-dining",
+          "month": 202704,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202704-salary",
+          "month": 202704,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202705-dining",
+          "month": 202705,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202705-salary",
+          "month": 202705,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202706-dining",
+          "month": 202706,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202706-salary",
+          "month": 202706,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202707-dining",
+          "month": 202707,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202707-salary",
+          "month": 202707,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202708-dining",
+          "month": 202708,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202708-salary",
+          "month": 202708,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202709-dining",
+          "month": 202709,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202709-salary",
+          "month": 202709,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202710-dining",
+          "month": 202710,
+          "category": "dining",
+          "amount": 0,
+          "carryover": 1
+        },
+        {
+          "id": "202710-salary",
+          "month": 202710,
+          "category": "salary",
+          "amount": 0,
+          "carryover": 1
+        }
+      ],
+      "preferences": [
+        {
+          "id": "budgetType",
+          "value": "tracking"
+        }
+      ]
+    },
+    "expected": {
+      "2026-03": {
+        "incomeAvailable": null,
+        "lastMonthOverspent": null,
+        "forNextMonth": null,
+        "totalBudgeted": 160000,
+        "toBudget": null,
+        "fromLastMonth": null,
+        "totalIncome": 300000,
+        "totalSpent": -172000,
+        "totalBalance": -12000,
+        "groups": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 130000,
+            "spent": -135000,
+            "balance": -5000,
+            "categories": [
+              {
+                "id": "old",
+                "name": "Old Bill",
+                "hidden": true,
+                "budgeted": 4000,
+                "spent": 0,
+                "balance": 4000,
+                "carryover": false
+              },
+              {
+                "id": "utilities",
+                "name": "Utilities",
+                "hidden": false,
+                "budgeted": 10000,
+                "spent": -15000,
+                "balance": -5000,
+                "carryover": false
+              },
+              {
+                "id": "rent",
+                "name": "Rent",
+                "hidden": false,
+                "budgeted": 120000,
+                "spent": -120000,
+                "balance": 0,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "fun",
+            "name": "Fun",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 30000,
+            "spent": -37000,
+            "balance": -7000,
+            "categories": [
+              {
+                "id": "hobbies",
+                "name": "Hobbies",
+                "hidden": false,
+                "budgeted": 10000,
+                "spent": -5000,
+                "balance": 5000,
+                "carryover": false
+              },
+              {
+                "id": "dining",
+                "name": "Dining",
+                "hidden": false,
+                "budgeted": 20000,
+                "spent": -32000,
+                "balance": -12000,
+                "carryover": true
+              }
+            ]
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "is_income": false,
+            "hidden": true,
+            "budgeted": 2500,
+            "spent": -3000,
+            "balance": -500,
+            "categories": [
+              {
+                "id": "gym",
+                "name": "Gym",
+                "hidden": false,
+                "budgeted": 2500,
+                "spent": -3000,
+                "balance": -500,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "income",
+            "name": "Income",
+            "is_income": true,
+            "hidden": false,
+            "budgeted": 300000,
+            "received": 300000,
+            "balance": 0,
+            "categories": [
+              {
+                "id": "bonus",
+                "name": "Bonus",
+                "hidden": false,
+                "budgeted": 0,
+                "received": 0,
+                "balance": 0,
+                "carryover": false
+              },
+              {
+                "id": "salary",
+                "name": "Salary",
+                "hidden": false,
+                "budgeted": 300000,
+                "received": 300000,
+                "balance": 0,
+                "carryover": false
+              }
+            ]
+          }
+        ]
+      },
+      "2026-04": {
+        "incomeAvailable": null,
+        "lastMonthOverspent": null,
+        "forNextMonth": null,
+        "totalBudgeted": 155000,
+        "toBudget": null,
+        "fromLastMonth": null,
+        "totalIncome": 300000,
+        "totalSpent": -135500,
+        "totalBalance": 7500,
+        "groups": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 130000,
+            "spent": -128000,
+            "balance": 2000,
+            "categories": [
+              {
+                "id": "old",
+                "name": "Old Bill",
+                "hidden": true,
+                "budgeted": 4000,
+                "spent": 0,
+                "balance": 4000,
+                "carryover": false
+              },
+              {
+                "id": "utilities",
+                "name": "Utilities",
+                "hidden": false,
+                "budgeted": 10000,
+                "spent": -8000,
+                "balance": 2000,
+                "carryover": false
+              },
+              {
+                "id": "rent",
+                "name": "Rent",
+                "hidden": false,
+                "budgeted": 120000,
+                "spent": -120000,
+                "balance": 0,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "fun",
+            "name": "Fun",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 25000,
+            "spent": -7500,
+            "balance": 5500,
+            "categories": [
+              {
+                "id": "hobbies",
+                "name": "Hobbies",
+                "hidden": false,
+                "budgeted": 5000,
+                "spent": 2500,
+                "balance": 7500,
+                "carryover": false
+              },
+              {
+                "id": "dining",
+                "name": "Dining",
+                "hidden": false,
+                "budgeted": 20000,
+                "spent": -10000,
+                "balance": -2000,
+                "carryover": true
+              }
+            ]
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "is_income": false,
+            "hidden": true,
+            "budgeted": 2500,
+            "spent": 0,
+            "balance": 2500,
+            "categories": [
+              {
+                "id": "gym",
+                "name": "Gym",
+                "hidden": false,
+                "budgeted": 2500,
+                "spent": 0,
+                "balance": 2500,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "income",
+            "name": "Income",
+            "is_income": true,
+            "hidden": false,
+            "budgeted": 300000,
+            "received": 300000,
+            "balance": 0,
+            "categories": [
+              {
+                "id": "bonus",
+                "name": "Bonus",
+                "hidden": false,
+                "budgeted": 0,
+                "received": 0,
+                "balance": 0,
+                "carryover": false
+              },
+              {
+                "id": "salary",
+                "name": "Salary",
+                "hidden": false,
+                "budgeted": 300000,
+                "received": 300000,
+                "balance": 0,
+                "carryover": true
+              }
+            ]
+          }
+        ]
+      },
+      "2026-05": {
+        "incomeAvailable": null,
+        "lastMonthOverspent": null,
+        "forNextMonth": null,
+        "totalBudgeted": 150000,
+        "toBudget": null,
+        "fromLastMonth": null,
+        "totalIncome": 340000,
+        "totalSpent": -129000,
+        "totalBalance": 19000,
+        "groups": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 130000,
+            "spent": -120000,
+            "balance": 10000,
+            "categories": [
+              {
+                "id": "old",
+                "name": "Old Bill",
+                "hidden": true,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 0,
+                "carryover": false
+              },
+              {
+                "id": "utilities",
+                "name": "Utilities",
+                "hidden": false,
+                "budgeted": 10000,
+                "spent": 0,
+                "balance": 10000,
+                "carryover": false
+              },
+              {
+                "id": "rent",
+                "name": "Rent",
+                "hidden": false,
+                "budgeted": 120000,
+                "spent": -120000,
+                "balance": 0,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "fun",
+            "name": "Fun",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 20000,
+            "spent": -9000,
+            "balance": 9000,
+            "categories": [
+              {
+                "id": "hobbies",
+                "name": "Hobbies",
+                "hidden": false,
+                "budgeted": 5000,
+                "spent": -3000,
+                "balance": 2000,
+                "carryover": false
+              },
+              {
+                "id": "dining",
+                "name": "Dining",
+                "hidden": false,
+                "budgeted": 15000,
+                "spent": -6000,
+                "balance": 7000,
+                "carryover": true
+              }
+            ]
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "is_income": false,
+            "hidden": true,
+            "budgeted": 0,
+            "spent": 0,
+            "balance": 0,
+            "categories": [
+              {
+                "id": "gym",
+                "name": "Gym",
+                "hidden": false,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 0,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "income",
+            "name": "Income",
+            "is_income": true,
+            "hidden": false,
+            "budgeted": 340000,
+            "received": 340000,
+            "balance": 0,
+            "categories": [
+              {
+                "id": "bonus",
+                "name": "Bonus",
+                "hidden": false,
+                "budgeted": 40000,
+                "received": 40000,
+                "balance": 0,
+                "carryover": false
+              },
+              {
+                "id": "salary",
+                "name": "Salary",
+                "hidden": false,
+                "budgeted": 300000,
+                "received": 300000,
+                "balance": 0,
+                "carryover": true
+              }
+            ]
+          }
+        ]
+      },
+      "2026-06": {
+        "incomeAvailable": null,
+        "lastMonthOverspent": null,
+        "forNextMonth": 0,
+        "totalBudgeted": 147000,
+        "toBudget": 0,
+        "fromLastMonth": null,
+        "totalIncome": 0,
+        "totalSpent": -137000,
+        "totalBalance": 17000,
+        "groups": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 132000,
+            "spent": -137000,
+            "balance": -5000,
+            "categories": [
+              {
+                "id": "old",
+                "name": "Old Bill",
+                "hidden": true,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 0,
+                "carryover": false
+              },
+              {
+                "id": "utilities",
+                "name": "Utilities",
+                "hidden": false,
+                "budgeted": 12000,
+                "spent": -7000,
+                "balance": 5000,
+                "carryover": false
+              },
+              {
+                "id": "rent",
+                "name": "Rent",
+                "hidden": false,
+                "budgeted": 120000,
+                "spent": -130000,
+                "balance": -10000,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "fun",
+            "name": "Fun",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 15000,
+            "spent": 0,
+            "balance": 22000,
+            "categories": [
+              {
+                "id": "hobbies",
+                "name": "Hobbies",
+                "hidden": false,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 0,
+                "carryover": false
+              },
+              {
+                "id": "dining",
+                "name": "Dining",
+                "hidden": false,
+                "budgeted": 15000,
+                "spent": 0,
+                "balance": 22000,
+                "carryover": true
+              }
+            ]
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "is_income": false,
+            "hidden": true,
+            "budgeted": 0,
+            "spent": 0,
+            "balance": 0,
+            "categories": [
+              {
+                "id": "gym",
+                "name": "Gym",
+                "hidden": false,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 0,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "income",
+            "name": "Income",
+            "is_income": true,
+            "hidden": false,
+            "budgeted": 300000,
+            "received": 0,
+            "balance": 300000,
+            "categories": [
+              {
+                "id": "bonus",
+                "name": "Bonus",
+                "hidden": false,
+                "budgeted": 0,
+                "received": 0,
+                "balance": 0,
+                "carryover": false
+              },
+              {
+                "id": "salary",
+                "name": "Salary",
+                "hidden": false,
+                "budgeted": 300000,
+                "received": 0,
+                "balance": 300000,
+                "carryover": true
+              }
+            ]
+          }
+        ]
+      },
+      "2026-07": {
+        "incomeAvailable": null,
+        "lastMonthOverspent": 0,
+        "forNextMonth": 0,
+        "totalBudgeted": 147000,
+        "toBudget": null,
+        "fromLastMonth": 0,
+        "totalIncome": 0,
+        "totalSpent": 0,
+        "totalBalance": 169000,
+        "groups": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 137000,
+            "spent": 0,
+            "balance": 137000,
+            "categories": [
+              {
+                "id": "old",
+                "name": "Old Bill",
+                "hidden": true,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 0,
+                "carryover": false
+              },
+              {
+                "id": "utilities",
+                "name": "Utilities",
+                "hidden": false,
+                "budgeted": 12000,
+                "spent": 0,
+                "balance": 12000,
+                "carryover": false
+              },
+              {
+                "id": "rent",
+                "name": "Rent",
+                "hidden": false,
+                "budgeted": 125000,
+                "spent": 0,
+                "balance": 125000,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "fun",
+            "name": "Fun",
+            "is_income": false,
+            "hidden": false,
+            "budgeted": 10000,
+            "spent": 0,
+            "balance": 32000,
+            "categories": [
+              {
+                "id": "hobbies",
+                "name": "Hobbies",
+                "hidden": false,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 0,
+                "carryover": false
+              },
+              {
+                "id": "dining",
+                "name": "Dining",
+                "hidden": false,
+                "budgeted": 10000,
+                "spent": 0,
+                "balance": 32000,
+                "carryover": true
+              }
+            ]
+          },
+          {
+            "id": "archive",
+            "name": "Archive",
+            "is_income": false,
+            "hidden": true,
+            "budgeted": 0,
+            "spent": 0,
+            "balance": 0,
+            "categories": [
+              {
+                "id": "gym",
+                "name": "Gym",
+                "hidden": false,
+                "budgeted": 0,
+                "spent": 0,
+                "balance": 0,
+                "carryover": false
+              }
+            ]
+          },
+          {
+            "id": "income",
+            "name": "Income",
+            "is_income": true,
+            "hidden": false,
+            "budgeted": 300000,
+            "received": 0,
+            "balance": 600000,
+            "categories": [
+              {
+                "id": "bonus",
+                "name": "Bonus",
+                "hidden": false,
+                "budgeted": 0,
+                "received": 0,
+                "balance": 0,
+                "carryover": false
+              },
+              {
+                "id": "salary",
+                "name": "Salary",
+                "hidden": false,
+                "budgeted": 300000,
+                "received": 0,
+                "balance": 600000,
+                "carryover": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
