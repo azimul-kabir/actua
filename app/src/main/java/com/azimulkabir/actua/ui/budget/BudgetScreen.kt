@@ -2120,6 +2120,17 @@ internal fun balancePillTone(
 private enum class BudgetSummaryAction { MOVE, HOLD }
 
 /**
+ * The amount the To Budget sheet actually moves, or null when nothing can move. Funding a category
+ * from To Budget is limited to To Budget, as Actual's `transferAvailable` clamps it; covering a
+ * negative To Budget is limited to the source category's positive balance, as `coverOverbudgeted`
+ * does.
+ */
+internal fun budgetSummaryMoveAmount(enteredCents: Long, toBudgetCents: Long, sourceBalanceCents: Long?): Long? {
+    val limit = if (toBudgetCents < 0L) sourceBalanceCents ?: 0L else toBudgetCents
+    return minOf(enteredCents, limit).takeIf { it > 0L }
+}
+
+/**
  * Single entry point for the "To Budget" amount: shows the summary up top and lets the user
  * drill into "move to a category" or "hold for next month" inline, without an overflow menu or
  * a nested popup.
@@ -2149,6 +2160,13 @@ private fun BudgetSummarySheet(
         }
     }
     var selectedCategory by remember(options) { mutableStateOf(options.firstOrNull()) }
+    val selectedBalance = remember(groups, selectedCategory) {
+        selectedCategory?.let { (groupName, categoryName) ->
+            groups.firstOrNull { it.name == groupName && !it.isIncome }
+                ?.categories?.firstOrNull { it.name == categoryName }?.balanceCents
+        }
+    }
+    val moveLimit = if (covering) (selectedBalance ?: 0L).coerceAtLeast(0L) else toBudgetCents.coerceAtLeast(0L)
     val moveCalculator = remember(toBudgetCents) {
         CalculatorAmountState(kotlin.math.abs(toBudgetCents), allowsNegative = false)
     }
@@ -2236,6 +2254,12 @@ private fun BudgetSummarySheet(
                             )
                         }
                         InlineCalculatorAmount("Amount", moveAmount)
+                        Text(
+                            "Up to ${formatMoneyCents(moveLimit, hideDecimalPlaces)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = Spacing.xs),
+                        )
                         CompactCalculatorPad(
                             calculator = moveCalculator,
                             horizontalPadding = 0.dp,
@@ -2243,7 +2267,7 @@ private fun BudgetSummarySheet(
                             onValueChange = { moveAmount = it },
                             onDone = {
                                 selectedCategory?.let { target ->
-                                    moveCalculator.finish().takeIf { it > 0L }
+                                    budgetSummaryMoveAmount(moveCalculator.finish(), toBudgetCents, selectedBalance)
                                         ?.let { onMoveToCategory(target.first, target.second, it) }
                                 }
                             },

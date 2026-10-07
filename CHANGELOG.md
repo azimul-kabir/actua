@@ -12,6 +12,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Moving money out of To Budget, or covering a negative To Budget, can't move more than is available ([#914](https://github.com/azimul-kabir/actua/pull/914))
 - "Copy last month's budget" no longer resets categories that had no budget last month ([#913](https://github.com/azimul-kabir/actua/pull/913))
 - Entering a payee in different capitals, like "CAFÉ" for "Café", reuses the existing payee for non-English names too ([#905](https://github.com/azimul-kabir/actua/pull/905))
 - Rules for a payee or category that was merged keep matching after the merge ([#900](https://github.com/azimul-kabir/actua/pull/900))
