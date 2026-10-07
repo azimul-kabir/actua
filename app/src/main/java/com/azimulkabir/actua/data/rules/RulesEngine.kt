@@ -38,7 +38,7 @@ object RulesEngine {
     }
 
     fun apply(transaction: ActualTransaction, rules: List<Rule>, context: RuleContext = RuleContext()): RuleRunResult {
-        val bag = Bag(transaction, context)
+        val bag = Bag(transaction, context, forRuleRun = true)
         val before = bag.snapshot()
         val scheduleId = transaction.scheduleId
         // Rules run one at a time, each checked against the transaction as the rules before it
@@ -99,6 +99,9 @@ object RulesEngine {
     }
 
     private fun evaluateText(condition: Rule.Condition, bag: Bag): Boolean {
+        if (bag.forRuleRun && RuleSchema.type(condition.field) == RuleFieldType.ID) {
+            evaluateIdText(condition, bag)?.let { return it }
+        }
         val actual = bag.text(condition.field, condition.op) ?:
             if (RuleSchema.type(condition.field) == RuleFieldType.STRING) "" else null
         val target = condition.value.text
@@ -118,6 +121,22 @@ object RulesEngine {
         }
     }
 
+    /**
+     * A rule run compares contains/doesNotContain/matches on an id field with the stored id, as
+     * upstream's Condition.eval does: it lowercases the id but not the value, and a missing id
+     * matches nothing. Report filters compare names instead, as upstream's conditionsToAQL does.
+     */
+    private fun evaluateIdText(condition: Rule.Condition, bag: Bag): Boolean? {
+        if (condition.op !in setOf("contains", "doesNotContain", "matches")) return null
+        val id = bag.text(condition.field)?.lowercase() ?: return false
+        val target = condition.value.text ?: return false
+        return when (condition.op) {
+            "contains" -> id.contains(target)
+            "doesNotContain" -> !id.contains(target)
+            else -> runCatching { Regex(target).containsMatchIn(id) }.getOrDefault(false)
+        }
+    }
+
     private fun apply(action: Rule.Action, bag: Bag) {
         when (action.op) {
             "set" -> if (action.options["template"] == null && action.options["formula"] == null &&
@@ -129,7 +148,12 @@ object RulesEngine {
         }
     }
 
-    private class Bag(private val base: ActualTransaction, private val context: RuleContext) {
+    private class Bag(
+        private val base: ActualTransaction,
+        private val context: RuleContext,
+        /** Upstream Condition.eval semantics (rule runs) rather than conditionsToAQL (report filters). */
+        val forRuleRun: Boolean = false,
+    ) {
         private val strings = mutableMapOf<String, String?>(
             "account" to base.accountId, "payee" to base.payeeId,
             "payee_name" to (base.payeeId?.let(context.payeeNames::get) ?: base.payeeName),
