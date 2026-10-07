@@ -1441,6 +1441,8 @@ class ActuaRepository(context: Context) {
             preview.changes.associate { it.categoryId to it.currentCents },
             preview.goalChanges.associate { it.categoryId to it.proposedCents },
             preview.goalChanges.associate { it.categoryId to it.currentCents },
+            // Actual writes long_goal 1 only for #goal and null otherwise (goal-template.ts processTemplate).
+            preview.goalChanges.associate { it.categoryId to (if (it.longGoal) 1 else null) },
         ) ?: return false
         return true
     }
@@ -1519,6 +1521,8 @@ class ActuaRepository(context: Context) {
             preview.changes.associate { it.categoryId to it.currentCents },
             preview.goalChanges.associate { it.categoryId to it.proposedCents },
             preview.goalChanges.associate { it.categoryId to it.currentCents },
+            // Actual's cleanup writes long_goal 0 for global sources (cleanup-template.ts).
+            preview.goalChanges.associate { it.categoryId to 0 },
         ) ?: return false
         return true
     }

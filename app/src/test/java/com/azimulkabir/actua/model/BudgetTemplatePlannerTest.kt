@@ -234,6 +234,7 @@ class BudgetTemplatePlannerTest {
 
         assertEquals(emptyList<BudgetTemplateChange>(), preview.changes)
         assertEquals(5_000_000L, preview.goalChanges.single().proposedCents)
+        assertEquals(true, preview.goalChanges.single().longGoal)
     }
 
     @Test fun clearsAnOrphanedGoalAfterItsDefinitionIsRemoved() {
@@ -256,17 +257,42 @@ class BudgetTemplatePlannerTest {
         assertEquals(emptyList<BudgetGoalChange>(), preview.goalChanges)
     }
 
-    @Test fun byDateGoalTracksTheFullTargetNotTheMonthlyInstallment() {
+    // #853: Actual writes this month's full request as the goal, with long_goal null, for every
+    // template type except #goal (category-template-context.ts runGoal).
+    @Test fun byDateGoalIsThisMonthsRequestNotTheFullTarget() {
         val category = category("trip", "Trip fund", assigned = 0, automations = listOf(
             BudgetTarget(BudgetTarget.Type.BY_DATE, 1_200_00, targetMonth = "2027-09"),
         ))
 
         val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category))), "2026-09")
 
-        assertEquals(1_200_00L, preview.goalChanges.single().proposedCents)
+        val goal = preview.goalChanges.single()
+        assertEquals(preview.changes.single().proposedCents, goal.proposedCents)
+        assertEquals(false, goal.longGoal)
     }
 
-    @Test fun scheduleGoalTracksTheResolvedScheduleAmount() {
+    @Test fun goalIsTheRequestBeforeTheAvailableFundsClamp() {
+        val category = category("rent", "Rent", assigned = 0, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.FIXED, 60_000),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Living", listOf(category))), "2026-09", 20_000)
+
+        assertEquals(20_000L, preview.changes.single().proposedCents)
+        assertEquals(60_000L, preview.goalChanges.single().proposedCents)
+    }
+
+    @Test fun remainderOnlyCategoriesGetNoGoal() {
+        val category = category("fun", "Fun", assigned = 0, goal = 1_000, automations = listOf(
+            BudgetTarget(BudgetTarget.Type.REMAINDER, weight = 1),
+        ))
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Living", listOf(category))), "2026-09", 5_000)
+
+        assertEquals(null, preview.goalChanges.single().proposedCents)
+    }
+
+    @Test fun scheduleGoalIsThisMonthsRequest() {
         val category = category("gift", "Gift", assigned = 0, automations = listOf(
             BudgetTarget(BudgetTarget.Type.SCHEDULE, priority = 1, scheduleId = "gift-1"),
         ))
@@ -280,7 +306,8 @@ class BudgetTemplatePlannerTest {
             )),
         )
 
-        assertEquals(30_000L, preview.goalChanges.single().proposedCents)
+        assertEquals(preview.changes.single().proposedCents, preview.goalChanges.single().proposedCents)
+        assertEquals(false, preview.goalChanges.single().longGoal)
     }
 
     @Test fun distributesRemainingFundsByWeightAfterPriorities() {

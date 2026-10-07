@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Budget templates now set category goals like Actual, so underfunded and overfunded colors match across clients ([#878](https://github.com/azimul-kabir/actua/pull/878))
 - Applying budget templates now picks up `#template` notes written in other Actual clients ([#877](https://github.com/azimul-kabir/actua/pull/877))
 - Simple budget templates such as `#template 50` and `#template up to 100` now budget like Actual ([#876](https://github.com/azimul-kabir/actua/pull/876))
 - Bank sync runs rules before matching, so matched transactions get rule categories and renamed payees no longer leave the bank's name behind ([#875](https://github.com/azimul-kabir/actua/pull/875))

@@ -1266,6 +1266,8 @@ class ActualBudgetDatabase private constructor(
         val amountCents: Long,
         val goalCents: Long?,
         val longGoal: Boolean,
+        /** The stored `long_goal` value: 1, 0 (month-end cleanup) or null. */
+        val longGoalValue: Int? = if (longGoal) 1 else null,
     )
 
     data class BufferCell(
@@ -1298,6 +1300,7 @@ class ActualBudgetDatabase private constructor(
             if (cursor.moveToFirst()) BudgetCell(
                 table, cursor.getString(0), monthInt, categoryId, true, cursor.longOrZero(1),
                 if (cursor.isNull(2)) null else cursor.getLong(2), cursor.intOrZero(3) == 1,
+                if (cursor.isNull(3)) null else cursor.getInt(3),
             ) else BudgetCell(table, "$monthInt-$categoryId", monthInt, categoryId, false, 0, null, false)
         }
     }

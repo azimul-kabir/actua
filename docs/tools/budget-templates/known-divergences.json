@@ -1,47 +1,5 @@
 [
   {
-    "category": "T Notes only",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Notes only",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Notes stored",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Notes stored",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Prebudgeted",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Schedule full",
-    "month": "2026-08",
-    "field": "long_goal",
-    "issue": 853
-  },
-  {
-    "category": "T Schedule full",
-    "month": "2026-09",
-    "field": "long_goal",
-    "issue": 853
-  },
-  {
     "category": "T Schedule quarterly",
     "month": "2026-08",
     "field": "budgeted",
@@ -51,13 +9,7 @@
     "category": "T Schedule quarterly",
     "month": "2026-08",
     "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Schedule quarterly",
-    "month": "2026-08",
-    "field": "long_goal",
-    "issue": 853
+    "issue": 857
   },
   {
     "category": "T Schedule quarterly",
@@ -69,79 +21,31 @@
     "category": "T Schedule quarterly",
     "month": "2026-09",
     "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Schedule quarterly",
-    "month": "2026-09",
-    "field": "long_goal",
-    "issue": 853
-  },
-  {
-    "category": "T Schedule monthly",
-    "month": "2026-08",
-    "field": "long_goal",
-    "issue": 853
+    "issue": 857
   },
   {
     "category": "T Schedule monthly",
     "month": "2026-09",
     "field": "budgeted",
-    "issue": "knock-on of #854, #855, #856, #857, #858, #859, #860"
-  },
-  {
-    "category": "T Schedule monthly",
-    "month": "2026-09",
-    "field": "long_goal",
-    "issue": 853
-  },
-  {
-    "category": "T Remainder capped",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
+    "issue": "knock-on of #856, #857, #858, #859, #860"
   },
   {
     "category": "T Remainder 3",
     "month": "2026-08",
     "field": "budgeted",
-    "issue": "knock-on of #854, #855, #856, #857, #858, #859, #860"
+    "issue": "knock-on of #856, #857, #858, #859, #860"
   },
   {
     "category": "T Remainder 2",
     "month": "2026-08",
     "field": "budgeted",
-    "issue": "knock-on of #854, #855, #856, #857, #858, #859, #860"
+    "issue": "knock-on of #856, #857, #858, #859, #860"
   },
   {
     "category": "T Remainder 1",
     "month": "2026-08",
     "field": "budgeted",
-    "issue": "knock-on of #854, #855, #856, #857, #858, #859, #860"
-  },
-  {
-    "category": "T Limit hold",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Limit hold",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Limit release",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Limit release",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
+    "issue": "knock-on of #856, #857, #858, #859, #860"
   },
   {
     "category": "T Refill weekly",
@@ -153,7 +57,7 @@
     "category": "T Refill weekly",
     "month": "2026-08",
     "field": "goal",
-    "issue": 853
+    "issue": 858
   },
   {
     "category": "T Refill weekly",
@@ -165,19 +69,7 @@
     "category": "T Refill weekly",
     "month": "2026-09",
     "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Refill",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Refill",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
+    "issue": 858
   },
   {
     "category": "T Percent previous",
@@ -204,58 +96,16 @@
     "issue": 859
   },
   {
-    "category": "T Percent all income",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Percent all income",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Percent salary",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Percent salary",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
     "category": "T Percent available",
     "month": "2026-08",
     "field": "budgeted",
-    "issue": "knock-on of #854, #855, #856, #857, #858, #859, #860"
+    "issue": "knock-on of #856, #857, #858, #859, #860"
   },
   {
     "category": "T Percent available",
     "month": "2026-08",
     "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Percent available",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Copy",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Copy",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
+    "issue": "knock-on of #856, #857, #858, #859, #860"
   },
   {
     "category": "T Average refund",
@@ -267,7 +117,7 @@
     "category": "T Average refund",
     "month": "2026-08",
     "field": "goal",
-    "issue": 853
+    "issue": 860
   },
   {
     "category": "T Average refund",
@@ -279,7 +129,7 @@
     "category": "T Average refund",
     "month": "2026-09",
     "field": "goal",
-    "issue": 853
+    "issue": 860
   },
   {
     "category": "T Average adjusted",
@@ -291,49 +141,7 @@
     "category": "T Average adjusted",
     "month": "2026-08",
     "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Average adjusted",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Average",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Average",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Spend",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Spend",
-    "month": "2026-08",
-    "field": "long_goal",
-    "issue": 853
-  },
-  {
-    "category": "T Spend",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Spend",
-    "month": "2026-09",
-    "field": "long_goal",
-    "issue": 853
+    "issue": 860
   },
   {
     "category": "T By annual",
@@ -345,102 +153,12 @@
     "category": "T By annual",
     "month": "2026-08",
     "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T By annual",
-    "month": "2026-08",
-    "field": "long_goal",
-    "issue": 853
+    "issue": 856
   },
   {
     "category": "T By annual",
     "month": "2026-09",
     "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T By annual",
-    "month": "2026-09",
-    "field": "long_goal",
-    "issue": 853
-  },
-  {
-    "category": "T By date",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T By date",
-    "month": "2026-08",
-    "field": "long_goal",
-    "issue": 853
-  },
-  {
-    "category": "T By date",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T By date",
-    "month": "2026-09",
-    "field": "long_goal",
-    "issue": 853
-  },
-  {
-    "category": "T Periodic 2 months",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Periodic 2 months",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Periodic week",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Periodic week",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Periodic month",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Periodic month",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Simple",
-    "month": "2026-08",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "T Simple",
-    "month": "2026-09",
-    "field": "goal",
-    "issue": 853
-  },
-  {
-    "category": "C Source",
-    "month": "2026-10",
-    "field": "long_goal",
-    "issue": 853
+    "issue": 856
   }
 ]

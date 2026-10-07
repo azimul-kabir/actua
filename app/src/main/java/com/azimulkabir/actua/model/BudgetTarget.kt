@@ -524,6 +524,8 @@ data class BudgetGoalChange(
     val categoryName: String,
     val currentCents: Long?,
     val proposedCents: Long?,
+    /** Whether the goal is a `#goal` long-term goal (`long_goal` 1). */
+    val longGoal: Boolean = false,
 )
 
 data class BudgetTemplatePreview(
@@ -593,10 +595,16 @@ object BudgetTemplatePlanner {
             if (excess > 0L && releasesExcess(category)) excess else 0L
         }
         if (available != Long.MAX_VALUE) available += releasedByLimit
+        // Actual's goal cell is the category's full requested amount (`fullAmount`): what each
+        // priority asked for after the cap, before the available-funds clamp. A cap already met
+        // starts it at the released excess (or 0 when the cap holds); a category whose templates
+        // never ran at a priority leaves it null.
+        val fullRequested = mutableMapOf<BudgetCategory, Long>()
         eligible.forEach { (_, category) ->
             val cap = effectiveCap(category, month) ?: return@forEach
             val excess = max(0L, category.carryoverCents - cap)
             if (excess > 0L && releasesExcess(category)) proposed[category] = -excess
+            if (category.carryoverCents >= cap) fullRequested[category] = if (releasesExcess(category)) -excess else 0L
         }
         val priorities = eligible.flatMap {
             it.second.automations.ifEmpty { listOfNotNull(it.second.target) }
@@ -623,6 +631,9 @@ object BudgetTemplatePlanner {
                 val capped = cap?.let { minOf(requested, max(0L, it - category.carryoverCents - before)) } ?: requested
                 val allocated = if (available == Long.MAX_VALUE || priority <= 0) capped else
                     minOf(capped, max(0L, available))
+                if (atPriority.any { it.type != BudgetTarget.Type.REMAINDER }) {
+                    fullRequested[category] = (fullRequested[category] ?: 0L) + capped
+                }
                 if (allocated < capped) limited += "${group.name} · ${category.name}"
                 proposed[category] = before + allocated
                 if (available != Long.MAX_VALUE) available -= allocated
@@ -642,12 +653,17 @@ object BudgetTemplatePlanner {
                 unsupported += "${group.name} · ${category.name}"
                 continue
             }
-            val goal = targetBalanceGoal(targets, category, schedules)
-            val goalChanged = goal != category.goalCents || goal != null && !category.longGoal
+            // Actual writes `#goal` as a long goal, otherwise the full requested amount with
+            // long_goal null, and clears the goal of a category without templates
+            // (goal-template.ts processTemplate/computeTemplates, category-template-context.ts runGoal).
+            val goalTarget = targets.firstOrNull { it.type == BudgetTarget.Type.GOAL }
+            val goal = goalTarget?.amountCents ?: fullRequested[category]
+            val longGoal = goalTarget != null
+            val goalChanged = goal != category.goalCents || longGoal != category.longGoal
             if (goalChanged && (targets.isEmpty() || overwriteExisting || category.assignedCents == 0L)) {
                 val id = category.id
                 if (id == null) unsupported += "${group.name} · ${category.name}"
-                else goalChanges += BudgetGoalChange(group.name, id, category.name, category.goalCents, goal)
+                else goalChanges += BudgetGoalChange(group.name, id, category.name, category.goalCents, goal, longGoal)
             }
             if (targets.isEmpty()) continue
             if (!overwriteExisting && category.assignedCents != 0L) continue
