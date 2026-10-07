@@ -60,6 +60,43 @@ class BudgetTemplatePlannerTest {
         assertEquals(emptyList<String>(), preview.unsupportedCategories)
     }
 
+    // #856: Actual's runBy rolls a passed repeating target forward by its period.
+    @Test fun passedAnnualTargetRollsForwardInsteadOfAskingForTheWholeAmount() {
+        val target = BudgetTarget(
+            BudgetTarget.Type.BY_DATE, 120_000, targetMonth = "2026-06", repeats = true, repeatAnnual = true,
+        )
+        val category = category("trip", "Trip", assigned = 0, automations = listOf(target))
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category))), "2026-08")
+
+        // Rolled to 2027-06: 1,200.00 / 11 months.
+        assertEquals(10_909L, preview.changes.single().proposedCents)
+    }
+
+    @Test fun repeatingSiblingDueLaterIsInterpolatedOverItsPeriod() {
+        val targets = listOf(
+            BudgetTarget(BudgetTarget.Type.BY_DATE, 30_000, targetMonth = "2026-10"),
+            BudgetTarget(BudgetTarget.Type.BY_DATE, 120_000, targetMonth = "2027-03", repeats = true, repeatAnnual = true),
+        )
+        val category = category("bills", "Bills", assigned = 0, automations = targets)
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category))), "2026-09")
+
+        // Shortest window 1 month; the annual one needs 1,200.00 / 12 * (12 - 6 + 1) = 700.00.
+        // (300.00 + 700.00) / 2 = 500.00.
+        assertEquals(50_000L, preview.changes.single().proposedCents)
+    }
+
+    @Test fun passedNonRepeatingTargetIsReportedInsteadOfBudgeted() {
+        val target = BudgetTarget(BudgetTarget.Type.BY_DATE, 60_000, targetMonth = "2026-06")
+        val category = category("trip", "Trip", assigned = 0, automations = listOf(target))
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Goals", listOf(category))), "2026-08")
+
+        assertEquals(emptyList<BudgetTemplateChange>(), preview.changes)
+        assertEquals(listOf("Goals · Trip"), preview.unsupportedCategories)
+    }
+
     @Test fun refillCapsOtherContributionsInTheSameCategory() {
         val targets = listOf(
             BudgetTarget(BudgetTarget.Type.FIXED, 80_000),
