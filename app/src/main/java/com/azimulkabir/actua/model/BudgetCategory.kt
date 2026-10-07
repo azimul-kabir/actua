@@ -173,7 +173,33 @@ data class BudgetOverview(
     val spentCents: Long,
     val availableCents: Long,
     val bufferedCents: Long = 0,
-)
+    /**
+     * Tracking budgets only: Actual's `total-saved` (budgeted income − budgeted expenses) when
+     * [projectedSavings], else `real-saved` (income received − spent).
+     */
+    val savedCents: Long? = null,
+    val projectedSavings: Boolean = false,
+) {
+    /**
+     * The headline figure: To Budget for envelope budgets; for tracking budgets, the savings figure
+     * Actual's mobile budget shows in its place ("Projected savings" for this month and later,
+     * "Saved" or "Overspent" before).
+     */
+    fun lead(toBudgetLabel: String = "To budget"): Pair<String, Long?> = when {
+        toBudgetCents != null || savedCents == null -> toBudgetLabel to toBudgetCents
+        projectedSavings -> "Projected savings" to savedCents
+        savedCents < 0 -> "Overspent" to savedCents
+        else -> "Saved" to savedCents
+    }
+}
+
+/**
+ * The categories Actual totals for a group (`group-budget`, `group-sum-amount`, `group-leftover`):
+ * every category in envelope budgets, hidden ones included; only visible ones in tracking budgets.
+ * View filters don't change Actual's totals.
+ */
+fun budgetTotalCategories(group: BudgetGroup, tracking: Boolean): List<BudgetCategory> =
+    if (tracking) group.categories.filterNot { it.hidden } else group.categories
 
 data class BudgetGroup(
     val name: String,

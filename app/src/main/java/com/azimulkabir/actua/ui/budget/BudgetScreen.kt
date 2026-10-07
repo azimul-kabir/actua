@@ -135,6 +135,7 @@ import com.azimulkabir.actua.model.BudgetTemplatePreview
 import com.azimulkabir.actua.model.BudgetScheduleFunding
 import com.azimulkabir.actua.model.CleanupPreview
 import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.model.budgetTotalCategories
 import com.azimulkabir.actua.model.ZeroBudgetPlanner
 import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
@@ -398,7 +399,8 @@ fun BudgetScreen(
         // `headerGroup` is precomputed here (once per data/toggle change) rather than via
         // `group.copy(categories = visibleCategories)` inline at each header call site, which
         // would otherwise allocate a new BudgetGroup on every recomposition of this screen.
-        val visibleGroups = remember(groups, showHidden, hideFullySpent, selectedView, scheduleFunding, favoritesOnly, favoriteCategoryIds, hideIncomeGroup) {
+        val trackingBudget = overview.toBudgetCents == null
+        val visibleGroups = remember(groups, showHidden, hideFullySpent, selectedView, scheduleFunding, favoritesOnly, favoriteCategoryIds, hideIncomeGroup, trackingBudget) {
             groups.filter { (showHidden || !it.hidden) && !(hideIncomeGroup && it.isIncome) }.map { group ->
                 val visibleCategories = group.categories.filter { category ->
                     (showHidden || !category.hidden) &&
@@ -406,7 +408,8 @@ fun BudgetScreen(
                         (category.isIncome || selectedView.matches(category, scheduleFunding)) &&
                         (!favoritesOnly || category.id in favoriteCategoryIds)
                 }
-                Triple(group, visibleCategories, group.copy(categories = visibleCategories))
+                // Rows follow the view filters; the header shows Actual's group totals.
+                Triple(group, visibleCategories, group.copy(categories = budgetTotalCategories(group, trackingBudget)))
             }
         }
 
@@ -1090,7 +1093,8 @@ private fun PlanBudgetOverview(
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
 ) {
-    val ready = overview.toBudgetCents ?: 0L
+    val (leadLabel, leadCents) = overview.lead("Ready to Budget")
+    val ready = leadCents ?: 0L
     val contentColor = if (ready >= 0L) MaterialTheme.colorScheme.onPrimaryContainer
         else MaterialTheme.colorScheme.onErrorContainer
     Surface(
@@ -1102,9 +1106,9 @@ private fun PlanBudgetOverview(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
     ) {
         ActuaHeroAmount(
-            amount = overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
+            amount = leadCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
             modifier = Modifier.padding(vertical = Spacing.sm),
-            caption = "Ready to Budget",
+            caption = leadLabel,
             amountColor = contentColor,
             captionColor = contentColor.copy(alpha = 0.78f),
             size = ActuaHeroSize.Medium,
@@ -1470,13 +1474,14 @@ private fun BudgetOverviewRow(
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val (leadLabel, leadCents) = overview.lead()
                 OverviewCell(
-                    "To budget",
-                    overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
+                    leadLabel,
+                    leadCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
                     Modifier.weight(1.35f),
                     Alignment.Start,
-                    positive = overview.toBudgetCents?.let { it > 0 } == true,
-                    negative = overview.toBudgetCents?.let { it < 0 } == true,
+                    positive = leadCents?.let { it > 0 } == true,
+                    negative = leadCents?.let { it < 0 } == true,
                     pill = true,
                     pillOffset = (-8).dp,
                     onClick = onToBudgetClick,

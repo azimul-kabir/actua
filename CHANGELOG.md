@@ -13,6 +13,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Envelope budget totals include hidden categories, and tracking budgets show saved and projected savings, as in Actual ([#916](https://github.com/azimul-kabir/actua/pull/916))
 - Moving money out of To Budget, or covering a negative To Budget, can't move more than is available ([#914](https://github.com/azimul-kabir/actua/pull/914))
 - "Copy last month's budget" no longer resets categories that had no budget last month ([#913](https://github.com/azimul-kabir/actua/pull/913))
 - Entering a payee in different capitals, like "CAFÉ" for "Café", reuses the existing payee for non-English names too ([#905](https://github.com/azimul-kabir/actua/pull/905))
