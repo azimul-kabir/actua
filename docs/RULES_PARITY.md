@@ -59,7 +59,7 @@ not rule runs. The behaviors described further down as rule-run behaviors are fi
 | `imported_payee` (string) | is, isNot, contains, doesNotContain, oneOf, notOneOf, matches | case-insensitive; empty treated as `''`; `matches` lowercases the pattern; an invalid regex is false | `evaluateText` | Match | imported_payee … (10 cases) |
 | `notes` (string) | is, isNot (incl. empty), contains, doesNotContain, hasTags, hasAnyTag | tag boundary regex `(?<!#)tag([\s#]\|$)` | `evaluateText`, `TagFilter` | Match | notes … (8 cases) |
 | `payee`, `category`, `category_group`, `account` (id) | is, isNot, oneOf, notOneOf, is (none) | id comparison | `evaluateText` | Match | payee/category/category_group/account … |
-| same | contains, doesNotContain, matches | tested against the **id** | tested against the name | **Divergence** [#864](https://github.com/azimul-kabir/actua/issues/864) | … contains/matches a name fragment |
+| same | contains, doesNotContain, matches | tested against the **id** (lowercased id, value as written; no id matches nothing) | `evaluateIdText` during rule runs; report filters keep name matching, as `conditionsToAQL` does | Match ([#864](https://github.com/azimul-kabir/actua/issues/864)) | … contains/matches a name fragment |
 | `category` | is (none) on a transfer | matches | excludes transfers and split parents | **Divergence** [#865](https://github.com/azimul-kabir/actua/issues/865) | category is empty on a transfer |
 | `account` | onBudget, offBudget | `_account.offbudget` | `RuleContext.offBudgetAccountIds` | Match | account onBudget/offBudget |
 | `amount` (number) | is, isapprox (`round(abs·0.075)`), isbetween (unordered), gt, gte, lt, lte; `inflow`/`outflow` options | | `evaluateNumber` | Match | amount … (12 cases) |
