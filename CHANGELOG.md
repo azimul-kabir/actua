@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Rule contains/matches conditions on payee, category and account now compare ids like Actual instead of names ([#871](https://github.com/azimul-kabir/actua/pull/871))
 - Rules now see changes made by earlier rules, so chained rules such as rename-then-categorize work like Actual ([#867](https://github.com/azimul-kabir/actua/pull/867))
 - Status colors now tint the Balance instead of the Budgeted amount on Budget rows ([#843](https://github.com/azimul-kabir/actua/pull/843))
 
