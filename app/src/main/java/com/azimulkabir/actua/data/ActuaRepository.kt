@@ -983,17 +983,33 @@ class ActuaRepository(context: Context) {
             )
         }
         // Rules run on every imported row before payees are created, as in Actual's import.
-        val rows = com.azimulkabir.actua.data.importing.ImportRules.apply(
+        val newId = { java.util.UUID.randomUUID().toString().lowercase() }
+        val prepared = com.azimulkabir.actua.data.importing.ImportRules.apply(
             drafts, db.fetchRules(), db.ruleContext(),
             existingPayeeId = { db.findPayeeByName(it)?.id },
-            newId = { java.util.UUID.randomUUID().toString().lowercase() },
-        ).map { prepared ->
-            prepared.createPayeeName?.let { prepared.transaction.copy(payeeId = writer.resolveOrCreatePayee(it).id) }
-                ?: prepared.transaction
+            newId = newId,
+            idFactory = newId,
+        )
+        if (prepared.isEmpty()) return 0
+        val rows = mutableListOf<ActualTransaction>()
+        prepared.forEach { item ->
+            if (item.splitChildren.isEmpty()) {
+                rows += item.createPayeeName?.let {
+                    item.transaction.copy(payeeId = writer.resolveOrCreatePayee(it).id)
+                } ?: item.transaction
+            } else {
+                val parent = item.transaction.copy(payeeId = null, categoryId = null, isParent = true)
+                val offBudget = db.fetchAccounts().any { it.id == parent.accountId && it.offBudget }
+                val children = item.splitChildren.map { child ->
+                    val payeeId = child.pendingPayeeName?.let { writer.resolveOrCreatePayee(it).id }
+                        ?: child.transaction.payeeId
+                    child.transaction.copy(payeeId = payeeId, categoryId = child.transaction.categoryId.takeUnless { offBudget })
+                }
+                writer.createSplit(parent, children, allowSingleChild = true)
+            }
         }
-        if (rows.isEmpty()) return 0
-        writer.mutate(inserts = rows)
-        return rows.size
+        if (rows.isNotEmpty()) writer.mutate(inserts = rows)
+        return prepared.size
     }
 
     /** Read-only drill-down: the transactions behind a report segment, newest first. */

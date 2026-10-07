@@ -42,21 +42,39 @@ class ActualTransactionWriter(
         preserveCategory: Boolean = false,
     ): ActualTransaction? {
         var final = transaction
+        var splitChildren: List<com.azimulkabir.actua.data.rules.RuleSplitChild> = emptyList()
         if (applyRules && transaction.transferId == null) {
-            val result = RulesEngine.apply(transaction, database.fetchRules(), database.ruleContext())
+            val result = RulesEngine.apply(transaction, database.fetchRules(), database.ruleContext(), idFactory)
             if (result.isDeleted) return null
             final = result.transaction
-            result.pendingPayeeName?.let { final = final.copy(payeeId = resolveOrCreatePayee(it).id) }
+            splitChildren = result.splitChildren
+            if (splitChildren.isEmpty()) {
+                result.pendingPayeeName?.let { final = final.copy(payeeId = resolveOrCreatePayee(it).id) }
+            }
             if (preserveCategory &&
                 !RuleChangeGuard.shouldApplyRuleChange("category", transaction.categoryId, final.categoryId)
             ) {
                 final = final.copy(categoryId = transaction.categoryId)
             }
         }
-        if (database.fetchAccounts().any { it.id == final.accountId && it.offBudget }) {
+        val offBudget = database.fetchAccounts().any { it.id == final.accountId && it.offBudget }
+        if (offBudget) {
             final = final.copy(categoryId = null)
         }
         validateBase(final)
+        if (splitChildren.isNotEmpty()) {
+            val parent = final.copy(payeeId = null, categoryId = null, isParent = true, parentId = null)
+            val children = splitChildren.map { child ->
+                val payeeId = child.pendingPayeeName?.let { resolveOrCreatePayee(it).id } ?: child.transaction.payeeId
+                child.transaction.copy(
+                    payeeId = payeeId,
+                    categoryId = child.transaction.categoryId.takeUnless { offBudget },
+                    parentId = parent.id,
+                )
+            }
+            createSplit(parent, children, allowSingleChild = true)
+            return parent
+        }
         require(!final.isParent && final.parentId == null) { "Use createSplit for split rows" }
         database.insertTransactions(listOf(final), fieldsForInsert(final))
         saveClock()
@@ -75,10 +93,13 @@ class ActualTransactionWriter(
         saveClock()
     }
 
-    fun createSplit(parent: ActualTransaction, children: List<ActualTransaction>) {
+    fun createSplit(parent: ActualTransaction, children: List<ActualTransaction>, allowSingleChild: Boolean = false) {
         validateBase(parent)
         require(parent.isParent && parent.parentId == null && parent.categoryId == null) { "Invalid split parent" }
-        require(children.size >= 2) { "A split needs at least two lines" }
+        val minimumLines = if (allowSingleChild) 1 else 2
+        require(children.size >= minimumLines) {
+            "A split needs at least $minimumLines ${if (minimumLines == 1) "line" else "lines"}"
+        }
         require(children.all { it.parentId == parent.id && !it.isParent && it.accountId == parent.accountId }) {
             "Every split child must reference its parent and account"
         }

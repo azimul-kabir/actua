@@ -79,4 +79,26 @@ class ImportRulesTest {
         assertNull(result.transaction.payeeId)
         assertNull(result.createPayeeName)
     }
+
+    @Test fun splitRuleReturnsChildRowsAndTheirPendingPayee() {
+        val split = rule("split", Rule.Stage.DEFAULT,
+            Rule.Condition("contains", "imported_payee", RuleValue.Text("Market")),
+            Rule.Action("set-split-amount", null, RuleValue.Null, mapOf(
+                "splitIndex" to RuleValue.Number(1.0), "method" to RuleValue.Text("remainder"),
+            )),
+            Rule.Action("set", "category", RuleValue.Text("food"), mapOf("splitIndex" to RuleValue.Number(1.0))),
+            Rule.Action("set-split-amount", null, RuleValue.Null, mapOf(
+                "splitIndex" to RuleValue.Number(2.0), "method" to RuleValue.Text("remainder"),
+            )),
+            Rule.Action("set", "category", RuleValue.Text("fun"), mapOf("splitIndex" to RuleValue.Number(2.0))),
+        )
+
+        val result = run(listOf(draft("split", "Market Purchase")), listOf(split)).single()
+
+        assertEquals(true, result.transaction.isParent)
+        assertEquals(2, result.splitChildren.size)
+        assertEquals(listOf(-625L, -625L), result.splitChildren.map { it.transaction.amountCents })
+        assertEquals(listOf("food", "fun"), result.splitChildren.map { it.transaction.categoryId })
+        assertEquals(listOf("Market Purchase", "Market Purchase"), result.splitChildren.map { it.pendingPayeeName })
+    }
 }

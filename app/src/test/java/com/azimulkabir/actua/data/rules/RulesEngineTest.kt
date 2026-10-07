@@ -33,6 +33,97 @@ class RulesEngineTest {
         assertEquals(setOf("category", "payee_name", "notes", "cleared"), result.changedFields)
     }
 
+    @Test fun evaluatesTemplateFormulaAndBalanceOf() {
+        val context = RuleContext(
+            accountNames = mapOf("a" to "Checking"),
+            runningBalanceCents = { 650L },
+            balanceOfCents = { _, literal -> if (literal == "Checking") 1234L else 0L },
+        )
+        val result = RulesEngine.apply(
+            transaction(amount = -2500, imported = "act-79"),
+            listOf(
+                Rule("template", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+                    listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
+                    Rule.Action("set", "notes", RuleValue.Text(""), mapOf("template" to RuleValue.Text("{{imported_payee}} on {{today}}"))),
+                )),
+                Rule("formula", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+                    listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
+                    Rule.Action("set", "amount", RuleValue.Number(0.0), mapOf("formula" to RuleValue.Text("=amount*2"))),
+                )),
+            ),
+            context,
+        )
+        assertTrue(result.transaction.notes!!.startsWith("act-79 on "))
+        assertEquals(-500000L, result.transaction.amountCents)
+
+        val balanceResult = RulesEngine.apply(
+            transaction(), listOf(Rule("balance", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+                listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
+                Rule.Action("set", "amount", RuleValue.Number(0.0), mapOf("formula" to RuleValue.Text("=BALANCE_OF(\"Checking\")"))),
+            ))), context,
+        )
+        assertEquals(123400L, balanceResult.transaction.amountCents)
+        val runningBalanceResult = RulesEngine.apply(
+            transaction(), listOf(Rule("running-balance", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+                listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
+                Rule.Action("set", "amount", RuleValue.Number(0.0), mapOf("formula" to RuleValue.Text("=balance"))),
+            ))), context,
+        )
+        assertEquals(65000L, runningBalanceResult.transaction.amountCents)
+    }
+
+    @Test fun appliesSplitActionsAndAssignsRemaindersByIndex() {
+        val rule = Rule("split", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+            listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
+            Rule.Action("set-split-amount", null, RuleValue.Number(50.0), mapOf(
+                "splitIndex" to RuleValue.Number(1.0), "method" to RuleValue.Text("fixed-percent"),
+            )),
+            Rule.Action("set", "category", RuleValue.Text("food"), mapOf("splitIndex" to RuleValue.Number(1.0))),
+            Rule.Action("set-split-amount", null, RuleValue.Null, mapOf(
+                "splitIndex" to RuleValue.Number(2.0), "method" to RuleValue.Text("remainder"),
+            )),
+            Rule.Action("set", "category", RuleValue.Text("fun"), mapOf("splitIndex" to RuleValue.Number(2.0))),
+        ))
+        var childId = 0
+        val result = RulesEngine.apply(
+            transaction(amount = -1001, payee = "shop", payeeName = "Shop").copy(categoryId = "food"),
+            listOf(rule),
+            idFactory = { "child-${childId++}" },
+        )
+        assertTrue(result.transaction.isParent)
+        assertEquals(null, result.transaction.payeeId)
+        assertEquals("food", result.transaction.categoryId)
+        assertEquals(listOf(-500L, -501L), result.splitChildren.map { it.transaction.amountCents })
+        assertEquals(listOf("food", "fun"), result.splitChildren.map { it.transaction.categoryId })
+        assertEquals(-1001L, result.splitChildren.sumOf { it.transaction.amountCents })
+    }
+
+    @Test fun splitAmountFormulaAndSingleRemainderFollowActualCents() {
+        val rule = Rule("split-formula", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+            listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
+                Rule.Action("set-split-amount", null, RuleValue.Null, mapOf(
+                    "splitIndex" to RuleValue.Number(1.0), "method" to RuleValue.Text("formula"),
+                    "formula" to RuleValue.Text("=parent_amount/200"),
+                )),
+                Rule.Action("set-split-amount", null, RuleValue.Null, mapOf(
+                    "splitIndex" to RuleValue.Number(2.0), "method" to RuleValue.Text("remainder"),
+                )),
+            ))
+        val result = RulesEngine.apply(transaction(amount = -1000), listOf(rule))
+        assertEquals(listOf(-500L, -500L), result.splitChildren.map { it.transaction.amountCents })
+
+        val single = RulesEngine.apply(
+            transaction(amount = -1000),
+            listOf(Rule("one-line", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+                listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
+                    Rule.Action("set-split-amount", null, RuleValue.Null, mapOf(
+                        "splitIndex" to RuleValue.Number(1.0), "method" to RuleValue.Text("remainder"),
+                    )),
+                ))),
+        )
+        assertEquals(listOf(-1000L), single.splitChildren.map { it.transaction.amountCents })
+    }
+
     @Test fun exactRulesRunLastAndDateTagsAndBudgetConditionsMatch() {
         val rules = listOf(
             Rule("exact", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
