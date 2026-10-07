@@ -666,12 +666,24 @@ class ActuaRepository(context: Context) {
     fun budgetOverview(month: String = currentMonth()): BudgetOverview {
         actualDatabase?.let { db ->
             val budget = db.fetchBudgetMonth(month)
+            // Actual's month totals: envelope budgets count hidden categories and groups, tracking
+            // budgets leave them out (loot-core budget/envelope.ts, budget/tracking.ts).
+            val totalled = if (budget.isTracking) budget.categories else budget.categories + budget.hiddenCategories
+            val budgeted = totalled.sumOf { it.budgetedCents }
+            val spent = totalled.sumOf { it.spentCents }
+            val projected = month >= currentMonth()
             return BudgetOverview(
                 toBudgetCents = budget.toBudgetCents,
-                budgetedCents = budget.categories.sumOf { it.budgetedCents },
-                spentCents = budget.categories.sumOf { it.spentCents },
-                availableCents = budget.categories.sumOf { it.availableCents },
+                budgetedCents = budgeted,
+                spentCents = spent,
+                availableCents = totalled.sumOf { it.availableCents },
                 bufferedCents = budget.bufferedCents,
+                savedCents = if (!budget.isTracking) null else if (projected) {
+                    budget.incomeCategories.sumOf { it.budgetedCents } - budgeted
+                } else {
+                    budget.incomeCategories.sumOf { it.receivedCents } + spent
+                },
+                projectedSavings = budget.isTracking && projected,
             )
         }
         return BudgetOverview(null, 0, 0, 0)

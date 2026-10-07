@@ -71,7 +71,7 @@ Upstream: `envelope.ts` `createCategory`, `createSummary`; `base.ts` `createCate
 | `from-last-month` | prev `to-budget` + prev `buffered-selected` | carried in the walk | Match (fixture) |
 | `available-funds` / `to-budget` | income + from last month; + overspent + total budgeted − held | same | Match (fixture) |
 | `total-income` | the (first) income group's received | Σ live income categories | Match (one income group, as Actual creates) |
-| Header totals: total budgeted / spent / balance | include hidden categories and groups | `budgetOverview` sums visible categories only | **Divergence** [#909](https://github.com/azimul-kabir/actua/issues/909) |
+| Header and group totals: total budgeted / spent / balance | include hidden categories and groups; not affected by view filters | `budgetOverview` and group headers (`budgetTotalCategories`) include them; rows still follow the view filters | Match (fixed by [#916](https://github.com/azimul-kabir/actua/pull/916) for [#909](https://github.com/azimul-kabir/actua/issues/909)) |
 | Month range: from 3 months before the earliest non-child transaction to 12 months after the current month; rows outside are ignored | `getBudgetRange` | walk starts at the earliest row of any kind; any month can be opened | **Divergence** [#911](https://github.com/azimul-kabir/actua/issues/911) (low) |
 | First month in range | blank previous sheet: everything 0, no rollover | walk starts from 0 | Match |
 
@@ -86,7 +86,7 @@ Upstream: `tracking.ts`. Actua: the same walk with `envelope = false`.
 | Income `leftover` = `budget − received (+ prev if rollover)` | shown in the PWA income rows | not shown | N/A (display) |
 | No To Budget, holds or `last-month-overspent` | – | `toBudgetCents = null`, `bufferedCents = 0` | Match |
 | Group and month totals exclude hidden categories and groups | `createCategoryGroup`/`createSummary` filters | header sums visible categories | Match |
-| `total-saved` (budgeted income − budgeted expenses), `real-saved` (income − spent) | summary cells | not shown | **Divergence** [#909](https://github.com/azimul-kabir/actua/issues/909) (display) |
+| `total-saved` (budgeted income − budgeted expenses), `real-saved` (income − spent); the mobile budget shows "Projected savings" from the current month on and "Saved"/"Overspent" before | summary cells, `BudgetTable` `Saved` | shown in the To Budget slot the same way (`BudgetOverview.lead`) | Match ([#916](https://github.com/azimul-kabir/actua/pull/916)) |
 
 ## 4. Writes: integer cents and the same CRDT cells
 
@@ -125,7 +125,7 @@ their CRDT messages), `ActualBudgetBufferTest` (holds), `BudgetMonthParityFixtur
 - [#906](https://github.com/azimul-kabir/actua/issues/906): "Copy last month's budget" zeroes categories that had no budget last month (P2). Fixed by [#913](https://github.com/azimul-kabir/actua/pull/913).
 - [#907](https://github.com/azimul-kabir/actua/issues/907): To Budget "Move to Category" and "Cover From" don't cap the amount like Actual (P2). Fixed by [#914](https://github.com/azimul-kabir/actua/pull/914).
 - [#908](https://github.com/azimul-kabir/actua/issues/908): Budget moves and covers don't add Actual's "Reassigned …" month note (low). Fixed by [#915](https://github.com/azimul-kabir/actua/pull/915).
-- [#909](https://github.com/azimul-kabir/actua/issues/909): Budget month totals leave out hidden categories in envelope budgets; no tracking saved totals (low).
+- [#909](https://github.com/azimul-kabir/actua/issues/909): Budget month totals leave out hidden categories in envelope budgets; no tracking saved totals (low). Fixed by [#916](https://github.com/azimul-kabir/actua/pull/916).
 - [#910](https://github.com/azimul-kabir/actua/issues/910): Remaining budget actions: averages, copy one category, copy to year end, income hold.
 - [#911](https://github.com/azimul-kabir/actua/issues/911): Budget months outside Actual's budget range are counted and editable (low).
 

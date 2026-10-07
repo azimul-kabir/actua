@@ -54,6 +54,49 @@ class ActuaRepositoryBudgetActionsTest {
         assertEquals(mapOf("power" to 2_000L, "rent" to 99_466L), db.budgets(202610))
     }
 
+    @Test
+    fun envelopeOverviewTotalsIncludeHiddenCategories() = withRepository { repository, db ->
+        // Actual's envelope total-budgeted / total-spent / total-leftover count hidden categories (#909).
+        db.exec("INSERT INTO zero_budgets (id, month, category, amount, carryover) VALUES ('202603-rent', 202603, 'rent', 100000, 0), ('202603-old', 202603, 'old', 5000, 0)")
+        db.exec("INSERT INTO transactions (id, isParent, isChild, acct, category, amount, date, tombstone) VALUES ('o1', 0, 0, 'checking', 'old', -2000, 20260310, 0)")
+
+        val overview = repository.budgetOverview("2026-03")
+
+        assertEquals(105_000L, overview.budgetedCents)
+        assertEquals(-2_000L, overview.spentCents)
+        assertEquals(103_000L, overview.availableCents)
+        assertEquals(null, overview.savedCents)
+    }
+
+    @Test
+    fun trackingOverviewLeavesHiddenOutAndReportsSavings() = withRepository { repository, db ->
+        // Actual's tracking totals skip hidden categories; real-saved for past months,
+        // total-saved (projected) from the current month on (#909).
+        db.exec("INSERT INTO preferences (id, value) VALUES ('budgetType', 'tracking')")
+        db.exec(
+            """INSERT INTO reflect_budgets (id, month, category, amount, carryover) VALUES
+                ('202603-rent', 202603, 'rent', 100000, 0), ('202603-old', 202603, 'old', 5000, 0),
+                ('202603-salary', 202603, 'salary', 300000, 0),
+                ('209901-rent', 209901, 'rent', 100000, 0), ('209901-salary', 209901, 'salary', 250000, 0)""",
+        )
+        db.exec(
+            """INSERT INTO transactions (id, isParent, isChild, acct, category, amount, date, tombstone) VALUES
+                ('s1', 0, 0, 'checking', 'salary', 280000, 20260301, 0),
+                ('r1', 0, 0, 'checking', 'rent', -100000, 20260302, 0),
+                ('o1', 0, 0, 'checking', 'old', -2000, 20260310, 0)""",
+        )
+
+        val march = repository.budgetOverview("2026-03")
+        assertEquals(100_000L, march.budgetedCents)
+        assertEquals(-100_000L, march.spentCents)
+        assertEquals(180_000L, march.savedCents)
+        assertEquals("Saved" to 180_000L, march.lead())
+
+        val future = repository.budgetOverview("2099-01")
+        assertEquals(150_000L, future.savedCents)
+        assertEquals("Projected savings" to 150_000L, future.lead())
+    }
+
     internal class Db(private val path: String) {
         fun exec(sql: String) = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE).use { it.execSQL(sql) }
 
