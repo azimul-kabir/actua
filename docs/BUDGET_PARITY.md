@@ -72,7 +72,7 @@ Upstream: `envelope.ts` `createCategory`, `createSummary`; `base.ts` `createCate
 | `available-funds` / `to-budget` | income + from last month; + overspent + total budgeted − held | same | Match (fixture) |
 | `total-income` | the (first) income group's received | Σ live income categories | Match (one income group, as Actual creates) |
 | Header and group totals: total budgeted / spent / balance | include hidden categories and groups; not affected by view filters | `budgetOverview` and group headers (`budgetTotalCategories`) include them; rows still follow the view filters | Match (fixed by [#916](https://github.com/azimul-kabir/actua/pull/916) for [#909](https://github.com/azimul-kabir/actua/issues/909)) |
-| Month range: from 3 months before the earliest non-child transaction to 12 months after the current month; rows outside are ignored | `getBudgetRange` | walk starts at the earliest row of any kind; any month can be opened | **Divergence** [#911](https://github.com/azimul-kabir/actua/issues/911) (low) |
+| Month range: from 3 months before the earliest non-child transaction to 12 months after the current month; rows outside are ignored | `getBudgetRange` | walk starts at the range start (`budgetRange`); the month picker only offers months in the range | Match (fixed by [#918](https://github.com/azimul-kabir/actua/pull/918) for [#911](https://github.com/azimul-kabir/actua/issues/911)) |
 | First month in range | blank previous sheet: everything 0, no rollover | walk starts from 0 | Match |
 
 ## 3. Tracking cells (`reflect_budgets`)
@@ -127,7 +127,7 @@ their CRDT messages), `ActualBudgetBufferTest` (holds), `BudgetMonthParityFixtur
 - [#908](https://github.com/azimul-kabir/actua/issues/908): Budget moves and covers don't add Actual's "Reassigned …" month note (low). Fixed by [#915](https://github.com/azimul-kabir/actua/pull/915).
 - [#909](https://github.com/azimul-kabir/actua/issues/909): Budget month totals leave out hidden categories in envelope budgets; no tracking saved totals (low). Fixed by [#916](https://github.com/azimul-kabir/actua/pull/916).
 - [#910](https://github.com/azimul-kabir/actua/issues/910): Remaining budget actions: averages, copy one category, copy to year end, income hold. Fixed by [#917](https://github.com/azimul-kabir/actua/pull/917).
-- [#911](https://github.com/azimul-kabir/actua/issues/911): Budget months outside Actual's budget range are counted and editable (low).
+- [#911](https://github.com/azimul-kabir/actua/issues/911): Budget months outside Actual's budget range are counted and editable (low). Fixed by [#918](https://github.com/azimul-kabir/actua/pull/918).
 
 **Limitations:** the fixture runs Actual's engine through `@actual-app/api` (loot-core's
 spreadsheet), not the PWA's UI. The actions in §5 were compared by reading source, not run.

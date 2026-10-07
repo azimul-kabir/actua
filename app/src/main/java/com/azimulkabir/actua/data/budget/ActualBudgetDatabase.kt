@@ -1593,6 +1593,19 @@ class ActualBudgetDatabase private constructor(
         return String.format(java.util.Locale.ROOT, "%04d-%02d", first / 100, first % 100)
     }
 
+    /**
+     * Actual's budget range ([BudgetRange]): the earliest non-child dated transaction, deleted or
+     * off budget included, as upstream `createAllBudgets` queries it.
+     */
+    @Synchronized
+    fun budgetRange(current: java.time.YearMonth = java.time.YearMonth.now()): ClosedRange<java.time.YearMonth> {
+        val earliest = database.rawQuery(
+            "SELECT MIN(date) FROM transactions WHERE isChild = 0 AND date IS NOT NULL", null,
+        ).use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else null }
+            ?.let { date -> runCatching { java.time.YearMonth.of((date / 10_000).toInt(), (date / 100 % 100).toInt()) }.getOrNull() }
+        return BudgetRange.of(earliest, current)
+    }
+
     /** Month walk matching Actuali iOS BudgetDatabase.budgetWalk. */
     @Synchronized
     fun fetchBudgetMonth(month: String): ActualBudgetMonth {
@@ -1637,7 +1650,8 @@ class ActualBudgetDatabase private constructor(
         }
         val incomeIds = categories.filter(Cat::income).mapTo(mutableSetOf(), Cat::id)
         val expenseIds = categories.filterNot(Cat::income).mapTo(mutableSetOf(), Cat::id)
-        val earliest = (budgets.keys + spent.keys + buffered.keys).minOrNull() ?: target
+        // Actual only builds months from its budget range start; older rows and activity don't count.
+        val earliest = budgetRange().start.let { it.year * 100 + it.monthValue }
         var running = mutableMapOf<String, Long>()
         var priorFlags = mutableMapOf<String, Boolean>()
         var toBudget = 0L

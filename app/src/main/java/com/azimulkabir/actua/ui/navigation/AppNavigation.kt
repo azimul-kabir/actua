@@ -367,6 +367,13 @@ fun AppNavigation(
     var budgetMonth by rememberSaveable {
         mutableStateOf(java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US).format(java.util.Date()))
     }
+    val budgetMonthRange = remember(dataVersion, repository) { repository.budgetMonthRange() }
+    // Actual has no budget outside its range, so keep the selected month inside it.
+    LaunchedEffect(budgetMonthRange) {
+        val range = budgetMonthRange ?: return@LaunchedEffect
+        val selected = java.time.YearMonth.parse(budgetMonth)
+        if (selected !in range) budgetMonth = selected.coerceIn(range.start, range.endInclusive).toString()
+    }
     val budgetGroups = remember(dataVersion, budgetMonth) { repository.budgetGroups(budgetMonth) }
     // Marks the first frame where the landing (Budget) screen has real data to show, so
     // Macrobenchmark's StartupTimingMetric can capture time-to-full-display instead of only
@@ -2380,6 +2387,7 @@ fun AppNavigation(
                     groups = budgetGroups,
                     overview = budgetOverview,
                     month = budgetMonth,
+                    monthRange = budgetMonthRange,
                     onMonthChange = { budgetMonth = it },
                     hideDecimalPlaces = hideDecimalPlaces,
                     showHidden = showHiddenCategories,

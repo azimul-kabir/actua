@@ -163,6 +163,19 @@ class ActuaRepositoryBudgetActionsTest {
         assertEquals(1, db.carryover(202507, "salary"))
     }
 
+    @Test
+    fun budgetRowsBeforeActualsRangeAreIgnored() = withRepository { repository, db ->
+        // Actual builds months from 3 months before the earliest transaction (#911): March 2026's
+        // salary starts the range in December 2025, so November's Rent row never counts.
+        db.exec("INSERT INTO transactions (id, isParent, isChild, acct, category, amount, date, tombstone) VALUES ('s1', 0, 0, 'checking', 'salary', 300000, 20260301, 0)")
+        db.exec("INSERT INTO zero_budgets (id, month, category, amount, carryover) VALUES ('202511-rent', 202511, 'rent', 50000, 0), ('202603-rent', 202603, 'rent', 1000, 0)")
+
+        assertEquals(java.time.YearMonth.of(2025, 12), repository.budgetMonthRange()?.start)
+        assertEquals(java.time.YearMonth.now().plusMonths(12), repository.budgetMonthRange()?.endInclusive)
+        assertEquals(299_000L, repository.budgetOverview("2026-03").toBudgetCents)
+        assertEquals(1_000L, repository.budgetGroups("2026-03").flatMap { it.categories }.first { it.id == "rent" }.balanceCents)
+    }
+
     internal class Db(private val path: String) {
         fun exec(sql: String) = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE).use { it.execSQL(sql) }
 

@@ -533,6 +533,9 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    /** The months Actual has a budget for (`getBudgetRange`); null without an open budget. */
+    fun budgetMonthRange(): ClosedRange<java.time.YearMonth>? = actualDatabase?.budgetRange()
+
     fun budgetGroups(month: String = currentMonth()): List<BudgetGroup> {
         actualDatabase?.let { db ->
             val budget = db.fetchBudgetMonth(month)

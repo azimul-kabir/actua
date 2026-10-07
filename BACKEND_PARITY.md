@@ -313,7 +313,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   Actual sets `long_goal` only for `goal` templates ([`category-template-context.ts`](https://github.com/actualbudget/actual/blob/7f74953a5422c480e09175013ff872b9fd29500b/packages/loot-core/src/server/budget/category-template-context.ts#L455-L466)).
 - Budget category view filters (Overspent, Underfunded, Overfunded, Money Available) as a
   persisted FilterChip row alongside the existing hide-fully-spent and show-hidden filters
-- Working previous/next budget month navigation, with reads and budget writes scoped to the selected month
+- Working previous/next budget month navigation, with reads and budget writes scoped to the selected month,
+  limited to Actual's budget range (3 months before the earliest transaction to 12 months after the
+  current month), which is also where the month walk starts (`getBudgetRange`)
 - "Copy last month's budget" Budget screen action that copies the previous month's budgeted
   amounts for visible expense categories (and visible income categories for tracking budgets)
   into the selected month, leaving hidden categories and groups unchanged
