@@ -245,6 +245,8 @@ fun BudgetScreen(
     onApplyBudgetTemplate: (BudgetTemplatePreview) -> Unit = {},
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
     onPreviewCleanup: () -> CleanupPreview = { CleanupPreview("") },
+    /** Re-reads notes-managed templates before a template preview opens, as Actual does (#855). */
+    onRefreshNoteTemplates: () -> Unit = {},
     onApplyCleanup: (CleanupPreview) -> Unit = {},
     onSearch: () -> Unit = {},
     onManageCategories: () -> Unit = {},
@@ -599,6 +601,7 @@ fun BudgetScreen(
                 selectedGroup = null
                 templateGroupTarget = group
                 overwriteTemplates = overwrite
+                onRefreshNoteTemplates()
                 templatePreviewOpen = true
             },
         )
@@ -608,6 +611,7 @@ fun BudgetScreen(
             onApplyTemplate = { overwrite ->
                 showAddSheet = false
                 overwriteTemplates = overwrite
+                onRefreshNoteTemplates()
                 templatePreviewOpen = true
             },
             onPreviewCleanup = {

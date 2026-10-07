@@ -107,6 +107,17 @@ class ActualEntityWriter(
         "goal_def" to goalDef, "template_settings" to "{\"source\":\"notes\"}",
     ))
 
+    /** Writes a note-template refresh (#855) in one batch: refreshed definitions and cleared ones. */
+    @Synchronized
+    fun refreshNoteTemplates(goalDefs: Map<String, String?>, resets: Set<String>) {
+        val messages = mutableListOf<CrdtMessage>()
+        goalDefs.forEach { (id, goalDef) ->
+            messages += fields("categories", id, mapOf("goal_def" to goalDef, "template_settings" to "{\"source\":\"notes\"}"))
+        }
+        resets.forEach { id -> messages += fields("categories", id, mapOf("goal_def" to null)) }
+        persist(messages)
+    }
+
     /**
      * Rewrites every category's `cleanup_def` in one atomic batch, matching Actual's
      * `storeNoteCleanups()`: group upserts (create/un-tombstone) and orphan tombstones from

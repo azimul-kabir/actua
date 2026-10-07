@@ -1453,6 +1453,19 @@ class ActuaRepository(context: Context) {
      * names are resolved case-insensitively; groups no longer referenced by any category are
      * tombstoned rather than deleted, matching upstream's `tombstoneOrphanCleanupGroups()`.
      */
+    /** Re-reads notes-managed `#template`/`#goal` definitions before templates are previewed (#855). */
+    fun refreshNoteTemplates(): Boolean {
+        val db = actualDatabase ?: return false
+        val writer = actualEntities ?: return false
+        val plan = com.azimulkabir.actua.model.NoteTemplateRefresh.plan(
+            db.fetchCategoryTemplateDefinitions().map { (id, goalDef, source) ->
+                com.azimulkabir.actua.model.NoteTemplateRefresh.Category(id, goalDef, source, db.fetchNote(id))
+            },
+        )
+        if (!plan.isEmpty) writer.refreshNoteTemplates(plan.goalDefs, plan.resets)
+        return true
+    }
+
     fun refreshCleanupDefinitions(): Boolean {
         val db = actualDatabase ?: return false
         val writer = actualEntities ?: return false

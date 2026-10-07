@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Applying budget templates now picks up `#template` notes written in other Actual clients (PR_PLACEHOLDER)
 - Simple budget templates such as `#template 50` and `#template up to 100` now budget like Actual ([#876](https://github.com/azimul-kabir/actua/pull/876))
 - Bank sync runs rules before matching, so matched transactions get rule categories and renamed payees no longer leave the bank's name behind ([#875](https://github.com/azimul-kabir/actua/pull/875))
 - Rules now run on the other side of a new transfer, like Actual ([#874](https://github.com/azimul-kabir/actua/pull/874))
