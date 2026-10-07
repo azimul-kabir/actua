@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Budget table amounts now shrink to fit narrow screens and large font sizes instead of clipping decimals ([#886](https://github.com/azimul-kabir/actua/issues/886))
 - Set budgets to zero now also clears income category budgets in tracking budgets, like Actual ([#885](https://github.com/azimul-kabir/actua/pull/885))
 - Budget templates round to whole amounts when the budget hides decimals, like Actual ([#884](https://github.com/azimul-kabir/actua/pull/884))
 - Average templates now count refunds and round like Actual ([#883](https://github.com/azimul-kabir/actua/pull/883))
