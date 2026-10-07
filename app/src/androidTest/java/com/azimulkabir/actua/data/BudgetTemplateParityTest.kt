@@ -64,6 +64,8 @@ class BudgetTemplateParityTest {
 
     /** Budget screen → "Apply budget template" (or "Overwrite"), confirmed as previewed. */
     private fun applyTemplates(repository: ActuaRepository, month: String, overwrite: Boolean) {
+        // Opening the template preview re-reads notes-managed templates first.
+        assertTrue(repository.refreshNoteTemplates())
         val preview = BudgetTemplatePlanner.preview(
             repository.budgetGroups(month),
             month,

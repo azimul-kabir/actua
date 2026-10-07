@@ -1447,6 +1447,19 @@ class ActuaRepository(context: Context) {
 
     fun cleanupGroups(): List<CleanupGroup> = actualDatabase?.fetchCleanupGroups()?.map { CleanupGroup(it.id, it.name) } ?: emptyList()
 
+    /** Re-reads notes-managed `#template`/`#goal` definitions before templates are previewed (#855). */
+    fun refreshNoteTemplates(): Boolean {
+        val db = actualDatabase ?: return false
+        val writer = actualEntities ?: return false
+        val plan = com.azimulkabir.actua.model.NoteTemplateRefresh.plan(
+            db.fetchCategoryTemplateDefinitions().map { (id, goalDef, source) ->
+                com.azimulkabir.actua.model.NoteTemplateRefresh.Category(id, goalDef, source, db.fetchNote(id))
+            },
+        )
+        if (!plan.isEmpty) writer.refreshNoteTemplates(plan.goalDefs, plan.resets)
+        return true
+    }
+
     /**
      * Re-scans every category note for `#cleanup` directives and rewrites `cleanup_def` plus
      * `cleanup_groups` in one atomic batch, mirroring Actual's `storeNoteCleanups()`. Group

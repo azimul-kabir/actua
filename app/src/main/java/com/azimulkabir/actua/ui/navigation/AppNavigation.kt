@@ -2475,6 +2475,9 @@ fun AppNavigation(
                     },
                     scheduleFunding = budgetScheduleFunding,
                     onPreviewCleanup = { repository.previewCleanup(budgetMonth) },
+                    onRefreshNoteTemplates = {
+                        mutate("Reading template notes") { repository.refreshNoteTemplates() }
+                    },
                     onApplyCleanup = { preview ->
                         mutate("Applying month-end cleanup") { repository.applyCleanup(preview) }
                     },

@@ -918,6 +918,19 @@ class ActualBudgetDatabase private constructor(
         if (value == null) putNull(key) else put(key, value)
     }
 
+    /** Each live category's `goal_def` and `template_settings.source`, for the note-template refresh. */
+    @Synchronized
+    fun fetchCategoryTemplateDefinitions(): List<Triple<String, String?, String?>> = database.rawQuery(
+        "SELECT id, goal_def, template_settings FROM categories WHERE tombstone = 0 OR tombstone IS NULL", null,
+    ).use { c ->
+        buildList {
+            while (c.moveToNext()) add(Triple(
+                c.getString(0), c.stringOrNull(1),
+                c.stringOrNull(2)?.let { raw -> runCatching { JSONObject(raw).optString("source") }.getOrNull() },
+            ))
+        }
+    }
+
     @Synchronized
     fun fetchCategoryGroups(): List<ActualCategoryGroup> {
         val categories = mutableListOf<ActualCategory>()
