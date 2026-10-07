@@ -246,7 +246,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   writes use synced CRDT messages; payee merges point `payee_mapping` at the target before
   tombstoning source payees (earlier merges into a source aren't re-pointed yet, #895), and
   transaction reads (reports, filters, schedules, bank sync) resolve merged payees and
-  categories through `payee_mapping`/`category_mapping` (rule ids don't yet, #893). The payee
+  categories through `payee_mapping`/`category_mapping`, as do rule condition and action ids
+  (upstream `migrateIds`). The payee
   writers have no UI yet (#896); see [docs/PAYEES_PARITY.md](docs/PAYEES_PARITY.md); account deletion
   tombstones its owned transfer payee; transfer payees cannot be independently deleted or merged; group deletion
   tombstones its categories before the group; and reorder uses Actual-compatible

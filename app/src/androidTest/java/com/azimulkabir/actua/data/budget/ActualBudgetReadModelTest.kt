@@ -1027,6 +1027,41 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun rulesKeyedToMergedPayeesAndCategoriesFollowTheMapping() {
+        // Upstream migrateIds: stored rule ids stay raw, reads map them (actua#893).
+        val file = createDatabaseFile()
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO payees VALUES ('old-store','Old Store',NULL,1)")
+                db.execSQL("INSERT INTO payee_mapping VALUES ('old-store','store')")
+                db.execSQL("INSERT INTO categories VALUES ('old-grocery','Old Groceries','essential',0,0,1,4)")
+                db.execSQL("INSERT INTO category_mapping VALUES ('old-grocery','grocery')")
+                insertTransaction(db, "on-target", 0, 0, "checking", null, -250, "store", 20260801, 8.0)
+                db.execSQL("""INSERT INTO rules VALUES ('merged-rule',NULL,'and',
+                    '[{"op":"is","field":"description","value":"old-store","type":"id"},{"op":"oneOf","field":"description","value":["old-store","store"],"type":"id"}]',
+                    '[{"op":"set","field":"category","value":"old-grocery","type":"id"}]',0)""")
+            }
+            ActualBudgetDatabase.open(file).use { database ->
+                val rule = database.fetchRules().single { it.id == "merged-rule" }
+                assertEquals(com.azimulkabir.actua.data.rules.RuleValue.Text("store"), rule.conditions[0].value)
+                assertEquals(
+                    com.azimulkabir.actua.data.rules.RuleValue.ListValue(listOf(com.azimulkabir.actua.data.rules.RuleValue.Text("store"))),
+                    rule.conditions[1].value,
+                )
+                assertEquals(com.azimulkabir.actua.data.rules.RuleValue.Text("grocery"), rule.actions.single().value)
+
+                val transaction = requireNotNull(database.fetchTransaction("on-target"))
+                val result = com.azimulkabir.actua.data.rules.RulesEngine.apply(
+                    transaction, listOf(rule), database.ruleContext(),
+                )
+                assertEquals("grocery", result.transaction.categoryId)
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun savedReportsReadIncludeCurrentAndTolerateOlderSchemas() {
         val file = createDatabaseFile()
         try {
