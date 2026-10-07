@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.budget
 
 import com.azimulkabir.actua.data.budget.model.ActualPayee
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.rules.TransferLegRules
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.UUID
@@ -184,13 +185,14 @@ class ActualTransactionFormService(
         val offBudget = offBudgetAccountIds()
         fun category(account: String, other: String) =
             form.categoryId.takeIf { account !in offBudget && other in offBudget }
-        // loot-core `addTransfer` inserts the other leg with `cleared: false`.
-        writer.createTransfer(
+        // loot-core `addTransfer` inserts the other leg with `cleared: false`, then runs rules on it.
+        val (source, target) = withTransferLegRules(
             baseTransaction(sourceId, form.accountId, form.date, -plan.amountCents, toPayee.id,
                 category(form.accountId, plan.toAccountId), notes, form.cleared, transferId = targetId),
             baseTransaction(targetId, plan.toAccountId, form.date, plan.amountCents, fromPayee.id,
                 category(plan.toAccountId, form.accountId), notes, false, transferId = sourceId),
         )
+        writer.createTransfer(source, target)
     }
 
     /**
@@ -245,12 +247,15 @@ class ActualTransactionFormService(
             payeeId = otherPayee.id, categoryId = legCategory, notes = notes,
             cleared = form.cleared, transferId = partnerId,
         )
-        val partner = baseTransaction(
+        val (ruledLeg, partner) = withTransferLegRules(leg, baseTransaction(
             partnerId, plan.toAccountId, form.date, -signed, legPayee.id, null, notes,
             false, transferId = original.id,
-        )
-        mutate(updates = listOf(original to leg), inserts = listOf(partner))
+        ))
+        mutate(updates = listOf(original to ruledLeg), inserts = listOf(partner))
     }
+
+    private fun withTransferLegRules(source: ActualTransaction, partner: ActualTransaction) =
+        TransferLegRules.apply(source, partner, database.fetchRules(), database.ruleContext())
 
     private fun createSplit(form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
         rejectTransferLines(plan)
