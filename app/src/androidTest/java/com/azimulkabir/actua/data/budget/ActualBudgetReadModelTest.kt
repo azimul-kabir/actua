@@ -1468,7 +1468,10 @@ class ActualBudgetReadModelTest {
 
     private fun insertTransaction(db: SQLiteDatabase, id: String, parentFlag: Int, childFlag: Int, account: String, category: String?, amount: Int, payee: String?, date: Int?, sort: Double, transfer: String? = null, parent: String? = null) {
         db.execSQL(
-            "INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            // Named columns: opening the database migrates extra columns in, and tests insert after that too.
+            """INSERT INTO transactions (id, isParent, isChild, acct, category, amount, description, notes, date,
+                imported_description, transferred_id, cleared, reconciled, sort_order, tombstone, parent_id,
+                financial_id, pending, raw_synced_data) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             arrayOf<Any?>(id, parentFlag, childFlag, account, category, amount, payee, null, date, null, transfer, 0, 0, sort, 0, parent, null, 0, null),
         )
     }
