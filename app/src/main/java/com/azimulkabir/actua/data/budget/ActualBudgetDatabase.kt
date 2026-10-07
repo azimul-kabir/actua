@@ -1545,7 +1545,7 @@ class ActualBudgetDatabase private constructor(
                   AND (t.isParent = 0 OR t.isParent IS NULL)
                   AND t.category IS NOT NULL AND a.offbudget = 0
                   AND (a.tombstone = 0 OR a.tombstone IS NULL)
-                  AND (t.date / 100) >= ? AND (t.date / 100) <= ?
+                  AND (t.date / 100) >= CAST(? AS INTEGER) AND (t.date / 100) <= CAST(? AS INTEGER)
                 GROUP BY (t.date / 100), COALESCE(cm.transferId, t.category)
             """.trimIndent(), arrayOf(fromMonth.toString(), toMonth.toString()),
         ).use { cursor -> while (cursor.moveToNext()) {
@@ -1572,7 +1572,7 @@ class ActualBudgetDatabase private constructor(
         val end = parseMonth(endMonth) ?: return null
         val table = budgetTable()
         val budgetMonths = if (table == null) null else database.rawQuery(
-            "SELECT MIN(month) FROM $table WHERE category = ? AND month <= ?", arrayOf(categoryId, end.toString()),
+            "SELECT MIN(month) FROM $table WHERE category = ? AND month <= CAST(? AS INTEGER)", arrayOf(categoryId, end.toString()),
         ).use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getInt(0) else null }
         val transactionMonth = database.rawQuery(
             """
@@ -1586,7 +1586,7 @@ class ActualBudgetDatabase private constructor(
                        (p.id IS NOT NULL AND (p.tombstone = 0 OR p.tombstone IS NULL)))
                   AND (t.isParent = 0 OR t.isParent IS NULL)
                   AND COALESCE(cm.transferId, t.category) = ? AND a.offbudget = 0
-                  AND (t.date / 100) <= ?
+                  AND (t.date / 100) <= CAST(? AS INTEGER)
             """.trimIndent(), arrayOf(categoryId, end.toString()),
         ).use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getInt(0) else null }
         val first = listOfNotNull(budgetMonths, transactionMonth).minOrNull() ?: return null
