@@ -1332,6 +1332,7 @@ private fun PlanBudgetCategoryRow(
                 category.balanceCents,
                 hideDecimalPlaces,
                 status = category.statusState(scheduleFunding),
+                colorByStatus = LocalCategoryStatusColors.current?.colorBudgetedAmounts == true,
                 textStyle = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 horizontalPadding = 10.dp,
