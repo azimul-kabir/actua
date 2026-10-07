@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Schedule templates for bills due in later months now save toward them like Actual's sinking fund ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
 - Repeating save-by-date templates whose date has passed now roll forward like Actual instead of budgeting the whole target at once ([#879](https://github.com/azimul-kabir/actua/pull/879))
 - Budget templates now set category goals like Actual, so underfunded and overfunded colors match across clients ([#878](https://github.com/azimul-kabir/actua/pull/878))
 - Applying budget templates now picks up `#template` notes written in other Actual clients ([#877](https://github.com/azimul-kabir/actua/pull/877))

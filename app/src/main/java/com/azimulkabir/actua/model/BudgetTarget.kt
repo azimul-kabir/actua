@@ -197,19 +197,16 @@ data class BudgetTarget(
                 category.history.firstOrNull { it.month == previous }?.assignedCents ?: 0L
             }
         }
-        Type.SCHEDULE -> scheduleSuggestedBudget(category, schedules)
+        Type.SCHEDULE -> max(0L, ScheduleTemplateFunding.request(
+            targets = listOf(this),
+            schedules = schedules,
+            category = category,
+            month = month,
+            balance = category.carryoverCents,
+            lastMonthBalance = category.carryoverCents,
+            previousMonthGoal = 0L,
+        ))
         Type.GOAL, Type.REMAINDER, Type.PERCENTAGE, Type.LIMIT, Type.REFILL -> 0L
-    }
-
-    /** This month's request for the linked schedule, matching [BudgetTemplatePlanner]'s whole-budget computation. */
-    private fun scheduleSuggestedBudget(category: BudgetCategory, schedules: List<BudgetScheduleFunding>): Long {
-        val reference = scheduleId?.takeIf(String::isNotBlank) ?: scheduleName?.trim().orEmpty()
-        val funding = schedules.firstOrNull {
-            reference in it.referenceNames && (it.categoryId == null || it.categoryId == category.id)
-        } ?: return 0L
-        val base = if (scheduleFull) funding.amountCents * funding.occurrencesInMonth
-            else funding.requestedBudget(category.carryoverCents)
-        return max(0L, applyAdjustment(base))
     }
 
     /**
@@ -815,8 +812,7 @@ object BudgetTemplatePlanner {
             it.type == BudgetTarget.Type.PERCENTAGE || it.type == BudgetTarget.Type.SCHEDULE
         }
             .sumOf { it.suggestedBudget(category, month) }
-        val schedule = targets.filter { it.type == BudgetTarget.Type.SCHEDULE }
-            .sumOf { it.suggestedBudget(category, month, schedules) }
+        val schedule = scheduleRequest(targets, category, month, schedules)
         val percentage = targets.filter { it.type == BudgetTarget.Type.PERCENTAGE }
             .sumOf { target ->
             if (target.percentagePrevious) return@sumOf 0L // local preview doesn't model prior-month income yet
@@ -835,6 +831,34 @@ object BudgetTemplatePlanner {
             ?.let { capTarget(category)?.amountCents }
             ?.let { max(0L, it - category.carryoverCents) } ?: 0L
         return max(0L, ordinary + byAmount + refill + percentage + schedule)
+    }
+
+    /**
+     * Upstream runs a priority's schedule templates together when it reaches the first one, with
+     * the balance so far: last month's balance plus what the templates before it requested.
+     */
+    internal fun scheduleRequest(
+        targets: List<BudgetTarget>,
+        category: BudgetCategory,
+        month: String,
+        schedules: List<BudgetScheduleFunding>,
+    ): Long {
+        val first = targets.indexOfFirst { it.type == BudgetTarget.Type.SCHEDULE }
+        if (first < 0) return 0L
+        val earlier = targets.take(first).filter {
+            it.type == BudgetTarget.Type.FIXED || it.type == BudgetTarget.Type.HISTORICAL
+        }.sumOf { it.suggestedBudget(category, month) }
+        val previous = runCatching { YearMonth.parse(month).minusMonths(1).toString() }.getOrNull()
+        val previousGoal = category.history.firstOrNull { it.month == previous }?.goalCents ?: 0L
+        return ScheduleTemplateFunding.request(
+            targets = targets,
+            schedules = schedules,
+            category = category,
+            month = month,
+            balance = category.carryoverCents + earlier,
+            lastMonthBalance = category.carryoverCents,
+            previousMonthGoal = previousGoal,
+        )
     }
 
     private fun targetReference(target: BudgetTarget): String =

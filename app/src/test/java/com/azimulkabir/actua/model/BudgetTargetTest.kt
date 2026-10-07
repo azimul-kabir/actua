@@ -146,6 +146,8 @@ class BudgetTargetTest {
         val funding = BudgetScheduleFunding(
             id = "sched-1", name = "Rent", amountCents = 50_000,
             occurrencesInMonth = 2, monthsUntilNextOccurrence = 0,
+            frequency = "monthly", interval = 2, nextDate = java.time.LocalDate.of(2026, 9, 1),
+            occurrencesInDueMonth = 2,
         )
         assertEquals(
             100_000,

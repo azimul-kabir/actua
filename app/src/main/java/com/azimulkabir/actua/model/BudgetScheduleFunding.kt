@@ -15,6 +15,13 @@ data class BudgetScheduleFunding(
     val monthsUntilNextOccurrence: Int,
     val categoryId: String? = null,
     val active: Boolean = true,
+    /** The recurrence frequency (`daily`, `weekly`, `monthly`, `yearly`), or null for a one-off date. */
+    val frequency: String? = null,
+    val interval: Int = 1,
+    /** The next occurrence on or after the month's first day. */
+    val nextDate: java.time.LocalDate? = null,
+    /** Occurrences from [nextDate] to the end of its month, which upstream sums into one target. */
+    val occurrencesInDueMonth: Int = 1,
 ) {
     val referenceNames: Set<String> = buildSet {
         add(id)

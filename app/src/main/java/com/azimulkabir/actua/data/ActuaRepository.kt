@@ -529,7 +529,7 @@ class ActuaRepository(context: Context) {
                             histories.mapNotNull { historyMonth ->
                                 (historyMonth.categories + historyMonth.hiddenCategories)
                                     .firstOrNull { row -> row.categoryId == it.categoryId }
-                                    ?.let { row -> BudgetHistory(historyMonth.month, row.budgetedCents, row.spentCents) }
+                                    ?.let { row -> BudgetHistory(historyMonth.month, row.budgetedCents, row.spentCents, row.goalCents) }
                             },
                             target = automationDocument.supported.singleOrNull(),
                             hasUnsupportedTarget = automationDocument.hasUnsupported,
@@ -597,6 +597,7 @@ class ActuaRepository(context: Context) {
                 ?: return@mapNotNull null
             val monthsUntil = (next.year - selected.year) * 12 +
                 next.month - selected.monthValue
+            val recurring = condition as? com.azimulkabir.actua.data.schedules.ScheduleDateCondition.Recurring
             BudgetScheduleFunding(
                 id = schedule.id,
                 name = schedule.name,
@@ -605,6 +606,10 @@ class ActuaRepository(context: Context) {
                 monthsUntilNextOccurrence = monthsUntil,
                 categoryId = schedule.categoryId,
                 active = next >= monthStart,
+                frequency = recurring?.config?.frequency?.name?.lowercase(),
+                interval = recurring?.config?.interval ?: 1,
+                nextDate = java.time.LocalDate.of(next.year, next.month, next.day),
+                occurrencesInDueMonth = dates.count { it >= next && it.year == next.year && it.month == next.month },
             )
         }
     }
