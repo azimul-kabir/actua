@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.data.budget
 
 import com.azimulkabir.actua.data.budget.model.ActualAccount
+import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.rules.CategoryLearning
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.sync.CrdtMessage
@@ -341,11 +343,34 @@ class ActualEntityWriter(
 
     fun setPreference(id: String, value: String?) = update("preferences", id, mapOf("value" to value))
     fun setNote(id: String, note: String) = update("notes", id, mapOf("note" to note))
-    fun saveRule(rule: Rule) = update("rules", rule.id, mapOf(
+    fun saveRule(rule: Rule) = update("rules", rule.id, ruleFields(rule))
+
+    private fun ruleFields(rule: Rule): Map<String, Any?> = linkedMapOf(
         "stage" to rule.storedStage, "conditions_op" to rule.conditionsOp.name.lowercase(),
         "conditions" to rule.conditionsJson, "actions" to rule.actionsJson, "tombstone" to 0,
-    ))
+    )
     fun deleteRule(id: String) = update("rules", id, mapOf("tombstone" to 1))
+
+    /**
+     * Upstream `updateCategoryRules` for transactions that were just added with a category or had
+     * one set. Honours the synced `learn-categories` preference and `payees.learn_categories`;
+     * every created or updated rule is written in one batch.
+     */
+    @Synchronized
+    fun learnCategories(touched: List<ActualTransaction>) {
+        val rows = touched.filter { !it.isParent && it.payeeId != null }
+        if (rows.isEmpty() || !database.rulesSupported()) return
+        if (!CategoryLearning.enabled(database.learnCategoriesPreference())) return
+        val oldest = DayDate.fromYyyymmdd(rows.minOf(ActualTransaction::date)) ?: return
+        val register = database.fetchCategoryLearningRegister(
+            rows.mapNotNull(ActualTransaction::payeeId),
+            oldest.addingDays(-CategoryLearning.WINDOW_DAYS).yyyymmdd,
+            DayDate.today().addingDays(CategoryLearning.WINDOW_DAYS).yyyymmdd,
+        )
+        val learned = CategoryLearning.categoriesToSet(rows.map { CategoryLearning.Touched(it.id, it.payeeId) }, register)
+        val rules = CategoryLearning.rulesToSave(learned, database.fetchRules(), idFactory)
+        persist(rules.flatMap { rule -> fields("rules", rule.id, ruleFields(rule)) })
+    }
 
     /** PWA/iOS local-account shape: account + transfer payee + optional opening transaction. */
     @Synchronized
