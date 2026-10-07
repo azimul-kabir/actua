@@ -102,6 +102,35 @@ class BankSyncReconciliationTest {
         )
     }
 
+    // Issue #851: rules run on every downloaded row before matching, and a matched transaction takes
+    // the rule-derived category where its own is empty, as in Actual's reconcileTransactions.
+    @Test fun matchedTransactionTakesTheRuleCategoryWhereItsOwnIsEmpty() = withDatabase(COFFEE_CATEGORY_RULE) { database, _ ->
+        val writer = writer(database)
+        writer.createTransaction(manualTransaction("manual-1", date = 20260910, amount = -1_200), applyRules = false)
+        val service = service(database, writer, simpleFinResponse(bankRow("bank-1", "2026-09-13", "-12.00")))
+
+        val result = service.sync("https://actual.test", "token")
+
+        assertEquals(1, result.matched)
+        assertEquals(listOf("manual-1"), transactionIds(database))
+        assertEquals("food", requireNotNull(database.fetchTransaction("manual-1")).categoryId)
+    }
+
+    // Issue #851: a payee a rule replaced is never created from the bank's name.
+    @Test fun ruleRenamedPayeeLeavesNoBankNamedPayeeBehind() = withDatabase(COFFEE_RENAME_RULE) { database, _ ->
+        val writer = writer(database)
+        val service = service(database, writer, simpleFinResponse(bankRow("bank-1", "2026-09-13", "-12.00")))
+
+        val result = service.sync("https://actual.test", "token")
+
+        assertEquals(1, result.imported)
+        assertNull(database.findPayeeByName("Coffee Shop"))
+        val cafe = requireNotNull(database.findPayeeByName("Cafe"))
+        val imported = requireNotNull(database.fetchTransaction(transactionIds(database).single()))
+        assertEquals(cafe.id, imported.payeeId)
+        assertEquals("Coffee Shop", imported.importedPayee)
+    }
+
     @Test fun fuzzyMatchCandidatesReturnsManualAndImportedRowsInTheDateWindow() = withDatabase { database, _ ->
         val writer = writer(database)
         writer.createTransaction(manualTransaction("in-window", date = 20260910, amount = -1_200), applyRules = false)
@@ -161,12 +190,12 @@ class BankSyncReconciliationTest {
         importedPayee = null, scheduleId = null, transferAccountId = null,
     )
 
-    private fun withDatabase(block: (ActualBudgetDatabase, File) -> Unit) {
-        val file = createDatabaseFile()
+    private fun withDatabase(vararg rules: String, block: (ActualBudgetDatabase, File) -> Unit) {
+        val file = createDatabaseFile(rules.toList())
         try { ActualBudgetDatabase.open(file).use { block(it, file) } } finally { file.delete() }
     }
 
-    private fun createDatabaseFile(): File {
+    private fun createDatabaseFile(rules: List<String> = emptyList()): File {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "bank-sync-${UUID.randomUUID()}.sqlite")
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
@@ -193,6 +222,14 @@ class BankSyncReconciliationTest {
                     "tombstone INTEGER DEFAULT 0, sort_order REAL, imported_description TEXT, schedule TEXT, " +
                     "starting_balance_flag INTEGER DEFAULT 0, financial_id TEXT, pending INTEGER DEFAULT 0, raw_synced_data TEXT)",
             )
+            if (rules.isNotEmpty()) {
+                // The category rules set; transaction reads resolve categories through category_mapping.
+                db.execSQL("INSERT INTO category_groups(id,name) VALUES ('spending','Spending')")
+                db.execSQL("INSERT INTO categories(id,name,cat_group) VALUES ('food','Food','spending')")
+                db.execSQL("INSERT INTO category_mapping VALUES ('food','food')")
+                db.execSQL("CREATE TABLE rules (id TEXT PRIMARY KEY, stage TEXT, conditions_op TEXT, conditions TEXT, actions TEXT, tombstone INTEGER DEFAULT 0)")
+                rules.forEach(db::execSQL)
+            }
             db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
             db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, `column` TEXT NOT NULL, value BLOB NOT NULL)")
         }
@@ -201,6 +238,14 @@ class BankSyncReconciliationTest {
 
     private companion object {
         const val FIXED_MILLIS = 1_800_000_000_000L
+
+        val COFFEE_CATEGORY_RULE = """INSERT INTO rules VALUES ('coffee-category',NULL,'and',
+            '[{"op":"contains","field":"imported_description","value":"coffee"}]',
+            '[{"op":"set","field":"category","value":"food"}]',0)"""
+
+        val COFFEE_RENAME_RULE = """INSERT INTO rules VALUES ('coffee-rename','pre','and',
+            '[{"op":"contains","field":"imported_description","value":"coffee"}]',
+            '[{"op":"set","field":"payee_name","value":"Cafe"}]',0)"""
 
         // 3 days after the manually entered transaction's date (20260910); same account/amount.
         val SIMPLE_FIN_RESPONSE = """
