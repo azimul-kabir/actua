@@ -1502,6 +1502,20 @@ class ActualBudgetDatabase private constructor(
         }
     }
 
+    /**
+     * Category → stored amount for [month]'s budget rows in the active budget table. Categories with
+     * no row are absent, which upstream `copyPreviousMonth` relies on to leave them unchanged.
+     */
+    @Synchronized
+    fun storedBudgetAmounts(month: String): Map<String, Long> {
+        val monthInt = parseMonth(month) ?: return emptyMap()
+        val table = budgetTable() ?: return emptyMap()
+        return database.rawQuery(
+            "SELECT category, amount FROM $table WHERE month = ? AND category IS NOT NULL",
+            arrayOf(monthInt.toString()),
+        ).use { cursor -> buildMap { while (cursor.moveToNext()) put(cursor.getString(0), cursor.longOrZero(1)) } }
+    }
+
     /** Month walk matching Actuali iOS BudgetDatabase.budgetWalk. */
     @Synchronized
     fun fetchBudgetMonth(month: String): ActualBudgetMonth {

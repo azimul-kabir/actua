@@ -1449,13 +1449,19 @@ class ActuaRepository(context: Context) {
         return true
     }
 
-    /** Copies visible categories' budgeted amounts from the month before [month] into [month]. Hidden categories are left unchanged. */
+    /**
+     * Actual's `copyPreviousMonth`: copies the budget rows the month before [month] has for visible
+     * categories (income too in tracking budgets) into [month]. Hidden categories, and categories
+     * with no row last month, are left unchanged.
+     */
     fun copyPreviousMonthBudget(month: String): Boolean {
         val db = actualDatabase ?: return false
         val previousMonth = java.time.YearMonth.parse(month).minusMonths(1).toString()
         val previous = db.fetchBudgetMonth(previousMonth)
-        val amounts = previous.categories.associate { it.categoryId to it.budgetedCents } +
-            if (previous.isTracking) previous.incomeCategories.associate { it.categoryId to it.budgetedCents } else emptyMap()
+        val visible = previous.categories.map { it.categoryId } +
+            if (previous.isTracking) previous.incomeCategories.map { it.categoryId } else emptyList()
+        val stored = db.storedBudgetAmounts(previousMonth)
+        val amounts = visible.mapNotNull { id -> stored[id]?.let { id to it } }.toMap()
         if (amounts.isEmpty()) return true
         actualBudgets!!.setAmounts(month, amounts)
         return true
