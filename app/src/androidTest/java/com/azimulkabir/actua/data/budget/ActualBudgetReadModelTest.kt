@@ -1225,6 +1225,24 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun payeeLookupFoldsNonAsciiCaseLikeActual() = withDatabase { database ->
+        // Upstream UNICODE_LOWER(name) = lower(?) (actua#898).
+        var nextId = 0
+        val writer = ActualTransactionWriter(database, idFactory = { "unicode-${++nextId}" })
+        val cafe = writer.resolveOrCreatePayee("Café")
+        val doctors = writer.resolveOrCreatePayee("Ärzte Zentrum")
+        val shop = writer.resolveOrCreatePayee("Магазин")
+
+        assertEquals(cafe.id, writer.resolveOrCreatePayee("CAFÉ").id)
+        assertEquals(doctors.id, writer.resolveOrCreatePayee("ärzte zentrum").id)
+        assertEquals(shop.id, writer.resolveOrCreatePayee("МАГАЗИН").id)
+        assertEquals(cafe.id, database.findPayeeByName("café")?.id)
+        // Accents aren't stripped, as upstream only lower-cases.
+        assertTrue(writer.resolveOrCreatePayee("Cafe").id != cafe.id)
+        assertEquals(4, nextId)
+    }
+
+    @Test
     fun savedReportsReadIncludeCurrentAndTolerateOlderSchemas() {
         val file = createDatabaseFile()
         try {

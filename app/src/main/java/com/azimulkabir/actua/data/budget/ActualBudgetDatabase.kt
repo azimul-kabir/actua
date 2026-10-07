@@ -568,16 +568,28 @@ class ActualBudgetDatabase private constructor(
         ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(0)) } }
     }
 
+    /**
+     * Upstream `UNICODE_LOWER(name) = lower(?)` (`createPayee`, `getPayeeByName`): case is folded
+     * with full Unicode rules like JavaScript's `toLowerCase()`, so `CAFÉ` finds `Café`. SQLite's
+     * `UPPER`/`LOWER` only fold ASCII and custom SQL functions need API 30, so live payees are
+     * compared here; the first match in table order wins, as upstream's `first` does.
+     */
     @Synchronized
-    fun findPayeeByName(name: String): ActualPayee? = database.rawQuery(
-        """SELECT id, name, transfer_acct FROM payees
-            WHERE UPPER(name) = UPPER(?) AND (tombstone = 0 OR tombstone IS NULL)
-            LIMIT 1""",
-        arrayOf(name),
-    ).use { cursor ->
-        if (!cursor.moveToFirst()) null else ActualPayee(
-            cursor.getString(0), cursor.stringOrNull(1) ?: "Unknown", cursor.stringOrNull(2),
-        )
+    fun findPayeeByName(name: String): ActualPayee? {
+        val wanted = PayeeNames.unicodeLower(name)
+        return database.rawQuery(
+            """SELECT id, name, transfer_acct FROM payees
+                WHERE name IS NOT NULL AND (tombstone = 0 OR tombstone IS NULL)""",
+            null,
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val candidate = cursor.getString(1)
+                if (PayeeNames.unicodeLower(candidate) == wanted) {
+                    return@use ActualPayee(cursor.getString(0), candidate, cursor.stringOrNull(2))
+                }
+            }
+            null
+        }
     }
 
     /** Complete, non-tombstoned rows only; partial CRDT rows remain safely invisible. */
