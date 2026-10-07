@@ -10,6 +10,7 @@ import com.azimulkabir.actua.data.budget.ActualTransactionType
 import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.ActualSplitLineForm
 import com.azimulkabir.actua.data.budget.ActualEntityWriter
+import com.azimulkabir.actua.data.budget.BudgetMovementNote
 import com.azimulkabir.actua.data.budget.PayeeSuggestions
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.bank.BankSyncResult
@@ -1620,16 +1621,43 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    /**
+     * Which Actual budget action a move is, which decides its month note: `transferCategory` and
+     * `coverOverspending` note every move out of a category and every cover of an overspent category;
+     * `transferAvailable` (To Budget into a category) adds none; `coverOverbudgeted` notes the
+     * category → "Overbudgeted".
+     */
+    enum class BudgetMoveKind { TRANSFER, FROM_TO_BUDGET, COVER_OVERBUDGETED }
+
     fun transferBudget(fromGroup: String?, fromCategory: String?, toGroup: String?, toCategory: String?,
-        amountCents: Long, month: String = currentMonth()): Boolean {
+        amountCents: Long, month: String = currentMonth(), kind: BudgetMoveKind = BudgetMoveKind.TRANSFER): Boolean {
         val db = actualDatabase ?: return false
         val groups = db.fetchCategoryGroups()
         val from = if (fromGroup == null || fromCategory == null) null else
             groups.firstOrNull { it.name == fromGroup }?.categories?.firstOrNull { it.name == fromCategory } ?: return false
         val to = if (toGroup == null || toCategory == null) null else
             groups.firstOrNull { it.name == toGroup }?.categories?.firstOrNull { it.name == toCategory } ?: return false
-        actualBudgets!!.transfer(month, from?.id, to?.id, amountCents)
+        val noteEnds: Pair<String, String>? = when (kind) {
+            BudgetMoveKind.FROM_TO_BUDGET -> null
+            BudgetMoveKind.COVER_OVERBUDGETED -> from?.let { it.name to BudgetMovementNote.OVERBUDGETED }
+            BudgetMoveKind.TRANSFER -> when {
+                from != null -> from.name to (to?.name ?: BudgetMovementNote.TO_BUDGET)
+                to != null && targetIsOverspent(db, month, to.id) -> BudgetMovementNote.TO_BUDGET to to.name
+                else -> null
+            }
+        }
+        val noteLine = noteEnds?.let { (fromName, toName) ->
+            BudgetMovementNote.line(amountCents, fromName, toName, db.defaultCurrencyCode(), java.time.LocalDate.now())
+        }
+        actualBudgets!!.transfer(month, from?.id, to?.id, amountCents, noteLine)
         return true
+    }
+
+    /** A move from To Budget into an overspent category is Actual's `coverOverspending`. */
+    private fun targetIsOverspent(db: ActualBudgetDatabase, month: String, categoryId: String): Boolean {
+        val budget = db.fetchBudgetMonth(month)
+        return (budget.categories + budget.hiddenCategories).firstOrNull { it.categoryId == categoryId }
+            ?.let { it.availableCents < 0 } == true
     }
 
     fun setTransactionCleared(id: String, cleared: Boolean): Boolean {

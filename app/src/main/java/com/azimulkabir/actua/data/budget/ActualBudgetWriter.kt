@@ -123,8 +123,12 @@ class ActualBudgetWriter(
     /** Clears a manual hold on [month], reverting next month's carryover to the automatic buffer. */
     fun resetBuffer(month: String) = setBuffered(month, 0)
 
+    /**
+     * Moves [amountCents] between categories or To Budget (null). [noteLine], when given, is
+     * appended to the month's `budget-<month>` note in the same batch, as Actual's movement notes.
+     */
     @Synchronized
-    fun transfer(month: String, fromCategoryId: String?, toCategoryId: String?, amountCents: Long) {
+    fun transfer(month: String, fromCategoryId: String?, toCategoryId: String?, amountCents: Long, noteLine: String? = null) {
         require(amountCents > 0) { "Transfer amount must be positive" }
         require(fromCategoryId != toCategoryId) { "Choose two different budget locations" }
         val writes = buildList {
@@ -138,10 +142,14 @@ class ActualBudgetWriter(
             }
         }
         require(writes.isNotEmpty())
-        write(writes)
+        val note = noteLine?.let { line ->
+            val id = BudgetMovementNote.noteId(month)
+            message("notes", id, "note", BudgetMovementNote.append(database.fetchNote(id), line))
+        }
+        write(writes, listOfNotNull(note))
     }
 
-    private fun write(writes: List<Pair<ActualBudgetDatabase.BudgetCell, Long>>) {
+    private fun write(writes: List<Pair<ActualBudgetDatabase.BudgetCell, Long>>, extra: List<CrdtMessage> = emptyList()) {
         val messages = writes.flatMap { (cell, amount) ->
             buildList {
                 if (!cell.exists) {
@@ -150,7 +158,7 @@ class ActualBudgetWriter(
                 }
                 add(message(cell.table, cell.rowId, "amount", amount))
             }
-        }
+        } + extra
         database.applyLocalMessages(messages)
         database.saveClock(ActualBudgetDatabase.ClockRecord(
             clock.current().toString(), database.deriveMerkleFromMessageLog().root,

@@ -347,6 +347,15 @@ class ActualBudgetDatabase private constructor(
             .use { if (it.moveToFirst()) it.stringOrNull(0) else null }
     }
 
+    /** Actual's synced `defaultCurrencyCode` preference, or null when unset. */
+    @Synchronized
+    fun defaultCurrencyCode(): String? {
+        if (!hasTable("preferences")) return null
+        return database.rawQuery(
+            "SELECT value FROM preferences WHERE id = 'defaultCurrencyCode'", null,
+        ).use { if (it.moveToFirst()) it.stringOrNull(0) else null }
+    }
+
     /** Actual's synced `hideFraction` preference: budget templates round to whole units. */
     @Synchronized
     fun hideFraction(): Boolean {

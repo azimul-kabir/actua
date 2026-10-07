@@ -236,6 +236,13 @@ fun BudgetScreen(
     onRenameGroup: (String, String) -> Unit = { _, _ -> },
     onShowCategoryTransactions: (String, Boolean, Boolean) -> Unit = { _, _, _ -> },
     onTransferBudget: (String?, String?, String?, String?, Long) -> Unit = { _, _, _, _, _ -> },
+    /**
+     * The To Budget sheet's move: funding [category] from To Budget, or (when [covering]) covering a
+     * negative To Budget from it. Defaults to a plain transfer.
+     */
+    onSummaryMove: (group: String, category: String, amount: Long, covering: Boolean) -> Unit = { group, category, amount, covering ->
+        if (covering) onTransferBudget(group, category, null, null, amount) else onTransferBudget(null, null, group, category, amount)
+    },
     onSetBudgetAmount: (String, String, Long) -> Unit = { _, _, _ -> },
     onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
@@ -717,11 +724,7 @@ fun BudgetScreen(
             hideDecimalPlaces = hideDecimalPlaces,
             onDismiss = { budgetSummaryOpen = false },
             onMoveToCategory = { group, category, amount ->
-                if ((overview.toBudgetCents ?: 0L) < 0L) {
-                    onTransferBudget(group, category, null, null, amount)
-                } else {
-                    onTransferBudget(null, null, group, category, amount)
-                }
+                onSummaryMove(group, category, amount, (overview.toBudgetCents ?: 0L) < 0L)
                 budgetSummaryOpen = false
             },
             onHoldForNextMonth = { amount ->
