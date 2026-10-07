@@ -97,6 +97,7 @@ import com.azimulkabir.actua.ui.accounts.CloseAccountOptions
 import com.azimulkabir.actua.ui.accounts.CloseCategoryGroup
 import com.azimulkabir.actua.ui.automation.BudgetAutomationScreen
 import com.azimulkabir.actua.ui.budget.BudgetScreen
+import com.azimulkabir.actua.ui.budget.CategoryBudgetAction
 import com.azimulkabir.actua.ui.settings.BudgetSwitcherOption
 import com.azimulkabir.actua.ui.settings.SettingsScreen
 import com.azimulkabir.actua.ui.settings.ConnectionScreen
@@ -2500,6 +2501,21 @@ fun AppNavigation(
                     },
                     onCopyPreviousMonth = {
                         mutate("Copying last month's budget") { repository.copyPreviousMonthBudget(budgetMonth) }
+                    },
+                    onCategoryBudgetAction = { categoryId, action ->
+                        mutate("Updating budget") {
+                            when (action) {
+                                CategoryBudgetAction.COPY_LAST_MONTH -> repository.copyCategoryFromPreviousMonth(categoryId, budgetMonth)
+                                CategoryBudgetAction.AVERAGE_3 -> repository.setCategoryAverage(categoryId, budgetMonth, 3)
+                                CategoryBudgetAction.AVERAGE_6 -> repository.setCategoryAverage(categoryId, budgetMonth, 6)
+                                CategoryBudgetAction.AVERAGE_12 -> repository.setCategoryAverage(categoryId, budgetMonth, 12)
+                                CategoryBudgetAction.COPY_TO_YEAR_END -> repository.copyCategoryToYearEnd(categoryId, budgetMonth)
+                            }
+                        }
+                    },
+                    onPreviewAverageBudget = { months -> repository.averageBudgetPreview(budgetMonth, months) },
+                    onResetIncomeHold = {
+                        mutate("Updating automatic holds") { repository.resetIncomeHold(budgetMonth) }
                     },
                     onEditAutomations = { _, category ->
                         editingAutomationCategory = category.name

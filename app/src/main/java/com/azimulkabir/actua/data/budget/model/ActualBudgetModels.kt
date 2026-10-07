@@ -32,6 +32,8 @@ data class ActualIncomeBudget(
     val receivedCents: Long,
     val hidden: Boolean,
     val groupHidden: Boolean,
+    /** The month's carryover flag: "automatically hold" in envelope budgets, rollover in tracking. */
+    val carryoverEnabled: Boolean = false,
 )
 
 data class ActualBudgetMonth(

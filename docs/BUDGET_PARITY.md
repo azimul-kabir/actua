@@ -117,7 +117,7 @@ their CRDT messages), `ActualBudgetBufferTest` (holds), `BudgetMonthParityFixtur
 | Set to zero | `setZero`: every live category including hidden ones, income only in tracking | "Set budgets to zero" preview over every category including hidden ones, income only in tracking; writes only non-zero cells | Match (same final cells) |
 | Hold / reset hold | see §4 | see §4 | see §4 |
 | Rollover toggle | `budget/set-carryover` | category details → `setCategoryCarryover` | Match |
-| 3/6/12-month averages (month and category), copy one category's last month, copy to year end, income "hold automatically" and its reset | `set3MonthAvg` … `copyUntilYearEnd`, `resetIncomeCarryover` | not offered (income rollover is read correctly) | **Divergence** [#910](https://github.com/azimul-kabir/actua/issues/910) |
+| 3/6/12-month averages (month and category), copy one category's last month, copy to year end, income "hold automatically" and its reset | `set3MonthAvg` … `copyUntilYearEnd`, `resetIncomeCarryover` | month-wide averages preview in **Add to budget**; per-category actions in the category's actions sheet; envelope income "Hold automatically" toggle and "Stop all automatic holds this month" on the income group | Match (fixed by [#917](https://github.com/azimul-kabir/actua/pull/917) for [#910](https://github.com/azimul-kabir/actua/issues/910)) |
 | Templates, cleanup, goals | `goal-template.ts`, `cleanup-template.ts` | see `docs/BUDGET_AUTOMATION_PARITY.md` | – |
 
 ## Filed divergences
@@ -126,7 +126,7 @@ their CRDT messages), `ActualBudgetBufferTest` (holds), `BudgetMonthParityFixtur
 - [#907](https://github.com/azimul-kabir/actua/issues/907): To Budget "Move to Category" and "Cover From" don't cap the amount like Actual (P2). Fixed by [#914](https://github.com/azimul-kabir/actua/pull/914).
 - [#908](https://github.com/azimul-kabir/actua/issues/908): Budget moves and covers don't add Actual's "Reassigned …" month note (low). Fixed by [#915](https://github.com/azimul-kabir/actua/pull/915).
 - [#909](https://github.com/azimul-kabir/actua/issues/909): Budget month totals leave out hidden categories in envelope budgets; no tracking saved totals (low). Fixed by [#916](https://github.com/azimul-kabir/actua/pull/916).
-- [#910](https://github.com/azimul-kabir/actua/issues/910): Remaining budget actions: averages, copy one category, copy to year end, income hold.
+- [#910](https://github.com/azimul-kabir/actua/issues/910): Remaining budget actions: averages, copy one category, copy to year end, income hold. Fixed by [#917](https://github.com/azimul-kabir/actua/pull/917).
 - [#911](https://github.com/azimul-kabir/actua/issues/911): Budget months outside Actual's budget range are counted and editable (low).
 
 **Limitations:** the fixture runs Actual's engine through `@actual-app/api` (loot-core's
