@@ -48,7 +48,7 @@ and the scarce-funds September schedule all depend on how much other templates t
 | Percentage of available funds | `runPercentage` with the priority's starting funds | `requestedAtPriority` with the same start | Same rule; the checked value is a knock-on | T Percent available |
 | Percentage of previous month's income | `runPercentage` (`previous`) | 0 | **Divergence** [#859](https://github.com/azimul-kabir/actua/issues/859) | T Percent previous |
 | Refill to a monthly cap | [`runRefill`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/category-template-context.ts#L680-L685) | `requestedAtPriority` | Match | T Refill |
-| Refill or limit with a weekly/daily cap | cap scaled to the month (`checkLimit`) | unscaled cap for refill | **Divergence** [#858](https://github.com/azimul-kabir/actua/issues/858) | T Refill weekly |
+| Refill or limit with a weekly/daily cap | cap scaled to the month (`checkLimit`) | `capForMonth` | Match ([#858](https://github.com/azimul-kabir/actua/issues/858)) | T Refill weekly |
 | Limit with carryover over the cap (`hold` false/true) | releases the excess or holds it (`checkLimit`) | `releasedByLimit` | Match (budget) | T Limit release, T Limit hold |
 | Remainder by weight, with a cap | [`distributeRemainder`, `runRemainder`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/budget/goal-template.ts#L17-L36) | `distributeRemainder` | Match for the cap; the checked split is a knock-on (same cent placement) | T Remainder 1–3, T Remainder capped |
 | `#goal` (long-term goal) | `runGoal` | `targetBalanceGoal` | Match | T Goal only, T Goal and fixed |

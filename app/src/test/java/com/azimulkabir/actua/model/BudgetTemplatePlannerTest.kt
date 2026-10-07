@@ -110,6 +110,32 @@ class BudgetTemplatePlannerTest {
         assertEquals(75_000, preview.changes.single().proposedCents)
     }
 
+    @Test fun refillTopsUpToTheWeeklyCapScaledToTheMonth() {
+        // Regression for #858: August 2026 has five Mondays from the 2026-07-06 start.
+        val category = category("coffee", "Coffee", assigned = 0, automations = weeklyRefill)
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Fun", listOf(category))), "2026-08")
+
+        assertEquals(12_500L, preview.changes.single().proposedCents)
+    }
+
+    @Test fun refillReleasesCarryoverAboveTheScaledWeeklyCap() {
+        // September 2026 has four Mondays, so a 125.00 carryover is 25.00 over the cap.
+        val category = category("coffee", "Coffee", assigned = 0, automations = weeklyRefill, carryover = 12_500)
+
+        val preview = BudgetTemplatePlanner.preview(listOf(BudgetGroup("Fun", listOf(category))), "2026-09")
+
+        assertEquals(-2_500L, preview.changes.single().proposedCents)
+    }
+
+    private val weeklyRefill = listOf(
+        BudgetTarget(
+            BudgetTarget.Type.LIMIT, 2_500,
+            limitPeriod = BudgetTarget.LimitPeriod.WEEKLY, limitStartDate = "2026-07-06",
+        ),
+        BudgetTarget(BudgetTarget.Type.REFILL),
+    )
+
     @Test fun fundsHigherPrioritiesFirstAndReportsAvailableFundsClamp() {
         val first = category("rent", "Rent", assigned = 0, automations = listOf(
             BudgetTarget(BudgetTarget.Type.FIXED, 80_000, priority = 1),

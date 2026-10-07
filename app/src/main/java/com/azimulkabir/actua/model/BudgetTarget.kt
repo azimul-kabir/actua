@@ -648,7 +648,7 @@ object BudgetTemplatePlanner {
                     atPriority, category, month, priorityAvailableStart, schedules, percentageSources,
                 )
                 val refillCap = if (targets.any { it.type == BudgetTarget.Type.REFILL }) {
-                    capTarget(category)?.amountCents
+                    capTarget(category)?.capForMonth(month)
                 } else null
                 val cap = listOfNotNull(refillCap, capLimit).minOrNull()
                 val capped = cap?.let { minOf(requested, max(0L, it - category.carryoverCents - before)) } ?: requested
@@ -828,7 +828,7 @@ object BudgetTemplatePlanner {
             }
         val byAmount = if (by.isEmpty()) 0L else byDateRequest(by, category, month)
         val refill = targets.firstOrNull { it.type == BudgetTarget.Type.REFILL }
-            ?.let { capTarget(category)?.amountCents }
+            ?.let { capTarget(category)?.capForMonth(month) }
             ?.let { max(0L, it - category.carryoverCents) } ?: 0L
         return max(0L, ordinary + byAmount + refill + percentage + schedule)
     }
