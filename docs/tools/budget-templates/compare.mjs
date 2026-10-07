@@ -7,7 +7,7 @@ import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import * as api from '@actual-app/api';
-import { MONTHS, PAIRS, PASSWORD, SERVER_URL, dataDir } from './common.mjs';
+import { MONTHS, PAIRS, PASSWORD, SERVER_URL, dataDir, openBudgetId } from './common.mjs';
 
 const dir = dataDir('compare');
 const actual = await api.init({ dataDir: dir, serverURL: SERVER_URL, password: PASSWORD });
@@ -19,8 +19,7 @@ try {
     if (!remote) throw new Error(`No "${name}" budget on ${SERVER_URL}`);
     await api.downloadBudget(remote.groupId);
     await api.sync();
-    const local = (await actual.send('get-budgets')).find((budget) => budget.groupId === remote.groupId);
-    files[name] = join(dir, local.id, 'db.sqlite');
+    files[name] = join(dir, await openBudgetId(actual), 'db.sqlite');
   }
 } finally {
   await api.shutdown();

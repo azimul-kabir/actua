@@ -3,7 +3,7 @@
 // rows (ids replaced by what they point at). Row differences fail the check; differences in which
 // columns carry CRDT messages are reported but don't fail it, because Actua's inserts write
 // explicit null/zero cells that Actual skips (docs/TRANSACTIONS_PARITY.md §1, Intentional).
-import { appendFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import * as api from '@actual-app/api';
@@ -17,11 +17,14 @@ try {
   if (!remote) throw new Error(`No "${BUDGET_NAME}" budget on ${SERVER_URL}`);
   await api.downloadBudget(remote.groupId);
   await api.sync();
-  budgetId = (await actual.send('get-budgets')).find((budget) => budget.groupId === remote.groupId)?.id;
+  // The open budget's id from loot-core's in-memory metadata: get-budgets drops a budget whose
+  // metadata.json is mid-rewrite by sync (#919).
+  budgetId = (await actual.send('load-prefs'))?.id;
 } finally {
   await api.shutdown();
 }
-const budgetDir = budgetId ? join(dir, budgetId) : join(dir, readdirSync(dir).find((name) => !name.startsWith('.')));
+if (!budgetId) throw new Error(`"${BUDGET_NAME}" did not open`);
+const budgetDir = join(dir, budgetId);
 const db = new DatabaseSync(join(budgetDir, 'db.sqlite'), { readOnly: true });
 
 const accounts = new Map(db.prepare('SELECT id, name FROM accounts').all().map((a) => [a.id, a.name]));

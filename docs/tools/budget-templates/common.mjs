@@ -157,6 +157,17 @@ export async function seed(actual) {
   return ids;
 }
 
+/**
+ * The open budget's local id, from loot-core's in-memory metadata. `get-budgets` reads every
+ * budget's metadata.json and drops one it can't parse, which happens while sync is rewriting the
+ * open budget's file (#919).
+ */
+export async function openBudgetId(actual) {
+  const { id } = await actual.send('load-prefs');
+  if (!id) throw new Error('No budget is open');
+  return id;
+}
+
 /** Creates, seeds and syncs one budget; leaves it open. */
 export async function createSeededBudget(actual, name, { hideFraction = false } = {}) {
   await actual.send('close-budget');
@@ -169,8 +180,8 @@ export async function createSeededBudget(actual, name, { hideFraction = false } 
   await api.sync();
   // Actual creates a month's budget sheet (createAllBudgets) when a budget loads; reload so the
   // months of the seeded earlier transactions exist, as they do for anyone who reopens the budget.
-  const local = (await actual.send('get-budgets')).find((budget) => budget.groupId === remote.groupId);
+  const id = await openBudgetId(actual);
   await actual.send('close-budget');
-  await actual.send('load-budget', { id: local.id });
+  await actual.send('load-budget', { id });
   return remote;
 }
