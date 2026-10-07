@@ -135,6 +135,26 @@ class RulesEngineTest {
         assertEquals(null, result.transaction.payeeId)
     }
 
+    @Test fun ruleRunsTestIdFieldTextOpsAgainstIdsWhileFiltersUseNames() {
+        fun contains(op: String, value: String) = listOf(Rule.Condition(op, "payee", RuleValue.Text(value)))
+        val rule = { op: String, value: String -> Rule("r", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND, contains(op, value),
+            listOf(Rule.Action("set", "notes", RuleValue.Text("hit")))) }
+        val context = RuleContext(payeeNames = mapOf("pay-1a" to "Amazon Shop"))
+        val tx = transaction(payee = "pay-1a", payeeName = "Amazon Shop")
+        fun run(op: String, value: String) = RulesEngine.apply(tx, listOf(rule(op, value)), context).transaction.notes
+        assertEquals(null, run("contains", "Amazon"))
+        assertEquals("hit", run("doesNotContain", "Amazon"))
+        assertEquals(null, run("matches", "^amazon"))
+        assertEquals("hit", run("contains", "1a"))
+        // The id is lowercased but the value is not, as in upstream's Condition.eval.
+        assertEquals(null, run("contains", "1A"))
+        assertEquals("hit", run("matches", "^pay-"))
+        // No payee matches nothing, including doesNotContain.
+        assertEquals(null, RulesEngine.apply(transaction(), listOf(rule("doesNotContain", "x")), context).transaction.notes)
+        // Report and transaction filters keep name matching.
+        assertTrue(RulesEngine.matches(tx, contains("contains", "amazon"), context = context))
+    }
+
     private fun transaction(
         amount: Long = -100, imported: String? = null, payee: String? = null,
         payeeName: String? = null, notes: String? = null, date: Int = 20260503, scheduleId: String? = null,

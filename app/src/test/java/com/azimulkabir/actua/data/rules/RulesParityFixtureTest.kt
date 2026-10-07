@@ -129,11 +129,6 @@ class RulesParityFixtureTest {
 
         /** "<case name> #<transaction> <field>" → the issue tracking the divergence. */
         val KNOWN_DIVERGENCES: Map<String, String> = mapOf(
-            "payee contains a name fragment #1 category" to "#864",
-            "payee doesNotContain a name fragment #1 category" to "#864",
-            "payee matches a name pattern #1 category" to "#864",
-            "category contains a name fragment #1 category" to "#864",
-            "account contains a name fragment #1 category" to "#864",
             "category is empty on a transfer #1 category" to "#865",
             "transfer is true #1 category" to "#865",
             "set notes from a template #1 notes" to "#866",
