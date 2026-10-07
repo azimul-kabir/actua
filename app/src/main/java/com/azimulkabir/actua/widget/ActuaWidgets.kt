@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
@@ -284,63 +285,56 @@ object WidgetUpdater {
         }
     }
 
+    // The service-backed adapter is deprecated on newer releases, but its replacement
+    // (RemoteCollectionItems) needs API 31 and minSdk is 28.
+    @Suppress("DEPRECATION")
     private fun updateSchedules(context: Context, manager: AppWidgetManager, widgetId: Int) {
-        val compact = isCompact(manager, widgetId)
-        val layout = if (compact) R.layout.widget_scheduled_transactions_compact else R.layout.widget_scheduled_transactions
-        val maxRows = if (compact) 2 else 4
+        val layout = if (isCompact(manager, widgetId)) {
+            R.layout.widget_scheduled_transactions_compact
+        } else {
+            R.layout.widget_scheduled_transactions
+        }
         val views = RemoteViews(context.packageName, layout)
         val repository = ActuaRepository(context)
+        val usingBudget = try { repository.isUsingActualBudget } finally { repository.close() }
+        views.setTextViewText(
+            R.id.widget_empty,
+            context.getString(if (usingBudget) R.string.widget_no_schedules else R.string.widget_no_budget),
+        )
+        // A scrolling list shows every schedule in the chosen period, however many there are.
+        val rows = Intent(context, ScheduleWidgetService::class.java).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+            // Makes the intent unique per widget, so each widget gets its own list.
+            data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
+        }
+        views.setRemoteAdapter(R.id.widget_schedule_list, rows)
+        views.setEmptyView(R.id.widget_schedule_list, R.id.widget_empty)
+        // Every row opens Scheduled; rows fill in an empty intent, so the template can stay immutable.
+        views.setPendingIntentTemplate(R.id.widget_schedule_list, open(context, WidgetActions.SCHEDULES, widgetId * 10 + 1))
+        views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.SCHEDULES, widgetId))
+        manager.updateAppWidget(widgetId, views)
+        manager.notifyAppWidgetViewDataChanged(widgetId, R.id.widget_schedule_list)
+    }
+
+    internal fun scheduleEntries(context: Context, widgetId: Int): List<ScheduleWidgetEntry> {
+        val repository = ActuaRepository(context)
         try {
-            val entries = if (!repository.isUsingActualBudget) {
-                views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_budget))
-                emptyList()
-            } else {
-                views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_schedules))
-                val today = DayDate.today()
-                val periodDays = ScheduleWidgetPreferences(context).periodDays(widgetId)
-                ScheduleWidgetProjection.upcoming(repository.schedules(today), today, periodDays).take(maxRows)
-            }
-            bindScheduleRows(context, views, entries, widgetId, maxRows)
-            views.setOnClickPendingIntent(R.id.widget_root, open(context, WidgetActions.SCHEDULES, widgetId))
-            manager.updateAppWidget(widgetId, views)
+            if (!repository.isUsingActualBudget) return emptyList()
+            val today = DayDate.today()
+            val periodDays = ScheduleWidgetPreferences(context).periodDays(widgetId)
+            return ScheduleWidgetProjection.upcoming(repository.schedules(today), today, periodDays)
         } finally {
             repository.close()
         }
     }
 
-    private fun bindScheduleRows(
-        context: Context,
-        views: RemoteViews,
-        entries: List<ScheduleWidgetEntry>,
-        widgetId: Int,
-        maxRows: Int,
-    ) {
-        val containers = intArrayOf(
-            R.id.widget_schedule_row_1, R.id.widget_schedule_row_2, R.id.widget_schedule_row_3, R.id.widget_schedule_row_4,
-        ).take(maxRows)
-        val titles = intArrayOf(
-            R.id.widget_schedule_title_1, R.id.widget_schedule_title_2, R.id.widget_schedule_title_3, R.id.widget_schedule_title_4,
-        ).take(maxRows)
-        val dues = intArrayOf(
-            R.id.widget_schedule_due_1, R.id.widget_schedule_due_2, R.id.widget_schedule_due_3, R.id.widget_schedule_due_4,
-        ).take(maxRows)
-        val amounts = intArrayOf(
-            R.id.widget_schedule_amount_1, R.id.widget_schedule_amount_2, R.id.widget_schedule_amount_3, R.id.widget_schedule_amount_4,
-        ).take(maxRows)
-        containers.indices.forEach { index ->
-            val entry = entries.getOrNull(index)
-            views.setViewVisibility(containers[index], if (entry == null) View.GONE else View.VISIBLE)
-            if (entry != null) {
-                views.setTextViewText(titles[index], entry.item.title)
-                views.setTextViewText(dues[index], entry.relativeLabel)
-                views.setTextViewText(amounts[index], scheduleAmount(context, entry.item.schedule))
-                views.setOnClickPendingIntent(
-                    containers[index], open(context, WidgetActions.SCHEDULES, widgetId * 10 + index + 1),
-                )
-            }
+    internal fun scheduleRow(context: Context, entry: ScheduleWidgetEntry): RemoteViews =
+        RemoteViews(context.packageName, R.layout.widget_schedule_item).apply {
+            setTextViewText(R.id.widget_schedule_title, entry.item.title)
+            setTextViewText(R.id.widget_schedule_due, entry.relativeLabel)
+            setTextViewText(R.id.widget_schedule_amount, scheduleAmount(context, entry.item.schedule))
+            setOnClickFillInIntent(R.id.widget_schedule_row, Intent())
         }
-        views.setViewVisibility(R.id.widget_empty, if (entries.isEmpty()) View.VISIBLE else View.GONE)
-    }
 
     private fun scheduleAmount(context: Context, schedule: ActualScheduleSummary): String {
         val amount = schedule.amount

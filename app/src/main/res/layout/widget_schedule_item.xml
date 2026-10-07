@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_schedule_row" style="@style/WidgetRow"
+    android:layout_height="wrap_content" android:minHeight="40dp">
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/widget_schedule_title" style="@style/WidgetRowName" />
+        <TextView android:id="@+id/widget_schedule_due" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/widget_secondary_text" android:textSize="11sp" />
+    </LinearLayout>
+    <TextView android:id="@+id/widget_schedule_amount" style="@style/WidgetRowAmount" />
+</LinearLayout>
