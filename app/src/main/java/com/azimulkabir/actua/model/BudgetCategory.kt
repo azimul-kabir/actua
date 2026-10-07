@@ -165,7 +165,7 @@ enum class BudgetCategoryView(val label: String) {
     }
 }
 
-data class BudgetHistory(val month: String, val assignedCents: Long, val spentCents: Long)
+data class BudgetHistory(val month: String, val assignedCents: Long, val spentCents: Long, val goalCents: Long? = null)
 
 data class BudgetOverview(
     val toBudgetCents: Long?,
