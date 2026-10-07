@@ -18,11 +18,15 @@ data class RuleContext(
     val categoryGroupNames: Map<String, String> = emptyMap(),
     val payeeNames: Map<String, String> = emptyMap(),
     val hiddenCategoryIds: Set<String> = emptySet(),
+    val runningBalanceCents: (ActualTransaction) -> Long = { 0L },
+    val balanceOfCents: (ActualTransaction, String) -> Long = { _, _ -> 0L },
 )
 data class RuleRunResult(
     val transaction: ActualTransaction, val changedFields: Set<String>,
     val pendingPayeeName: String?, val isDeleted: Boolean,
+    val splitChildren: List<RuleSplitChild> = emptyList(),
 )
+data class RuleSplitChild(val transaction: ActualTransaction, val pendingPayeeName: String?)
 
 object RulesEngine {
     fun matches(
@@ -37,7 +41,12 @@ object RulesEngine {
         else conditions.any { evaluate(it, bag) }
     }
 
-    fun apply(transaction: ActualTransaction, rules: List<Rule>, context: RuleContext = RuleContext()): RuleRunResult {
+    fun apply(
+        transaction: ActualTransaction,
+        rules: List<Rule>,
+        context: RuleContext = RuleContext(),
+        idFactory: () -> String = { java.util.UUID.randomUUID().toString() },
+    ): RuleRunResult {
         val bag = Bag(transaction, context, forRuleRun = true)
         val before = bag.snapshot()
         val scheduleId = transaction.scheduleId
@@ -52,9 +61,11 @@ object RulesEngine {
                 scheduleId != null && linkedSchedule != null -> linkedSchedule == scheduleId
                 else -> conditionsMatch(rule, bag)
             }
-            if (fires) rule.actions.forEach { apply(it, bag) }
+            if (fires) applyActions(rule.actions, bag, idFactory)
         }
-        return RuleRunResult(bag.transaction(), bag.changed(before), bag.pendingPayeeName, bag.deleted)
+        return RuleRunResult(
+            bag.transaction(), bag.changed(before), bag.pendingPayeeName, bag.deleted, bag.splitChildren(),
+        )
     }
 
     private fun conditionsMatch(rule: Rule, bag: Bag): Boolean = rule.conditions.isNotEmpty() &&
@@ -143,10 +154,77 @@ object RulesEngine {
         }
     }
 
+    private fun applyActions(actions: List<Rule.Action>, bag: Bag, idFactory: () -> String) {
+        val splitIndex = { action: Rule.Action -> action.options["splitIndex"]?.number ?: 0.0 }
+        val splitActions = actions.filter {
+            val index = splitIndex(it)
+            index > 0.0 && index.isFinite() && index % 1.0 == 0.0 && index <= MAX_RULE_SPLIT_COUNT
+        }
+        actions.filter { splitIndex(it) == 0.0 }.forEach { apply(it, bag) }
+        if (splitActions.isEmpty() || bag.isChild) return
+
+        val maxIndex = splitActions.maxOf { splitIndex(it).toInt() }
+        bag.ensureSplitChildren(maxIndex, idFactory)
+        splitActions.forEach { action ->
+            val index = splitIndex(action).toInt() - 1
+            val childBag = bag.childBag(index)
+            apply(action, childBag)
+            bag.updateSplitChild(index, childBag.transaction(), childBag.pendingPayeeName)
+        }
+        val amountActions = splitActions.filter { it.op == "set-split-amount" }
+        val fixedPercent = amountActions.filter { it.options["method"]?.text == "fixed-percent" }
+        val remainder = amountActions.filter { it.options["method"]?.text == "remainder" }
+        if (fixedPercent.isNotEmpty()) {
+            val remainderAfterFixed = bag.remainingSplitAmount()
+            fixedPercent.forEach { action ->
+                val index = splitIndex(action).toInt() - 1
+                val percent = action.value.number ?: 0.0
+                bag.setSplitChildAmount(index, jsRound(remainderAfterFixed * percent / 100.0))
+            }
+        }
+        if (remainder.isNotEmpty()) {
+            val remainderAfterPercent = bag.remainingSplitAmount()
+            val share = jsRound(remainderAfterPercent.toDouble() / remainder.size)
+            remainder.forEach { action ->
+                val index = splitIndex(action).toInt() - 1
+                bag.setSplitChildAmount(index, share)
+            }
+            val lastIndex = remainder.maxOf { splitIndex(it).toInt() - 1 }
+            bag.setSplitChildAmount(lastIndex, bag.splitChildren()[lastIndex].transaction.amountCents + bag.remainingSplitAmount())
+        } else if (amountActions.isNotEmpty() || splitActions.any { it.op == "set" }) {
+            val fixedIndices = amountActions.mapTo(mutableSetOf()) {
+                splitIndex(it).toInt() - 1
+            }
+            val flexibleIndex = bag.splitChildren().indices.lastOrNull { it !in fixedIndices }
+            if (flexibleIndex != null) {
+                bag.setSplitChildAmount(
+                    flexibleIndex,
+                    bag.splitChildren()[flexibleIndex].transaction.amountCents + bag.remainingSplitAmount(),
+                )
+            }
+        }
+        bag.markAsSplitParent()
+    }
+
+    private fun jsRound(value: Double) = kotlin.math.floor(value + 0.5).toLong()
+
+    private const val MAX_RULE_SPLIT_COUNT = 100.0
+
     private fun apply(action: Rule.Action, bag: Bag) {
         when (action.op) {
-            "set" -> if (action.options["template"] == null && action.options["formula"] == null &&
-                (action.options["splitIndex"]?.number ?: 0.0) <= 0) action.field?.let { bag.set(it, action.value) }
+            "set" -> action.field?.let { field ->
+                val template = action.options["template"]?.text
+                val formula = action.options["formula"]?.text
+                when {
+                    formula != null -> bag.setFormula(field, formula)
+                    template != null -> bag.setTemplate(field, template)
+                    else -> bag.set(field, action.value)
+                }
+            }
+            "set-split-amount" -> when (action.options["method"]?.text) {
+                "fixed-amount" -> action.value.number?.let { bag.setAmount(it.roundToLong()) }
+                "formula" -> action.options["formula"]?.text?.let { bag.setFormula("amount", it) }
+            }
             "prepend-notes" -> action.value.text?.let { bag.set("notes", RuleValue.Text(if (bag.text("notes").isNullOrEmpty()) it else it + bag.text("notes"))) }
             "append-notes" -> action.value.text?.let { bag.set("notes", RuleValue.Text(if (bag.text("notes").isNullOrEmpty()) it else bag.text("notes") + it)) }
             "link-schedule" -> action.value.text?.let { bag.set("schedule", RuleValue.Text(it)) }
@@ -159,6 +237,8 @@ object RulesEngine {
         private val context: RuleContext,
         /** Upstream Condition.eval semantics (rule runs) rather than conditionsToAQL (report filters). */
         val forRuleRun: Boolean = false,
+        private val parentAmountCents: Long? = null,
+        private val balanceTransaction: ActualTransaction = base,
     ) {
         private val strings = mutableMapOf<String, String?>(
             "account" to base.accountId, "payee" to base.payeeId,
@@ -178,9 +258,10 @@ object RulesEngine {
         )
         val onBudget = if (base.accountId.isBlank()) null else base.accountId !in context.offBudgetAccountIds
         val isTransfer get() = base.transferAccountId != null || base.transferId != null
-        val isParent get() = base.isParent
+        val isParent get() = flag("parent") == true
         var pendingPayeeName: String? = null
         var deleted = false
+        private val splitLines = mutableListOf<RuleSplitChild>()
         // Ids and names follow the values earlier rules set. A payee_name an earlier rule set is
         // matched to an existing payee, as upstream's resolvePayeeNameForRules does after each rule.
         // The on/off-budget flag stays with the original account, as upstream's `_account` does.
@@ -208,12 +289,118 @@ object RulesEngine {
             RuleFieldType.DATE -> value.text?.replace("-", "")?.toIntOrNull()?.takeIf { it > 9_999_999 }?.let { numbers["date"] = it.toLong() }
             else -> { strings[field] = value.text; if (field == "payee_name") { pendingPayeeName = value.text; strings["payee"] = null }; if (field == "payee") pendingPayeeName = null }
         } }
+        fun setAmount(value: Long) { numbers["amount"] = value }
+        fun setFormula(field: String, formula: String) {
+            runCatching {
+                val result = RuleFormulaEvaluator.evaluate(formula, formulaVariables(), { literal ->
+                    context.balanceOfCents(balanceTransaction, literal)
+                })
+                when (RuleSchema.type(field)) {
+                    RuleFieldType.NUMBER -> when (result) {
+                        is Number -> set(field, RuleValue.Number(result.toDouble()))
+                        else -> result?.toString()?.let(::parseFloat)?.let { set(field, RuleValue.Number(it)) }
+                    }
+                    RuleFieldType.DATE -> result?.toString()?.let(::parseDate)
+                        ?.let { set(field, RuleValue.Text(it)) }
+                    RuleFieldType.BOOLEAN -> set(field, RuleValue.Flag(
+                        result is Boolean && result || result?.toString().equals("true", true),
+                    ))
+                    else -> set(field, RuleValue.Text(result?.toString() ?: ""))
+                }
+            }
+        }
+        fun setTemplate(field: String, template: String) {
+            val variables = formulaVariables()
+            val rendered = Regex("""\{\{\{?\s*([^{}]+?)\s*\}?\}\}""").replace(template) { match ->
+                val key = match.groupValues[1].removePrefix("this.").trim()
+                variables[key.lowercase()]?.toString().orEmpty()
+            }
+            when (RuleSchema.type(field)) {
+                RuleFieldType.NUMBER -> set(field, RuleValue.Number(parseFloat(rendered) ?: 0.0))
+                RuleFieldType.DATE -> set(field, RuleValue.Text(parseDate(rendered) ?: "9999-12-31"))
+                RuleFieldType.BOOLEAN -> set(field, RuleValue.Flag(rendered == "true"))
+                else -> set(field, RuleValue.Text(rendered))
+            }
+        }
+        private fun formulaVariables(): Map<String, Any?> {
+            val date = number("date")?.toString()?.let { value ->
+                if (value.length == 8) "${value.take(4)}-${value.substring(4, 6)}-${value.takeLast(2)}" else value
+            }
+            val account = text("account")
+            val category = text("category")
+            val payee = pendingPayeeName?.let { "new" } ?: text("payee")
+            return mapOf(
+                "id" to base.id, "account" to account, "account_name" to account?.let(context.accountNames::get).orEmpty(),
+                "date" to date, "amount" to number("amount"), "payee" to payee,
+                "payee_name" to (pendingPayeeName ?: payee?.let(context.payeeNames::get) ?: base.payeeName),
+                "category" to category, "category_name" to category?.let(context.categoryNames::get).orEmpty(),
+                "_category_name" to category?.let(context.categoryNames::get).orEmpty(),
+                "category_group" to category?.let(context.categoryGroupIds::get),
+                "parent_id" to text("parent_id"),
+                "notes" to text("notes"), "imported_payee" to text("imported_payee"),
+                "schedule" to text("schedule"), "transfer_id" to text("transfer_id"),
+                "transferred_id" to text("transfer_id"), "cleared" to flag("cleared"),
+                "reconciled" to flag("reconciled"), "transfer" to isTransfer,
+                "is_parent" to (flag("parent") == true), "is_child" to (base.parentId != null),
+                "starting_balance_flag" to base.startingBalance, "financial_id" to base.financialId,
+                "pending" to base.pending, "raw_synced_data" to base.rawSyncedData,
+                "sort_order" to base.sortOrder, "tombstone" to (deleted || base.tombstone), "error" to null,
+                "_account_name" to account?.let(context.accountNames::get).orEmpty(),
+                "balance" to context.runningBalanceCents(balanceTransaction),
+                "parent_amount" to (parentAmountCents ?: base.amountCents),
+                "today" to LocalDate.now().toString(),
+            ).mapKeys { it.key.lowercase() }
+        }
+        private fun parseFloat(value: String): Double? =
+            Regex("""^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?""").find(value.trim())
+                ?.value?.toDoubleOrNull()?.takeIf(Double::isFinite)
+        private fun parseDate(value: String): String? = runCatching {
+            val date = LocalDate.parse(value)
+            date.takeIf { it.year in 1900..9999 }?.toString()
+        }.getOrNull()
+        val isChild get() = base.parentId != null
+        fun ensureSplitChildren(count: Int, idFactory: () -> String) {
+            val parent = transaction()
+            while (splitLines.size < count) {
+                val index = splitLines.size
+                val child = parent.copy(
+                    id = idFactory(), amountCents = 0L, isParent = false, parentId = base.id,
+                    transferId = null, sortOrder = (parent.sortOrder ?: 0.0) - index - 1,
+                )
+                splitLines += RuleSplitChild(child, pendingPayeeName)
+            }
+        }
+        fun childBag(index: Int): Bag {
+            val line = splitLines[index]
+            return Bag(
+                line.transaction, context, forRuleRun = true, parentAmountCents = number("amount"),
+                balanceTransaction = balanceTransaction,
+            )
+                .also { it.pendingPayeeName = line.pendingPayeeName }
+        }
+        fun updateSplitChild(index: Int, transaction: ActualTransaction, pendingName: String?) {
+            splitLines[index] = RuleSplitChild(transaction, pendingName)
+        }
+        fun setSplitChildAmount(index: Int, amount: Long) {
+            val line = splitLines[index]
+            splitLines[index] = line.copy(transaction = line.transaction.copy(amountCents = amount))
+        }
+        fun remainingSplitAmount(): Long = (number("amount") ?: base.amountCents) -
+            splitLines.sumOf { it.transaction.amountCents }
+        fun splitChildren(): List<RuleSplitChild> = splitLines.toList()
+        fun markAsSplitParent() {
+            flags["parent"] = true
+            flags["is_parent"] = true
+            strings["payee"] = null
+            pendingPayeeName = null
+        }
         fun snapshot() = strings.mapValues { "s:${it.value}" } + numbers.mapValues { "i:${it.value}" } + flags.mapValues { "b:${it.value}" }
         fun changed(before: Map<String, String>) = snapshot().filter { before[it.key] != it.value }.keys
         fun transaction() = base.copy(accountId = text("account") ?: base.accountId, date = number("date")?.toInt() ?: base.date,
             amountCents = number("amount") ?: base.amountCents, payeeId = strings["payee"], categoryId = text("category"), notes = text("notes"),
             importedPayee = text("imported_payee"), transferId = text("transfer_id"), parentId = text("parent_id"), scheduleId = text("schedule"),
-            cleared = flag("cleared") ?: base.cleared, reconciled = flag("reconciled") ?: base.reconciled, tombstone = deleted || base.tombstone)
+            cleared = flag("cleared") ?: base.cleared, reconciled = flag("reconciled") ?: base.reconciled,
+            isParent = flag("parent") ?: base.isParent, tombstone = deleted || base.tombstone)
     }
 }
 

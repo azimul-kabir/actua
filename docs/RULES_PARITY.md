@@ -77,7 +77,7 @@ not rule runs. The behaviors described further down as rule-run behaviors are fi
 | `prepend-notes` / `append-notes` (incl. onto empty) | | | Match | prepend-notes, append-notes |
 | `link-schedule` | sets `schedule` | | Match | link-schedule |
 | `delete-transaction` | `tombstone = 1` | `isDeleted` → not inserted | Match | delete-transaction |
-| `set` from a template / formula; `set-split-amount` and `splitIndex` | applied | stored, not applied | **Divergence** [#866](https://github.com/azimul-kabir/actua/issues/866) (post-v1 in `BACKEND_PARITY.md`) | set … from a template/formula, split by remainder |
+| `set` from a template / formula; `set-split-amount` and `splitIndex` | applied | applied; split rows use the atomic transaction writer | Match | set … from a template/formula, split by remainder |
 
 ### Ordering and orchestration
 
@@ -136,24 +136,23 @@ transaction never satisfies "category is not (none)", but a transfer does).
 **Action execution (`action.ts`, `rule.ts`):** `set` writes the target field's value onto the
 transaction, coercing per field type; setting `payee_name` additionally sets `payee` to the sentinel
 `'new'` so payee resolution creates a payee row with that name. `set` also supports two advanced,
-mutually-exclusive value sources instead of a literal: a Handlebars `options.template` (compiled with
-the in-progress transaction plus `today`, string result coerced per field type) or a HyperFormula
-`options.formula` (must start with `=`; the transaction's own current fields — including a prefetched
-account/category running-balance context — are exposed as named cells; the numeric result is rounded
-to cents; a non-coercible result is recorded on the transaction's `_ruleErrors` rather than applied).
+mutually-exclusive value sources instead of a literal: Handlebars field interpolation with `today`,
+and formulas beginning with `=`. Formula variables include transaction fields, account/category
+names, current date, and the transaction's running account balance; `BALANCE_OF("account name")`
+uses the same date/order-relative balance calculation as Actual. Formula numeric results are rounded
+to cents, and evaluation errors leave the target unchanged. Template results are coerced by field type;
+invalid template dates use Actual's `9999-12-31` sentinel.
 `prepend-notes`/`append-notes` concatenate onto the existing `notes` value (no-op onto an empty
 value, i.e. no leading/trailing separator is added, and no separator is inserted between the
 existing text and the added text — the action's own literal value must already contain any needed
 whitespace/newline). `link-schedule` sets the `schedule` field. `delete-transaction` sets
-`tombstone = 1`. `set-split-amount` (`options.method` of `fixed-amount`, `fixed-percent`, or
-`remainder`) and any `set` action carrying `options.splitIndex` operate on split-transaction actions:
-`execActions` partitions a rule's actions into non-split (`splitIndex` unset) and split
-(`splitIndex` set) groups, applies the non-split actions to the parent first, and — only if any
-action references a `splitIndex` (i.e. `totalSplitCount > 1`) and the transaction is not itself a
-split child — converts the transaction into split children (auto-growing the split list as needed),
-runs non-amount split actions, resolves `fixed-percent` splits against the remainder left after fixed
-amounts, and distributes `remainder` splits evenly across each other with the last remainder split
-absorbing any leftover cent from rounding.
+`tombstone = 1`. `set-split-amount` (`options.method` of `fixed-amount`, `fixed-percent`,
+`remainder`, or `formula`) and any `set` action carrying a positive `options.splitIndex` operate on
+split actions: non-split actions run on the parent first, indexed actions run on child rows,
+fixed-percent splits use the remainder after fixed amounts, and remainder splits divide the remaining
+cents evenly with the last remainder absorbing rounding differences. The split parent clears its
+payee, as `splitTransaction` does, and the writer persists parent and children together through
+`createSplit`.
 
 **Ranking (`rule-utils.ts`):** each condition contributes a fixed score by operator
 (`is`/`isNot` 10, `oneOf`/`notOneOf` 9, `isapprox`/`isbetween` 5, `gt`/`gte`/`lt`/`lte` 1,
@@ -234,10 +233,8 @@ upstream's class-based `Condition`/`Action`/`Rule`.
 - **Action execution** (`RulesEngine.apply`, the `Bag` class): `set` (writing the coerced value and,
   for `payee_name`, clearing the resolved `payee` id so a new payee is created from the pending
   name), `prepend-notes`/`append-notes`, `link-schedule`, and `delete-transaction` are implemented
-  exactly as upstream. `set` actions carrying `options.template`, `options.formula`, or a positive
-  `options.splitIndex` are recognized and deliberately left unapplied (the stored value is preserved
-  verbatim rather than approximated), matching the documented "advanced split, formula, and template
-  rule actions" boundary in `BACKEND_PARITY.md`.
+  with template, formula, and split actions. Split inserts are persisted atomically through the
+  transaction writer.
 - **Ranking** (`RuleRanker.kt`): `score` reproduces `OP_SCORES` exactly, including the "every
   condition is `is`/`isNot`/`isapprox`/`oneOf`/`notOneOf`" doubling rule, and `rank` buckets by stage
   (pre → default → post) then sorts ascending by score with an id tiebreak, matching `rankRules`
@@ -271,11 +268,6 @@ upstream's class-based `Condition`/`Action`/`Rule`.
 
 ## Deliberate deviations and known gaps
 
-- **No Handlebars template or HyperFormula formula actions**, and **no split-transaction rule
-  actions** (`set-split-amount`, `set` with `options.splitIndex`). These are recognized and preserved
-  unmodified in the stored condition/action JSON rather than approximated, and are already tracked as
-  "Advanced split, formula, and template rule actions" under Post-v1 portable features in
-  `BACKEND_PARITY.md`.
 - **No "apply rule now" bulk re-application to existing transactions**, and **no live
   matching-transaction count/list in the rule editor** (upstream's `conditionsToAQL`-backed preview).
   Actua's rule editor edits and previews a rule's effect only on a single in-progress transaction

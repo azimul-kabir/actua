@@ -107,7 +107,12 @@ class RulesParityFixtureTest {
         "cleared" to transaction.cleared.toString(),
         "schedule" to transaction.scheduleId,
         "tombstone" to (if (isDeleted) "1" else "0"),
-        "subtransactions" to "[]",
+        "subtransactions" to JSONArray().apply {
+            splitChildren.forEach { child ->
+                put(JSONObject().put("amount", child.transaction.amountCents)
+                    .put("category", child.transaction.categoryId ?: JSONObject.NULL))
+            }
+        }.toString(),
     )
 
     /** Actual's output in the same shape: payee by (case-insensitive) name, everything else as stored. */
@@ -128,11 +133,6 @@ class RulesParityFixtureTest {
         val FIELDS = listOf("account", "date", "amount", "payee", "category", "notes", "cleared", "schedule", "tombstone", "subtransactions")
 
         /** "<case name> #<transaction> <field>" → the issue tracking the divergence. */
-        val KNOWN_DIVERGENCES: Map<String, String> = mapOf(
-            "set notes from a template #1 notes" to "#866",
-            "set amount from a formula #1 amount" to "#866",
-            "split by remainder #1 payee" to "#866",
-            "split by remainder #1 subtransactions" to "#866",
-        )
+        val KNOWN_DIVERGENCES: Map<String, String> = emptyMap()
     }
 }

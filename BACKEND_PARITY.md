@@ -152,7 +152,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   restore, and one-shot revert; snapshots list only Actual's migration ids so Actual accepts
   them, and use `VACUUM INTO` based on the device's SQLite version (3.27+), not its API level
 - Rule JSON parsing, schema translation, ranking, condition/action evaluation,
-  named-payee resolution, live form previews, and rule application for incoming transactions,
+  named-payee resolution, template and formula actions (including transaction-relative
+  `BALANCE_OF` context), atomic rule-generated splits, live form previews, and rule application for incoming transactions,
   including transfer drafts matched through the destination account's canonical transfer payee;
   ports Actual's `shouldApplyRuleChange` precedence so an explicit user-picked category survives
   a matching rule while an empty/inferred category is still filled in
@@ -408,7 +409,6 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 
 ## Post-v1 portable features
 
-- Advanced split, formula, and template rule actions
 - Transfer split lines (a split child whose payee is another account, with its own other leg, as
   in loot-core `transfer.ts`); the split editor does not offer `Transfer:` payees and saving
   one is refused

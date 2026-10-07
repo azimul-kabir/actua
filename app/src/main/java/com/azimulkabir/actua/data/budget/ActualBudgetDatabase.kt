@@ -626,7 +626,41 @@ class ActualBudgetDatabase private constructor(
             categoryGroupIds = groups.flatMap { group -> group.categories.map { it.id to group.id } }.toMap(),
             categoryGroupNames = groups.associate { it.id to it.name },
             payeeNames = fetchPayees().associate { it.id to it.name },
+            runningBalanceCents = { transaction -> runningBalanceBefore(transaction, transaction.accountId) },
+            balanceOfCents = { transaction, literal ->
+                accounts.firstOrNull { it.id == literal || it.name == literal }
+                    ?.let { runningBalanceBefore(transaction, it.id) } ?: 0L
+            },
         )
+    }
+
+    @Synchronized
+    private fun runningBalanceBefore(transaction: ActualTransaction, accountId: String): Long {
+        val dateFilter = if (transaction.sortOrder != null) {
+            "(t.date < ? OR (t.date = ? AND t.sort_order < ?))"
+        } else {
+            "(t.date < ? OR (t.date = ? AND (t.sort_order IS NOT NULL OR t.id < ?)))"
+        }
+        val orderArgs = if (transaction.sortOrder != null) {
+            arrayOf(transaction.date.toString(), transaction.date.toString(), transaction.sortOrder.toString())
+        } else {
+            arrayOf(transaction.date.toString(), transaction.date.toString(), transaction.id)
+        }
+        return database.rawQuery(
+            """
+                SELECT COALESCE(SUM(t.amount), 0)
+                FROM transactions t
+                LEFT JOIN transactions p ON p.id = t.parent_id
+                WHERE t.acct = ? AND t.date IS NOT NULL
+                  AND (t.tombstone = 0 OR t.tombstone IS NULL)
+                  AND (t.isParent = 0 OR t.isParent IS NULL)
+                  AND (t.isChild = 0 OR t.isChild IS NULL OR
+                       (p.id IS NOT NULL AND (p.tombstone = 0 OR p.tombstone IS NULL)))
+                  AND t.id != ?
+                  AND $dateFilter
+            """.trimIndent(),
+            arrayOf(accountId, transaction.id, *orderArgs),
+        ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else 0L }
     }
 
     @Synchronized

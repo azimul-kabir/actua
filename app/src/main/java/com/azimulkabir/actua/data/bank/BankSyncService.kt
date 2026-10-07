@@ -124,8 +124,9 @@ class BankSyncService(
             val ruled = if (drafts.isEmpty()) emptyMap() else ImportRules.apply(
                 drafts, ruleInputs.first, ruleInputs.second,
                 existingPayeeId = { database.findPayeeByName(it)?.id },
-                newId = { UUID.randomUUID().toString() },
+                newId = idFactory,
                 keepDeleted = true,
+                idFactory = idFactory,
             ).associateBy { it.transaction.financialId!! }
             fun ruledRow(row: BankSyncTransaction) = ruled.getValue(row.financialId)
             fun payeeId(prepared: ImportRules.Prepared): String? =
@@ -166,8 +167,26 @@ class BankSyncService(
                     match == null -> {
                         // A row a rule deleted is not imported (Actual skips a tombstoned new row).
                         if (prepared.deleted) return@forEach
-                        val created = transactions.createTransaction(bank.copy(payeeId = payeeId(prepared)), applyRules = false)
-                        if (created != null) imported++
+                        if (prepared.splitChildren.isEmpty()) {
+                            val created = transactions.createTransaction(bank.copy(payeeId = payeeId(prepared)), applyRules = false)
+                            if (created != null) imported++
+                        } else {
+                            val offBudget = database.fetchAccounts().any { it.id == bank.accountId && it.offBudget }
+                            val children = prepared.splitChildren.map { child ->
+                                val childPayee = child.pendingPayeeName?.let(transactions::resolveOrCreatePayee)?.id
+                                    ?: child.transaction.payeeId
+                                child.transaction.copy(
+                                    payeeId = childPayee,
+                                    categoryId = child.transaction.categoryId.takeUnless { offBudget },
+                                )
+                            }
+                            transactions.createSplit(
+                                bank.copy(payeeId = null, categoryId = null, isParent = true),
+                                children,
+                                allowSingleChild = true,
+                            )
+                            imported++
+                        }
                     }
                     match.reconciled -> {
                         // Locked transaction: it's already accounted for, so don't duplicate the bank row.
