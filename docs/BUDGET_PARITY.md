@@ -111,8 +111,8 @@ their CRDT messages), `ActualBudgetBufferTest` (holds), `BudgetMonthParityFixtur
 | Set an amount | `budget/budget-amount` | budget sheet → `setBudgetAmount` | Match |
 | Move between categories | `transferCategory`: no cap; appends a "Reassigned …" line to the `budget-<month>` note | Move Money: limited to the source's available balance (or To Budget); no note | Cap: **Intentional** (stricter, never produces a state Actual couldn't). Note: **Divergence** [#908](https://github.com/azimul-kabir/actua/issues/908) |
 | Cover overspending | `coverOverspending`: up to the source's leftover; note | Overspent sheet → Move Money pre-filled with the capped amount; no note | Cap: Match. Note: [#908](https://github.com/azimul-kabir/actua/issues/908) |
-| Move from To Budget to a category | `transferAvailable`: clamps to `[0, to-budget]` | To Budget sheet "Move to Category": no cap | **Divergence** [#907](https://github.com/azimul-kabir/actua/issues/907) |
-| Cover overbudgeted (negative To Budget) | `coverOverbudgeted`: up to the category's positive balance; note | To Budget sheet "Cover From": no cap, no note | **Divergence** [#907](https://github.com/azimul-kabir/actua/issues/907), [#908](https://github.com/azimul-kabir/actua/issues/908) |
+| Move from To Budget to a category | `transferAvailable`: clamps to `[0, to-budget]` | To Budget sheet "Move to Category": limited to To Budget (`budgetSummaryMoveAmount`) | Match (fixed by [#914](https://github.com/azimul-kabir/actua/pull/914) for [#907](https://github.com/azimul-kabir/actua/issues/907)) |
+| Cover overbudgeted (negative To Budget) | `coverOverbudgeted`: up to the category's positive balance; note | To Budget sheet "Cover From": categories with a positive balance, amount limited to it ([#914](https://github.com/azimul-kabir/actua/pull/914)); no note | Cap: Match. Note: **Divergence** [#908](https://github.com/azimul-kabir/actua/issues/908) |
 | Copy last month | `copyPreviousMonth`: copies existing rows of visible categories (income only in tracking); categories without a row are left unchanged | copies the stored rows of visible categories (`storedBudgetAmounts`); others are left unchanged | Match (fixed by [#913](https://github.com/azimul-kabir/actua/pull/913) for [#906](https://github.com/azimul-kabir/actua/issues/906)) |
 | Set to zero | `setZero`: every live category including hidden ones, income only in tracking | "Set budgets to zero" preview over every category including hidden ones, income only in tracking; writes only non-zero cells | Match (same final cells) |
 | Hold / reset hold | see §4 | see §4 | see §4 |
@@ -123,7 +123,7 @@ their CRDT messages), `ActualBudgetBufferTest` (holds), `BudgetMonthParityFixtur
 ## Filed divergences
 
 - [#906](https://github.com/azimul-kabir/actua/issues/906): "Copy last month's budget" zeroes categories that had no budget last month (P2). Fixed by [#913](https://github.com/azimul-kabir/actua/pull/913).
-- [#907](https://github.com/azimul-kabir/actua/issues/907): To Budget "Move to Category" and "Cover From" don't cap the amount like Actual (P2).
+- [#907](https://github.com/azimul-kabir/actua/issues/907): To Budget "Move to Category" and "Cover From" don't cap the amount like Actual (P2). Fixed by [#914](https://github.com/azimul-kabir/actua/pull/914).
 - [#908](https://github.com/azimul-kabir/actua/issues/908): Budget moves and covers don't add Actual's "Reassigned …" month note (low).
 - [#909](https://github.com/azimul-kabir/actua/issues/909): Budget month totals leave out hidden categories in envelope budgets; no tracking saved totals (low).
 - [#910](https://github.com/azimul-kabir/actua/issues/910): Remaining budget actions: averages, copy one category, copy to year end, income hold.
