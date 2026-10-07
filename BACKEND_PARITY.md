@@ -70,7 +70,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Accounts, payees, category groups/categories, transactions, transfers, splits; account
   lifecycle, balances, groups, notes/preferences and credit-card data are itemized with upstream
   links, a synthetic balance cross-check and filed divergences in
-  [docs/ACCOUNTS_PARITY.md](docs/ACCOUNTS_PARITY.md)
+  [docs/ACCOUNTS_PARITY.md](docs/ACCOUNTS_PARITY.md); payee create/rename/merge/delete, mapping
+  resolution, transfer payees, picker ordering and locations in
+  [docs/PAYEES_PARITY.md](docs/PAYEES_PARITY.md)
 - Actual's experimental account grouping: existing `account_groups` data synced from the server is
   detected and the Accounts screen displays on/off-budget accounts nested under their configured
   group, ordered by the group's own sort order, with an ungrouped bucket for accounts left outside
@@ -241,9 +243,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   accounts CRDT field allowlist
 - Entity mutation core completed for account deletion, category-group deletion,
   ordinary-payee deletion/merge, category reorder, and category-group reorder. All
-  writes use synced CRDT messages; payee merges redirect `payee_mapping` before
-  tombstoning source payees, and reads (reports, rules, filters, bank sync) resolve merged
-  payees and categories through `payee_mapping`/`category_mapping`; account deletion
+  writes use synced CRDT messages; payee merges point `payee_mapping` at the target before
+  tombstoning source payees (earlier merges into a source aren't re-pointed yet, #895), and
+  transaction reads (reports, filters, schedules, bank sync) resolve merged payees and
+  categories through `payee_mapping`/`category_mapping` (rule ids don't yet, #893). The payee
+  writers have no UI yet (#896); see [docs/PAYEES_PARITY.md](docs/PAYEES_PARITY.md); account deletion
   tombstones its owned transfer payee; transfer payees cannot be independently deleted or merged; group deletion
   tombstones its categories before the group; and reorder uses Actual-compatible
   shove sort orders. Destructive UI remains opt-in only where a safe confirmation
