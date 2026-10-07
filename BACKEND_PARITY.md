@@ -243,8 +243,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   accounts CRDT field allowlist
 - Entity mutation core completed for account deletion, category-group deletion,
   ordinary-payee deletion/merge, category reorder, and category-group reorder. All
-  writes use synced CRDT messages; payee merges point `payee_mapping` at the target before
-  tombstoning source payees (earlier merges into a source aren't re-pointed yet, #895), and
+  writes use synced CRDT messages; payee merges point `payee_mapping` at the target, including
+  mappings from earlier merges into a source, before tombstoning source payees, and
   transaction reads (reports, filters, schedules, bank sync) resolve merged payees and
   categories through `payee_mapping`/`category_mapping`, as do rule condition and action ids
   (upstream `migrateIds`). Transaction-form saves run Actual's category learning, honouring the

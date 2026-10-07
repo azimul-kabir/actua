@@ -1120,6 +1120,40 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun mergingAPayeeRepointsEarlierMergesIntoIt() {
+        // Upstream mergePayees re-points mappings that target a merged payee (actua#895).
+        val file = createDatabaseFile()
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO payees VALUES ('shop-a','Shop A',NULL,0), ('shop-b','Shop B',NULL,0), ('shop-c','Shop C',NULL,0)")
+                db.execSQL("INSERT INTO payee_mapping VALUES ('shop-a','shop-a'), ('shop-b','shop-b'), ('shop-c','shop-c')")
+                insertTransaction(db, "on-a", 0, 0, "checking", "grocery", -250, "shop-a", 20260801, 8.0)
+                insertTransaction(db, "on-b", 0, 0, "checking", "grocery", -250, "shop-b", 20260802, 9.0)
+            }
+            ActualBudgetDatabase.open(file).use { database ->
+                val writer = ActualEntityWriter(database, nodeId = "bbbbbbbbbbbbbbbb")
+                writer.mergePayees("shop-b", listOf("shop-a"))
+                assertEquals("shop-b", requireNotNull(database.fetchTransaction("on-a")).payeeId)
+
+                writer.mergePayees("shop-c", listOf("shop-b"))
+                assertEquals("shop-c", requireNotNull(database.fetchTransaction("on-a")).payeeId)
+                assertEquals("Shop C", requireNotNull(database.fetchTransaction("on-a")).payeeName)
+                assertEquals("shop-c", requireNotNull(database.fetchTransaction("on-b")).payeeId)
+                assertEquals(listOf("shop-a", "shop-b", "shop-c"), database.payeeMappingsTargeting(listOf("shop-c")).sorted())
+
+                val mappingMessages = database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString())
+                    .filter { it.dataset == "payee_mapping" }
+                assertEquals("S:shop-c", mappingMessages.last { it.row == "shop-a" }.value)
+                assertThrows(IllegalArgumentException::class.java) {
+                    writer.mergePayees("transfer-savings", listOf("shop-c"))
+                }
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun savedReportsReadIncludeCurrentAndTolerateOlderSchemas() {
         val file = createDatabaseFile()
         try {

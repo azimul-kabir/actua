@@ -154,7 +154,11 @@ class ActualEntityWriter(
         update("payees", id, mapOf("tombstone" to 1))
     }
 
-    /** Actual payee merge is mapping-based: old references resolve to the surviving payee. */
+    /**
+     * Actual payee merge is mapping-based: old references resolve to the surviving payee. As in
+     * upstream `mergePayees`, mappings that already point at a merged payee (earlier merges into
+     * it) are re-pointed too, because mapping reads are a single hop.
+     */
     @Synchronized
     fun mergePayees(targetId: String, mergeIds: Collection<String>) {
         val payees = database.fetchPayees()
@@ -166,10 +170,10 @@ class ActualEntityWriter(
         require(sourceRows.size == sources.size) { "One or more payees no longer exist" }
         require(sourceRows.all { it.transferAccountId == null }) { "Transfer payees cannot be merged" }
         val messages = mutableListOf<CrdtMessage>()
-        sources.sorted().forEach { id ->
+        (database.payeeMappingsTargeting(sources).toSortedSet() + sources.sorted()).forEach { id ->
             messages += fields("payee_mapping", id, mapOf("targetId" to targetId))
-            messages += fields("payees", id, mapOf("tombstone" to 1))
         }
+        sources.sorted().forEach { id -> messages += fields("payees", id, mapOf("tombstone" to 1)) }
         persist(messages)
     }
 
