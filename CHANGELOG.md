@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Budget templates round to whole amounts when the budget hides decimals, like Actual ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
 - Average templates now count refunds and round like Actual ([#883](https://github.com/azimul-kabir/actua/pull/883))
 - Percentage templates of last month's income now budget like Actual instead of nothing ([#882](https://github.com/azimul-kabir/actua/pull/882))
 - Refill templates with a weekly or daily cap now top up to the month's full cap like Actual ([#881](https://github.com/azimul-kabir/actua/pull/881))

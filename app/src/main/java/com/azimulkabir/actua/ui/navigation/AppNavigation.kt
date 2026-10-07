@@ -380,6 +380,7 @@ fun AppNavigation(
         repository.budgetScheduleFunding(budgetMonth)
     }
     val budgetOverview = remember(dataVersion, budgetMonth) { repository.budgetOverview(budgetMonth) }
+    val budgetHidesFraction = remember(dataVersion) { repository.budgetHidesFraction() }
     val accounts = remember(dataVersion) { repository.accounts() }
     // Actual's synced per-account `hide-reconciled-<accountId>` preference, shared with the PWA.
     val hideReconciledAccountIds = remember(dataVersion) { repository.hideReconciledAccountIds() }
@@ -2474,6 +2475,7 @@ fun AppNavigation(
                         mutate("Applying budget template") { repository.applyBudgetTemplate(preview) }
                     },
                     scheduleFunding = budgetScheduleFunding,
+                    templateHideFraction = budgetHidesFraction,
                     onPreviewCleanup = { repository.previewCleanup(budgetMonth) },
                     onRefreshNoteTemplates = {
                         mutate("Reading template notes") { repository.refreshNoteTemplates() }

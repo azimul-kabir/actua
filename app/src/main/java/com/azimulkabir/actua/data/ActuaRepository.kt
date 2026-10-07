@@ -579,6 +579,9 @@ class ActuaRepository(context: Context) {
         return emptyList()
     }
 
+    /** The budget's synced `hideFraction` preference, which budget templates round with. */
+    fun budgetHidesFraction(): Boolean = actualDatabase?.hideFraction() ?: false
+
     fun budgetScheduleFunding(month: String = currentMonth()): List<BudgetScheduleFunding> {
         val db = actualDatabase ?: return emptyList()
         val selected = runCatching { java.time.YearMonth.parse(month) }.getOrNull() ?: return emptyList()

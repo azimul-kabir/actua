@@ -595,6 +595,8 @@ object BudgetTemplatePlanner {
         availableBudgetCents: Long = Long.MAX_VALUE,
         overwriteExisting: Boolean = false,
         schedules: List<BudgetScheduleFunding> = emptyList(),
+        /** The budget's synced `hideFraction` preference (not the local display setting). */
+        hideFraction: Boolean = false,
     ): BudgetTemplatePreview {
         val changes = mutableListOf<BudgetTemplateChange>()
         val unsupported = mutableListOf<String>()
@@ -683,7 +685,9 @@ object BudgetTemplatePlanner {
                     capTarget(category)?.capForMonth(month)
                 } else null
                 val cap = listOfNotNull(refillCap, capLimit).minOrNull()
-                val capped = cap?.let { minOf(requested, max(0L, it - category.carryoverCents - before)) } ?: requested
+                val cappedExact = cap?.let { minOf(requested, max(0L, it - category.carryoverCents - before)) } ?: requested
+                // Actual rounds each priority's amount to whole units after the limit check.
+                val capped = if (hideFraction) removeFraction(cappedExact) else cappedExact
                 val allocated = if (available == Long.MAX_VALUE || priority <= 0) capped else
                     minOf(capped, max(0L, available))
                 if (atPriority.any { it.type != BudgetTarget.Type.REMAINDER }) {
@@ -694,7 +698,7 @@ object BudgetTemplatePlanner {
                 if (available != Long.MAX_VALUE) available -= allocated
             }
         }
-        distributeRemainder(eligible, proposed, available, month)
+        distributeRemainder(eligible, proposed, available, month, hideFraction)
         for ((group, category) in supported) {
             val targets = category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
             val unresolvedSchedule = targets.any {
@@ -755,6 +759,7 @@ object BudgetTemplatePlanner {
         proposed: MutableMap<BudgetCategory, Long>,
         startingAvailable: Long,
         month: String,
+        hideFraction: Boolean = false,
     ): Long {
         var available = startingAvailable
         if (available == Long.MAX_VALUE || available <= 0L) return available
@@ -780,8 +785,18 @@ object BudgetTemplatePlanner {
             if (active.isEmpty()) break
             val totalWeight = active.sumOf { it.second }
             val beforePass = available
-            val allocations = active.map { (category, weight, cap) ->
-                val before = proposed[category] ?: 0L
+            val allocations = if (hideFraction) {
+                // upstream `runRemainder`: whole units, and the last whole unit goes to the category
+                // that would leave 1.00 or less behind.
+                var left = available
+                active.map { (category, weight, cap) ->
+                    var share = removeFraction(Math.round(available.toDouble() * weight / totalWeight))
+                    if (share > left || left - share <= 100L) share = left
+                    share = minOf(share, cap ?: Long.MAX_VALUE)
+                    left -= share
+                    category to share
+                }
+            } else active.map { (category, weight, cap) ->
                 val base = (available * weight) / totalWeight
                 category to minOf(base, cap ?: Long.MAX_VALUE)
             }
@@ -791,7 +806,7 @@ object BudgetTemplatePlanner {
                     available -= allocated
                 }
             }
-            if (available > 0L) {
+            if (available > 0L && !hideFraction) {
                 active.asReversed().forEach { (category, _, cap) ->
                     if (available <= 0L) return@forEach
                     val before = proposed[category] ?: 0L
@@ -806,6 +821,10 @@ object BudgetTemplatePlanner {
         }
         return available
     }
+
+    /** Upstream `removeFraction`: rounds cents to whole units like JavaScript `Math.round`. */
+    internal fun removeFraction(amountCents: Long): Long =
+        kotlin.math.floor(amountCents / 100.0 + 0.5).toLong() * 100L
 
     private fun remainderLimit(category: BudgetCategory): BudgetTarget? =
         category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
