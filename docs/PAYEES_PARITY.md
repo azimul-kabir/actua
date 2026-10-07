@@ -71,7 +71,7 @@ payee management screen.
 | Delete tombstones the payee; `payee_mapping` and transactions are untouched, so the transactions show no payee | `deletePayee` | `payees.tombstone = 1` only. Reads show no payee for a tombstoned payee ([#711](https://github.com/azimul-kabir/actua/issues/711)). | Match (writer only) |
 | Delete of a transfer payee is a no-op | early `return` | `require` fails | **Intentional** (writer refuses rather than silently ignoring) |
 | Rules referencing a deleted payee are left alone | no rule changes | no rule changes | Match |
-| Merge: re-point every mapping whose `targetId` is a merged id, then `payee_mapping[id] = target` and tombstone each merged payee, one batch | `mergePayees` | writes the merged payees' own mapping and tombstone only | **Divergence** [#895](https://github.com/azimul-kabir/actua/issues/895): an earlier merge into a now-merged payee keeps pointing at the tombstoned payee (latent while there are no callers) |
+| Merge: re-point every mapping whose `targetId` is a merged id, then `payee_mapping[id] = target` and tombstone each merged payee, one batch | `mergePayees` | re-points every mapping targeting a merged payee, then maps and tombstones the merged payees, one batch | Match (fixed by [#902](https://github.com/azimul-kabir/actua/pull/902) for [#895](https://github.com/azimul-kabir/actua/issues/895)) |
 | Merge never touches rules; rules follow merges by id mapping at load time | `migrateIds` | `fetchRules` maps ids through `payee_mapping`/`category_mapping` | Match (fixed by [#900](https://github.com/azimul-kabir/actua/pull/900) for [#893](https://github.com/azimul-kabir/actua/issues/893)), see §6 |
 | Transfer target or transfer sources | target: no-op; sources: filtered out | `require` fails | **Intentional** (refuses instead of partially applying) |
 | Undo | `undoable` handlers | Actua has no undo | N/A |
@@ -185,7 +185,7 @@ writer CRDT messages, schema gate, partial rows), `src/test/.../ui/transactions/
 
 - [#893](https://github.com/azimul-kabir/actua/issues/893): Rules keyed to a merged payee or category stop matching after the merge (P2). Fixed by [#900](https://github.com/azimul-kabir/actua/pull/900).
 - [#894](https://github.com/azimul-kabir/actua/issues/894): Saving a transaction doesn't learn the payee's category (P2). Fixed by [#901](https://github.com/azimul-kabir/actua/pull/901).
-- [#895](https://github.com/azimul-kabir/actua/issues/895): Merging a payee leaves earlier merges pointing at the merged payee (latent; blocks #896).
+- [#895](https://github.com/azimul-kabir/actua/issues/895): Merging a payee leaves earlier merges pointing at the merged payee (latent; blocks #896). Fixed by [#902](https://github.com/azimul-kabir/actua/pull/902).
 - [#896](https://github.com/azimul-kabir/actua/issues/896): No payee management (rename, merge, delete, favorite, learn categories).
 - [#897](https://github.com/azimul-kabir/actua/issues/897): Payee picker has no Suggested Payees section (low).
 - [#898](https://github.com/azimul-kabir/actua/issues/898): Payee name lookup is ASCII-only case-insensitive (P2).

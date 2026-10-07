@@ -603,6 +603,18 @@ class ActualBudgetDatabase private constructor(
         return if (mappings.isEmpty()) result else result.map { it.withMappedIds(mappings) }
     }
 
+    /** `payee_mapping` row ids whose `targetId` is one of [targetIds] (upstream merge re-points them). */
+    @Synchronized
+    fun payeeMappingsTargeting(targetIds: Collection<String>): List<String> {
+        if (targetIds.isEmpty() || !hasTable("payee_mapping")) return emptyList()
+        return targetIds.distinct().chunked(500).flatMap { batch ->
+            database.rawQuery(
+                "SELECT id FROM payee_mapping WHERE targetId IN (${batch.joinToString { "?" }})",
+                batch.toTypedArray(),
+            ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(0)) } }
+        }
+    }
+
     /** Synced `learn-categories` preference value, or null when unset (Actual's default is on). */
     @Synchronized
     fun learnCategoriesPreference(): String? {
