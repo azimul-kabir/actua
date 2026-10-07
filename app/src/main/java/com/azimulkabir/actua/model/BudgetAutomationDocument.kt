@@ -104,6 +104,20 @@ data class BudgetAutomationDocument(
                 }) {
                 add("Only weekly balance caps can have a start date")
             }
+            val simpleLimits = targets.filter { it.type == BudgetTarget.Type.FIXED && it.simple && it.limitAmountCents != null }
+            if (simpleLimits.isNotEmpty() &&
+                simpleLimits.size + targets.count { it.type == BudgetTarget.Type.LIMIT } +
+                targets.count { it.type == BudgetTarget.Type.REMAINDER && it.limitAmountCents != null } > 1
+            ) {
+                add("Only one `up to` is allowed per category")
+            }
+            if (simpleLimits.any {
+                    (it.limitAmountCents ?: 0L) <= 0L || it.limitPeriod == null ||
+                        it.limitPeriod == BudgetTarget.LimitPeriod.WEEKLY &&
+                        runCatching { java.time.LocalDate.parse(it.limitStartDate.orEmpty()) }.isFailure
+                }) {
+                add("Simple automation caps need a positive amount, and weekly caps a valid start date")
+            }
             if (targets.any { it.type.hasPriority && it.priority < 0 }) add("Automation priority cannot be negative")
             if (targets.any { it.type == BudgetTarget.Type.LIMIT && it.amountCents <= 0 }) {
                 add("Balance cap needs a positive amount")
@@ -139,10 +153,12 @@ data class BudgetAutomationDocument(
                 add("Date targets must use the same priority")
             }
             targets.forEachIndexed { index, target ->
+                // A simple "up to" automation (no monthly amount) is valid with only its cap.
+                val upToOnly = target.type == BudgetTarget.Type.FIXED && target.simple && target.limitAmountCents != null
                 if (
                     (target.type == BudgetTarget.Type.FIXED || target.type == BudgetTarget.Type.BY_DATE ||
                         target.type == BudgetTarget.Type.GOAL) &&
-                    target.amountCents <= 0
+                    target.amountCents <= 0 && !upToOnly
                 ) {
                     add("Automation ${index + 1} needs a positive amount")
                 }

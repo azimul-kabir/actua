@@ -28,6 +28,12 @@ data class BudgetTarget(
     // FIXED
     val period: Period = Period.MONTH,
     val everyCount: Int = 1,
+    /**
+     * A FIXED row read from Actual's `simple` template (`#template 50`, `#template 50 up to 100`,
+     * `#template up to 100`): [amountCents] every month (0 for "up to" only), with its optional
+     * cap in the limit fields below.
+     */
+    val simple: Boolean = false,
 
     // BY_DATE ("Save by date")
     val repeats: Boolean = false,
@@ -60,9 +66,9 @@ data class BudgetTarget(
     // REMAINDER ("Whatever is left")
     val weight: Int = 1,
 
-    // LIMIT's own cap (amountCents/period/start/hold below), and REMAINDER's optional
-    // secondary cap (limitAmountCents/period/start/hold) - same shape, different amount field
-    // so a REMAINDER row can carry both its weight and an optional cap at once.
+    // LIMIT's own cap (amountCents/period/start/hold below), and REMAINDER's and a simple FIXED
+    // row's optional inline cap (limitAmountCents/period/start/hold) - same shape, different amount
+    // field so those rows can carry both their own amount or weight and an optional cap at once.
     val limitPeriod: LimitPeriod? = null,
     val limitAmountCents: Long? = null,
     val limitStartDate: String? = null,
@@ -174,7 +180,10 @@ data class BudgetTarget(
      * linked [BudgetScheduleFunding] passed in via [schedules]; it returns 0 without it.
      */
     fun suggestedBudget(category: BudgetCategory, month: String, schedules: List<BudgetScheduleFunding> = emptyList()): Long = when (type) {
-        Type.FIXED -> fixedSuggestedBudget(month)
+        // upstream `runSimple`: the monthly amount, or (for "up to" only) the cap less last month's balance.
+        Type.FIXED -> if (!simple) fixedSuggestedBudget(month)
+            else if (amountCents > 0L) amountCents
+            else max(0L, limitForMonth(month) - category.carryoverCents)
         Type.BY_DATE -> byDateSuggestedBudget(category, month)
         Type.HISTORICAL -> when (historicalMode) {
             HistoricalMode.AVERAGE -> {
@@ -265,9 +274,14 @@ data class BudgetTarget(
         if (type.hasPriority) row.put("priority", priority) else row.put("priority", JSONObject.NULL)
         note?.trim()?.takeIf(String::isNotEmpty)?.let { row.put("description", it) }
         when (type) {
-            Type.FIXED -> row.put("type", "periodic").put("amount", units(amountCents))
-                .put("period", JSONObject().put("period", period.jsonValue).put("amount", everyCount.coerceAtLeast(1)))
-                .put("starting", startingDate)
+            Type.FIXED -> if (simple && period == Period.MONTH && everyCount <= 1 && startingDate == null) {
+                row.put("type", "simple").put("monthly", if (amountCents > 0L) units(amountCents) else JSONObject.NULL)
+                inlineLimit()?.let { row.put("limit", it) }
+            } else {
+                row.put("type", "periodic").put("amount", units(amountCents))
+                    .put("period", JSONObject().put("period", period.jsonValue).put("amount", everyCount.coerceAtLeast(1)))
+                    .put("starting", startingDate)
+            }
             Type.BY_DATE -> {
                 row.put("type", if (allowEarlySpending) "spend" else "by").put("amount", units(amountCents))
                     .put("month", targetMonth)
@@ -313,6 +327,14 @@ data class BudgetTarget(
         return JSONArray().put(row).toString()
     }
 
+    /** A simple row's `limit` object, in the shape Actual's grammar produces. */
+    private fun inlineLimit(): JSONObject? {
+        val period = limitPeriod ?: return null
+        val amount = limitAmountCents ?: return null
+        return JSONObject().put("amount", units(amount)).put("hold", limitHold).put("period", period.jsonValue)
+            .put("start", if (period == LimitPeriod.WEEKLY) limitStartDate ?: JSONObject.NULL else JSONObject.NULL)
+    }
+
     private fun putAdjustment(row: JSONObject) {
         when (adjustmentType) {
             AdjustmentType.PERCENT -> row.put("adjustmentType", "percent").put("adjustment", adjustmentPercent ?: 0.0)
@@ -342,6 +364,28 @@ data class BudgetTarget(
                         startingDate = row.optString("starting").ifBlank { null },
                         priority = priority, note = note,
                         period = parsedPeriod, everyCount = periodObj?.optInt("amount", 1)?.coerceAtLeast(1) ?: 1,
+                    )
+                }
+                "simple" -> row.takeIf { it.optString("directive") == "template" }?.let {
+                    val monthly = if (!it.has("monthly") || it.isNull("monthly")) null
+                        else it.optDouble("monthly", Double.NaN).takeIf(Double::isFinite)
+                    if (it.has("monthly") && !it.isNull("monthly") && monthly == null) return null
+                    val limit = if (!it.has("limit") || it.isNull("limit")) null else it.optJSONObject("limit") ?: return null
+                    val limitPeriod = limit?.let { l -> LimitPeriod.fromJson(l.optString("period")) ?: return null }
+                    val limitCents = limit?.let { l ->
+                        l.optDouble("amount", Double.NaN).takeIf(Double::isFinite)?.let { a -> Math.round(a * 100.0) } ?: return null
+                    }
+                    val limitStart = limit?.takeUnless { l -> l.isNull("start") }?.optString("start")?.ifBlank { null }
+                    if (limitPeriod == LimitPeriod.WEEKLY && limitStart?.let { d -> runCatching { LocalDate.parse(d) }.isSuccess } != true) {
+                        return null
+                    }
+                    val monthlyCents = monthly?.let { m -> Math.round(m * 100.0) } ?: 0L
+                    if (monthlyCents <= 0L && limitCents == null) return null
+                    BudgetTarget(
+                        Type.FIXED, monthlyCents, priority = priority, note = note, simple = true,
+                        limitPeriod = limitPeriod, limitAmountCents = limitCents,
+                        limitStartDate = limitStart.takeIf { limitPeriod == LimitPeriod.WEEKLY },
+                        limitHold = limit?.optBoolean("hold", false) == true,
                     )
                 }
                 "by", "spend" -> {
@@ -531,12 +575,12 @@ object BudgetTemplatePlanner {
                                 (schedule.categoryId == null || schedule.categoryId == category.id)
                         })
             }
-            val canRun = !category.hasUnsupportedTarget && hasTargets && !unresolvedSchedule
+            val canRun = category.automationsEvaluable && hasTargets && !unresolvedSchedule
             if (canRun && !overwriteExisting && category.assignedCents != 0L) skippedExisting++
             canRun && (overwriteExisting || category.assignedCents == 0L)
         }
         eligible.forEach { (group, category) ->
-            if (remainderLimit(category) != null || capTarget(category) != null) {
+            if (remainderLimit(category) != null || capTarget(category) != null || simpleLimit(category) != null) {
                 capped += "${group.name} · ${category.name}"
             }
         }
@@ -546,15 +590,13 @@ object BudgetTemplatePlanner {
         val releasedByLimit = eligible.sumOf { (_, category) ->
             val cap = effectiveCap(category, month) ?: return@sumOf 0L
             val excess = max(0L, category.carryoverCents - cap)
-            val release = capTarget(category)?.limitHold == false || remainderLimit(category)?.limitHold == false
-            if (excess > 0L && release) excess else 0L
+            if (excess > 0L && releasesExcess(category)) excess else 0L
         }
         if (available != Long.MAX_VALUE) available += releasedByLimit
         eligible.forEach { (_, category) ->
             val cap = effectiveCap(category, month) ?: return@forEach
             val excess = max(0L, category.carryoverCents - cap)
-            val release = capTarget(category)?.limitHold == false || remainderLimit(category)?.limitHold == false
-            if (excess > 0L && release) proposed[category] = -excess
+            if (excess > 0L && releasesExcess(category)) proposed[category] = -excess
         }
         val priorities = eligible.flatMap {
             it.second.automations.ifEmpty { listOfNotNull(it.second.target) }
@@ -596,7 +638,7 @@ object BudgetTemplatePlanner {
                             (schedule.categoryId == null || schedule.categoryId == category.id)
                     }
             }
-            if (category.hasUnsupportedTarget || unresolvedSchedule) {
+            if (!category.automationsEvaluable || unresolvedSchedule) {
                 unsupported += "${group.name} · ${category.name}"
                 continue
             }
@@ -697,12 +739,21 @@ object BudgetTemplatePlanner {
         category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
             .firstOrNull { it.type == BudgetTarget.Type.REMAINDER && it.limitAmountCents != null }
 
+    /** A simple template's inline "up to" cap (upstream `checkLimit` reads `template.limit`). */
+    private fun simpleLimit(category: BudgetCategory): BudgetTarget? =
+        category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
+            .firstOrNull { it.type == BudgetTarget.Type.FIXED && it.simple && it.limitAmountCents != null }
+
+    private fun releasesExcess(category: BudgetCategory): Boolean =
+        listOfNotNull(capTarget(category), remainderLimit(category), simpleLimit(category)).any { !it.limitHold }
+
     private fun capTarget(category: BudgetCategory): BudgetTarget? =
         category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
             .firstOrNull { it.type == BudgetTarget.Type.LIMIT }
 
     private fun effectiveCap(category: BudgetCategory, month: String): Long? = listOfNotNull(
         remainderLimit(category)?.limitForMonth(month),
+        simpleLimit(category)?.limitForMonth(month),
         capTarget(category)?.capForMonth(month),
     ).minOrNull()
 

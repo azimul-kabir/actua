@@ -26,26 +26,14 @@
   {
     "category": "T Notes stored",
     "month": "2026-08",
-    "field": "budgeted",
-    "issue": 854
-  },
-  {
-    "category": "T Notes stored",
-    "month": "2026-08",
     "field": "goal",
-    "issue": 854
-  },
-  {
-    "category": "T Notes stored",
-    "month": "2026-09",
-    "field": "budgeted",
-    "issue": 854
+    "issue": 853
   },
   {
     "category": "T Notes stored",
     "month": "2026-09",
     "field": "goal",
-    "issue": 854
+    "issue": 853
   },
   {
     "category": "T Prebudgeted",
@@ -452,26 +440,14 @@
   {
     "category": "T Simple",
     "month": "2026-08",
-    "field": "budgeted",
-    "issue": 854
-  },
-  {
-    "category": "T Simple",
-    "month": "2026-08",
     "field": "goal",
-    "issue": 854
-  },
-  {
-    "category": "T Simple",
-    "month": "2026-09",
-    "field": "budgeted",
-    "issue": 854
+    "issue": 853
   },
   {
     "category": "T Simple",
     "month": "2026-09",
     "field": "goal",
-    "issue": 854
+    "issue": 853
   },
   {
     "category": "C Source",
