@@ -120,6 +120,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -2015,12 +2016,44 @@ private fun InlineCalculatorAmount(label: String, amount: Long, modifier: Modifi
 
 @Composable
 private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: Boolean, muted: Boolean = false) {
-    Text(
+    ShrinkToFitText(
         formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodySmall,
         fontWeight = FontWeight.Normal,
         color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
         else MaterialTheme.colorScheme.onSurface,
-        textAlign = TextAlign.End, maxLines = 1, modifier = modifier,
+        textAlign = TextAlign.End, modifier = modifier,
+    )
+}
+
+private val MinShrinkFontSize = 9.sp
+
+/** Single-line text that steps its font size down (to [MinShrinkFontSize]) until it fits its width. */
+@Composable
+private fun ShrinkToFitText(
+    text: String,
+    style: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier,
+    fontWeight: FontWeight? = null,
+    color: Color = Color.Unspecified,
+    textAlign: TextAlign? = null,
+) {
+    val baseSize = style.fontSize
+    var fontSize by remember(text, baseSize) { mutableStateOf(baseSize) }
+    Text(
+        text = text,
+        style = style,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        color = color,
+        textAlign = textAlign,
+        maxLines = 1,
+        softWrap = false,
+        modifier = modifier,
+        onTextLayout = { result ->
+            if (result.didOverflowWidth && fontSize.value > MinShrinkFontSize.value) {
+                fontSize = (fontSize.value - 0.5f).coerceAtLeast(MinShrinkFontSize.value).sp
+            }
+        },
     )
 }
 
@@ -2055,7 +2088,7 @@ private fun BalancePill(
             BalancePillTone.EMPTY -> Color.Transparent
         },
     ) {
-        Text(
+        ShrinkToFitText(
             text = formatMoneyCents(amount, hideDecimalPlaces),
             style = textStyle,
             fontWeight = if (tone == BalancePillTone.EMPTY) FontWeight.Normal else fontWeight,
@@ -2065,7 +2098,6 @@ private fun BalancePill(
                 BalancePillTone.EMPTY -> colors.onSurfaceVariant.copy(alpha = 0.55f)
             },
             modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
-            maxLines = 1,
         )
     }
 }
