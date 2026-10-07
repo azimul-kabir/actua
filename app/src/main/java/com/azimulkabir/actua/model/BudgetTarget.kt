@@ -588,6 +588,14 @@ object BudgetTemplatePlanner {
             listOfNotNull(category.id, category.name).map { it to category.balanceCents.coerceAtLeast(0L) }
         }.toMap() + ("all income" to groups.filter { it.isIncome }.flatMap { it.categories }
             .sumOf { it.balanceCents.coerceAtLeast(0L) })
+        // Last month's income (`sum-amount`/`total-income` of the previous month's sheet).
+        val previousMonth = runCatching { YearMonth.parse(month).minusMonths(1).toString() }.getOrNull()
+        val previousIncome = groups.filter { it.isIncome }.flatMap { it.categories }.associateWith { category ->
+            category.history.firstOrNull { it.month == previousMonth }?.spentCents ?: 0L
+        }
+        val previousPercentageSources = previousIncome.flatMap { (category, income) ->
+            listOfNotNull(category.id, category.name).map { it to income }
+        }.toMap() + ("all income" to previousIncome.values.sum())
         val eligible = supported.filter { (_, category) ->
             val targets = category.automations.ifEmpty { category.target?.let(::listOf).orEmpty() }
             val hasTargets = targets.isNotEmpty()
@@ -646,6 +654,7 @@ object BudgetTemplatePlanner {
                 val before = proposed[category] ?: 0L
                 val requested = requestedAtPriority(
                     atPriority, category, month, priorityAvailableStart, schedules, percentageSources,
+                    previousPercentageSources,
                 )
                 val refillCap = if (targets.any { it.type == BudgetTarget.Type.REFILL }) {
                     capTarget(category)?.capForMonth(month)
@@ -804,6 +813,7 @@ object BudgetTemplatePlanner {
         availableAtPriorityStart: Long,
         schedules: List<BudgetScheduleFunding>,
         percentageSources: Map<String, Long>,
+        previousPercentageSources: Map<String, Long>,
     ): Long {
         val by = targets.filter { it.type == BudgetTarget.Type.BY_DATE }
         val ordinary = targets.filterNot {
@@ -815,7 +825,13 @@ object BudgetTemplatePlanner {
         val schedule = scheduleRequest(targets, category, month, schedules)
         val percentage = targets.filter { it.type == BudgetTarget.Type.PERCENTAGE }
             .sumOf { target ->
-            if (target.percentagePrevious) return@sumOf 0L // local preview doesn't model prior-month income yet
+            if (target.percentagePrevious && !target.percentageSource.equals("available funds", ignoreCase = true)) {
+                // upstream `runPercentage` with `previous`: last month's income, rounded then floored at 0.
+                val income = previousPercentageSources.entries.firstOrNull {
+                    it.key.equals(target.percentageSource, ignoreCase = true)
+                }?.value ?: 0L
+                return@sumOf max(0L, Math.round(income.toDouble() * target.percentage / 100.0))
+            }
             val source = if (target.percentageSource.equals("available funds", ignoreCase = true)) {
                 availableAtPriorityStart
             } else {

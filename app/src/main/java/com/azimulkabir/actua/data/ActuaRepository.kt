@@ -561,6 +561,12 @@ class ActuaRepository(context: Context) {
                                 hidden = it.hidden,
                                 spentCents = -it.receivedCents,
                                 note = notes[it.categoryId].orEmpty(),
+                                // spentCents holds the month's raw `sum-amount` (income received).
+                                history = histories.mapNotNull { historyMonth ->
+                                    (historyMonth.incomeCategories + historyMonth.hiddenIncomeCategories)
+                                        .firstOrNull { row -> row.categoryId == it.categoryId }
+                                        ?.let { row -> BudgetHistory(historyMonth.month, row.budgetedCents, row.receivedCents) }
+                                },
                                 isIncome = true,
                             )
                         },

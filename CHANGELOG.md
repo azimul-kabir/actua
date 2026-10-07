@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Percentage templates of last month's income now budget like Actual instead of nothing ([#PR](https://github.com/azimul-kabir/actua/pull/PR))
 - Refill templates with a weekly or daily cap now top up to the month's full cap like Actual ([#881](https://github.com/azimul-kabir/actua/pull/881))
 - Schedule templates for bills due in later months now save toward them like Actual's sinking fund ([#880](https://github.com/azimul-kabir/actua/pull/880))
 - Repeating save-by-date templates whose date has passed now roll forward like Actual instead of budgeting the whole target at once ([#879](https://github.com/azimul-kabir/actua/pull/879))
