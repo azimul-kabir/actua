@@ -51,7 +51,11 @@ class SimpleTemplateTest {
             assertEquals(original.opt("monthly").toString(), encoded.opt("monthly").toString())
             assertEquals(original.optInt("priority"), encoded.optInt("priority"))
             val limit = original.optJSONObject("limit")
-            if (limit == null) assertTrue(encoded.isNull("limit")) else assertTrue(limit.similar(encoded.getJSONObject("limit")))
+            if (limit == null) assertTrue(encoded.isNull("limit")) else {
+                val written = encoded.getJSONObject("limit")
+                assertEquals(limit.keys().asSequence().toSet(), written.keys().asSequence().toSet())
+                limit.keys().forEach { key -> assertEquals(limit.get(key).toString(), written.get(key).toString()) }
+            }
         }
     }
 
