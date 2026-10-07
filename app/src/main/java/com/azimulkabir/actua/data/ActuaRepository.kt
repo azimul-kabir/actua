@@ -10,6 +10,7 @@ import com.azimulkabir.actua.data.budget.ActualTransactionType
 import com.azimulkabir.actua.data.budget.ActualTransactionWriter
 import com.azimulkabir.actua.data.budget.ActualSplitLineForm
 import com.azimulkabir.actua.data.budget.ActualEntityWriter
+import com.azimulkabir.actua.data.budget.PayeeSuggestions
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.bank.BankSyncResult
 import com.azimulkabir.actua.data.preferences.ExperimentalPreferences
@@ -190,6 +191,21 @@ class ActuaRepository(context: Context) {
         ?.filter { it.transferAccountId == null && it.name != "Unknown" }
         ?.map { it.name }
         ?: emptyList()
+
+    /**
+     * Actual's Suggested Payees for the payee picker: favorites, then the most-used payees of the
+     * last 12 weeks, limited to names the picker offers.
+     */
+    fun suggestedPayeeNames(): List<String> {
+        val db = actualDatabase ?: return emptyList()
+        val offered = payeeNames().toSet()
+        val favorites = db.fetchManagedPayees()
+            .filter { it.favorite && it.transferAccountId == null }
+            .map { it.name }
+        val since = com.azimulkabir.actua.data.schedules.DayDate.today()
+            .addingDays(-PayeeSuggestions.COMMON_WINDOW_DAYS).yyyymmdd
+        return PayeeSuggestions.suggest(favorites, db.fetchCommonPayeeNames(since)).filter { it in offered }
+    }
 
     /** Live payees for Manage Payees; transfer payees are listed under their account's name. */
     fun managedPayees(): List<ActualManagedPayee> = actualDatabase?.fetchManagedPayees().orEmpty()

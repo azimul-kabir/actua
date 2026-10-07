@@ -1195,6 +1195,36 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun commonPayeesCountRecentAliveTransactionsThroughTheMapping() {
+        // Upstream getCommonPayees (actua#897).
+        val file = createDatabaseFile()
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO payees VALUES ('cafe','Cafe',NULL,0), ('old-cafe','Old Cafe',NULL,1), ('rare','Rare',NULL,0), ('stale','Stale',NULL,0), ('nameless','',NULL,0)")
+                db.execSQL("INSERT INTO payee_mapping VALUES ('cafe','cafe'), ('old-cafe','cafe'), ('rare','rare'), ('stale','stale'), ('nameless','nameless')")
+                insertTransaction(db, "c1", 0, 0, "checking", null, -100, "cafe", 20300102, 1.0)
+                insertTransaction(db, "c2", 0, 0, "checking", null, -100, "old-cafe", 20300103, 2.0)
+                insertTransaction(db, "c3", 0, 0, "checking", null, -100, "cafe", 20300104, 3.0)
+                insertTransaction(db, "r1", 0, 0, "checking", null, -100, "rare", 20300105, 4.0)
+                insertTransaction(db, "n1", 0, 0, "checking", null, -100, "nameless", 20300105, 5.0)
+                insertTransaction(db, "n2", 0, 0, "checking", null, -100, "nameless", 20300105, 6.0)
+                insertTransaction(db, "n3", 0, 0, "checking", null, -100, "nameless", 20300105, 7.0)
+                insertTransaction(db, "s1", 0, 0, "checking", null, -100, "stale", 20300101, 8.0)
+                db.execSQL("UPDATE transactions SET tombstone = 1 WHERE id = 'r1'")
+                insertTransaction(db, "r2", 0, 0, "checking", null, -100, "rare", 20300106, 9.0)
+            }
+            ActualBudgetDatabase.open(file).use { database ->
+                // Cafe: 3 (one through the merged id); Rare: 1 alive; Stale is on the cut-off day;
+                // unnamed payees are skipped.
+                assertEquals(listOf("Cafe", "Rare"), database.fetchCommonPayeeNames(afterDate = 20300101))
+                assertEquals(listOf("Cafe"), database.fetchCommonPayeeNames(afterDate = 20300101, limit = 1))
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun savedReportsReadIncludeCurrentAndTolerateOlderSchemas() {
         val file = createDatabaseFile()
         try {

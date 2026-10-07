@@ -407,6 +407,7 @@ fun AppNavigation(
         PickerChoices.accounts(accounts.filterNot { it.closed }.map { it.id to it.name })
     }
     val payeeNames = remember(dataVersion) { repository.payeeNames() }
+    val suggestedPayees = remember(dataVersion) { repository.suggestedPayeeNames() }
     val creditCards = remember(dataVersion) { repository.creditCards() }
     // reportSnapshot, rules/rulesSupported/scheduleOwnedRuleIds/ruleEditorData, and
     // reorderCategoryGroups are each read by exactly one destination (Reports, Rules,
@@ -1732,6 +1733,7 @@ fun AppNavigation(
                     accountChoices = accountChoices,
                     categoryChoices = categoryChoices,
                     payeeOptions = payeeOptions,
+                    suggestedPayees = suggestedPayees,
                     defaultAccount = if (editingTransaction == null && editorReturnsToTransactions) {
                         transactionAccount ?: defaultAccount
                     } else {

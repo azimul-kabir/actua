@@ -382,6 +382,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   payees, notes, imported descriptions and categories; stable database paging
 - Character-by-character payee-picker filtering with one alphabetical result list
   across ordinary payees and matching transfer accounts
+- Payee-picker "Suggested" group like Actual's Suggested Payees: favorite payees, then the most-used
+  payees of the last 12 weeks, up to five in total
 - Per-account "Hide reconciled transactions" backed by Actual's synced
   `hide-reconciled-<accountId>` preference, so the setting is shared with the PWA;
   a selected status chip supersedes it
