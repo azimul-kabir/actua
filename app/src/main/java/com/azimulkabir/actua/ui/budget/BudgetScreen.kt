@@ -2748,23 +2748,6 @@ private fun CategoryActionsSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ActuaSheetContent {
             ActuaSheetTitle(category.name)
-            if (budgetActions) {
-                ActuaSheetCard {
-                    CategoryBudgetAction.entries.forEachIndexed { index, action ->
-                        if (index > 0) ActuaCardDivider()
-                        ActuaSheetAction(action.label, icon = action.icon, onClick = { onBudgetAction(action) })
-                    }
-                }
-            }
-            incomeHold?.let { holding ->
-                ActuaSheetCard {
-                    ActuaSheetAction(
-                        if (holding) "Stop holding automatically" else "Hold automatically for next month",
-                        icon = Icons.Outlined.Replay,
-                        onClick = { onSetIncomeHold(!holding) },
-                    )
-                }
-            }
             ActuaSheetCard {
                 if (!category.isIncome) {
                     ActuaSheetAction("Edit budgeted amount", icon = Icons.Outlined.Calculate, onClick = onEditBudget)
@@ -2804,6 +2787,24 @@ private fun CategoryActionsSheet(
                     destructive = !hidden,
                     onClick = { onSetHidden(!hidden) },
                 )
+            }
+            // Below the existing actions, so they keep their place in the half-open sheet.
+            if (budgetActions) {
+                ActuaSheetCard {
+                    CategoryBudgetAction.entries.forEachIndexed { index, action ->
+                        if (index > 0) ActuaCardDivider()
+                        ActuaSheetAction(action.label, icon = action.icon, onClick = { onBudgetAction(action) })
+                    }
+                }
+            }
+            incomeHold?.let { holding ->
+                ActuaSheetCard {
+                    ActuaSheetAction(
+                        if (holding) "Stop holding automatically" else "Hold automatically for next month",
+                        icon = Icons.Outlined.Replay,
+                        onClick = { onSetIncomeHold(!holding) },
+                    )
+                }
             }
         }
     }
