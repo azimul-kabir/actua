@@ -1447,12 +1447,6 @@ class ActuaRepository(context: Context) {
 
     fun cleanupGroups(): List<CleanupGroup> = actualDatabase?.fetchCleanupGroups()?.map { CleanupGroup(it.id, it.name) } ?: emptyList()
 
-    /**
-     * Re-scans every category note for `#cleanup` directives and rewrites `cleanup_def` plus
-     * `cleanup_groups` in one atomic batch, mirroring Actual's `storeNoteCleanups()`. Group
-     * names are resolved case-insensitively; groups no longer referenced by any category are
-     * tombstoned rather than deleted, matching upstream's `tombstoneOrphanCleanupGroups()`.
-     */
     /** Re-reads notes-managed `#template`/`#goal` definitions before templates are previewed (#855). */
     fun refreshNoteTemplates(): Boolean {
         val db = actualDatabase ?: return false
@@ -1466,6 +1460,12 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    /**
+     * Re-scans every category note for `#cleanup` directives and rewrites `cleanup_def` plus
+     * `cleanup_groups` in one atomic batch, mirroring Actual's `storeNoteCleanups()`. Group
+     * names are resolved case-insensitively; groups no longer referenced by any category are
+     * tombstoned rather than deleted, matching upstream's `tombstoneOrphanCleanupGroups()`.
+     */
     fun refreshCleanupDefinitions(): Boolean {
         val db = actualDatabase ?: return false
         val writer = actualEntities ?: return false
