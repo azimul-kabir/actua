@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- The Upcoming Schedules widget now scrolls through every schedule in its period instead of showing only four ([#870](https://github.com/azimul-kabir/actua/pull/870))
 - Status colors now tint the Balance instead of the Budgeted amount on Budget rows ([#843](https://github.com/azimul-kabir/actua/pull/843))
 
 ### Added
