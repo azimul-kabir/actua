@@ -944,14 +944,13 @@ class ActuaRepository(context: Context) {
         val db = actualDatabase ?: return 0
         val writer = actualWriter ?: return 0
         require(db.fetchAccounts().any { it.id == accountId && !it.closed }) { "That account is unavailable" }
-        val rows = candidates.map { candidate ->
-            val payeeId = writer.resolveOrCreatePayee(candidate.payee).id
+        val drafts = candidates.map { candidate ->
             ActualTransaction(
                 id = java.util.UUID.randomUUID().toString().lowercase(),
                 accountId = accountId,
                 date = candidate.date,
                 amountCents = candidate.amountCents,
-                payeeId = payeeId,
+                payeeId = null,
                 payeeName = null,
                 categoryId = null,
                 categoryName = null,
@@ -964,11 +963,21 @@ class ActuaRepository(context: Context) {
                 parentId = null,
                 tombstone = false,
                 sortOrder = null,
-                importedPayee = candidate.payee,
+                importedPayee = candidate.payee.trim().takeIf(String::isNotEmpty),
                 scheduleId = null,
                 transferAccountId = null,
             )
         }
+        // Rules run on every imported row before payees are created, as in Actual's import.
+        val rows = com.azimulkabir.actua.data.importing.ImportRules.apply(
+            drafts, db.fetchRules(), db.ruleContext(),
+            existingPayeeId = { db.findPayeeByName(it)?.id },
+            newId = { java.util.UUID.randomUUID().toString().lowercase() },
+        ).map { prepared ->
+            prepared.createPayeeName?.let { prepared.transaction.copy(payeeId = writer.resolveOrCreatePayee(it).id) }
+                ?: prepared.transaction
+        }
+        if (rows.isEmpty()) return 0
         writer.mutate(inserts = rows)
         return rows.size
     }
