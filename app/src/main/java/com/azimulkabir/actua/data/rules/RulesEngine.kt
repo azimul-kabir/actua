@@ -41,16 +41,19 @@ object RulesEngine {
         val bag = Bag(transaction, context)
         val before = bag.snapshot()
         val scheduleId = transaction.scheduleId
-        RuleRanker.rank(rules).filter { rule ->
+        // Rules run one at a time, each checked against the transaction as the rules before it
+        // left it, as upstream's runRules loop does (`finalTrans = rules[i].apply(finalTrans)`).
+        for (rule in RuleRanker.rank(rules)) {
             val linkedSchedule = rule.linkedScheduleId()
-            when {
+            val fires = when {
                 // The schedule's own rule always fires for its transaction, skipping condition
                 // checks, while every other schedule-owned rule is excluded entirely -- matching
                 // upstream's runRules schedule bypass/exclusion (transaction-rules.ts).
                 scheduleId != null && linkedSchedule != null -> linkedSchedule == scheduleId
                 else -> conditionsMatch(rule, bag)
             }
-        }.forEach { rule -> rule.actions.forEach { apply(it, bag) } }
+            if (fires) rule.actions.forEach { apply(it, bag) }
+        }
         return RuleRunResult(bag.transaction(), bag.changed(before), bag.pendingPayeeName, bag.deleted)
     }
 
@@ -130,7 +133,7 @@ object RulesEngine {
         private val strings = mutableMapOf<String, String?>(
             "account" to base.accountId, "payee" to base.payeeId,
             "payee_name" to (base.payeeId?.let(context.payeeNames::get) ?: base.payeeName),
-            "category" to base.categoryId, "category_group" to base.categoryId?.let(context.categoryGroupIds::get),
+            "category" to base.categoryId,
             "notes" to base.notes, "imported_payee" to base.importedPayee,
             "transfer_id" to base.transferId, "parent_id" to base.parentId, "schedule" to base.scheduleId,
         )
@@ -148,15 +151,25 @@ object RulesEngine {
         val isParent get() = base.isParent
         var pendingPayeeName: String? = null
         var deleted = false
+        // Ids and names follow the values earlier rules set. A payee_name an earlier rule set is
+        // matched to an existing payee, as upstream's resolvePayeeNameForRules does after each rule.
+        // The on/off-budget flag stays with the original account, as upstream's `_account` does.
+        private val payeeId get() = strings["payee"] ?: pendingPayeeName?.trim()?.takeIf(String::isNotEmpty)
+            ?.let { name -> context.payeeNames.entries.firstOrNull { it.value.trim().equals(name, true) }?.key }
+        private val categoryGroupId get() = strings["category"]?.let(context.categoryGroupIds::get)
         fun text(field: String, op: String? = null): String? = if (op in setOf("contains", "doesNotContain", "matches")) {
             when (field) {
-                "category" -> base.categoryName ?: base.categoryId?.let(context.categoryNames::get)
-                "category_group" -> base.categoryId?.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
-                "account" -> context.accountNames[base.accountId]
-                "payee" -> base.payeeName
+                "category" -> strings["category"]?.let { if (it == base.categoryId) base.categoryName ?: context.categoryNames[it] else context.categoryNames[it] }
+                "category_group" -> categoryGroupId?.let(context.categoryGroupNames::get)
+                "account" -> strings["account"]?.let(context.accountNames::get)
+                "payee" -> if (strings["payee"] == base.payeeId && pendingPayeeName == null) base.payeeName else payeeId?.let(context.payeeNames::get)
                 else -> strings[field]
             }
-        } else strings[field]
+        } else when (field) {
+            "payee" -> payeeId
+            "category_group" -> categoryGroupId
+            else -> strings[field]
+        }
         fun number(field: String) = if (field == "amount-inflow" || field == "amount-outflow") numbers["amount"] else numbers[field]
         fun flag(field: String) = flags[field]
         fun set(field: String, value: RuleValue) { when (RuleSchema.type(field)) {
@@ -168,7 +181,7 @@ object RulesEngine {
         fun snapshot() = strings.mapValues { "s:${it.value}" } + numbers.mapValues { "i:${it.value}" } + flags.mapValues { "b:${it.value}" }
         fun changed(before: Map<String, String>) = snapshot().filter { before[it.key] != it.value }.keys
         fun transaction() = base.copy(accountId = text("account") ?: base.accountId, date = number("date")?.toInt() ?: base.date,
-            amountCents = number("amount") ?: base.amountCents, payeeId = text("payee"), categoryId = text("category"), notes = text("notes"),
+            amountCents = number("amount") ?: base.amountCents, payeeId = strings["payee"], categoryId = text("category"), notes = text("notes"),
             importedPayee = text("imported_payee"), transferId = text("transfer_id"), parentId = text("parent_id"), scheduleId = text("schedule"),
             cleared = flag("cleared") ?: base.cleared, reconciled = flag("reconciled") ?: base.reconciled, tombstone = deleted || base.tombstone)
     }

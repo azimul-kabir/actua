@@ -103,6 +103,38 @@ class RulesEngineTest {
         assertEquals(true, RuleDateMatcher.matchesRecurring(20260503, "isapprox", configJson as RuleValue.ObjectValue))
     }
 
+    @Test fun laterRulesSeeEarlierRulesChanges() {
+        fun rule(id: String, stage: Rule.Stage, condition: Rule.Condition, action: Rule.Action) =
+            Rule(id, stage, Rule.ConditionsOp.AND, listOf(condition), listOf(action))
+        val context = RuleContext(
+            payeeNames = mapOf("amazon" to "Amazon"),
+            categoryNames = mapOf("shopping" to "Shopping"),
+            categoryGroupIds = mapOf("shopping" to "spending"),
+            categoryGroupNames = mapOf("spending" to "Spending"),
+        )
+        val rules = listOf(
+            // Renames the imported payee to an existing payee, then categorizes by that payee.
+            rule("rename", Rule.Stage.PRE, Rule.Condition("contains", "imported_payee", RuleValue.Text("amzn")),
+                Rule.Action("set", "payee_name", RuleValue.Text("amazon"))),
+            rule("categorize", Rule.Stage.DEFAULT, Rule.Condition("is", "payee", RuleValue.Text("amazon")),
+                Rule.Action("set", "category", RuleValue.Text("shopping"))),
+            rule("group", Rule.Stage.POST, Rule.Condition("is", "category_group", RuleValue.Text("spending")),
+                Rule.Action("append-notes", null, RuleValue.Text(" grouped"))),
+            rule("groupName", Rule.Stage.POST, Rule.Condition("contains", "category_group", RuleValue.Text("spend")),
+                Rule.Action("append-notes", null, RuleValue.Text(" named"))),
+            // Checks the notes the original transaction had, which the post rules above changed.
+            rule("stale", Rule.Stage.POST, Rule.Condition("is", "notes", RuleValue.Text("order")),
+                Rule.Action("set", "cleared", RuleValue.Flag(true))),
+        )
+        val result = RulesEngine.apply(transaction(imported = "AMZN Mktp", notes = "order"), rules, context)
+        assertEquals("shopping", result.transaction.categoryId)
+        assertEquals("order named grouped", result.transaction.notes)
+        assertFalse(result.transaction.cleared)
+        // The payee is still written through the pending name, as before.
+        assertEquals("amazon", result.pendingPayeeName)
+        assertEquals(null, result.transaction.payeeId)
+    }
+
     private fun transaction(
         amount: Long = -100, imported: String? = null, payee: String? = null,
         payeeName: String? = null, notes: String? = null, date: Int = 20260503, scheduleId: String? = null,
