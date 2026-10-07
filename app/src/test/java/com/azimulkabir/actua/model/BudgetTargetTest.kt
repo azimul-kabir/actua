@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.model
 
+import java.time.YearMonth
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -92,6 +93,49 @@ class BudgetTargetTest {
             ).suggestedBudget(category, "2026-09"),
         )
     }
+
+    @Test fun historicalAverageCountsRefundsInTheNetMonthlyTotal() {
+        // Regression for #860: a net refund month reduces the average instead of counting as 0.
+        val category = category().copy(history = listOf(
+            BudgetHistory("2026-08", 0, -5_000),
+            BudgetHistory("2026-07", 0, 2_000),
+            BudgetHistory("2026-06", 0, -4_000),
+        ))
+        assertEquals(2_333, average(3).averageSpending(category, "2026-09", YearMonth.of(2026, 10)))
+    }
+
+    @Test fun historicalAverageRoundsBeforeAdjusting() {
+        val category = category().copy(history = listOf(
+            BudgetHistory("2026-08", 0, -1_000),
+            BudgetHistory("2026-07", 0, -1_001),
+            BudgetHistory("2026-06", 0, -1_001),
+        ))
+        val target = average(3).copy(adjustmentType = BudgetTarget.AdjustmentType.PERCENT, adjustmentPercent = 10.0)
+        assertEquals(1_001, target.averageSpending(category, "2026-09", YearMonth.of(2026, 10)))
+        assertEquals(1_101, target.applyAdjustment(target.averageSpending(category, "2026-09", YearMonth.of(2026, 10))))
+    }
+
+    @Test fun historicalAverageForAFutureMonthCountsBackFromLastMonth() {
+        val category = category().copy(history = listOf(
+            BudgetHistory("2026-11", 0, 0),
+            BudgetHistory("2026-10", 0, -90_000),
+            BudgetHistory("2026-09", 0, -3_000),
+            BudgetHistory("2026-08", 0, -1_000),
+        ))
+        assertEquals(2_000, average(2).averageSpending(category, "2026-12", YearMonth.of(2026, 10)))
+    }
+
+    @Test fun historicalAverageSkipsMonthsBeforeTheFirstActivity() {
+        val category = category().copy(history = listOf(
+            BudgetHistory("2026-08", 0, -6_000),
+            BudgetHistory("2026-07", 0, 0),
+        ))
+        assertEquals(6_000, average(3).averageSpending(category, "2026-09", YearMonth.of(2026, 10)))
+    }
+
+    private fun average(months: Int) = BudgetTarget(
+        BudgetTarget.Type.HISTORICAL, historicalMode = BudgetTarget.HistoricalMode.AVERAGE, historicalMonths = months,
+    )
 
     @Test fun historicalCopyUsesAssignedBudgetFromTheRequestedPriorMonth() {
         val category = category().copy(history = listOf(
