@@ -38,4 +38,12 @@ class PayeePickerSearchTest {
             alphabetizePickerOptions(options.filter { it.startsWith("Transfer: ") }),
         )
     }
+
+    @Test
+    fun suggestionsKeepTheirOrderAndOnlyOfferedOrdinaryPayees() {
+        assertEquals(
+            listOf("Shop", "EXIM Bank Card Fee"),
+            suggestedPickerOptions(options, listOf("Shop", "Gone", "Transfer: Cash", "EXIM Bank Card Fee", "Shop")),
+        )
+    }
 }

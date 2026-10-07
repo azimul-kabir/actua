@@ -106,7 +106,7 @@ allowlist is `name`, `tombstone` (`ActualEntityWriter.kt:436`).
 
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| `favorite` read: favorites lead the picker's Suggested Payees | `getPayeeSuggestions` | ignored | **Divergence** [#897](https://github.com/azimul-kabir/actua/issues/897) |
+| `favorite` read: favorites lead the picker's Suggested Payees | `getPayeeSuggestions` | same (`PayeeSuggestions`) | Match ([#897](https://github.com/azimul-kabir/actua/issues/897)) |
 | `learn_categories` read: payees set to 0 are left out of learning | `updateCategoryRules` register | same filter (skipped on schemas without the column, where every payee learns) | Match |
 | `favorite` / `learn_categories` written from the Payees page | `payees-batch-change` | integer 0/1 cells for ordinary payees | Match ([#896](https://github.com/azimul-kabir/actua/issues/896)) |
 | Category learning: after a categorised add/edit, for each payee with `learn_categories = 1`, take its latest 5 non-parent transactions in open accounts (±180 days); a category used ≥ 3 times updates every `payee is X → set category` default-stage rule, or creates one | `updateCategoryRules` | runs after transaction-form saves (rows whose `category` cell the save set to a non-null value), with the same register, 5-row window, ≥ 3 vote rule and setter-rule update/create; all rule writes in one batch (`ActualEntityWriter.learnCategories`, `data/rules/CategoryLearning.kt`) | Match (fixed by [#901](https://github.com/azimul-kabir/actua/pull/901) for [#894](https://github.com/azimul-kabir/actua/issues/894)). Like the desktop register; Actual's mobile editor and bank sync don't learn, and neither do Actua's imports and bank sync. |
@@ -150,7 +150,7 @@ Actua: `ActuaRepository.payeeNames` (`:185`), `AppNavigation.kt:1624`,
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | Nearby section first when location is enabled | yes | yes (opt-in) | Match |
-| Suggested Payees (favorites, then up to 5 common payees from the last 12 weeks) | yes | none | **Divergence** [#897](https://github.com/azimul-kabir/actua/issues/897) |
+| Suggested Payees (every favorite by name, then common payees from the last 12 weeks up to 5 in total, by name), left out of the main list | yes | "Suggested" group after Nearby while the search is empty (`ActuaRepository.suggestedPayeeNames`, `fetchCommonPayeeNames`) | Match ([#904](https://github.com/azimul-kabir/actua/pull/904) for [#897](https://github.com/azimul-kabir/actua/issues/897)) |
 | Ordinary payees alphabetical, case-insensitive | `COLLATE NOCASE` | `CASE_INSENSITIVE_ORDER`, grouped by first letter | Match (letter headers are Android presentation) |
 | Transfers in their own section after payees | Transfer To/From, ordered on-budget first then `sort_order` | `Transfer:` section, alphabetical | **Intentional.** Same members; Android orders by name. |
 | Typing filters ordinary and transfer entries together | Fzf fuzzy subsequence | case-insensitive substring, alphabetical | **Intentional** (documented in `BACKEND_PARITY.md`). Substring is stricter than fuzzy; no wrong matches. |
@@ -188,7 +188,7 @@ writer CRDT messages, schema gate, partial rows), `src/test/.../ui/transactions/
 - [#894](https://github.com/azimul-kabir/actua/issues/894): Saving a transaction doesn't learn the payee's category (P2). Fixed by [#901](https://github.com/azimul-kabir/actua/pull/901).
 - [#895](https://github.com/azimul-kabir/actua/issues/895): Merging a payee leaves earlier merges pointing at the merged payee (latent; blocks #896). Fixed by [#902](https://github.com/azimul-kabir/actua/pull/902).
 - [#896](https://github.com/azimul-kabir/actua/issues/896): No payee management (rename, merge, delete, favorite, learn categories). Fixed by [#903](https://github.com/azimul-kabir/actua/pull/903).
-- [#897](https://github.com/azimul-kabir/actua/issues/897): Payee picker has no Suggested Payees section (low).
+- [#897](https://github.com/azimul-kabir/actua/issues/897): Payee picker has no Suggested Payees section (low). Fixed by [#904](https://github.com/azimul-kabir/actua/pull/904).
 - [#898](https://github.com/azimul-kabir/actua/issues/898): Payee name lookup is ASCII-only case-insensitive (P2).
 
 **Limitations:** this audit compares source at the pinned commit and Actua's code; it doesn't

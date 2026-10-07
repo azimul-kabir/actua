@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- The payee picker suggests your favorite and most-used payees first ([#904](https://github.com/azimul-kabir/actua/pull/904))
 - Manage payees: rename, merge, delete, favorite and turn category learning on or off ([#903](https://github.com/azimul-kabir/actua/pull/903))
 - Categorising a payee's transactions creates or updates its category rule, as Actual's category learning does ([#901](https://github.com/azimul-kabir/actua/pull/901))
 

@@ -543,6 +543,31 @@ class ActualBudgetDatabase private constructor(
         } }
     }
 
+    /**
+     * Upstream `getCommonPayees`: named live payees by how many alive transactions (split children
+     * with a live parent) dated after [afterDate] use them, most used first, at most [limit].
+     */
+    @Synchronized
+    fun fetchCommonPayeeNames(afterDate: Int, limit: Int = 10): List<String> {
+        if (!hasTable("payee_mapping")) return emptyList()
+        return database.rawQuery(
+            """SELECT p.name, COUNT(*) AS c
+                FROM transactions t
+                LEFT JOIN transactions parent ON t.isChild = 1 AND parent.id = t.parent_id
+                JOIN payee_mapping pm ON pm.id = t.description
+                JOIN payees p ON p.id = pm.targetId
+                WHERE (t.tombstone = 0 OR t.tombstone IS NULL)
+                  AND t.date IS NOT NULL AND t.acct IS NOT NULL AND t.date > ?
+                  AND (t.isChild = 0 OR t.isChild IS NULL OR
+                       (t.parent_id IS NOT NULL AND parent.tombstone = 0))
+                  AND LENGTH(p.name) > 0 AND (p.tombstone = 0 OR p.tombstone IS NULL)
+                GROUP BY p.id
+                ORDER BY c DESC, p.transfer_acct IS NULL DESC, p.name COLLATE NOCASE
+                LIMIT ?""",
+            arrayOf(afterDate.toString(), limit.toString()),
+        ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(0)) } }
+    }
+
     @Synchronized
     fun findPayeeByName(name: String): ActualPayee? = database.rawQuery(
         """SELECT id, name, transfer_acct FROM payees

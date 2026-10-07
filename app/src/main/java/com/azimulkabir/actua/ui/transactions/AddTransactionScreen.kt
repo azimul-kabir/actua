@@ -121,6 +121,8 @@ fun AddTransactionScreen(
     offBudgetAccountOptions: Set<String> = emptySet(),
     categoryOptions: List<String> = listOf("Groceries", "Dining", "Transport", "Rent"),
     payeeOptions: List<String> = emptyList(),
+    /** Actual's Suggested Payees (favorites, then frequent payees), shown first in the payee picker. */
+    suggestedPayees: List<String> = emptyList(),
     accountBalanceLabels: Map<String, String> = emptyMap(),
     categoryBalanceLabels: Map<String, String> = emptyMap(),
     defaultAccount: String? = null,
@@ -333,6 +335,7 @@ fun AddTransactionScreen(
                 PickerTextField(
                     label = "Payee", value = payee,
                     options = payeeOptions.filterNot { it == TRANSFER_PAYEE_PREFIX + account },
+                    suggested = suggestedPayees,
                     supportingValues = accountBalanceLabels.mapKeys { TRANSFER_PAYEE_PREFIX + it.key },
                     onValueChange = onPayeeChange,
                     allowCustom = true,
@@ -799,6 +802,8 @@ internal fun PickerTextField(
     options: List<String>,
     onValueChange: (String) -> Unit,
     allowCustom: Boolean = false,
+    /** Options shown in a "Suggested" group above the alphabetical list while the search is empty. */
+    suggested: List<String> = emptyList(),
     supportingValues: Map<String, String> = emptyMap(),
     onFindNearby: (suspend () -> NearbyPayeeSearchResult)? = null,
     onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
@@ -940,6 +945,7 @@ internal fun PickerTextField(
         selected = value,
         options = options,
         allowCustom = allowCustom,
+        suggested = suggested,
         supportingValues = supportingValues,
         onFindNearby = onFindNearby,
         onForgetPayeeLocation = onForgetPayeeLocation,
@@ -987,6 +993,7 @@ private fun SearchableTransactionPicker(
     selected: String,
     options: List<String>,
     allowCustom: Boolean,
+    suggested: List<String>,
     supportingValues: Map<String, String>,
     onFindNearby: (suspend () -> NearbyPayeeSearchResult)?,
     onForgetPayeeLocation: (suspend (String) -> Boolean)?,
@@ -1045,8 +1052,9 @@ private fun SearchableTransactionPicker(
     val transferOptions = remember(uniqueOptions) {
         alphabetizePickerOptions(uniqueOptions.filter { it.startsWith("Transfer: ") })
     }
-    val grouped = remember(uniqueOptions) {
-        uniqueOptions.filterNot { it.startsWith("Transfer: ") }
+    val suggestedOptions = remember(uniqueOptions, suggested) { suggestedPickerOptions(uniqueOptions, suggested) }
+    val grouped = remember(uniqueOptions, suggestedOptions) {
+        uniqueOptions.filterNot { it.startsWith("Transfer: ") || it in suggestedOptions }
             .sortedWith(String.CASE_INSENSITIVE_ORDER)
             .groupBy { it.firstOrNull()?.uppercaseChar()?.takeIf(Char::isLetterOrDigit)?.toString() ?: "#" }
     }
@@ -1159,6 +1167,15 @@ private fun SearchableTransactionPicker(
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
                                 )
                             }
+                        }
+                    }
+                    if (query.isBlank() && suggestedOptions.isNotEmpty()) {
+                        item(key = "heading-suggested") { ActuaGroupLabel("Suggested") }
+                        item(key = "group-suggested") {
+                            PickerGroup(
+                                suggestedOptions, selected, supportingValues = supportingValues,
+                                onSelect = onSelect,
+                            )
                         }
                     }
                     if (query.isNotBlank() && searchResults.isNotEmpty()) {
@@ -1299,6 +1316,12 @@ internal fun amountFieldPresentation(
         placeholder = "Amount",
         showEmptyCaret = false,
     )
+}
+
+/** Suggestions in their given order, limited to offered non-transfer options (upstream excludes them from the main list). */
+internal fun suggestedPickerOptions(options: List<String>, suggested: List<String>): List<String> {
+    val offered = options.toSet()
+    return suggested.distinct().filter { it in offered && !it.startsWith(TRANSFER_PAYEE_PREFIX) }
 }
 
 internal fun filterPickerOptions(options: List<String>, query: String): List<String> {
