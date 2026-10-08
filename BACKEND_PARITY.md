@@ -175,7 +175,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   transaction list/detail surfaces, notes autocomplete (including live highlighting of
   recognized tags as they're typed, before the transaction is saved), native
   tag create/edit/delete/color/hidden management, and tap-a-tag transaction discovery,
-  synced from Actual's tag dataset; see [docs/tags.md](docs/tags.md)
+  synced from Actual's tag dataset; see [docs/tags.md](docs/tags.md), whose parity matrix and
+  tag-parsing corpus test list the filed divergences
 - Timezone-free schedule day math, upcoming windows, lifecycle status, and
   transaction occurrence matching; see
   [docs/SCHEDULED_TRANSACTIONS_PARITY.md](docs/SCHEDULED_TRANSACTIONS_PARITY.md) for the
