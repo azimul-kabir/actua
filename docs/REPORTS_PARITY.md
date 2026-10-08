@@ -266,7 +266,7 @@ Upstream: [`S/sankey-spreadsheet.ts#L173-L838`][sankey], [`W/SankeyCard.tsx#L53-
 
 | Setting / behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| `mode = spent`: categorized rows only, netted per category and account, split by net sign | per-category queries | per-transaction sign, uncategorized included, transfers excluded | **Divergence** [#950](https://github.com/azimul-kabir/actua/issues/950) |
+| `mode = spent`: categorized rows only, netted per category and account (and payee for income), split by net sign | per-category queries | same | Match (#950) |
 | Income broken down per income category | | same | Match |
 | `mode = budgeted` | budget cells | always spent | **Not ported** |
 | `topNcategories` "Other", `groupAccounts`, `layerFrom`/`layerTo`, `categorySort`, `showPercentages` | layout options | not read | **Not ported** |
@@ -359,8 +359,7 @@ Its causes were fixed one by one:
 - Monte Carlo success rate: #623/#627.
 - "6 months shows 2 months": merged-category ids (#636/#638) and `include_current` (#637/#639).
 
-None of the divergences above reopen #605's figures. #950 is the one most likely to produce a
-similar report: it affects Sankey totals in budgets with refunds or uncategorized transactions.
+None of the divergences above reopen #605's figures.
 
 This audit compared source code at the pinned commit. Comparing each widget's numbers side by side
 with the PWA on one synthetic budget has **not** been done yet. That acceptance criterion of #671
