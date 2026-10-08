@@ -9,10 +9,8 @@ import java.util.UUID
 /**
  * Canonical Actual tag mutations through the same CRDT message path as other entities.
  *
- * This deliberately does not rewrite transaction notes when a tag name changes. Actual's
- * full rename operation is a separate semantic operation because it updates matching note
- * tokens atomically; that behavior belongs to the rename/integration slice rather than a
- * metadata-only update.
+ * [update] changes metadata only; [rename] also rewrites the tag in transaction notes, like
+ * Actual's `renameTag`.
  */
 class ActualTagWriter(
     private val database: ActualBudgetDatabase,
@@ -67,6 +65,26 @@ class ActualTagWriter(
         hidden?.let { values["hidden"] = if (it) 1 else 0 }
         require(values.isNotEmpty()) { "No tag fields to update" }
         persist(fields(id, values))
+    }
+
+    /**
+     * Actual's `renameTag`: the new name and every live transaction row whose notes carry `#[oldName]`,
+     * split lines included, written in one batch so notes and tag never disagree.
+     */
+    @Synchronized
+    fun rename(id: String, oldName: String, newName: String) {
+        require(id.isNotBlank())
+        val name = validTag(newName)
+        if (name == oldName) return
+        require(database.fetchTagRowByName(name)?.id.let { owner -> owner == null || owner == id }) {
+            "A tag with that name already exists"
+        }
+        val noteMessages = database.fetchNotesWithHashes().mapNotNull { (transactionId, notes) ->
+            val renamed = renameTagInNotes(notes, oldName, name)
+            if (renamed == notes) null
+            else CrdtMessage(clock.send(), "transactions", transactionId, "notes", CrdtValue.serialize(renamed))
+        }
+        persist(fields(id, mapOf("tag" to name)) + noteMessages)
     }
 
     /** Actual deletes managed metadata by tombstoning the tag; note text is left intact. */

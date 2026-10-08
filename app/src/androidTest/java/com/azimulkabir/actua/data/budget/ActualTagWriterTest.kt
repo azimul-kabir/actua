@@ -80,6 +80,33 @@ class ActualTagWriterTest {
     }
 
     @Test
+    fun renameRewritesEveryLiveRowIncludingSplitLinesInOneBatch() {
+        withDatabase(seed = { db ->
+            db.execSQL("INSERT INTO transactions (id, notes) VALUES ('parent', 'Trip #work')")
+            db.execSQL("INSERT INTO transactions (id, notes, isChild, parent_id) VALUES ('child', 'Taxi #work ##work', 1, 'parent')")
+            db.execSQL("INSERT INTO transactions (id, notes, tombstone) VALUES ('deleted', '#work', 1)")
+            db.execSQL("INSERT INTO transactions (id, notes) VALUES ('other', '#work2')")
+        }) { database, file ->
+            var pushes = 0
+            val writer = ActualTagWriter(database, nodeId = "eeeeeeeeeeeeeeee", idFactory = { "tag-1" }, onWrite = { pushes++ })
+            val id = writer.create("work")
+
+            writer.rename(id, "work", "office")
+
+            assertEquals(2, pushes) // create, then one batch for the rename
+            assertTag(file, "office", null, null, hidden = false, tombstone = false)
+            SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                fun notes(id: String) = db.rawQuery("SELECT notes FROM transactions WHERE id = ?", arrayOf(id))
+                    .use { assertTrue(it.moveToFirst()); it.getString(0) }
+                assertEquals("Trip #office", notes("parent"))
+                assertEquals("Taxi #office ##work", notes("child"))
+                assertEquals("#work", notes("deleted"))
+                assertEquals("#work2", notes("other"))
+            }
+        }
+    }
+
+    @Test
     fun tagNamesFollowActualValidation() {
         withDatabase { database, _ ->
             val writer = ActualTagWriter(database, nodeId = "bbbbbbbbbbbbbbbb")
@@ -118,7 +145,7 @@ class ActualTagWriterTest {
         }
     }
 
-    private fun withDatabase(block: (ActualBudgetDatabase, File) -> Unit) {
+    private fun withDatabase(seed: (SQLiteDatabase) -> Unit = {}, block: (ActualBudgetDatabase, File) -> Unit) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "tags-writer-${UUID.randomUUID()}.sqlite")
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
@@ -129,11 +156,12 @@ class ActualTagWriterTest {
             db.execSQL("CREATE TABLE category_groups (id TEXT PRIMARY KEY)")
             db.execSQL("CREATE TABLE payee_mapping (id TEXT PRIMARY KEY)")
             db.execSQL("CREATE TABLE payees (id TEXT PRIMARY KEY)")
-            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY, notes TEXT, tombstone INTEGER DEFAULT 0, isChild INTEGER DEFAULT 0, parent_id TEXT)")
             db.execSQL("CREATE TABLE zero_budgets (id TEXT PRIMARY KEY)")
             db.execSQL("CREATE TABLE tags (id TEXT PRIMARY KEY, tag TEXT UNIQUE, color TEXT, description TEXT, hidden INTEGER DEFAULT 0, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
             db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, column TEXT NOT NULL, value BLOB NOT NULL)")
+            seed(db)
         }
         try {
             ActualBudgetDatabase.open(file).use { block(it, file) }

@@ -43,20 +43,10 @@ class ActiveTagRepository(context: Context) {
             // Deleted tags keep their name too (`tags.tag` is UNIQUE), so check every row before rewriting notes.
             val owner = database.fetchTagRowByName(normalized)?.id
             if (normalized != tag.tag && owner != null && owner != tag.id) return@withDatabase false
-            if (normalized != tag.tag) {
-                val transactions = database.fetchTransactions(limit = Int.MAX_VALUE)
-                val changed = transactions.mapNotNull { transaction ->
-                    val notes = transaction.notes ?: return@mapNotNull null
-                    val renamed = renameTagInNotes(notes, tag.tag, normalized)
-                    if (renamed == notes) null else transaction to transaction.copy(notes = renamed)
-                }
-                if (changed.isNotEmpty()) {
-                    ActualTransactionWriter(database, onWrite = ::scheduleMutation).mutate(updates = changed)
-                }
-            }
-            tagWriter(database).update(
+            val writer = tagWriter(database)
+            if (normalized != tag.tag) writer.rename(tag.id, tag.tag, normalized)
+            writer.update(
                 id = tag.id,
-                tag = normalized.takeIf { it != tag.tag },
                 color = color,
                 description = description,
                 hidden = hidden,

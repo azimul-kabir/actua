@@ -374,6 +374,19 @@ class ActualBudgetDatabase private constructor(
 
     data class TagRow(val id: String, val deleted: Boolean)
 
+    /**
+     * Actual's `findTags`: id and notes of every live `transactions` row whose notes have a `#`,
+     * split lines included.
+     */
+    @Synchronized
+    fun fetchNotesWithHashes(): List<Pair<String, String>> {
+        if (!hasTable("transactions")) return emptyList()
+        return database.rawQuery(
+            "SELECT id, notes FROM transactions WHERE COALESCE(tombstone, 0) = 0 AND notes LIKE ?",
+            arrayOf("%#%"),
+        ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(0) to cursor.getString(1)) } }
+    }
+
     /** Actual's synced `defaultCurrencyCode` preference, or null when unset. */
     @Synchronized
     fun defaultCurrencyCode(): String? {
