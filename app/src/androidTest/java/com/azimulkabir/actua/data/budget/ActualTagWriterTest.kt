@@ -48,6 +48,38 @@ class ActualTagWriterTest {
     }
 
     @Test
+    fun recreatingADeletedTagReusesItsRowLikeActual() {
+        withDatabase { database, file ->
+            var next = 0
+            val writer = ActualTagWriter(database, nodeId = "cccccccccccccccc", idFactory = { "tag-${++next}" })
+            val id = writer.create("school", "#6A1B9A")
+            writer.delete(id)
+
+            assertEquals(id, writer.create("school", "#123456", "Back again"))
+            assertTag(file, "school", "#123456", "Back again", hidden = false, tombstone = false)
+            SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                // tags.tag is UNIQUE: one row, and no synced message names a second row.
+                db.rawQuery("SELECT COUNT(*) FROM tags", null).use { assertTrue(it.moveToFirst()); assertEquals(1, it.getInt(0)) }
+                db.rawQuery("SELECT COUNT(DISTINCT row) FROM messages_crdt WHERE dataset = 'tags'", null)
+                    .use { assertTrue(it.moveToFirst()); assertEquals(1, it.getInt(0)) }
+            }
+        }
+    }
+
+    @Test
+    fun renameRejectsANameHeldByADeletedTag() {
+        withDatabase { database, _ ->
+            var next = 0
+            val writer = ActualTagWriter(database, nodeId = "dddddddddddddddd", idFactory = { "tag-${++next}" })
+            writer.delete(writer.create("old"))
+            val current = writer.create("new")
+
+            assertFailure { writer.update(current, tag = "old") }
+            writer.update(current, tag = "new")
+        }
+    }
+
+    @Test
     fun tagNamesFollowActualValidation() {
         withDatabase { database, _ ->
             val writer = ActualTagWriter(database, nodeId = "bbbbbbbbbbbbbbbb")

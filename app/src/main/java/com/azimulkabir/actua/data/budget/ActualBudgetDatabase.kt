@@ -359,6 +359,21 @@ class ActualBudgetDatabase private constructor(
         }
     }
 
+    /**
+     * The `tags` row named [tag], deleted or not. Actual's `tags.tag` is UNIQUE and deleting only
+     * tombstones the row, so a name has at most one row for its whole history.
+     */
+    @Synchronized
+    fun fetchTagRowByName(tag: String): TagRow? {
+        if (!hasTable("tags")) return null
+        val tombstone = if ("tombstone" in columns("tags")) "COALESCE(tombstone, 0)" else "0"
+        return database.rawQuery("SELECT id, $tombstone FROM tags WHERE tag = ?", arrayOf(tag)).use { cursor ->
+            if (cursor.moveToFirst()) TagRow(cursor.getString(0), deleted = cursor.getInt(1) == 1) else null
+        }
+    }
+
+    data class TagRow(val id: String, val deleted: Boolean)
+
     /** Actual's synced `defaultCurrencyCode` preference, or null when unset. */
     @Synchronized
     fun defaultCurrencyCode(): String? {

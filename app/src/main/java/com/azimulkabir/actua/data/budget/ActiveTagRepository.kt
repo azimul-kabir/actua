@@ -25,9 +25,11 @@ class ActiveTagRepository(context: Context) {
         val existing = tags().firstOrNull { it.tag == normalized }
         if (existing != null) return existing
         return withDatabase { database ->
+            // A deleted tag with this name is brought back rather than duplicated (see ActualTagWriter.create).
+            val revived = database.fetchTagRowByName(normalized)?.deleted == true
             val writer = tagWriter(database)
             val id = writer.create(normalized, color, description)
-            if (hidden) writer.update(id, hidden = true)
+            if (hidden || revived) writer.update(id, hidden = hidden)
             invalidate()
             ActualTag(id, normalized, color, description, hidden)
         }
@@ -38,6 +40,9 @@ class ActiveTagRepository(context: Context) {
         val normalized = validateTagName(name)
         if (normalized != tag.tag && tags().any { it.id != tag.id && it.tag == normalized }) return false
         return withDatabase { database ->
+            // Deleted tags keep their name too (`tags.tag` is UNIQUE), so check every row before rewriting notes.
+            val owner = database.fetchTagRowByName(normalized)?.id
+            if (normalized != tag.tag && owner != null && owner != tag.id) return@withDatabase false
             if (normalized != tag.tag) {
                 val transactions = database.fetchTransactions(limit = Int.MAX_VALUE)
                 val changed = transactions.mapNotNull { transaction ->
