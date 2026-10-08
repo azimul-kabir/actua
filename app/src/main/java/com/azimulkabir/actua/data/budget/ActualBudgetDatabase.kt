@@ -700,6 +700,15 @@ class ActualBudgetDatabase private constructor(
         }
     }
 
+    /** Synced `firstDayOfWeekIdx` preference (0 = Sunday … 6 = Saturday); Actual's default is 0. */
+    @Synchronized
+    fun firstDayOfWeekPreference(): Int {
+        if (!hasTable("preferences")) return 0
+        return database.rawQuery("SELECT value FROM preferences WHERE id = ?", arrayOf("firstDayOfWeekIdx"))
+            .use { cursor -> if (cursor.moveToFirst()) cursor.stringOrNull(0) else null }
+            ?.trim()?.toIntOrNull()?.takeIf { it in 0..6 } ?: 0
+    }
+
     /** Synced `learn-categories` preference value, or null when unset (Actual's default is on). */
     @Synchronized
     fun learnCategoriesPreference(): String? {

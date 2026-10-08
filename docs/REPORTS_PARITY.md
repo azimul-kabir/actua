@@ -104,8 +104,8 @@ Tests: `TimeFrameTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.s
 
 ### Other shared rules
 
-- **Weekly intervals** use the synced `firstDayOfWeekIdx` upstream; Actua always starts weeks on
-  Sunday: **Divergence** [#953](https://github.com/azimul-kabir/actua/issues/953).
+- **Weekly intervals** and "This week"/"Last week" use the synced `firstDayOfWeekIdx` (default
+  Sunday), as upstream's `weekFromDate` does: Match (#953). Tests: `FirstDayOfWeekTest`.
 - **Hidden decimals / currency** only change display; stored amounts are untouched: Match.
 - **Freshness:** reports are computed from the synced on-device database, so a budget that hasn't
   synced recently shows older numbers than the PWA (#605). This is expected local-first behavior.
@@ -139,7 +139,7 @@ Upstream: [`S/net-worth-spreadsheet.ts#L22-L260`][net-worth]. Actua: `CRE.netWor
 | Balance at each interval end = all matching transactions through that date | starting + per-interval sums | running sum through each boundary | Match |
 | Headline = last interval's net worth | `endNetWorth` | last point | Match |
 | `interval` Daily/Monthly/Yearly | | same | Match |
-| `interval` Weekly | weeks by `firstDayOfWeekIdx` | Sunday weeks | **Divergence** [#953](https://github.com/azimul-kabir/actua/issues/953) |
+| `interval` Weekly | weeks by `firstDayOfWeekIdx` | same | Match (#953) |
 | Extra "prior period" point before the range | added unless the first transaction is in range | not added | **Intentional** (chart only; headline unaffected) |
 | `mode` trend/stacked | chart style | single line | **Intentional** |
 | Default range | last 6 months | same | Match (#948) |
@@ -226,7 +226,7 @@ Upstream: [`S/calendar-spreadsheet.ts#L18-L140`][calendar]. Actua: `CRE.calendar
 | --- | --- | --- | --- |
 | Range widened to whole months | `firstDayOfMonth`/`lastDayOfMonth` | same | Match |
 | Per-day income (> 0) and expense (< 0); no transfer/off-budget filter | | same | Match |
-| Week layout by `firstDayOfWeekIdx` | | Sunday | **Divergence** [#953](https://github.com/azimul-kabir/actua/issues/953) (display only) |
+| Week layout by `firstDayOfWeekIdx` | | same | Match (#953) |
 
 Tests: `CalendarTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.calendarPointsCarryContributingTransactionIdsForDrillDown`.
 
@@ -334,7 +334,7 @@ Actua-only income-vs-expenses card (`SRE.incomeExpense`, `:305`) and view filter
 | `selected_categories` | moved into `conditions` and set to `NULL` by migration `1722717601000` ([migration][selected-categories]) | still applied when non-null | Match (always `NULL` after the migration) |
 | `mode` total / time; `graph_type` donut, bar, stacked bar, line/area | | same; other graph types draw ranked bars | Match / **Intentional** |
 | `interval` Daily / Monthly / Yearly | | same | Match |
-| `interval` Weekly | `firstDayOfWeekIdx` | Sunday | **Divergence** [#953](https://github.com/azimul-kabir/actua/issues/953) |
+| `interval` Weekly | `firstDayOfWeekIdx` | same | Match (#953) |
 | `date_static`, `start_date`/`end_date` | | same | Match |
 | `date_range` live presets (week, month, quarter, last N, 30 days, YTD, years) and `include_current` | `getLiveRange` | `SRE.dateRange` (`:355`) | Match |
 | "All time" end = latest transaction; other ranges clamp their start to the earliest transaction | `getLiveRange`/`validateRange` | `1900-01-01..today`; no clamp | **Divergence** [#954](https://github.com/azimul-kabir/actua/issues/954) |

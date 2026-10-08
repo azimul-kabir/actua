@@ -1380,6 +1380,24 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun firstDayOfWeekPreferenceDefaultsToSunday() {
+        val file = createDatabaseFile()
+        try {
+            ActualBudgetDatabase.open(file).use { assertEquals(0, it.firstDayOfWeekPreference()) }
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO preferences VALUES ('firstDayOfWeekIdx','1')")
+            }
+            ActualBudgetDatabase.open(file).use { assertEquals(1, it.firstDayOfWeekPreference()) }
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("UPDATE preferences SET value = '9' WHERE id = 'firstDayOfWeekIdx'")
+            }
+            ActualBudgetDatabase.open(file).use { assertEquals(0, it.firstDayOfWeekPreference()) }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun savedReportsReadIncludeCurrentAndTolerateOlderSchemas() {
         val file = createDatabaseFile()
         try {

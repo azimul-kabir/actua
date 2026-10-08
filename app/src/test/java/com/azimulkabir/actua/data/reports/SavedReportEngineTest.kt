@@ -529,3 +529,47 @@ class SavedReportDisplaySettingsTest {
         assertEquals("2026-09-30", points.last().period)
     }
 }
+
+/** Upstream's `weekFromDate(date, firstDayOfWeekIdx)` for weekly intervals and week ranges (actua#953). */
+class FirstDayOfWeekTest {
+    private fun tx(date: Int, amount: Long) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        "t$date", "a", date, amount, null, null, null, null, null, false, false, null, false, null, false, null, null, null, null)
+    // Wednesday.
+    private val today = LocalDate.of(2026, 9, 23)
+
+    @Test fun `start of week follows the preference`() {
+        assertEquals(LocalDate.of(2026, 9, 20), SavedReportEngine.startOfWeek(today, 0))
+        assertEquals(LocalDate.of(2026, 9, 21), SavedReportEngine.startOfWeek(today, 1))
+        assertEquals(LocalDate.of(2026, 9, 19), SavedReportEngine.startOfWeek(today, 6))
+        assertEquals(LocalDate.of(2026, 9, 23), SavedReportEngine.startOfWeek(today, 3))
+    }
+
+    @Test fun `monday weeks bucket weekly intervals`() {
+        val pts = SavedReportEngine.intervalPoints(
+            listOf(tx(20260920, -1), tx(20260921, -10)), "Weekly",
+            LocalDate.of(2026, 9, 14), LocalDate.of(2026, 9, 27), today, weekStart = 1,
+        )
+        assertEquals(listOf("2026-09-14" to -1L, "2026-09-21" to -10L), pts.map { it.period to it.primaryCents })
+    }
+
+    @Test fun `this week and last week use the preference`() {
+        val row = { range: String -> SavedReportRow("r", "R", null, null, false, range, "Category", "Payment", false, false, true,
+            null, "BarGraph", null, "and", "Weekly") }
+        assertEquals(LocalDate.of(2026, 9, 21) to LocalDate.of(2026, 9, 27), SavedReportEngine.dateRange(row("This week"), today, 1))
+        assertEquals(LocalDate.of(2026, 9, 14) to LocalDate.of(2026, 9, 20), SavedReportEngine.dateRange(row("Last week"), today, 1))
+    }
+
+    @Test fun `net worth weeks end the day before the preferred first day`() {
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("w", "net-worth-card",
+                """{"interval":"Weekly","timeFrame":{"mode":"static","start":"2026-09","end":"2026-09"}}"""),
+            listOf(tx(20260901, 100)), today = today, firstDayOfWeek = 1,
+        )
+        assertEquals(listOf("2026-09-06", "2026-09-13", "2026-09-20", "2026-09-27", "2026-09-30"), widget.points.map { it.period })
+    }
+
+    @Test fun `the calendar widget carries the preference for its week layout`() {
+        val widget = CoreReportEngine.compute(DashboardWidgetRow("w", "calendar-card", null), emptyList(), today = today, firstDayOfWeek = 1)
+        assertEquals(1, widget.weekStart)
+    }
+}

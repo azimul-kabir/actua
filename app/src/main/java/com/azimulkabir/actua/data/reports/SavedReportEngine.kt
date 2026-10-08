@@ -29,6 +29,8 @@ object SavedReportEngine {
         val accounts: List<ActualAccount>,
         val groups: List<ActualCategoryGroup>,
         payees: List<ActualPayee> = emptyList(),
+        /** Synced `firstDayOfWeekIdx` preference, 0 = Sunday. */
+        val firstDayOfWeek: Int = 0,
     ) {
         val aggregator = ReportAggregator(accounts, groups)
         /** Upstream's `usePayees` list (transfer payees named after their account), for `show_empty`. */
@@ -50,8 +52,9 @@ object SavedReportEngine {
         groups: List<ActualCategoryGroup>, view: ReportViewFilter = ReportViewFilter(),
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
         payees: List<ActualPayee> = emptyList(),
+        firstDayOfWeek: Int = 0,
     ): List<ReportWidget> {
-        val shared = Shared(transactions, accounts, groups, payees)
+        val shared = Shared(transactions, accounts, groups, payees, firstDayOfWeek)
         return listOf(incomeExpense(transactions, view, shared = shared)) +
             rows.map { compute(it, transactions, accounts, groups, view = view, shared = shared, budgetMonth = budgetMonth) }
     }
@@ -67,8 +70,9 @@ object SavedReportEngine {
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
     ): ReportWidget {
         val aggregator = shared.aggregator
+        val weekStart = shared.firstDayOfWeek
         val (start, end) = dateRange(
-            view.datePreset?.let { row.copy(dateStatic = false, dateRange = it, includeCurrent = false) } ?: row, today,
+            view.datePreset?.let { row.copy(dateStatic = false, dateRange = it, includeCurrent = false) } ?: row, today, weekStart,
         )
         val selected = row.selectedCategories?.let { runCatching { JSONArray(it) }.getOrNull() }?.let { array ->
             (0 until array.length()).mapNotNull { array.optJSONObject(it)?.optString("id")?.takeIf(String::isNotBlank) }
@@ -77,7 +81,7 @@ object SavedReportEngine {
         val summaryStart = if (start == ALL_TIME_START) earliestDate(transactions) ?: today else start
         if (balType == ReportBalanceType.BUDGETED) {
             return computeBudgeted(row, groups, start, end, selected, view, budgetMonth, shared).let {
-                it.copy(summary = summary(row, it.valueCents ?: 0, 0, 0, summaryStart, end))
+                it.copy(summary = summary(row, it.valueCents ?: 0, 0, 0, summaryStart, end, weekStart))
             }
         }
         val filter = ReportFilter(
@@ -112,24 +116,24 @@ object SavedReportEngine {
         val timeMode = row.mode == "time" || row.groupBy == "Interval"
         val stacked = timeMode && row.groupBy != "Interval" && row.graphType == "StackedBarGraph"
         val allPoints = if (stacked) {
-            intervalSegments(included, grouping, aggregator, filter, segments.map { it.name }, row.interval, start, end, today)
+            intervalSegments(included, grouping, aggregator, filter, segments.map { it.name }, row.interval, start, end, today, weekStart)
         } else {
-            intervalPoints(included, row.interval, start, end, today, balType)
+            intervalPoints(included, row.interval, start, end, today, balType, weekStart)
         }
         val points = if (!row.trimIntervals) allPoints else {
-            val byBucket = included.groupBy { bucketLabel(row.interval, bucketStart(row.interval, it.localDate())) }
+            val byBucket = included.groupBy { bucketLabel(row.interval, bucketStart(row.interval, it.localDate(), shared.firstDayOfWeek)) }
             trimIntervals(allPoints) { point ->
                 aggregator.groupTotals(byBucket[point.period].orEmpty(), filter, grouping).any { it.totalCents != 0L }
             }
         }
-        val total = reportTotal(included, row.interval, balType)
+        val total = reportTotal(included, row.interval, balType, weekStart)
         return ReportWidget(
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
             valueCents = total, categories = segments, points = points, timeMode = timeMode,
             graphType = row.graphType, subtitle = "$start – $end · ${row.groupBy}",
             summary = summary(
                 row, total, included.filter { it.amountCents < 0 }.sumOf { it.amountCents },
-                included.filter { it.amountCents > 0 }.sumOf { it.amountCents }, summaryStart, end,
+                included.filter { it.amountCents > 0 }.sumOf { it.amountCents }, summaryStart, end, weekStart,
             ),
         )
     }
@@ -142,6 +146,7 @@ object SavedReportEngine {
      */
     internal fun summary(
         row: SavedReportRow, totalCents: Long, debitCents: Long, creditCents: Long, start: LocalDate, end: LocalDate,
+        weekStart: Int = 0,
     ): ReportSummary {
         val kind = when (balanceType(row.balanceType)) {
             ReportBalanceType.DEBTS -> ReportSummaryKind.SPENDING
@@ -153,15 +158,15 @@ object SavedReportEngine {
                 if (kotlin.math.abs(debitCents) > kotlin.math.abs(creditCents)) ReportSummaryKind.NET_PAYMENT
                 else ReportSummaryKind.NET_DEPOSIT
         }
-        val count = intervalCount(row.interval, start, end)
+        val count = intervalCount(row.interval, start, end, weekStart)
         return ReportSummary(kind, totalCents, roundedAverage(totalCents, count), count, row.interval)
     }
 
     /** Intervals from [start] through [end] inclusive; never less than one. */
-    internal fun intervalCount(interval: String, start: LocalDate, end: LocalDate): Int {
+    internal fun intervalCount(interval: String, start: LocalDate, end: LocalDate, weekStart: Int = 0): Int {
         if (end.isBefore(start)) return 1
-        val first = bucketStart(interval, start)
-        val last = bucketStart(interval, end)
+        val first = bucketStart(interval, start, weekStart)
+        val last = bucketStart(interval, end, weekStart)
         val count = when (interval) {
             "Daily" -> java.time.temporal.ChronoUnit.DAYS.between(first, last)
             "Weekly" -> java.time.temporal.ChronoUnit.WEEKS.between(first, last)
@@ -297,9 +302,13 @@ object SavedReportEngine {
         return points.subList(first, points.indexOfLast(hasValue) + 1)
     }
 
-    private fun bucketStart(interval: String, d: LocalDate): LocalDate = when (interval) {
+    /** Upstream's `weekFromDate(date, firstDayOfWeekIdx)`: the start of [d]'s week, 0 = Sunday. */
+    internal fun startOfWeek(d: LocalDate, firstDayOfWeek: Int): LocalDate =
+        d.minusDays(((d.dayOfWeek.value % 7 - firstDayOfWeek) % 7 + 7) % 7L)
+
+    private fun bucketStart(interval: String, d: LocalDate, weekStart: Int): LocalDate = when (interval) {
         "Daily" -> d
-        "Weekly" -> d.minusDays((d.dayOfWeek.value % 7).toLong())
+        "Weekly" -> startOfWeek(d, weekStart)
         "Yearly" -> d.withDayOfYear(1)
         else -> d.withDayOfMonth(1)
     }
@@ -321,11 +330,11 @@ object SavedReportEngine {
 
     /** The interval-bucket keys shared by [intervalPoints] and [intervalSegments], zero-filled when small enough to chart. */
     private fun bucketKeys(
-        rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
+        rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, weekStart: Int,
     ): List<LocalDate> {
-        val seen = rows.map { bucketStart(interval, it.localDate()) }
+        val seen = rows.map { bucketStart(interval, it.localDate(), weekStart) }
         // Upstream charts every interval from the range start through its end, future ones included.
-        val keys = generateSequence(bucketStart(interval, maxOf(start, LocalDate.of(1900, 1, 1)))) { nextBucket(interval, it) }
+        val keys = generateSequence(bucketStart(interval, maxOf(start, LocalDate.of(1900, 1, 1)), weekStart)) { nextBucket(interval, it) }
             .takeWhile { !it.isAfter(end) }.take(401).toList()
         return if (keys.size <= 400) keys else seen.distinct().sorted()
     }
@@ -336,11 +345,11 @@ object SavedReportEngine {
      */
     internal fun intervalPoints(
         rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
-        balanceType: ReportBalanceType = ReportBalanceType.NET,
+        balanceType: ReportBalanceType = ReportBalanceType.NET, weekStart: Int = 0,
     ): List<ReportPoint> {
-        val sums = rows.groupBy { bucketStart(interval, it.localDate()) }
+        val sums = rows.groupBy { bucketStart(interval, it.localDate(), weekStart) }
             .mapValues { (_, v) -> balanceType.clampNet(v.sumOf { it.amountCents }) }
-        return bucketKeys(rows, interval, start, end, today).map { ReportPoint(bucketLabel(interval, it), sums[it] ?: 0L) }
+        return bucketKeys(rows, interval, start, end, weekStart).map { ReportPoint(bucketLabel(interval, it), sums[it] ?: 0L) }
     }
 
     /**
@@ -348,9 +357,9 @@ object SavedReportEngine {
      * net across every group is clamped and the intervals summed (`netAssets += perIntervalNetAssets`),
      * so a refund-heavy month can't cancel spending in another; other types are the plain signed sum.
      */
-    internal fun reportTotal(rows: List<ActualTransaction>, interval: String, balanceType: ReportBalanceType): Long =
+    internal fun reportTotal(rows: List<ActualTransaction>, interval: String, balanceType: ReportBalanceType, weekStart: Int = 0): Long =
         if (!balanceType.clampsNet) rows.sumOf { it.amountCents } else rows
-            .groupBy { bucketStart(interval, it.localDate()) }.values
+            .groupBy { bucketStart(interval, it.localDate(), weekStart) }.values
             .sumOf { bucket -> balanceType.clampNet(bucket.sumOf { it.amountCents }) }
 
     /**
@@ -362,9 +371,10 @@ object SavedReportEngine {
     internal fun intervalSegments(
         rows: List<ActualTransaction>, grouping: ReportGrouping, aggregator: ReportAggregator, filter: ReportFilter,
         canonicalOrder: List<String>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
+        weekStart: Int = 0,
     ): List<ReportPoint> {
-        val byBucket = rows.groupBy { bucketStart(interval, it.localDate()) }
-        return bucketKeys(rows, interval, start, end, today).map { key ->
+        val byBucket = rows.groupBy { bucketStart(interval, it.localDate(), weekStart) }
+        return bucketKeys(rows, interval, start, end, weekStart).map { key ->
             val totals = aggregator.groupTotals(byBucket[key].orEmpty(), filter, grouping).associateBy { it.name }
             val segments = canonicalOrder.map { name ->
                 totals[name]?.let { ReportCategory(it.name, it.totalCents, it.transactionIds) } ?: ReportCategory(name, 0, emptyList())
@@ -428,7 +438,7 @@ object SavedReportEngine {
         else -> ReportBalanceType.DEBTS
     }
 
-    internal fun dateRange(row: SavedReportRow, today: LocalDate): Pair<LocalDate, LocalDate> {
+    internal fun dateRange(row: SavedReportRow, today: LocalDate, weekStart: Int = 0): Pair<LocalDate, LocalDate> {
         fun parse(v: String?, end: Boolean): LocalDate? = when (v?.length) {
             7 -> runCatching { YearMonth.parse(v) }.getOrNull()?.let { if (end) it.atEndOfMonth() else it.atDay(1) }
             10 -> runCatching { LocalDate.parse(v) }.getOrNull()
@@ -440,7 +450,7 @@ object SavedReportEngine {
         fun lastMonths(n: Int) = month.minusMonths(n.toLong()).let { start ->
             start.atDay(1) to start.plusMonths((n - if (row.includeCurrent) 0 else 1).toLong()).atEndOfMonth()
         }
-        fun lastWeeks(n: Int) = today.minusDays((today.dayOfWeek.value % 7).toLong()).minusWeeks(n.toLong()).let { start ->
+        fun lastWeeks(n: Int) = startOfWeek(today, weekStart).minusWeeks(n.toLong()).let { start ->
             start to start.plusWeeks((n - if (row.includeCurrent) 0 else 1).toLong()).plusDays(6)
         }
         val quarter = month.withMonth((month.monthValue - 1) / 3 * 3 + 1)

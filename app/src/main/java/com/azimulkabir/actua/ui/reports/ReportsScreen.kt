@@ -1052,13 +1052,14 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
         }
     }
     Row(Modifier.fillMaxWidth()) {
-        listOf("S", "M", "T", "W", "T", "F", "S").forEach { day ->
+        val weekDays = listOf("S", "M", "T", "W", "T", "F", "S")
+        (0 until 7).map { weekDays[(it + widget.weekStart) % 7] }.forEach { day ->
             Text(day, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
     val dayMax = values.values.maxOfOrNull { max(it.primaryCents, it.secondaryCents) }?.coerceAtLeast(1) ?: 1
-    val leading = month.atDay(1).dayOfWeek.value % 7
+    val leading = (month.atDay(1).dayOfWeek.value % 7 - widget.weekStart + 7) % 7
     val cells = List(leading) { null } + (1..month.lengthOfMonth()).map { it }
     cells.chunked(7).forEach { week ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
