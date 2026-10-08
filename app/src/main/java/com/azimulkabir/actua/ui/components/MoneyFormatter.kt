@@ -12,6 +12,19 @@ object BalanceVisibility {
 object CurrencyDisplay {
     @Volatile var code: String = "BDT"
     @Volatile var symbolOnly: Boolean = false
+
+    /**
+     * Decimal places of the open budget's synced currency (`CurrencyDecimals`): stored amounts are
+     * integers in these minor units. 0 for JPY, KRW and IRR budgets, otherwise 2.
+     */
+    @Volatile var decimalPlaces: Int = 2
+}
+
+/** Stored integer units per whole currency unit: 10^[CurrencyDisplay.decimalPlaces]. */
+internal fun minorUnitsPerWhole(decimalPlaces: Int = CurrencyDisplay.decimalPlaces): Long {
+    var scale = 1L
+    repeat(decimalPlaces) { scale *= 10 }
+    return scale
 }
 
 object NumberDisplay {
@@ -31,12 +44,15 @@ fun formatMoneyCents(
         else -> ""
     }
     val magnitude = cents.absoluteValue
-    val whole = formatWholeNumber(magnitude / 100, NumberDisplay.format)
+    val decimalPlaces = CurrencyDisplay.decimalPlaces
+    val scale = minorUnitsPerWhole(decimalPlaces)
+    val whole = formatWholeNumber(magnitude / scale, NumberDisplay.format)
     val decimalSeparator = when (NumberDisplay.format) {
         "1.234,56", "1 234,56" -> ","
         else -> "."
     }
-    val decimals = if (hideDecimalPlaces) "" else "$decimalSeparator${(magnitude % 100).toString().padStart(2, '0')}"
+    val decimals = if (hideDecimalPlaces || decimalPlaces == 0) "" else
+        "$decimalSeparator${(magnitude % scale).toString().padStart(decimalPlaces, '0')}"
     return "$sign${currencyInputPrefix()}$whole$decimals"
 }
 
@@ -129,10 +145,14 @@ private fun narrowCurrencySymbol(code: String): String = when (code) {
 
 fun centsToInput(cents: Long): String {
     val magnitude = cents.absoluteValue
-    val decimal = (magnitude % 100).toString().padStart(2, '0')
-    return "${magnitude / 100}.$decimal"
+    val decimalPlaces = CurrencyDisplay.decimalPlaces
+    if (decimalPlaces == 0) return magnitude.toString()
+    val scale = minorUnitsPerWhole(decimalPlaces)
+    val decimal = (magnitude % scale).toString().padStart(decimalPlaces, '0')
+    return "${magnitude / scale}.$decimal"
 }
 
+/** Typed amount → stored integer in the budget's minor units; more decimals than the currency has are rejected. */
 fun parseInputCents(value: String): Long? = runCatching {
-    value.trim().toBigDecimal().movePointRight(2).longValueExact()
+    value.trim().toBigDecimal().movePointRight(CurrencyDisplay.decimalPlaces).longValueExact()
 }.getOrNull()

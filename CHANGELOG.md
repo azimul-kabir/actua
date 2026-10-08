@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Budgets in Japanese yen, Korean won or Iranian rial show and accept whole amounts like Actual instead of amounts 100 times too small ([#977](https://github.com/azimul-kabir/actua/pull/977))
 - Balance Forecast widgets set to the tracking budget project budgeted income and expenses, as Actual does ([#970](https://github.com/azimul-kabir/actua/pull/970))
 - Markdown dashboard widgets show formatted text instead of Markdown syntax ([#969](https://github.com/azimul-kabir/actua/pull/969))
 - Budget Analysis counts visible categories in hidden groups and handles unsupported filters as Actual does ([#968](https://github.com/azimul-kabir/actua/pull/968))

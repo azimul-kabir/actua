@@ -60,6 +60,7 @@ import com.azimulkabir.actua.ui.components.ActuaMenuRow
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
+import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.theme.Spacing
 import java.time.LocalDate
 
@@ -373,8 +374,8 @@ private fun NumberInput(label: String, cents: Double?, onChange: (Double) -> Uni
     ActuaFormTextField(
         icon = Icons.Outlined.Calculate,
         label = label,
-        value = if (cents == null) "" else "%.2f".format(cents / 100.0),
-        onValueChange = { text -> text.toDoubleOrNull()?.let { onChange(it * 100.0) } },
+        value = if (cents == null) "" else ruleAmountText(cents),
+        onValueChange = { text -> text.toDoubleOrNull()?.let { onChange(it * minorUnitsPerWhole()) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
     )
 }
@@ -424,9 +425,15 @@ private fun actionSummary(action: Rule.Action, names: Map<String, String>) = whe
     else -> RuleSchema.opLabel(action.op)
 }
 
+/** A rule amount (stored in the budget currency's minor units) as a plain decimal with that currency's places. */
+private fun ruleAmountText(minorUnits: Double): String {
+    val places = CurrencyDisplay.decimalPlaces
+    return "%.${places}f".format(minorUnits / minorUnitsPerWhole(places))
+}
+
 private fun valueLabel(value: RuleValue, names: Map<String, String>): String = when (value) {
     is RuleValue.Text -> names[value.value] ?: value.value
-    is RuleValue.Number -> "%.2f".format(value.value / 100.0)
+    is RuleValue.Number -> ruleAmountText(value.value)
     is RuleValue.Flag -> value.value.toString()
     is RuleValue.ListValue -> value.value.joinToString(", ") { valueLabel(it, names) }
     is RuleValue.ObjectValue -> value.value.values.joinToString(" – ") { valueLabel(it, names) }

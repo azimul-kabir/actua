@@ -390,6 +390,8 @@ fun AppNavigation(
     }
     val budgetOverview = remember(dataVersion, budgetMonth) { repository.budgetOverview(budgetMonth) }
     val budgetHidesFraction = remember(dataVersion) { repository.budgetHidesFraction() }
+    // Set during composition, before any amount below is formatted or parsed.
+    CurrencyDisplay.decimalPlaces = remember(dataVersion, repository) { repository.budgetDecimalPlaces() }
     val accounts = remember(dataVersion) { repository.accounts() }
     // Actual's synced per-account `hide-reconciled-<accountId>` preference, shared with the PWA.
     val hideReconciledAccountIds = remember(dataVersion) { repository.hideReconciledAccountIds() }

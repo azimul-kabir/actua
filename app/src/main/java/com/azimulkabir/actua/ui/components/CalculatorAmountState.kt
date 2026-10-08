@@ -11,6 +11,8 @@ class CalculatorAmountState(
     initialCents: Long = 0,
     private val allowsNegative: Boolean = false,
     private val conventionalAmountEntry: Boolean = false,
+    /** Decimal places of the budget's currency; amounts are integers in these minor units. */
+    private val decimalPlaces: Int = CurrencyDisplay.decimalPlaces,
 ) {
     enum class Operator(val symbol: String) { ADD("+"), SUBTRACT("−"), MULTIPLY("×"), DIVIDE("÷") }
 
@@ -20,6 +22,7 @@ class CalculatorAmountState(
     private var hasOperand = initialCents != 0L
     private var decimalDigits: Int? = null
     private val expressionParts = mutableListOf<String>()
+    private val scale = minorUnitsPerWhole(decimalPlaces)
 
     // Bumped by setCents so composables that read `cents` recompose after a programmatic change.
     private var version by mutableIntStateOf(0)
@@ -48,17 +51,21 @@ class CalculatorAmountState(
         val sign = if (operandCents < 0) -1 else 1
         val magnitude = kotlin.math.abs(operandCents)
         if (conventionalAmountEntry) {
-            operandCents = sign * when (decimalDigits) {
-                null -> {
-                    val whole = magnitude / 100
-                    if (whole > (Long.MAX_VALUE / 100 - value) / 10) magnitude
-                    else (whole * 10 + value) * 100
+            val typed = decimalDigits
+            operandCents = sign * when {
+                typed == null -> {
+                    val whole = magnitude / scale
+                    if (whole > (Long.MAX_VALUE / scale - value) / 10) magnitude
+                    else (whole * 10 + value) * scale
                 }
-                0 -> magnitude / 100 * 100 + value * 10
-                1 -> magnitude / 100 * 100 + (magnitude % 100 / 10) * 10 + value
+                // The next fraction digit: keep the digits typed so far, put [value] after them.
+                typed < decimalPlaces -> {
+                    val place = minorUnitsPerWhole(decimalPlaces - 1 - typed)
+                    magnitude / (place * 10) * (place * 10) + value * place
+                }
                 else -> magnitude
             }
-            decimalDigits = decimalDigits?.let { minOf(2, it + 1) }
+            decimalDigits = typed?.let { minOf(decimalPlaces, it + 1) }
         } else if (magnitude <= (Long.MAX_VALUE - value) / 10) {
             operandCents = sign * (magnitude * 10 + value)
         }
@@ -66,7 +73,7 @@ class CalculatorAmountState(
     }
 
     fun decimalPoint() {
-        if (conventionalAmountEntry && decimalDigits == null) decimalDigits = 0
+        if (conventionalAmountEntry && decimalDigits == null && decimalPlaces > 0) decimalDigits = 0
     }
 
     fun backspace() {
@@ -74,13 +81,17 @@ class CalculatorAmountState(
             if (conventionalAmountEntry) {
                 val sign = if (operandCents < 0) -1 else 1
                 val magnitude = kotlin.math.abs(operandCents)
-                operandCents = sign * when (decimalDigits) {
-                    2 -> magnitude / 100 * 100 + (magnitude % 100 / 10) * 10
-                    1 -> magnitude / 100 * 100
-                    0 -> magnitude
-                    else -> magnitude / 1000 * 100
+                val typed = decimalDigits
+                operandCents = sign * when {
+                    typed == null -> magnitude / (scale * 10) * scale
+                    typed == 0 -> magnitude
+                    // Clear the last typed fraction digit and everything after it.
+                    else -> {
+                        val place = minorUnitsPerWhole(decimalPlaces - typed + 1)
+                        magnitude / place * place
+                    }
                 }
-                decimalDigits = when (decimalDigits) { 2 -> 1; 1 -> 0; 0 -> null; else -> null }
+                decimalDigits = typed?.let { if (it == 0) null else it - 1 }
             } else operandCents /= 10
             hasOperand = operandCents != 0L
         } else if (pending != null) {
@@ -145,8 +156,8 @@ class CalculatorAmountState(
         Operator.ADD -> left + right
         Operator.SUBTRACT -> left - right
         Operator.MULTIPLY -> BigDecimal(left).multiply(BigDecimal(right))
-            .divide(BigDecimal(100), 0, RoundingMode.HALF_UP).longValueExact()
-        Operator.DIVIDE -> if (right == 0L) left else BigDecimal(left).multiply(BigDecimal(100))
+            .divide(BigDecimal(scale), 0, RoundingMode.HALF_UP).longValueExact()
+        Operator.DIVIDE -> if (right == 0L) left else BigDecimal(left).multiply(BigDecimal(scale))
             .divide(BigDecimal(right), 0, RoundingMode.HALF_UP).longValueExact()
     }.let { if (allowsNegative) it else kotlin.math.abs(it) }
 
@@ -154,14 +165,17 @@ class CalculatorAmountState(
         val magnitude = kotlin.math.abs(value)
         return buildString {
             if (value < 0) append('−')
-            append(magnitude / 100)
-            append('.')
-            append((magnitude % 100).toString().padStart(2, '0'))
+            append(magnitude / scale)
+            if (decimalPlaces > 0) {
+                append('.')
+                append((magnitude % scale).toString().padStart(decimalPlaces, '0'))
+            }
         }
     }
 
     private fun formatCompact(value: Long): String {
         val formatted = format(value)
-        return if (formatted.endsWith(".00")) formatted.dropLast(3) else formatted
+        val zeroFraction = "." + "0".repeat(decimalPlaces)
+        return if (decimalPlaces > 0 && formatted.endsWith(zeroFraction)) formatted.dropLast(zeroFraction.length) else formatted
     }
 }

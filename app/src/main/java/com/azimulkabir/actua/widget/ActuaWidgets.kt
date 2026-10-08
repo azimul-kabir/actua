@@ -204,6 +204,7 @@ object WidgetUpdater {
         val views = RemoteViews(context.packageName, layout)
         val repository = ActuaRepository(context)
         try {
+            CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
             if (!repository.isUsingActualBudget) {
                 views.setTextViewText(R.id.widget_month, context.getString(R.string.widget_no_budget))
                 views.setTextViewText(R.id.widget_ready_value, "—")
@@ -231,6 +232,7 @@ object WidgetUpdater {
         val views = RemoteViews(context.packageName, R.layout.widget_favourite_categories)
         val repository = ActuaRepository(context)
         try {
+            CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
             val all = repository.budgetGroups().asSequence()
                 .filterNot { it.hidden || it.isIncome }
                 .flatMap { it.categories.asSequence() }
@@ -271,6 +273,7 @@ object WidgetUpdater {
         val views = RemoteViews(context.packageName, R.layout.widget_account_balances)
         val repository = ActuaRepository(context)
         try {
+            CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
             val all = repository.accounts().filterNot { it.closed }
             val selected = WidgetPreferences(context).selected(WidgetKind.Accounts, widgetId)
             val rows = if (selected.isEmpty()) all.take(4) else all.filter { it.id in selected }.take(4)
@@ -319,6 +322,7 @@ object WidgetUpdater {
     internal fun scheduleEntries(context: Context, widgetId: Int): List<ScheduleWidgetEntry> {
         val repository = ActuaRepository(context)
         try {
+            CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
             if (!repository.isUsingActualBudget) return emptyList()
             val today = DayDate.today()
             val periodDays = ScheduleWidgetPreferences(context).periodDays(widgetId)

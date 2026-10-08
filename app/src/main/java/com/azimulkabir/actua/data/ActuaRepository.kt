@@ -647,6 +647,10 @@ class ActuaRepository(context: Context) {
         return emptyList()
     }
 
+    /** Decimal places of the budget's synced `defaultCurrencyCode`: 0 for JPY, KRW and IRR, otherwise 2. */
+    fun budgetDecimalPlaces(): Int =
+        com.azimulkabir.actua.data.budget.CurrencyDecimals.of(actualDatabase?.defaultCurrencyCode())
+
     /** The budget's synced `hideFraction` preference, which budget templates round with. */
     fun budgetHidesFraction(): Boolean = actualDatabase?.hideFraction() ?: false
 

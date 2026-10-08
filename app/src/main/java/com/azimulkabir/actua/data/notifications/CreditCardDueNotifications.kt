@@ -166,8 +166,10 @@ class CreditCardDueNotificationWorker(context: Context, parameters: WorkerParame
         if (offset !in CreditCardReminderPlanner.reminderOffsets) return Result.failure()
 
         val repository = ActuaRepository(applicationContext)
-        val card = try { repository.creditCards().firstOrNull { it.accountId == accountId } }
-            finally { repository.close() }
+        val card = try {
+            CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
+            repository.creditCards().firstOrNull { it.accountId == accountId }
+        } finally { repository.close() }
         val today = DayDate.today()
         val due = card?.let { CreditCardReminderPlanner.reminderDue(it, today) }
         if (card == null || due == null || due.dueDate != dueDate || today.daysUntil(dueDate) != offset) {
