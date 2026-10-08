@@ -33,6 +33,9 @@ object SavedReportEngine {
         val firstDayOfWeek: Int = 0,
     ) {
         val aggregator = ReportAggregator(accounts, groups)
+        /** Upstream's `get-earliest-transaction`/`get-latest-transaction` dates, for live ranges. */
+        val earliest: LocalDate? = transactions.asSequence().filterNot { it.tombstone }.minOfOrNull { it.date }?.let(::ymdDate)
+        val latest: LocalDate? = transactions.asSequence().filterNot { it.tombstone }.maxOfOrNull { it.date }?.let(::ymdDate)
         /** Upstream's `usePayees` list (transfer payees named after their account), for `show_empty`. */
         val payeeNames: List<String> = payees.mapNotNull { payee ->
             payee.transferAccountId?.let { id -> accounts.firstOrNull { it.id == id }?.name } ?: payee.name.takeIf(String::isNotBlank)
@@ -73,12 +76,13 @@ object SavedReportEngine {
         val weekStart = shared.firstDayOfWeek
         val (start, end) = dateRange(
             view.datePreset?.let { row.copy(dateStatic = false, dateRange = it, includeCurrent = false) } ?: row, today, weekStart,
+            shared.earliest, shared.latest,
         )
         val selected = row.selectedCategories?.let { runCatching { JSONArray(it) }.getOrNull() }?.let { array ->
             (0 until array.length()).mapNotNull { array.optJSONObject(it)?.optString("id")?.takeIf(String::isNotBlank) }
         }.orEmpty().toSet()
         val balType = balanceType(row.balanceType)
-        val summaryStart = if (start == ALL_TIME_START) earliestDate(transactions) ?: today else start
+        val summaryStart = if (start == ALL_TIME_START) today else start
         if (balType == ReportBalanceType.BUDGETED) {
             return computeBudgeted(row, groups, start, end, selected, view, budgetMonth, shared).let {
                 it.copy(summary = summary(row, it.valueCents ?: 0, 0, 0, summaryStart, end, weekStart))
@@ -179,11 +183,6 @@ object SavedReportEngine {
     /** JavaScript's `Math.round(total / count)` (halves round towards positive infinity) in exact integer cents. */
     internal fun roundedAverage(totalCents: Long, count: Int): Long =
         Math.floorDiv(2 * totalCents + count, 2L * count)
-
-    /** Upstream resolves "All time" from the earliest transaction; Actua's range uses a sentinel start. */
-    private fun earliestDate(transactions: List<ActualTransaction>): LocalDate? =
-        transactions.asSequence().filterNot { it.tombstone }.minOfOrNull { it.date }
-            ?.let { LocalDate.of(it / 10000, it / 100 % 100, it % 100) }
 
     private val ALL_TIME_START: LocalDate = LocalDate.of(1900, 1, 1)
 
@@ -326,7 +325,9 @@ object SavedReportEngine {
         else -> YearMonth.from(d).toString()
     }
 
-    private fun ActualTransaction.localDate(): LocalDate = LocalDate.of(date / 10000, date / 100 % 100, date % 100)
+    private fun ActualTransaction.localDate(): LocalDate = ymdDate(date)
+
+    private fun ymdDate(ymd: Int): LocalDate = LocalDate.of(ymd / 10000, ymd / 100 % 100, ymd % 100)
 
     /** The interval-bucket keys shared by [intervalPoints] and [intervalSegments], zero-filled when small enough to chart. */
     private fun bucketKeys(
@@ -397,7 +398,7 @@ object SavedReportEngine {
         val preset = view.datePreset ?: "Last 12 months"
         val (start, end) = dateRange(
             SavedReportRow("", "", null, null, false, preset, "Category", "Net", false, false, true, null,
-                "BarGraph", null, "and", "Monthly"), today,
+                "BarGraph", null, "and", "Monthly"), today, shared.firstDayOfWeek, shared.earliest, shared.latest,
         )
         val filter = ReportFilter(
             startDate = start.toYmd(), endDate = end.toYmd(),
@@ -438,7 +439,15 @@ object SavedReportEngine {
         else -> ReportBalanceType.DEBTS
     }
 
-    internal fun dateRange(row: SavedReportRow, today: LocalDate, weekStart: Int = 0): Pair<LocalDate, LocalDate> {
+    /**
+     * Upstream's `getLiveRange`: "All time" spans the earliest through the latest transaction, and
+     * the quarter, 30-day and year presets move their start up to the earliest transaction
+     * (`validateRange`); "Last N"/"This" week and month ranges are never clamped.
+     */
+    internal fun dateRange(
+        row: SavedReportRow, today: LocalDate, weekStart: Int = 0,
+        earliest: LocalDate? = null, latest: LocalDate? = null,
+    ): Pair<LocalDate, LocalDate> {
         fun parse(v: String?, end: Boolean): LocalDate? = when (v?.length) {
             7 -> runCatching { YearMonth.parse(v) }.getOrNull()?.let { if (end) it.atEndOfMonth() else it.atDay(1) }
             10 -> runCatching { LocalDate.parse(v) }.getOrNull()
@@ -454,21 +463,23 @@ object SavedReportEngine {
             start to start.plusWeeks((n - if (row.includeCurrent) 0 else 1).toLong()).plusDays(6)
         }
         val quarter = month.withMonth((month.monthValue - 1) / 3 * 3 + 1)
+        fun validated(range: Pair<LocalDate, LocalDate>) =
+            if (earliest != null && range.first.isBefore(earliest)) earliest to range.second else range
         if (!row.dateStatic) when (row.dateRange) {
             "This week" -> return lastWeeks(0).first.let { it to it.plusDays(6) }
             "Last week" -> return lastWeeks(1)
             "This month" -> return month.atDay(1) to month.atEndOfMonth()
             "Last month" -> return lastMonths(1)
-            "Current quarter" -> return quarter.atDay(1) to quarter.plusMonths(2).atEndOfMonth()
-            "Previous quarter" -> return quarter.minusMonths(3).let { it.atDay(1) to it.plusMonths(2).atEndOfMonth() }
-            "Last 30 days" -> return today.minusDays(29) to today
+            "Current quarter" -> return validated(quarter.atDay(1) to quarter.plusMonths(2).atEndOfMonth())
+            "Previous quarter" -> return validated(quarter.minusMonths(3).let { it.atDay(1) to it.plusMonths(2).atEndOfMonth() })
+            "Last 30 days" -> return validated(today.minusDays(29) to today)
             "Last 3 months" -> return lastMonths(3)
             "Last 6 months" -> return lastMonths(6)
             "Last 12 months" -> return lastMonths(12)
-            "Year to date" -> return today.withDayOfYear(1) to today
-            "Last year" -> return LocalDate.of(today.year - 1, 1, 1) to LocalDate.of(today.year - 1, 12, 31)
-            "Prior year to date" -> return today.minusYears(1).withDayOfYear(1) to today.minusYears(1)
-            "All time" -> return ALL_TIME_START to today
+            "Year to date" -> return validated(today.withDayOfYear(1) to today)
+            "Last year" -> return validated(LocalDate.of(today.year - 1, 1, 1) to LocalDate.of(today.year - 1, 12, 31))
+            "Prior year to date" -> return validated(today.minusYears(1).withDayOfYear(1) to today.minusYears(1))
+            "All time" -> return (earliest ?: ALL_TIME_START) to (latest ?: today)
         }
         return (parse(row.startDate, false) ?: month.atDay(1)) to (parse(row.endDate, true) ?: month.atEndOfMonth())
     }

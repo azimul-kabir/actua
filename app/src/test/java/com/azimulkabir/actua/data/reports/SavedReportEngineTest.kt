@@ -465,9 +465,39 @@ class SavedReportSummaryTest {
     @Test fun `all time counts intervals from the earliest transaction, not the 1900 sentinel`() {
         val rows = listOf(tx("1", 20250610, -1600), tx("2", 20260110, -1600))
         val summary = SavedReportEngine.compute(report("All time"), rows, accounts, groups, LocalDate.of(2026, 9, 22)).summary!!
-        // June 2025 through September 2026.
-        assertEquals(16, summary.intervalCount)
+        // Upstream's "All time" spans the earliest through the latest transaction: June 2025 - January 2026.
+        assertEquals(8, summary.intervalCount)
+        assertEquals(-400L, summary.averageCents)
+    }
+
+    @Test fun `all time includes future-dated transactions`() {
+        val rows = listOf(tx("1", 20260610, -100), tx("2", 20261105, -50))
+        val w = SavedReportEngine.compute(report("All time"), rows, accounts, groups, LocalDate.of(2026, 9, 22))
+        assertEquals(-150L, w.valueCents)
+    }
+
+    @Test fun `year to date averages over the months since the first transaction`() {
+        val rows = listOf(tx("1", 20260310, -700), tx("2", 20260905, -700))
+        val summary = SavedReportEngine.compute(report("Year to date"), rows, accounts, groups, LocalDate.of(2026, 9, 22)).summary!!
+        // March through September 2026.
+        assertEquals(7, summary.intervalCount)
         assertEquals(-200L, summary.averageCents)
+    }
+
+    @Test fun `last-N ranges are not clamped to the first transaction`() {
+        val rows = listOf(tx("1", 20260805, -300))
+        val summary = SavedReportEngine.compute(report("Last 3 months"), rows, accounts, groups, LocalDate.of(2026, 9, 22)).summary!!
+        assertEquals(3, summary.intervalCount)
+    }
+
+    @Test fun `range presets clamp their start to the earliest transaction`() {
+        val today = LocalDate.of(2026, 9, 22)
+        val row = { range: String -> report(range) }
+        val earliest = LocalDate.of(2026, 8, 10)
+        assertEquals(earliest to LocalDate.of(2026, 9, 30), SavedReportEngine.dateRange(row("Current quarter"), today, earliest = earliest))
+        assertEquals(earliest to today, SavedReportEngine.dateRange(row("Year to date"), today, earliest = earliest))
+        assertEquals(LocalDate.of(2026, 6, 1) to LocalDate.of(2026, 8, 31),
+            SavedReportEngine.dateRange(row("Last 3 months"), today, earliest = earliest))
     }
 }
 
