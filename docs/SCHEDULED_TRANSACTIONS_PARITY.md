@@ -61,7 +61,7 @@ fixture is stale. See the [fixture README](tools/schedules-fixture/README.md).
 | --- | --- | --- | --- |
 | Create: rule (`link-schedule` action, `conditions_op: and`), `schedules_next_date` (local = base), `schedules` row; trimmed name, empty → null; duplicate live name rejected | `createSchedule` ([`#L322-L376`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L322-L376)) | `ScheduleWriteBuilder.create`, `ActuaRepository.createSchedule` | Match |
 | Update: merge the four owned conditions, keep a plain `set amount` action in sync, reset `base_next_date` when forced or when the account or date changed | `updateSchedule` ([`#L381-L471`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L381-L471)) | `ScheduleWriteBuilder.update` | Match |
-| Update rejects another live schedule's name | `checkIfScheduleExists` ([`#L291-L304`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L291-L304)) | not checked on update | **Divergence** [#938](https://github.com/azimul-kabir/actua/issues/938) |
+| Update rejects another live schedule's name | `checkIfScheduleExists` ([`#L291-L304`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L291-L304)) | `updateSchedule` checks `scheduleNameExists` excluding the edited schedule | Match ([#938](https://github.com/azimul-kabir/actua/issues/938)) |
 | Delete: tombstone the rule and the schedule; posted transactions stay | `deleteSchedule` ([`#L473-L482`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L473-L482)) | `ScheduleWriteBuilder.delete` | Match |
 | `schedules_json_paths` (local index of the rule's condition paths) | `onRuleUpdate` ([`#L521-L548`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L521-L548)) | `ActualBudgetDatabase` keeps the same local table (`:864`) | Match |
 | `completed`; restart recomputes the next date from today (`reset`) | `updateSchedule` + `setNextDate` | `ActuaRepository.setScheduleCompleted` | Match |
@@ -247,7 +247,7 @@ matches it closely:
 | [#935](https://github.com/azimul-kabir/actua/issues/935) | P2 | Paid schedules don't advance, paid one-off schedules never complete, and a due-today auto-post advances at once (fixed) |
 | [#936](https://github.com/azimul-kabir/actua/issues/936) | Lower | Upcoming rows show one occurrence per schedule and leave out paid and account-less schedules (fixed) |
 | [#937](https://github.com/azimul-kabir/actua/issues/937) | Lower | The budget-wide upcoming length setting is ignored (fixed) |
-| [#938](https://github.com/azimul-kabir/actua/issues/938) | Lower | Editing a schedule allows another schedule's name |
+| [#938](https://github.com/azimul-kabir/actua/issues/938) | Lower | Editing a schedule allows another schedule's name (fixed) |
 
 The recurrence fixture found no divergence: next dates, skips and month-end, leap-year, weekend
 and end-mode cases all match. Its only difference, the editor preview not repeating weekend-solved

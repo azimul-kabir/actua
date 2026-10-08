@@ -401,8 +401,14 @@ class ActuaRepository(context: Context) {
     }
 
     fun updateSchedule(scheduleId: String, fields: ScheduleFormFields, payeeName: String): Boolean {
-        val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
-            ?: return false
+        val database = actualDatabase ?: return false
+        val schedule = database.fetchScheduleSummaries().firstOrNull { it.id == scheduleId } ?: return false
+        // Actual's `updateSchedule` rejects another schedule's name (`checkIfScheduleExists`).
+        fields.normalizedName?.let { name ->
+            require(!database.scheduleNameExists(name, excludingId = schedule.id)) {
+                "A schedule named $name already exists."
+            }
+        }
         val payeeId = payeeName.trim().takeIf(String::isNotEmpty)?.let {
             actualWriter!!.resolveOrCreatePayee(it).id
         }
