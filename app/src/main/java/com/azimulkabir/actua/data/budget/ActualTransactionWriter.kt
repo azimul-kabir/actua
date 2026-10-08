@@ -7,6 +7,7 @@ import com.azimulkabir.actua.data.sync.CrdtValue
 import com.azimulkabir.actua.data.sync.HybridLogicalClock
 import com.azimulkabir.actua.data.rules.RuleChangeGuard
 import com.azimulkabir.actua.data.rules.RulesEngine
+import com.azimulkabir.actua.data.rules.TransferLegRules
 import java.util.UUID
 
 /** Offline-first transaction mutations matching Actual's row/message shapes. */
@@ -36,10 +37,16 @@ class ActualTransactionWriter(
         return payee
     }
 
+    /**
+     * Inserts [transaction], running rules first when [applyRules]. With [runTransfers], a row whose
+     * payee is another account's transfer payee also gets its other leg, as loot-core's
+     * `addTransactions` (`runTransfers`) → `transfer.onInsert` → `addTransfer` does.
+     */
     fun createTransaction(
         transaction: ActualTransaction,
         applyRules: Boolean = true,
         preserveCategory: Boolean = false,
+        runTransfers: Boolean = false,
     ): ActualTransaction? {
         var final = transaction
         var splitChildren: List<com.azimulkabir.actua.data.rules.RuleSplitChild> = emptyList()
@@ -76,9 +83,42 @@ class ActualTransactionWriter(
             return parent
         }
         require(!final.isParent && final.parentId == null) { "Use createSplit for split rows" }
+        if (runTransfers && final.transferId == null) {
+            transferLegsFor(final)?.let { (source, partner) ->
+                createTransfer(source, partner)
+                return source
+            }
+        }
         database.insertTransactions(listOf(final), fieldsForInsert(final))
         saveClock()
         return final
+    }
+
+    /**
+     * loot-core `addTransfer`: the other leg goes to the payee's transfer account with the negated
+     * amount, the source account's transfer payee, the same date, notes and schedule, uncleared, and
+     * rules applied to it; the source keeps its category only for an on-budget → off-budget transfer
+     * (`clearCategory`). Null when the payee isn't another account's transfer payee.
+     */
+    private fun transferLegsFor(source: ActualTransaction): Pair<ActualTransaction, ActualTransaction>? {
+        val payeeId = source.payeeId ?: return null
+        val transferAccount = database.fetchPayees().firstOrNull { it.id == payeeId }?.transferAccountId
+            ?.takeIf { it != source.accountId } ?: return null
+        val fromPayee = database.transferPayeeId(source.accountId) ?: error("This account has no transfer payee")
+        val offBudget = database.fetchAccounts().filter { it.offBudget }.mapTo(mutableSetOf()) { it.id }
+        val keepCategory = source.accountId !in offBudget && transferAccount in offBudget
+        val partnerId = idFactory()
+        val partner = ActualTransaction(
+            id = partnerId, accountId = transferAccount, date = source.date, amountCents = -source.amountCents,
+            payeeId = fromPayee, payeeName = null, categoryId = null, categoryName = null, notes = source.notes,
+            cleared = false, reconciled = false, transferId = source.id, isParent = false, parentId = null,
+            tombstone = false, sortOrder = source.sortOrder, importedPayee = null, scheduleId = source.scheduleId,
+            transferAccountId = null,
+        )
+        return TransferLegRules.apply(
+            source.copy(transferId = partnerId, categoryId = source.categoryId.takeIf { keepCategory }),
+            partner, database.fetchRules(), database.ruleContext(),
+        )
     }
 
     fun createTransfer(source: ActualTransaction, target: ActualTransaction) {
