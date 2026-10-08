@@ -159,6 +159,7 @@ fun TransactionsScreen(
     hideReconciledTransactions: Boolean = false,
     onHideReconciledTransactionsChange: (Boolean) -> Unit = {},
     onSetCleared: (Transaction, Boolean) -> Unit = { _, _ -> },
+    onUnlockTransaction: (Transaction) -> Unit = {},
     onReconcileAccount: (Account, onReconciled: () -> Unit) -> Unit = { _, _ -> },
     onCreateReconciliationAdjustment: (Account, Long, onCreated: () -> Unit) -> Unit = { _, _, _ -> },
     onDelete: (Transaction) -> Unit = {},
@@ -217,6 +218,7 @@ fun TransactionsScreen(
         val warning = reconciledWarning(rows, ReconciledAction.BULK_EDIT)
         if (warning == null) edit() else pendingReconciledEdit = warning to edit
     }
+    val toggleCleared = rememberClearedToggle(onSetCleared, onUnlockTransaction)
     var showCategorizePicker by remember { mutableStateOf(false) }
     var showMovePicker by remember { mutableStateOf(false) }
     var showLabelPicker by remember { mutableStateOf(false) }
@@ -464,11 +466,11 @@ fun TransactionsScreen(
                             }
                             DropdownMenuItem(text = { Text("Mark cleared") }, onClick = {
                                 bulkMenuOpen = false
-                                selectedTransactions.filterNot { it.cleared }.forEach { onSetCleared(it, true) }
+                                bulkClearedTargets(selectedTransactions, cleared = true).forEach { onSetCleared(it, true) }
                             })
                             DropdownMenuItem(text = { Text("Mark uncleared") }, onClick = {
                                 bulkMenuOpen = false
-                                selectedTransactions.filter { it.cleared }.forEach { onSetCleared(it, false) }
+                                bulkClearedTargets(selectedTransactions, cleared = false).forEach { onSetCleared(it, false) }
                             })
                             DropdownMenuItem(text = { Text("Duplicate") }, onClick = {
                                 bulkMenuOpen = false
@@ -649,7 +651,7 @@ fun TransactionsScreen(
                                             }
                                         }
                                     },
-                                    onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
+                                    onClearedClick = { toggleCleared(transaction) }, tagColors = tagColors,
                                     selectionMode = selectionModeOn, selected = isSelected,
                                     runningBalanceCents = runningBalances[transaction.id], showDivider = false)
                             }
@@ -677,7 +679,7 @@ fun TransactionsScreen(
                                         }
                                     }
                                 },
-                                onClearedClick = { onSetCleared(transaction, !transaction.cleared) }, tagColors = tagColors,
+                                onClearedClick = { toggleCleared(transaction) }, tagColors = tagColors,
                                 selectionMode = selectionModeOn, selected = isSelected,
                                 runningBalanceCents = runningBalances[transaction.id], showDivider = false)
                         }
@@ -1300,7 +1302,8 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
                 contentDescription = upcomingLabel, tint = upcomingColor,
                 modifier = Modifier.padding(end = 10.dp, top = 2.dp).size(18.dp))
         } else {
-            ClearedIndicator(transaction.cleared, onClearedClick, modifier = Modifier.padding(end = 10.dp, top = 2.dp))
+            ClearedIndicator(transaction.cleared, onClearedClick, modifier = Modifier.padding(end = 10.dp, top = 2.dp),
+                reconciled = transaction.reconciled)
         }
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(presentation.title,
@@ -1409,7 +1412,9 @@ private fun CategoryChip(label: String, transfer: Boolean) {
 }
 
 @Composable
-private fun ClearedIndicator(cleared: Boolean, onClick: (() -> Unit)? = null, modifier: Modifier = Modifier) {
+private fun ClearedIndicator(cleared: Boolean, onClick: (() -> Unit)? = null, modifier: Modifier = Modifier,
+    reconciled: Boolean = false) {
+    // A reconciled row shows a lock, like Actual's register; tapping it asks to unlock (#992).
     Surface(
         modifier = modifier.size(18.dp)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
@@ -1417,8 +1422,12 @@ private fun ClearedIndicator(cleared: Boolean, onClick: (() -> Unit)? = null, mo
         color = if (cleared) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Icon(
-            Icons.Rounded.Check,
-            contentDescription = if (cleared) "Cleared" else "Uncleared",
+            if (reconciled) Icons.Outlined.Lock else Icons.Rounded.Check,
+            contentDescription = when {
+                reconciled -> "Reconciled"
+                cleared -> "Cleared"
+                else -> "Uncleared"
+            },
             tint = if (cleared) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.outline,
             modifier = Modifier.padding(3.dp),
         )
@@ -1444,7 +1453,8 @@ fun TransactionDetailsSheet(
             Row(Modifier.fillMaxWidth().padding(end = Spacing.xl), verticalAlignment = Alignment.CenterVertically) {
                 ActuaSheetTitle("Transaction details", Modifier.weight(1f))
                 Amount(transaction.amountCents, FontWeight.Bold, hideDecimalPlaces)
-                ClearedIndicator(transaction.cleared, modifier = Modifier.padding(start = Spacing.sm))
+                ClearedIndicator(transaction.cleared, modifier = Modifier.padding(start = Spacing.sm),
+                    reconciled = transaction.reconciled)
             }
             ActuaSheetCard {
                 Column(

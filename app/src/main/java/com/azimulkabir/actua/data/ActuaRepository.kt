@@ -1815,6 +1815,12 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    fun unlockTransaction(id: String): Boolean {
+        val transaction = actualDatabase?.fetchTransactionRow(id) ?: return false
+        actualWriter!!.unlockTransaction(transaction)
+        return true
+    }
+
     fun reconcileAccount(accountId: String): Boolean {
         val writer = actualWriter ?: return false
         writer.reconcileClearedTransactions(accountId)

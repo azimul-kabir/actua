@@ -191,6 +191,20 @@ class ActualTransactionWriter(
         return originals.size
     }
 
+    /**
+     * Unlock a reconciled row like Actual's `unlockTransaction`: only `reconciled` changes, and
+     * `cleared` stays as it is. A split unlocks as a group (parent and every child), since
+     * Actual's `makeChild` copies the parent's reconciled state onto its children.
+     */
+    @Synchronized
+    fun unlockTransaction(transaction: ActualTransaction) {
+        val parent = transaction.parentId?.let(database::fetchTransactionRow) ?: transaction
+        val group = if (parent.isParent) listOf(parent) + database.fetchChildTransactions(parent.id)
+            else listOf(parent)
+        val updates = group.filter { it.reconciled }.map { it to it.copy(reconciled = false) }
+        if (updates.isNotEmpty()) mutate(updates = updates)
+    }
+
     fun deleteTransaction(transaction: ActualTransaction) = deleteTransactions(listOf(transaction))
 
     /**

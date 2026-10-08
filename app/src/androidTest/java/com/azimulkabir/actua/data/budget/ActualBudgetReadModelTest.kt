@@ -282,6 +282,22 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun unlockingAReconciledSplitUnlocksTheWholeGroupAndKeepsItCleared() = withDatabase { database ->
+        val writer = ActualTransactionWriter(database, nodeId = "efefefefefefefef")
+        val parent = requireNotNull(database.fetchTransaction("split-parent"))
+        val children = database.fetchChildTransactions(parent.id)
+        writer.mutate(updates = (listOf(parent) + children).map { it to it.copy(cleared = true, reconciled = true) })
+
+        // Unlocking from a child unlocks the parent and every sibling, like Actual's makeChild.
+        writer.unlockTransaction(requireNotNull(database.fetchTransactionRow(children.first().id)))
+
+        val after = listOf(requireNotNull(database.fetchTransaction(parent.id))) +
+            database.fetchChildTransactions(parent.id)
+        assertTrue(after.none { it.reconciled })
+        assertTrue(after.all { it.cleared })
+    }
+
+    @Test
     fun clearingASplitKeepsItsStoredChildrenAligned() = withDatabase { database ->
         val writer = ActualTransactionWriter(database, nodeId = "cdcdcdcdcdcdcdcd")
         val parent = requireNotNull(database.fetchTransaction("split-parent"))

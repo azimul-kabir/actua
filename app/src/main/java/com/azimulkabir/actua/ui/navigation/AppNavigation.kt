@@ -1485,6 +1485,9 @@ fun AppNavigation(
                 onSetCleared = { transaction, cleared ->
                     mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
                 },
+                onUnlockTransaction = { transaction ->
+                    mutate("Unlocking transaction") { repository.unlockTransaction(transaction.id) }
+                },
                 onReconcileAccount = { account, onReconciled ->
                     mutate("Reconciling account", onChanged = onReconciled) { repository.reconcileAccount(account.id) }
                 },
@@ -1882,6 +1885,9 @@ fun AppNavigation(
                 },
                 onTransactionClearedChange = { transaction, cleared ->
                     mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
+                },
+                onTransactionUnlock = { transaction ->
+                    mutate("Unlocking transaction") { repository.unlockTransaction(transaction.id) }
                 },
                 onAccountClick = {
                     transactionAccount = it; transactionCategory = null; transactionMonth = null; transactionSearch = ""
@@ -2686,6 +2692,9 @@ fun AppNavigation(
                     },
                     onSetCleared = { transaction, cleared ->
                         mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
+                    },
+                    onUnlockTransaction = { transaction ->
+                        mutate("Unlocking transaction") { repository.unlockTransaction(transaction.id) }
                     },
                     onReconcileAccount = { account, onReconciled ->
                         mutate("Reconciling account", onChanged = onReconciled) { repository.reconcileAccount(account.id) }

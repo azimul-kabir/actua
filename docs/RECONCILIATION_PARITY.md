@@ -25,7 +25,7 @@ in [#664](https://github.com/azimul-kabir/actua/issues/664) (part of
 | Cleared balance, difference and the balanced state | Match |
 | Lock ("Lock transactions") rows and atomicity | Match |
 | Adjustment transaction cells | Match, except rules aren't run: **Divergence** [#993](https://github.com/azimul-kabir/actua/issues/993) |
-| Unlocking a reconciled row | Missing: **Divergence** [#992](https://github.com/azimul-kabir/actua/issues/992) |
+| Unlocking a reconciled row | Match ([#992](https://github.com/azimul-kabir/actua/issues/992)) |
 | Edit/delete/move confirmations on reconciled rows | Match (#746); Actua also confirms bulk Categorize and Merge |
 | `hide-reconciled-<id>` preference | Match (mobile semantics) |
 | `accounts.last_reconciled` | Not written or shown: **Divergence** [#994](https://github.com/azimul-kabir/actua/issues/994) |
@@ -122,10 +122,14 @@ Actua: `ActualTransactionWriter.setCleared` (`:172`), register `onClearedClick`
 
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| Tapping a reconciled row's status asks (`unlockReconciled`), then writes `reconciled = 0` for the row and its split children; `cleared` stays 1 | yes | `setCleared` throws "Reconciled transactions are locked", shown as an error; no unlock path | **Divergence** [#992](https://github.com/azimul-kabir/actua/issues/992) |
-| Reconciled rows show a lock icon | `SvgLockClosed` in `TransactionListItem` | same indicator as cleared | **Divergence** [#992](https://github.com/azimul-kabir/actua/issues/992) |
-| Bulk cleared edits skip reconciled rows | `useTransactionBatchActions` `name === 'cleared' && trans.reconciled → return` | bulk **Mark uncleared** errors on a reconciled row | **Divergence** [#992](https://github.com/azimul-kabir/actua/issues/992) |
+| Tapping a reconciled row's status asks (`unlockReconciled`), then writes `reconciled = 0` for the row and its split children; `cleared` stays 1 | yes | the register and search rows ask with the same text (`rememberClearedToggle`), then `ActualTransactionWriter.unlockTransaction` writes `reconciled = 0` for the whole split group in one batch | Match ([#992](https://github.com/azimul-kabir/actua/issues/992)) |
+| Reconciled rows show a lock icon | `SvgLockClosed` in `TransactionListItem` | lock icon labelled "Reconciled" (`ClearedIndicator`) | Match ([#992](https://github.com/azimul-kabir/actua/issues/992)) |
+| Bulk cleared edits skip reconciled rows | `useTransactionBatchActions` `name === 'cleared' && trans.reconciled → return` | `bulkClearedTargets` skips them | Match ([#992](https://github.com/azimul-kabir/actua/issues/992)) |
 | The editor shows a disabled **Reconciled** toggle in place of **Cleared** | `TransactionEdit.tsx#L1475-L1488` | `AddTransactionScreen.kt:545` | Match (#746) |
+
+Tests: `src/test/.../ui/transactions/ReconciledWarningsTest.bulkClearedEditsSkipReconciledRows`,
+`unlockUsesActualsUnlockReconciledText`,
+`src/androidTest/.../data/budget/ActualBudgetReadModelTest.unlockingAReconciledSplitUnlocksTheWholeGroupAndKeepsItCleared`.
 
 ## 5. Editing, deleting and moving reconciled rows
 
