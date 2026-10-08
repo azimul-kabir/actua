@@ -13,6 +13,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Manage payees: rename, merge, delete, favorite and turn category learning on or off ([#903](https://github.com/azimul-kabir/actua/pull/903))
 - Categorising a payee's transactions creates or updates its category rule, as Actual's category learning does ([#901](https://github.com/azimul-kabir/actua/pull/901))
 
+### Changed
+
+- Currency, number and date formats, decimal places and balance hiding follow the budget's Actual settings unless set on the device ([#979](https://github.com/azimul-kabir/actua/pull/979))
+
 ### Fixed
 
 - Amounts with hidden decimals round to the nearest whole unit like Actual instead of dropping the cents ([#978](https://github.com/azimul-kabir/actua/pull/978))
