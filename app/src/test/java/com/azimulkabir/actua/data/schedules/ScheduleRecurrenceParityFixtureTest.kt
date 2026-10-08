@@ -12,7 +12,7 @@ import org.junit.Test
  * (@actual-app/api 26.9.0) on a fixed "today" per case, so every expected value is what Actual does:
  * - `nextDate`: the next date `schedule/create` stores (`getNextDate`), which Actua computes with
  *   [ScheduleRecurrence.nextOccurrence];
- * - `afterSkip`: the next date after `schedule/skip-next-date`, which Actua computes the way
+ * - `skips`: the next dates after six `schedule/skip-next-date` calls, which Actua computes the way
  *   `ActuaRepository.skipScheduleNextDate` does;
  * - `upcoming`: the schedule editor's preview (`schedule/get-upcoming-dates`, 8 dates), which Actua's
  *   editor computes with [ScheduleRecurrence.upcomingDates].
@@ -39,11 +39,17 @@ class ScheduleRecurrenceParityFixtureTest {
             val next = ScheduleRecurrence.nextOccurrence(config, today)
             compare(differences, "$name nextDate", case.optNullable("nextDate"), next?.iso)
 
-            val afterSkip = next?.let { current ->
-                ScheduleRecurrence.nextOccurrence(config, ScheduleRecurrence.skipSearchStart(current, config))
-                    ?.takeIf { it != current } ?: current
+            val skips = case.getJSONArray("skips").strings()
+            var current = next
+            val actuaSkips = skips.indices.map {
+                current = current?.let { date ->
+                    // A skip that finds no later occurrence leaves the next date unchanged.
+                    ScheduleRecurrence.nextOccurrence(config, ScheduleRecurrence.skipSearchStart(date, config))
+                        ?.takeIf { it != date } ?: date
+                }
+                current?.iso
             }
-            compare(differences, "$name afterSkip", case.optNullable("afterSkip"), afterSkip?.iso)
+            compare(differences, "$name skips", skips.joinToString(), actuaSkips.joinToString())
 
             val upcoming = case.getJSONArray("upcoming").strings()
             compare(

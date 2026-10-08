@@ -1,7 +1,9 @@
 // Generates the #670 schedule recurrence fixture: synthetic recurrence configs run through Actual's own
 // schedules code from @actual-app/api 26.9.0, offline, on a fixed "today" per case. For each case it
-// records the next date `schedule/create` stores (loot-core's `getNextDate`), the next date after
-// `schedule/skip-next-date`, and the editor preview `schedule/get-upcoming-dates` returns. The JVM test
+// records the next date `schedule/create` stores (loot-core's `getNextDate`), the next dates after
+// repeated `schedule/skip-next-date` (each a `getNextDate` from the day after, the step the Balance
+// Forecast's `getFutureOccurrenceDates` also takes), and the editor preview
+// `schedule/get-upcoming-dates` returns. The JVM test
 // ScheduleRecurrenceParityFixtureTest replays every case through Actua's ScheduleRecurrence. The
 // workflow regenerates the file and fails if it changed.
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -130,9 +132,12 @@ try {
     });
     const nextDate = await nextDateOf(id);
     const upcoming = await send('schedule/get-upcoming-dates', { config, count: 8 });
-    await send('schedule/skip-next-date', { id });
-    const afterSkip = await nextDateOf(id);
-    results.push({ name, today, config, nextDate, afterSkip, upcoming });
+    const skips = [];
+    for (let i = 0; i < 6; i++) {
+      await send('schedule/skip-next-date', { id });
+      skips.push(await nextDateOf(id));
+    }
+    results.push({ name, today, config, nextDate, skips, upcoming });
   }
 } finally {
   await api.shutdown();
