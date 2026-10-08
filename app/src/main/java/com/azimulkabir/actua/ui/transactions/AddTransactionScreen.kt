@@ -355,6 +355,7 @@ fun AddTransactionScreen(
                     if (categoryApplies) {
                         PickerTextField(
                             label = "Category", value = category, options = categoryOptions,
+                            sections = categoryChoices.sections,
                             supportingValues = categoryBalanceLabels,
                             onValueChange = { category = it; categoryIsExplicit = it.isNotBlank() },
                             autoOpen = autoStep == AddStep.Category,
@@ -442,6 +443,7 @@ fun AddTransactionScreen(
                                         label = "Category",
                                         value = line.category,
                                         options = categoryOptions,
+                                        sections = categoryChoices.sections,
                                         supportingValues = categoryBalanceLabels,
                                         onValueChange = { value -> update(line.copy(category = value)) },
                                         rowIcon = Icons.Outlined.Category,
@@ -804,6 +806,8 @@ internal fun PickerTextField(
     allowCustom: Boolean = false,
     /** Options shown in a "Suggested" group above the alphabetical list while the search is empty. */
     suggested: List<String> = emptyList(),
+    /** Headed option groups (e.g. category groups) listed in order instead of A–Z; see [browsePickerGroups]. */
+    sections: List<Pair<String, List<String>>> = emptyList(),
     supportingValues: Map<String, String> = emptyMap(),
     onFindNearby: (suspend () -> NearbyPayeeSearchResult)? = null,
     onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
@@ -946,6 +950,7 @@ internal fun PickerTextField(
         options = options,
         allowCustom = allowCustom,
         suggested = suggested,
+        sections = sections,
         supportingValues = supportingValues,
         onFindNearby = onFindNearby,
         onForgetPayeeLocation = onForgetPayeeLocation,
@@ -994,6 +999,7 @@ private fun SearchableTransactionPicker(
     options: List<String>,
     allowCustom: Boolean,
     suggested: List<String>,
+    sections: List<Pair<String, List<String>>>,
     supportingValues: Map<String, String>,
     onFindNearby: (suspend () -> NearbyPayeeSearchResult)?,
     onForgetPayeeLocation: (suspend (String) -> Boolean)?,
@@ -1053,10 +1059,11 @@ private fun SearchableTransactionPicker(
         alphabetizePickerOptions(uniqueOptions.filter { it.startsWith("Transfer: ") })
     }
     val suggestedOptions = remember(uniqueOptions, suggested) { suggestedPickerOptions(uniqueOptions, suggested) }
-    val grouped = remember(uniqueOptions, suggestedOptions) {
-        uniqueOptions.filterNot { it.startsWith("Transfer: ") || it in suggestedOptions }
-            .sortedWith(String.CASE_INSENSITIVE_ORDER)
-            .groupBy { it.firstOrNull()?.uppercaseChar()?.takeIf(Char::isLetterOrDigit)?.toString() ?: "#" }
+    val grouped = remember(uniqueOptions, suggestedOptions, sections) {
+        browsePickerGroups(
+            uniqueOptions.filterNot { it.startsWith("Transfer: ") || it in suggestedOptions },
+            sections,
+        )
     }
 
     Dialog(
@@ -1217,9 +1224,10 @@ private fun SearchableTransactionPicker(
                         }
                     }
                     if (query.isBlank()) {
-                        grouped.forEach { (letter, entries) ->
-                            item(key = "heading-$letter") { ActuaGroupLabel(letter) }
-                            item(key = "group-$letter") {
+                        // Indexed keys: category group names can repeat or match another heading.
+                        grouped.forEachIndexed { index, (heading, entries) ->
+                            item(key = "browse-heading-$index") { ActuaGroupLabel(heading) }
+                            item(key = "browse-group-$index") {
                                 PickerGroup(
                                     entries, selected, supportingValues = supportingValues,
                                     onSelect = onSelect,
@@ -1330,6 +1338,27 @@ internal fun filterPickerOptions(options: List<String>, query: String): List<Str
     return alphabetizePickerOptions(
         options.filter { it.removePrefix("Transfer: ").contains(term, ignoreCase = true) },
     )
+}
+
+/**
+ * The list shown while the search is empty: [options] under the [sections] headings in their
+ * given order, as Actual lists categories by group, then any option no section holds in A–Z
+ * letter buckets. Without sections every option is in a letter bucket, `#` for non-letters.
+ */
+internal fun browsePickerGroups(
+    options: List<String>,
+    sections: List<Pair<String, List<String>>>,
+): List<Pair<String, List<String>>> {
+    val offered = options.toSet()
+    val headed = sections.mapNotNull { (heading, entries) ->
+        entries.filter { it in offered }.takeIf { it.isNotEmpty() }?.let { heading to it }
+    }
+    val placed = headed.flatMapTo(mutableSetOf()) { it.second }
+    val lettered = options.filterNot { it in placed }
+        .sortedWith(String.CASE_INSENSITIVE_ORDER)
+        .groupBy { it.firstOrNull()?.uppercaseChar()?.takeIf(Char::isLetterOrDigit)?.toString() ?: "#" }
+        .toList()
+    return headed + lettered
 }
 
 internal fun alphabetizePickerOptions(options: List<String>): List<String> = options.distinct()

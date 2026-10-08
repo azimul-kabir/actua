@@ -183,12 +183,21 @@ class ActuaRepository(context: Context) {
         ?.map { it.name }
         ?: emptyList()
 
-    /** Visible categories in [categoryNames] order, labelled apart when names repeat across groups. */
-    fun categoryChoices(): PickerChoices = PickerChoices.categories(
-        actualDatabase?.fetchCategoryGroups().orEmpty().flatMap { group ->
-            group.categories.filterNot { it.hidden }.map { group.name to (it.id to it.name) }
-        },
-    )
+    /**
+     * Categories in budget order with expense groups before income, as Actual's category
+     * autocomplete lists them, labelled apart when names repeat across groups. Hidden categories
+     * and every category in a hidden group are kept only so existing rows still resolve; pickers
+     * don't offer them.
+     */
+    fun categoryChoices(): PickerChoices {
+        val groups = actualDatabase?.fetchCategoryGroups().orEmpty().sortedBy { it.isIncome }
+        return PickerChoices.categories(
+            groups.flatMap { group -> group.categories.map { group.name to (it.id to it.name) } },
+            hiddenIds = groups.flatMapTo(mutableSetOf()) { group ->
+                group.categories.filter { group.hidden || it.hidden }.map { it.id }
+            },
+        )
+    }
 
     fun payeeNames(): List<String> = actualDatabase?.fetchPayees()
         ?.filter { it.transferAccountId == null && it.name != "Unknown" }
