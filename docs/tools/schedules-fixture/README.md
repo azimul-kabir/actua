@@ -6,9 +6,10 @@ decides the expected result of every recurrence case, and Actua's engine has to 
 - `generate.mjs` opens an offline budget in `@actual-app/api@26.9.0` with a fixed clock (noon UTC on
   each case's `today`). For every recurrence config it creates a schedule and records:
   - `nextDate`: the next date `schedule/create` stores, i.e. loot-core's `getNextDate`;
-  - `skips`: the next date after each of six `schedule/skip-next-date` calls (each is a `getNextDate`
+  - `skips`: the next date after each of six `schedule/skip-next-date` calls. Each is a `getNextDate`
     from the day after the current next date, the step the Balance Forecast's
-    `getFutureOccurrenceDates` walk also takes);
+    `getFutureOccurrenceDates` walk also takes, except that a skip first moves a "before"-solved
+    Friday or weekend date to the following Monday;
   - `upcoming`: the editor preview from `schedule/get-upcoming-dates` (8 dates).
 
   It writes them to `app/src/test/resources/schedules-parity/upstream-26.9.0.json`.
