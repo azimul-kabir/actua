@@ -63,6 +63,8 @@ data class ReportWidget(
     val balanceCents: Long? = null,
     /** Total and per-interval average for a saved custom report; null for every other widget kind. */
     val summary: ReportSummary? = null,
+    /** First column of the Calendar widget's week, the synced `firstDayOfWeekIdx` (0 = Sunday). */
+    val weekStart: Int = 0,
 )
 
 /** What a custom report's Summary totals, mirroring the labels in upstream `ReportSummary.tsx`. */

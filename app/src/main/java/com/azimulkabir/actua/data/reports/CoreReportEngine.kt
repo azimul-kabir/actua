@@ -46,6 +46,7 @@ object CoreReportEngine {
         today: LocalDate = LocalDate.now(),
         transferAccountByPayee: Map<String, String> = emptyMap(),
         payees: List<com.azimulkabir.actua.data.budget.model.ActualPayee> = emptyList(),
+        firstDayOfWeek: Int = 0,
     ): List<ReportDashboardPage> {
         val resolvedPages = if (pages.isEmpty()) listOf(DashboardPageRow("", "Dashboard")) else pages
         val context = RuleContext(
@@ -60,7 +61,7 @@ object CoreReportEngine {
         val incomeCategories = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id }
         val savedReportsById = savedReports.associateBy { it.id }
         val savedShared = if (savedReports.isEmpty()) null else
-            SavedReportEngine.Shared(transactions, accounts, groups, payees)
+            SavedReportEngine.Shared(transactions, accounts, groups, payees, firstDayOfWeek)
         return resolvedPages.map { page ->
             ReportDashboardPage(
                 page.id,
@@ -78,7 +79,7 @@ object CoreReportEngine {
                         compute(
                             row, transactions, context, incomeCategories, budgetedByCategory, today,
                             accounts.associate { it.id to it.balanceCents }, schedules, budgetMonth,
-                            transferAccountByPayee,
+                            transferAccountByPayee, firstDayOfWeek,
                         )
                     }
                 },
@@ -97,6 +98,7 @@ object CoreReportEngine {
         schedules: List<ActualScheduleSummary> = emptyList(),
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
         transferAccountByPayee: Map<String, String> = emptyMap(),
+        firstDayOfWeek: Int = 0,
     ): ReportWidget {
         val meta = row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
         val name = meta?.optString("name")?.takeIf(String::isNotBlank) ?: label(row.type)
@@ -116,7 +118,7 @@ object CoreReportEngine {
         return when (row.type) {
             "summary-card" -> summary(row.id, name, meta, transactions, conditions, context, start, end, today)
             "net-worth-card" -> netWorth(row.id, name, meta, transactions.filterNot { it.tombstone }
-                .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }, start, end)
+                .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }, start, end, firstDayOfWeek)
             "cash-flow-card" -> cashFlow(row.id, name, filtered.filter { it.transferAccountId == null &&
                 it.accountId !in context.offBudgetAccountIds && it.date <= minOf(end, today).toYmd() }, start, end)
             "spending-card" -> spending(row.id, name, meta, transactions, context, incomeCategoryIds,
@@ -142,7 +144,7 @@ object CoreReportEngine {
                     .filter { it.date in monthStart.toYmd()..monthEnd.toYmd() }
                     .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }
                     .toList()
-                calendar(row.id, name, calendarFiltered)
+                calendar(row.id, name, calendarFiltered).copy(weekStart = firstDayOfWeek)
             }
             "crossover-card" -> crossover(row.id, name, meta, transactions, context, incomeCategoryIds,
                 accountBalances, today)
@@ -862,10 +864,10 @@ object CoreReportEngine {
 
     private fun netWorth(
         id: String, name: String, meta: JSONObject?, transactions: List<ActualTransaction>,
-        start: LocalDate, end: LocalDate,
+        start: LocalDate, end: LocalDate, firstDayOfWeek: Int,
     ): ReportWidget {
         val interval = meta?.optString("interval", "Monthly") ?: "Monthly"
-        val boundaries = boundaries(start, end, interval)
+        val boundaries = boundaries(start, end, interval, firstDayOfWeek)
         val points = boundaries.map { boundary ->
             ReportPoint(boundary.toString(), transactions.filter { it.date <= boundary.toYmd() }.sumOf { it.amountCents })
         }
@@ -1083,10 +1085,11 @@ object CoreReportEngine {
         return runCatching { YearMonth.parse(text) }.getOrNull()
     }
 
-    private fun boundaries(start: LocalDate, end: LocalDate, interval: String): List<LocalDate> = when (interval) {
+    private fun boundaries(start: LocalDate, end: LocalDate, interval: String, firstDayOfWeek: Int): List<LocalDate> = when (interval) {
         "Daily" -> generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.toList()
+        // Each week ends the day before the next `firstDayOfWeekIdx` week starts.
         "Weekly" -> generateSequence(start) { it.plusWeeks(1) }.takeWhile { !it.isAfter(end) }
-            .map { minOf(it.plusDays((6 - it.dayOfWeek.value % 7).toLong()), end) }.distinct().toList()
+            .map { minOf(SavedReportEngine.startOfWeek(it, firstDayOfWeek).plusDays(6), end) }.distinct().toList()
         "Yearly" -> (start.year..end.year).map { minOf(LocalDate.of(it, 12, 31), end) }
         else -> generateSequence(YearMonth.from(start)) { it.plusMonths(1) }.takeWhile { !it.isAfter(YearMonth.from(end)) }
             .map { minOf(it.atEndOfMonth(), end) }.toList()
