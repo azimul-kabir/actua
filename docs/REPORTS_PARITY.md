@@ -91,13 +91,14 @@ own default. Actua: `CRE.timeFrame` (`:974`).
 | `static` (month or day bounds) | stored bounds | stored bounds | Match |
 | `lastMonth`, `lastYear`, `yearToDate`, `priorYearToDate` | calendar bounds | same | Match |
 | `sliding-window` with month bounds | same width, ending this month | same | Match |
-| `sliding-window` with day bounds / `start > end` | slides by days / forward window | truncated to months | **Divergence** [#948](https://github.com/azimul-kabir/actua/issues/948) |
-| `currentQuarter`, `previousQuarter` | quarter bounds | current month | **Divergence** [#948](https://github.com/azimul-kabir/actua/issues/948) |
-| `full` | stored start → later of this month and latest transaction | stored start → this month | **Divergence** [#948](https://github.com/azimul-kabir/actua/issues/948) |
-| No `timeFrame` (Net Worth, Age of Money, Sankey, Budget Analysis) | last 6 months, sliding | current month | **Divergence** [#948](https://github.com/azimul-kabir/actua/issues/948) |
+| `sliding-window` with day bounds / `start > end` | slides by days / reversed window | same | Match (#948) |
+| `currentQuarter`, `previousQuarter` | quarter bounds | same | Match (#948) |
+| `full` | stored start → later of this month and latest transaction | same | Match (#948) |
+| No `timeFrame` or no `mode` (Net Worth, Age of Money, Sankey, Budget Analysis) | last 6 months, sliding | same | Match (#948) |
+| Card ranges widen to whole months (`firstDayOfMonth`/`lastDayOfMonth`) | every card spreadsheet | `CRE.compute` | Match (#948) |
 | No `timeFrame` (Summary, Calendar: this month; Cash Flow: this month; Balance Forecast: this + 11 months) | card default | same | Match |
 
-Tests: `src/androidTest/.../data/reports/CoreReportEngineTest.slidingWindowKeepsConfiguredMonthCount`,
+Tests: `TimeFrameTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.slidingWindowKeepsConfiguredMonthCount`,
 `CalendarTest`.
 
 ### Other shared rules
@@ -140,7 +141,7 @@ Upstream: [`S/net-worth-spreadsheet.ts#L22-L260`][net-worth]. Actua: `CRE.netWor
 | `interval` Weekly | weeks by `firstDayOfWeekIdx` | Sunday weeks | **Divergence** [#953](https://github.com/azimul-kabir/actua/issues/953) |
 | Extra "prior period" point before the range | added unless the first transaction is in range | not added | **Intentional** (chart only; headline unaffected) |
 | `mode` trend/stacked | chart style | single line | **Intentional** |
-| Default range | last 6 months | current month | **Divergence** [#948](https://github.com/azimul-kabir/actua/issues/948) |
+| Default range | last 6 months | same | Match (#948) |
 
 ### Cash Flow (`cash-flow-card`)
 
@@ -194,7 +195,7 @@ Upstream: [`S/age-of-money-spreadsheet.ts#L407-L573`][aom]. Actua: `CRE.ageOfMon
 | Headline = average of the last 10 ages from the start month | `calculateAverageAge` | same | Match |
 | `granularity` daily/weekly/monthly chart | honored | monthly only | **Divergence** [#955](https://github.com/azimul-kabir/actua/issues/955) |
 | Periods before the first age | omitted | `0` points | **Divergence** [#955](https://github.com/azimul-kabir/actua/issues/955) |
-| Default range | last 6 months | current month | **Divergence** [#948](https://github.com/azimul-kabir/actua/issues/948) |
+| Default range | last 6 months | same | Match (#948) |
 
 Tests: `AgeOfMoneyTest`.
 
@@ -253,7 +254,7 @@ Upstream: [`S/budget-analysis-spreadsheet.ts`][budget-analysis], [`W/BudgetAnaly
 | Headline = last month's balance (budgeted + spent + carried leftover) | `intervalData.at(-1).balance` | last point's available | Match |
 | `showHiddenCategories` | `isBaseCategory` (category's own flag) | hidden list from the read model | **Divergence** [#956](https://github.com/azimul-kabir/actua/issues/956) (hidden group edge case) |
 | Category/group conditions; unsupported operator | matches nothing | ignored (all categories) | **Divergence** [#956](https://github.com/azimul-kabir/actua/issues/956) |
-| Default range | last 6 months | current month | **Divergence** [#948](https://github.com/azimul-kabir/actua/issues/948) |
+| Default range | last 6 months | same | Match (#948) |
 | `graphType`, `balanceOnly` | chart style | bar chart | **Intentional** |
 
 Tests: `src/androidTest/.../data/reports/CoreReportEngineTest.budgetAnalysisScopesBudgetedAndSpentToCategoryConditionsAndTracksBalance`, `.budgetAnalysisExcludesHiddenCategoriesUnlessRequested`.
@@ -268,7 +269,7 @@ Upstream: [`S/sankey-spreadsheet.ts#L173-L838`][sankey], [`W/SankeyCard.tsx#L53-
 | Income broken down per income category | | same | Match |
 | `mode = budgeted` | budget cells | always spent | **Not ported** |
 | `topNcategories` "Other", `groupAccounts`, `layerFrom`/`layerTo`, `categorySort`, `showPercentages` | layout options | not read | **Not ported** |
-| Default range | last 6 months | current month | **Divergence** [#948](https://github.com/azimul-kabir/actua/issues/948) |
+| Default range | last 6 months | same | Match (#948) |
 
 Tests: `SankeyTest`, `src/androidTest/.../ui/reports/ReportsChartInteractionTest.sankeyRendersACategoryPerNodeAndARemainingNodeForUnspentIncome`.
 
@@ -357,10 +358,8 @@ Its causes were fixed one by one:
 - Monte Carlo success rate: #623/#627.
 - "6 months shows 2 months": merged-category ids (#636/#638) and `include_current` (#637/#639).
 
-None of the divergences above reopen #605's figures. #948 and #950 are the ones most likely to
-produce a similar report. They affect Sankey, Net Worth, Age of Money and Budget Analysis cards
-with no stored time frame, and Sankey totals in budgets with refunds or uncategorized
-transactions.
+None of the divergences above reopen #605's figures. #950 is the one most likely to produce a
+similar report: it affects Sankey totals in budgets with refunds or uncategorized transactions.
 
 This audit compared source code at the pinned commit. Comparing each widget's numbers side by side
 with the PWA on one synthetic budget has **not** been done yet. That acceptance criterion of #671
