@@ -135,7 +135,7 @@ internal object DemoBudgetSeeder {
             // Credit-card configuration uses the same preference key read by Actua.
             database.execSQL(
                 "INSERT OR REPLACE INTO preferences(id,value) VALUES(?,?)",
-                arrayOf<Any?>("actuali:credit_card:$credit", JSONObject().put("statementDay", 20).put("dueOffsetDays", 15).put("limitCents", 500000).toString()),
+                arrayOf<Any?>("actuali:credit_card:$credit", JSONObject().put("statementDay", 20).put("dueOffsetDays", 15).put("limit", 500000).toString()),
             )
 
             seedRules(database, groceries, supermarket, entertainment, streaming, transport, fuel)

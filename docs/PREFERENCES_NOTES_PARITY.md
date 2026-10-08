@@ -42,7 +42,7 @@ Actua: `ActualEntityWriter.setPreference` / `setNote` (`data/budget/ActualEntity
 | Preference and note writes go through the CRDT message log | `db.update` | `update(...)` → `applyLocalMessages`, `value`/`note` columns only | Match |
 | Values are strings; booleans are `"true"`/`"false"` | `useSyncedPref` stores strings; readers compare `String(v) === 'true'` | writers use `Boolean.toString()`; readers compare `= 'true'` | Match |
 | Keys Actua writes | – | `hide-reconciled-<accountId>` (`ActuaRepository.setHideReconciled`, `data/ActuaRepository.kt:1625`), `learn-categories` (`ActualEntityWriter.setLearnCategoriesEnabled`, `:233`), `actuali:credit_card:<accountId>` (`ActuaRepository.kt:918`) | Match. The last is the cross-platform Actuali key ([docs/ACCOUNTS_PARITY.md](ACCOUNTS_PARITY.md) §7); Actual ignores ids it doesn't know. No other key is written. |
-| Demo budget | – | `DemoBudgetSeeder` inserts its rows directly into a local-only demo file; its credit-card row uses `limitCents` instead of Actuali's `limit` | **Divergence** ([#974](https://github.com/azimul-kabir/actua/issues/974)) |
+| Demo budget | – | `DemoBudgetSeeder` inserts its rows directly into a local-only demo file; its credit-card row uses Actuali's `limit` field | Match ([#974](https://github.com/azimul-kabir/actua/issues/974)) |
 
 ## 2. Synced preference matrix
 
@@ -133,6 +133,6 @@ Tests: `src/test/.../ui/components/MoneyFormatterTest` (`hidingDecimalsOnlyChang
 | [#971](https://github.com/azimul-kabir/actua/issues/971) | P2 | Zero-decimal currencies (`JPY`, `KRW`, `IRR`) are shown and entered 100× off (fixed) |
 | [#972](https://github.com/azimul-kabir/actua/issues/972) | Lower | Hidden decimals truncate instead of rounding (fixed) |
 | [#973](https://github.com/azimul-kabir/actua/issues/973) | Lower | Display ignores the budget's synced number, date, fraction, privacy and currency preferences (fixed) |
-| [#974](https://github.com/azimul-kabir/actua/issues/974) | Lower | Demo budget's credit-card limit uses the wrong field |
+| [#974](https://github.com/azimul-kabir/actua/issues/974) | Lower | Demo seeder wrote the credit-card limit under the wrong field; `DemoBudgetManager` patched it afterwards (fixed) |
 
 **Limitations:** source comparison only; no budget was opened in both clients for this audit.
