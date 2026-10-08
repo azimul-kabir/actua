@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Moving a category no longer changes whether it's hidden, and new categories in a hidden group aren't hidden themselves ([#931](https://github.com/azimul-kabir/actua/pull/931))
 - Deleting a category that's still in use asks for a category to move its transactions and budget to, as Actual does ([#930](https://github.com/azimul-kabir/actua/pull/930))
 - The category picker lists categories by group in budget order and no longer shows categories from hidden groups ([#924](https://github.com/azimul-kabir/actua/pull/924))
 - Budget months follow Actual's budget range: older budget rows no longer change To Budget, and the month picker only offers months Actual budgets ([#918](https://github.com/azimul-kabir/actua/pull/918))
