@@ -1606,6 +1606,41 @@ class ActualBudgetDatabase private constructor(
         return BudgetRange.of(earliest, current)
     }
 
+    /**
+     * Actual's `must-category-transfer`: deleting [categoryId] needs a transfer target when a live
+     * transaction maps to it through `category_mapping`, or a month of the budget range has a
+     * non-zero budget amount for it.
+     */
+    @Synchronized
+    fun categoryDeleteRequiresTransfer(categoryId: String, current: java.time.YearMonth = java.time.YearMonth.now()): Boolean {
+        if (hasTable("category_mapping")) {
+            val used = database.rawQuery(
+                """SELECT 1 FROM transactions t
+                    LEFT JOIN category_mapping cm ON cm.id = t.category
+                    WHERE cm.transferId = ? AND t.tombstone = 0 LIMIT 1""",
+                arrayOf(categoryId),
+            ).use { it.moveToFirst() }
+            if (used) return true
+        }
+        val table = budgetTable() ?: return false
+        val range = budgetRange(current)
+        val from = range.start.year * 100 + range.start.monthValue
+        val to = range.endInclusive.year * 100 + range.endInclusive.monthValue
+        return database.rawQuery(
+            "SELECT 1 FROM $table WHERE category = ? AND month BETWEEN ? AND ? AND amount != 0 LIMIT 1",
+            arrayOf(categoryId, from.toString(), to.toString()),
+        ).use { it.moveToFirst() }
+    }
+
+    /** `category_mapping` rows that currently resolve to [categoryId], its own row included. */
+    @Synchronized
+    fun categoryMappingsTo(categoryId: String): List<String> {
+        if (!hasTable("category_mapping")) return emptyList()
+        return database.rawQuery("SELECT id FROM category_mapping WHERE transferId = ? ORDER BY id", arrayOf(categoryId)).use { cursor ->
+            buildList { while (cursor.moveToNext()) add(cursor.getString(0)) }
+        }
+    }
+
     /** Month walk matching Actuali iOS BudgetDatabase.budgetWalk. */
     @Synchronized
     fun fetchBudgetMonth(month: String): ActualBudgetMonth {

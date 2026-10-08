@@ -21,7 +21,6 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -29,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +42,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.data.budget.CategoryDeletePlan
 import com.azimulkabir.actua.data.budget.CategoryDragReorder
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
 import com.azimulkabir.actua.data.budget.model.ActualCategory
@@ -82,7 +81,9 @@ fun ManageCategoriesScreen(
     onCreateCategory: (String, String) -> Unit,
     onRenameCategory: (String, String, String) -> Unit,
     onSetCategoryHidden: (String, String, Boolean) -> Unit,
-    onDeleteCategory: (String, String) -> Unit,
+    onDeleteCategory: (group: String, category: String, transferToId: String?) -> Unit,
+    /** What deleting a category needs ([CategoryDeletePlan]); null when it can't be determined. */
+    loadCategoryDeletePlan: suspend (group: String, category: String) -> CategoryDeletePlan?,
     onMoveCategory: (CategoryReorderPlanner.CategoryMove) -> Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -259,13 +260,13 @@ fun ManageCategoriesScreen(
         )
     }
     deletingCategory?.let { (group, category) ->
-        AlertDialog(
-            onDismissRequest = { deletingCategory = null },
-            title = { Text("Delete category?") },
-            text = { Text("Delete \"${category.name}\"? This cannot be undone.") },
-            dismissButton = { TextButton(onClick = { deletingCategory = null }) { Text("Cancel") } },
-            confirmButton = {
-                TextButton(onClick = { onDeleteCategory(group.name, category.name); deletingCategory = null }) { Text("Delete") }
+        CategoryDeleteDialog(
+            categoryName = category.name,
+            loadPlan = { loadCategoryDeletePlan(group.name, category.name) },
+            onDismiss = { deletingCategory = null },
+            onDelete = { transferToId ->
+                onDeleteCategory(group.name, category.name, transferToId)
+                deletingCategory = null
             },
         )
     }

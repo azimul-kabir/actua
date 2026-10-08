@@ -124,6 +124,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.azimulkabir.actua.data.budget.CategoryDeletePlan
+import com.azimulkabir.actua.ui.categories.CategoryDeleteDialog
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetCategoryView
@@ -273,7 +275,10 @@ fun BudgetScreen(
     /** Unfiltered by the Transactions tab's own status/reconciled filters, unlike [transactions]. */
     allTransactions: List<Transaction> = emptyList(),
     onShowUncategorizedTransactions: () -> Unit = {},
-    onDeleteCategory: (String, String, onChanged: () -> Unit) -> Unit = { _, _, _ -> },
+    onDeleteCategory: (group: String, category: String, transferToId: String?, onChanged: () -> Unit) -> Unit =
+        { _, _, _, _ -> },
+    /** What deleting a category needs ([CategoryDeletePlan]); null when it can't be determined. */
+    loadCategoryDeletePlan: suspend (group: String, category: String) -> CategoryDeletePlan? = { _, _ -> null },
     onEditTransaction: (Transaction) -> Unit = {},
     onDeleteTransaction: (Transaction) -> Unit = {},
     requestedCategoryDetails: String? = null,
@@ -834,8 +839,9 @@ fun BudgetScreen(
             onSetHidden = { hidden ->
                 onSetCategoryHidden(group.name, category.name, hidden) { categoryDetails = null }
             },
-            onDelete = {
-                onDeleteCategory(group.name, category.name) { categoryDetails = null }
+            loadDeletePlan = { loadCategoryDeletePlan(group.name, category.name) },
+            onDelete = { transferToId ->
+                onDeleteCategory(group.name, category.name, transferToId) { categoryDetails = null }
             },
             onEditTransaction = onEditTransaction,
             onDeleteTransaction = onDeleteTransaction,
@@ -2402,7 +2408,8 @@ private fun CategoryDetailsScreen(
     onSetHidden: (Boolean) -> Unit,
     favorite: Boolean,
     onFavoriteChange: (Boolean) -> Unit,
-    onDelete: () -> Unit,
+    loadDeletePlan: suspend () -> CategoryDeletePlan?,
+    onDelete: (transferToId: String?) -> Unit,
     onEditTransaction: (Transaction) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
@@ -2578,12 +2585,11 @@ private fun CategoryDetailsScreen(
         )
     }
     if (deleteConfirmOpen) {
-        AlertDialog(
-            onDismissRequest = { deleteConfirmOpen = false },
-            title = { Text("Delete ${category.name}?") },
-            text = { Text("Existing transactions will become uncategorized. This cannot be undone.") },
-            confirmButton = { TextButton(onClick = onDelete) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { deleteConfirmOpen = false }) { Text("Cancel") } },
+        CategoryDeleteDialog(
+            categoryName = category.name,
+            loadPlan = loadDeletePlan,
+            onDismiss = { deleteConfirmOpen = false },
+            onDelete = onDelete,
         )
     }
 }

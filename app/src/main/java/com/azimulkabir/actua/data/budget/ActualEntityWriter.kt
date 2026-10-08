@@ -138,8 +138,43 @@ class ActualEntityWriter(
         persist(messages)
     }
 
-    /** Actual deletion keeps historical transaction references and tombstones the category. */
-    fun deleteCategory(id: String) = update("categories", id, mapOf("tombstone" to 1))
+    /**
+     * Actual's `category-delete`. Without [transferId] the category is only tombstoned. With one,
+     * as a single batch: an expense category's budgeted amount is added to the target's in every
+     * month of the budget range (upstream `doTransfer`), every `category_mapping` row resolving to
+     * the category and then its own row are forwarded to the target, and the category is tombstoned.
+     */
+    @Synchronized
+    fun deleteCategory(id: String, transferId: String? = null) {
+        if (transferId == null) {
+            update("categories", id, mapOf("tombstone" to 1))
+            return
+        }
+        val categories = database.fetchCategoryGroups().flatMap { it.categories }
+        val category = categories.firstOrNull { it.id == id } ?: error("Category no longer exists")
+        val target = categories.firstOrNull { it.id == transferId } ?: error("The transfer category no longer exists")
+        require(target.id != category.id) { "Choose a different category to transfer to" }
+        require(target.isIncome == category.isIncome) { "Cannot transfer between income and expense categories" }
+        val messages = mutableListOf<CrdtMessage>()
+        if (!category.isIncome) {
+            val range = database.budgetRange()
+            generateSequence(range.start) { month -> month.plusMonths(1).takeIf { it <= range.endInclusive } }
+                .forEach { month ->
+                    val source = database.budgetCell(month.toString(), id) ?: error("Budget table is missing")
+                    val cell = database.budgetCell(month.toString(), transferId) ?: error("Budget table is missing")
+                    if (!cell.exists) {
+                        messages += fields(cell.table, cell.rowId, linkedMapOf("month" to cell.month, "category" to cell.categoryId))
+                    }
+                    messages += fields(cell.table, cell.rowId, mapOf("amount" to source.amountCents + cell.amountCents))
+                }
+        }
+        database.categoryMappingsTo(id).forEach { mapping ->
+            messages += fields("category_mapping", mapping, mapOf("transferId" to transferId))
+        }
+        messages += fields("category_mapping", id, mapOf("transferId" to transferId))
+        messages += fields("categories", id, mapOf("tombstone" to 1))
+        persist(messages)
+    }
     fun renameCategoryGroup(id: String, name: String) = update("category_groups", id, mapOf("name" to requiredName(name)))
     fun setCategoryGroupHidden(id: String, hidden: Boolean) = update("category_groups", id, mapOf("hidden" to flag(hidden)))
     fun renamePayee(id: String, name: String) = updateOrdinaryPayee(id, "name", requiredName(name))
