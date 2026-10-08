@@ -73,6 +73,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   [docs/ACCOUNTS_PARITY.md](docs/ACCOUNTS_PARITY.md); payee create/rename/merge/delete, mapping
   resolution, transfer payees, picker ordering and locations in
   [docs/PAYEES_PARITY.md](docs/PAYEES_PARITY.md)
+- Category and category-group create, rename, hide, delete, reorder, notes, carryover and
+  `category_mapping` read paths are itemized with upstream links and filed divergences in
+  [docs/CATEGORIES_PARITY.md](docs/CATEGORIES_PARITY.md)
 - Actual's experimental account grouping: existing `account_groups` data synced from the server is
   detected and the Accounts screen displays on/off-budget accounts nested under their configured
   group, ordered by the group's own sort order, with an ungrouped bucket for accounts left outside
