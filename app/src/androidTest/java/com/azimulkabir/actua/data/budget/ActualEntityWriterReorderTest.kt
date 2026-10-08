@@ -3,6 +3,7 @@ package com.azimulkabir.actua.data.budget
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -56,6 +57,38 @@ class ActualEntityWriterReorderTest {
         val categories = database.fetchCategoryGroups().flatMap { it.categories }.associateBy { it.id }
         assertEquals(true, categories.getValue("rent").hidden)
         assertEquals(false, categories.getValue("electric").hidden)
+    }
+
+    @Test
+    fun renamingACategoryToANameUsedInItsGroupIsRejected() = withDatabase { database, _ ->
+        val writer = ActualEntityWriter(database, nodeId = "efefefefefefefef")
+        // Hidden categories count, and the comparison ignores case (actua#928).
+        writer.setCategoryHidden("rent", true)
+        assertThrows(IllegalArgumentException::class.java) { writer.renameCategory("electric", "RENT") }
+        // Another group's names and a different capitalisation of its own name are fine.
+        writer.renameCategory("electric", "Dining")
+        writer.renameCategory("rent", "RENT")
+
+        val names = database.fetchCategoryGroups().single { it.id == "bills" }.categories.associate { it.id to it.name }
+        assertEquals(mapOf("rent" to "RENT", "electric" to "Dining"), names)
+    }
+
+    @Test
+    fun renamingAGroupToAnotherGroupsNameIsRejected() = withDatabase { database, _ ->
+        val writer = ActualEntityWriter(database, nodeId = "fefefefefefefefe")
+        assertThrows(IllegalArgumentException::class.java) { writer.renameCategoryGroup("fun", "BILLS") }
+        writer.renameCategoryGroup("fun", "FUN")
+
+        assertEquals("FUN", database.fetchCategoryGroups().single { it.id == "fun" }.name)
+    }
+
+    @Test
+    fun movingACategoryIntoAGroupWithItsNameIsRejected() = withDatabase { database, _ ->
+        val writer = ActualEntityWriter(database, nodeId = "dededededededede")
+        writer.createCategory("rent", "fun")
+
+        assertThrows(IllegalArgumentException::class.java) { writer.moveCategory("rent", "fun", null) }
+        assertEquals("bills", database.fetchCategoryGroups().flatMap { it.categories }.single { it.id == "rent" }.groupId)
     }
 
     @Test

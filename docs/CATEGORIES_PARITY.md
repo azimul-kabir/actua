@@ -77,8 +77,8 @@ Actua: `ActualEntityWriter.renameCategory`/`setCategoryHidden` (`:102-103`),
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | Rename writes `name` only | `category-update`, `category-group-update` | `name` only | Match |
-| Category rename to a name used by another category in its group rejected | `useSaveCategoryMutation` | not checked | **Divergence** [#928](https://github.com/azimul-kabir/actua/issues/928) |
-| Group rename to a name used by another live group rejected | client and `updateCategoryGroup` | not checked | **Divergence** [#928](https://github.com/azimul-kabir/actua/issues/928) |
+| Category rename to a name used by another category in its group rejected | `useSaveCategoryMutation` | rejected (`ActualEntityWriter.renameCategory`) | Match ([#928](https://github.com/azimul-kabir/actua/issues/928)) |
+| Group rename to a name used by another live group rejected | client and `updateCategoryGroup` | rejected (`renameCategoryGroup`) | Match ([#928](https://github.com/azimul-kabir/actua/issues/928)) |
 | Hide/unhide a category writes `hidden` only | `category-update` | same | Match |
 | Hide/unhide a group writes the group's `hidden` only; its categories keep their own flags and are hidden through the group | `category-group-update` | same | Match |
 
@@ -128,7 +128,7 @@ separate `category` / `income-category` drag types (`DC/components/budget/Expens
 | --- | --- | --- | --- |
 | Category move writes the shoved neighbors' `sort_order`, then the category's `sort_order` and `cat_group` | `moveCategory` | same | Match ([#927](https://github.com/azimul-kabir/actua/issues/927)) |
 | Expense categories can't be moved into the income group or back | separate drag types | the reorder UI and up/down controls skip the income group (`CategoryReorderPlanner.previousGroup`/`nextGroup`) | Match |
-| Move into a group that already has a category with that name (case-insensitive) rejected | `useReorderCategoryMutation` | not checked | **Divergence** [#928](https://github.com/azimul-kabir/actua/issues/928) |
+| Move into a group that already has a category with that name (case-insensitive) rejected | `useReorderCategoryMutation` | rejected (`moveCategory`) | Match ([#928](https://github.com/azimul-kabir/actua/issues/928)) |
 | Placement: before a target (midpoint, neighbors shoved when the gap is ≤ 2) or at the end (+16384) | `shoveSortOrders` over the destination group, the moving row included | the same rules over the destination group without the moving row | Match (the resulting order is the same; the written `sort_order` value can differ when the moving row is next to its target) |
 | Group move: income group fixed; others placed with the same shove rules | the income group sorts last by `is_income`; `shoveSortOrders` over all live groups | the income group can't be moved or used as a target; shove over the expense groups | Match (same displayed order) |
 | Alphabetical sort of categories (`categories-sort`) | desktop and mobile budget pages | not offered | **N/A** |
@@ -177,4 +177,4 @@ Tests: `ActualBudgetReadModelTest.transactionsInAMergedCategoryReportTheTargetCa
 | --- | --- | --- |
 | [#926](https://github.com/azimul-kabir/actua/issues/926) | P2 | Deleting a category with transactions or budget amounts doesn't transfer them (fixed) |
 | [#927](https://github.com/azimul-kabir/actua/issues/927) | Lower | Moving or creating a category copies its group's hidden flag onto it (fixed) |
-| [#928](https://github.com/azimul-kabir/actua/issues/928) | Lower | Category rename/move and group rename allow duplicate names |
+| [#928](https://github.com/azimul-kabir/actua/issues/928) | Lower | Category rename/move and group rename allow duplicate names (fixed) |

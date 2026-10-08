@@ -99,7 +99,15 @@ class ActualEntityWriter(
         return true
     }
 
-    fun renameCategory(id: String, name: String) = update("categories", id, mapOf("name" to requiredName(name)))
+    /** Rejects a name another category in the same group has, hidden ones included, as Actual does. */
+    @Synchronized
+    fun renameCategory(id: String, name: String) {
+        val clean = requiredName(name)
+        val group = database.fetchCategoryGroups().firstOrNull { group -> group.categories.any { it.id == id } }
+            ?: error("Category no longer exists")
+        require(group.categories.none { it.id != id && it.name.equals(clean, true) }) { duplicateCategoryMessage(clean) }
+        update("categories", id, mapOf("name" to clean))
+    }
     fun setCategoryHidden(id: String, hidden: Boolean) = update("categories", id, mapOf("hidden" to flag(hidden)))
     fun setCategoryTarget(id: String, goalDef: String?) = update("categories", id, mapOf(
         "goal_def" to goalDef, "template_settings" to "{\"source\":\"ui\"}",
@@ -175,7 +183,15 @@ class ActualEntityWriter(
         messages += fields("categories", id, mapOf("tombstone" to 1))
         persist(messages)
     }
-    fun renameCategoryGroup(id: String, name: String) = update("category_groups", id, mapOf("name" to requiredName(name)))
+    /** Rejects a name another live group has, as Actual's `updateCategoryGroup` does. */
+    @Synchronized
+    fun renameCategoryGroup(id: String, name: String) {
+        val clean = requiredName(name)
+        require(database.fetchCategoryGroups().none { it.id != id && it.name.equals(clean, true) }) {
+            "A category group named \"$clean\" already exists"
+        }
+        update("category_groups", id, mapOf("name" to clean))
+    }
     fun setCategoryGroupHidden(id: String, hidden: Boolean) = update("category_groups", id, mapOf("hidden" to flag(hidden)))
     fun renamePayee(id: String, name: String) = updateOrdinaryPayee(id, "name", requiredName(name))
 
@@ -355,6 +371,9 @@ class ActualEntityWriter(
             ?: error("Category no longer exists")
         val target = groups.firstOrNull { it.id == groupId } ?: error("Category group no longer exists")
         require(beforeId == null || target.categories.any { it.id == beforeId }) { "Categories can only be reordered within their group" }
+        require(target.categories.none { it.id != id && it.name.equals(category.name, true) }) {
+            duplicateCategoryMessage(category.name)
+        }
         if (beforeId == id) return
         val positions = target.categories.filterNot { it.id == id }
             .sortedWith(compareBy({ it.sortOrder }, { it.id }))
@@ -503,6 +522,7 @@ class ActualEntityWriter(
     }
 
     private fun requiredName(value: String) = value.trim().also { require(it.isNotEmpty()) { "Name cannot be empty" } }
+    private fun duplicateCategoryMessage(name: String) = "Category \"$name\" already exists in group (it may be hidden)"
     private fun flag(value: Boolean) = if (value) 1 else 0
 
     companion object {
