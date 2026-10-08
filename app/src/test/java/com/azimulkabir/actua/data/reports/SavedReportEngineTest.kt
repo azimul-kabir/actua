@@ -240,6 +240,13 @@ class SavedReportViewFilterTest {
         assertEquals(-100L, w.valueCents)
     }
 
+    @Test fun `a payee report's total leaves out rows without a payee`() {
+        val withPayee = tx("4", "a", 20260112, -30).copy(payeeId = "p", payeeName = "Shop")
+        val w = SavedReportEngine.compute(saved.copy(groupBy = "Payee"), rows + withPayee, accounts, groups, today)
+        assertEquals(-30L, w.valueCents)
+        assertEquals(listOf("Shop" to -30L), w.categories.map { it.name to it.spentCents })
+    }
+
     @Test fun `date preset overrides saved range`() {
         val w = SavedReportEngine.compute(saved, rows, accounts, groups, today,
             com.azimulkabir.actua.model.ReportViewFilter(datePreset = "All time"))
@@ -458,8 +465,141 @@ class SavedReportSummaryTest {
     @Test fun `all time counts intervals from the earliest transaction, not the 1900 sentinel`() {
         val rows = listOf(tx("1", 20250610, -1600), tx("2", 20260110, -1600))
         val summary = SavedReportEngine.compute(report("All time"), rows, accounts, groups, LocalDate.of(2026, 9, 22)).summary!!
-        // June 2025 through September 2026.
-        assertEquals(16, summary.intervalCount)
+        // Upstream's "All time" spans the earliest through the latest transaction: June 2025 - January 2026.
+        assertEquals(8, summary.intervalCount)
+        assertEquals(-400L, summary.averageCents)
+    }
+
+    @Test fun `all time includes future-dated transactions`() {
+        val rows = listOf(tx("1", 20260610, -100), tx("2", 20261105, -50))
+        val w = SavedReportEngine.compute(report("All time"), rows, accounts, groups, LocalDate.of(2026, 9, 22))
+        assertEquals(-150L, w.valueCents)
+    }
+
+    @Test fun `year to date averages over the months since the first transaction`() {
+        val rows = listOf(tx("1", 20260310, -700), tx("2", 20260905, -700))
+        val summary = SavedReportEngine.compute(report("Year to date"), rows, accounts, groups, LocalDate.of(2026, 9, 22)).summary!!
+        // March through September 2026.
+        assertEquals(7, summary.intervalCount)
         assertEquals(-200L, summary.averageCents)
+    }
+
+    @Test fun `last-N ranges are not clamped to the first transaction`() {
+        val rows = listOf(tx("1", 20260805, -300))
+        val summary = SavedReportEngine.compute(report("Last 3 months"), rows, accounts, groups, LocalDate.of(2026, 9, 22)).summary!!
+        assertEquals(3, summary.intervalCount)
+    }
+
+    @Test fun `range presets clamp their start to the earliest transaction`() {
+        val today = LocalDate.of(2026, 9, 22)
+        val row = { range: String -> report(range) }
+        val earliest = LocalDate.of(2026, 8, 10)
+        assertEquals(earliest to LocalDate.of(2026, 9, 30), SavedReportEngine.dateRange(row("Current quarter"), today, earliest = earliest))
+        assertEquals(earliest to today, SavedReportEngine.dateRange(row("Year to date"), today, earliest = earliest))
+        assertEquals(LocalDate.of(2026, 6, 1) to LocalDate.of(2026, 8, 31),
+            SavedReportEngine.dateRange(row("Last 3 months"), today, earliest = earliest))
+    }
+}
+
+/** Upstream `sortData`, `filterEmptyRows`, `trimIntervals` and full-range intervals (actua#952). */
+class SavedReportDisplaySettingsTest {
+    private val accounts = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0.0, 0),
+    )
+    private val groups = listOf(com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("g", "G", false, false, 1.0, listOf(
+        com.azimulkabir.actua.data.budget.model.ActualCategory("rent", "Rent", "g", false, false, 1.0),
+        com.azimulkabir.actua.data.budget.model.ActualCategory("food", "Food", "g", false, false, 2.0),
+        com.azimulkabir.actua.data.budget.model.ActualCategory("bike", "Bike", "g", false, false, 3.0),
+    )))
+    private fun tx(id: String, date: Int, amount: Long, category: String?) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        id, "a", date, amount, null, null, category, null, null, false, false, null, false, null, false, null, null, null, null)
+    private val today = LocalDate.of(2026, 9, 10)
+    private val saved = SavedReportRow("r", "R", "2026-01", "2026-06", true, null, "Category", "Payment", false, false, true,
+        null, "BarGraph", null, "and", "Monthly")
+    private val rows = listOf(tx("1", 20260310, -100, "rent"), tx("2", 20260412, -300, "food"), tx("3", 20260415, 50, "food"))
+
+    private fun names(row: SavedReportRow, data: List<com.azimulkabir.actua.data.budget.model.ActualTransaction> = rows) =
+        SavedReportEngine.compute(row, data, accounts, groups, today).categories.map { it.name to it.spentCents }
+
+    @Test fun `payment desc lists the biggest spending first and asc the smallest`() {
+        assertEquals(listOf("Food" to -300L, "Rent" to -100L), names(saved))
+        assertEquals(listOf("Rent" to -100L, "Food" to -300L), names(saved.copy(sortBy = "asc")))
+    }
+
+    @Test fun `net desc lists the largest value first, not the largest magnitude`() {
+        val net = saved.copy(balanceType = "Net")
+        val data = rows + tx("4", 20260416, 500, "bike")
+        assertEquals(listOf("Bike" to 500L, "Rent" to -100L, "Food" to -250L), names(net, data))
+    }
+
+    @Test fun `name and budget sorts`() {
+        assertEquals(listOf("Food", "Rent"), names(saved.copy(sortBy = "name")).map { it.first })
+        assertEquals(listOf("Rent", "Food"), names(saved.copy(sortBy = "budget")).map { it.first })
+    }
+
+    @Test fun `show_empty lists every category at zero`() {
+        assertEquals(
+            listOf("Food" to -300L, "Rent" to -100L, "Bike" to 0L, "Uncategorized" to 0L, "Off budget" to 0L, "Transfers" to 0L),
+            names(saved.copy(showEmpty = true)),
+        )
+    }
+
+    @Test fun `trim_intervals drops leading and trailing empty intervals`() {
+        val full = SavedReportEngine.compute(saved.copy(mode = "time"), rows, accounts, groups, today).points.map { it.period }
+        assertEquals(listOf("2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"), full)
+        val trimmed = SavedReportEngine.compute(saved.copy(mode = "time", trimIntervals = true), rows, accounts, groups, today)
+            .points.map { it.period }
+        assertEquals(listOf("2026-03", "2026-04"), trimmed)
+    }
+
+    @Test fun `a daily this-month report lists every day of the month, future days included`() {
+        val daily = saved.copy(dateStatic = false, dateRange = "This month", interval = "Daily", mode = "time")
+        val points = SavedReportEngine.compute(daily, listOf(tx("1", 20260902, -100, "rent")), accounts, groups, today).points
+        assertEquals(30, points.size)
+        assertEquals("2026-09-30", points.last().period)
+    }
+}
+
+/** Upstream's `weekFromDate(date, firstDayOfWeekIdx)` for weekly intervals and week ranges (actua#953). */
+class FirstDayOfWeekTest {
+    private fun tx(date: Int, amount: Long) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        "t$date", "a", date, amount, null, null, null, null, null, false, false, null, false, null, false, null, null, null, null)
+    // Wednesday.
+    private val today = LocalDate.of(2026, 9, 23)
+
+    @Test fun `start of week follows the preference`() {
+        assertEquals(LocalDate.of(2026, 9, 20), SavedReportEngine.startOfWeek(today, 0))
+        assertEquals(LocalDate.of(2026, 9, 21), SavedReportEngine.startOfWeek(today, 1))
+        assertEquals(LocalDate.of(2026, 9, 19), SavedReportEngine.startOfWeek(today, 6))
+        assertEquals(LocalDate.of(2026, 9, 23), SavedReportEngine.startOfWeek(today, 3))
+    }
+
+    @Test fun `monday weeks bucket weekly intervals`() {
+        val pts = SavedReportEngine.intervalPoints(
+            listOf(tx(20260920, -1), tx(20260921, -10)), "Weekly",
+            LocalDate.of(2026, 9, 14), LocalDate.of(2026, 9, 27), today, weekStart = 1,
+        )
+        assertEquals(listOf("2026-09-14" to -1L, "2026-09-21" to -10L), pts.map { it.period to it.primaryCents })
+    }
+
+    @Test fun `this week and last week use the preference`() {
+        val row = { range: String -> SavedReportRow("r", "R", null, null, false, range, "Category", "Payment", false, false, true,
+            null, "BarGraph", null, "and", "Weekly") }
+        assertEquals(LocalDate.of(2026, 9, 21) to LocalDate.of(2026, 9, 27), SavedReportEngine.dateRange(row("This week"), today, 1))
+        assertEquals(LocalDate.of(2026, 9, 14) to LocalDate.of(2026, 9, 20), SavedReportEngine.dateRange(row("Last week"), today, 1))
+    }
+
+    @Test fun `net worth weeks end the day before the preferred first day`() {
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("w", "net-worth-card",
+                """{"interval":"Weekly","timeFrame":{"mode":"static","start":"2026-09","end":"2026-09"}}"""),
+            listOf(tx(20260901, 100)), today = today, firstDayOfWeek = 1,
+        )
+        assertEquals(listOf("2026-09-06", "2026-09-13", "2026-09-20", "2026-09-27", "2026-09-30"), widget.points.map { it.period })
+    }
+
+    @Test fun `the calendar widget carries the preference for its week layout`() {
+        val widget = CoreReportEngine.compute(DashboardWidgetRow("w", "calendar-card", null), emptyList(), today = today, firstDayOfWeek = 1)
+        assertEquals(1, widget.weekStart)
     }
 }

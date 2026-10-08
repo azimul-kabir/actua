@@ -1132,6 +1132,8 @@ class ActuaRepository(context: Context) {
         return com.azimulkabir.actua.data.reports.SavedReportEngine.computeAll(
             db.fetchSavedReports(), inputs.rows, inputs.accounts, inputs.groups, view,
             budgetMonth = { month -> budgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() } },
+            payees = db.fetchPayees(),
+            firstDayOfWeek = db.firstDayOfWeekPreference(),
         )
     }
 
@@ -1165,6 +1167,8 @@ class ActuaRepository(context: Context) {
         val reportBudgets = mutableMapOf<java.time.YearMonth, Map<String, Long>>()
         val reportBudgetMonths = mutableMapOf<java.time.YearMonth, com.azimulkabir.actua.data.budget.model.ActualBudgetMonth?>()
         val savedReportRows = db.fetchSavedReports()
+        val payees = db.fetchPayees()
+        val firstDayOfWeek = db.firstDayOfWeekPreference()
         val dashboards = com.azimulkabir.actua.data.reports.CoreReportEngine.dashboards(
             dashboardPages,
             widgets = db::fetchDashboardWidgets,
@@ -1173,8 +1177,10 @@ class ActuaRepository(context: Context) {
             groups = groups,
             savedReports = savedReportRows,
             schedules = db.fetchScheduleSummaries(),
-            transferAccountByPayee = db.fetchPayees()
+            transferAccountByPayee = payees
                 .mapNotNull { payee -> payee.transferAccountId?.let { payee.id to it } }.toMap(),
+            payees = payees,
+            firstDayOfWeek = firstDayOfWeek,
             budgetedByCategory = { month ->
                 reportBudgets.getOrPut(month) {
                     reportBudgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() }
@@ -1192,6 +1198,8 @@ class ActuaRepository(context: Context) {
             budgetMonth = { month ->
                 reportBudgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() }
             },
+            payees = payees,
+            firstDayOfWeek = firstDayOfWeek,
         )
         val pages = dashboards + com.azimulkabir.actua.model.ReportDashboardPage("saved-reports", "Overview", savedWidgets)
         return ReportSnapshot(

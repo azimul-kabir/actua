@@ -41,12 +41,13 @@ Actua: `ActualBudgetDatabase.fetchDashboardPages` / `fetchDashboardWidgets`
 | `width`/`height` layout | grid layout | single column, one card per widget | **Intentional** (phone layout) |
 | Unknown widget type | renders nothing | counted in an "not available in Actua yet" note, card hidden | **Intentional** |
 | Experimental widgets (Budget Analysis, Balance Forecast, Formula, Sankey, Monte Carlo) need the synced `flags.*` pref | hidden when the flag is off ([`useFeatureFlag.ts`][flags]) | always shown | **Intentional.** The widget rows are synced data, so showing them never misreports; no PWA-only state is created. |
-| `custom-report` widget whose saved report is deleted | "This custom report has been deleted." ([`W/CustomReportListCards.tsx#L41-L47`][missing-report]) | falls back to a current-month spending total | **Divergence** [#949](https://github.com/azimul-kabir/actua/issues/949) |
+| `custom-report` widget whose saved report is deleted | "This custom report has been deleted." ([`W/CustomReportListCards.tsx#L41-L47`][missing-report]) | same message, no amounts | Match (#949) |
 | Widget name: `meta.name`, else the type's label | per card | `meta.name` else `CRE.label` | Match |
 
 Tests: `src/androidTest/.../data/budget/ActualBudgetReadModelTest.readsSyncedDashboardPagesAndWidgetOrder`,
 `DashboardRepairTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.unknownSyncedWidgetStaysVisibleAsUnsupportedMetadata`,
 `.allActualiWidgetTypesHaveNativeKinds`, `.dashboardCustomReportWidgetUsesSavedReportNameAndGraphType`,
+`.dashboardCustomReportWidgetShowsDeletedStateWhenSavedReportMissing`, `MissingCustomReportTest`,
 `src/androidTest/.../ui/reports/ReportsScreenTest`.
 
 ## 2. Shared semantics
@@ -103,8 +104,8 @@ Tests: `TimeFrameTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.s
 
 ### Other shared rules
 
-- **Weekly intervals** use the synced `firstDayOfWeekIdx` upstream; Actua always starts weeks on
-  Sunday: **Divergence** [#953](https://github.com/azimul-kabir/actua/issues/953).
+- **Weekly intervals** and "This week"/"Last week" use the synced `firstDayOfWeekIdx` (default
+  Sunday), as upstream's `weekFromDate` does: Match (#953). Tests: `FirstDayOfWeekTest`.
 - **Hidden decimals / currency** only change display; stored amounts are untouched: Match.
 - **Freshness:** reports are computed from the synced on-device database, so a budget that hasn't
   synced recently shows older numbers than the PWA (#605). This is expected local-first behavior.
@@ -138,7 +139,7 @@ Upstream: [`S/net-worth-spreadsheet.ts#L22-L260`][net-worth]. Actua: `CRE.netWor
 | Balance at each interval end = all matching transactions through that date | starting + per-interval sums | running sum through each boundary | Match |
 | Headline = last interval's net worth | `endNetWorth` | last point | Match |
 | `interval` Daily/Monthly/Yearly | | same | Match |
-| `interval` Weekly | weeks by `firstDayOfWeekIdx` | Sunday weeks | **Divergence** [#953](https://github.com/azimul-kabir/actua/issues/953) |
+| `interval` Weekly | weeks by `firstDayOfWeekIdx` | same | Match (#953) |
 | Extra "prior period" point before the range | added unless the first transaction is in range | not added | **Intentional** (chart only; headline unaffected) |
 | `mode` trend/stacked | chart style | single line | **Intentional** |
 | Default range | last 6 months | same | Match (#948) |
@@ -180,8 +181,10 @@ Upstream: [`W/MarkdownCard.tsx#L100-L151`][markdown]. Actua: `CRE.compute` (`:11
 
 | Setting / behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| `meta.content` | rendered as GFM | shown as plain text | **Divergence** [#957](https://github.com/azimul-kabir/actua/issues/957) |
-| `meta.text_align` | applied | ignored | **Divergence** [#957](https://github.com/azimul-kabir/actua/issues/957) |
+| `meta.content` | rendered as GFM (`remark-gfm`, `remark-breaks`) | headings, paragraphs with line breaks, lists and task lists, quotes, code, tables, rules, emphasis, links and bare URLs (`ui/reports/MarkdownBlocks.kt`) | Match (#957); raw HTML and footnotes are shown as text |
+| `meta.text_align` | applied | same | Match (#957) |
+
+Tests: `src/test/.../ui/reports/MarkdownBlocksTest`, `src/androidTest/.../ui/reports/ReportsMarkdownWidgetTest`.
 
 ### Age of Money (`age-of-money-card`)
 
@@ -193,11 +196,11 @@ Upstream: [`S/age-of-money-spreadsheet.ts#L407-L573`][aom]. Actua: `CRE.ageOfMon
 | Transfers excluded unless the counterpart is off-budget, or outside an `account` filter | `buildTransferInclusionFilter` | same; `matches` is evaluated instead of falling back | Match (except `matches`) |
 | Income/expense by sign, not category | `classifyTransactions` | same | Match |
 | Headline = average of the last 10 ages from the start month | `calculateAverageAge` | same | Match |
-| `granularity` daily/weekly/monthly chart | honored | monthly only | **Divergence** [#955](https://github.com/azimul-kabir/actua/issues/955) |
-| Periods before the first age | omitted | `0` points | **Divergence** [#955](https://github.com/azimul-kabir/actua/issues/955) |
+| `granularity` daily/weekly (Monday-start)/monthly chart | honored | same | Match (#955) |
+| Periods before the first age | omitted | same | Match (#955) |
 | Default range | last 6 months | same | Match (#948) |
 
-Tests: `AgeOfMoneyTest`.
+Tests: `AgeOfMoneyTest`, `AgeOfMoneyGranularityTest`.
 
 ### Formula (`formula-card`)
 
@@ -215,7 +218,7 @@ Tests: `FormulaTest`.
 
 ### Custom Report (`custom-report`)
 
-The widget renders the saved report it points to: see §4. A deleted report: §1 / [#949](https://github.com/azimul-kabir/actua/issues/949).
+The widget renders the saved report it points to: see §4. A deleted report shows a placeholder: §1.
 
 ### Calendar (`calendar-card`)
 
@@ -225,7 +228,7 @@ Upstream: [`S/calendar-spreadsheet.ts#L18-L140`][calendar]. Actua: `CRE.calendar
 | --- | --- | --- | --- |
 | Range widened to whole months | `firstDayOfMonth`/`lastDayOfMonth` | same | Match |
 | Per-day income (> 0) and expense (< 0); no transfer/off-budget filter | | same | Match |
-| Week layout by `firstDayOfWeekIdx` | | Sunday | **Divergence** [#953](https://github.com/azimul-kabir/actua/issues/953) (display only) |
+| Week layout by `firstDayOfWeekIdx` | | same | Match (#953) |
 
 Tests: `CalendarTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.calendarPointsCarryContributingTransactionIdsForDrillDown`.
 
@@ -252,12 +255,12 @@ Upstream: [`S/budget-analysis-spreadsheet.ts`][budget-analysis], [`W/BudgetAnaly
 | --- | --- | --- | --- |
 | Budgeted, spent and leftover read from budget-engine cells; income categories excluded | `envelope-budget-month` | `fetchBudgetMonth` | Match |
 | Headline = last month's balance (budgeted + spent + carried leftover) | `intervalData.at(-1).balance` | last point's available | Match |
-| `showHiddenCategories` | `isBaseCategory` (category's own flag) | hidden list from the read model | **Divergence** [#956](https://github.com/azimul-kabir/actua/issues/956) (hidden group edge case) |
-| Category/group conditions; unsupported operator | matches nothing | ignored (all categories) | **Divergence** [#956](https://github.com/azimul-kabir/actua/issues/956) |
+| `showHiddenCategories` | `isBaseCategory` (category's own flag) | same | Match (#956) |
+| Category/group conditions; unsupported operator | matches nothing | same | Match (#956) |
 | Default range | last 6 months | same | Match (#948) |
 | `graphType`, `balanceOnly` | chart style | bar chart | **Intentional** |
 
-Tests: `src/androidTest/.../data/reports/CoreReportEngineTest.budgetAnalysisScopesBudgetedAndSpentToCategoryConditionsAndTracksBalance`, `.budgetAnalysisExcludesHiddenCategoriesUnlessRequested`.
+Tests: `BudgetAnalysisCategoryTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.budgetAnalysisScopesBudgetedAndSpentToCategoryConditionsAndTracksBalance`, `.budgetAnalysisExcludesHiddenCategoriesUnlessRequested`.
 
 ### Sankey (`sankey-card`)
 
@@ -265,7 +268,7 @@ Upstream: [`S/sankey-spreadsheet.ts#L173-L838`][sankey], [`W/SankeyCard.tsx#L53-
 
 | Setting / behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| `mode = spent`: categorized rows only, netted per category and account, split by net sign | per-category queries | per-transaction sign, uncategorized included, transfers excluded | **Divergence** [#950](https://github.com/azimul-kabir/actua/issues/950) |
+| `mode = spent`: categorized rows only, netted per category and account (and payee for income), split by net sign | per-category queries | same | Match (#950) |
 | Income broken down per income category | | same | Match |
 | `mode = budgeted` | budget cells | always spent | **Not ported** |
 | `topNcategories` "Other", `groupAccounts`, `layerFrom`/`layerTo`, `categorySort`, `showPercentages` | layout options | not read | **Not ported** |
@@ -286,9 +289,9 @@ Upstream: `loot-core/src/server/forecast/` ([`forecast-projection.ts`][forecast]
 | Recurrence incl. skip-weekend | schedules engine | `ScheduleRecurrence` | Match |
 | `conditions` on posted and projected rows | | same | Match |
 | Headline ending and low balance; scheduled-count subtitle | | same | Match |
-| `source = tracking-budget` (tracking budgets) | budgeted income/expense projection | schedule projection | **Divergence** [#958](https://github.com/azimul-kabir/actua/issues/958) |
+| `source = tracking-budget` (tracking budgets only): on-budget balances + each month's budgeted income − budgeted expenses | `projectTrackingBudgetForecast` | same | Match (#958) |
 
-Tests: `BalanceForecastTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.balanceForecast*`.
+Tests: `BalanceForecastTest`, `TrackingBudgetForecastTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.balanceForecast*`.
 
 ### Monte Carlo (`monte-carlo-card`)
 
@@ -325,26 +328,27 @@ Actua-only income-vs-expenses card (`SRE.incomeExpense`, `:305`) and view filter
 | `Budgeted` reads budget cells, income categories excluded | `fetchBudgetData` | `SRE.computeBudgeted` (`:172`) | Match |
 | `group_by` Category / Group / Payee / Account / Interval | | same | Match |
 | `group_by = CategoryGroup` (two-ring donut) | | treated as Category | **Not ported** |
-| Uncategorized split into Uncategorized / Transfers / Off budget | three synthetic items | Uncategorized and Transfers only | **Divergence** [#951](https://github.com/azimul-kabir/actua/issues/951) |
-| `show_uncategorized` off keeps uncategorized off-budget rows | yes | dropped | **Divergence** [#951](https://github.com/azimul-kabir/actua/issues/951) |
-| Payee grouping: rows with no payee | excluded | "Unknown" group | **Divergence** [#951](https://github.com/azimul-kabir/actua/issues/951) |
+| Uncategorized split into Uncategorized / Transfers / Off budget (one "Uncategorized & Off budget" group for Group) | synthetic items | same | Match (#951) |
+| `show_uncategorized` off keeps uncategorized off-budget rows | yes | same | Match (#951) |
+| Payee grouping: rows with no payee | excluded from groups and totals | same | Match (#951) |
 | `show_offbudget`, `show_hidden` (category or group hidden) | | same | Match |
 | `conditions` / `conditions_op` | | `RulesEngine` | Match |
 | `selected_categories` | moved into `conditions` and set to `NULL` by migration `1722717601000` ([migration][selected-categories]) | still applied when non-null | Match (always `NULL` after the migration) |
 | `mode` total / time; `graph_type` donut, bar, stacked bar, line/area | | same; other graph types draw ranked bars | Match / **Intentional** |
 | `interval` Daily / Monthly / Yearly | | same | Match |
-| `interval` Weekly | `firstDayOfWeekIdx` | Sunday | **Divergence** [#953](https://github.com/azimul-kabir/actua/issues/953) |
+| `interval` Weekly | `firstDayOfWeekIdx` | same | Match (#953) |
 | `date_static`, `start_date`/`end_date` | | same | Match |
 | `date_range` live presets (week, month, quarter, last N, 30 days, YTD, years) and `include_current` | `getLiveRange` | `SRE.dateRange` (`:355`) | Match |
-| "All time" end = latest transaction; other ranges clamp their start to the earliest transaction | `getLiveRange`/`validateRange` | `1900-01-01..today`; no clamp | **Divergence** [#954](https://github.com/azimul-kabir/actua/issues/954) |
-| `sort_by`, `show_empty`, `trim_intervals` | honored | not read | **Divergence** [#952](https://github.com/azimul-kabir/actua/issues/952) |
-| Intervals through the range end (future days of "This month") | yes | stop at today | **Divergence** [#952](https://github.com/azimul-kabir/actua/issues/952) |
+| "All time" = earliest → latest transaction; quarter, 30-day and year presets clamp their start to the earliest transaction | `getLiveRange`/`validateRange` | same | Match (#954) |
+| `sort_by` (`asc`/`desc` flipped for Payment and Net Payment, `name`, `budget` = item order), `show_empty`, `trim_intervals` | `sortData`, `filterEmptyRows`, `trimIntervals` | same | Match (#952) |
+| Intervals through the range end (future days of "This month") | yes | same | Match (#952) |
 | `show_trend_lines` | chart overlay | not drawn | **Not ported** |
 | Summary panel: total and `Math.round(total / intervals)` | `ReportSummary` | opt-in, device-local toggle (#644) | Match |
 | Dashboard card shows no headline total | | same (#629) | Match |
 
 Tests: `SavedReportEngineTest`, `SavedReportNetBalanceTest`, `SavedReportBudgetedTest`,
 `SavedReportTransferTest`, `IntervalPointsTest`, `StackedIntervalPointsTest`, `SavedReportSummaryTest`,
+`SavedReportDisplaySettingsTest`,
 `ReportAggregatorTest`, `src/androidTest/.../data/budget/ActualBudgetReadModelTest.savedReportsReadIncludeCurrentAndTolerateOlderSchemas`,
 `src/androidTest/.../ui/reports/ReportsCustomSummaryTest`, `ReportsDrillDownTest`.
 
@@ -358,8 +362,7 @@ Its causes were fixed one by one:
 - Monte Carlo success rate: #623/#627.
 - "6 months shows 2 months": merged-category ids (#636/#638) and `include_current` (#637/#639).
 
-None of the divergences above reopen #605's figures. #950 is the one most likely to produce a
-similar report: it affects Sankey totals in budgets with refunds or uncategorized transactions.
+None of the divergences above reopen #605's figures.
 
 This audit compared source code at the pinned commit. Comparing each widget's numbers side by side
 with the PWA on one synthetic budget has **not** been done yet. That acceptance criterion of #671

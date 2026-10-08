@@ -34,7 +34,7 @@ data class ReportDashboardPage(
 enum class ReportWidgetKind {
     SUMMARY, NET_WORTH, CASH_FLOW, INCOME_EXPENSE, SPENDING, MARKDOWN,
     AGE_OF_MONEY, FORMULA, CUSTOM_REPORT, CALENDAR, CROSSOVER,
-    BUDGET_ANALYSIS, SANKEY, BALANCE_FORECAST, MONTE_CARLO, UNSUPPORTED,
+    BUDGET_ANALYSIS, SANKEY, BALANCE_FORECAST, MONTE_CARLO, MISSING_REPORT, UNSUPPORTED,
 }
 
 data class ReportWidget(
@@ -63,6 +63,10 @@ data class ReportWidget(
     val balanceCents: Long? = null,
     /** Total and per-interval average for a saved custom report; null for every other widget kind. */
     val summary: ReportSummary? = null,
+    /** First column of the Calendar widget's week, the synced `firstDayOfWeekIdx` (0 = Sunday). */
+    val weekStart: Int = 0,
+    /** Markdown widget's `text_align`: `left`, `center` or `right`. */
+    val textAlign: String? = null,
 )
 
 /** What a custom report's Summary totals, mirroring the labels in upstream `ReportSummary.tsx`. */

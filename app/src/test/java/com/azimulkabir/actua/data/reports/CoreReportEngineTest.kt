@@ -54,6 +54,56 @@ class SankeyTest {
         assertEquals(listOf("Bills" to 300000L), widget.categories.map { it.name to it.spentCents })
     }
 
+    private val april = """{"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}}"""
+
+    @Test fun `a refund to an expense category reduces that category's outflow instead of adding income`() {
+        val rows = listOf(
+            tx("1", 20260405, 800000, "salary"),
+            tx("2", 20260410, -300000, "rent"),
+            tx("3", 20260412, 50000, "rent"),
+        )
+        val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
+        assertEquals(800000L, widget.valueCents)
+        assertEquals(listOf("Bills" to 250000L), widget.categories.map { it.name to it.spentCents })
+        assertEquals(250000L, widget.comparisonCents)
+    }
+
+    @Test fun `uncategorized transactions and transfers stay out of the graph`() {
+        val transfer = tx("4", 20260415, -100000, null).copy(transferAccountId = "savings")
+        val rows = listOf(
+            tx("1", 20260405, 800000, "salary"),
+            tx("2", 20260410, -300000, "rent"),
+            tx("3", 20260411, 20000, null),
+            tx("5", 20260412, -7000, null),
+            transfer,
+        )
+        val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
+        assertEquals(800000L, widget.valueCents)
+        assertEquals(300000L, widget.comparisonCents)
+        assertEquals(listOf("Salary"), widget.incomeCategories.map { it.name })
+    }
+
+    @Test fun `a net-positive expense category flows in rather than counting as spending`() {
+        val rows = listOf(
+            tx("1", 20260410, -10000, "rent"),
+            tx("2", 20260412, 30000, "rent"),
+        )
+        val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
+        assertEquals(listOf("Rent" to 20000L), widget.incomeCategories.map { it.name to it.spentCents })
+        assertEquals(emptyList<Any>(), widget.categories)
+        assertEquals(0L, widget.comparisonCents)
+    }
+
+    @Test fun `a net-negative income category flows out`() {
+        val rows = listOf(
+            tx("1", 20260405, 800000, "salary"),
+            tx("2", 20260406, -5000, "bonus"),
+        )
+        val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
+        assertEquals(800000L, widget.valueCents)
+        assertEquals(listOf("Bonus" to 5000L), widget.categories.map { it.name to it.spentCents })
+    }
+
     @Test fun `sets a subtitle with the resolved date range`() {
         val widget = CoreReportEngine.compute(
             row("""{"timeFrame":{"mode":"static","start":"2026-04","end":"2026-09"}}"""),
@@ -674,5 +724,152 @@ class TimeFrameTest {
             listOf(tx("july", 20260702, -1_000), tx("august", 20260805, -2_000)), today = today,
         )
         assertEquals(-3_000L, widget.valueCents)
+    }
+}
+
+/** Upstream `CustomReportListCards`: a widget whose saved report is gone shows a placeholder (actua#949). */
+class MissingCustomReportTest {
+    private val today = LocalDate.of(2026, 8, 20)
+
+    private fun tx(id: String, date: Int, amount: Long) = ActualTransaction(
+        id, "a", date, amount, null, null, null, null, null, false, false, null, false, null, false, null, null, null, null)
+
+    private fun widgets(savedReports: List<SavedReportRow>) = CoreReportEngine.dashboards(
+        pages = emptyList(),
+        widgets = { listOf(DashboardWidgetRow("w", "custom-report", """{"id":"r1"}""")) },
+        transactions = listOf(tx("spent", 20260805, -2_000)),
+        accounts = emptyList(), groups = emptyList(), savedReports = savedReports, today = today,
+    ).single().widgets
+
+    @Test fun `a widget for a deleted saved report shows no totals`() {
+        val widget = widgets(emptyList()).single()
+        assertEquals(ReportWidgetKind.MISSING_REPORT, widget.kind)
+        assertEquals("This custom report has been deleted.", widget.markdown)
+        assertEquals(null, widget.valueCents)
+        assertEquals(0, widget.categories.size + widget.points.size)
+    }
+
+    @Test fun `a widget for a live saved report still renders it`() {
+        val report = SavedReportRow("r1", "Spending", null, null, false, "This month", "Category", "Payment",
+            false, false, true, null, "BarGraph", null, "and", "Monthly")
+        val widget = widgets(listOf(report)).single()
+        assertEquals(ReportWidgetKind.CUSTOM_REPORT, widget.kind)
+        assertEquals("Spending", widget.name)
+    }
+}
+
+/** Upstream `calculateGraphData` granularity and leading periods (actua#955). */
+class AgeOfMoneyGranularityTest {
+    private fun tx(id: String, date: Int, amount: Long) = ActualTransaction(
+        id, "a", date, amount, null, null, null, null, null, false, false, null, false, null, false, null, null, null, null)
+    // Income on Sep 1, spending on Sep 3 (2 days old) and Sep 10 (9 days old).
+    private val rows = listOf(tx("in", 20260901, 10_000), tx("e1", 20260903, -1_000), tx("e2", 20260910, -1_000))
+    private val today = LocalDate.of(2026, 9, 12)
+
+    private fun points(granularity: String?, timeFrame: String = """{"mode":"static","start":"2026-08","end":"2026-09"}""") =
+        CoreReportEngine.compute(
+            DashboardWidgetRow("w", "age-of-money-card",
+                """{"timeFrame":$timeFrame${granularity?.let { ""","granularity":"$it"""" } ?: ""}}"""),
+            rows, today = today,
+        ).points.map { it.period to it.primaryCents }
+
+    @Test fun `monthly periods before the first age are omitted`() {
+        assertEquals(listOf("2026-09" to 6L), points(null))
+    }
+
+    @Test fun `monthly periods run through the range's end month`() {
+        assertEquals(listOf("2026-09" to 6L, "2026-10" to 6L),
+            points("monthly", """{"mode":"static","start":"2026-09","end":"2026-10"}"""))
+    }
+
+    @Test fun `weekly periods start on monday and stop at today`() {
+        assertEquals(listOf("2026-08-31" to 2L, "2026-09-07" to 6L), points("weekly"))
+    }
+
+    @Test fun `daily periods carry the rolling average forward`() {
+        val daily = points("daily")
+        assertEquals("2026-09-03" to 2L, daily.first())
+        assertEquals("2026-09-12" to 6L, daily.last())
+        assertEquals(10, daily.size)
+    }
+}
+
+/** Upstream `createBudgetAnalysisSpreadsheet` category selection (actua#956). */
+class BudgetAnalysisCategoryTest {
+    private val today = LocalDate.of(2026, 5, 20)
+    private val timeFrame = """"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}"""
+
+    private fun category(id: String, budgeted: Long, hidden: Boolean = false, groupHidden: Boolean = false) =
+        com.azimulkabir.actua.data.budget.model.ActualCategoryBudget(
+            "2026-05", id, id, "group", "Group", 1.0, 1.0, budgeted, 0, budgeted, 0,
+            hidden, groupHidden, null, false, false, null, null, null,
+        )
+
+    private val month = com.azimulkabir.actua.data.budget.model.ActualBudgetMonth(
+        "2026-05",
+        listOf(category("food", 1_000), category("rent", 2_000)),
+        emptyList(), null,
+        // A visible category in a hidden group, and a hidden category.
+        listOf(category("travel", 400, groupHidden = true), category("gifts", 500, hidden = true)),
+        emptyList(),
+    )
+
+    private fun budgeted(meta: String) = CoreReportEngine.compute(
+        DashboardWidgetRow("w", "budget-analysis-card", meta), emptyList(),
+        budgetMonth = { month }, today = today,
+    ).points.single().primaryCents
+
+    @Test fun `a visible category in a hidden group counts, a hidden category doesn't`() {
+        assertEquals(3_400L, budgeted("{$timeFrame}"))
+        assertEquals(3_900L, budgeted("""{$timeFrame,"showHiddenCategories":true}"""))
+    }
+
+    @Test fun `an unsupported condition operator matches no category`() {
+        assertEquals(0L, budgeted(
+            """{$timeFrame,"conditions":[{"field":"category","op":"gt","value":"food"}]}"""))
+        assertEquals(1_000L, budgeted(
+            """{$timeFrame,"conditionsOp":"or","conditions":[{"field":"category","op":"gt","value":"x"},""" +
+                """{"field":"category","op":"is","value":"food"}]}"""))
+    }
+}
+
+/** Upstream `projectTrackingBudgetForecast` for a Balance Forecast with `source = tracking-budget` (actua#958). */
+class TrackingBudgetForecastTest {
+    private val today = LocalDate.of(2026, 5, 20)
+    private val context = RuleContext(offBudgetAccountIds = setOf("house"))
+    private val balances = mapOf("checking" to 1_000L, "house" to 500L)
+    private val meta = """{"source":"tracking-budget","timeFrame":{"mode":"static","start":"2026-05","end":"2026-06"}}"""
+
+    private fun expense(month: String, id: String, budgeted: Long, hidden: Boolean = false) =
+        com.azimulkabir.actua.data.budget.model.ActualCategoryBudget(
+            month, id, id, "g", "G", 1.0, 1.0, budgeted, 0, budgeted, 0, hidden, false, null, false, false, null, null, null,
+        )
+
+    private fun month(month: YearMonth, tracking: Boolean) = com.azimulkabir.actua.data.budget.model.ActualBudgetMonth(
+        month.toString(),
+        listOf(expense(month.toString(), "rent", 200)),
+        listOf(com.azimulkabir.actua.data.budget.model.ActualIncomeBudget(month.toString(), "salary", "Salary", "Income", 1.0, 300, 0, false, false)),
+        if (tracking) null else 0L,
+        listOf(expense(month.toString(), "gifts", 50, hidden = true)),
+        emptyList(),
+    )
+
+    private fun forecast(meta: String, tracking: Boolean) = CoreReportEngine.compute(
+        DashboardWidgetRow("bf", "balance-forecast-card", meta), emptyList(), context,
+        today = today, accountBalances = balances, budgetMonth = { month(it, tracking) },
+    )
+
+    @Test fun `a tracking budget forecast adds each month's budgeted income minus expenses to on-budget balances`() {
+        val widget = forecast(meta, tracking = true)
+        assertEquals(listOf("2026-05" to 1_050L, "2026-06" to 1_100L), widget.points.map { it.period to it.primaryCents })
+        assertEquals(1_100L, widget.valueCents)
+        assertEquals(1_050L, widget.comparisonCents)
+        assertEquals("Forecast = starting balance + budgeted income - budgeted expenses", widget.subtitle)
+    }
+
+    @Test fun `an envelope budget or another source uses the schedule forecast`() {
+        assertEquals("No scheduled transactions in this range", forecast(meta, tracking = false).subtitle)
+        assertEquals("No scheduled transactions in this range",
+            forecast(meta.replace("tracking-budget", "schedules"), tracking = true).subtitle)
     }
 }

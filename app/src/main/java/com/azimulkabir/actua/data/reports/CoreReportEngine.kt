@@ -45,6 +45,8 @@ object CoreReportEngine {
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
         today: LocalDate = LocalDate.now(),
         transferAccountByPayee: Map<String, String> = emptyMap(),
+        payees: List<com.azimulkabir.actua.data.budget.model.ActualPayee> = emptyList(),
+        firstDayOfWeek: Int = 0,
     ): List<ReportDashboardPage> {
         val resolvedPages = if (pages.isEmpty()) listOf(DashboardPageRow("", "Dashboard")) else pages
         val context = RuleContext(
@@ -59,7 +61,7 @@ object CoreReportEngine {
         val incomeCategories = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id }
         val savedReportsById = savedReports.associateBy { it.id }
         val savedShared = if (savedReports.isEmpty()) null else
-            SavedReportEngine.Shared(transactions, accounts, groups)
+            SavedReportEngine.Shared(transactions, accounts, groups, payees, firstDayOfWeek)
         return resolvedPages.map { page ->
             ReportDashboardPage(
                 page.id,
@@ -77,7 +79,7 @@ object CoreReportEngine {
                         compute(
                             row, transactions, context, incomeCategories, budgetedByCategory, today,
                             accounts.associate { it.id to it.balanceCents }, schedules, budgetMonth,
-                            transferAccountByPayee,
+                            transferAccountByPayee, firstDayOfWeek,
                         )
                     }
                 },
@@ -96,6 +98,7 @@ object CoreReportEngine {
         schedules: List<ActualScheduleSummary> = emptyList(),
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
         transferAccountByPayee: Map<String, String> = emptyMap(),
+        firstDayOfWeek: Int = 0,
     ): ReportWidget {
         val meta = row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
         val name = meta?.optString("name")?.takeIf(String::isNotBlank) ?: label(row.type)
@@ -115,21 +118,26 @@ object CoreReportEngine {
         return when (row.type) {
             "summary-card" -> summary(row.id, name, meta, transactions, conditions, context, start, end, today)
             "net-worth-card" -> netWorth(row.id, name, meta, transactions.filterNot { it.tombstone }
-                .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }, start, end)
+                .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }, start, end, firstDayOfWeek)
             "cash-flow-card" -> cashFlow(row.id, name, filtered.filter { it.transferAccountId == null &&
                 it.accountId !in context.offBudgetAccountIds && it.date <= minOf(end, today).toYmd() }, start, end)
             "spending-card" -> spending(row.id, name, meta, transactions, context, incomeCategoryIds,
                 budgetedByCategory, today)
             "markdown-card" -> ReportWidget(row.id, ReportWidgetKind.MARKDOWN, name,
-                markdown = meta?.optString("content").orEmpty())
+                markdown = meta?.optString("content").orEmpty(),
+                textAlign = meta?.optString("text_align")?.takeIf(String::isNotBlank))
             "age-of-money-card" -> ageOfMoney(
                 row.id, name,
                 transactions.filterNot { it.tombstone }
                     .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) },
                 context, conditions, start, minOf(end, today),
+                meta?.optString("granularity")?.takeIf(String::isNotBlank) ?: "monthly", end,
             )
             "formula-card" -> formula(row.id, name, meta, transactions, context, today)
-            "custom-report" -> customReport(row.id, name, filtered, context, incomeCategoryIds)
+            // [dashboards] renders a live saved report itself; reaching here means it is missing,
+            // which upstream's `CustomReportListCards` shows as a deleted-report placeholder.
+            "custom-report" -> ReportWidget(row.id, ReportWidgetKind.MISSING_REPORT, name,
+                markdown = "This custom report has been deleted.")
             "calendar-card" -> {
                 val monthStart = start.withDayOfMonth(1)
                 val monthEnd = end.withDayOfMonth(end.lengthOfMonth())
@@ -138,14 +146,21 @@ object CoreReportEngine {
                     .filter { it.date in monthStart.toYmd()..monthEnd.toYmd() }
                     .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }
                     .toList()
-                calendar(row.id, name, calendarFiltered)
+                calendar(row.id, name, calendarFiltered).copy(weekStart = firstDayOfWeek)
             }
             "crossover-card" -> crossover(row.id, name, meta, transactions, context, incomeCategoryIds,
                 accountBalances, today)
             "budget-analysis-card" -> budgetAnalysis(row.id, name, meta, context, budgetMonth, start, end)
             "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, start, end)
-            "balance-forecast-card" -> balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context,
-                transferAccountByPayee, start, end)
+            // Upstream's card only uses the tracking-budget source in a tracking budget file.
+            "balance-forecast-card" -> if (meta?.optString("source") == "tracking-budget" &&
+                budgetMonth(YearMonth.from(start))?.isTracking == true
+            ) {
+                trackingBudgetForecast(row.id, name, accountBalances, context, budgetMonth, start, end)
+            } else {
+                balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context,
+                    transferAccountByPayee, start, end)
+            }
             "monte-carlo-card" -> monteCarlo(row.id, name, meta, accountBalances, today)
             else -> ReportWidget(row.id, ReportWidgetKind.UNSUPPORTED, name, sourceType = row.type)
         }
@@ -164,6 +179,7 @@ object CoreReportEngine {
     private fun ageOfMoney(
         id: String, name: String, scoped: List<ActualTransaction>, context: RuleContext,
         conditions: Pair<List<Rule.Condition>, Rule.ConditionsOp>, start: LocalDate, end: LocalDate,
+        granularity: String, rangeEnd: LocalDate,
     ): ReportWidget {
         data class Bucket(val date: LocalDate, var remaining: Long)
         val accountConditions = conditions.first.filter { it.field == "account" }
@@ -200,11 +216,26 @@ object CoreReportEngine {
             }
         }
         val displayed = ages.filter { it.first >= YearMonth.from(start).atDay(1) && !it.first.isAfter(end) }
-        val points = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
-            .takeWhile { !it.isAfter(YearMonth.from(end)) }.map { month ->
-                val through = displayed.filter { !YearMonth.from(it.first).isAfter(month) }.takeLast(10)
-                ReportPoint(month.toString(), through.map { it.second }.average().takeUnless { it.isNaN() }?.roundToLong() ?: 0)
-            }.toList()
+        // Upstream's `calculateGraphData`: one point per daily/weekly (Monday-start)/monthly period,
+        // each the rolling average of the last 10 ages so far; periods before the first age are omitted.
+        fun period(date: LocalDate): String = when (granularity) {
+            "daily" -> date.toString()
+            "weekly" -> SavedReportEngine.startOfWeek(date, 1).toString()
+            else -> YearMonth.from(date).toString()
+        }
+        val periods = when (granularity) {
+            "daily" -> generateSequence(YearMonth.from(start).atDay(1)) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }
+            "weekly" -> generateSequence(SavedReportEngine.startOfWeek(YearMonth.from(start).atDay(1), 1)) { it.plusWeeks(1) }
+                .takeWhile { !it.isAfter(end) }
+            // Monthly periods run through the range's own end month; daily/weekly stop at today.
+            else -> generateSequence(YearMonth.from(start).atDay(1)) { it.plusMonths(1) }.takeWhile { !it.isAfter(rangeEnd) }
+        }.map(::period).toList()
+        val agesByPeriod = displayed.groupBy({ period(it.first) }, { it.second })
+        val soFar = mutableListOf<Int>()
+        val points = periods.mapNotNull { key ->
+            agesByPeriod[key]?.let(soFar::addAll)
+            if (soFar.isEmpty()) null else ReportPoint(key, soFar.takeLast(10).average().roundToLong())
+        }
         val current = displayed.takeLast(10).map { it.second }.average().takeUnless { it.isNaN() }?.roundToLong()
         return ReportWidget(id, ReportWidgetKind.AGE_OF_MONEY, name, valueCents = current, points = points)
     }
@@ -232,24 +263,6 @@ object CoreReportEngine {
         val value = ArithmeticParser(expression).parse()?.times(100)?.roundToLong()
         return ReportWidget(id, ReportWidgetKind.FORMULA, name, valueCents = value,
             markdown = if (value == null) "This formula uses functions Actua cannot evaluate." else null)
-    }
-
-    private fun customReport(
-        id: String, name: String, transactions: List<ActualTransaction>, context: RuleContext,
-        incomeCategoryIds: Set<String>,
-    ): ReportWidget {
-        val expenses = transactions.filter { it.amountCents < 0 && it.transferAccountId == null &&
-            it.accountId !in context.offBudgetAccountIds && it.categoryId !in incomeCategoryIds }
-        val categories = expenses.groupBy {
-            it.categoryId?.let(context.categoryNames::get).orEmpty().ifBlank { "Uncategorized" }
-        }
-            .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, -rows.sumOf { it.amountCents }) }
-            .sortedByDescending { it.spentCents }
-        val points = expenses.groupBy { YearMonth.from(it.localDate()) }.toSortedMap().map { (month, rows) ->
-            ReportPoint(month.toString(), -rows.sumOf { it.amountCents })
-        }
-        return ReportWidget(id, ReportWidgetKind.CUSTOM_REPORT, name,
-            valueCents = categories.sumOf { it.spentCents }, categories = categories, points = points)
     }
 
     private fun calendar(id: String, name: String, transactions: List<ActualTransaction>): ReportWidget {
@@ -444,14 +457,14 @@ object CoreReportEngine {
     ): ReportWidget {
         val conditions = parseConditions(meta)
         val categoryConditions = conditions.first.filter { it.field == "category" || it.field == "category_group" }
-        val supported = categoryConditions.all {
-            it.op in setOf("is", "isNot", "oneOf", "notOneOf", "contains", "doesNotContain", "matches")
-        }
         val showHidden = meta?.optBoolean("showHiddenCategories", false) ?: false
+        // Upstream's `isBaseCategory` checks only the category's own hidden flag, so a visible
+        // category in a hidden group still counts; a condition operator it doesn't handle matches
+        // no category (so an `and` widget with one is empty), unlike Spending's budget fallback.
         fun selected(month: YearMonth): List<ActualCategoryBudget> {
             val budget = budgetMonth(month) ?: return emptyList()
-            val pool = if (showHidden) budget.categories + budget.hiddenCategories else budget.categories
-            return if (categoryConditions.isEmpty() || !supported) pool else pool.filter {
+            val pool = (budget.categories + budget.hiddenCategories).filter { showHidden || !it.hidden }
+            return if (categoryConditions.isEmpty()) pool else pool.filter {
                 categoryMatches(it.categoryId, categoryConditions, conditions.second, context)
             }
         }
@@ -470,34 +483,48 @@ object CoreReportEngine {
             balanceCents = points.lastOrNull()?.tertiaryCents)
     }
 
+    /**
+     * Upstream's Sankey `spent` mode (`sankey-spreadsheet.ts`, `fetchCategoryData` and
+     * `createTransactionsGraph`): only categorized transactions count, netted per category and
+     * account (and payee, for income categories), and each net's sign decides its side. A net-positive
+     * expense category (refunds) flows in and a net-negative income category flows out, so a refund
+     * no longer inflates both totals; uncategorized rows and same-side transfers have no category and
+     * stay out. Income is broken down per income category; outflows per category group.
+     */
     private fun sankey(
         id: String, name: String, transactions: List<ActualTransaction>, context: RuleContext,
         incomeCategoryIds: Set<String>, start: LocalDate, end: LocalDate,
     ): ReportWidget {
-        fun groupLabel(transaction: ActualTransaction) =
-            transaction.categoryId?.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
-                .orEmpty().ifBlank { "Other" }
-        // Income is broken down per source category/payee (matching Actual's PWA), not per category
-        // group like expenses: budgets typically keep every income source in a single "Income" group,
-        // so grouping by group name would collapse them all into one bar.
-        fun incomeLabel(transaction: ActualTransaction) =
-            transaction.categoryId?.let(context.categoryNames::get)?.takeIf(String::isNotBlank)
-                ?: transaction.payeeName?.takeIf(String::isNotBlank) ?: "Other"
-        val incomeRows = transactions.filter { it.amountCents > 0 && it.transferAccountId == null &&
-            it.accountId !in context.offBudgetAccountIds }
-        val income = incomeRows.sumOf { it.amountCents }
-        val incomeCategories = incomeRows.groupBy(::incomeLabel)
-            .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, rows.sumOf { it.amountCents }) }
+        data class Flow(val label: String, val cents: Long)
+        val inflows = mutableListOf<Flow>()
+        val outflows = mutableListOf<Flow>()
+        transactions.filter { it.categoryId != null && it.categoryId in context.categoryNames }
+            .groupBy { tx ->
+                val isIncome = tx.categoryId in incomeCategoryIds
+                Triple(tx.categoryId!!, tx.accountId, if (isIncome) tx.payeeId else null)
+            }
+            .forEach { (key, rows) ->
+                val net = rows.sumOf { it.amountCents }
+                if (net == 0L) return@forEach
+                val categoryName = context.categoryNames[key.first].orEmpty().ifBlank { "Other" }
+                if (net > 0) {
+                    inflows += Flow(categoryName, net)
+                } else {
+                    val label = if (key.first in incomeCategoryIds) categoryName
+                        else key.first.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
+                            .orEmpty().ifBlank { "Other" }
+                    outflows += Flow(label, -net)
+                }
+            }
+        fun breakdown(flows: List<Flow>) = flows.groupBy { it.label }
+            .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, rows.sumOf { it.cents }) }
             .sortedByDescending { it.spentCents }
-        val categories = transactions.filter { it.amountCents < 0 && it.transferAccountId == null &&
-            it.accountId !in context.offBudgetAccountIds && it.categoryId !in incomeCategoryIds }
-            .groupBy(::groupLabel)
-            .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, -rows.sumOf { it.amountCents }) }
-            .sortedByDescending { it.spentCents }
+        val incomeCategories = breakdown(inflows)
+        val categories = breakdown(outflows)
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
         val subtitle = if (YearMonth.from(start) == YearMonth.from(end)) start.format(formatter)
             else "${start.format(formatter)} - ${end.format(formatter)}"
-        return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = income,
+        return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = incomeCategories.sumOf { it.spentCents },
             comparisonCents = categories.sumOf { it.spentCents }, categories = categories,
             incomeCategories = incomeCategories, subtitle = subtitle)
     }
@@ -628,6 +655,35 @@ object CoreReportEngine {
             id, ReportWidgetKind.BALANCE_FORECAST, name,
             valueCents = points.last().primaryCents, comparisonCents = lowestBalance,
             points = points, subtitle = subtitle,
+        )
+    }
+
+    /**
+     * Upstream's `projectTrackingBudgetForecast` (`forecast/forecast-tracking-budget.ts`): starting
+     * from every on-budget account's current balance, each month of the range adds its budgeted
+     * income minus its budgeted expenses (the sheet's `total-budget-income` and `total-budgeted`),
+     * one point per month. Account and condition filters don't apply to this source.
+     */
+    private fun trackingBudgetForecast(
+        id: String, name: String, balances: Map<String, Long>, context: RuleContext,
+        budgetMonth: (YearMonth) -> ActualBudgetMonth?, start: LocalDate, end: LocalDate,
+    ): ReportWidget {
+        var running = balances.filterKeys { it !in context.offBudgetAccountIds }.values.sum()
+        val startingBalance = running
+        val points = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
+            .takeWhile { !it.isAfter(YearMonth.from(end)) }.map { month ->
+                val budget = budgetMonth(month)
+                val income = budget?.let { it.incomeCategories + it.hiddenIncomeCategories }.orEmpty().sumOf { it.budgetedCents }
+                val expenses = budget?.let { it.categories + it.hiddenCategories }.orEmpty().sumOf { it.budgetedCents }
+                running += income - expenses
+                ReportPoint(month.toString(), running)
+            }.toList()
+        return ReportWidget(
+            id, ReportWidgetKind.BALANCE_FORECAST, name,
+            valueCents = points.lastOrNull()?.primaryCents ?: startingBalance,
+            comparisonCents = points.minOfOrNull { it.primaryCents } ?: startingBalance,
+            points = points,
+            subtitle = "Forecast = starting balance + budgeted income - budgeted expenses",
         )
     }
 
@@ -862,10 +918,10 @@ object CoreReportEngine {
 
     private fun netWorth(
         id: String, name: String, meta: JSONObject?, transactions: List<ActualTransaction>,
-        start: LocalDate, end: LocalDate,
+        start: LocalDate, end: LocalDate, firstDayOfWeek: Int,
     ): ReportWidget {
         val interval = meta?.optString("interval", "Monthly") ?: "Monthly"
-        val boundaries = boundaries(start, end, interval)
+        val boundaries = boundaries(start, end, interval, firstDayOfWeek)
         val points = boundaries.map { boundary ->
             ReportPoint(boundary.toString(), transactions.filter { it.date <= boundary.toYmd() }.sumOf { it.amountCents })
         }
@@ -1083,10 +1139,11 @@ object CoreReportEngine {
         return runCatching { YearMonth.parse(text) }.getOrNull()
     }
 
-    private fun boundaries(start: LocalDate, end: LocalDate, interval: String): List<LocalDate> = when (interval) {
+    private fun boundaries(start: LocalDate, end: LocalDate, interval: String, firstDayOfWeek: Int): List<LocalDate> = when (interval) {
         "Daily" -> generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.toList()
+        // Each week ends the day before the next `firstDayOfWeekIdx` week starts.
         "Weekly" -> generateSequence(start) { it.plusWeeks(1) }.takeWhile { !it.isAfter(end) }
-            .map { minOf(it.plusDays((6 - it.dayOfWeek.value % 7).toLong()), end) }.distinct().toList()
+            .map { minOf(SavedReportEngine.startOfWeek(it, firstDayOfWeek).plusDays(6), end) }.distinct().toList()
         "Yearly" -> (start.year..end.year).map { minOf(LocalDate.of(it, 12, 31), end) }
         else -> generateSequence(YearMonth.from(start)) { it.plusMonths(1) }.takeWhile { !it.isAfter(YearMonth.from(end)) }
             .map { minOf(it.atEndOfMonth(), end) }.toList()

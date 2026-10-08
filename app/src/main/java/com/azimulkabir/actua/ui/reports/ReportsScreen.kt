@@ -459,7 +459,7 @@ private fun WidgetCard(
                     ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals, onDrillDown)
                     ReportWidgetKind.INCOME_EXPENSE -> IncomeExpense(widget, hideDecimals, onDrillDown)
                     ReportWidgetKind.SPENDING -> Spending(widget, hideDecimals, onDrillDown)
-                    ReportWidgetKind.MARKDOWN -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ReportWidgetKind.MARKDOWN -> MarkdownWidget(widget.markdown.orEmpty(), widget.textAlign)
                     ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
                     ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
                     ReportWidgetKind.CUSTOM_REPORT -> {
@@ -494,6 +494,7 @@ private fun WidgetCard(
                         )
                         ComparativeTrendChart(widget.points, "Median", "Conservative", hideDecimals)
                     }
+                    ReportWidgetKind.MISSING_REPORT -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     ReportWidgetKind.UNSUPPORTED -> Unit
                 }
             }
@@ -716,9 +717,10 @@ private fun AgeOfMoney(widget: ReportWidget) {
         color = MaterialTheme.colorScheme.primary)
     TrendChart(widget.points, isMoney = false)
     if (widget.points.isNotEmpty()) Row(Modifier.fillMaxWidth()) {
-        Text(widget.points.first().period.take(7), style = MaterialTheme.typography.bodySmall,
+        // Daily and weekly periods are dates, monthly ones months.
+        Text(widget.points.first().period, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(widget.points.last().period.take(7), style = MaterialTheme.typography.bodySmall,
+        Text(widget.points.last().period, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -1051,13 +1053,14 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
         }
     }
     Row(Modifier.fillMaxWidth()) {
-        listOf("S", "M", "T", "W", "T", "F", "S").forEach { day ->
+        val weekDays = listOf("S", "M", "T", "W", "T", "F", "S")
+        (0 until 7).map { weekDays[(it + widget.weekStart) % 7] }.forEach { day ->
             Text(day, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
     val dayMax = values.values.maxOfOrNull { max(it.primaryCents, it.secondaryCents) }?.coerceAtLeast(1) ?: 1
-    val leading = month.atDay(1).dayOfWeek.value % 7
+    val leading = (month.atDay(1).dayOfWeek.value % 7 - widget.weekStart + 7) % 7
     val cells = List(leading) { null } + (1..month.lengthOfMonth()).map { it }
     cells.chunked(7).forEach { week ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {

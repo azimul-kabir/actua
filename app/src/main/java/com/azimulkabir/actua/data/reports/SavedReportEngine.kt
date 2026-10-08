@@ -4,6 +4,7 @@ import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
 import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
+import com.azimulkabir.actua.data.budget.model.ActualPayee
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.rules.RuleContext
@@ -23,8 +24,22 @@ import java.time.YearMonth
 /** Read-only evaluation of Actual's saved custom reports using the shared [ReportAggregator]. */
 object SavedReportEngine {
     /** Lookups that are identical for every saved report; build once per evaluation pass. */
-    class Shared(transactions: List<ActualTransaction>, accounts: List<ActualAccount>, groups: List<ActualCategoryGroup>) {
+    class Shared(
+        transactions: List<ActualTransaction>,
+        val accounts: List<ActualAccount>,
+        val groups: List<ActualCategoryGroup>,
+        payees: List<ActualPayee> = emptyList(),
+        /** Synced `firstDayOfWeekIdx` preference, 0 = Sunday. */
+        val firstDayOfWeek: Int = 0,
+    ) {
         val aggregator = ReportAggregator(accounts, groups)
+        /** Upstream's `get-earliest-transaction`/`get-latest-transaction` dates, for live ranges. */
+        val earliest: LocalDate? = transactions.asSequence().filterNot { it.tombstone }.minOfOrNull { it.date }?.let(::ymdDate)
+        val latest: LocalDate? = transactions.asSequence().filterNot { it.tombstone }.maxOfOrNull { it.date }?.let(::ymdDate)
+        /** Upstream's `usePayees` list (transfer payees named after their account), for `show_empty`. */
+        val payeeNames: List<String> = payees.mapNotNull { payee ->
+            payee.transferAccountId?.let { id -> accounts.firstOrNull { it.id == id }?.name } ?: payee.name.takeIf(String::isNotBlank)
+        }.ifEmpty { transactions.mapNotNull { it.payeeName?.takeIf(String::isNotBlank) }.distinct().sorted() }
         val context = RuleContext(
             offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id },
             accountNames = accounts.associate { it.id to it.name },
@@ -39,8 +54,10 @@ object SavedReportEngine {
         rows: List<SavedReportRow>, transactions: List<ActualTransaction>, accounts: List<ActualAccount>,
         groups: List<ActualCategoryGroup>, view: ReportViewFilter = ReportViewFilter(),
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
+        payees: List<ActualPayee> = emptyList(),
+        firstDayOfWeek: Int = 0,
     ): List<ReportWidget> {
-        val shared = Shared(transactions, accounts, groups)
+        val shared = Shared(transactions, accounts, groups, payees, firstDayOfWeek)
         return listOf(incomeExpense(transactions, view, shared = shared)) +
             rows.map { compute(it, transactions, accounts, groups, view = view, shared = shared, budgetMonth = budgetMonth) }
     }
@@ -56,17 +73,19 @@ object SavedReportEngine {
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
     ): ReportWidget {
         val aggregator = shared.aggregator
+        val weekStart = shared.firstDayOfWeek
         val (start, end) = dateRange(
-            view.datePreset?.let { row.copy(dateStatic = false, dateRange = it, includeCurrent = false) } ?: row, today,
+            view.datePreset?.let { row.copy(dateStatic = false, dateRange = it, includeCurrent = false) } ?: row, today, weekStart,
+            shared.earliest, shared.latest,
         )
         val selected = row.selectedCategories?.let { runCatching { JSONArray(it) }.getOrNull() }?.let { array ->
             (0 until array.length()).mapNotNull { array.optJSONObject(it)?.optString("id")?.takeIf(String::isNotBlank) }
         }.orEmpty().toSet()
         val balType = balanceType(row.balanceType)
-        val summaryStart = if (start == ALL_TIME_START) earliestDate(transactions) ?: today else start
+        val summaryStart = if (start == ALL_TIME_START) today else start
         if (balType == ReportBalanceType.BUDGETED) {
-            return computeBudgeted(row, groups, start, end, selected, view, budgetMonth).let {
-                it.copy(summary = summary(row, it.valueCents ?: 0, 0, 0, summaryStart, end))
+            return computeBudgeted(row, groups, start, end, selected, view, budgetMonth, shared).let {
+                it.copy(summary = summary(row, it.valueCents ?: 0, 0, 0, summaryStart, end, weekStart))
             }
         }
         val filter = ReportFilter(
@@ -80,9 +99,12 @@ object SavedReportEngine {
         )
         val conditions = parseConditions(row)
         val context = shared.context
-        val scoped = if (conditions.first.isEmpty()) transactions else transactions.filter {
+        val matching = if (conditions.first.isEmpty()) transactions else transactions.filter {
             RulesEngine.matches(it, conditions.first, conditions.second, context)
         }
+        // Upstream sums a Payee report over its payee list, so rows without a payee drop out of the
+        // groups and the totals alike.
+        val scoped = if (row.groupBy == "Payee") matching.filter { it.payeeId != null } else matching
         val included = aggregator.select(scoped, filter)
         val grouping = when (row.groupBy) {
             "Group" -> ReportGrouping.CATEGORY_GROUP
@@ -90,23 +112,32 @@ object SavedReportEngine {
             "Account" -> ReportGrouping.ACCOUNT
             else -> ReportGrouping.CATEGORY
         }
-        val segments = if (row.groupBy == "Interval") emptyList() else
-            aggregator.groupTotals(scoped, filter, grouping).map { ReportCategory(it.name, it.totalCents, it.transactionIds) }
+        val itemOrder = itemOrder(grouping, shared)
+        val segments = if (row.groupBy == "Interval") emptyList() else arrange(
+            aggregator.groupTotals(scoped, filter, grouping).map { ReportCategory(it.name, it.totalCents, it.transactionIds) },
+            row, balType, itemOrder,
+        )
         val timeMode = row.mode == "time" || row.groupBy == "Interval"
         val stacked = timeMode && row.groupBy != "Interval" && row.graphType == "StackedBarGraph"
-        val points = if (stacked) {
-            intervalSegments(included, grouping, aggregator, filter, segments.map { it.name }, row.interval, start, end, today)
+        val allPoints = if (stacked) {
+            intervalSegments(included, grouping, aggregator, filter, segments.map { it.name }, row.interval, start, end, today, weekStart)
         } else {
-            intervalPoints(included, row.interval, start, end, today, balType)
+            intervalPoints(included, row.interval, start, end, today, balType, weekStart)
         }
-        val total = reportTotal(included, row.interval, balType)
+        val points = if (!row.trimIntervals) allPoints else {
+            val byBucket = included.groupBy { bucketLabel(row.interval, bucketStart(row.interval, it.localDate(), shared.firstDayOfWeek)) }
+            trimIntervals(allPoints) { point ->
+                aggregator.groupTotals(byBucket[point.period].orEmpty(), filter, grouping).any { it.totalCents != 0L }
+            }
+        }
+        val total = reportTotal(included, row.interval, balType, weekStart)
         return ReportWidget(
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
             valueCents = total, categories = segments, points = points, timeMode = timeMode,
             graphType = row.graphType, subtitle = "$start – $end · ${row.groupBy}",
             summary = summary(
                 row, total, included.filter { it.amountCents < 0 }.sumOf { it.amountCents },
-                included.filter { it.amountCents > 0 }.sumOf { it.amountCents }, summaryStart, end,
+                included.filter { it.amountCents > 0 }.sumOf { it.amountCents }, summaryStart, end, weekStart,
             ),
         )
     }
@@ -119,6 +150,7 @@ object SavedReportEngine {
      */
     internal fun summary(
         row: SavedReportRow, totalCents: Long, debitCents: Long, creditCents: Long, start: LocalDate, end: LocalDate,
+        weekStart: Int = 0,
     ): ReportSummary {
         val kind = when (balanceType(row.balanceType)) {
             ReportBalanceType.DEBTS -> ReportSummaryKind.SPENDING
@@ -130,15 +162,15 @@ object SavedReportEngine {
                 if (kotlin.math.abs(debitCents) > kotlin.math.abs(creditCents)) ReportSummaryKind.NET_PAYMENT
                 else ReportSummaryKind.NET_DEPOSIT
         }
-        val count = intervalCount(row.interval, start, end)
+        val count = intervalCount(row.interval, start, end, weekStart)
         return ReportSummary(kind, totalCents, roundedAverage(totalCents, count), count, row.interval)
     }
 
     /** Intervals from [start] through [end] inclusive; never less than one. */
-    internal fun intervalCount(interval: String, start: LocalDate, end: LocalDate): Int {
+    internal fun intervalCount(interval: String, start: LocalDate, end: LocalDate, weekStart: Int = 0): Int {
         if (end.isBefore(start)) return 1
-        val first = bucketStart(interval, start)
-        val last = bucketStart(interval, end)
+        val first = bucketStart(interval, start, weekStart)
+        val last = bucketStart(interval, end, weekStart)
         val count = when (interval) {
             "Daily" -> java.time.temporal.ChronoUnit.DAYS.between(first, last)
             "Weekly" -> java.time.temporal.ChronoUnit.WEEKS.between(first, last)
@@ -151,11 +183,6 @@ object SavedReportEngine {
     /** JavaScript's `Math.round(total / count)` (halves round towards positive infinity) in exact integer cents. */
     internal fun roundedAverage(totalCents: Long, count: Int): Long =
         Math.floorDiv(2 * totalCents + count, 2L * count)
-
-    /** Upstream resolves "All time" from the earliest transaction; Actua's range uses a sentinel start. */
-    private fun earliestDate(transactions: List<ActualTransaction>): LocalDate? =
-        transactions.asSequence().filterNot { it.tombstone }.minOfOrNull { it.date }
-            ?.let { LocalDate.of(it / 10000, it / 100 % 100, it % 100) }
 
     private val ALL_TIME_START: LocalDate = LocalDate.of(1900, 1, 1)
 
@@ -172,6 +199,7 @@ object SavedReportEngine {
     private fun computeBudgeted(
         row: SavedReportRow, groups: List<ActualCategoryGroup>, start: LocalDate, end: LocalDate,
         selectedCategories: Set<String>, view: ReportViewFilter, budgetMonth: (YearMonth) -> ActualBudgetMonth?,
+        shared: Shared,
     ): ReportWidget {
         val groupNames = groups.associate { it.id to it.name }
         val incomeCategoryIds = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id }
@@ -194,17 +222,18 @@ object SavedReportEngine {
                 val name = (if (byGroup) groupNames[key] else matching.first().categoryName).orEmpty()
                 ReportCategory(name.ifBlank { "Uncategorized" }, matching.sumOf { it.budgetedCents })
             }
-            .sortedByDescending { it.spentCents }
 
         val months = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
             .takeWhile { !it.isAfter(YearMonth.from(end)) }.toList()
         val byMonth = months.associateWith(::monthCategories)
         val all = byMonth.values.flatten()
-        val segments = if (row.groupBy == "Interval") emptyList() else totals(all)
+        val itemOrder = itemOrder(if (byGroup) ReportGrouping.CATEGORY_GROUP else ReportGrouping.CATEGORY, shared)
+        val segments = if (row.groupBy == "Interval") emptyList() else
+            arrange(totals(all), row, ReportBalanceType.BUDGETED, itemOrder)
         val timeMode = row.mode == "time" || row.groupBy == "Interval"
         val stacked = timeMode && row.groupBy != "Interval" && row.graphType == "StackedBarGraph"
         val canonicalOrder = segments.map { it.name }
-        val points = months.map { month ->
+        val allPoints = months.map { month ->
             val rows = byMonth.getValue(month)
             if (stacked) {
                 val byName = totals(rows).associateBy { it.name }
@@ -214,6 +243,12 @@ object SavedReportEngine {
                 ReportPoint(month.toString(), rows.sumOf { it.budgetedCents })
             }
         }
+        val points = if (!row.trimIntervals) allPoints else {
+            val monthsByLabel = months.associateBy { it.toString() }
+            trimIntervals(allPoints) { point ->
+                byMonth[monthsByLabel[point.period]].orEmpty().any { it.budgetedCents != 0L }
+            }
+        }
         return ReportWidget(
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
             valueCents = all.sumOf { it.budgetedCents }, categories = segments, points = points, timeMode = timeMode,
@@ -221,9 +256,58 @@ object SavedReportEngine {
         )
     }
 
-    private fun bucketStart(interval: String, d: LocalDate): LocalDate = when (interval) {
+    /**
+     * Upstream's `groupBySelections` item order (categories by income flag, group and category sort
+     * order, then the synthetic items; groups; payees; accounts), which `show_empty` lists and the
+     * `budget` sort keeps.
+     */
+    private fun itemOrder(grouping: ReportGrouping, shared: Shared): List<String> = when (grouping) {
+        ReportGrouping.CATEGORY -> shared.groups.sortedWith(compareBy({ it.isIncome }, { it.sortOrder }))
+            .flatMap { group -> group.categories.sortedBy { it.sortOrder } }.map { it.name } +
+            listOf("Uncategorized", "Off budget", "Transfers")
+        ReportGrouping.CATEGORY_GROUP -> shared.groups.map { it.name } + "Uncategorized & Off budget"
+        ReportGrouping.PAYEE -> shared.payeeNames
+        ReportGrouping.ACCOUNT -> shared.accounts.sortedBy { it.sortOrder }.map { it.name }
+    }
+
+    /**
+     * Upstream's `filterEmptyRows` and `sortData`: with `show_empty` every item is listed (empty ones
+     * at zero), then rows sort by `sort_by` - `asc`/`desc` by value (flipped for Payment and Net
+     * Payment, whose values are negative), `name`, or `budget` (item order). Ties keep item order,
+     * as JavaScript's stable sort does over `groupByList`.
+     */
+    internal fun arrange(
+        segments: List<ReportCategory>, row: SavedReportRow, balanceType: ReportBalanceType, itemOrder: List<String>,
+    ): List<ReportCategory> {
+        val nonEmpty = segments.filter { it.spentCents != 0L || !balanceType.clampsNet && balanceType != ReportBalanceType.BUDGETED }
+        val listed = if (!row.showEmpty) nonEmpty else
+            segments + itemOrder.filter { name -> segments.none { it.name == name } }.distinct().map { ReportCategory(it, 0) }
+        val position = itemOrder.withIndex().associate { (index, name) -> name to index }
+        val byItem = listed.sortedBy { position[it.name] ?: Int.MAX_VALUE }
+        val reversed = balanceType == ReportBalanceType.DEBTS || balanceType == ReportBalanceType.NET_DEBTS
+        val collator = java.text.Collator.getInstance()
+        return when (row.sortBy) {
+            "name" -> byItem.sortedWith { a, b -> collator.compare(a.name, b.name) }
+            "budget" -> byItem
+            "asc" -> if (reversed) byItem.sortedByDescending { it.spentCents } else byItem.sortedBy { it.spentCents }
+            else -> if (reversed) byItem.sortedBy { it.spentCents } else byItem.sortedByDescending { it.spentCents }
+        }
+    }
+
+    /** Upstream's `trimIntervals`: drop leading and trailing intervals where no group has a value. */
+    private fun trimIntervals(points: List<ReportPoint>, hasValue: (ReportPoint) -> Boolean): List<ReportPoint> {
+        val first = points.indexOfFirst(hasValue)
+        if (first < 0) return emptyList()
+        return points.subList(first, points.indexOfLast(hasValue) + 1)
+    }
+
+    /** Upstream's `weekFromDate(date, firstDayOfWeekIdx)`: the start of [d]'s week, 0 = Sunday. */
+    internal fun startOfWeek(d: LocalDate, firstDayOfWeek: Int): LocalDate =
+        d.minusDays(((d.dayOfWeek.value % 7 - firstDayOfWeek) % 7 + 7) % 7L)
+
+    private fun bucketStart(interval: String, d: LocalDate, weekStart: Int): LocalDate = when (interval) {
         "Daily" -> d
-        "Weekly" -> d.minusDays((d.dayOfWeek.value % 7).toLong())
+        "Weekly" -> startOfWeek(d, weekStart)
         "Yearly" -> d.withDayOfYear(1)
         else -> d.withDayOfMonth(1)
     }
@@ -241,16 +325,18 @@ object SavedReportEngine {
         else -> YearMonth.from(d).toString()
     }
 
-    private fun ActualTransaction.localDate(): LocalDate = LocalDate.of(date / 10000, date / 100 % 100, date % 100)
+    private fun ActualTransaction.localDate(): LocalDate = ymdDate(date)
+
+    private fun ymdDate(ymd: Int): LocalDate = LocalDate.of(ymd / 10000, ymd / 100 % 100, ymd % 100)
 
     /** The interval-bucket keys shared by [intervalPoints] and [intervalSegments], zero-filled when small enough to chart. */
     private fun bucketKeys(
-        rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
+        rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, weekStart: Int,
     ): List<LocalDate> {
-        val seen = rows.map { bucketStart(interval, it.localDate()) }
-        val last = minOf(end, maxOf(today, seen.maxOrNull() ?: today))
-        val keys = generateSequence(bucketStart(interval, maxOf(start, LocalDate.of(1900, 1, 1)))) { nextBucket(interval, it) }
-            .takeWhile { !it.isAfter(last) }.take(401).toList()
+        val seen = rows.map { bucketStart(interval, it.localDate(), weekStart) }
+        // Upstream charts every interval from the range start through its end, future ones included.
+        val keys = generateSequence(bucketStart(interval, maxOf(start, LocalDate.of(1900, 1, 1)), weekStart)) { nextBucket(interval, it) }
+            .takeWhile { !it.isAfter(end) }.take(401).toList()
         return if (keys.size <= 400) keys else seen.distinct().sorted()
     }
 
@@ -260,11 +346,11 @@ object SavedReportEngine {
      */
     internal fun intervalPoints(
         rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
-        balanceType: ReportBalanceType = ReportBalanceType.NET,
+        balanceType: ReportBalanceType = ReportBalanceType.NET, weekStart: Int = 0,
     ): List<ReportPoint> {
-        val sums = rows.groupBy { bucketStart(interval, it.localDate()) }
+        val sums = rows.groupBy { bucketStart(interval, it.localDate(), weekStart) }
             .mapValues { (_, v) -> balanceType.clampNet(v.sumOf { it.amountCents }) }
-        return bucketKeys(rows, interval, start, end, today).map { ReportPoint(bucketLabel(interval, it), sums[it] ?: 0L) }
+        return bucketKeys(rows, interval, start, end, weekStart).map { ReportPoint(bucketLabel(interval, it), sums[it] ?: 0L) }
     }
 
     /**
@@ -272,9 +358,9 @@ object SavedReportEngine {
      * net across every group is clamped and the intervals summed (`netAssets += perIntervalNetAssets`),
      * so a refund-heavy month can't cancel spending in another; other types are the plain signed sum.
      */
-    internal fun reportTotal(rows: List<ActualTransaction>, interval: String, balanceType: ReportBalanceType): Long =
+    internal fun reportTotal(rows: List<ActualTransaction>, interval: String, balanceType: ReportBalanceType, weekStart: Int = 0): Long =
         if (!balanceType.clampsNet) rows.sumOf { it.amountCents } else rows
-            .groupBy { bucketStart(interval, it.localDate()) }.values
+            .groupBy { bucketStart(interval, it.localDate(), weekStart) }.values
             .sumOf { bucket -> balanceType.clampNet(bucket.sumOf { it.amountCents }) }
 
     /**
@@ -286,9 +372,10 @@ object SavedReportEngine {
     internal fun intervalSegments(
         rows: List<ActualTransaction>, grouping: ReportGrouping, aggregator: ReportAggregator, filter: ReportFilter,
         canonicalOrder: List<String>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
+        weekStart: Int = 0,
     ): List<ReportPoint> {
-        val byBucket = rows.groupBy { bucketStart(interval, it.localDate()) }
-        return bucketKeys(rows, interval, start, end, today).map { key ->
+        val byBucket = rows.groupBy { bucketStart(interval, it.localDate(), weekStart) }
+        return bucketKeys(rows, interval, start, end, weekStart).map { key ->
             val totals = aggregator.groupTotals(byBucket[key].orEmpty(), filter, grouping).associateBy { it.name }
             val segments = canonicalOrder.map { name ->
                 totals[name]?.let { ReportCategory(it.name, it.totalCents, it.transactionIds) } ?: ReportCategory(name, 0, emptyList())
@@ -311,7 +398,7 @@ object SavedReportEngine {
         val preset = view.datePreset ?: "Last 12 months"
         val (start, end) = dateRange(
             SavedReportRow("", "", null, null, false, preset, "Category", "Net", false, false, true, null,
-                "BarGraph", null, "and", "Monthly"), today,
+                "BarGraph", null, "and", "Monthly"), today, shared.firstDayOfWeek, shared.earliest, shared.latest,
         )
         val filter = ReportFilter(
             startDate = start.toYmd(), endDate = end.toYmd(),
@@ -352,7 +439,15 @@ object SavedReportEngine {
         else -> ReportBalanceType.DEBTS
     }
 
-    internal fun dateRange(row: SavedReportRow, today: LocalDate): Pair<LocalDate, LocalDate> {
+    /**
+     * Upstream's `getLiveRange`: "All time" spans the earliest through the latest transaction, and
+     * the quarter, 30-day and year presets move their start up to the earliest transaction
+     * (`validateRange`); "Last N"/"This" week and month ranges are never clamped.
+     */
+    internal fun dateRange(
+        row: SavedReportRow, today: LocalDate, weekStart: Int = 0,
+        earliest: LocalDate? = null, latest: LocalDate? = null,
+    ): Pair<LocalDate, LocalDate> {
         fun parse(v: String?, end: Boolean): LocalDate? = when (v?.length) {
             7 -> runCatching { YearMonth.parse(v) }.getOrNull()?.let { if (end) it.atEndOfMonth() else it.atDay(1) }
             10 -> runCatching { LocalDate.parse(v) }.getOrNull()
@@ -364,25 +459,27 @@ object SavedReportEngine {
         fun lastMonths(n: Int) = month.minusMonths(n.toLong()).let { start ->
             start.atDay(1) to start.plusMonths((n - if (row.includeCurrent) 0 else 1).toLong()).atEndOfMonth()
         }
-        fun lastWeeks(n: Int) = today.minusDays((today.dayOfWeek.value % 7).toLong()).minusWeeks(n.toLong()).let { start ->
+        fun lastWeeks(n: Int) = startOfWeek(today, weekStart).minusWeeks(n.toLong()).let { start ->
             start to start.plusWeeks((n - if (row.includeCurrent) 0 else 1).toLong()).plusDays(6)
         }
         val quarter = month.withMonth((month.monthValue - 1) / 3 * 3 + 1)
+        fun validated(range: Pair<LocalDate, LocalDate>) =
+            if (earliest != null && range.first.isBefore(earliest)) earliest to range.second else range
         if (!row.dateStatic) when (row.dateRange) {
             "This week" -> return lastWeeks(0).first.let { it to it.plusDays(6) }
             "Last week" -> return lastWeeks(1)
             "This month" -> return month.atDay(1) to month.atEndOfMonth()
             "Last month" -> return lastMonths(1)
-            "Current quarter" -> return quarter.atDay(1) to quarter.plusMonths(2).atEndOfMonth()
-            "Previous quarter" -> return quarter.minusMonths(3).let { it.atDay(1) to it.plusMonths(2).atEndOfMonth() }
-            "Last 30 days" -> return today.minusDays(29) to today
+            "Current quarter" -> return validated(quarter.atDay(1) to quarter.plusMonths(2).atEndOfMonth())
+            "Previous quarter" -> return validated(quarter.minusMonths(3).let { it.atDay(1) to it.plusMonths(2).atEndOfMonth() })
+            "Last 30 days" -> return validated(today.minusDays(29) to today)
             "Last 3 months" -> return lastMonths(3)
             "Last 6 months" -> return lastMonths(6)
             "Last 12 months" -> return lastMonths(12)
-            "Year to date" -> return today.withDayOfYear(1) to today
-            "Last year" -> return LocalDate.of(today.year - 1, 1, 1) to LocalDate.of(today.year - 1, 12, 31)
-            "Prior year to date" -> return today.minusYears(1).withDayOfYear(1) to today.minusYears(1)
-            "All time" -> return ALL_TIME_START to today
+            "Year to date" -> return validated(today.withDayOfYear(1) to today)
+            "Last year" -> return validated(LocalDate.of(today.year - 1, 1, 1) to LocalDate.of(today.year - 1, 12, 31))
+            "Prior year to date" -> return validated(today.minusYears(1).withDayOfYear(1) to today.minusYears(1))
+            "All time" -> return (earliest ?: ALL_TIME_START) to (latest ?: today)
         }
         return (parse(row.startDate, false) ?: month.atDay(1)) to (parse(row.endDate, true) ?: month.atEndOfMonth())
     }

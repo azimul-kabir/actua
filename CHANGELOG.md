@@ -15,6 +15,16 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Balance Forecast widgets set to the tracking budget project budgeted income and expenses, as Actual does ([#970](https://github.com/azimul-kabir/actua/pull/970))
+- Markdown dashboard widgets show formatted text instead of Markdown syntax ([#969](https://github.com/azimul-kabir/actua/pull/969))
+- Budget Analysis counts visible categories in hidden groups and handles unsupported filters as Actual does ([#968](https://github.com/azimul-kabir/actua/pull/968))
+- The Age of Money chart follows its daily, weekly or monthly setting ([#967](https://github.com/azimul-kabir/actua/pull/967))
+- Saved reports' All time range includes future-dated transactions, and averages start at the first transaction ([#966](https://github.com/azimul-kabir/actua/pull/966))
+- Weekly reports and the report calendar start on the budget's first day of the week ([#965](https://github.com/azimul-kabir/actua/pull/965))
+- Saved reports follow their sort, show-empty and trim-intervals settings, and chart the whole date range ([#964](https://github.com/azimul-kabir/actua/pull/964))
+- Saved reports group off-budget and payee-less transactions as Actual does ([#963](https://github.com/azimul-kabir/actua/pull/963))
+- Sankey reports net refunds against their category and leave out uncategorized transactions, as Actual does ([#962](https://github.com/azimul-kabir/actua/pull/962))
+- A dashboard widget for a deleted custom report says so instead of showing other totals ([#961](https://github.com/azimul-kabir/actua/pull/961))
 - Dashboard report widgets use Actual's default and quarter date ranges ([#960](https://github.com/azimul-kabir/actua/pull/960))
 - Editing a schedule can no longer give it another schedule's name ([#943](https://github.com/azimul-kabir/actua/pull/943))
 - Schedules use the budget-wide upcoming length setting when they have none of their own ([#942](https://github.com/azimul-kabir/actua/pull/942))

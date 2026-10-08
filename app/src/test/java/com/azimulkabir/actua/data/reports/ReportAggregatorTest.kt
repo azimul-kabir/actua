@@ -70,8 +70,34 @@ class ReportAggregatorTest {
         )
         val byGroup = aggregator.groupTotals(rows, jan, ReportGrouping.CATEGORY_GROUP)
         assertEquals(
-            listOf("Transfers" to -500L, "Uncategorized" to -50L, "Food" to -25L),
+            listOf("Uncategorized & Off budget" to -550L, "Food" to -25L),
             byGroup.map { it.name to it.totalCents },
+        )
+    }
+
+    @Test fun `every off-budget row lands in the Off budget item, categorized or not`() {
+        val rows = listOf(tx(-25, "groceries"), tx(-900, account = "house"), tx(-40, "dining", account = "house"))
+        val filter = jan.copy(showOffBudget = true)
+        assertEquals(
+            listOf("Off budget" to -940L, "Groceries" to -25L),
+            aggregator.groupTotals(rows, filter, ReportGrouping.CATEGORY).map { it.name to it.totalCents },
+        )
+        assertEquals(
+            listOf("Uncategorized & Off budget" to -940L, "Food" to -25L),
+            aggregator.groupTotals(rows, filter, ReportGrouping.CATEGORY_GROUP).map { it.name to it.totalCents },
+        )
+    }
+
+    @Test fun `hiding uncategorized keeps uncategorized off-budget rows`() {
+        val rows = listOf(tx(-50), tx(-900, account = "house"))
+        assertEquals(-900L, aggregator.total(rows, jan.copy(showOffBudget = true, showUncategorized = false)))
+    }
+
+    @Test fun `payee grouping leaves out rows without a payee`() {
+        val rows = listOf(tx(-50).copy(payeeId = "p1", payeeName = "Shop"), tx(-70))
+        assertEquals(
+            listOf("Shop" to -50L),
+            aggregator.groupTotals(rows, jan, ReportGrouping.PAYEE).map { it.name to it.totalCents },
         )
     }
 
