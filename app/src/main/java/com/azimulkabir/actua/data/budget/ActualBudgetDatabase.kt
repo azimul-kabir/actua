@@ -347,6 +347,18 @@ class ActualBudgetDatabase private constructor(
             .use { if (it.moveToFirst()) it.stringOrNull(0) else null }
     }
 
+    /** The synced preferences among [ids] that have a row, keyed by id. */
+    @Synchronized
+    fun fetchPreferences(ids: Collection<String>): Map<String, String?> {
+        if (ids.isEmpty() || !hasTable("preferences")) return emptyMap()
+        val placeholders = ids.joinToString(",") { "?" }
+        return database.rawQuery(
+            "SELECT id, value FROM preferences WHERE id IN ($placeholders)", ids.toTypedArray(),
+        ).use { cursor ->
+            buildMap { while (cursor.moveToNext()) put(cursor.getString(0), cursor.stringOrNull(1)) }
+        }
+    }
+
     /** Actual's synced `defaultCurrencyCode` preference, or null when unset. */
     @Synchronized
     fun defaultCurrencyCode(): String? {

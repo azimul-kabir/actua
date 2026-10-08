@@ -12,6 +12,9 @@ private val legacyDateFormatter = DateTimeFormatter.ofPattern("dd-MMM-yy", Local
 // same fix as MoneyFormatter's NumberFormat caching (#323).
 private val ddMmYyyyFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 private val mmDdYyyyFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+private val mmDdYyyyDotFormatter = DateTimeFormatter.ofPattern("MM.dd.yyyy")
+private val ddMmYyyyDotFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+private val ddMmYyyyDashFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
 private val mediumDateFormatter = DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
 private val basicIsoDatePattern = Regex("\\d{8}")
 private val isoLocalDatePattern = Regex("\\d{4}-\\d{2}-\\d{2}")
@@ -23,6 +26,9 @@ object DateDisplay {
 fun formatDate(date: LocalDate): String = date.format(when (DateDisplay.format) {
     "DD/MM/YYYY" -> ddMmYyyyFormatter
     "MM/DD/YYYY" -> mmDdYyyyFormatter
+    "MM.DD.YYYY" -> mmDdYyyyDotFormatter
+    "DD.MM.YYYY" -> ddMmYyyyDotFormatter
+    "DD-MM-YYYY" -> ddMmYyyyDashFormatter
     "YYYY-MM-DD" -> DateTimeFormatter.ISO_LOCAL_DATE
     else -> mediumDateFormatter
 })

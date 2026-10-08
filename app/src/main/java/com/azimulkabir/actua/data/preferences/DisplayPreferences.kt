@@ -5,12 +5,22 @@ import android.content.Context
 class DisplayPreferences(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences("display_preferences", Context.MODE_PRIVATE)
 
-    var hideDecimalPlaces: Boolean
-        get() = preferences.getBoolean(HIDE_DECIMAL_PLACES, true)
-        set(value) { preferences.edit().putBoolean(HIDE_DECIMAL_PLACES, value).apply() }
+    /**
+     * Same as budget (the budget's synced `hideFraction`), Show or Hide. A device that chose the old
+     * on/off "Hide decimal places" keeps that choice; one that never chose follows the budget.
+     */
+    var decimalPlacesMode: String
+        get() = preferences.getString(DECIMAL_PLACES_MODE, null) ?: when {
+            !preferences.contains(HIDE_DECIMAL_PLACES) -> EffectiveDisplayFormats.FOLLOW_BUDGET
+            preferences.getBoolean(HIDE_DECIMAL_PLACES, false) -> EffectiveDisplayFormats.HIDE
+            else -> EffectiveDisplayFormats.SHOW
+        }
+        set(value) { preferences.edit().putString(DECIMAL_PLACES_MODE, value).apply() }
 
+    /** A currency code, "" for none, or Same as budget (the budget's synced `defaultCurrencyCode`). */
     var currencyCode: String
-        get() = preferences.getString(CURRENCY_CODE, "") ?: ""
+        get() = preferences.getString(CURRENCY_CODE, EffectiveDisplayFormats.FOLLOW_BUDGET)
+            ?: EffectiveDisplayFormats.FOLLOW_BUDGET
         set(value) { preferences.edit().putString(CURRENCY_CODE, value).apply() }
 
     var currencySymbolOnly: Boolean
@@ -18,11 +28,13 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putBoolean(CURRENCY_SYMBOL_ONLY, value).apply() }
 
     var dateFormat: String
-        get() = preferences.getString(DATE_FORMAT, "System default") ?: "System default"
+        get() = preferences.getString(DATE_FORMAT, EffectiveDisplayFormats.FOLLOW_BUDGET)
+            ?: EffectiveDisplayFormats.FOLLOW_BUDGET
         set(value) { preferences.edit().putString(DATE_FORMAT, value).apply() }
 
     var numberFormat: String
-        get() = preferences.getString(NUMBER_FORMAT, "System default") ?: "System default"
+        get() = preferences.getString(NUMBER_FORMAT, EffectiveDisplayFormats.FOLLOW_BUDGET)
+            ?: EffectiveDisplayFormats.FOLLOW_BUDGET
         set(value) { preferences.edit().putString(NUMBER_FORMAT, value).apply() }
 
     var showHiddenCategories: Boolean
@@ -78,9 +90,19 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(FAVORITES_ONLY, false)
         set(value) { preferences.edit().putBoolean(FAVORITES_ONLY, value).apply() }
 
-    var hideBalances: Boolean
-        get() = preferences.getBoolean(HIDE_BALANCES, false)
-        set(value) { preferences.edit().putBoolean(HIDE_BALANCES, value).apply() }
+    /** Same as budget (the budget's synced `isPrivacyEnabled`), Show or Hide; migrated like [decimalPlacesMode]. */
+    var privacyMode: String
+        get() = preferences.getString(PRIVACY_MODE, null) ?: when {
+            !preferences.contains(HIDE_BALANCES) -> EffectiveDisplayFormats.FOLLOW_BUDGET
+            preferences.getBoolean(HIDE_BALANCES, false) -> EffectiveDisplayFormats.HIDE
+            else -> EffectiveDisplayFormats.SHOW
+        }
+        set(value) { preferences.edit().putString(PRIVACY_MODE, value).apply() }
+
+    /** The formats to show with, given the open budget's synced [budget] preferences. */
+    fun resolve(budget: BudgetDisplayFormats) = EffectiveDisplayFormats.resolve(
+        currencyCode, currencySymbolOnly, dateFormat, numberFormat, decimalPlacesMode, privacyMode, budget,
+    )
 
     var appearance: String
         get() = preferences.getString(APPEARANCE, "System") ?: "System"
@@ -161,7 +183,10 @@ class DisplayPreferences(context: Context) {
         set(value) { preferences.edit().putBoolean(SHOW_REPORT_SUMMARY, value).apply() }
 
     private companion object {
+        // Legacy on/off keys, read only to migrate into the modes below.
         const val HIDE_DECIMAL_PLACES = "hide_decimal_places"
+        const val DECIMAL_PLACES_MODE = "decimal_places_mode"
+        const val PRIVACY_MODE = "privacy_mode"
         const val CURRENCY_CODE = "currency_code"
         const val CURRENCY_SYMBOL_ONLY = "currency_symbol_only"
         const val DATE_FORMAT = "date_format"
