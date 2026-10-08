@@ -1,0 +1,1266 @@
+{
+  "generator": "docs/tools/schedules-fixture/generate.mjs",
+  "actual": "@actual-app/api 26.9.0",
+  "cases": [
+    {
+      "name": "monthly on the 31st skips shorter months",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-31",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-31",
+      "skips": [
+        "2026-03-31",
+        "2026-05-31",
+        "2026-07-31",
+        "2026-08-31",
+        "2026-10-31",
+        "2026-12-31"
+      ],
+      "upcoming": [
+        "2026-01-31",
+        "2026-03-31",
+        "2026-05-31",
+        "2026-07-31",
+        "2026-08-31",
+        "2026-10-31",
+        "2026-12-31",
+        "2027-01-31"
+      ]
+    },
+    {
+      "name": "monthly on the 30th through February",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-30",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-30",
+      "skips": [
+        "2026-03-30",
+        "2026-04-30",
+        "2026-05-30",
+        "2026-06-30",
+        "2026-07-30",
+        "2026-08-30"
+      ],
+      "upcoming": [
+        "2026-01-30",
+        "2026-03-30",
+        "2026-04-30",
+        "2026-05-30",
+        "2026-06-30",
+        "2026-07-30",
+        "2026-08-30",
+        "2026-09-30"
+      ]
+    },
+    {
+      "name": "monthly on the 29th through February",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2025-12-29",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-29",
+      "skips": [
+        "2026-03-29",
+        "2026-04-29",
+        "2026-05-29",
+        "2026-06-29",
+        "2026-07-29",
+        "2026-08-29"
+      ],
+      "upcoming": [
+        "2026-01-29",
+        "2026-03-29",
+        "2026-04-29",
+        "2026-05-29",
+        "2026-06-29",
+        "2026-07-29",
+        "2026-08-29",
+        "2026-09-29"
+      ]
+    },
+    {
+      "name": "last day of the month (day -1)",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [
+          {
+            "type": "day",
+            "value": -1
+          }
+        ],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-31",
+      "skips": [
+        "2026-02-28",
+        "2026-03-31",
+        "2026-04-30",
+        "2026-05-31",
+        "2026-06-30",
+        "2026-07-31"
+      ],
+      "upcoming": [
+        "2026-01-31",
+        "2026-02-28",
+        "2026-03-31",
+        "2026-04-30",
+        "2026-05-31",
+        "2026-06-30",
+        "2026-07-31",
+        "2026-08-31"
+      ]
+    },
+    {
+      "name": "second-to-last day (day -2)",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [
+          {
+            "type": "day",
+            "value": -2
+          }
+        ],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-30",
+      "skips": [
+        "2026-02-27",
+        "2026-03-30",
+        "2026-04-29",
+        "2026-05-30",
+        "2026-06-29",
+        "2026-07-30"
+      ],
+      "upcoming": [
+        "2026-01-30",
+        "2026-02-27",
+        "2026-03-30",
+        "2026-04-29",
+        "2026-05-30",
+        "2026-06-29",
+        "2026-07-30",
+        "2026-08-30"
+      ]
+    },
+    {
+      "name": "days 15 and 31 combined",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [
+          {
+            "type": "day",
+            "value": 15
+          },
+          {
+            "type": "day",
+            "value": 31
+          }
+        ],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-15",
+      "skips": [
+        "2026-01-31",
+        "2026-02-15",
+        "2026-03-15",
+        "2026-03-31",
+        "2026-04-15",
+        "2026-05-15"
+      ],
+      "upcoming": [
+        "2026-01-15",
+        "2026-01-31",
+        "2026-02-15",
+        "2026-03-15",
+        "2026-03-31",
+        "2026-04-15",
+        "2026-05-15",
+        "2026-05-31"
+      ]
+    },
+    {
+      "name": "yearly on Feb 29 from a leap year",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2024-02-29",
+        "frequency": "yearly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2028-02-29",
+      "skips": [
+        "2032-02-29",
+        "2036-02-29",
+        "2040-02-29",
+        "2044-02-29",
+        "2048-02-29",
+        "2052-02-29"
+      ],
+      "upcoming": [
+        "2028-02-29",
+        "2032-02-29",
+        "2036-02-29",
+        "2040-02-29",
+        "2044-02-29",
+        "2048-02-29",
+        "2052-02-29",
+        "2056-02-29"
+      ]
+    },
+    {
+      "name": "yearly on Feb 28",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2024-02-28",
+        "frequency": "yearly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-02-28",
+      "skips": [
+        "2027-02-28",
+        "2028-02-28",
+        "2029-02-28",
+        "2030-02-28",
+        "2031-02-28",
+        "2032-02-28"
+      ],
+      "upcoming": [
+        "2026-02-28",
+        "2027-02-28",
+        "2028-02-28",
+        "2029-02-28",
+        "2030-02-28",
+        "2031-02-28",
+        "2032-02-28",
+        "2033-02-28"
+      ]
+    },
+    {
+      "name": "yearly every 2 years on Mar 31",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2025-03-31",
+        "frequency": "yearly",
+        "interval": 2,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2027-03-31",
+      "skips": [
+        "2029-03-31",
+        "2031-03-31",
+        "2033-03-31",
+        "2035-03-31",
+        "2037-03-31",
+        "2039-03-31"
+      ],
+      "upcoming": [
+        "2027-03-31",
+        "2029-03-31",
+        "2031-03-31",
+        "2033-03-31",
+        "2035-03-31",
+        "2037-03-31",
+        "2039-03-31",
+        "2041-03-31"
+      ]
+    },
+    {
+      "name": "second Tuesday",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [
+          {
+            "type": "TU",
+            "value": 2
+          }
+        ],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-02-10",
+      "skips": [
+        "2026-03-10",
+        "2026-04-14",
+        "2026-05-12",
+        "2026-06-09",
+        "2026-07-14",
+        "2026-08-11"
+      ],
+      "upcoming": [
+        "2026-02-10",
+        "2026-03-10",
+        "2026-04-14",
+        "2026-05-12",
+        "2026-06-09",
+        "2026-07-14",
+        "2026-08-11",
+        "2026-09-08"
+      ]
+    },
+    {
+      "name": "last Friday",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [
+          {
+            "type": "FR",
+            "value": -1
+          }
+        ],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-30",
+      "skips": [
+        "2026-02-27",
+        "2026-03-27",
+        "2026-04-24",
+        "2026-05-29",
+        "2026-06-26",
+        "2026-07-31"
+      ],
+      "upcoming": [
+        "2026-01-30",
+        "2026-02-27",
+        "2026-03-27",
+        "2026-04-24",
+        "2026-05-29",
+        "2026-06-26",
+        "2026-07-31",
+        "2026-08-28"
+      ]
+    },
+    {
+      "name": "fifth Monday (months without one skipped)",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [
+          {
+            "type": "MO",
+            "value": 5
+          }
+        ],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-03-30",
+      "skips": [
+        "2026-06-29",
+        "2026-08-31",
+        "2026-11-30",
+        "2027-03-29",
+        "2027-05-31",
+        "2027-08-30"
+      ],
+      "upcoming": [
+        "2026-03-30",
+        "2026-06-29",
+        "2026-08-31",
+        "2026-11-30",
+        "2027-03-29",
+        "2027-05-31",
+        "2027-08-30",
+        "2027-11-29"
+      ]
+    },
+    {
+      "name": "day 15 and last Friday combined",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [
+          {
+            "type": "day",
+            "value": 15
+          },
+          {
+            "type": "FR",
+            "value": -1
+          }
+        ],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-15",
+      "skips": [
+        "2026-01-30",
+        "2026-02-15",
+        "2026-02-27",
+        "2026-03-15",
+        "2026-03-27",
+        "2026-04-15"
+      ],
+      "upcoming": [
+        "2026-01-15",
+        "2026-01-30",
+        "2026-02-15",
+        "2026-02-27",
+        "2026-03-15",
+        "2026-03-27",
+        "2026-04-15",
+        "2026-04-24"
+      ]
+    },
+    {
+      "name": "daily every 3 days",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-02",
+        "frequency": "daily",
+        "interval": 3,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-17",
+      "skips": [
+        "2026-01-20",
+        "2026-01-23",
+        "2026-01-26",
+        "2026-01-29",
+        "2026-02-01",
+        "2026-02-04"
+      ],
+      "upcoming": [
+        "2026-01-17",
+        "2026-01-20",
+        "2026-01-23",
+        "2026-01-26",
+        "2026-01-29",
+        "2026-02-01",
+        "2026-02-04",
+        "2026-02-07"
+      ]
+    },
+    {
+      "name": "weekly every 2 weeks",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2025-12-04",
+        "frequency": "weekly",
+        "interval": 2,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-15",
+      "skips": [
+        "2026-01-29",
+        "2026-02-12",
+        "2026-02-26",
+        "2026-03-12",
+        "2026-03-26",
+        "2026-04-09"
+      ],
+      "upcoming": [
+        "2026-01-15",
+        "2026-01-29",
+        "2026-02-12",
+        "2026-02-26",
+        "2026-03-12",
+        "2026-03-26",
+        "2026-04-09",
+        "2026-04-23"
+      ]
+    },
+    {
+      "name": "monthly every 3 months from Nov 30",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2025-11-30",
+        "frequency": "monthly",
+        "interval": 3,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-05-30",
+      "skips": [
+        "2026-08-30",
+        "2026-11-30",
+        "2027-05-30",
+        "2027-08-30",
+        "2027-11-30",
+        "2028-05-30"
+      ],
+      "upcoming": [
+        "2026-05-30",
+        "2026-08-30",
+        "2026-11-30",
+        "2027-05-30",
+        "2027-08-30",
+        "2027-11-30",
+        "2028-05-30",
+        "2028-08-30"
+      ]
+    },
+    {
+      "name": "monthly every 2 months with day -1",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2025-12-01",
+        "frequency": "monthly",
+        "interval": 2,
+        "patterns": [
+          {
+            "type": "day",
+            "value": -1
+          }
+        ],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-02-28",
+      "skips": [
+        "2026-04-30",
+        "2026-06-30",
+        "2026-08-31",
+        "2026-10-31",
+        "2026-12-31",
+        "2027-02-28"
+      ],
+      "upcoming": [
+        "2026-02-28",
+        "2026-04-30",
+        "2026-06-30",
+        "2026-08-31",
+        "2026-10-31",
+        "2026-12-31",
+        "2027-02-28",
+        "2027-04-30"
+      ]
+    },
+    {
+      "name": "monthly on the 1st, weekends after",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-02-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-02-02",
+      "skips": [
+        "2026-03-02",
+        "2026-04-01",
+        "2026-05-01",
+        "2026-06-01",
+        "2026-07-01",
+        "2026-08-03"
+      ],
+      "upcoming": [
+        "2026-02-02",
+        "2026-03-02",
+        "2026-04-01",
+        "2026-05-01",
+        "2026-06-01",
+        "2026-07-01",
+        "2026-08-03",
+        "2026-09-01"
+      ]
+    },
+    {
+      "name": "monthly on the 1st, weekends before",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-02-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "before",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-30",
+      "skips": [
+        "2026-02-27",
+        "2026-04-01",
+        "2026-05-01",
+        "2026-06-01",
+        "2026-07-01",
+        "2026-07-31"
+      ],
+      "upcoming": [
+        "2026-01-30",
+        "2026-02-27",
+        "2026-04-01",
+        "2026-05-01",
+        "2026-06-01",
+        "2026-07-01",
+        "2026-07-31",
+        "2026-09-01"
+      ]
+    },
+    {
+      "name": "weekly on Saturdays, weekends after",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-03",
+        "frequency": "weekly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-19",
+      "skips": [
+        "2026-01-26",
+        "2026-02-02",
+        "2026-02-09",
+        "2026-02-16",
+        "2026-02-23",
+        "2026-03-02"
+      ],
+      "upcoming": [
+        "2026-01-19",
+        "2026-01-26",
+        "2026-02-02",
+        "2026-02-09",
+        "2026-02-16",
+        "2026-02-23",
+        "2026-03-02",
+        "2026-03-09"
+      ]
+    },
+    {
+      "name": "weekly on Sundays, weekends before",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-04",
+        "frequency": "weekly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "before",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-16",
+      "skips": [
+        "2026-01-23",
+        "2026-01-30",
+        "2026-02-06",
+        "2026-02-13",
+        "2026-02-20",
+        "2026-02-27"
+      ],
+      "upcoming": [
+        "2026-01-16",
+        "2026-01-23",
+        "2026-01-30",
+        "2026-02-06",
+        "2026-02-13",
+        "2026-02-20",
+        "2026-02-27",
+        "2026-03-06"
+      ]
+    },
+    {
+      "name": "daily, weekends after",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-15",
+        "frequency": "daily",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-15",
+      "skips": [
+        "2026-01-16",
+        "2026-01-19",
+        "2026-01-20",
+        "2026-01-21",
+        "2026-01-22",
+        "2026-01-23"
+      ],
+      "upcoming": [
+        "2026-01-15",
+        "2026-01-16",
+        "2026-01-19",
+        "2026-01-19",
+        "2026-01-19",
+        "2026-01-20",
+        "2026-01-21",
+        "2026-01-22"
+      ]
+    },
+    {
+      "name": "daily, weekends before",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-15",
+        "frequency": "daily",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "before",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-15",
+      "skips": [
+        "2026-01-16",
+        "2026-01-20",
+        "2026-01-21",
+        "2026-01-22",
+        "2026-01-23",
+        "2026-01-27"
+      ],
+      "upcoming": [
+        "2026-01-15",
+        "2026-01-16",
+        "2026-01-16",
+        "2026-01-16",
+        "2026-01-19",
+        "2026-01-20",
+        "2026-01-21",
+        "2026-01-22"
+      ]
+    },
+    {
+      "name": "last day of the month, weekends before",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [
+          {
+            "type": "day",
+            "value": -1
+          }
+        ],
+        "skipWeekend": true,
+        "weekendSolveMode": "before",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-30",
+      "skips": [
+        "2026-02-27",
+        "2026-03-31",
+        "2026-04-30",
+        "2026-05-29",
+        "2026-06-30",
+        "2026-07-31"
+      ],
+      "upcoming": [
+        "2026-01-30",
+        "2026-02-27",
+        "2026-03-31",
+        "2026-04-30",
+        "2026-05-29",
+        "2026-06-30",
+        "2026-07-31",
+        "2026-08-31"
+      ]
+    },
+    {
+      "name": "yearly on a weekend, weekends after",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2022-05-01",
+        "frequency": "yearly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-05-01",
+      "skips": [
+        "2027-05-03",
+        "2028-05-01",
+        "2029-05-01",
+        "2030-05-01",
+        "2031-05-01",
+        "2032-05-03"
+      ],
+      "upcoming": [
+        "2026-05-01",
+        "2027-05-03",
+        "2028-05-01",
+        "2029-05-01",
+        "2030-05-01",
+        "2031-05-01",
+        "2032-05-03",
+        "2033-05-02"
+      ]
+    },
+    {
+      "name": "3 occurrences, some still ahead",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2025-12-10",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "after_n_occurrences",
+        "endOccurrences": 3
+      },
+      "nextDate": "2026-02-10",
+      "skips": [
+        "2026-02-10",
+        "2026-02-10",
+        "2026-02-10",
+        "2026-02-10",
+        "2026-02-10",
+        "2026-02-10"
+      ],
+      "upcoming": [
+        "2026-02-10"
+      ]
+    },
+    {
+      "name": "3 occurrences, all past",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2025-06-01",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "after_n_occurrences",
+        "endOccurrences": 3
+      },
+      "nextDate": "2025-08-01",
+      "skips": [
+        "2025-08-01",
+        "2025-08-01",
+        "2025-08-01",
+        "2025-08-01",
+        "2025-08-01",
+        "2025-08-01"
+      ],
+      "upcoming": []
+    },
+    {
+      "name": "1 occurrence in the future",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-02-20",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "after_n_occurrences",
+        "endOccurrences": 1
+      },
+      "nextDate": "2026-02-20",
+      "skips": [
+        "2026-02-20",
+        "2026-02-20",
+        "2026-02-20",
+        "2026-02-20",
+        "2026-02-20",
+        "2026-02-20"
+      ],
+      "upcoming": [
+        "2026-02-20"
+      ]
+    },
+    {
+      "name": "ends on a date",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-20",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "on_date",
+        "endDate": "2026-04-19"
+      },
+      "nextDate": "2026-01-20",
+      "skips": [
+        "2026-02-20",
+        "2026-03-20",
+        "2026-03-20",
+        "2026-03-20",
+        "2026-03-20",
+        "2026-03-20"
+      ],
+      "upcoming": [
+        "2026-01-20",
+        "2026-02-20",
+        "2026-03-20"
+      ]
+    },
+    {
+      "name": "ends on an occurrence date",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-20",
+        "frequency": "weekly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "on_date",
+        "endDate": "2026-02-03"
+      },
+      "nextDate": "2026-01-20",
+      "skips": [
+        "2026-01-27",
+        "2026-02-03",
+        "2026-02-03",
+        "2026-02-03",
+        "2026-02-03",
+        "2026-02-03"
+      ],
+      "upcoming": [
+        "2026-01-20",
+        "2026-01-27",
+        "2026-02-03"
+      ]
+    },
+    {
+      "name": "ended before today",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2025-01-05",
+        "frequency": "weekly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "on_date",
+        "endDate": "2025-02-01"
+      },
+      "nextDate": "2025-01-26",
+      "skips": [
+        "2025-01-26",
+        "2025-01-26",
+        "2025-01-26",
+        "2025-01-26",
+        "2025-01-26",
+        "2025-01-26"
+      ],
+      "upcoming": []
+    },
+    {
+      "name": "ends after weekend solving, weekends after",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-01-03",
+        "frequency": "weekly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "after",
+        "endMode": "after_n_occurrences",
+        "endOccurrences": 4
+      },
+      "nextDate": "2026-01-19",
+      "skips": [
+        "2026-01-26",
+        "2026-01-26",
+        "2026-01-26",
+        "2026-01-26",
+        "2026-01-26",
+        "2026-01-26"
+      ],
+      "upcoming": [
+        "2026-01-19",
+        "2026-01-26"
+      ]
+    },
+    {
+      "name": "starts in the future",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2026-06-15",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-06-15",
+      "skips": [
+        "2026-07-15",
+        "2026-08-15",
+        "2026-09-15",
+        "2026-10-15",
+        "2026-11-15",
+        "2026-12-15"
+      ],
+      "upcoming": [
+        "2026-06-15",
+        "2026-07-15",
+        "2026-08-15",
+        "2026-09-15",
+        "2026-10-15",
+        "2026-11-15",
+        "2026-12-15",
+        "2027-01-15"
+      ]
+    },
+    {
+      "name": "occurs today",
+      "today": "2026-01-15",
+      "config": {
+        "start": "2025-10-15",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-15",
+      "skips": [
+        "2026-02-15",
+        "2026-03-15",
+        "2026-04-15",
+        "2026-05-15",
+        "2026-06-15",
+        "2026-07-15"
+      ],
+      "upcoming": [
+        "2026-01-15",
+        "2026-02-15",
+        "2026-03-15",
+        "2026-04-15",
+        "2026-05-15",
+        "2026-06-15",
+        "2026-07-15",
+        "2026-08-15"
+      ]
+    },
+    {
+      "name": "today Saturday, occurrence Saturday, weekends before",
+      "today": "2026-01-17",
+      "config": {
+        "start": "2025-11-17",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "before",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-16",
+      "skips": [
+        "2026-02-17",
+        "2026-03-17",
+        "2026-04-17",
+        "2026-05-15",
+        "2026-06-17",
+        "2026-07-17"
+      ],
+      "upcoming": [
+        "2026-01-16",
+        "2026-02-17",
+        "2026-03-17",
+        "2026-04-17",
+        "2026-05-15",
+        "2026-06-17",
+        "2026-07-17",
+        "2026-08-17"
+      ]
+    },
+    {
+      "name": "today Saturday, occurrence Sunday, weekends after",
+      "today": "2026-01-17",
+      "config": {
+        "start": "2025-10-18",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2026-01-19",
+      "skips": [
+        "2026-02-18",
+        "2026-03-18",
+        "2026-04-20",
+        "2026-05-18",
+        "2026-06-18",
+        "2026-07-20"
+      ],
+      "upcoming": [
+        "2026-01-19",
+        "2026-02-18",
+        "2026-03-18",
+        "2026-04-20",
+        "2026-05-18",
+        "2026-06-18",
+        "2026-07-20",
+        "2026-08-18"
+      ]
+    },
+    {
+      "name": "today Friday before a weekend occurrence, weekends before",
+      "today": "2026-02-27",
+      "config": {
+        "start": "2025-12-28",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": true,
+        "weekendSolveMode": "before",
+        "endMode": "never"
+      },
+      "nextDate": "2026-02-27",
+      "skips": [
+        "2026-03-27",
+        "2026-04-28",
+        "2026-05-28",
+        "2026-06-26",
+        "2026-07-28",
+        "2026-08-28"
+      ],
+      "upcoming": [
+        "2026-02-27",
+        "2026-03-27",
+        "2026-04-28",
+        "2026-05-28",
+        "2026-06-26",
+        "2026-07-28",
+        "2026-08-28",
+        "2026-09-28"
+      ]
+    },
+    {
+      "name": "today Feb 29 on a monthly 29th",
+      "today": "2028-02-29",
+      "config": {
+        "start": "2027-12-29",
+        "frequency": "monthly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2028-02-29",
+      "skips": [
+        "2028-03-29",
+        "2028-04-29",
+        "2028-05-29",
+        "2028-06-29",
+        "2028-07-29",
+        "2028-08-29"
+      ],
+      "upcoming": [
+        "2028-02-29",
+        "2028-03-29",
+        "2028-04-29",
+        "2028-05-29",
+        "2028-06-29",
+        "2028-07-29",
+        "2028-08-29",
+        "2028-09-29"
+      ]
+    },
+    {
+      "name": "today Feb 29, yearly on Feb 29",
+      "today": "2028-02-29",
+      "config": {
+        "start": "2024-02-29",
+        "frequency": "yearly",
+        "interval": 1,
+        "patterns": [],
+        "skipWeekend": false,
+        "weekendSolveMode": "after",
+        "endMode": "never"
+      },
+      "nextDate": "2028-02-29",
+      "skips": [
+        "2032-02-29",
+        "2036-02-29",
+        "2040-02-29",
+        "2044-02-29",
+        "2048-02-29",
+        "2052-02-29"
+      ],
+      "upcoming": [
+        "2028-02-29",
+        "2032-02-29",
+        "2036-02-29",
+        "2040-02-29",
+        "2044-02-29",
+        "2048-02-29",
+        "2052-02-29",
+        "2056-02-29"
+      ]
+    }
+  ]
+}
