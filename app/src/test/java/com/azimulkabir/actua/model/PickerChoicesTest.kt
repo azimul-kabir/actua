@@ -32,7 +32,7 @@ class PickerChoicesTest {
 
     @Test
     fun labelsMapBackToTheirOwnRow() {
-        assertEquals(PickerChoice("home-misc", "Misc", "Misc (Home)"), categories.choice("Misc (Home)"))
+        assertEquals(PickerChoice("home-misc", "Misc", "Misc (Home)", group = "Home"), categories.choice("Misc (Home)"))
         assertEquals("Misc (Home)", categories.labelOf("home-misc", "Misc"))
         assertEquals("Checking (2)", accounts.labelOf("checking-b", "Checking"))
         // Without an id the first row with that name is used, and an unknown name stays as is.
@@ -95,5 +95,49 @@ class PickerChoicesTest {
         assertEquals("savings", pick("checking-b", "Savings"))
         assertEquals("checking-a", pick("missing", "Checking"))
         assertNull(pick(null, "Cash"))
+    }
+
+    /** #921: hidden categories, and every category in a hidden group, are not offered. */
+    private val withHidden = PickerChoices.categories(
+        listOf(
+            "Bills" to ("rent" to "Rent"),
+            "Bills" to ("old-phone" to "Phone"),
+            "Food" to ("groceries" to "Groceries"),
+            "Old" to ("old-groceries" to "Groceries"),
+            "Old" to ("old-gym" to "Gym"),
+        ),
+        hiddenIds = setOf("old-phone", "old-groceries", "old-gym"),
+    )
+
+    @Test
+    fun hiddenCategoriesAreNotOfferedAndDontRenameVisibleOnes() {
+        assertEquals(listOf("Rent", "Groceries"), withHidden.labels)
+        assertEquals(listOf("Bills" to listOf("Rent"), "Food" to listOf("Groceries")), withHidden.sections)
+    }
+
+    @Test
+    fun aRowUsingAHiddenCategoryKeepsItWhenEdited() {
+        val row = Transaction(
+            id = "t", date = "20260910", payee = "Shop", category = "Groceries", account = "Checking",
+            amount = -10, cleared = false, amountCents = -1_000, categoryId = "old-groceries",
+            splits = listOf(SplitLine(category = "Gym", amountCents = 1_000, categoryId = "old-gym")),
+        )
+        val labels = row.withChoiceLabels(PickerChoices.EMPTY, withHidden)
+        assertEquals("Groceries (Old)", labels.category)
+
+        val saved = labels.resolveChoices(PickerChoices.EMPTY, withHidden)
+        assertEquals("Groceries" to "old-groceries", saved.category to saved.categoryId)
+        assertEquals("Gym" to "old-gym", saved.splits.single().let { it.category to it.categoryId })
+        // Without an id a name resolves to the offered category first.
+        assertEquals("groceries", withHidden.choice(withHidden.labelOf(null, "Groceries"))?.id)
+    }
+
+    @Test
+    fun sectionsFollowTheGivenGroupOrder() {
+        assertEquals(
+            listOf("Food" to listOf("Misc (Food)", "Groceries"), "Home" to listOf("Misc (Home)")),
+            categories.sections,
+        )
+        assertEquals(emptyList<Pair<String, List<String>>>(), accounts.sections)
     }
 }
