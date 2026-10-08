@@ -11,7 +11,7 @@ import org.junit.Test
  * Actual's own code on each note: `discoverTags`' `(?<!#)#([^#\s]+)` and `parseNotes` (tags found),
  * `renameTagInNotes` (rename `food` → `meal`), the `hasTags` AQL filter (case-sensitive `REGEXP`,
  * as **View transactions** uses), and `Condition.eval` for `hasTags` (rule runs, case-insensitive).
- * A null expectation is a known divergence filed as #985 and is not asserted.
+ * A null expectation is not asserted.
  */
 class TagParityCorpusTest {
     private data class Case(
@@ -29,14 +29,13 @@ class TagParityCorpusTest {
         Case("#food #fun", listOf("food", "fun"), "#meal #fun", true, true, true),
         Case("a#food", listOf("food"), "a#meal", true, true, true),
         Case("##food", emptyList(), "##food", false, false, false),
-        // #985: Actua reads `###food` as a tag in notes, views and rename.
-        Case("###food", null, null, null, false, false),
+        Case("###food", emptyList(), "###food", false, false, false),
+        Case("##x #food", listOf("food"), "##x #meal", true, true, true),
         Case("#food#fun", listOf("food", "fun"), "#meal#fun", true, true, true),
         Case("#food.", listOf("food."), "#food.", false, false, false),
-        // #985: View transactions ignores case; Actual's hasTags filter doesn't.
-        Case("#Food", listOf("Food"), "#Food", null, true, true),
-        // #985: rule matching treats only ASCII whitespace as a tag end.
-        Case("#food x", listOf("food"), "#meal x", true, null, null),
+        Case("#Food", listOf("Food"), "#Food", false, true, true),
+        Case("#food\u00a0x", listOf("food"), "#meal\u00a0x", true, true, true),
+        Case("#food\u3000x", listOf("food"), "#meal\u3000x", true, true, true),
         Case("#food\tx", listOf("food"), "#meal\tx", true, true, true),
         Case("#", emptyList(), "#", false, false, false),
         Case("# food", emptyList(), "# food", false, false, false),
@@ -63,6 +62,13 @@ class TagParityCorpusTest {
         case.ruleMatchesUpperFood?.let { assertEquals(case.notes, it, TagFilter.contains(case.notes, "#FOOD")) }
     }
 
+    /** Report and dashboard filters are AQL `REGEXP` in Actual: case-sensitive, unlike rule runs. */
+    @Test fun reportFiltersAreCaseSensitive() {
+        assertEquals(false, TagFilter.contains("#Food", "#food", caseSensitive = true))
+        assertEquals(true, TagFilter.contains("#Food", "#Food", caseSensitive = true))
+        assertEquals(true, TagFilter.contains("#Food", "#food"))
+    }
+
     /** Actual's `extractTagsForFilter`: whitespace- or `#`-separated words, deduplicated, one `#` each. */
     @Test fun filterValueTagsMatchActual() {
         assertEquals(listOf("#a", "#b"), TagFilter.extract("#a #b"))
@@ -71,5 +77,6 @@ class TagParityCorpusTest {
         assertEquals(listOf("#a", "#b"), TagFilter.extract("#a#b"))
         assertEquals(emptyList<String>(), TagFilter.extract(""))
         assertEquals(emptyList<String>(), TagFilter.extract("#"))
+        assertEquals(listOf("#a", "#b"), TagFilter.extract("#a\u00a0#b"))
     }
 }

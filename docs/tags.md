@@ -4,9 +4,9 @@ Actua uses Actual Budget's canonical tag metadata and keeps tag behavior compati
 
 ## Notes and autocomplete
 
-In a transaction note, type `#` to search managed tags. Suggestions update as the active hashtag token changes. Hidden tags are excluded from autocomplete. `##` is treated as a literal hash escape and is not a tag token. Recognized `#tag` tokens are shown with the same colored pill in the notes field as you type, matching the tag's chip once the transaction is saved.
+In a transaction note, type `#` to search managed tags. Suggestions update as the active hashtag token changes. Hidden tags are excluded from autocomplete. A `#` that follows another `#` never starts a tag, so `##tag` and `###tag` are plain text. Recognized `#tag` tokens are shown with the same colored pill in the notes field as you type, matching the tag's chip once the transaction is saved.
 
-Tag discovery is case-insensitive, while canonical rename follows Actual's case-sensitive rename semantics. Actual's tag filters are case-sensitive; see [#985](https://github.com/azimul-kabir/actua/issues/985). A tag filter matches an exact hashtag token, so `#travel` does not match `#travel2026`.
+Tag matching follows Actual: viewing a tag's transactions, rename and report filters are case-sensitive, while rules ignore case. A tag filter matches an exact hashtag token, so `#travel` does not match `#travel2026`.
 
 ## Manage Tags
 
@@ -75,10 +75,10 @@ follows another `#` never starts a tag. All of the following come from the corpu
 | --- | --- | --- | --- |
 | `lunch #food`, `a#food`, `#food#fun`, `#food#` | `food` (and `fun`) | same | Match |
 | `##food` | no tag (escaped) | same | Match |
-| `###food` | no tag | `food` in the note chip, **View transactions** and rename; rules agree with Actual | **Divergence** ([#985](https://github.com/azimul-kabir/actua/issues/985)) |
+| `###food` | no tag | same | Match ([#985](https://github.com/azimul-kabir/actua/issues/985)) |
 | `#food.`, `#food,y`, `#a+b`, `#café` | the whole word is the tag (`food.`, `food,y`, …) | same | Match |
 | `#`, `# food` | no tag | same | Match |
-| Tag ended by a tab or a no-break space | ends the tag | ends the tag in notes and rename; rules end tags only at ASCII whitespace | Rules: **Divergence** ([#985](https://github.com/azimul-kabir/actua/issues/985)) |
+| Tag ended by a tab, a no-break space or another JS `\s` character | ends the tag | same everywhere (`data/budget/TagSyntax.kt`) | Match ([#985](https://github.com/azimul-kabir/actua/issues/985)) |
 | Rendering | every `#tag` is a chip, with a theme default color when the tag has none | a chip only for tags with a stored color | **Divergence** ([#986](https://github.com/azimul-kabir/actua/issues/986)) |
 | Shown text for `##food` | `#food` (one `#` dropped) | `##food` as typed | Intentional (display only; stored notes are identical) |
 
@@ -88,8 +88,8 @@ follows another `#` never starts a tag. All of the following come from the corpu
 | --- | --- | --- | --- |
 | Filter value → tags | `extractTagsForFilter`: words split on whitespace or `#`, deduplicated | `TagFilter.extract` (`data/rules/RulesEngine.kt:430`) | Match |
 | Rule runs: `hasTags` (all), `hasAnyTag` (any) | case-insensitive (`Condition.eval` lowercases both) | case-insensitive (`TagFilter.contains`) | Match |
-| Report and dashboard filters with `hasTags`/`hasAnyTag` | AQL `REGEXP`, case-sensitive | evaluated like rule runs, case-insensitive | **Divergence** ([#985](https://github.com/azimul-kabir/actua/issues/985)) |
-| A tag's transactions | Manage Tags opens the register filtered by `notes hasTags #tag` (case-sensitive) | **View transactions**: exact token, parent and split notes, case-insensitive (`ui/transactions/TransactionTagFilter.kt`) | Case: **Divergence** ([#985](https://github.com/azimul-kabir/actua/issues/985)) |
+| Report and dashboard filters with `hasTags`/`hasAnyTag` | AQL `REGEXP`, case-sensitive | case-sensitive when not a rule run | Match ([#985](https://github.com/azimul-kabir/actua/issues/985)) |
+| A tag's transactions | Manage Tags opens the register filtered by `notes hasTags #tag` (case-sensitive) | **View transactions**: exact token, parent and split notes, case-sensitive (`ui/transactions/TransactionTagFilter.kt`) | Match ([#985](https://github.com/azimul-kabir/actua/issues/985)) |
 | Find tags in notes (`tags-discover`) | creates a tag, with no color, for each unmanaged `#tag` in notes | not offered; unmanaged hashtags still match filters | **N/A** |
 | `show-hidden-tags` synced preference | Manage Tags shows hidden tags | not read; Manage Tags always lists hidden tags | Intentional |
 
@@ -99,7 +99,7 @@ follows another `#` never starts a tag. All of the following come from the corpu
 | --- | --- | --- |
 | [#983](https://github.com/azimul-kabir/actua/issues/983) | P1 | Creating or renaming to a deleted tag's name adds a second row with that name and breaks sync for Actual clients (fixed) |
 | [#984](https://github.com/azimul-kabir/actua/issues/984) | P2 | Rename skips split-line notes and isn't one atomic write (fixed) |
-| [#985](https://github.com/azimul-kabir/actua/issues/985) | Lower | `###tag`, case in views and report filters, and Unicode spaces in rules |
+| [#985](https://github.com/azimul-kabir/actua/issues/985) | Lower | `###tag`, case in views and report filters, and Unicode spaces in rules (fixed) |
 | [#986](https://github.com/azimul-kabir/actua/issues/986) | Lower | Tags with no color aren't shown as chips; tags created from notes get a default color |
 
 **Limitations:** source comparison plus a corpus test of the parsing functions; no budget was opened

@@ -25,6 +25,7 @@ import com.azimulkabir.actua.data.budget.TagMetadataStore
 import com.azimulkabir.actua.data.sync.SyncSignals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.azimulkabir.actua.data.budget.TagSyntax
 
 internal data class TagOccurrence(
     val name: String,
@@ -56,8 +57,8 @@ fun coloredTagText(notes: String, tagColors: Map<String, String>): TagStyledText
 /**
  * Finds Actual-style tags without changing the note text.
  *
- * A single # starts a tag and whitespace or another # ends it. A doubled ## is
- * treated as escaped text, matching Actual's note-tag convention.
+ * A single # starts a tag and whitespace or another # ends it. A # that follows another #
+ * never starts one, so `##tag` and `###tag` are text, matching Actual's `(?<!#)#` rule.
  */
 internal fun findTagOccurrences(notes: String): List<TagOccurrence> {
     if (notes.isEmpty()) return emptyList()
@@ -68,13 +69,13 @@ internal fun findTagOccurrences(notes: String): List<TagOccurrence> {
             index++
             continue
         }
-        if (index + 1 < notes.length && notes[index + 1] == '#') {
-            index += 2
+        val run = TagSyntax.hashRun(notes, index)
+        if (run > 1) {
+            index += run
             continue
         }
         val start = index
-        var end = index + 1
-        while (end < notes.length && !notes[end].isWhitespace() && notes[end] != '#') end++
+        val end = TagSyntax.nameEnd(notes, index + 1)
         if (end > start + 1) {
             result += TagOccurrence(notes.substring(start + 1, end), start, end)
         }

@@ -9,6 +9,7 @@ import java.time.DateTimeException
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.roundToLong
+import com.azimulkabir.actua.data.budget.TagSyntax
 
 data class RuleContext(
     val offBudgetAccountIds: Set<String> = emptySet(),
@@ -132,7 +133,9 @@ object RulesEngine {
             "oneOf", "notOneOf" -> actual != null && condition.value.list != null &&
                 condition.value.list!!.any { it.text.equals(actual, true) }.let { if (condition.op == "oneOf") it else !it }
             "matches" -> actual != null && target != null && runCatching { Regex(target.lowercase()).containsMatchIn(actual.lowercase()) }.getOrDefault(false)
-            "hasTags", "hasAnyTag" -> actual != null && target != null && TagFilter.extract(target).map { TagFilter.contains(actual, it) }
+            // Rule runs ignore case (Condition.eval lowercases); report filters are AQL REGEXP, case-sensitive.
+            "hasTags", "hasAnyTag" -> actual != null && target != null && TagFilter.extract(target)
+                .map { TagFilter.contains(actual, it, caseSensitive = !bag.forRuleRun) }
                 .let { if (condition.op == "hasTags") it.all { hit -> hit } else it.any { hit -> hit } }
             else -> false
         }
@@ -427,10 +430,12 @@ object RuleDateMatcher {
     }
 }
 
+/** Actual's `extractTagsForFilter` and `hasTags` matching; `\s` is JS whitespace, as in loot-core. */
 object TagFilter {
-    fun extract(value: String): List<String> { val seen = linkedSetOf<String>(); value.split(Regex("[\\s#]+")).filter(String::isNotEmpty).forEach { seen += "#$it" }; return seen.toList() }
+    private val separators = Regex("[${TagSyntax.JS_WHITESPACE}#]+")
+    fun extract(value: String): List<String> { val seen = linkedSetOf<String>(); value.split(separators).filter(String::isNotEmpty).forEach { seen += "#$it" }; return seen.toList() }
     fun contains(notes: String, tag: String, caseSensitive: Boolean = false): Boolean {
         val source = if (caseSensitive) notes else notes.lowercase(); val needle = if (caseSensitive) tag else tag.lowercase()
-        return Regex("(?<!#)${Regex.escape(needle)}([\\s#]|$)").containsMatchIn(source)
+        return Regex("(?<!#)${Regex.escape(needle)}([${TagSyntax.JS_WHITESPACE}#]|$)").containsMatchIn(source)
     }
 }

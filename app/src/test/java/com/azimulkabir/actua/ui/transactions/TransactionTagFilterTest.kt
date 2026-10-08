@@ -5,9 +5,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TransactionTagFilterTest {
-    @Test fun `matches exact tag case insensitively`() {
-        assertTrue(notesContainTag("Lunch #Travel today", "travel"))
-        assertTrue(notesContainTag("#travel", "#TRAVEL"))
+    @Test fun `matches exact tag case sensitively like Actual's hasTags filter`() {
+        assertTrue(notesContainTag("Lunch #Travel today", "Travel"))
+        assertTrue(notesContainTag("#travel", "#travel"))
+        assertFalse(notesContainTag("Lunch #Travel today", "travel"))
+        assertFalse(notesContainTag("#travel", "#TRAVEL"))
+    }
+
+    @Test fun `a hash after another hash never opens a tag`() {
+        assertFalse(notesContainTag("Use ###travel here", "travel"))
+        assertTrue(notesContainTag("##x #travel", "travel"))
     }
 
     @Test fun `does not match longer tag`() {
