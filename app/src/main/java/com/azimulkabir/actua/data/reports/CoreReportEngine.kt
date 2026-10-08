@@ -124,7 +124,8 @@ object CoreReportEngine {
             "spending-card" -> spending(row.id, name, meta, transactions, context, incomeCategoryIds,
                 budgetedByCategory, today)
             "markdown-card" -> ReportWidget(row.id, ReportWidgetKind.MARKDOWN, name,
-                markdown = meta?.optString("content").orEmpty())
+                markdown = meta?.optString("content").orEmpty(),
+                textAlign = meta?.optString("text_align")?.takeIf(String::isNotBlank))
             "age-of-money-card" -> ageOfMoney(
                 row.id, name,
                 transactions.filterNot { it.tombstone }
