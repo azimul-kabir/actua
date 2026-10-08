@@ -70,6 +70,20 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
+      - name: Install API 35 emulator system image with retries
+        run: |
+          package="system-images;android-${API_LEVEL};google_apis;x86_64"
+          for attempt in 1 2 3; do
+            if timeout 5m sdkmanager --install "$package" --channel=0; then
+              exit 0
+            fi
+            echo "System image installation attempt ${attempt}/3 failed."
+            if [ "$attempt" -lt 3 ]; then
+              sleep 10
+            fi
+          done
+          exit 1
+
       - name: Enable KVM
         working-directory: .
         run: |
