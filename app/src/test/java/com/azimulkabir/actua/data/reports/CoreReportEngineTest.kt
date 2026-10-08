@@ -757,3 +757,39 @@ class MissingCustomReportTest {
         assertEquals("Spending", widget.name)
     }
 }
+
+/** Upstream `calculateGraphData` granularity and leading periods (actua#955). */
+class AgeOfMoneyGranularityTest {
+    private fun tx(id: String, date: Int, amount: Long) = ActualTransaction(
+        id, "a", date, amount, null, null, null, null, null, false, false, null, false, null, false, null, null, null, null)
+    // Income on Sep 1, spending on Sep 3 (2 days old) and Sep 10 (9 days old).
+    private val rows = listOf(tx("in", 20260901, 10_000), tx("e1", 20260903, -1_000), tx("e2", 20260910, -1_000))
+    private val today = LocalDate.of(2026, 9, 12)
+
+    private fun points(granularity: String?, timeFrame: String = """{"mode":"static","start":"2026-08","end":"2026-09"}""") =
+        CoreReportEngine.compute(
+            DashboardWidgetRow("w", "age-of-money-card",
+                """{"timeFrame":$timeFrame${granularity?.let { ""","granularity":"$it"""" } ?: ""}}"""),
+            rows, today = today,
+        ).points.map { it.period to it.primaryCents }
+
+    @Test fun `monthly periods before the first age are omitted`() {
+        assertEquals(listOf("2026-09" to 6L), points(null))
+    }
+
+    @Test fun `monthly periods run through the range's end month`() {
+        assertEquals(listOf("2026-09" to 6L, "2026-10" to 6L),
+            points("monthly", """{"mode":"static","start":"2026-09","end":"2026-10"}"""))
+    }
+
+    @Test fun `weekly periods start on monday and stop at today`() {
+        assertEquals(listOf("2026-08-31" to 2L, "2026-09-07" to 6L), points("weekly"))
+    }
+
+    @Test fun `daily periods carry the rolling average forward`() {
+        val daily = points("daily")
+        assertEquals("2026-09-03" to 2L, daily.first())
+        assertEquals("2026-09-12" to 6L, daily.last())
+        assertEquals(10, daily.size)
+    }
+}

@@ -194,11 +194,11 @@ Upstream: [`S/age-of-money-spreadsheet.ts#L407-L573`][aom]. Actua: `CRE.ageOfMon
 | Transfers excluded unless the counterpart is off-budget, or outside an `account` filter | `buildTransferInclusionFilter` | same; `matches` is evaluated instead of falling back | Match (except `matches`) |
 | Income/expense by sign, not category | `classifyTransactions` | same | Match |
 | Headline = average of the last 10 ages from the start month | `calculateAverageAge` | same | Match |
-| `granularity` daily/weekly/monthly chart | honored | monthly only | **Divergence** [#955](https://github.com/azimul-kabir/actua/issues/955) |
-| Periods before the first age | omitted | `0` points | **Divergence** [#955](https://github.com/azimul-kabir/actua/issues/955) |
+| `granularity` daily/weekly (Monday-start)/monthly chart | honored | same | Match (#955) |
+| Periods before the first age | omitted | same | Match (#955) |
 | Default range | last 6 months | same | Match (#948) |
 
-Tests: `AgeOfMoneyTest`.
+Tests: `AgeOfMoneyTest`, `AgeOfMoneyGranularityTest`.
 
 ### Formula (`formula-card`)
 
