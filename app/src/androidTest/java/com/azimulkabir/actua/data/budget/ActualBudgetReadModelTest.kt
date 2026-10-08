@@ -813,6 +813,64 @@ class ActualBudgetReadModelTest {
         assertEquals(0, poster.runIfNeeded(budgetId, com.azimulkabir.actua.data.schedules.DayDate(2026,9,5)))
     }
 
+    /** #934: like loot-core `addTransactions` → `addTransfer`, a transfer payee posts both legs. */
+    @Test
+    fun postingToATransferPayeeCreatesBothLegsLinkedToTheSchedule() = withDatabase { database ->
+        val writer = ActualTransactionWriter(database, "acacacacacacacac", idFactory = { "partner-leg" })
+        writer.createTransaction(
+            transaction("schedule-leg", "checking", -2_000, 20260905, "transfer-savings", "rent")
+                .copy(scheduleId = "rent-schedule"),
+            applyRules = false, runTransfers = true,
+        )
+
+        val source = requireNotNull(database.fetchTransaction("schedule-leg"))
+        val partner = requireNotNull(database.fetchTransaction("partner-leg"))
+        assertEquals("partner-leg", source.transferId)
+        assertEquals("schedule-leg", partner.transferId)
+        assertEquals("savings" to 2_000L, partner.accountId to partner.amountCents)
+        assertEquals("transfer-checking", partner.payeeId)
+        assertEquals("rent-schedule" to "rent-schedule", source.scheduleId to partner.scheduleId)
+        assertEquals(false, partner.cleared)
+        // Both accounts are on budget, so neither leg keeps a category (`clearCategory`).
+        assertNull(source.categoryId)
+        assertNull(partner.categoryId)
+    }
+
+    /** #934: an auto-posted transfer schedule moves money into the other account too. */
+    @Test
+    fun schedulePosterPostsBothLegsOfATransferSchedule() {
+        val file = createDatabaseFile()
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL(
+                    """UPDATE rules SET conditions = REPLACE(conditions, '"value":"store"', '"value":"transfer-savings"') WHERE id = 'rent-rule'""",
+                )
+            }
+            ActualBudgetDatabase.open(file).use { database -> postTransferSchedule(database) }
+        } finally {
+            file.delete()
+        }
+    }
+
+    private fun postTransferSchedule(database: ActualBudgetDatabase) {
+        val ids = ArrayDeque(listOf("posted-leg", "received-leg"))
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val poster = com.azimulkabir.actua.data.schedules.SchedulePoster(
+            context, database,
+            ActualTransactionWriter(database, "bdbdbdbdbdbdbdbd", idFactory = { ids.removeFirst() }),
+            com.azimulkabir.actua.data.schedules.ActualScheduleWriter(database, "cbcbcbcbcbcbcbcb"),
+            idFactory = { ids.removeFirst() },
+        )
+        assertEquals(1, poster.runIfNeeded("poster-${UUID.randomUUID()}", com.azimulkabir.actua.data.schedules.DayDate(2026, 9, 5)))
+
+        val posted = requireNotNull(database.fetchTransaction("posted-leg"))
+        val received = requireNotNull(database.fetchTransaction("received-leg"))
+        assertEquals("checking" to -1_500L, posted.accountId to posted.amountCents)
+        assertEquals("savings" to 1_500L, received.accountId to received.amountCents)
+        assertEquals("received-leg" to "posted-leg", posted.transferId to received.transferId)
+        assertEquals("rent-schedule" to "rent-schedule", posted.scheduleId to received.scheduleId)
+    }
+
     /**
      * Regression for #286: `hasScheduleTransaction`'s dedup check must be bounded above by the
      * occurrence date, matching upstream's `isScheduleOccurrencePosted`. An unbounded "any

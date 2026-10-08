@@ -43,7 +43,7 @@ class SchedulePoster(
                     idFactory(), schedule.accountId, current.yyyymmdd, schedule.amount?.postAmount ?: 0,
                     schedule.payeeId, null, schedule.categoryId, null, null, false, false,
                     null, false, null, false, null, null, schedule.id, null,
-                ))
+                ), runTransfers = true)
                 posted++
             }
             val recurrence = (schedule.dateCondition as? ScheduleDateCondition.Recurring)?.config ?: break

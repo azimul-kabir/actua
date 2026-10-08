@@ -463,6 +463,7 @@ class ActuaRepository(context: Context) {
                 transferAccountId = null,
             ),
             applyRules = true,
+            runTransfers = true,
         )
         if (today) advanceRecurringScheduleAfterTodayPost(schedule)
         return true
