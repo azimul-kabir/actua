@@ -19,6 +19,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Re-creating a deleted tag brings it back instead of creating a duplicate that stopped Actual from syncing ([#988](https://github.com/azimul-kabir/actua/pull/988))
 - Amounts with hidden decimals round to the nearest whole unit like Actual instead of dropping the cents ([#978](https://github.com/azimul-kabir/actua/pull/978))
 - Budgets in Japanese yen, Korean won or Iranian rial show and accept whole amounts like Actual instead of amounts 100 times too small ([#977](https://github.com/azimul-kabir/actua/pull/977))
 - Balance Forecast widgets set to the tracking budget project budgeted income and expenses, as Actual does ([#970](https://github.com/azimul-kabir/actua/pull/970))
