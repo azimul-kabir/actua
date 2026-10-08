@@ -80,7 +80,13 @@ class ScheduleRecurrenceParityFixtureTest {
         /** The count the generator asks `schedule/get-upcoming-dates` for. */
         const val UPCOMING_COUNT = 8
 
-        /** Fixture key → issue tracking the difference. */
-        val KNOWN_DIVERGENCES: Map<String, String> = mapOf()
+        /** Fixture key → the issue tracking the difference, or why it is intentional. */
+        val KNOWN_DIVERGENCES: Map<String, String> = mapOf(
+            // `schedule/get-upcoming-dates` weekend-solves each raw daily occurrence without
+            // de-duplicating, so Saturday and Sunday repeat the solved date. Actua's editor preview
+            // lists each date once, as Actual's Balance Forecast walk (`getFutureOccurrenceDates`) does.
+            "daily, weekends after upcoming" to "Intentional: preview lists each date once",
+            "daily, weekends before upcoming" to "Intentional: preview lists each date once",
+        )
     }
 }

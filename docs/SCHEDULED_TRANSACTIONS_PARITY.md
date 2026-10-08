@@ -49,11 +49,11 @@ fixture is stale. See the [fixture README](tools/schedules-fixture/README.md).
 | Item | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | `RecurConfig` fields (`frequency`, `interval`, `start`, `patterns`, `endMode`/`endOccurrences`/`endDate`, `skipWeekend`, `weekendSolveMode`) | `recurConfigToRSchedule` ([`LC/shared/schedules.ts#L201-L253`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/shared/schedules.ts#L201-L253)) | `RecurConfig.parse`/`toJson` | Match (round-trips the stored JSON) |
-| Next date: first occurrence on or after today, else the last occurrence of a bounded schedule, then weekend solving | `getNextDate` ([`#L283-L316`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/shared/schedules.ts#L283-L316)) | `ScheduleRecurrence.nextOccurrence` | Pending the first fixture run |
-| Month ends (29th–31st, `day -1`/`-2`), leap days, nth-weekday and combined patterns, intervals > 1, end by count or date | RSchedule rules | `ScheduleRecurrence` sub-rules | Pending the first fixture run |
-| Weekend solving before/after, applied after the recurrence | `getDateWithSkippedWeekend` ([`#L318-L332`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/shared/schedules.ts#L318-L332)) | `solveWeekend` | Pending the first fixture run |
-| Skip next date (a "before"-solved Friday or weekend date first moves to Monday) | `skipNextDate` → `setNextDate` ([`LC/server/schedules/app.ts#L211-L287`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L211-L287), [`#L484-L492`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L484-L492)) | `ActuaRepository.skipScheduleNextDate` with `ScheduleRecurrence.skipSearchStart` | Pending the first fixture run |
-| Editor preview of upcoming dates | `schedule/get-upcoming-dates` ([`#L498-L517`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L498-L517)): raw occurrences from today, each weekend-solved, no de-duplication | `EditScheduleScreen` → `ScheduleRecurrence.upcomingDates` | Pending the first fixture run |
+| Next date: first occurrence on or after today, else the last occurrence of a bounded schedule, then weekend solving | `getNextDate` ([`#L283-L316`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/shared/schedules.ts#L283-L316)) | `ScheduleRecurrence.nextOccurrence` | Match (all 39 fixture cases) |
+| Month ends (29th–31st, `day -1`/`-2`), leap days, nth-weekday and combined patterns, intervals > 1, end by count or date | RSchedule rules | `ScheduleRecurrence` sub-rules | Match (fixture: months without a 29th–31st skipped, Feb 29 every four years, fifth weekdays, intervals, inclusive end dates) |
+| Weekend solving before/after, applied after the recurrence | `getDateWithSkippedWeekend` ([`#L318-L332`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/shared/schedules.ts#L318-L332)) | `solveWeekend` | Match (fixture, including a "before" solve that lands before today) |
+| Skip next date (a "before"-solved Friday or weekend date first moves to Monday) | `skipNextDate` → `setNextDate` ([`LC/server/schedules/app.ts#L211-L287`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L211-L287), [`#L484-L492`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L484-L492)) | `ActuaRepository.skipScheduleNextDate` with `ScheduleRecurrence.skipSearchStart` | Match (six successive skips per fixture case, ended schedules staying put) |
+| Editor preview of upcoming dates | `schedule/get-upcoming-dates` ([`#L498-L517`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L498-L517)): raw occurrences from today, each weekend-solved, no de-duplication | `EditScheduleScreen` → `ScheduleRecurrence.upcomingDates` | Match, except **Intentional**: for daily schedules with weekend solving, Actual repeats the solved date (a Saturday and Sunday both show Monday); Actua lists each date once, as Actual's forecast walk does (2 fixture cases) |
 
 ### Schedules and their rows
 
@@ -248,6 +248,10 @@ matches it closely:
 | [#936](https://github.com/azimul-kabir/actua/issues/936) | Lower | Upcoming rows show one occurrence per schedule and leave out paid and account-less schedules |
 | [#937](https://github.com/azimul-kabir/actua/issues/937) | Lower | The budget-wide upcoming length setting is ignored |
 | [#938](https://github.com/azimul-kabir/actua/issues/938) | Lower | Editing a schedule allows another schedule's name |
+
+The recurrence fixture found no divergence: next dates, skips and month-end, leap-year, weekend
+and end-mode cases all match. Its only difference, the editor preview not repeating weekend-solved
+daily dates, is intentional (see [Recurrence](#recurrence)).
 
 
 ## Result
