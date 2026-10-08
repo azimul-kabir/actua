@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Weekly reports and the report calendar start on the budget's first day of the week ([#965](https://github.com/azimul-kabir/actua/pull/965))
 - Saved reports follow their sort, show-empty and trim-intervals settings, and chart the whole date range ([#964](https://github.com/azimul-kabir/actua/pull/964))
 - Saved reports group off-budget and payee-less transactions as Actual does ([#963](https://github.com/azimul-kabir/actua/pull/963))
 - Sankey reports net refunds against their category and leave out uncategorized transactions, as Actual does ([#962](https://github.com/azimul-kabir/actua/pull/962))
