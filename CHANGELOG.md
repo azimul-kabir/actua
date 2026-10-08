@@ -19,6 +19,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Tags match like Actual: `###tag` isn't a tag, and tag views and report filters are case-sensitive ([#990](https://github.com/azimul-kabir/actua/pull/990))
 - Renaming a tag also renames it in split-line notes ([#989](https://github.com/azimul-kabir/actua/pull/989))
 - Re-creating a deleted tag brings it back instead of creating a duplicate that stopped Actual from syncing ([#988](https://github.com/azimul-kabir/actua/pull/988))
 - Amounts with hidden decimals round to the nearest whole unit like Actual instead of dropping the cents ([#978](https://github.com/azimul-kabir/actua/pull/978))
