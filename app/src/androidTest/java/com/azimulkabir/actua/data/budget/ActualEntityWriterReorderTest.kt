@@ -23,7 +23,7 @@ class ActualEntityWriterReorderTest {
     }
 
     @Test
-    fun moveCategoryAcrossGroupsUpdatesGroupAndAdoptsDestinationFlags() = withDatabase { database, _ ->
+    fun moveCategoryAcrossGroupsWritesOnlyGroupAndSortOrder() = withDatabase { database, _ ->
         val writer = ActualEntityWriter(database, nodeId = "bbbbbbbbbbbbbbbb")
         writer.moveCategory("rent", "fun", "dining")
 
@@ -37,6 +37,34 @@ class ActualEntityWriterReorderTest {
         assertEquals("fun", moved.groupId)
         assertEquals(false, moved.isIncome)
         assertEquals(false, moved.hidden)
+        // Actual's moveCategory writes sort_order and cat_group only (actua#927).
+        val columns = database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString())
+            .filter { it.dataset == "categories" && it.row == "rent" }.map { it.column }.toSet()
+        assertEquals(setOf("sort_order", "cat_group"), columns)
+    }
+
+    @Test
+    fun movingACategoryKeepsItsOwnHiddenFlag() = withDatabase { database, _ ->
+        val writer = ActualEntityWriter(database, nodeId = "abababababababab")
+        // A hidden category moved to a visible group stays hidden.
+        writer.setCategoryHidden("rent", true)
+        writer.moveCategory("rent", "fun", null)
+        // A visible category moved into a hidden group is hidden only through the group.
+        writer.setCategoryGroupHidden("fun", true)
+        writer.moveCategory("electric", "fun", null)
+
+        val categories = database.fetchCategoryGroups().flatMap { it.categories }.associateBy { it.id }
+        assertEquals(true, categories.getValue("rent").hidden)
+        assertEquals(false, categories.getValue("electric").hidden)
+    }
+
+    @Test
+    fun aCategoryCreatedInAHiddenGroupIsNotHiddenItself() = withDatabase { database, _ ->
+        val writer = ActualEntityWriter(database, nodeId = "cdcdcdcdcdcdcdcd")
+        writer.setCategoryGroupHidden("fun", true)
+        val id = writer.createCategory("Games", "fun")
+
+        assertEquals(false, database.fetchCategoryGroups().flatMap { it.categories }.single { it.id == id }.hidden)
     }
 
     @Test

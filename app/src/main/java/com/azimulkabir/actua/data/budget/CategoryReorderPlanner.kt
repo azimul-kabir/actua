@@ -28,7 +28,7 @@ object CategoryReorderPlanner {
         }
         val updated = withoutCategory.map { g ->
             if (g.id != targetGroupId) return@map g
-            val moved = category.copy(groupId = target.id, isIncome = target.isIncome, hidden = target.hidden)
+            val moved = category.copy(groupId = target.id)
             val insertAt = targetCategoryId?.let { id -> g.categories.indexOfFirst { it.id == id } }?.takeIf { it >= 0 }
                 ?: g.categories.size
             g.copy(categories = g.categories.toMutableList().apply { add(insertAt, moved) })

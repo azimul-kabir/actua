@@ -345,9 +345,8 @@ class ActualEntityWriter(
 
     /**
      * Move a category before another category within [groupId] (or to the end when beforeId is
-     * null). When [groupId] differs from the category's current group, it is reassigned there
-     * first, matching Actual's `cat_group` update and adopting the destination group's
-     * income/hidden flags the same way `createCategory` does for a brand-new category.
+     * null). Like Actual's `moveCategory` it writes only `sort_order` and, when the group changes,
+     * `cat_group`: the category keeps its own hidden and income flags.
      */
     @Synchronized
     fun moveCategory(id: String, groupId: String, beforeId: String?) {
@@ -364,11 +363,7 @@ class ActualEntityWriter(
         val messages = mutableListOf<CrdtMessage>()
         placement.moved.forEach { messages += fields("categories", it.id, mapOf("sort_order" to it.sortOrder)) }
         val categoryFields = linkedMapOf<String, Any?>("sort_order" to placement.sortOrder)
-        if (category.groupId != groupId) {
-            categoryFields["cat_group"] = groupId
-            categoryFields["is_income"] = flag(target.isIncome)
-            categoryFields["hidden"] = flag(target.hidden)
-        }
+        if (category.groupId != groupId) categoryFields["cat_group"] = groupId
         messages += fields("categories", id, categoryFields)
         persist(messages)
     }
@@ -488,7 +483,8 @@ class ActualEntityWriter(
         val placement = SortOrder.shove(positions, positions.firstOrNull()?.id); val id = idFactory()
         val messages = mutableListOf<CrdtMessage>()
         messages += fields("categories", id, linkedMapOf("name" to clean, "cat_group" to group.id,
-            "is_income" to flag(group.isIncome), "hidden" to flag(group.hidden), "tombstone" to 0,
+            // Visible itself, as Actual creates it; a hidden group hides it through the group.
+            "is_income" to flag(group.isIncome), "hidden" to 0, "tombstone" to 0,
             "sort_order" to placement.sortOrder))
         messages += fields("category_mapping", id, linkedMapOf("transferId" to id))
         placement.moved.forEach { messages += fields("categories", it.id, linkedMapOf("sort_order" to it.sortOrder)) }
