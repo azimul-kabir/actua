@@ -28,7 +28,9 @@ fun upcomingTransactionsFrom(
         if (item.status !in upcomingStatuses) return@flatMap emptyList()
         val next = item.schedule.nextDate ?: return@flatMap emptyList()
         val windowEnd = today.addingDays(
-            ScheduleUpcomingLength.days(item.schedule.customUpcomingLength ?: defaultUpcomingLength, today),
+            ScheduleUpcomingLength.days(
+                ScheduleUpcomingLength.effective(item.schedule.customUpcomingLength, defaultUpcomingLength), today,
+            ),
         )
         val dates = mutableListOf(next)
         (item.schedule.dateCondition as? ScheduleDateCondition.Recurring)?.config?.let { config ->

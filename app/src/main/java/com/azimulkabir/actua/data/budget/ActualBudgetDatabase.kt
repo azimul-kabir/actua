@@ -365,6 +365,15 @@ class ActualBudgetDatabase private constructor(
         ).use { it.moveToFirst() && it.stringOrNull(0) == "true" }
     }
 
+    /** Actual's synced `upcomingScheduledTransactionLength` preference: the default schedule upcoming window. */
+    @Synchronized
+    fun upcomingScheduledTransactionLength(): String? {
+        if (!hasTable("preferences")) return null
+        return database.rawQuery(
+            "SELECT value FROM preferences WHERE id = 'upcomingScheduledTransactionLength'", null,
+        ).use { if (it.moveToFirst()) it.stringOrNull(0) else null }
+    }
+
     /** Actual's synced `sync-transfer-date` preference: a transfer date edit moves the other leg too. */
     @Synchronized
     fun syncTransferDate(): Boolean {

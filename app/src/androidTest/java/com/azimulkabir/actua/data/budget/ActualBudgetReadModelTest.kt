@@ -859,6 +859,17 @@ class ActualBudgetReadModelTest {
         assertTrue(database.fetchScheduleSummaries().single().completed)
     }
 
+    /** #937: the budget-wide upcoming window comes from Actual's synced preference. */
+    @Test
+    fun readsTheUpcomingScheduledTransactionLengthPreference() {
+        withDatabase { database -> assertNull(database.upcomingScheduledTransactionLength()) }
+        withScheduleVariant(
+            "INSERT INTO preferences (id, value) VALUES ('upcomingScheduledTransactionLength', '2-week')",
+        ) { database ->
+            assertEquals("2-week", database.upcomingScheduledTransactionLength())
+        }
+    }
+
     private fun runPoster(database: ActualBudgetDatabase, today: com.azimulkabir.actua.data.schedules.DayDate) {
         val poster = com.azimulkabir.actua.data.schedules.SchedulePoster(
             InstrumentationRegistry.getInstrumentation().targetContext, database,

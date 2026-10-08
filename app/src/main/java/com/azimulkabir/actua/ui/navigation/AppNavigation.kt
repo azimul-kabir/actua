@@ -426,7 +426,9 @@ fun AppNavigation(
     // or refetches rule-editor data (accounts/categories/payees) that nothing is currently
     // showing — matching the existing pattern `payeeLocations` already used below.
     val schedules = remember(dataVersion) { repository.schedules() }
-    val upcomingTransactions = remember(schedules) { upcomingTransactionsFrom(schedules) }
+    val upcomingTransactions = remember(schedules) {
+        upcomingTransactionsFrom(schedules, defaultUpcomingLength = repository.upcomingScheduleLength())
+    }
     val upcomingRecurringScheduleIds = remember(schedules) { recurringScheduleIds(schedules) }
     val linkableSchedules = remember(schedules) {
         schedules.filterNot { it.schedule.completed }.map {

@@ -89,6 +89,7 @@ import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.schedules.ScheduleLinkedTransaction
 import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
 import com.azimulkabir.actua.data.schedules.ScheduleStatusCalculator
+import com.azimulkabir.actua.data.schedules.ScheduleUpcomingLength
 import com.azimulkabir.actua.data.schedules.ScheduleWriteBuilder
 import com.azimulkabir.actua.data.schedules.ScheduleFormFields
 import com.azimulkabir.actua.data.schedules.ScheduleDiscovery
@@ -299,18 +300,22 @@ class ActuaRepository(context: Context) {
         val paid = db.fetchPaidScheduleIds(schedules)
         val accounts = db.fetchAccounts().associate { it.id to it.name }
         val payees = db.fetchPayees().associate { it.id to it.name }
+        val upcomingLength = db.upcomingScheduledTransactionLength()
         return schedules.map { schedule ->
             ScheduleListItem(
                 schedule,
                 ScheduleStatusCalculator.status(
                     schedule.nextDate, schedule.completed, schedule.id in paid,
-                    schedule.customUpcomingLength, today,
+                    ScheduleUpcomingLength.effective(schedule.customUpcomingLength, upcomingLength), today,
                 ),
                 schedule.accountId?.let(accounts::get),
                 schedule.payeeId?.let(payees::get),
             )
         }.sortedForDisplay()
     }
+
+    /** The budget's default schedule upcoming window (`upcomingScheduledTransactionLength`), or null for 7 days. */
+    fun upcomingScheduleLength(): String? = actualDatabase?.upcomingScheduledTransactionLength()
 
     fun scheduleTransactions(scheduleId: String): List<ScheduleLinkedTransaction> {
         val database = actualDatabase ?: return emptyList()
