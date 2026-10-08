@@ -65,6 +65,8 @@ data class ReportWidget(
     val summary: ReportSummary? = null,
     /** First column of the Calendar widget's week, the synced `firstDayOfWeekIdx` (0 = Sunday). */
     val weekStart: Int = 0,
+    /** Markdown widget's `text_align`: `left`, `center` or `right`. */
+    val textAlign: String? = null,
 )
 
 /** What a custom report's Summary totals, mirroring the labels in upstream `ReportSummary.tsx`. */

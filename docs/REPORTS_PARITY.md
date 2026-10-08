@@ -181,8 +181,10 @@ Upstream: [`W/MarkdownCard.tsx#L100-L151`][markdown]. Actua: `CRE.compute` (`:11
 
 | Setting / behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| `meta.content` | rendered as GFM | shown as plain text | **Divergence** [#957](https://github.com/azimul-kabir/actua/issues/957) |
-| `meta.text_align` | applied | ignored | **Divergence** [#957](https://github.com/azimul-kabir/actua/issues/957) |
+| `meta.content` | rendered as GFM (`remark-gfm`, `remark-breaks`) | headings, paragraphs with line breaks, lists and task lists, quotes, code, tables, rules, emphasis, links and bare URLs (`ui/reports/MarkdownBlocks.kt`) | Match (#957); raw HTML and footnotes are shown as text |
+| `meta.text_align` | applied | same | Match (#957) |
+
+Tests: `src/test/.../ui/reports/MarkdownBlocksTest`, `src/androidTest/.../ui/reports/ReportsMarkdownWidgetTest`.
 
 ### Age of Money (`age-of-money-card`)
 

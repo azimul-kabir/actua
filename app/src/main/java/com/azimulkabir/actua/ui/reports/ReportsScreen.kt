@@ -459,7 +459,7 @@ private fun WidgetCard(
                     ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals, onDrillDown)
                     ReportWidgetKind.INCOME_EXPENSE -> IncomeExpense(widget, hideDecimals, onDrillDown)
                     ReportWidgetKind.SPENDING -> Spending(widget, hideDecimals, onDrillDown)
-                    ReportWidgetKind.MARKDOWN -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ReportWidgetKind.MARKDOWN -> MarkdownWidget(widget.markdown.orEmpty(), widget.textAlign)
                     ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
                     ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
                     ReportWidgetKind.CUSTOM_REPORT -> {
