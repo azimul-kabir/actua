@@ -192,6 +192,39 @@ class ActualTransactionWriter(
     }
 
     /**
+     * Actual's `createReconciliationTransaction`: a cleared, unreconciled row for [amountCents] dated
+     * [date] with the adjustment note and no payee or category, run through the rules (and any
+     * transfer a rule's payee implies) like every new transaction (#993). Returns null when a rule
+     * deletes it.
+     */
+    fun createReconciliationAdjustment(accountId: String, amountCents: Long, date: Int): ActualTransaction? =
+        createTransaction(
+            ActualTransaction(
+                id = idFactory(),
+                accountId = accountId,
+                date = date,
+                amountCents = amountCents,
+                payeeId = null,
+                payeeName = null,
+                categoryId = null,
+                categoryName = null,
+                notes = RECONCILIATION_ADJUSTMENT_NOTE,
+                cleared = true,
+                reconciled = false,
+                transferId = null,
+                isParent = false,
+                parentId = null,
+                tombstone = false,
+                sortOrder = System.currentTimeMillis().toDouble(),
+                importedPayee = null,
+                scheduleId = null,
+                transferAccountId = null,
+            ),
+            applyRules = true,
+            runTransfers = true,
+        )
+
+    /**
      * Unlock a reconciled row like Actual's `unlockTransaction`: only `reconciled` changes, and
      * `cleared` stays as it is. A split unlocks as a group (parent and every child), since
      * Actual's `makeChild` copies the parent's reconciled state onto its children.
@@ -352,6 +385,9 @@ class ActualTransactionWriter(
     }
 
     companion object {
+        /** Actual's (English) reconciliation adjustment note. */
+        const val RECONCILIATION_ADJUSTMENT_NOTE = "Reconciliation balance adjustment"
+
         private val importFields = setOf("financial_id", "pending", "raw_synced_data")
 
         private val mutableTransactionFields = setOf(

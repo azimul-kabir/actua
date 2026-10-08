@@ -24,7 +24,7 @@ in [#664](https://github.com/azimul-kabir/actua/issues/664) (part of
 | --- | --- |
 | Cleared balance, difference and the balanced state | Match |
 | Lock ("Lock transactions") rows and atomicity | Match |
-| Adjustment transaction cells | Match, except rules aren't run: **Divergence** [#993](https://github.com/azimul-kabir/actua/issues/993) |
+| Adjustment transaction cells | Match ([#993](https://github.com/azimul-kabir/actua/issues/993)) |
 | Unlocking a reconciled row | Match ([#992](https://github.com/azimul-kabir/actua/issues/992)) |
 | Edit/delete/move confirmations on reconciled rows | Match (#746); Actua also confirms bulk Categorize and Merge |
 | `hide-reconciled-<id>` preference | Match (mobile semantics) |
@@ -95,7 +95,7 @@ Upstream: `createReconciliationTransaction`
 ([`DC/accounts/reconciliation.ts#L95-L124`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/accounts/reconciliation.ts#L95-L124)),
 transaction schema defaults
 ([`LC/server/aql/schema/index.ts#L40-L80`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/aql/schema/index.ts#L40-L80)).
-Actua: `ActuaRepository.createReconciliationAdjustment` (`data/ActuaRepository.kt:1824`).
+Actua: `ActuaRepository.createReconciliationAdjustment` → `ActualTransactionWriter.createReconciliationAdjustment`.
 
 | Cell / behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
@@ -105,9 +105,11 @@ Actua: `ActuaRepository.createReconciliationAdjustment` (`data/ActuaRepository.k
 | `notes` = `Reconciliation balance adjustment` | `t('…')` (translated in non-English UIs) | the English text | Match for English. A translated PWA writes translated notes; Actua is English-only. |
 | No payee, no category, not a transfer or split | omitted | `null` | Match |
 | `sort_order` | schema default `Date.now()` | `System.currentTimeMillis()` | Match |
-| Rules run on the new row (`rules-run`), honouring a tombstoning rule | yes | `applyRules = false` | **Divergence** [#993](https://github.com/azimul-kabir/actua/issues/993) |
+| Rules run on the new row (`rules-run`), honouring a tombstoning rule, and a transfer payee set by a rule adds the other leg (`batchUpdateTransactions` runs transfers) | yes | `ActualTransactionWriter.createReconciliationAdjustment`: `createTransaction(applyRules = true, runTransfers = true)` | Match ([#993](https://github.com/azimul-kabir/actua/issues/993)) |
 | Asks before writing | no: one tap creates it | confirmation dialog | **Intentional** (stricter) |
 | Not locked automatically; the user then locks the now-balanced account | yes | yes: the screen recomputes the difference and shows the lock button | Match |
+
+Tests: `src/androidTest/.../data/budget/ActualBudgetReadModelTest.reconciliationAdjustmentRunsRulesLikeActual`.
 
 ## 4. Unlocking a reconciled transaction
 
@@ -168,7 +170,7 @@ Tests: `src/test/.../ui/transactions/ReconciledWarningsTest`,
 | --- | --- | --- | --- |
 | Open reconcile, enter a balance, leave | `last_reconciled` on **Exit reconciliation** | none | **Divergence** [#994](https://github.com/azimul-kabir/actua/issues/994) |
 | Mark an uncleared row cleared while reconciling | `cleared = 1` (row + split children) | `setCleared(row, true)`, same cells | Match |
-| Create adjustment | one inserted row (after rules) | one inserted row after a confirmation dialog (no rules) | see §3 |
+| Create adjustment | one inserted row (after rules) | one inserted row after rules, behind a confirmation dialog | see §3 |
 | Lock | `reconciled = 1` on every cleared row, then `last_reconciled` | `reconciled = 1` on every cleared row | see §2 |
 
 ## 7. "Hide reconciled transactions" and the reconciled balance
