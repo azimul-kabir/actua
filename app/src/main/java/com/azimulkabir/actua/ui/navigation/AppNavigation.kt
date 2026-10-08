@@ -146,6 +146,7 @@ import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.navigation.TabItem
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.preferences.TabBarPreferences
@@ -157,12 +158,11 @@ import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationSchedul
 import com.azimulkabir.actua.data.notifications.CreditCardNotificationSettings
 import com.azimulkabir.actua.ui.components.BalanceVisibility
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
-import com.azimulkabir.actua.ui.components.DateDisplay
-import com.azimulkabir.actua.ui.components.NumberDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.TransactionImpactCue
 import com.azimulkabir.actua.ui.components.TransactionImpactPopup
 import com.azimulkabir.actua.ui.components.findTagOccurrences
+import com.azimulkabir.actua.ui.components.applyDisplayFormats
 import com.azimulkabir.actua.AppLaunchRequest
 import com.azimulkabir.actua.SHARED_IMPORT_ACTION
 import com.azimulkabir.actua.widget.WidgetActions
@@ -504,7 +504,7 @@ fun AppNavigation(
     var statementsReturnToTransactions by rememberSaveable { mutableStateOf(false) }
     var selectedStatement by remember { mutableStateOf<com.azimulkabir.actua.model.CreditCardCycle.StatementRecord?>(null) }
     var editorReturnsToStatementDetail by rememberSaveable { mutableStateOf(false) }
-    var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
+    var decimalPlacesMode by remember { mutableStateOf(displayPreferences.decimalPlacesMode) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
     var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
     var dateFormat by remember { mutableStateOf(displayPreferences.dateFormat) }
@@ -531,7 +531,7 @@ fun AppNavigation(
     }
     var requestedReportPageId by remember { mutableStateOf<String?>(null) }
     var requestedReportPageRequest by remember { mutableStateOf(0) }
-    var hideBalances by remember { mutableStateOf(displayPreferences.hideBalances) }
+    var privacyMode by remember { mutableStateOf(displayPreferences.privacyMode) }
     var appearance by remember { mutableStateOf(displayPreferences.appearance) }
     var useDynamicColor by remember { mutableStateOf(displayPreferences.useDynamicColor) }
     var startPage by remember { mutableStateOf(displayPreferences.startPage) }
@@ -545,11 +545,15 @@ fun AppNavigation(
     var showNotes by remember { mutableStateOf(displayPreferences.showNotes) }
     var hideIncomeGroupInBudget by remember { mutableStateOf(displayPreferences.hideIncomeGroupInBudget) }
     var showReportSummary by remember { mutableStateOf(displayPreferences.showReportSummary) }
+    val budgetDisplayFormats = remember(dataVersion, repository) { repository.budgetDisplayFormats() }
+    // Device choices, or the budget's synced preferences where the device is set to "Same as budget".
+    val displayFormats = EffectiveDisplayFormats.resolve(
+        currencyCode, currencySymbolOnly, dateFormat, numberFormat, decimalPlacesMode, privacyMode, budgetDisplayFormats,
+    )
+    val hideDecimalPlaces = displayFormats.hideDecimals
+    val hideBalances = displayFormats.hideBalances
     BalanceVisibility.hidden = hideBalances
-    CurrencyDisplay.code = currencyCode
-    CurrencyDisplay.symbolOnly = currencySymbolOnly
-    DateDisplay.format = dateFormat
-    NumberDisplay.format = numberFormat
+    applyDisplayFormats(displayFormats)
     val snackbarHostState = remember { SnackbarHostState() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var transactionImpactCues by remember { mutableStateOf<List<TransactionImpactCue>>(emptyList()) }
@@ -2814,10 +2818,10 @@ fun AppNavigation(
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,
                     onConnectionClick = { detail = DetailDestination.Connection },
-                    hideDecimalPlaces = hideDecimalPlaces,
-                    onHideDecimalPlacesChange = {
-                        displayPreferences.hideDecimalPlaces = it
-                        hideDecimalPlaces = it
+                    decimalPlacesMode = decimalPlacesMode,
+                    onDecimalPlacesModeChange = {
+                        displayPreferences.decimalPlacesMode = it
+                        decimalPlacesMode = it
                         WidgetUpdater.requestAll(context)
                     },
                     showNotes = showNotes,
@@ -2853,12 +2857,13 @@ fun AppNavigation(
                         numberFormat = it
                         WidgetUpdater.requestAll(context)
                     },
-                    hideBalances = hideBalances,
-                    onHideBalancesChange = {
-                        displayPreferences.hideBalances = it
-                        hideBalances = it
+                    privacyMode = privacyMode,
+                    onPrivacyModeChange = {
+                        displayPreferences.privacyMode = it
+                        privacyMode = it
                         WidgetUpdater.requestAll(context)
                     },
+                    budgetDisplayFormats = budgetDisplayFormats,
                     appearance = appearance,
                     onAppearanceChange = {
                         displayPreferences.appearance = it

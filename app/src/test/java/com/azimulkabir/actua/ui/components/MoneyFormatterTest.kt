@@ -12,10 +12,33 @@ class MoneyFormatterTest {
         CurrencyDisplay.symbolOnly = false
         NumberDisplay.format = "1,234.56"
         CurrencyDisplay.decimalPlaces = 2
+        CurrencyDisplay.symbolAfterAmount = false
+        CurrencyDisplay.spaceBetweenAmountAndSymbol = false
     }
 
     @After fun resetDecimalPlaces() {
         CurrencyDisplay.decimalPlaces = 2
+        CurrencyDisplay.symbolAfterAmount = false
+        CurrencyDisplay.spaceBetweenAmountAndSymbol = false
+    }
+
+    @Test fun symbolCanFollowTheAmountWithANarrowSpaceLikeActual() {
+        CurrencyDisplay.code = "EUR"
+        CurrencyDisplay.symbolOnly = true
+        NumberDisplay.format = "1.234,56"
+        CurrencyDisplay.symbolAfterAmount = true
+        CurrencyDisplay.spaceBetweenAmountAndSymbol = true
+        assertEquals("1.234,56\u202F€", formatMoneyCents(123456, false))
+        assertEquals("−1.234,56\u202F€", formatMoneyCents(-123456, false))
+        CurrencyDisplay.symbolAfterAmount = false
+        assertEquals("€\u202F1.234,56", formatMoneyCents(123456, false))
+        CurrencyDisplay.code = ""
+        assertEquals("1.234,56", formatMoneyCents(123456, false))
+    }
+
+    @Test fun supportsApostropheGrouping() {
+        NumberDisplay.format = "1’234.56"
+        assertEquals("৳1’234’567.89", formatMoneyCents(123456789, false))
     }
 
     @Test fun zeroDecimalCurrenciesShowAndParseWholeUnits() {

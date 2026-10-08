@@ -16,6 +16,7 @@ import com.azimulkabir.actua.data.budget.BudgetMovementNote
 import com.azimulkabir.actua.data.budget.PayeeSuggestions
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.bank.BankSyncResult
+import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.ExperimentalPreferences
 import com.azimulkabir.actua.data.bank.BankSyncService
 import com.azimulkabir.actua.data.network.ActualServerClient
@@ -646,6 +647,10 @@ class ActuaRepository(context: Context) {
         }
         return emptyList()
     }
+
+    /** The budget's synced number, date, fraction, privacy and currency preferences. */
+    fun budgetDisplayFormats(): BudgetDisplayFormats =
+        BudgetDisplayFormats.from(actualDatabase?.fetchPreferences(BudgetDisplayFormats.KEYS).orEmpty())
 
     /** Decimal places of the budget's synced `defaultCurrencyCode`: 0 for JPY, KRW and IRR, otherwise 2. */
     fun budgetDecimalPlaces(): Int =

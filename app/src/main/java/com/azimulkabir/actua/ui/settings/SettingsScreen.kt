@@ -70,6 +70,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
+import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
+import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
@@ -105,22 +107,24 @@ data class BudgetSwitcherOption(
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     onConnectionClick: () -> Unit = {},
-    hideDecimalPlaces: Boolean = true,
-    onHideDecimalPlacesChange: (Boolean) -> Unit = {},
+    decimalPlacesMode: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
+    onDecimalPlacesModeChange: (String) -> Unit = {},
     showNotes: Boolean = true,
     onShowNotesChange: (Boolean) -> Unit = {},
     hideIncomeGroupInBudget: Boolean = false,
     onHideIncomeGroupInBudgetChange: (Boolean) -> Unit = {},
-    currencyCode: String = "",
+    currencyCode: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
     onCurrencyCodeChange: (String) -> Unit = {},
     currencySymbolOnly: Boolean = false,
     onCurrencySymbolOnlyChange: (Boolean) -> Unit = {},
-    dateFormat: String = "System default",
+    dateFormat: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
     onDateFormatChange: (String) -> Unit = {},
-    numberFormat: String = "System default",
+    numberFormat: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
     onNumberFormatChange: (String) -> Unit = {},
-    hideBalances: Boolean = false,
-    onHideBalancesChange: (Boolean) -> Unit = {},
+    privacyMode: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
+    onPrivacyModeChange: (String) -> Unit = {},
+    /** The open budget's synced formats, which "Same as budget" uses. */
+    budgetDisplayFormats: BudgetDisplayFormats = BudgetDisplayFormats(),
     appearance: String = "System",
     onAppearanceChange: (String) -> Unit = {},
     useDynamicColor: Boolean = false,
@@ -409,10 +413,17 @@ fun SettingsScreen(
                 }
                 SettingsPage.Display -> {
                     SettingsGroup {
-                        SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->
+                        SettingsChoice(
+                            "Currency",
+                            currencyLabel(currencyCode),
+                            currencyOptions.map { it.first },
+                            preview = if (currencyCode == EffectiveDisplayFormats.FOLLOW_BUDGET) {
+                                "Budget: ${currencyLabel(budgetDisplayFormats.currencyCode)}"
+                            } else null,
+                        ) { selected ->
                             onCurrencyCodeChange(currencyOptions.first { it.first == selected }.second)
                         }
-                        if (currencyCode.isNotBlank()) {
+                        if (currencyCode.isNotBlank() && currencyCode != EffectiveDisplayFormats.FOLLOW_BUDGET) {
                             SettingsDivider()
                             SettingsToggle("Symbol only",
                                 "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
@@ -422,21 +433,39 @@ fun SettingsScreen(
                         SettingsChoice(
                             "Date format",
                             dateFormat,
-                            listOf("System default", "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"),
-                            preview = "Preview: ${datePreview(dateFormat)}",
+                            listOf(
+                                EffectiveDisplayFormats.FOLLOW_BUDGET, "System default", "MM/DD/YYYY", "DD/MM/YYYY",
+                                "YYYY-MM-DD", "MM.DD.YYYY", "DD.MM.YYYY", "DD-MM-YYYY",
+                            ),
+                            preview = "Preview: ${datePreview(
+                                if (dateFormat == EffectiveDisplayFormats.FOLLOW_BUDGET) budgetDisplayFormats.dateFormat else dateFormat,
+                            )}",
                             onChange = onDateFormatChange,
                         )
                         SettingsDivider()
                         SettingsChoice(
                             "Number format",
                             numberFormat,
-                            listOf("System default", "1,234.56", "1.234,56", "1 234,56", "1234.56", "1,23,456.78"),
-                            preview = "Preview: ${numberPreview(numberFormat)}",
+                            listOf(
+                                EffectiveDisplayFormats.FOLLOW_BUDGET, "System default", "1,234.56", "1.234,56",
+                                "1 234,56", "1’234.56", "1234.56", "1,23,456.78",
+                            ),
+                            preview = "Preview: ${numberPreview(
+                                if (numberFormat == EffectiveDisplayFormats.FOLLOW_BUDGET) budgetDisplayFormats.numberFormat else numberFormat,
+                            )}",
                             onChange = onNumberFormatChange,
                         )
                         SettingsDivider()
-                        SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
-                            hideDecimalPlaces, onHideDecimalPlacesChange)
+                        SettingsChoice(
+                            "Decimal places",
+                            decimalPlacesMode,
+                            listOf(EffectiveDisplayFormats.FOLLOW_BUDGET, EffectiveDisplayFormats.SHOW, EffectiveDisplayFormats.HIDE),
+                            preview = "Hiding rounds displayed amounts without changing their values" +
+                                if (decimalPlacesMode == EffectiveDisplayFormats.FOLLOW_BUDGET) {
+                                    ". Budget: ${if (budgetDisplayFormats.hideFraction) "hidden" else "shown"}"
+                                } else "",
+                            onChange = onDecimalPlacesModeChange,
+                        )
                     }
                     SettingsGroup {
                         SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onChange = onAppearanceChange)
@@ -476,8 +505,16 @@ fun SettingsScreen(
                 }
                 SettingsPage.Privacy -> {
                     SettingsGroup {
-                        SettingsToggle("Hide balances", "Mask budget, account and transaction amounts",
-                            hideBalances, onHideBalancesChange)
+                        SettingsChoice(
+                            "Balances",
+                            privacyMode,
+                            listOf(EffectiveDisplayFormats.FOLLOW_BUDGET, EffectiveDisplayFormats.SHOW, EffectiveDisplayFormats.HIDE),
+                            preview = "Hiding masks budget, account and transaction amounts" +
+                                if (privacyMode == EffectiveDisplayFormats.FOLLOW_BUDGET) {
+                                    ". Budget: ${if (budgetDisplayFormats.privacyEnabled) "hidden" else "shown"}"
+                                } else "",
+                            onChange = onPrivacyModeChange,
+                        )
                     }
                     SettingsGroup("Location-aware payees") {
                         SettingsToggle(
@@ -682,6 +719,9 @@ private fun datePreview(format: String): String = when (format) {
     "DD/MM/YYYY" -> "31/12/2026"
     "MM/DD/YYYY" -> "12/31/2026"
     "YYYY-MM-DD" -> "2026-12-31"
+    "MM.DD.YYYY" -> "12.31.2026"
+    "DD.MM.YYYY" -> "31.12.2026"
+    "DD-MM-YYYY" -> "31-12-2026"
     else -> java.time.LocalDate.of(2026, 12, 31)
         .format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
 }
@@ -690,12 +730,14 @@ private fun numberPreview(format: String): String = when (format) {
     "1,234.56" -> "1,234.56"
     "1.234,56" -> "1.234,56"
     "1 234,56" -> "1 234,56"
+    "1’234.56" -> "1’234.56"
     "1234.56" -> "1234.56"
     "1,23,456.78" -> "1,23,456.78"
     else -> java.text.NumberFormat.getNumberInstance().format(1234.56)
 }
 
 private val currencyOptions = listOf(
+    EffectiveDisplayFormats.FOLLOW_BUDGET to EffectiveDisplayFormats.FOLLOW_BUDGET,
     "None" to "",
     "د.إ AED" to "AED",
     "Arg${'$'} ARS" to "ARS",

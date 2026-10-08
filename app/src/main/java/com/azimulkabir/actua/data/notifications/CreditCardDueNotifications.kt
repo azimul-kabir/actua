@@ -20,14 +20,14 @@ import androidx.work.WorkerParameters
 import com.azimulkabir.actua.MainActivity
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
+import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
-import com.azimulkabir.actua.ui.components.DateDisplay
-import com.azimulkabir.actua.ui.components.NumberDisplay
+import com.azimulkabir.actua.ui.components.applyDisplayFormats
 import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.time.Duration
@@ -166,8 +166,10 @@ class CreditCardDueNotificationWorker(context: Context, parameters: WorkerParame
         if (offset !in CreditCardReminderPlanner.reminderOffsets) return Result.failure()
 
         val repository = ActuaRepository(applicationContext)
+        var budgetFormats = BudgetDisplayFormats()
         val card = try {
             CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
+            budgetFormats = repository.budgetDisplayFormats()
             repository.creditCards().firstOrNull { it.accountId == accountId }
         } finally { repository.close() }
         val today = DayDate.today()
@@ -175,7 +177,7 @@ class CreditCardDueNotificationWorker(context: Context, parameters: WorkerParame
         if (card == null || due == null || due.dueDate != dueDate || today.daysUntil(dueDate) != offset) {
             return Result.success()
         }
-        postNotification(applicationContext, card, dueDate, offset, due.statementDue)
+        postNotification(applicationContext, card, dueDate, offset, due.statementDue, budgetFormats)
         return Result.success()
     }
 
@@ -192,6 +194,7 @@ private fun notificationsAllowed(context: Context) = Build.VERSION.SDK_INT < Bui
 private fun postNotification(
     context: Context, card: CreditCardStatus, dueDate: DayDate, offset: Int,
     statementDue: CreditCardCycle.StatementDue?,
+    budgetFormats: BudgetDisplayFormats,
 ) {
     if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED) return
@@ -209,15 +212,12 @@ private fun postNotification(
         context, card.accountId.hashCode(), openAccount,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
-    val display = DisplayPreferences(context)
-    CurrencyDisplay.code = display.currencyCode
-    CurrencyDisplay.symbolOnly = display.currencySymbolOnly
-    NumberDisplay.format = display.numberFormat
-    DateDisplay.format = display.dateFormat
+    val display = DisplayPreferences(context).resolve(budgetFormats)
+    applyDisplayFormats(display)
     val date = formatDate(LocalDate.of(dueDate.year, dueDate.month, dueDate.day))
     val whenText = if (offset == 1) "tomorrow" else "in $offset days"
     val body = CreditCardReminderPlanner.body(statementDue, card.balanceCents, date) { cents ->
-        formatMoneyCents(cents, display.hideDecimalPlaces, respectBalanceVisibility = false)
+        formatMoneyCents(cents, display.hideDecimals, respectBalanceVisibility = false)
     }
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(R.drawable.actua_launcher_monochrome)

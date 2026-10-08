@@ -18,6 +18,12 @@ object CurrencyDisplay {
      * integers in these minor units. 0 for JPY, KRW and IRR budgets, otherwise 2.
      */
     @Volatile var decimalPlaces: Int = 2
+
+    /** Actual's `currencySymbolPosition` `after`: `1,000.00€` instead of `€1,000.00`. */
+    @Volatile var symbolAfterAmount: Boolean = false
+
+    /** Actual's `currencySpaceBetweenAmountAndSymbol`: a narrow no-break space between them. */
+    @Volatile var spaceBetweenAmountAndSymbol: Boolean = false
 }
 
 /** Stored integer units per whole currency unit: 10^[CurrencyDisplay.decimalPlaces]. */
@@ -58,7 +64,11 @@ fun formatMoneyCents(
     }
     val decimals = if (hideDecimalPlaces || decimalPlaces == 0) "" else
         "$decimalSeparator${(magnitude % scale).toString().padStart(decimalPlaces, '0')}"
-    return "$sign${currencyInputPrefix()}$whole$decimals"
+    val symbol = currencyInputPrefix()
+    if (symbol.isEmpty()) return "$sign$whole$decimals"
+    val space = if (CurrencyDisplay.spaceBetweenAmountAndSymbol) "\u202F" else ""
+    return if (CurrencyDisplay.symbolAfterAmount) "$sign$whole$decimals$space$symbol"
+    else "$sign$symbol$space$whole$decimals"
 }
 
 // NumberFormat construction does a locale resource lookup and isn't cheap; this path is hit
@@ -71,6 +81,7 @@ internal fun formatWholeNumber(value: Long, format: String, locale: Locale = Loc
     "1,234.56" -> grouped(value, 3, ",")
     "1.234,56" -> grouped(value, 3, ".")
     "1 234,56" -> grouped(value, 3, " ")
+    "1’234.56" -> grouped(value, 3, "’")
     "1234.56" -> value.toString()
     "1,23,456.78" -> grouped(value, 3, ",", secondarySize = 2)
     else -> integerFormatCache.get().getOrPut(locale) { NumberFormat.getIntegerInstance(locale) }.format(value)

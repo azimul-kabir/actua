@@ -35,8 +35,11 @@ class DisplayPreferencesTest {
 
     @Test fun formattingDefaultsAndSelectionsPersist() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        assertEquals("System default", DisplayPreferences(context).dateFormat)
-        assertEquals("System default", DisplayPreferences(context).numberFormat)
+        assertEquals("Same as budget", DisplayPreferences(context).dateFormat)
+        assertEquals("Same as budget", DisplayPreferences(context).numberFormat)
+        assertEquals("Same as budget", DisplayPreferences(context).currencyCode)
+        assertEquals("Same as budget", DisplayPreferences(context).decimalPlacesMode)
+        assertEquals("Same as budget", DisplayPreferences(context).privacyMode)
 
         DisplayPreferences(context).dateFormat = "DD/MM/YYYY"
         DisplayPreferences(context).numberFormat = "1,23,456.78"
@@ -44,6 +47,25 @@ class DisplayPreferencesTest {
         val restored = DisplayPreferences(context)
         assertEquals("DD/MM/YYYY", restored.dateFormat)
         assertEquals("1,23,456.78", restored.numberFormat)
+    }
+
+    @Test fun legacyDecimalAndBalanceTogglesKeepTheirChoice() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        context.getSharedPreferences("display_preferences", Context.MODE_PRIVATE).edit()
+            .putBoolean("hide_decimal_places", true).putBoolean("hide_balances", false).commit()
+
+        val preferences = DisplayPreferences(context)
+        assertEquals("Hide", preferences.decimalPlacesMode)
+        assertEquals("Show", preferences.privacyMode)
+
+        preferences.decimalPlacesMode = "Same as budget"
+        assertEquals("Same as budget", DisplayPreferences(context).decimalPlacesMode)
+    }
+
+    @Test fun explicitNoCurrencyIsKept() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        DisplayPreferences(context).currencyCode = ""
+        assertEquals("", DisplayPreferences(context).currencyCode)
     }
 
     @Test fun reportSummaryDefaultsOffAndPersists() {

@@ -13,6 +13,7 @@ import android.widget.RemoteViews
 import com.azimulkabir.actua.MainActivity
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
+import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
@@ -24,7 +25,7 @@ import com.azimulkabir.actua.data.schedules.ScheduleWidgetPeriod
 import com.azimulkabir.actua.data.schedules.ScheduleWidgetProjection
 import com.azimulkabir.actua.data.schedules.ScheduledAmount
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
-import com.azimulkabir.actua.ui.components.NumberDisplay
+import com.azimulkabir.actua.ui.components.applyDisplayFormats
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -204,7 +205,7 @@ object WidgetUpdater {
         val views = RemoteViews(context.packageName, layout)
         val repository = ActuaRepository(context)
         try {
-            CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
+            loadBudgetFormats(repository)
             if (!repository.isUsingActualBudget) {
                 views.setTextViewText(R.id.widget_month, context.getString(R.string.widget_no_budget))
                 views.setTextViewText(R.id.widget_ready_value, "—")
@@ -232,7 +233,7 @@ object WidgetUpdater {
         val views = RemoteViews(context.packageName, R.layout.widget_favourite_categories)
         val repository = ActuaRepository(context)
         try {
-            CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
+            loadBudgetFormats(repository)
             val all = repository.budgetGroups().asSequence()
                 .filterNot { it.hidden || it.isIncome }
                 .flatMap { it.categories.asSequence() }
@@ -273,7 +274,7 @@ object WidgetUpdater {
         val views = RemoteViews(context.packageName, R.layout.widget_account_balances)
         val repository = ActuaRepository(context)
         try {
-            CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
+            loadBudgetFormats(repository)
             val all = repository.accounts().filterNot { it.closed }
             val selected = WidgetPreferences(context).selected(WidgetKind.Accounts, widgetId)
             val rows = if (selected.isEmpty()) all.take(4) else all.filter { it.id in selected }.take(4)
@@ -322,7 +323,7 @@ object WidgetUpdater {
     internal fun scheduleEntries(context: Context, widgetId: Int): List<ScheduleWidgetEntry> {
         val repository = ActuaRepository(context)
         try {
-            CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
+            loadBudgetFormats(repository)
             if (!repository.isUsingActualBudget) return emptyList()
             val today = DayDate.today()
             val periodDays = ScheduleWidgetPreferences(context).periodDays(widgetId)
@@ -392,12 +393,19 @@ object WidgetUpdater {
         )
     }
 
+    // The open budget's synced formats, read whenever a widget opens the budget; schedule rows are
+    // bound later, after their repository is closed.
+    @Volatile private var budgetFormats = BudgetDisplayFormats()
+
+    private fun loadBudgetFormats(repository: ActuaRepository) {
+        CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
+        budgetFormats = repository.budgetDisplayFormats()
+    }
+
     private fun money(context: Context, cents: Long): String {
-        val preferences = DisplayPreferences(context)
-        CurrencyDisplay.code = preferences.currencyCode
-        CurrencyDisplay.symbolOnly = preferences.currencySymbolOnly
-        NumberDisplay.format = preferences.numberFormat
-        return formatMoneyCents(cents, preferences.hideDecimalPlaces,
-            respectBalanceVisibility = false).let { if (preferences.hideBalances) "••••" else it }
+        val formats = DisplayPreferences(context).resolve(budgetFormats)
+        applyDisplayFormats(formats)
+        return formatMoneyCents(cents, formats.hideDecimals,
+            respectBalanceVisibility = false).let { if (formats.hideBalances) "••••" else it }
     }
 }
