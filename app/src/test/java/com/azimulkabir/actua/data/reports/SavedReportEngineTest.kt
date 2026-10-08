@@ -240,6 +240,13 @@ class SavedReportViewFilterTest {
         assertEquals(-100L, w.valueCents)
     }
 
+    @Test fun `a payee report's total leaves out rows without a payee`() {
+        val withPayee = tx("4", "a", 20260112, -30).copy(payeeId = "p", payeeName = "Shop")
+        val w = SavedReportEngine.compute(saved.copy(groupBy = "Payee"), rows + withPayee, accounts, groups, today)
+        assertEquals(-30L, w.valueCents)
+        assertEquals(listOf("Shop" to -30L), w.categories.map { it.name to it.spentCents })
+    }
+
     @Test fun `date preset overrides saved range`() {
         val w = SavedReportEngine.compute(saved, rows, accounts, groups, today,
             com.azimulkabir.actua.model.ReportViewFilter(datePreset = "All time"))

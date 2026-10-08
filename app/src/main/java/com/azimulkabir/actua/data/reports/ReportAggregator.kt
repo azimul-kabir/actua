@@ -95,8 +95,9 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
         if (categoryId == null) {
             // Transfers have no category of their own (upstream's synthetic "Transfers" bucket),
             // so they follow the same showUncategorized/category-filter toggles as any other
-            // uncategorized row instead of a hard-coded transfer exclusion.
-            if (!f.showUncategorized || f.categoryIds != null || f.categoryGroupIds != null) return false
+            // uncategorized row instead of a hard-coded transfer exclusion. Upstream's
+            // `filterHiddenItems` keeps off-budget rows even with showUncategorized off.
+            if ((!f.showUncategorized && !account.offBudget) || f.categoryIds != null || f.categoryGroupIds != null) return false
         } else {
             val (category, group) = categoriesById[categoryId] ?: return false
             if (!f.showHiddenCategories && (category.hidden || group.hidden)) return false
@@ -126,21 +127,33 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
         filter: ReportFilter,
         grouping: ReportGrouping,
     ): List<ReportGroupTotal> = select(transactions, filter)
+        .filter { grouping != ReportGrouping.PAYEE || it.payeeId != null }
         .groupBy { tx ->
-            val entry = tx.categoryId?.let(categoriesById::get)
+            // Upstream's `filterHiddenItems`: a categorized on-budget row goes to its own category
+            // (or group); every other row goes to a synthetic item - for categories "Off budget"
+            // (any off-budget row), "Transfers" or "Uncategorized", for groups one combined
+            // "Uncategorized & Off budget" group.
+            val entry = tx.categoryId?.let(categoriesById::get)?.takeUnless { accountsById[tx.accountId]?.offBudget == true }
             when (grouping) {
-                ReportGrouping.CATEGORY ->
-                    entry?.first?.id ?: if (tx.transferAccountId != null) TRANSFER_BUCKET_ID else null
-                ReportGrouping.CATEGORY_GROUP ->
-                    entry?.second?.id ?: if (tx.transferAccountId != null) TRANSFER_BUCKET_ID else null
+                ReportGrouping.CATEGORY -> entry?.first?.id ?: when {
+                    accountsById[tx.accountId]?.offBudget == true -> OFF_BUDGET_BUCKET_ID
+                    tx.transferAccountId != null -> TRANSFER_BUCKET_ID
+                    else -> null
+                }
+                ReportGrouping.CATEGORY_GROUP -> entry?.second?.id ?: UNCATEGORIZED_GROUP_ID
                 ReportGrouping.PAYEE -> tx.payeeId
                 ReportGrouping.ACCOUNT -> tx.accountId
             }
         }
         .map { (id, rows) ->
             val name = when (grouping) {
-                ReportGrouping.CATEGORY -> if (id == TRANSFER_BUCKET_ID) "Transfers" else id?.let { categoriesById[it]?.first?.name }
-                ReportGrouping.CATEGORY_GROUP -> if (id == TRANSFER_BUCKET_ID) "Transfers" else id?.let { groupsById[it]?.name }
+                ReportGrouping.CATEGORY -> when (id) {
+                    TRANSFER_BUCKET_ID -> "Transfers"
+                    OFF_BUDGET_BUCKET_ID -> "Off budget"
+                    else -> id?.let { categoriesById[it]?.first?.name }
+                }
+                ReportGrouping.CATEGORY_GROUP ->
+                    if (id == UNCATEGORIZED_GROUP_ID) "Uncategorized & Off budget" else id?.let { groupsById[it]?.name }
                 ReportGrouping.PAYEE -> rows.firstNotNullOfOrNull { it.payeeName?.takeIf(String::isNotBlank) }
                 ReportGrouping.ACCOUNT -> id?.let { accountsById[it]?.name }
             } ?: if (grouping == ReportGrouping.PAYEE) "Unknown" else "Uncategorized"
@@ -150,7 +163,9 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
         .sortedWith(compareByDescending<ReportGroupTotal> { kotlin.math.abs(it.totalCents) }.thenBy { it.name })
 
     private companion object {
-        /** Synthetic grouping key for transfers under [ReportGrouping.CATEGORY]/[ReportGrouping.CATEGORY_GROUP]. */
+        /** Synthetic grouping keys for upstream's uncategorized items (`ReportOptions.ts`). */
         const val TRANSFER_BUCKET_ID = "\u0000transfer"
+        const val OFF_BUDGET_BUCKET_ID = "\u0000off_budget"
+        const val UNCATEGORIZED_GROUP_ID = "\u0000uncategorized"
     }
 }
