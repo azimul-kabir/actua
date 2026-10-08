@@ -326,9 +326,9 @@ Actua-only income-vs-expenses card (`SRE.incomeExpense`, `:305`) and view filter
 | `Budgeted` reads budget cells, income categories excluded | `fetchBudgetData` | `SRE.computeBudgeted` (`:172`) | Match |
 | `group_by` Category / Group / Payee / Account / Interval | | same | Match |
 | `group_by = CategoryGroup` (two-ring donut) | | treated as Category | **Not ported** |
-| Uncategorized split into Uncategorized / Transfers / Off budget | three synthetic items | Uncategorized and Transfers only | **Divergence** [#951](https://github.com/azimul-kabir/actua/issues/951) |
-| `show_uncategorized` off keeps uncategorized off-budget rows | yes | dropped | **Divergence** [#951](https://github.com/azimul-kabir/actua/issues/951) |
-| Payee grouping: rows with no payee | excluded | "Unknown" group | **Divergence** [#951](https://github.com/azimul-kabir/actua/issues/951) |
+| Uncategorized split into Uncategorized / Transfers / Off budget (one "Uncategorized & Off budget" group for Group) | synthetic items | same | Match (#951) |
+| `show_uncategorized` off keeps uncategorized off-budget rows | yes | same | Match (#951) |
+| Payee grouping: rows with no payee | excluded from groups and totals | same | Match (#951) |
 | `show_offbudget`, `show_hidden` (category or group hidden) | | same | Match |
 | `conditions` / `conditions_op` | | `RulesEngine` | Match |
 | `selected_categories` | moved into `conditions` and set to `NULL` by migration `1722717601000` ([migration][selected-categories]) | still applied when non-null | Match (always `NULL` after the migration) |

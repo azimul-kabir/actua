@@ -80,9 +80,12 @@ object SavedReportEngine {
         )
         val conditions = parseConditions(row)
         val context = shared.context
-        val scoped = if (conditions.first.isEmpty()) transactions else transactions.filter {
+        val matching = if (conditions.first.isEmpty()) transactions else transactions.filter {
             RulesEngine.matches(it, conditions.first, conditions.second, context)
         }
+        // Upstream sums a Payee report over its payee list, so rows without a payee drop out of the
+        // groups and the totals alike.
+        val scoped = if (row.groupBy == "Payee") matching.filter { it.payeeId != null } else matching
         val included = aggregator.select(scoped, filter)
         val grouping = when (row.groupBy) {
             "Group" -> ReportGrouping.CATEGORY_GROUP
