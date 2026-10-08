@@ -908,6 +908,27 @@ class ActualBudgetReadModelTest {
         }
     }
 
+    /** #994: locking stamps `accounts.last_reconciled` like Actual's `Date.now().toString()`, in the same batch. */
+    @Test
+    fun lockingStampsLastReconciledInTheSameBatch() = withScheduleVariant(
+        "ALTER TABLE accounts ADD COLUMN last_reconciled TEXT",
+    ) { database ->
+        val writer = ActualTransactionWriter(database, nodeId = "abcdabcdabcdabcd")
+        val ordinary = requireNotNull(database.fetchTransaction("ordinary"))
+        writer.mutate(updates = listOf(ordinary to ordinary.copy(cleared = true)))
+        assertNull(database.fetchAccounts().first { it.id == "checking" }.lastReconciled)
+
+        assertEquals(1, writer.reconcileClearedTransactions("checking", reconciledAt = 1_760_000_000_000L))
+
+        assertEquals("1760000000000", database.fetchAccounts().first { it.id == "checking" }.lastReconciled)
+        assertTrue(requireNotNull(database.fetchTransaction("ordinary")).reconciled)
+        val messages = database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString())
+        val stamp = messages.single { it.dataset == "accounts" && it.row == "checking" && it.column == "last_reconciled" }
+        val lock = messages.single { it.dataset == "transactions" && it.row == "ordinary" && it.column == "reconciled" }
+        // One batch: the stamp's timestamp directly follows the lock's.
+        assertTrue(lock.timestamp.toString() < stamp.timestamp.toString())
+    }
+
     /** #993: like Actual's `createReconciliationTransaction`, the adjustment runs through the rules. */
     @Test
     fun reconciliationAdjustmentRunsRulesLikeActual() = withScheduleVariant(

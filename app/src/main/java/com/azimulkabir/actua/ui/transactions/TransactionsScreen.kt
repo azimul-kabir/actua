@@ -102,6 +102,7 @@ import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.CompactCalculatorPad
@@ -957,6 +958,25 @@ private fun ReconcileAccountScreen(
                 }
             }
 
+            item("last-reconciled") {
+                // Actual's "Reconciled {relative} ({date})" / "Not yet reconciled" line (#994).
+                val reconciledAt = lastReconciledMillis(account.lastReconciled)
+                Text(
+                    if (reconciledAt == null) "Not yet reconciled" else {
+                        val relative = android.text.format.DateUtils.getRelativeTimeSpanString(
+                            reconciledAt, System.currentTimeMillis(), android.text.format.DateUtils.MINUTE_IN_MILLIS,
+                        )
+                        val date = formatDate(java.time.Instant.ofEpochMilli(reconciledAt)
+                            .atZone(java.time.ZoneId.systemDefault()).toLocalDate())
+                        "Reconciled $relative ($date)"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
             difference?.let { amount ->
                 if (amount == 0L) {
                     item("match") {
@@ -1070,6 +1090,9 @@ private fun ReconciliationTransactionRow(
         }
     }
 }
+
+/** Actual's `last_reconciled` (epoch milliseconds as a string), or null when absent or unreadable. */
+internal fun lastReconciledMillis(value: String?): Long? = value?.trim()?.toLongOrNull()?.takeIf { it > 0 }
 
 private fun formatReconciliationMoney(cents: Long, hideDecimalPlaces: Boolean): String =
     formatMoneyCents(cents, hideDecimalPlaces, respectBalanceVisibility = false)

@@ -28,7 +28,7 @@ in [#664](https://github.com/azimul-kabir/actua/issues/664) (part of
 | Unlocking a reconciled row | Match ([#992](https://github.com/azimul-kabir/actua/issues/992)) |
 | Edit/delete/move confirmations on reconciled rows | Match (#746); Actua also confirms bulk Categorize and Merge |
 | `hide-reconciled-<id>` preference | Match (mobile semantics) |
-| `accounts.last_reconciled` | Not written or shown: **Divergence** [#994](https://github.com/azimul-kabir/actua/issues/994) |
+| `accounts.last_reconciled` | Match on lock; leaving without locking writes nothing, a deliberate difference ([#994](https://github.com/azimul-kabir/actua/issues/994)) |
 | "Use last synced total" (`balance_current`) | Missing: **Divergence** [#995](https://github.com/azimul-kabir/actua/issues/995) |
 | Bank sync never updates a reconciled match | Match |
 
@@ -58,7 +58,7 @@ account menu's **Reconcile**; balances from `ActualBudgetDatabase.fetchAccounts`
 | Balanced state shows "All reconciled!" and **Lock transactions** | `targetDiff === 0` | "Reconciled" card and **Lock cleared transactions** | Match (wording differs) |
 | Unbalanced state offers **Create reconciliation transaction** and **Exit reconciliation** | banner buttons | **Create adjustment transaction** and the back button; plus a list of uncleared rows that can be marked cleared | **Intentional.** The review list is an Android addition and writes through the normal cleared path (§6). |
 | **Use last synced total** from `accounts.balance_current` | modal/menu, when non-null | not offered | **Divergence** [#995](https://github.com/azimul-kabir/actua/issues/995) |
-| "Reconciled {time} ({date})" / "Not yet reconciled" | from `last_reconciled` | not shown | **Divergence** [#994](https://github.com/azimul-kabir/actua/issues/994) |
+| "Reconciled {time} ({date})" / "Not yet reconciled" | from `last_reconciled` | same line under the balances (`lastReconciledMillis`) | Match ([#994](https://github.com/azimul-kabir/actua/issues/994)) |
 | Scheduled preview rows are hidden while reconciling | mobile `previewTransactionsToDisplay = []` | the reconcile screen lists only stored rows | Match |
 
 ## 2. Locking cleared transactions
@@ -79,13 +79,14 @@ Actua: `ActuaRepository.reconcileAccount` (`data/ActuaRepository.kt:1818`) →
 | Rows locked: live rows of the account with `cleared = 1` and `reconciled = 0` | AQL filter `{cleared: true, reconciled: false, account}` | same SQL filter, children only when their parent is live | Match |
 | Split groups: parent and every child become `reconciled = 1` | `updateTransaction` on the parent rewrites each child via `makeChild` (child `cleared`/`reconciled` copied from the parent) | parent and children are each selected by their own `cleared = 1` | Match. Equivalent because both clients keep children's `cleared` equal to the parent's (`setCleared` aligns them; see test below). Actual would also lock a whole group if only one row in it matched, a state neither client produces. |
 | Transfers: only this account's leg is locked; the other leg keeps its own state | `transfer.onUpdate` doesn't propagate `reconciled` | only rows with `acct = accountId` | Match |
-| Cells written: `reconciled = 1` (plus unchanged cells Actual re-sends) | `transactions-batch-update` with full rows | only the changed `reconciled` cell per row | Match. Rows end up the same. Actual's redundant same-value messages aren't observable. |
+| Cells written: `reconciled = 1` (plus unchanged cells Actual re-sends) | `transactions-batch-update` with full rows | only the `reconciled` cell per row, applied with `applyLocalMessages` | Match. Rows end up the same. Actual's redundant same-value messages aren't observable. |
 | All rows in one atomic batch | one `transactions-batch-update` (`batchMessages`) | one `mutate(updates = …)` | Match |
-| `last_reconciled` stamped on finish (both **Lock** and **Exit**) | `updateAccount({…, last_reconciled: Date.now().toString()})` | not written | **Divergence** [#994](https://github.com/azimul-kabir/actua/issues/994) |
+| `last_reconciled` stamped on finish (both **Lock** and **Exit**) | `updateAccount({…, last_reconciled: Date.now().toString()})`, after the lock | stamped on **Lock** only, in the same batch as the lock (`reconcileClearedTransactions(reconciledAt = …)`) | Match for Lock ([#994](https://github.com/azimul-kabir/actua/issues/994)). Deliberate difference for Exit, decided in #994: Actua has no Exit button, and going back writes nothing, so no write happens without an explicit tap. Other clients then keep showing the previous time. |
 
 Tests: `src/androidTest/.../data/budget/ActualBudgetReadModelTest.reconciliationLocksEveryClearedStoredRowAtomically`
 (ordinary row, split parent + children, transfer leg; the other leg stays unlocked),
-`clearingASplitKeepsItsStoredChildrenAligned`,
+`clearingASplitKeepsItsStoredChildrenAligned`, `lockingStampsLastReconciledInTheSameBatch`,
+`src/test/.../ui/transactions/LastReconciledTest`,
 `src/androidTest/.../data/budget/ActualDataIntegrityRegressionTest.reconciliationLocksOnlyClearedRowsInRequestedAccount`
 (uncleared and other-account rows are byte-identical before and after).
 
@@ -168,10 +169,10 @@ Tests: `src/test/.../ui/transactions/ReconciledWarningsTest`,
 
 | User action | Actual write | Actua write | Status |
 | --- | --- | --- | --- |
-| Open reconcile, enter a balance, leave | `last_reconciled` on **Exit reconciliation** | none | **Divergence** [#994](https://github.com/azimul-kabir/actua/issues/994) |
+| Open reconcile, enter a balance, leave | `last_reconciled` on **Exit reconciliation** | none | Deliberate difference ([#994](https://github.com/azimul-kabir/actua/issues/994)): back navigation never writes |
 | Mark an uncleared row cleared while reconciling | `cleared = 1` (row + split children) | `setCleared(row, true)`, same cells | Match |
 | Create adjustment | one inserted row (after rules) | one inserted row after rules, behind a confirmation dialog | see §3 |
-| Lock | `reconciled = 1` on every cleared row, then `last_reconciled` | `reconciled = 1` on every cleared row | see §2 |
+| Lock | `reconciled = 1` on every cleared row, then `last_reconciled` | the same cells, in one batch | see §2 |
 
 ## 7. "Hide reconciled transactions" and the reconciled balance
 
@@ -201,7 +202,7 @@ Tests: `src/test/.../ui/transactions/HideReconciledFilterTest`,
 
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| `accounts.last_reconciled` column (migration `1740506588539_add_last_reconciled_at.sql`) | written by `updateAccount` only when truthy ([`LC/server/accounts/app.ts#L94-L107`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/accounts/app.ts#L94-L107)) | column migrated, never read or written | **Divergence** [#994](https://github.com/azimul-kabir/actua/issues/994) |
+| `accounts.last_reconciled` column (migration `1740506588539_add_last_reconciled_at.sql`) | written by `updateAccount` only when truthy ([`LC/server/accounts/app.ts#L94-L107`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/accounts/app.ts#L94-L107)) | read by `fetchAccounts` when the column exists; written on lock | Match ([#994](https://github.com/azimul-kabir/actua/issues/994)) |
 | Bank sync never updates a matched reconciled row | `reconcileTransactions` skips `match.reconciled` ([`LC/server/accounts/sync.ts#L670-L674`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/accounts/sync.ts#L670-L674)) | `BankSyncService` `match.reconciled ->` counts it as matched, writes nothing | Match. Test: `src/test/.../data/bank/BankSyncMatcherTest` |
 | Reconciled state in rules (`reconciled` field) | condition/action field | `RulesEngine` exposes `reconciled` | Covered by [RULES_PARITY.md](RULES_PARITY.md) |
 
