@@ -38,15 +38,20 @@ fun formatMoneyCents(
     respectBalanceVisibility: Boolean = true,
 ): String {
     if (respectBalanceVisibility && BalanceVisibility.hidden) return "••••"
-    val sign = when {
-        cents < 0 -> "−"
-        cents > 0 && showPositiveSign -> "+"
-        else -> ""
-    }
     val magnitude = cents.absoluteValue
     val decimalPlaces = CurrencyDisplay.decimalPlaces
     val scale = minorUnitsPerWhole(decimalPlaces)
-    val whole = formatWholeNumber(magnitude / scale, NumberDisplay.format)
+    val roundsToWhole = hideDecimalPlaces && decimalPlaces > 0
+    // Hidden decimals round half away from zero, like Actual's Intl.NumberFormat with no fraction digits.
+    val roundsUp = roundsToWhole && magnitude % scale * 2 >= scale
+    val wholeUnits = magnitude / scale + (if (roundsUp) 1L else 0L)
+    val sign = when {
+        // Actual shows an amount that rounds to zero as "0", never "-0".
+        cents < 0 && !(roundsToWhole && wholeUnits == 0L) -> "−"
+        cents > 0 && showPositiveSign -> "+"
+        else -> ""
+    }
+    val whole = formatWholeNumber(wholeUnits, NumberDisplay.format)
     val decimalSeparator = when (NumberDisplay.format) {
         "1.234,56", "1 234,56" -> ","
         else -> "."

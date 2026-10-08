@@ -51,9 +51,23 @@ class MoneyFormatterTest {
     }
 
     @Test fun hidingDecimalsOnlyChangesPresentation() {
-        assertEquals("৳1,234", formatMoneyCents(123456, hideDecimalPlaces = true))
+        assertEquals("৳1,235", formatMoneyCents(123456, hideDecimalPlaces = true))
         assertEquals("1234.56", centsToInput(123456))
         assertEquals(123456L, parseInputCents("1234.56"))
+    }
+
+    @Test fun hiddenDecimalsRoundHalfAwayFromZeroLikeActual() {
+        assertEquals("৳1,234", formatMoneyCents(123449, hideDecimalPlaces = true))
+        assertEquals("৳1,235", formatMoneyCents(123450, hideDecimalPlaces = true))
+        assertEquals("−৳1,235", formatMoneyCents(-123450, hideDecimalPlaces = true))
+        assertEquals("−৳1,234", formatMoneyCents(-123449, hideDecimalPlaces = true))
+        assertEquals("+৳1", formatMoneyCents(50, hideDecimalPlaces = true, showPositiveSign = true))
+    }
+
+    @Test fun hiddenDecimalsNeverShowMinusZero() {
+        assertEquals("৳0", formatMoneyCents(-40, hideDecimalPlaces = true))
+        assertEquals("−৳1", formatMoneyCents(-50, hideDecimalPlaces = true))
+        assertEquals("−৳0.40", formatMoneyCents(-40, hideDecimalPlaces = false))
     }
 
     @Test fun inputRequiresAtMostExactCents() {
