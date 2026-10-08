@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.components
 
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -10,6 +11,23 @@ class MoneyFormatterTest {
         CurrencyDisplay.code = "BDT"
         CurrencyDisplay.symbolOnly = false
         NumberDisplay.format = "1,234.56"
+        CurrencyDisplay.decimalPlaces = 2
+    }
+
+    @After fun resetDecimalPlaces() {
+        CurrencyDisplay.decimalPlaces = 2
+    }
+
+    @Test fun zeroDecimalCurrenciesShowAndParseWholeUnits() {
+        CurrencyDisplay.code = "JPY"
+        CurrencyDisplay.symbolOnly = true
+        CurrencyDisplay.decimalPlaces = 0
+        assertEquals("¥1,000", formatMoneyCents(1000, hideDecimalPlaces = false))
+        assertEquals("−¥1,000", formatMoneyCents(-1000, hideDecimalPlaces = false))
+        assertEquals("¥1,000", formatMoneyCents(1000, hideDecimalPlaces = true))
+        assertEquals("1000", centsToInput(1000))
+        assertEquals(1000L, parseInputCents("1000"))
+        assertNull(parseInputCents("10.5"))
     }
 
     @Test fun supportsEuropeanAndSouthAsianGrouping() {

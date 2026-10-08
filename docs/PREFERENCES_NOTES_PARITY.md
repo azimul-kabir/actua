@@ -59,7 +59,7 @@ budget file.
 | `numberFormat` | separators: `comma-dot`, `dot-comma`, `space-comma`, `apostrophe-dot`, `comma-dot-in` | not read; device-local Number format | **Divergence** ([#973](https://github.com/azimul-kabir/actua/issues/973)) |
 | `hideFraction` | show whole units | read only for budget-template rounding (`ActualBudgetDatabase.kt:361`, `model/BudgetTarget.kt:598`); display uses the device-local Decimal places setting | Templates: Honoured. Display: **Divergence** ([#973](https://github.com/azimul-kabir/actua/issues/973)) |
 | `isPrivacyEnabled` | blur amounts | not read; device-local Hide balances (`DisplayPreferences.hideBalances`) | **Divergence** ([#973](https://github.com/azimul-kabir/actua/issues/973)); privacy for names is [#224](https://github.com/azimul-kabir/actua/issues/224) |
-| `defaultCurrencyCode` | currency symbol and decimal places | read only for "Reassigned …" month notes (`ActuaRepository.kt:1790`); display uses the device-local currency and always 2 decimals | **Divergence**: zero-decimal currencies are 100× off ([#971](https://github.com/azimul-kabir/actua/issues/971)); symbol ([#973](https://github.com/azimul-kabir/actua/issues/973)) |
+| `defaultCurrencyCode` | currency symbol and decimal places | decimal places: read for amount display and entry (`ActuaRepository.budgetDecimalPlaces`, `data/budget/CurrencyDecimals.kt`) and for "Reassigned …" month notes; symbol: the device-local currency | Decimal places: Honoured ([#971](https://github.com/azimul-kabir/actua/issues/971)). Symbol: **Divergence** ([#973](https://github.com/azimul-kabir/actua/issues/973)) |
 | `currencySymbolPosition`, `currencySpaceBetweenAmountAndSymbol` | symbol before/after, narrow space | not read; symbol always before, no space | **Divergence** ([#973](https://github.com/azimul-kabir/actua/issues/973)) |
 | `hide-reconciled-<id>` | register filter | read and written | Honoured ([docs/ACCOUNTS_PARITY.md](ACCOUNTS_PARITY.md) §6) |
 | `show-balances-<id>`, `show-extra-balances-<id>`, `hide-cleared-<id>`, `transaction-table-columns`, `transaction-table-columns-<id>`, `show-group-<id>`, `show-account-<id>-net-worth-chart`, `side-nav.show-balance-history-<id>` | desktop register, sidebar and account-header layout | not read or written; Actua's running-balance and summary toggles are device-local | Ignored (desktop layout; [docs/ACCOUNTS_PARITY.md](ACCOUNTS_PARITY.md) §6) |
@@ -111,9 +111,10 @@ Upstream: `getNumberFormat`, `integerToCurrency`, `amountToInteger`
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | Stored amounts are integers in minor units; formatting never writes | `integerToCurrency` divides for display only | `formatMoneyCents` reads the `Long`; no formatter writes | Match |
-| Typed amounts | `amountToInteger` (`Math.round(amount × 10^dp)`) | `parseInputCents`: `BigDecimal.movePointRight(2).longValueExact()`, more than 2 decimals rejected | Match for 2-decimal currencies (no float round trip) |
+| Typed amounts | `amountToInteger` (`Math.round(amount × 10^dp)`) | `parseInputCents`: `BigDecimal.movePointRight(dp).longValueExact()`, more decimals than the currency has are rejected | Match (no float round trip) |
 | Editing with decimals hidden | edit text still uses the currency's decimals | `centsToInput` always shows both decimals, so a hidden fraction is never lost on save | Match |
-| Decimal places per currency | `IRR`, `JPY`, `KRW` = 0, others 2 | always 2 | **Divergence** ([#971](https://github.com/azimul-kabir/actua/issues/971)) |
+| Decimal places per currency | `useFormat`: `IRR`, `JPY`, `KRW` = 0, others 2, for display, transaction and rule amount entry | the same for display, amount entry (`CalculatorAmountState`, `parseInputCents`), rule amounts and credit-card limits (`CurrencyDisplay.decimalPlaces`) | Match ([#971](https://github.com/azimul-kabir/actua/issues/971)) |
+| Decimal places in search and file import | always 2: `transactionsSearch` and `ImportTransactionsModal` use `amountToInteger(amount)` | always 2 | Match (upstream doesn't apply the currency's places here either) |
 | Hidden fraction rounding | `Intl.NumberFormat` rounds half away from zero; `-0` → `0` | drops the cents (`1,234.56` → `1,234`; `-0.40` → `−0`) | **Divergence** ([#972](https://github.com/azimul-kabir/actua/issues/972)), display only |
 | Separators | five synced formats | device-local: system, `1,234.56`, `1.234,56`, `1 234,56`, `1234.56`, `1,23,456.78`; no `apostrophe-dot` | **Divergence** ([#973](https://github.com/azimul-kabir/actua/issues/973)) |
 | Negative amounts | `-` before the symbol (`-$12.00`) | `−` (U+2212) before the symbol | Device-local (presentation only; same meaning) |
@@ -129,7 +130,7 @@ Tests: `src/test/.../ui/components/MoneyFormatterTest` (`hidingDecimalsOnlyChang
 
 | Issue | Severity | Summary |
 | --- | --- | --- |
-| [#971](https://github.com/azimul-kabir/actua/issues/971) | P2 | Zero-decimal currencies (`JPY`, `KRW`, `IRR`) are shown and entered 100× off |
+| [#971](https://github.com/azimul-kabir/actua/issues/971) | P2 | Zero-decimal currencies (`JPY`, `KRW`, `IRR`) are shown and entered 100× off (fixed) |
 | [#972](https://github.com/azimul-kabir/actua/issues/972) | Lower | Hidden decimals truncate instead of rounding |
 | [#973](https://github.com/azimul-kabir/actua/issues/973) | Lower | Display ignores the budget's synced number, date, fraction, privacy and currency preferences |
 | [#974](https://github.com/azimul-kabir/actua/issues/974) | Lower | Demo budget's credit-card limit uses the wrong field |

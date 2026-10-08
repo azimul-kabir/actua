@@ -57,6 +57,7 @@ import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.components.ActuaMenuRow
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
+import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.success
@@ -217,13 +218,13 @@ private fun CardEditorSheet(
     var offset by remember { mutableStateOf((card?.config?.dueOffsetDays ?: CreditCardCycle.DEFAULT_DUE_OFFSET_DAYS).toString()) }
     var useFixedDueDay by remember { mutableStateOf(card?.config?.dueDay != null) }
     var dueDay by remember { mutableStateOf((card?.config?.dueDay ?: 1).toString()) }
-    var limit by remember { mutableStateOf(card?.config?.limitCents?.let { BigDecimal(it).movePointLeft(2).toPlainString() }.orEmpty()) }
+    var limit by remember { mutableStateOf(card?.config?.limitCents?.let { BigDecimal(it).movePointLeft(CurrencyDisplay.decimalPlaces).toPlainString() }.orEmpty()) }
     val account = accounts.firstOrNull { it.id == accountId }
     val validDay = day.toIntOrNull()?.takeIf { it in 1..31 }
     val validOffset = offset.toIntOrNull()?.takeIf { it in 1..CreditCardCycle.MAX_DUE_OFFSET_DAYS }
     val validDueDay = dueDay.toIntOrNull()?.takeIf { it in 1..31 }
     val limitCents = runCatching { limit.takeIf(String::isNotBlank)?.let {
-        BigDecimal(it).movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact().takeIf { cents -> cents > 0 }
+        BigDecimal(it).movePointRight(CurrencyDisplay.decimalPlaces).setScale(0, RoundingMode.HALF_UP).longValueExact().takeIf { cents -> cents > 0 }
     } }.getOrNull()
     val validPaymentDue = if (useFixedDueDay) validDueDay != null else validOffset != null
     val numberKeyboard = KeyboardOptions(keyboardType = KeyboardType.Number)

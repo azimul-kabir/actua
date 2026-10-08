@@ -15,13 +15,9 @@ object BudgetMovementNote {
     const val TO_BUDGET = "To Budget"
     const val OVERBUDGETED = "Overbudgeted"
 
-    /** Currencies Actual stores without minor units (`shared/currencies.ts`); every other one has 2. */
-    private val zeroDecimalCurrencies = setOf("IRR", "JPY", "KRW")
-
     fun noteId(month: String) = "budget-$month"
 
-    fun decimalPlaces(currencyCode: String?): Int =
-        if (currencyCode?.uppercase(Locale.ROOT) in zeroDecimalCurrencies) 0 else 2
+    fun decimalPlaces(currencyCode: String?): Int = CurrencyDecimals.of(currencyCode)
 
     /**
      * Upstream `integerToCurrency(amount, undefined, decimalPlaces)` on the server: the integer amount
