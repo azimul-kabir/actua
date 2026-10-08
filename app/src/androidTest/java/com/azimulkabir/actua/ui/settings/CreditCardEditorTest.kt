@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardCycle
@@ -40,6 +41,7 @@ class CreditCardEditorTest {
         compose.onNodeWithContentDescription("Add credit card").performClick()
         compose.onNodeWithText("Visa", useUnmergedTree = true).assertExists()
         compose.onAllNodes(hasSetTextAction()).onFirst().performTextReplacement("20")
+        closeSoftKeyboard()
         compose.onNodeWithText("Save").performClick()
 
         assertEquals(
