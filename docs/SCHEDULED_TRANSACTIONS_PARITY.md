@@ -88,7 +88,7 @@ fixture is stale. See the [fixture README](tools/schedules-fixture/README.md).
 
 | Consumer | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| Upcoming rows in transaction lists | `computeSchedulePreviewTransactions` ([`LC/shared/schedules.ts#L403-L494`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/shared/schedules.ts#L403-L494)): every occurrence in the window, `paid` schedules' later occurrences, account-less schedules | `upcomingTransactionsFrom`: one row per due/upcoming/missed schedule with an account | **Divergence** [#936](https://github.com/azimul-kabir/actua/issues/936) |
+| Upcoming rows in transaction lists | `computeSchedulePreviewTransactions` ([`LC/shared/schedules.ts#L403-L494`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/shared/schedules.ts#L403-L494)): every occurrence in the window, `paid` schedules' later occurrences, account-less schedules | `upcomingTransactionsFrom`: the same walk over due/upcoming/missed/paid schedules, leaving out a paid schedule's next date; account-less rows show in the all-accounts list | Match ([#936](https://github.com/azimul-kabir/actua/issues/936)) |
 | Balance Forecast | `buildFutureScheduleOccurrences` / `getFutureOccurrenceDates` (`LC/server/forecast/forecast-schedules.ts`): occurrences through the end date, posted occurrences skipped, transfer schedules mirrored, account-less schedules bucketed | `CoreReportEngine.balanceForecast` (`data/reports/CoreReportEngine.kt:506`) walking `ScheduleRecurrence.upcomingDates` | Match ([#539](https://github.com/azimul-kabir/actua/issues/539), [#621](https://github.com/azimul-kabir/actua/issues/621), [#630](https://github.com/azimul-kabir/actua/issues/630), [#631](https://github.com/azimul-kabir/actua/issues/631); `CoreReportEngineTest`) |
 | Cover-schedule budget templates | `schedule-template.ts` | `ActuaRepository.budgetScheduleFunding` (`:641`) | Match (budget-templates parity check, `docs/BUDGET_AUTOMATION_PARITY.md`) |
 | Home-screen widget and Home "Upcoming" | no equivalent | `ScheduleWidgetProjection`: next date of due/upcoming/missed/scheduled schedules | **Intentional** (Android only) |
@@ -245,7 +245,7 @@ matches it closely:
 | --- | --- | --- |
 | [#934](https://github.com/azimul-kabir/actua/issues/934) | P2 | Posting a transfer schedule creates only one leg (fixed) |
 | [#935](https://github.com/azimul-kabir/actua/issues/935) | P2 | Paid schedules don't advance, paid one-off schedules never complete, and a due-today auto-post advances at once (fixed) |
-| [#936](https://github.com/azimul-kabir/actua/issues/936) | Lower | Upcoming rows show one occurrence per schedule and leave out paid and account-less schedules |
+| [#936](https://github.com/azimul-kabir/actua/issues/936) | Lower | Upcoming rows show one occurrence per schedule and leave out paid and account-less schedules (fixed) |
 | [#937](https://github.com/azimul-kabir/actua/issues/937) | Lower | The budget-wide upcoming length setting is ignored |
 | [#938](https://github.com/azimul-kabir/actua/issues/938) | Lower | Editing a schedule allows another schedule's name |
 
