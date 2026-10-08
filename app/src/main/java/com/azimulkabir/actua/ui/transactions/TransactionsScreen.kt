@@ -953,6 +953,16 @@ private fun ReconcileAccountScreen(
                                 bankBalance = account.clearedCents
                                 calculatorKey++
                             }) { Text("Use cleared balance") }
+                            // Actual's "Last Balance from Bank" / "Use last synced total" (#995).
+                            account.lastSyncedBalanceCents?.let { synced ->
+                                Text("Last balance from bank: ${formatReconciliationMoney(synced, hideDecimalPlaces)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                TextButton(onClick = {
+                                    bankBalance = synced
+                                    calculatorKey++
+                                }) { Text("Use last synced total") }
+                            }
                         }
                     }
                 }
