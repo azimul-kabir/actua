@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Account groups in the Accounts list show their total balance ([#925](https://github.com/azimul-kabir/actua/pull/925))
 - Budget actions from Actual: set budgets to a 3, 6 or 12-month average, copy one category's last month or copy it to the rest of the year, and hold income automatically ([#917](https://github.com/azimul-kabir/actua/pull/917))
 - Moving or covering budget money adds a "Reassigned …" line to the month's notes, as Actual does ([#915](https://github.com/azimul-kabir/actua/pull/915))
 - The payee picker suggests your favorite and most-used payees first ([#904](https://github.com/azimul-kabir/actua/pull/904))
