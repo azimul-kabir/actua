@@ -1832,30 +1832,7 @@ class ActuaRepository(context: Context) {
         val db = actualDatabase ?: return false
         val writer = actualWriter ?: return false
         require(db.fetchAccounts().any { it.id == accountId && !it.closed }) { "That account is unavailable" }
-        writer.createTransaction(
-            ActualTransaction(
-                id = java.util.UUID.randomUUID().toString().lowercase(),
-                accountId = accountId,
-                date = DayDate.today().yyyymmdd,
-                amountCents = amountCents,
-                payeeId = null,
-                payeeName = null,
-                categoryId = null,
-                categoryName = null,
-                notes = "Reconciliation balance adjustment",
-                cleared = true,
-                reconciled = false,
-                transferId = null,
-                isParent = false,
-                parentId = null,
-                tombstone = false,
-                sortOrder = System.currentTimeMillis().toDouble(),
-                importedPayee = null,
-                scheduleId = null,
-                transferAccountId = null,
-            ),
-            applyRules = false,
-        )
+        writer.createReconciliationAdjustment(accountId, amountCents, DayDate.today().yyyymmdd)
         return true
     }
 

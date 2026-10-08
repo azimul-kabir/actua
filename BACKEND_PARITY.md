@@ -374,9 +374,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   transaction history, including transfers, splits, and the opening balance
 - Full mobile account reconciliation with bank-balance comparison, difference display,
   uncleared-transaction review, optional cleared adjustment, and atomic CRDT locking
-  of every cleared stored row including split parents and children. Rules on the adjustment,
-  `last_reconciled` and "Use last synced total" aren't ported yet
-  ([#993](https://github.com/azimul-kabir/actua/issues/993)–[#995](https://github.com/azimul-kabir/actua/issues/995))
+  of every cleared stored row including split parents and children; the adjustment runs through
+  the rules like Actual's. `last_reconciled` and "Use last synced total" aren't ported yet
+  ([#994](https://github.com/azimul-kabir/actua/issues/994), [#995](https://github.com/azimul-kabir/actua/issues/995))
 - Actual's reconciled-row guards: reconciled rows show a lock that unlocks them after Actual's
   `unlockReconciled` confirmation, bulk cleared edits skip them, the editor shows a locked
   Reconciled toggle, edits keep a reconciled row cleared, moving one to another account clears

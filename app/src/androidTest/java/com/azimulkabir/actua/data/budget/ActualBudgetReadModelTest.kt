@@ -908,6 +908,26 @@ class ActualBudgetReadModelTest {
         }
     }
 
+    /** #993: like Actual's `createReconciliationTransaction`, the adjustment runs through the rules. */
+    @Test
+    fun reconciliationAdjustmentRunsRulesLikeActual() = withScheduleVariant(
+        """INSERT INTO rules VALUES ('adjustment-rule',NULL,'and',
+            '[{"op":"contains","field":"notes","value":"Reconciliation"}]',
+            '[{"op":"set","field":"category","value":"grocery"}]',0)""",
+    ) { database ->
+        val writer = ActualTransactionWriter(database, "adadadadadadadad", idFactory = { "adjustment" })
+        writer.createReconciliationAdjustment("checking", 250, 20260910)
+
+        val row = requireNotNull(database.fetchTransaction("adjustment"))
+        assertEquals("grocery", row.categoryId)
+        assertEquals(250L, row.amountCents)
+        assertEquals(20260910, row.date)
+        assertEquals(ActualTransactionWriter.RECONCILIATION_ADJUSTMENT_NOTE, row.notes)
+        assertTrue(row.cleared)
+        assertTrue(!row.reconciled)
+        assertNull(row.payeeId)
+    }
+
     /** #934: like loot-core `addTransactions` → `addTransfer`, a transfer payee posts both legs. */
     @Test
     fun postingToATransferPayeeCreatesBothLegsLinkedToTheSchedule() = withDatabase { database ->
