@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Markdown dashboard widgets show formatted text instead of Markdown syntax ([#969](https://github.com/azimul-kabir/actua/pull/969))
 - Budget Analysis counts visible categories in hidden groups and handles unsupported filters as Actual does ([#968](https://github.com/azimul-kabir/actua/pull/968))
 - The Age of Money chart follows its daily, weekly or monthly setting ([#967](https://github.com/azimul-kabir/actua/pull/967))
 - Saved reports' All time range includes future-dated transactions, and averages start at the first transaction ([#966](https://github.com/azimul-kabir/actua/pull/966))
