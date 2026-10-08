@@ -39,7 +39,7 @@ class TagTextTest {
     }
 
     @Test
-    fun `mixed note becomes plain and recognized tag segments without changing text`() {
+    fun `mixed note makes every tag a chip without changing text`() {
         val notes = "Home-School-Office #school #unknown ##escaped #Adeeba"
         val segments = tagSegments(
             notes = notes,
@@ -51,19 +51,23 @@ class TagTextTest {
 
         assertEquals(notes, segments.joinToString("") { it.text })
         val tags = segments.filterIsInstance<TagNoteSegment.Tag>()
-        assertEquals(listOf("school", "Adeeba"), tags.map { it.name })
+        // Actual's parseNotes: every #tag is a chip; one without a color uses the theme default (null here).
+        assertEquals(listOf("school", "unknown", "Adeeba"), tags.map { it.name })
         assertEquals(Color(0xFFF2B632), tags[0].color)
-        assertEquals(Color(0xFF6A1B9A), tags[1].color)
-        assertTrue(segments.filterIsInstance<TagNoteSegment.Plain>().any { "#unknown" in it.text })
+        assertNull(tags[1].color)
+        assertEquals(Color(0xFF6A1B9A), tags[2].color)
         assertTrue(segments.filterIsInstance<TagNoteSegment.Plain>().any { "##escaped" in it.text })
     }
 
     @Test
-    fun `unknown and malformed tag metadata stays plain text`() {
+    fun `unknown and malformed tag colors fall back to the default chip color`() {
         val notes = "#unknown #broken"
         val segments = tagSegments(notes, mapOf("broken" to "not-a-color"))
 
-        assertEquals(listOf(TagNoteSegment.Plain(notes)), segments)
+        assertEquals(
+            listOf(TagNoteSegment.Tag("unknown", null), TagNoteSegment.Plain(" "), TagNoteSegment.Tag("broken", null)),
+            segments,
+        )
     }
 
     @Test

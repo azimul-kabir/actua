@@ -121,7 +121,6 @@ import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
-import com.azimulkabir.actua.data.budget.DEFAULT_TAG_COLOR
 import com.azimulkabir.actua.ui.theme.AmountTypography
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
@@ -850,7 +849,7 @@ fun TransactionsScreen(
                     TextButton(
                         enabled = newTagName.isNotBlank(),
                         onClick = {
-                            val created = runCatching { tagRepository.create(newTagName, DEFAULT_TAG_COLOR) }.getOrNull()
+                            val created = runCatching { tagRepository.create(newTagName) }.getOrNull()
                             if (created != null) {
                                 tagVersion += 1
                                 showLabelPicker = false

@@ -83,7 +83,10 @@ internal fun TagAutocompleteField(
     val expanded = focused && token != null && tokenKey != dismissedToken && (matches.isNotEmpty() || showCreate)
     val tagColors = remember(tags) { tags.mapNotNull { tag -> tag.color?.let { tag.tag to it } }.toMap() }
     val darkTheme = isSystemInDarkTheme()
-    val tagHighlight = remember(tagColors, darkTheme) { tagHighlightTransformation(tagColors, darkTheme) }
+    val defaultTagColor = MaterialTheme.colorScheme.primary
+    val tagHighlight = remember(tagColors, darkTheme, defaultTagColor) {
+        tagHighlightTransformation(tagColors, darkTheme, defaultTagColor)
+    }
 
     Column(modifier) {
         BasicTextField(
@@ -188,13 +191,15 @@ internal fun TagAutocompleteField(
 internal fun tagHighlightTransformation(
     tagColors: Map<String, String>,
     darkTheme: Boolean,
+    /** For tags with no stored color, as [com.azimulkabir.actua.ui.components.TagNoteText] draws them. */
+    defaultTagColor: Color,
 ): VisualTransformation = VisualTransformation { text ->
     val occurrences = findTagOccurrences(text.text)
     if (occurrences.isEmpty()) return@VisualTransformation TransformedText(text, OffsetMapping.Identity)
     val annotated = buildAnnotatedString {
         append(text.text)
         occurrences.forEach { occurrence ->
-            val color = parseTagColor(tagColors[occurrence.name]) ?: return@forEach
+            val color = parseTagColor(tagColors[occurrence.name]) ?: defaultTagColor
             addStyle(
                 SpanStyle(
                     color = tagChipForeground(color, darkTheme),

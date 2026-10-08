@@ -38,9 +38,10 @@ internal sealed interface TagNoteSegment {
 
     data class Plain(override val text: String) : TagNoteSegment
 
+    /** [color] is null for a tag with no stored color, or no managed tag at all: drawn in the theme's color. */
     data class Tag(
         val name: String,
-        val color: Color,
+        val color: Color?,
     ) : TagNoteSegment {
         override val text: String = "#$name"
     }
@@ -101,8 +102,9 @@ internal fun tagSegments(
     tagColors: Map<String, String>,
 ): List<TagNoteSegment> {
     if (notes.isEmpty()) return emptyList()
-    val recognized = findTagOccurrences(notes).mapNotNull { occurrence ->
-        parseTagColor(tagColors[occurrence.name])?.let { occurrence to it }
+    // Actual's parseNotes makes every #tag a chip; a tag without a color uses the theme's default.
+    val recognized = findTagOccurrences(notes).map { occurrence ->
+        occurrence to parseTagColor(tagColors[occurrence.name])
     }
     if (recognized.isEmpty()) return listOf(TagNoteSegment.Plain(notes))
 
@@ -169,6 +171,7 @@ fun TagNoteText(
 ) {
     val segments = remember(notes, tagColors) { tagSegments(notes, tagColors) }
     val darkTheme = isSystemInDarkTheme()
+    val defaultTagColor = MaterialTheme.colorScheme.primary
 
     FlowRow(
         modifier = modifier,
@@ -179,7 +182,7 @@ fun TagNoteText(
             when (segment) {
                 is TagNoteSegment.Plain -> Text(segment.text, style = style)
                 is TagNoteSegment.Tag -> Surface(
-                    color = tagChipBackground(segment.color, darkTheme),
+                    color = tagChipBackground(segment.color ?: defaultTagColor, darkTheme),
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.padding(
                         start = if (index > 0 && segments[index - 1] is TagNoteSegment.Tag) 2.dp else 0.dp,
@@ -188,7 +191,7 @@ fun TagNoteText(
                     Text(
                         text = segment.text,
                         style = style,
-                        color = tagChipForeground(segment.color, darkTheme),
+                        color = tagChipForeground(segment.color ?: defaultTagColor, darkTheme),
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     )
