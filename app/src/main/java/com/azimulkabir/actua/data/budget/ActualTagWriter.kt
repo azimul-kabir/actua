@@ -24,11 +24,17 @@ class ActualTagWriter(
 
     init { database.maxMessageTimestamp()?.let(HlcTimestamp::parse)?.let(clock::advance) }
 
+    /**
+     * Actual's `createTag`: a name that already has a row, even a deleted one, reuses that row and
+     * clears its tombstone. `tags.tag` is UNIQUE, so a second row with the name would fail to apply
+     * here and on every Actual client.
+     */
     @Synchronized
     fun create(tag: String, color: String? = null, description: String? = null): String {
-        val id = idFactory()
+        val name = validTag(tag)
+        val id = database.fetchTagRowByName(name)?.id ?: idFactory()
         persist(fields(id, linkedMapOf(
-            "tag" to validTag(tag),
+            "tag" to name,
             "color" to color?.trim()?.takeIf(String::isNotEmpty),
             "description" to description,
             "tombstone" to 0,
@@ -48,7 +54,14 @@ class ActualTagWriter(
     ) {
         require(id.isNotBlank())
         val values = linkedMapOf<String, Any?>()
-        tag?.let { values["tag"] = validTag(it) }
+        tag?.let {
+            val name = validTag(it)
+            // Actual's `renameTag` rejects a name held by any other row, deleted ones included.
+            require(database.fetchTagRowByName(name)?.id.let { owner -> owner == null || owner == id }) {
+                "A tag with that name already exists"
+            }
+            values["tag"] = name
+        }
         if (updateColor) values["color"] = color?.trim()?.takeIf(String::isNotEmpty)
         if (updateDescription) values["description"] = description
         hidden?.let { values["hidden"] = if (it) 1 else 0 }

@@ -49,7 +49,7 @@ Audit of tags against Actual Budget, tracked in
 | `tags(id, tag UNIQUE, color, description, tombstone, hidden)` | migrations `1749799110000`, `1749799110001`, `1780327681000` | same migrations and blank-budget schema; reads tolerate older budgets missing `hidden` or `tombstone` (`data/budget/TagMetadataStore.kt:50`) | Match |
 | Writes go through CRDT messages | `db.insertTag`/`updateTag`/`delete_` | `ActualTagWriter` → `applyLocalMessages` | Match |
 | Name: trimmed, no whitespace or `#`, not empty | `renameTag` check; `createTag` trims | `validateTagName` / `ActualTagWriter.validTag` | Match |
-| Create a name that exists | updates the existing row, deleted or live, and clears `tombstone` | returns a live match; a deleted match gets a **new** row with the same `tag`, which breaks the UNIQUE column and Actual's sync | **Divergence** ([#983](https://github.com/azimul-kabir/actua/issues/983)) |
+| Create a name that exists | updates the existing row, deleted or live, and clears `tombstone` | returns a live match; a deleted match is brought back on its own row (`ActualTagWriter.create`, `ActualBudgetDatabase.fetchTagRowByName`) | Match ([#983](https://github.com/azimul-kabir/actua/issues/983)) |
 | Color on create | trimmed, `null` when empty; tags created from a note get `null` | trimmed, `null` when empty; tags created from a note or Label get `#690CB0` | **Divergence** ([#986](https://github.com/azimul-kabir/actua/issues/986)) |
 | Description | stored as typed | blank stored as `null` | Intentional (other clients show an empty description either way) |
 | Edit | writes the fields passed | writes name (if changed), color, description and hidden | Match |
@@ -62,7 +62,7 @@ Audit of tags against Actual Budget, tracked in
 
 | Item | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| Name taken | rejected when any other row has it, deleted ones included | rejected only for live tags; a deleted tag's name breaks the UNIQUE column | **Divergence** ([#983](https://github.com/azimul-kabir/actua/issues/983)) |
+| Name taken | rejected when any other row has it, deleted ones included | same, checked before any note is rewritten | Match ([#983](https://github.com/azimul-kabir/actua/issues/983)) |
 | Notes rewritten | `renameTagInNotes`, case-sensitive, `(?<!#)#old(?=[\s#]\|$)`, on every live `transactions` row | same token rule (`ActiveTagRepository.renameTagInNotes`), parent notes only | Split lines: **Divergence** ([#984](https://github.com/azimul-kabir/actua/issues/984)) |
 | One batch | tag and notes in one `batchMessages` | two separate writes | **Divergence** ([#984](https://github.com/azimul-kabir/actua/issues/984)) |
 
@@ -97,7 +97,7 @@ follows another `#` never starts a tag. All of the following come from the corpu
 
 | Issue | Severity | Summary |
 | --- | --- | --- |
-| [#983](https://github.com/azimul-kabir/actua/issues/983) | P1 | Creating or renaming to a deleted tag's name adds a second row with that name and breaks sync for Actual clients |
+| [#983](https://github.com/azimul-kabir/actua/issues/983) | P1 | Creating or renaming to a deleted tag's name adds a second row with that name and breaks sync for Actual clients (fixed) |
 | [#984](https://github.com/azimul-kabir/actua/issues/984) | P2 | Rename skips split-line notes and isn't one atomic write |
 | [#985](https://github.com/azimul-kabir/actua/issues/985) | Lower | `###tag`, case in views and report filters, and Unicode spaces in rules |
 | [#986](https://github.com/azimul-kabir/actua/issues/986) | Lower | Tags with no color aren't shown as chips; tags created from notes get a default color |
