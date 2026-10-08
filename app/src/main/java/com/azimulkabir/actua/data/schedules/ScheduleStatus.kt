@@ -3,6 +3,13 @@ package com.azimulkabir.actua.data.schedules
 enum class ScheduleStatus { COMPLETED, PAID, DUE, UPCOMING, MISSED, SCHEDULED }
 
 object ScheduleUpcomingLength {
+    /**
+     * The window a schedule uses, as Actual picks it: its own `custom_upcoming_length`, else the
+     * budget's synced `upcomingScheduledTransactionLength` preference, else (in [days]) 7 days.
+     */
+    fun effective(custom: String?, budgetDefault: String?): String? =
+        custom?.takeIf(String::isNotEmpty) ?: budgetDefault?.takeIf(String::isNotEmpty)
+
     fun days(raw: String?, today: DayDate): Int {
         val value = raw?.takeIf(String::isNotEmpty) ?: "7"
         val monthStart = DayDate(today.year, today.month, 1)

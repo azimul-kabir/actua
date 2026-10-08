@@ -67,7 +67,7 @@ fixture is stale. See the [fixture README](tools/schedules-fixture/README.md).
 | `completed`; restart recomputes the next date from today (`reset`) | `updateSchedule` + `setNextDate` | `ActuaRepository.setScheduleCompleted` | Match |
 | `sort_order` column; `schedule/move` | migration `1783004650757_schedule_sort_order`; `db.moveSchedule` (no client UI calls it) | column migrated and in new budgets; no move action | Match (column) / **N/A** (move) |
 | Status: `completed` → `paid` → `due` → `upcoming` → `missed` → `scheduled`; window presets and `<n>-day/week/month/year` | `getStatus`, `getUpcomingDays` ([`LC/shared/schedules.ts#L52-L77`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/shared/schedules.ts#L52-L77), [`#L349-L388`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/shared/schedules.ts#L349-L388)) | `ScheduleStatusCalculator`, `ScheduleUpcomingLength` | Match (`ScheduleStatusTest`) |
-| Window when a schedule has no `custom_upcoming_length`: the synced `upcomingScheduledTransactionLength` preference, else 7 days | `useSchedules` ([`DC/hooks/useSchedules.ts#L78`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/hooks/useSchedules.ts#L78)), `advanceSchedulesService` | always 7 days | **Divergence** [#937](https://github.com/azimul-kabir/actua/issues/937) |
+| Window when a schedule has no `custom_upcoming_length`: the synced `upcomingScheduledTransactionLength` preference, else 7 days | `useSchedules` ([`DC/hooks/useSchedules.ts#L78`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/hooks/useSchedules.ts#L78)), `advanceSchedulesService` | `ScheduleUpcomingLength.effective`: the schedule's length, else the synced preference, else 7 days, for statuses and upcoming rows | Match ([#937](https://github.com/azimul-kabir/actua/issues/937)) |
 | Paid match window: from the occurrence (`is` date or auto-post) or 2 days before it | `getScheduleOccurrenceMatchStartDate` ([`#L90-L106`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/shared/schedules.ts#L90-L106)) | `ScheduleStatusCalculator.occurrenceMatchStartDate`, `fetchPaidScheduleIds` | Match |
 
 ### Posting and the daily service
@@ -246,7 +246,7 @@ matches it closely:
 | [#934](https://github.com/azimul-kabir/actua/issues/934) | P2 | Posting a transfer schedule creates only one leg (fixed) |
 | [#935](https://github.com/azimul-kabir/actua/issues/935) | P2 | Paid schedules don't advance, paid one-off schedules never complete, and a due-today auto-post advances at once (fixed) |
 | [#936](https://github.com/azimul-kabir/actua/issues/936) | Lower | Upcoming rows show one occurrence per schedule and leave out paid and account-less schedules (fixed) |
-| [#937](https://github.com/azimul-kabir/actua/issues/937) | Lower | The budget-wide upcoming length setting is ignored |
+| [#937](https://github.com/azimul-kabir/actua/issues/937) | Lower | The budget-wide upcoming length setting is ignored (fixed) |
 | [#938](https://github.com/azimul-kabir/actua/issues/938) | Lower | Editing a schedule allows another schedule's name |
 
 The recurrence fixture found no divergence: next dates, skips and month-end, leap-year, weekend

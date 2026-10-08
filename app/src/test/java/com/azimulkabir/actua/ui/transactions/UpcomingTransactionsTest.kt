@@ -81,6 +81,12 @@ class UpcomingTransactionsTest {
             listOf("20261019", "20261012", "20261005"),
             upcomingTransactionsFrom(listOf(global), today = date, defaultUpcomingLength = "2-week").map { it.date },
         )
+        // A schedule's own length wins over the budget-wide one.
+        val both = item("w", ScheduleStatus.DUE, dateCondition = weekly(date), customUpcomingLength = "7")
+        assertEquals(
+            listOf("20261012", "20261005"),
+            upcomingTransactionsFrom(listOf(both), today = date, defaultUpcomingLength = "2-week").map { it.date },
+        )
     }
 
     @Test fun paidRecurringScheduleLeavesOutItsPaidNextDate() {

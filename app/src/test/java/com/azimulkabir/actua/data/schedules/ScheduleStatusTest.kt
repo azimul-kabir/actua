@@ -22,6 +22,24 @@ class ScheduleStatusTest {
         assertEquals(7, ScheduleUpcomingLength.days("garbage", today))
     }
 
+    /** #937: a schedule's own length wins, then the budget-wide preference, then 7 days. */
+    @Test fun effectiveUpcomingLengthFallsBackToTheBudgetPreference() {
+        assertEquals("oneMonth", ScheduleUpcomingLength.effective("oneMonth", "2-week"))
+        assertEquals("2-week", ScheduleUpcomingLength.effective(null, "2-week"))
+        assertEquals("2-week", ScheduleUpcomingLength.effective("", "2-week"))
+        assertEquals(null, ScheduleUpcomingLength.effective(null, null))
+
+        val tenDaysOut = today.addingDays(10)
+        assertEquals(
+            ScheduleStatus.SCHEDULED,
+            ScheduleStatusCalculator.status(tenDaysOut, false, false, ScheduleUpcomingLength.effective(null, null), today),
+        )
+        assertEquals(
+            ScheduleStatus.UPCOMING,
+            ScheduleStatusCalculator.status(tenDaysOut, false, false, ScheduleUpcomingLength.effective(null, "2-week"), today),
+        )
+    }
+
     @Test fun calendarMathClampsMonthsAndIgnoresDst() {
         assertEquals(DayDate(2025, 2, 28), DayDate(2025, 1, 31).addingMonths(1))
         assertEquals(2, DayDate(2026, 3, 7).daysUntil(DayDate(2026, 3, 9)))
