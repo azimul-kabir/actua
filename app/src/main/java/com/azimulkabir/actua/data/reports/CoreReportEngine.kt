@@ -449,14 +449,14 @@ object CoreReportEngine {
     ): ReportWidget {
         val conditions = parseConditions(meta)
         val categoryConditions = conditions.first.filter { it.field == "category" || it.field == "category_group" }
-        val supported = categoryConditions.all {
-            it.op in setOf("is", "isNot", "oneOf", "notOneOf", "contains", "doesNotContain", "matches")
-        }
         val showHidden = meta?.optBoolean("showHiddenCategories", false) ?: false
+        // Upstream's `isBaseCategory` checks only the category's own hidden flag, so a visible
+        // category in a hidden group still counts; a condition operator it doesn't handle matches
+        // no category (so an `and` widget with one is empty), unlike Spending's budget fallback.
         fun selected(month: YearMonth): List<ActualCategoryBudget> {
             val budget = budgetMonth(month) ?: return emptyList()
-            val pool = if (showHidden) budget.categories + budget.hiddenCategories else budget.categories
-            return if (categoryConditions.isEmpty() || !supported) pool else pool.filter {
+            val pool = (budget.categories + budget.hiddenCategories).filter { showHidden || !it.hidden }
+            return if (categoryConditions.isEmpty()) pool else pool.filter {
                 categoryMatches(it.categoryId, categoryConditions, conditions.second, context)
             }
         }

@@ -253,12 +253,12 @@ Upstream: [`S/budget-analysis-spreadsheet.ts`][budget-analysis], [`W/BudgetAnaly
 | --- | --- | --- | --- |
 | Budgeted, spent and leftover read from budget-engine cells; income categories excluded | `envelope-budget-month` | `fetchBudgetMonth` | Match |
 | Headline = last month's balance (budgeted + spent + carried leftover) | `intervalData.at(-1).balance` | last point's available | Match |
-| `showHiddenCategories` | `isBaseCategory` (category's own flag) | hidden list from the read model | **Divergence** [#956](https://github.com/azimul-kabir/actua/issues/956) (hidden group edge case) |
-| Category/group conditions; unsupported operator | matches nothing | ignored (all categories) | **Divergence** [#956](https://github.com/azimul-kabir/actua/issues/956) |
+| `showHiddenCategories` | `isBaseCategory` (category's own flag) | same | Match (#956) |
+| Category/group conditions; unsupported operator | matches nothing | same | Match (#956) |
 | Default range | last 6 months | same | Match (#948) |
 | `graphType`, `balanceOnly` | chart style | bar chart | **Intentional** |
 
-Tests: `src/androidTest/.../data/reports/CoreReportEngineTest.budgetAnalysisScopesBudgetedAndSpentToCategoryConditionsAndTracksBalance`, `.budgetAnalysisExcludesHiddenCategoriesUnlessRequested`.
+Tests: `BudgetAnalysisCategoryTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.budgetAnalysisScopesBudgetedAndSpentToCategoryConditionsAndTracksBalance`, `.budgetAnalysisExcludesHiddenCategoriesUnlessRequested`.
 
 ### Sankey (`sankey-card`)
 

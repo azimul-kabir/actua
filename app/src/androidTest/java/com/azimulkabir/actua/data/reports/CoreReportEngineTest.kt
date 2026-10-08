@@ -380,7 +380,7 @@ class CoreReportEngineTest {
             "2026-05",
             listOf(categoryBudget("food", budgeted = 1_000, spent = -400, available = 600)),
             emptyList(), null,
-            listOf(categoryBudget("gifts", budgeted = 500, spent = 0, available = 500)),
+            listOf(categoryBudget("gifts", budgeted = 500, spent = 0, available = 500, hidden = true)),
             emptyList(),
         )
         val hiddenExcluded = CoreReportEngine.compute(
@@ -397,10 +397,11 @@ class CoreReportEngineTest {
         assertEquals(1_500L, hiddenIncluded.points.single().primaryCents)
     }
 
-    private fun categoryBudget(id: String, budgeted: Long, spent: Long, available: Long) = ActualCategoryBudget(
-        "2026-05", id, id, "group", "Group", 1.0, 1.0, budgeted, spent, available,
-        available - budgeted - spent, false, false, null, false, false, null, null, null,
-    )
+    private fun categoryBudget(id: String, budgeted: Long, spent: Long, available: Long, hidden: Boolean = false) =
+        ActualCategoryBudget(
+            "2026-05", id, id, "group", "Group", 1.0, 1.0, budgeted, spent, available,
+            available - budgeted - spent, hidden, false, null, false, false, null, null, null,
+        )
 
     private fun transaction(
         id: String,
