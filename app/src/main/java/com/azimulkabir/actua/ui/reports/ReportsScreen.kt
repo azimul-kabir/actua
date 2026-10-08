@@ -494,6 +494,7 @@ private fun WidgetCard(
                         )
                         ComparativeTrendChart(widget.points, "Median", "Conservative", hideDecimals)
                     }
+                    ReportWidgetKind.MISSING_REPORT -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     ReportWidgetKind.UNSUPPORTED -> Unit
                 }
             }

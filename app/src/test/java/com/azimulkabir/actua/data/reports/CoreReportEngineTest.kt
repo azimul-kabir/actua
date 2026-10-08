@@ -676,3 +676,34 @@ class TimeFrameTest {
         assertEquals(-3_000L, widget.valueCents)
     }
 }
+
+/** Upstream `CustomReportListCards`: a widget whose saved report is gone shows a placeholder (actua#949). */
+class MissingCustomReportTest {
+    private val today = LocalDate.of(2026, 8, 20)
+
+    private fun tx(id: String, date: Int, amount: Long) = ActualTransaction(
+        id, "a", date, amount, null, null, null, null, null, false, false, null, false, null, false, null, null, null, null)
+
+    private fun widgets(savedReports: List<SavedReportRow>) = CoreReportEngine.dashboards(
+        pages = emptyList(),
+        widgets = { listOf(DashboardWidgetRow("w", "custom-report", """{"id":"r1"}""")) },
+        transactions = listOf(tx("spent", 20260805, -2_000)),
+        accounts = emptyList(), groups = emptyList(), savedReports = savedReports, today = today,
+    ).single().widgets
+
+    @Test fun `a widget for a deleted saved report shows no totals`() {
+        val widget = widgets(emptyList()).single()
+        assertEquals(ReportWidgetKind.MISSING_REPORT, widget.kind)
+        assertEquals("This custom report has been deleted.", widget.markdown)
+        assertEquals(null, widget.valueCents)
+        assertEquals(0, widget.categories.size + widget.points.size)
+    }
+
+    @Test fun `a widget for a live saved report still renders it`() {
+        val report = SavedReportRow("r1", "Spending", null, null, false, "This month", "Category", "Payment",
+            false, false, true, null, "BarGraph", null, "and", "Monthly")
+        val widget = widgets(listOf(report)).single()
+        assertEquals(ReportWidgetKind.CUSTOM_REPORT, widget.kind)
+        assertEquals("Spending", widget.name)
+    }
+}

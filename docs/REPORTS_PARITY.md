@@ -41,12 +41,13 @@ Actua: `ActualBudgetDatabase.fetchDashboardPages` / `fetchDashboardWidgets`
 | `width`/`height` layout | grid layout | single column, one card per widget | **Intentional** (phone layout) |
 | Unknown widget type | renders nothing | counted in an "not available in Actua yet" note, card hidden | **Intentional** |
 | Experimental widgets (Budget Analysis, Balance Forecast, Formula, Sankey, Monte Carlo) need the synced `flags.*` pref | hidden when the flag is off ([`useFeatureFlag.ts`][flags]) | always shown | **Intentional.** The widget rows are synced data, so showing them never misreports; no PWA-only state is created. |
-| `custom-report` widget whose saved report is deleted | "This custom report has been deleted." ([`W/CustomReportListCards.tsx#L41-L47`][missing-report]) | falls back to a current-month spending total | **Divergence** [#949](https://github.com/azimul-kabir/actua/issues/949) |
+| `custom-report` widget whose saved report is deleted | "This custom report has been deleted." ([`W/CustomReportListCards.tsx#L41-L47`][missing-report]) | same message, no amounts | Match (#949) |
 | Widget name: `meta.name`, else the type's label | per card | `meta.name` else `CRE.label` | Match |
 
 Tests: `src/androidTest/.../data/budget/ActualBudgetReadModelTest.readsSyncedDashboardPagesAndWidgetOrder`,
 `DashboardRepairTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.unknownSyncedWidgetStaysVisibleAsUnsupportedMetadata`,
 `.allActualiWidgetTypesHaveNativeKinds`, `.dashboardCustomReportWidgetUsesSavedReportNameAndGraphType`,
+`.dashboardCustomReportWidgetShowsDeletedStateWhenSavedReportMissing`, `MissingCustomReportTest`,
 `src/androidTest/.../ui/reports/ReportsScreenTest`.
 
 ## 2. Shared semantics
@@ -215,7 +216,7 @@ Tests: `FormulaTest`.
 
 ### Custom Report (`custom-report`)
 
-The widget renders the saved report it points to: see §4. A deleted report: §1 / [#949](https://github.com/azimul-kabir/actua/issues/949).
+The widget renders the saved report it points to: see §4. A deleted report shows a placeholder: §1.
 
 ### Calendar (`calendar-card`)
 

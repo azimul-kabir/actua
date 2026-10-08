@@ -149,7 +149,7 @@ class CoreReportEngineTest {
         val expected = mapOf(
             "age-of-money-card" to ReportWidgetKind.AGE_OF_MONEY,
             "formula-card" to ReportWidgetKind.FORMULA,
-            "custom-report" to ReportWidgetKind.CUSTOM_REPORT,
+            "custom-report" to ReportWidgetKind.MISSING_REPORT,
             "calendar-card" to ReportWidgetKind.CALENDAR,
             "crossover-card" to ReportWidgetKind.CROSSOVER,
             "budget-analysis-card" to ReportWidgetKind.BUDGET_ANALYSIS,
@@ -194,7 +194,7 @@ class CoreReportEngineTest {
         assertEquals("DonutGraph", widget.graphType)
     }
 
-    @Test fun dashboardCustomReportWidgetFallsBackWhenSavedReportMissing() {
+    @Test fun dashboardCustomReportWidgetShowsDeletedStateWhenSavedReportMissing() {
         val widgetRow = DashboardWidgetRow("widget1", "custom-report", """{"id":"missing"}""")
         val pages = CoreReportEngine.dashboards(
             pages = emptyList(),
@@ -207,8 +207,11 @@ class CoreReportEngineTest {
         )
         val widget = pages.single().widgets.single()
         assertEquals("widget1", widget.id)
-        assertEquals("Custom Report", widget.name)
-        assertEquals(null, widget.graphType)
+        assertEquals(ReportWidgetKind.MISSING_REPORT, widget.kind)
+        assertEquals("This custom report has been deleted.", widget.markdown)
+        assertEquals(null, widget.valueCents)
+        assertEquals(emptyList<Any>(), widget.categories)
+        assertEquals(emptyList<Any>(), widget.points)
     }
 
     @Test fun balanceForecastWalksPostedTransactionsAndScheduledOccurrences() {
