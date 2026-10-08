@@ -6,6 +6,7 @@ import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
 import com.azimulkabir.actua.data.schedules.ScheduleFormFields
+import com.azimulkabir.actua.data.schedules.ScheduledAmount
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -15,7 +16,11 @@ import java.util.UUID
 /** #938: like Actual's `updateSchedule` (`checkIfScheduleExists`), an edit can't take another schedule's name. */
 class ActuaRepositoryScheduleNameTest {
     private fun fields(name: String) =
-        ScheduleFormFields(name = name, date = ScheduleDateCondition.Fixed(DayDate(2030, 1, 15)))
+        ScheduleFormFields(
+            name = name,
+            amount = ScheduledAmount.Fixed(-1_000),
+            date = ScheduleDateCondition.Fixed(DayDate(2030, 1, 15)),
+        )
 
     @Test
     fun updatingAScheduleToAnotherSchedulesNameIsRejected() = withRepository { repository ->
