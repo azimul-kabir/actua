@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data
 
 import android.content.Context
 import android.util.Log
+import com.azimulkabir.actua.data.budget.CategoryDeletePlan
 import com.azimulkabir.actua.data.budget.ActualBudgetDatabase
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.ActualTransactionForm
@@ -1426,11 +1427,32 @@ class ActuaRepository(context: Context) {
         return true
     }
 
-    fun deleteCategory(groupName: String, categoryName: String): Boolean {
+    /** What deleting the category needs: a transfer target or not, and the targets to offer. */
+    fun categoryDeletePlan(groupName: String, categoryName: String): CategoryDeletePlan? {
+        val db = actualDatabase ?: return null
+        val groups = db.fetchCategoryGroups()
+        val category = groups.firstOrNull { it.name == groupName }?.categories?.firstOrNull { it.name == categoryName }
+            ?: return null
+        return CategoryDeletePlan(
+            requiresTransfer = db.categoryDeleteRequiresTransfer(category.id),
+            isIncome = category.isIncome,
+            targets = CategoryDeletePlan.targets(groups, category.id),
+        )
+    }
+
+    /**
+     * Deletes the category; with [transferToId] its transactions and budget amounts move to that
+     * category first, as Actual's delete with a transfer does. A category that needs a transfer
+     * ([categoryDeletePlan]) is never deleted without one.
+     */
+    fun deleteCategory(groupName: String, categoryName: String, transferToId: String? = null): Boolean {
         val db = actualDatabase ?: return false
         val group = db.fetchCategoryGroups().firstOrNull { it.name == groupName } ?: return false
         val category = group.categories.firstOrNull { it.name == categoryName } ?: return false
-        actualEntities!!.deleteCategory(category.id)
+        require(transferToId != null || !db.categoryDeleteRequiresTransfer(category.id)) {
+            "${category.name} is used by transactions or budget amounts. Choose a category to transfer them to."
+        }
+        actualEntities!!.deleteCategory(category.id, transferToId)
         return true
     }
 

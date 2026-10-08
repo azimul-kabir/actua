@@ -100,14 +100,15 @@ Actua: `ActuaRepository.deleteCategory` (`data/ActuaRepository.kt:1429`) →
 
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| A category with live transactions (through `category_mapping`) or a non-zero budget amount in any created month must be transferred: the user picks a same-type target | `must-category-transfer`, `confirm-category-delete` | no check; a generic "This cannot be undone" confirmation | **Divergence** [#926](https://github.com/azimul-kabir/actua/issues/926) |
-| Transfer: expense budget amounts added to the target in every created month; existing `category_mapping` rows pointing at the category, then its own row, forwarded to the target; income ↔ expense rejected | `category-delete` with `transferId` | not offered: the category is tombstoned and its transactions read as uncategorized | **Divergence** [#926](https://github.com/azimul-kabir/actua/issues/926) |
+| A category with live transactions (through `category_mapping`) or a non-zero budget amount in any created month must be transferred: the user picks a same-type target | `must-category-transfer`, `confirm-category-delete` | same check (`ActualBudgetDatabase.categoryDeleteRequiresTransfer`); the delete dialog then requires a visible same-type target (`ui/categories/CategoryDeleteDialog.kt`) | Match ([#926](https://github.com/azimul-kabir/actua/issues/926)) |
+| Transfer: expense budget amounts added to the target in every created month; existing `category_mapping` rows pointing at the category, then its own row, forwarded to the target; income ↔ expense rejected | `category-delete` with `transferId` | `ActualEntityWriter.deleteCategory(id, transferId)`: same writes in one batch, over the budget range | Match ([#926](https://github.com/azimul-kabir/actua/issues/926)) |
 | A category with no transactions and no budget amounts: tombstone only | `deleteCategory` without `transferId` | tombstone only | Match |
 | Transactions that still reference a deleted, unmapped category read as having none | `v_transactions` joins live categories | same (`ActualBudgetReadModelTest.deletedPayeesAndCategoriesReadAsNoneLikeActualsTransactionView`) | Match |
 | Delete group: transfer check over its categories, then every category and the group tombstoned in one batch | `useDeleteCategoryGroupMutation`, `deleteCategoryGroup` | not offered in the UI; the unused writer tombstones without a transfer | **N/A** (the writer gap is noted on [#926](https://github.com/azimul-kabir/actua/issues/926)) |
 | Income group can't be deleted | no delete action for it | writer refuses | Match |
 
-Tests: `src/androidTest/.../data/budget/ActualBudgetReadModelTest.deletingCategoryUsesTombstoneMutation`.
+Tests: `src/androidTest/.../data/budget/CategoryDeleteTransferTest`,
+`ActualBudgetReadModelTest.deletingCategoryUsesTombstoneMutation`, `src/test/.../data/budget/CategoryDeletePlanTest`.
 
 ## 5. Reorder and move
 
@@ -175,6 +176,6 @@ Tests: `ActualBudgetReadModelTest.transactionsInAMergedCategoryReportTheTargetCa
 
 | Issue | Severity | Summary |
 | --- | --- | --- |
-| [#926](https://github.com/azimul-kabir/actua/issues/926) | P2 | Deleting a category with transactions or budget amounts doesn't transfer them |
+| [#926](https://github.com/azimul-kabir/actua/issues/926) | P2 | Deleting a category with transactions or budget amounts doesn't transfer them (fixed) |
 | [#927](https://github.com/azimul-kabir/actua/issues/927) | Lower | Moving or creating a category copies its group's hidden flag onto it |
 | [#928](https://github.com/azimul-kabir/actua/issues/928) | Lower | Category rename/move and group rename allow duplicate names |

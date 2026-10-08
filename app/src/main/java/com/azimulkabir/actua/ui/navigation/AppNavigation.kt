@@ -2057,7 +2057,12 @@ fun AppNavigation(
                         repository.setCategoryHidden(group, category, hidden)
                     }
                 },
-                onDeleteCategory = { group, category -> mutate("Deleting category") { repository.deleteCategory(group, category) } },
+                onDeleteCategory = { group, category, transferToId ->
+                    mutate("Deleting category") { repository.deleteCategory(group, category, transferToId) }
+                },
+                loadCategoryDeletePlan = { group, category ->
+                    withContext(Dispatchers.IO) { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
+                },
                 onMoveCategory = { move -> mutateSync("Reordering category") { repository.moveCategory(move) } },
                 modifier = contentModifier,
             )
@@ -2553,8 +2558,13 @@ fun AppNavigation(
                         transactionStatusFilter = TransactionStatusFilter.UNCATEGORIZED
                         detail = DetailDestination.Transactions
                     },
-                    onDeleteCategory = { group, category, onChanged ->
-                        mutate("Deleting category", onChanged = onChanged) { repository.deleteCategory(group, category) }
+                    onDeleteCategory = { group, category, transferToId, onChanged ->
+                        mutate("Deleting category", onChanged = onChanged) {
+                            repository.deleteCategory(group, category, transferToId)
+                        }
+                    },
+                    loadCategoryDeletePlan = { group, category ->
+                        withContext(Dispatchers.IO) { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
                     },
                     onEditTransaction = { transaction ->
                         activeBudgetCategory = null
