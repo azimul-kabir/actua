@@ -795,7 +795,7 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
-    fun schedulePosterPostsDueOccurrenceAdvancesAndGatesTheDay() = withDatabase { database ->
+    fun schedulePosterPostsDueOccurrenceGatesTheDayAndMovesOnTheNextDay() = withDatabase { database ->
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val poster = com.azimulkabir.actua.data.schedules.SchedulePoster(
             context, database,
@@ -809,8 +809,76 @@ class ActualBudgetReadModelTest {
         assertEquals("rent-schedule", posted.scheduleId)
         assertEquals(-1_500L, posted.amountCents)
         assertEquals("rent", posted.categoryId)
-        assertEquals(20261005, database.fetchSchedules().single().nextDate.yyyymmdd)
+        // #935: like upstream, an occurrence due today is posted but the next date stays today.
+        assertEquals(20260905, database.fetchSchedules().single().nextDate.yyyymmdd)
         assertEquals(0, poster.runIfNeeded(budgetId, com.azimulkabir.actua.data.schedules.DayDate(2026,9,5)))
+        // The next day's run sees it paid and moves on without posting again.
+        assertEquals(0, poster.runIfNeeded(budgetId, com.azimulkabir.actua.data.schedules.DayDate(2026,9,6)))
+        assertEquals(20261005, database.fetchSchedules().single().nextDate.yyyymmdd)
+    }
+
+    /** #935: a paid recurring schedule that doesn't auto-post moves to its next occurrence. */
+    @Test
+    fun schedulePosterMovesAPaidManualScheduleToItsNextDate() = withScheduleVariant(
+        "UPDATE schedules SET posts_transaction = 0 WHERE id = 'rent-schedule'",
+    ) { database ->
+        ActualTransactionWriter(database, "aeaeaeaeaeaeaeae").createTransaction(
+            transaction("manual-payment", "checking", -1_500, 20260904, "store", "rent")
+                .copy(scheduleId = "rent-schedule"), applyRules = false)
+        runPoster(database, com.azimulkabir.actua.data.schedules.DayDate(2026, 9, 10))
+
+        val summary = database.fetchScheduleSummaries().single()
+        assertEquals(20261005, summary.nextDate?.yyyymmdd)
+        assertEquals(false, summary.completed)
+    }
+
+    /** #935: an unpaid manual schedule is left alone. */
+    @Test
+    fun schedulePosterLeavesAnUnpaidManualScheduleAlone() = withScheduleVariant(
+        "UPDATE schedules SET posts_transaction = 0 WHERE id = 'rent-schedule'",
+    ) { database ->
+        runPoster(database, com.azimulkabir.actua.data.schedules.DayDate(2026, 9, 10))
+
+        assertEquals(20260905, database.fetchScheduleSummaries().single().nextDate?.yyyymmdd)
+        assertNull(database.fetchTransaction("unused"))
+    }
+
+    /** #935: a paid one-off schedule whose date has passed is completed. */
+    @Test
+    fun schedulePosterCompletesAPaidPastOneOffSchedule() = withScheduleVariant(
+        "UPDATE schedules SET posts_transaction = 0 WHERE id = 'rent-schedule'",
+        """UPDATE rules SET conditions = REPLACE(conditions,
+            '{"op":"isapprox","field":"date","value":{"frequency":"monthly","start":"2026-09-05"}}',
+            '{"op":"is","field":"date","value":"2026-09-05"}') WHERE id = 'rent-rule'""",
+    ) { database ->
+        ActualTransactionWriter(database, "eaeaeaeaeaeaeaea").createTransaction(
+            transaction("one-off-payment", "checking", -1_500, 20260905, "store", "rent")
+                .copy(scheduleId = "rent-schedule"), applyRules = false)
+        runPoster(database, com.azimulkabir.actua.data.schedules.DayDate(2026, 9, 10))
+
+        assertTrue(database.fetchScheduleSummaries().single().completed)
+    }
+
+    private fun runPoster(database: ActualBudgetDatabase, today: com.azimulkabir.actua.data.schedules.DayDate) {
+        val poster = com.azimulkabir.actua.data.schedules.SchedulePoster(
+            InstrumentationRegistry.getInstrumentation().targetContext, database,
+            ActualTransactionWriter(database, "fafafafafafafafa", idFactory = { "unused" }),
+            com.azimulkabir.actua.data.schedules.ActualScheduleWriter(database, "afafafafafafafaf"),
+            idFactory = { "unused" },
+        )
+        poster.runIfNeeded("poster-${UUID.randomUUID()}", today)
+    }
+
+    private fun withScheduleVariant(vararg statements: String, block: (ActualBudgetDatabase) -> Unit) {
+        val file = createDatabaseFile()
+        try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                statements.forEach(db::execSQL)
+            }
+            ActualBudgetDatabase.open(file).use(block)
+        } finally {
+            file.delete()
+        }
     }
 
     /** #934: like loot-core `addTransactions` → `addTransfer`, a transfer payee posts both legs. */
