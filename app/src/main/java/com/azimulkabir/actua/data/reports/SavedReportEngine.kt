@@ -4,6 +4,7 @@ import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
 import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
+import com.azimulkabir.actua.data.budget.model.ActualPayee
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.rules.RuleContext
@@ -23,8 +24,17 @@ import java.time.YearMonth
 /** Read-only evaluation of Actual's saved custom reports using the shared [ReportAggregator]. */
 object SavedReportEngine {
     /** Lookups that are identical for every saved report; build once per evaluation pass. */
-    class Shared(transactions: List<ActualTransaction>, accounts: List<ActualAccount>, groups: List<ActualCategoryGroup>) {
+    class Shared(
+        transactions: List<ActualTransaction>,
+        val accounts: List<ActualAccount>,
+        val groups: List<ActualCategoryGroup>,
+        payees: List<ActualPayee> = emptyList(),
+    ) {
         val aggregator = ReportAggregator(accounts, groups)
+        /** Upstream's `usePayees` list (transfer payees named after their account), for `show_empty`. */
+        val payeeNames: List<String> = payees.mapNotNull { payee ->
+            payee.transferAccountId?.let { id -> accounts.firstOrNull { it.id == id }?.name } ?: payee.name.takeIf(String::isNotBlank)
+        }.ifEmpty { transactions.mapNotNull { it.payeeName?.takeIf(String::isNotBlank) }.distinct().sorted() }
         val context = RuleContext(
             offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id },
             accountNames = accounts.associate { it.id to it.name },
@@ -39,8 +49,9 @@ object SavedReportEngine {
         rows: List<SavedReportRow>, transactions: List<ActualTransaction>, accounts: List<ActualAccount>,
         groups: List<ActualCategoryGroup>, view: ReportViewFilter = ReportViewFilter(),
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
+        payees: List<ActualPayee> = emptyList(),
     ): List<ReportWidget> {
-        val shared = Shared(transactions, accounts, groups)
+        val shared = Shared(transactions, accounts, groups, payees)
         return listOf(incomeExpense(transactions, view, shared = shared)) +
             rows.map { compute(it, transactions, accounts, groups, view = view, shared = shared, budgetMonth = budgetMonth) }
     }
@@ -65,7 +76,7 @@ object SavedReportEngine {
         val balType = balanceType(row.balanceType)
         val summaryStart = if (start == ALL_TIME_START) earliestDate(transactions) ?: today else start
         if (balType == ReportBalanceType.BUDGETED) {
-            return computeBudgeted(row, groups, start, end, selected, view, budgetMonth).let {
+            return computeBudgeted(row, groups, start, end, selected, view, budgetMonth, shared).let {
                 it.copy(summary = summary(row, it.valueCents ?: 0, 0, 0, summaryStart, end))
             }
         }
@@ -93,14 +104,23 @@ object SavedReportEngine {
             "Account" -> ReportGrouping.ACCOUNT
             else -> ReportGrouping.CATEGORY
         }
-        val segments = if (row.groupBy == "Interval") emptyList() else
-            aggregator.groupTotals(scoped, filter, grouping).map { ReportCategory(it.name, it.totalCents, it.transactionIds) }
+        val itemOrder = itemOrder(grouping, shared)
+        val segments = if (row.groupBy == "Interval") emptyList() else arrange(
+            aggregator.groupTotals(scoped, filter, grouping).map { ReportCategory(it.name, it.totalCents, it.transactionIds) },
+            row, balType, itemOrder,
+        )
         val timeMode = row.mode == "time" || row.groupBy == "Interval"
         val stacked = timeMode && row.groupBy != "Interval" && row.graphType == "StackedBarGraph"
-        val points = if (stacked) {
+        val allPoints = if (stacked) {
             intervalSegments(included, grouping, aggregator, filter, segments.map { it.name }, row.interval, start, end, today)
         } else {
             intervalPoints(included, row.interval, start, end, today, balType)
+        }
+        val points = if (!row.trimIntervals) allPoints else {
+            val byBucket = included.groupBy { bucketLabel(row.interval, bucketStart(row.interval, it.localDate())) }
+            trimIntervals(allPoints) { point ->
+                aggregator.groupTotals(byBucket[point.period].orEmpty(), filter, grouping).any { it.totalCents != 0L }
+            }
         }
         val total = reportTotal(included, row.interval, balType)
         return ReportWidget(
@@ -175,6 +195,7 @@ object SavedReportEngine {
     private fun computeBudgeted(
         row: SavedReportRow, groups: List<ActualCategoryGroup>, start: LocalDate, end: LocalDate,
         selectedCategories: Set<String>, view: ReportViewFilter, budgetMonth: (YearMonth) -> ActualBudgetMonth?,
+        shared: Shared,
     ): ReportWidget {
         val groupNames = groups.associate { it.id to it.name }
         val incomeCategoryIds = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id }
@@ -197,17 +218,18 @@ object SavedReportEngine {
                 val name = (if (byGroup) groupNames[key] else matching.first().categoryName).orEmpty()
                 ReportCategory(name.ifBlank { "Uncategorized" }, matching.sumOf { it.budgetedCents })
             }
-            .sortedByDescending { it.spentCents }
 
         val months = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
             .takeWhile { !it.isAfter(YearMonth.from(end)) }.toList()
         val byMonth = months.associateWith(::monthCategories)
         val all = byMonth.values.flatten()
-        val segments = if (row.groupBy == "Interval") emptyList() else totals(all)
+        val itemOrder = itemOrder(if (byGroup) ReportGrouping.CATEGORY_GROUP else ReportGrouping.CATEGORY, shared)
+        val segments = if (row.groupBy == "Interval") emptyList() else
+            arrange(totals(all), row, ReportBalanceType.BUDGETED, itemOrder)
         val timeMode = row.mode == "time" || row.groupBy == "Interval"
         val stacked = timeMode && row.groupBy != "Interval" && row.graphType == "StackedBarGraph"
         val canonicalOrder = segments.map { it.name }
-        val points = months.map { month ->
+        val allPoints = months.map { month ->
             val rows = byMonth.getValue(month)
             if (stacked) {
                 val byName = totals(rows).associateBy { it.name }
@@ -217,11 +239,62 @@ object SavedReportEngine {
                 ReportPoint(month.toString(), rows.sumOf { it.budgetedCents })
             }
         }
+        val points = if (!row.trimIntervals) allPoints else {
+            val monthsByLabel = months.associateBy { it.toString() }
+            trimIntervals(allPoints) { point ->
+                byMonth[monthsByLabel[point.period]].orEmpty().any { it.budgetedCents != 0L }
+            }
+        }
         return ReportWidget(
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
             valueCents = all.sumOf { it.budgetedCents }, categories = segments, points = points, timeMode = timeMode,
             graphType = row.graphType, subtitle = "$start – $end · ${row.groupBy}",
         )
+    }
+
+    /**
+     * Upstream's `groupBySelections` item order (categories by income flag, group and category sort
+     * order, then the synthetic items; groups; payees; accounts), which `show_empty` lists and the
+     * `budget` sort keeps.
+     */
+    private fun itemOrder(grouping: ReportGrouping, shared: Shared): List<String> = when (grouping) {
+        ReportGrouping.CATEGORY -> shared.groups.sortedWith(compareBy({ it.isIncome }, { it.sortOrder }))
+            .flatMap { group -> group.categories.sortedBy { it.sortOrder } }.map { it.name } +
+            listOf("Uncategorized", "Off budget", "Transfers")
+        ReportGrouping.CATEGORY_GROUP -> shared.groups.map { it.name } + "Uncategorized & Off budget"
+        ReportGrouping.PAYEE -> shared.payeeNames
+        ReportGrouping.ACCOUNT -> shared.accounts.sortedBy { it.sortOrder }.map { it.name }
+    }
+
+    /**
+     * Upstream's `filterEmptyRows` and `sortData`: with `show_empty` every item is listed (empty ones
+     * at zero), then rows sort by `sort_by` - `asc`/`desc` by value (flipped for Payment and Net
+     * Payment, whose values are negative), `name`, or `budget` (item order). Ties keep item order,
+     * as JavaScript's stable sort does over `groupByList`.
+     */
+    internal fun arrange(
+        segments: List<ReportCategory>, row: SavedReportRow, balanceType: ReportBalanceType, itemOrder: List<String>,
+    ): List<ReportCategory> {
+        val nonEmpty = segments.filter { it.spentCents != 0L || !balanceType.clampsNet && balanceType != ReportBalanceType.BUDGETED }
+        val listed = if (!row.showEmpty) nonEmpty else
+            segments + itemOrder.filter { name -> segments.none { it.name == name } }.distinct().map { ReportCategory(it, 0) }
+        val position = itemOrder.withIndex().associate { (index, name) -> name to index }
+        val byItem = listed.sortedBy { position[it.name] ?: Int.MAX_VALUE }
+        val reversed = balanceType == ReportBalanceType.DEBTS || balanceType == ReportBalanceType.NET_DEBTS
+        val collator = java.text.Collator.getInstance()
+        return when (row.sortBy) {
+            "name" -> byItem.sortedWith { a, b -> collator.compare(a.name, b.name) }
+            "budget" -> byItem
+            "asc" -> if (reversed) byItem.sortedByDescending { it.spentCents } else byItem.sortedBy { it.spentCents }
+            else -> if (reversed) byItem.sortedBy { it.spentCents } else byItem.sortedByDescending { it.spentCents }
+        }
+    }
+
+    /** Upstream's `trimIntervals`: drop leading and trailing intervals where no group has a value. */
+    private fun trimIntervals(points: List<ReportPoint>, hasValue: (ReportPoint) -> Boolean): List<ReportPoint> {
+        val first = points.indexOfFirst(hasValue)
+        if (first < 0) return emptyList()
+        return points.subList(first, points.indexOfLast(hasValue) + 1)
     }
 
     private fun bucketStart(interval: String, d: LocalDate): LocalDate = when (interval) {
@@ -251,9 +324,9 @@ object SavedReportEngine {
         rows: List<ActualTransaction>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
     ): List<LocalDate> {
         val seen = rows.map { bucketStart(interval, it.localDate()) }
-        val last = minOf(end, maxOf(today, seen.maxOrNull() ?: today))
+        // Upstream charts every interval from the range start through its end, future ones included.
         val keys = generateSequence(bucketStart(interval, maxOf(start, LocalDate.of(1900, 1, 1)))) { nextBucket(interval, it) }
-            .takeWhile { !it.isAfter(last) }.take(401).toList()
+            .takeWhile { !it.isAfter(end) }.take(401).toList()
         return if (keys.size <= 400) keys else seen.distinct().sorted()
     }
 

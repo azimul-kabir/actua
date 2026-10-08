@@ -1449,15 +1449,15 @@ class ActualBudgetDatabase private constructor(
     fun fetchSavedReports(): List<com.azimulkabir.actua.data.reports.SavedReportRow> {
         if (!hasTable("custom_reports")) return emptyList()
         val rows = mutableListOf<com.azimulkabir.actua.data.reports.SavedReportRow>()
-        // include_current arrived in a later Actual migration; older synced budgets may lack it.
-        val hasIncludeCurrent = database.rawQuery("PRAGMA table_info(custom_reports)", null).use { cursor ->
-            val name = cursor.getColumnIndexOrThrow("name")
-            generateSequence { if (cursor.moveToNext()) cursor.getString(name) else null }.any { it == "include_current" }
-        }
+        // include_current, sort_by, show_empty and trim_intervals arrived in later Actual migrations;
+        // older synced budgets may lack them.
+        val columns = columns("custom_reports")
+        fun optional(column: String, fallback: String) = if (column in columns) column else fallback
         database.rawQuery(
             "SELECT id, COALESCE(name, ''), start_date, end_date, date_static, date_range, group_by, balance_type, " +
                 "show_offbudget, show_hidden, show_uncategorized, selected_categories, graph_type, conditions, " +
-                "conditions_op, interval, mode, ${if (hasIncludeCurrent) "include_current" else "0"} " +
+                "conditions_op, interval, mode, ${optional("include_current", "0")}, " +
+                "${optional("sort_by", "NULL")}, ${optional("show_empty", "0")}, ${optional("trim_intervals", "0")} " +
                 "FROM custom_reports WHERE tombstone = 0 OR tombstone IS NULL ORDER BY name",
             null,
         ).use { c ->
@@ -1466,7 +1466,8 @@ class ActualBudgetDatabase private constructor(
                 c.stringOrNull(5), c.stringOrNull(6) ?: "Category", c.stringOrNull(7) ?: "Expense",
                 c.longOrZero(8) == 1L, c.longOrZero(9) == 1L, c.longOrZero(10) == 1L, c.stringOrNull(11),
                 c.stringOrNull(12) ?: "BarGraph", c.stringOrNull(13), c.stringOrNull(14), c.stringOrNull(15) ?: "Monthly", c.stringOrNull(16) ?: "total",
-                c.longOrZero(17) == 1L,
+                c.longOrZero(17) == 1L, c.stringOrNull(18)?.takeIf(String::isNotBlank) ?: "desc",
+                c.longOrZero(19) == 1L, c.longOrZero(20) == 1L,
             )
         }
         return rows

@@ -338,14 +338,15 @@ Actua-only income-vs-expenses card (`SRE.incomeExpense`, `:305`) and view filter
 | `date_static`, `start_date`/`end_date` | | same | Match |
 | `date_range` live presets (week, month, quarter, last N, 30 days, YTD, years) and `include_current` | `getLiveRange` | `SRE.dateRange` (`:355`) | Match |
 | "All time" end = latest transaction; other ranges clamp their start to the earliest transaction | `getLiveRange`/`validateRange` | `1900-01-01..today`; no clamp | **Divergence** [#954](https://github.com/azimul-kabir/actua/issues/954) |
-| `sort_by`, `show_empty`, `trim_intervals` | honored | not read | **Divergence** [#952](https://github.com/azimul-kabir/actua/issues/952) |
-| Intervals through the range end (future days of "This month") | yes | stop at today | **Divergence** [#952](https://github.com/azimul-kabir/actua/issues/952) |
+| `sort_by` (`asc`/`desc` flipped for Payment and Net Payment, `name`, `budget` = item order), `show_empty`, `trim_intervals` | `sortData`, `filterEmptyRows`, `trimIntervals` | same | Match (#952) |
+| Intervals through the range end (future days of "This month") | yes | same | Match (#952) |
 | `show_trend_lines` | chart overlay | not drawn | **Not ported** |
 | Summary panel: total and `Math.round(total / intervals)` | `ReportSummary` | opt-in, device-local toggle (#644) | Match |
 | Dashboard card shows no headline total | | same (#629) | Match |
 
 Tests: `SavedReportEngineTest`, `SavedReportNetBalanceTest`, `SavedReportBudgetedTest`,
 `SavedReportTransferTest`, `IntervalPointsTest`, `StackedIntervalPointsTest`, `SavedReportSummaryTest`,
+`SavedReportDisplaySettingsTest`,
 `ReportAggregatorTest`, `src/androidTest/.../data/budget/ActualBudgetReadModelTest.savedReportsReadIncludeCurrentAndTolerateOlderSchemas`,
 `src/androidTest/.../ui/reports/ReportsCustomSummaryTest`, `ReportsDrillDownTest`.
 

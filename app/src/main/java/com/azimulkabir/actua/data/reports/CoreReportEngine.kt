@@ -45,6 +45,7 @@ object CoreReportEngine {
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
         today: LocalDate = LocalDate.now(),
         transferAccountByPayee: Map<String, String> = emptyMap(),
+        payees: List<com.azimulkabir.actua.data.budget.model.ActualPayee> = emptyList(),
     ): List<ReportDashboardPage> {
         val resolvedPages = if (pages.isEmpty()) listOf(DashboardPageRow("", "Dashboard")) else pages
         val context = RuleContext(
@@ -59,7 +60,7 @@ object CoreReportEngine {
         val incomeCategories = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id }
         val savedReportsById = savedReports.associateBy { it.id }
         val savedShared = if (savedReports.isEmpty()) null else
-            SavedReportEngine.Shared(transactions, accounts, groups)
+            SavedReportEngine.Shared(transactions, accounts, groups, payees)
         return resolvedPages.map { page ->
             ReportDashboardPage(
                 page.id,

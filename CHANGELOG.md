@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Saved reports follow their sort, show-empty and trim-intervals settings, and chart the whole date range ([#964](https://github.com/azimul-kabir/actua/pull/964))
 - Saved reports group off-budget and payee-less transactions as Actual does ([#963](https://github.com/azimul-kabir/actua/pull/963))
 - Sankey reports net refunds against their category and leave out uncategorized transactions, as Actual does ([#962](https://github.com/azimul-kabir/actua/pull/962))
 - A dashboard widget for a deleted custom report says so instead of showing other totals ([#961](https://github.com/azimul-kabir/actua/pull/961))

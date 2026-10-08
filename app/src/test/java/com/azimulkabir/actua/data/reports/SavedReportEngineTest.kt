@@ -470,3 +470,62 @@ class SavedReportSummaryTest {
         assertEquals(-200L, summary.averageCents)
     }
 }
+
+/** Upstream `sortData`, `filterEmptyRows`, `trimIntervals` and full-range intervals (actua#952). */
+class SavedReportDisplaySettingsTest {
+    private val accounts = listOf(
+        com.azimulkabir.actua.data.budget.model.ActualAccount("a", "A", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 0.0, 0),
+    )
+    private val groups = listOf(com.azimulkabir.actua.data.budget.model.ActualCategoryGroup("g", "G", false, false, 1.0, listOf(
+        com.azimulkabir.actua.data.budget.model.ActualCategory("rent", "Rent", "g", false, false, 1.0),
+        com.azimulkabir.actua.data.budget.model.ActualCategory("food", "Food", "g", false, false, 2.0),
+        com.azimulkabir.actua.data.budget.model.ActualCategory("bike", "Bike", "g", false, false, 3.0),
+    )))
+    private fun tx(id: String, date: Int, amount: Long, category: String?) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+        id, "a", date, amount, null, null, category, null, null, false, false, null, false, null, false, null, null, null, null)
+    private val today = LocalDate.of(2026, 9, 10)
+    private val saved = SavedReportRow("r", "R", "2026-01", "2026-06", true, null, "Category", "Payment", false, false, true,
+        null, "BarGraph", null, "and", "Monthly")
+    private val rows = listOf(tx("1", 20260310, -100, "rent"), tx("2", 20260412, -300, "food"), tx("3", 20260415, 50, "food"))
+
+    private fun names(row: SavedReportRow, data: List<com.azimulkabir.actua.data.budget.model.ActualTransaction> = rows) =
+        SavedReportEngine.compute(row, data, accounts, groups, today).categories.map { it.name to it.spentCents }
+
+    @Test fun `payment desc lists the biggest spending first and asc the smallest`() {
+        assertEquals(listOf("Food" to -300L, "Rent" to -100L), names(saved))
+        assertEquals(listOf("Rent" to -100L, "Food" to -300L), names(saved.copy(sortBy = "asc")))
+    }
+
+    @Test fun `net desc lists the largest value first, not the largest magnitude`() {
+        val net = saved.copy(balanceType = "Net")
+        val data = rows + tx("4", 20260416, 500, "bike")
+        assertEquals(listOf("Bike" to 500L, "Rent" to -100L, "Food" to -250L), names(net, data))
+    }
+
+    @Test fun `name and budget sorts`() {
+        assertEquals(listOf("Food", "Rent"), names(saved.copy(sortBy = "name")).map { it.first })
+        assertEquals(listOf("Rent", "Food"), names(saved.copy(sortBy = "budget")).map { it.first })
+    }
+
+    @Test fun `show_empty lists every category at zero`() {
+        assertEquals(
+            listOf("Food" to -300L, "Rent" to -100L, "Bike" to 0L, "Uncategorized" to 0L, "Off budget" to 0L, "Transfers" to 0L),
+            names(saved.copy(showEmpty = true)),
+        )
+    }
+
+    @Test fun `trim_intervals drops leading and trailing empty intervals`() {
+        val full = SavedReportEngine.compute(saved.copy(mode = "time"), rows, accounts, groups, today).points.map { it.period }
+        assertEquals(listOf("2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"), full)
+        val trimmed = SavedReportEngine.compute(saved.copy(mode = "time", trimIntervals = true), rows, accounts, groups, today)
+            .points.map { it.period }
+        assertEquals(listOf("2026-03", "2026-04"), trimmed)
+    }
+
+    @Test fun `a daily this-month report lists every day of the month, future days included`() {
+        val daily = saved.copy(dateStatic = false, dateRange = "This month", interval = "Daily", mode = "time")
+        val points = SavedReportEngine.compute(daily, listOf(tx("1", 20260902, -100, "rent")), accounts, groups, today).points
+        assertEquals(30, points.size)
+        assertEquals("2026-09-30", points.last().period)
+    }
+}
