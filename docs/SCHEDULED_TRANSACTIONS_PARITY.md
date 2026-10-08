@@ -77,8 +77,8 @@ fixture is stale. See the [fixture README](tools/schedules-fixture/README.md).
 | Manual post / post today: one linked transaction (`schedule`, uncleared) through `addTransactions`, rules applied; no post without an account | `postTransactionForSchedule` ([`#L574-L599`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L574-L599)) | `ActuaRepository.postScheduleTransaction` | Match; "post today" also advances the next date (**Intentional**, below) |
 | Transfer schedule post creates both legs (`addTransactions` runs transfers) | [`LC/server/accounts/sync.ts#L1000`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/accounts/sync.ts#L1000) | `ActualTransactionWriter.createTransaction(runTransfers = true)` creates the other leg as `addTransfer` does | Match ([#934](https://github.com/azimul-kabir/actua/issues/934)) |
 | Daily auto-post after a successful sync, catching up missed occurrences in order, skipping closed accounts | `advanceSchedulesService` ([`#L668-L813`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/schedules/app.ts#L668-L813)) | `SchedulePoster` from `ActualSyncWorker`, once per budget per day | Match |
-| Auto-post of an occurrence due today leaves the next date on today | same | advances it right away | **Divergence** [#935](https://github.com/azimul-kabir/actua/issues/935) |
-| Paid recurring schedules that don't auto-post move to their next date; paid past one-off schedules complete | same | not done (only auto-posting schedules are processed) | **Divergence** [#935](https://github.com/azimul-kabir/actua/issues/935) |
+| Auto-post of an occurrence due today leaves the next date on today | same | `SchedulePoster.process` stops after posting today's occurrence | Match ([#935](https://github.com/azimul-kabir/actua/issues/935)) |
+| Paid recurring schedules that don't auto-post move to their next date; paid past one-off schedules complete | same | `SchedulePoster.advancePaid`, in the same daily run | Match ([#935](https://github.com/azimul-kabir/actua/issues/935)) |
 | Link/unlink transactions; unlinking or deleting never changes posted rows | `link-schedule` rule action, transaction `schedule` column | `ActuaRepository.unlinkScheduleTransaction`, rules (`docs/RULES_PARITY.md`) | Match |
 | Discovery (weekly, every 2 weeks, monthly, last day, 1st/3rd, 2nd/4th; 7.5% amount tolerance, ±2 days) | `find-schedules.ts` | `ScheduleDiscovery` (`ScheduleDiscoveryTest`) | Match |
 | `isapprox` (7.5%) and `isbetween` (midpoint posted) amounts | `getApproxNumberThreshold`, `getScheduledAmount` | `ScheduleConditions`, `RulesEngine` (`docs/RULES_PARITY.md` fixture) | Match |
@@ -244,7 +244,7 @@ matches it closely:
 | Issue | Severity | Summary |
 | --- | --- | --- |
 | [#934](https://github.com/azimul-kabir/actua/issues/934) | P2 | Posting a transfer schedule creates only one leg (fixed) |
-| [#935](https://github.com/azimul-kabir/actua/issues/935) | P2 | Paid schedules don't advance, paid one-off schedules never complete, and a due-today auto-post advances at once |
+| [#935](https://github.com/azimul-kabir/actua/issues/935) | P2 | Paid schedules don't advance, paid one-off schedules never complete, and a due-today auto-post advances at once (fixed) |
 | [#936](https://github.com/azimul-kabir/actua/issues/936) | Lower | Upcoming rows show one occurrence per schedule and leave out paid and account-less schedules |
 | [#937](https://github.com/azimul-kabir/actua/issues/937) | Lower | The budget-wide upcoming length setting is ignored |
 | [#938](https://github.com/azimul-kabir/actua/issues/938) | Lower | Editing a schedule allows another schedule's name |
