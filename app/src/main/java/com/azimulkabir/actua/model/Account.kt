@@ -20,4 +20,6 @@ data class Account(
     val groupSortOrder: Double = 0.0,
     /** Actual's `last_reconciled` (epoch milliseconds as a string), or null when never reconciled. */
     val lastReconciled: String? = null,
+    /** The bank's last synced balance (Actual's `balance_current`), in cents, if any. */
+    val lastSyncedBalanceCents: Long? = null,
 )

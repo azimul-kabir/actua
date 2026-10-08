@@ -753,6 +753,7 @@ class ActuaRepository(context: Context) {
                     groupName = group?.name,
                     groupSortOrder = group?.sortOrder ?: 0.0,
                     lastReconciled = it.lastReconciled,
+                    lastSyncedBalanceCents = it.balanceCurrentCents,
                 )
             }
         }

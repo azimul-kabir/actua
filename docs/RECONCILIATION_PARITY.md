@@ -29,7 +29,7 @@ in [#664](https://github.com/azimul-kabir/actua/issues/664) (part of
 | Edit/delete/move confirmations on reconciled rows | Match (#746); Actua also confirms bulk Categorize and Merge |
 | `hide-reconciled-<id>` preference | Match (mobile semantics) |
 | `accounts.last_reconciled` | Match on lock; leaving without locking writes nothing, a deliberate difference ([#994](https://github.com/azimul-kabir/actua/issues/994)) |
-| "Use last synced total" (`balance_current`) | Missing: **Divergence** [#995](https://github.com/azimul-kabir/actua/issues/995) |
+| "Use last synced total" (`balance_current`) | Match ([#995](https://github.com/azimul-kabir/actua/issues/995)) |
 | Bank sync never updates a reconciled match | Match |
 
 No mutation is applied before the user confirms it. Opening the reconcile screen, typing a bank
@@ -57,9 +57,12 @@ account menu's **Reconcile**; balances from `ActualBudgetDatabase.fetchAccounts`
 | Display uses exact cents | `format(…, 'financial')` | `formatReconciliationMoney` ignores hide-decimals and balance privacy | Match |
 | Balanced state shows "All reconciled!" and **Lock transactions** | `targetDiff === 0` | "Reconciled" card and **Lock cleared transactions** | Match (wording differs) |
 | Unbalanced state offers **Create reconciliation transaction** and **Exit reconciliation** | banner buttons | **Create adjustment transaction** and the back button; plus a list of uncleared rows that can be marked cleared | **Intentional.** The review list is an Android addition and writes through the normal cleared path (§6). |
-| **Use last synced total** from `accounts.balance_current` | modal/menu, when non-null | not offered | **Divergence** [#995](https://github.com/azimul-kabir/actua/issues/995) |
+| **Use last synced total** from `accounts.balance_current` | modal/menu, when non-null | "Last balance from bank" and **Use last synced total** when `fetchAccounts` reads a non-null `balance_current`; fills the bank balance only | Match ([#995](https://github.com/azimul-kabir/actua/issues/995)) |
 | "Reconciled {time} ({date})" / "Not yet reconciled" | from `last_reconciled` | same line under the balances (`lastReconciledMillis`) | Match ([#994](https://github.com/azimul-kabir/actua/issues/994)) |
 | Scheduled preview rows are hidden while reconciling | mobile `previewTransactionsToDisplay = []` | the reconcile screen lists only stored rows | Match |
+
+Tests: `src/androidTest/.../data/budget/ActualBudgetReadModelTest.readsTheLastSyncedBankBalance`,
+`noBalanceCurrentColumnMeansNoLastSyncedBalance`.
 
 ## 2. Locking cleared transactions
 

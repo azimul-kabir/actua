@@ -908,6 +908,22 @@ class ActualBudgetReadModelTest {
         }
     }
 
+    /** #995: the bank's last synced balance (Actual's `balance_current`) is read for reconciliation. */
+    @Test
+    fun readsTheLastSyncedBankBalance() = withScheduleVariant(
+        "ALTER TABLE accounts ADD COLUMN balance_current INTEGER",
+        "UPDATE accounts SET balance_current = 123456 WHERE id = 'checking'",
+    ) { database ->
+        val accounts = database.fetchAccounts()
+        assertEquals(123_456L, accounts.first { it.id == "checking" }.balanceCurrentCents)
+        assertNull(accounts.first { it.id == "savings" }.balanceCurrentCents)
+    }
+
+    @Test
+    fun noBalanceCurrentColumnMeansNoLastSyncedBalance() = withDatabase { database ->
+        assertTrue(database.fetchAccounts().all { it.balanceCurrentCents == null })
+    }
+
     /** #994: locking stamps `accounts.last_reconciled` like Actual's `Date.now().toString()`, in the same batch. */
     @Test
     fun lockingStampsLastReconciledInTheSameBatch() = withScheduleVariant(
