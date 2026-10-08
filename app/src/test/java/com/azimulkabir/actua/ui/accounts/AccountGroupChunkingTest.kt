@@ -5,8 +5,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AccountGroupChunkingTest {
-    private fun account(id: String, groupId: String? = null, groupName: String? = null, groupSortOrder: Double = 0.0) =
-        Account(name = id, balance = 0, type = "Checking", id = id, groupId = groupId, groupName = groupName, groupSortOrder = groupSortOrder)
+    private fun account(
+        id: String,
+        groupId: String? = null,
+        groupName: String? = null,
+        groupSortOrder: Double = 0.0,
+        balanceCents: Long = 0,
+    ) = Account(
+        name = id, balance = 0, type = "Checking", id = id, balanceCents = balanceCents,
+        groupId = groupId, groupName = groupName, groupSortOrder = groupSortOrder,
+    )
 
     @Test fun `ungrouped accounts stay in a single untouched chunk`() {
         val accounts = listOf(account("a"), account("b"), account("c"))
@@ -43,5 +51,16 @@ class AccountGroupChunkingTest {
             ),
             chunks,
         )
+    }
+
+    /** #923: a group header shows its accounts' total, as Actual's sidebar does. */
+    @Test fun `a group total sums its accounts in cents, liabilities included`() {
+        val accounts = listOf(
+            account("house", groupId = "home", groupName = "Primary Residence", balanceCents = 45_000_012),
+            account("mortgage", groupId = "home", groupName = "Primary Residence", balanceCents = -31_250_099),
+            account("cash", balanceCents = 1_000),
+        )
+        val chunks = accounts.chunkedByGroup()
+        assertEquals(listOf(13_749_913L, 1_000L), chunks.map { it.totalCents })
     }
 }

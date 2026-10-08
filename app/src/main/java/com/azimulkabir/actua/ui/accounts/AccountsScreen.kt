@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.model.Account
@@ -96,7 +97,10 @@ import com.azimulkabir.actua.ui.theme.Spacing
 private data class AccountSection(val title: String, val accounts: List<Account>)
 
 /** One named sub-bucket of an [AccountSection], derived from Actual's experimental account groups. `groupName` is null for the ungrouped bucket. */
-internal data class AccountGroupChunk(val groupName: String?, val accounts: List<Account>)
+internal data class AccountGroupChunk(val groupName: String?, val accounts: List<Account>) {
+    /** The group's balance as Actual's sidebar shows it, over the accounts listed in this chunk. */
+    val totalCents: Long get() = accounts.sumOf { it.balanceCents }
+}
 
 /**
  * Splits a section's accounts into group chunks, preserving each account's existing sort order.
@@ -293,7 +297,7 @@ fun AccountsScreen(
                                     enter = fadeIn(tween(180)),
                                     exit = fadeOut(tween(120)),
                                 ) {
-                                    AccountGroupHeader(chunk.groupName)
+                                    AccountGroupHeader(chunk.groupName, chunk.totalCents, hideDecimalPlaces)
                                 }
                             }
                         }
@@ -464,20 +468,33 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
     }
 }
 
-/** A lightweight, non-collapsible label for an Actual account group nested inside an on/off-budget section. */
+/** A lightweight, non-collapsible label and total for an Actual account group nested inside an on/off-budget section. */
 @Composable
-private fun AccountGroupHeader(groupName: String) {
-    Text(
-        groupName,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun AccountGroupHeader(groupName: String, totalCents: Long, hideDecimalPlaces: Boolean) {
+    Row(
         modifier = Modifier.fillMaxWidth().padding(
             start = Spacing.screenHorizontal + Spacing.xs,
             end = Spacing.screenHorizontal,
             top = Spacing.md,
             bottom = Spacing.xs,
         ),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            groupName,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        MonetaryText(
+            totalCents,
+            hideDecimalPlaces,
+            modifier = Modifier.padding(start = Spacing.sm),
+            style = MaterialTheme.typography.labelMedium,
+        )
+    }
 }
 
 /** Display-only icon for an account row, from its credit-card status or free-text Actual account type. */
