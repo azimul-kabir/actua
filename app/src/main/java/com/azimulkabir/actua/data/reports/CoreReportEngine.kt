@@ -130,6 +130,7 @@ object CoreReportEngine {
                 transactions.filterNot { it.tombstone }
                     .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) },
                 context, conditions, start, minOf(end, today),
+                meta?.optString("granularity")?.takeIf(String::isNotBlank) ?: "monthly", end,
             )
             "formula-card" -> formula(row.id, name, meta, transactions, context, today)
             // [dashboards] renders a live saved report itself; reaching here means it is missing,
@@ -170,6 +171,7 @@ object CoreReportEngine {
     private fun ageOfMoney(
         id: String, name: String, scoped: List<ActualTransaction>, context: RuleContext,
         conditions: Pair<List<Rule.Condition>, Rule.ConditionsOp>, start: LocalDate, end: LocalDate,
+        granularity: String, rangeEnd: LocalDate,
     ): ReportWidget {
         data class Bucket(val date: LocalDate, var remaining: Long)
         val accountConditions = conditions.first.filter { it.field == "account" }
@@ -206,11 +208,26 @@ object CoreReportEngine {
             }
         }
         val displayed = ages.filter { it.first >= YearMonth.from(start).atDay(1) && !it.first.isAfter(end) }
-        val points = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
-            .takeWhile { !it.isAfter(YearMonth.from(end)) }.map { month ->
-                val through = displayed.filter { !YearMonth.from(it.first).isAfter(month) }.takeLast(10)
-                ReportPoint(month.toString(), through.map { it.second }.average().takeUnless { it.isNaN() }?.roundToLong() ?: 0)
-            }.toList()
+        // Upstream's `calculateGraphData`: one point per daily/weekly (Monday-start)/monthly period,
+        // each the rolling average of the last 10 ages so far; periods before the first age are omitted.
+        fun period(date: LocalDate): String = when (granularity) {
+            "daily" -> date.toString()
+            "weekly" -> SavedReportEngine.startOfWeek(date, 1).toString()
+            else -> YearMonth.from(date).toString()
+        }
+        val periods = when (granularity) {
+            "daily" -> generateSequence(YearMonth.from(start).atDay(1)) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }
+            "weekly" -> generateSequence(SavedReportEngine.startOfWeek(YearMonth.from(start).atDay(1), 1)) { it.plusWeeks(1) }
+                .takeWhile { !it.isAfter(end) }
+            // Monthly periods run through the range's own end month; daily/weekly stop at today.
+            else -> generateSequence(YearMonth.from(start).atDay(1)) { it.plusMonths(1) }.takeWhile { !it.isAfter(rangeEnd) }
+        }.map(::period).toList()
+        val agesByPeriod = displayed.groupBy({ period(it.first) }, { it.second })
+        val soFar = mutableListOf<Int>()
+        val points = periods.mapNotNull { key ->
+            agesByPeriod[key]?.let(soFar::addAll)
+            if (soFar.isEmpty()) null else ReportPoint(key, soFar.takeLast(10).average().roundToLong())
+        }
         val current = displayed.takeLast(10).map { it.second }.average().takeUnless { it.isNaN() }?.roundToLong()
         return ReportWidget(id, ReportWidgetKind.AGE_OF_MONEY, name, valueCents = current, points = points)
     }

@@ -717,9 +717,10 @@ private fun AgeOfMoney(widget: ReportWidget) {
         color = MaterialTheme.colorScheme.primary)
     TrendChart(widget.points, isMoney = false)
     if (widget.points.isNotEmpty()) Row(Modifier.fillMaxWidth()) {
-        Text(widget.points.first().period.take(7), style = MaterialTheme.typography.bodySmall,
+        // Daily and weekly periods are dates, monthly ones months.
+        Text(widget.points.first().period, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(widget.points.last().period.take(7), style = MaterialTheme.typography.bodySmall,
+        Text(widget.points.last().period, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
