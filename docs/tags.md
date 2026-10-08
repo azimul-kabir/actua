@@ -63,8 +63,8 @@ Audit of tags against Actual Budget, tracked in
 | Item | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | Name taken | rejected when any other row has it, deleted ones included | same, checked before any note is rewritten | Match ([#983](https://github.com/azimul-kabir/actua/issues/983)) |
-| Notes rewritten | `renameTagInNotes`, case-sensitive, `(?<!#)#old(?=[\s#]\|$)`, on every live `transactions` row | same token rule (`ActiveTagRepository.renameTagInNotes`), parent notes only | Split lines: **Divergence** ([#984](https://github.com/azimul-kabir/actua/issues/984)) |
-| One batch | tag and notes in one `batchMessages` | two separate writes | **Divergence** ([#984](https://github.com/azimul-kabir/actua/issues/984)) |
+| Notes rewritten | `renameTagInNotes`, case-sensitive, `(?<!#)#old(?=[\s#]\|$)`, on every live `transactions` row | same token rule (`renameTagInNotes`) on every live `transactions` row with a `#`, split lines included (`ActualTagWriter.rename`) | Match ([#984](https://github.com/azimul-kabir/actua/issues/984)) |
+| One batch | tag and notes in one `batchMessages` | tag and notes in one `applyLocalMessages` | Match ([#984](https://github.com/azimul-kabir/actua/issues/984)) |
 
 ### Tags in notes
 
@@ -98,7 +98,7 @@ follows another `#` never starts a tag. All of the following come from the corpu
 | Issue | Severity | Summary |
 | --- | --- | --- |
 | [#983](https://github.com/azimul-kabir/actua/issues/983) | P1 | Creating or renaming to a deleted tag's name adds a second row with that name and breaks sync for Actual clients (fixed) |
-| [#984](https://github.com/azimul-kabir/actua/issues/984) | P2 | Rename skips split-line notes and isn't one atomic write |
+| [#984](https://github.com/azimul-kabir/actua/issues/984) | P2 | Rename skips split-line notes and isn't one atomic write (fixed) |
 | [#985](https://github.com/azimul-kabir/actua/issues/985) | Lower | `###tag`, case in views and report filters, and Unicode spaces in rules |
 | [#986](https://github.com/azimul-kabir/actua/issues/986) | Lower | Tags with no color aren't shown as chips; tags created from notes get a default color |
 
