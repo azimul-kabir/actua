@@ -76,6 +76,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Category and category-group create, rename, hide, delete, reorder, notes, carryover and
   `category_mapping` read paths are itemized with upstream links and filed divergences in
   [docs/CATEGORIES_PARITY.md](docs/CATEGORIES_PARITY.md)
+- Every synced `preferences` key (honoured, ignored or overridden by a device-local setting), notes
+  ids per entity, and amount/date formatting are itemized with upstream links and filed divergences
+  in [docs/PREFERENCES_NOTES_PARITY.md](docs/PREFERENCES_NOTES_PARITY.md)
 - Actual's experimental account grouping: existing `account_groups` data synced from the server is
   detected and the Accounts screen displays on/off-budget accounts nested under their configured
   group, ordered by the group's own sort order, with an ungrouped bucket for accounts left outside
