@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Editing a schedule can no longer give it another schedule's name ([#943](https://github.com/azimul-kabir/actua/pull/943))
 - Schedules use the budget-wide upcoming length setting when they have none of their own ([#942](https://github.com/azimul-kabir/actua/pull/942))
 - Upcoming transactions list every scheduled occurrence in the upcoming window, including paid and account-less schedules ([#941](https://github.com/azimul-kabir/actua/pull/941))
 - Paid schedules move to their next date, and paid one-off schedules complete, as in Actual ([#940](https://github.com/azimul-kabir/actua/pull/940))
