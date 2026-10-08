@@ -100,7 +100,13 @@ object CoreReportEngine {
         val meta = row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
         val name = meta?.optString("name")?.takeIf(String::isNotBlank) ?: label(row.type)
         val conditions = parseConditions(meta)
-        val (start, end) = timeFrame(meta?.optJSONObject("timeFrame"), today)
+        val latestTransaction = transactions.asSequence().filterNot { it.tombstone }.maxOfOrNull { it.date }
+            ?.let { LocalDate.of(it / 10000, it / 100 % 100, it % 100) }
+        // Every upstream card spreadsheet widens its range to whole months (`firstDayOfMonth(start)`,
+        // `lastDayOfMonth(end)`); Summary, Cash Flow and Age of Money then cap the end at today.
+        val (start, end) = timeFrame(
+            meta?.optJSONObject("timeFrame"), today, defaultTimeFrame(row.type, today), latestTransaction,
+        ).let { (from, to) -> from.withDayOfMonth(1) to to.withDayOfMonth(to.lengthOfMonth()) }
         val filtered = transactions.asSequence()
             .filterNot { it.tombstone }
             .filter { it.date in start.toYmd()..end.toYmd() }
@@ -139,7 +145,7 @@ object CoreReportEngine {
             "budget-analysis-card" -> budgetAnalysis(row.id, name, meta, context, budgetMonth, start, end)
             "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, start, end)
             "balance-forecast-card" -> balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context,
-                transferAccountByPayee)
+                transferAccountByPayee, start, end)
             "monte-carlo-card" -> monteCarlo(row.id, name, meta, accountBalances, today)
             else -> ReportWidget(row.id, ReportWidgetKind.UNSUPPORTED, name, sourceType = row.type)
         }
@@ -216,7 +222,7 @@ object CoreReportEngine {
                 // means "no date restriction" (all-time), matching upstream/Actuali; an unknown
                 // query name (query == null) evaluates to 0 rather than matching everything.
                 val timeFrameMeta = query?.optJSONObject("timeFrame")?.takeIf { it.has("mode") }
-                val range = timeFrameMeta?.let { timeFrame(it, today) }
+                val range = timeFrameMeta?.let { timeFrame(it, today, monthSliding = true) }
                 val conditions = parseConditions(query)
                 val cents = if (query == null) 0L else all.filterNot { it.tombstone }
                     .filter { range == null || it.date in range.first.toYmd()..range.second.toYmd() }
@@ -508,6 +514,7 @@ object CoreReportEngine {
         balances: Map<String, Long>, today: LocalDate,
         schedules: List<ActualScheduleSummary>, context: RuleContext,
         transferAccountByPayee: Map<String, String>,
+        rangeStart: LocalDate, rangeEnd: LocalDate,
     ): ReportWidget {
         val explicitAccounts = meta?.optJSONArray("accounts")?.strings()?.toSet()
         val selected = explicitAccounts.orEmpty().ifEmpty { balances.keys }
@@ -516,8 +523,6 @@ object CoreReportEngine {
         // account filter at all - an explicit filter (even one listing every account) excludes them.
         val includeAccountlessSchedules = explicitAccounts == null
         val conditions = parseConditions(meta)
-        val (rangeStart, rangeEnd) = meta?.optJSONObject("timeFrame")?.let { timeFrame(it, today) }
-            ?: YearMonth.from(today).let { it.atDay(1) to it.plusMonths(11).atEndOfMonth() }
         val firstForecastDate = if (rangeEnd.isBefore(today)) rangeStart else maxOf(rangeStart, today)
         val startYmd = rangeStart.toYmd(); val endYmd = rangeEnd.toYmd(); val firstForecastYmd = firstForecastDate.toYmd()
 
@@ -971,30 +976,80 @@ object CoreReportEngine {
         }.getOrDefault(emptyList<Rule.Condition>() to Rule.ConditionsOp.AND)
     }
 
-    internal fun timeFrame(meta: JSONObject?, today: LocalDate): Pair<LocalDate, LocalDate> {
+    /** A card's own fallback time frame, upstream's `defaultTimeFrame` argument to `calculateTimeRange`. */
+    internal data class DefaultTimeFrame(val start: String, val end: String, val mode: String)
+
+    /**
+     * Upstream's per-card `defaultTimeFrame`s; cards not listed pass none and fall back to
+     * `calculateTimeRange`'s own default, the last 6 months sliding.
+     */
+    internal fun defaultTimeFrame(type: String, today: LocalDate): DefaultTimeFrame? {
         val current = YearMonth.from(today)
-        if (meta == null) return current.atDay(1) to current.atEndOfMonth()
-        fun date(value: String?, end: Boolean = false): LocalDate? = when (value?.length) {
-            7 -> month(value)?.let { if (end) it.atEndOfMonth() else it.atDay(1) }
-            10 -> runCatching { LocalDate.parse(value) }.getOrNull()
+        return when (type) {
+            "summary-card", "calendar-card" -> DefaultTimeFrame(current.atDay(1).toString(), today.toString(), "full")
+            "cash-flow-card" -> DefaultTimeFrame(current.toString(), current.toString(), "sliding-window")
+            "balance-forecast-card" -> DefaultTimeFrame(current.toString(), current.plusMonths(11).toString(), "static")
             else -> null
         }
-        return when (meta.optString("mode")) {
-            "yearToDate" -> today.withDayOfYear(1) to today
-            "priorYearToDate" -> today.minusYears(1).withDayOfYear(1) to today.minusYears(1)
-            "lastMonth" -> current.minusMonths(1).let { it.atDay(1) to it.atEndOfMonth() }
-            "lastYear" -> LocalDate.of(today.year - 1, 1, 1) to LocalDate.of(today.year - 1, 12, 31)
-            "static" -> (date(meta.optString("start")) ?: current.atDay(1)) to (date(meta.optString("end"), true) ?: today)
-            "full" -> (date(meta.optString("start")) ?: LocalDate.of(1900, 1, 1)) to current.atEndOfMonth()
+    }
+
+    /**
+     * Port of upstream's `calculateTimeRange` (`reportRanges.ts`). Stored bounds are `YYYY-MM`
+     * months or `YYYY-MM-DD` days; a month start/end widens to its first/last day, as every
+     * spreadsheet does with `firstDayOfMonth`/`lastDayOfMonth`. [latestTransaction] extends a
+     * `full` range past the current month, and [monthSliding] truncates day-shaped sliding
+     * windows to months like `asMonthSlidingTimeFrame` (formula sub-queries).
+     */
+    internal fun timeFrame(
+        meta: JSONObject?,
+        today: LocalDate,
+        default: DefaultTimeFrame? = null,
+        latestTransaction: LocalDate? = null,
+        monthSliding: Boolean = false,
+    ): Pair<LocalDate, LocalDate> {
+        val current = YearMonth.from(today)
+        fun stored(key: String) = meta?.optString(key)?.takeIf(String::isNotBlank)
+        var start = stored("start") ?: default?.start ?: current.minusMonths(5).toString()
+        var end = stored("end") ?: default?.end ?: current.toString()
+        val mode = stored("mode") ?: default?.mode ?: "sliding-window"
+        if (monthSliding && mode == "sliding-window") { start = start.take(7); end = end.take(7) }
+        fun first(value: String): LocalDate = when (value.length) {
+            10 -> runCatching { LocalDate.parse(value) }.getOrNull()
+            else -> month(value)?.atDay(1)
+        } ?: current.atDay(1)
+        fun last(value: String): LocalDate = when (value.length) {
+            10 -> runCatching { LocalDate.parse(value) }.getOrNull()
+            else -> month(value)?.atEndOfMonth()
+        } ?: current.atEndOfMonth()
+        fun quarterStart(month: YearMonth) = month.withMonth((month.monthValue - 1) / 3 * 3 + 1)
+        return when (mode) {
+            "full" -> {
+                val latestMonth = latestTransaction?.let(YearMonth::from)
+                first(start) to (if (latestMonth != null && latestMonth.isAfter(current)) latestMonth else current).atEndOfMonth()
+            }
             "sliding-window" -> {
-                val storedStart = month(meta.optString("start")); val storedEnd = month(meta.optString("end"))
-                if (storedStart == null || storedEnd == null) current.atDay(1) to current.atEndOfMonth()
-                else {
-                    val shift = ChronoUnit.MONTHS.between(storedEnd, current)
-                    storedStart.plusMonths(shift).atDay(1) to storedEnd.plusMonths(shift).atEndOfMonth()
+                val startDay = start.takeIf { it.length == 10 }?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+                val endDay = end.takeIf { it.length == 10 }?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+                val startMonth = month(start); val endMonth = month(end)
+                when {
+                    // Day-shaped ranges slide by days: same width, ending today.
+                    startDay != null && endDay != null ->
+                        today.minusDays(ChronoUnit.DAYS.between(startDay, endDay).coerceAtLeast(0)) to today
+                    startMonth == null || endMonth == null -> current.minusMonths(5).atDay(1) to current.atEndOfMonth()
+                    // Upstream compares the stored strings; a reversed window stays reversed.
+                    start > end -> current.atDay(1) to
+                        current.minusMonths(ChronoUnit.MONTHS.between(endMonth, startMonth)).atEndOfMonth()
+                    else -> current.minusMonths(ChronoUnit.MONTHS.between(startMonth, endMonth)).atDay(1) to
+                        current.atEndOfMonth()
                 }
             }
-            else -> current.atDay(1) to current.atEndOfMonth()
+            "lastMonth" -> current.minusMonths(1).let { it.atDay(1) to it.atEndOfMonth() }
+            "lastYear" -> LocalDate.of(today.year - 1, 1, 1) to LocalDate.of(today.year - 1, 12, 31)
+            "yearToDate" -> today.withDayOfYear(1) to current.atEndOfMonth()
+            "priorYearToDate" -> today.minusYears(1).withDayOfYear(1) to today.minusYears(1)
+            "currentQuarter" -> quarterStart(current).let { it.atDay(1) to it.plusMonths(2).atEndOfMonth() }
+            "previousQuarter" -> quarterStart(current).minusMonths(3).let { it.atDay(1) to it.plusMonths(2).atEndOfMonth() }
+            else -> first(start) to last(end)
         }
     }
 

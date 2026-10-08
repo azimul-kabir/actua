@@ -10,6 +10,7 @@ import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
 import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
 import com.azimulkabir.actua.data.schedules.ScheduledAmount
 import com.azimulkabir.actua.model.ReportWidgetKind
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
@@ -588,5 +589,90 @@ class CalendarTest {
         assertEquals(ReportWidgetKind.CALENDAR, widget.kind)
         assertEquals(40000L, widget.valueCents)
         assertEquals(1, widget.points.size)
+    }
+}
+
+/** Upstream `calculateTimeRange` (`reportRanges.ts`) and the per-card default time frames (actua#948). */
+class TimeFrameTest {
+    private val today = LocalDate.of(2026, 8, 20)
+
+    private fun range(meta: String?, type: String = "net-worth-card", latest: LocalDate? = null) =
+        CoreReportEngine.timeFrame(meta?.let(::JSONObject), today, CoreReportEngine.defaultTimeFrame(type, today), latest)
+
+    private fun tx(id: String, date: Int, amount: Long) = ActualTransaction(
+        id, "a", date, amount, null, null, null, null, null, false, false, null, false, null, false, null, null, null, null)
+
+    @Test fun `a card without a time frame or default covers the last 6 months`() {
+        assertEquals(LocalDate.of(2026, 3, 1) to LocalDate.of(2026, 8, 31), range(null))
+        assertEquals(LocalDate.of(2026, 3, 1) to LocalDate.of(2026, 8, 31), range(null, "sankey-card"))
+    }
+
+    @Test fun `card defaults match upstream`() {
+        assertEquals(LocalDate.of(2026, 8, 1) to LocalDate.of(2026, 8, 31), range(null, "summary-card"))
+        assertEquals(LocalDate.of(2026, 8, 1) to LocalDate.of(2026, 8, 31), range(null, "calendar-card"))
+        assertEquals(LocalDate.of(2026, 8, 1) to LocalDate.of(2026, 8, 31), range(null, "cash-flow-card"))
+        assertEquals(LocalDate.of(2026, 8, 1) to LocalDate.of(2027, 7, 31), range(null, "balance-forecast-card"))
+    }
+
+    @Test fun `a time frame without a mode slides`() {
+        assertEquals(LocalDate.of(2026, 6, 1) to LocalDate.of(2026, 8, 31),
+            range("""{"start":"2025-01","end":"2025-03"}"""))
+    }
+
+    @Test fun `quarter modes resolve to quarter bounds`() {
+        assertEquals(LocalDate.of(2026, 7, 1) to LocalDate.of(2026, 9, 30), range("""{"mode":"currentQuarter"}"""))
+        assertEquals(LocalDate.of(2026, 4, 1) to LocalDate.of(2026, 6, 30), range("""{"mode":"previousQuarter"}"""))
+    }
+
+    @Test fun `a day-shaped sliding window keeps its width in days and ends today`() {
+        assertEquals(LocalDate.of(2026, 7, 22) to today,
+            range("""{"mode":"sliding-window","start":"2025-01-01","end":"2025-01-30"}"""))
+    }
+
+    @Test fun `a reversed sliding window stays reversed`() {
+        assertEquals(LocalDate.of(2026, 8, 1) to LocalDate.of(2026, 6, 30),
+            range("""{"mode":"sliding-window","start":"2025-03","end":"2025-01"}"""))
+    }
+
+    @Test fun `full extends to the latest transaction's month when it is in the future`() {
+        assertEquals(LocalDate.of(2024, 1, 1) to LocalDate.of(2026, 8, 31), range("""{"mode":"full","start":"2024-01"}"""))
+        assertEquals(LocalDate.of(2024, 1, 1) to LocalDate.of(2026, 10, 31),
+            range("""{"mode":"full","start":"2024-01"}""", latest = LocalDate.of(2026, 10, 3)))
+    }
+
+    @Test fun `static and calendar modes keep their bounds`() {
+        assertEquals(LocalDate.of(2026, 1, 15) to LocalDate.of(2026, 2, 28),
+            range("""{"mode":"static","start":"2026-01-15","end":"2026-02"}"""))
+        assertEquals(LocalDate.of(2026, 1, 1) to LocalDate.of(2026, 8, 31), range("""{"mode":"yearToDate"}"""))
+        assertEquals(LocalDate.of(2025, 1, 1) to LocalDate.of(2025, 8, 20), range("""{"mode":"priorYearToDate"}"""))
+        assertEquals(LocalDate.of(2026, 7, 1) to LocalDate.of(2026, 7, 31), range("""{"mode":"lastMonth"}"""))
+        assertEquals(LocalDate.of(2025, 1, 1) to LocalDate.of(2025, 12, 31), range("""{"mode":"lastYear"}"""))
+    }
+
+    @Test fun `a cash flow card without a time frame only counts this month`() {
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("w", "cash-flow-card", null),
+            listOf(tx("old", 20260410, -1_000), tx("now", 20260805, -2_000)), today = today,
+        )
+        assertEquals(-2_000L, widget.valueCents)
+    }
+
+    @Test fun `a net worth card without a time frame charts the last 6 months`() {
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("w", "net-worth-card", null),
+            listOf(tx("old", 20260410, 1_000), tx("now", 20260805, 2_000)), today = today,
+        )
+        assertEquals(listOf("2026-03-31", "2026-04-30", "2026-05-31", "2026-06-30", "2026-07-31", "2026-08-31"),
+            widget.points.map { it.period })
+        assertEquals(3_000L, widget.valueCents)
+    }
+
+    @Test fun `a day-shaped sliding window widens to whole months for a card`() {
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("w", "cash-flow-card",
+                """{"timeFrame":{"mode":"sliding-window","start":"2025-01-01","end":"2025-01-30"}}"""),
+            listOf(tx("july", 20260702, -1_000), tx("august", 20260805, -2_000)), today = today,
+        )
+        assertEquals(-3_000L, widget.valueCents)
     }
 }
