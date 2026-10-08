@@ -24,12 +24,14 @@ class PickerChoices(val choices: List<PickerChoice>) {
 
     /** Offered labels under their group headings, in display order; empty when nothing is grouped. */
     val sections: List<Pair<String, List<String>>> = buildList {
-        choices.filter { it.offered && it.group != null }.forEach { choice ->
+        choices.forEach { choice ->
+            val group = choice.group
+            if (!choice.offered || group == null) return@forEach
             val last = lastOrNull()
-            if (last?.first == choice.group) {
-                set(lastIndex, last.first to last.second + choice.label)
+            if (last != null && last.first == group) {
+                set(lastIndex, group to last.second + choice.label)
             } else {
-                add(choice.group!! to listOf(choice.label))
+                add(group to listOf(choice.label))
             }
         }
     }
