@@ -115,7 +115,7 @@ Upstream: `getNumberFormat`, `integerToCurrency`, `amountToInteger`
 | Editing with decimals hidden | edit text still uses the currency's decimals | `centsToInput` always shows both decimals, so a hidden fraction is never lost on save | Match |
 | Decimal places per currency | `useFormat`: `IRR`, `JPY`, `KRW` = 0, others 2, for display, transaction and rule amount entry | the same for display, amount entry (`CalculatorAmountState`, `parseInputCents`), rule amounts and credit-card limits (`CurrencyDisplay.decimalPlaces`) | Match ([#971](https://github.com/azimul-kabir/actua/issues/971)) |
 | Decimal places in search and file import | always 2: `transactionsSearch` and `ImportTransactionsModal` use `amountToInteger(amount)` | always 2 | Match (upstream doesn't apply the currency's places here either) |
-| Hidden fraction rounding | `Intl.NumberFormat` rounds half away from zero; `-0` → `0` | drops the cents (`1,234.56` → `1,234`; `-0.40` → `−0`) | **Divergence** ([#972](https://github.com/azimul-kabir/actua/issues/972)), display only |
+| Hidden fraction rounding | `Intl.NumberFormat` rounds half away from zero; `-0` → `0` | rounds half away from zero (`1,234.56` → `1,235`); an amount that rounds to zero has no minus sign | Match ([#972](https://github.com/azimul-kabir/actua/issues/972)), display only |
 | Separators | five synced formats | device-local: system, `1,234.56`, `1.234,56`, `1 234,56`, `1234.56`, `1,23,456.78`; no `apostrophe-dot` | **Divergence** ([#973](https://github.com/azimul-kabir/actua/issues/973)) |
 | Negative amounts | `-` before the symbol (`-$12.00`) | `−` (U+2212) before the symbol | Device-local (presentation only; same meaning) |
 | Currency symbol | `currencies.ts` symbol, before/after with optional narrow space | device-local currency; symbol or locale symbol always before | **Divergence** ([#973](https://github.com/azimul-kabir/actua/issues/973)) |
@@ -131,7 +131,7 @@ Tests: `src/test/.../ui/components/MoneyFormatterTest` (`hidingDecimalsOnlyChang
 | Issue | Severity | Summary |
 | --- | --- | --- |
 | [#971](https://github.com/azimul-kabir/actua/issues/971) | P2 | Zero-decimal currencies (`JPY`, `KRW`, `IRR`) are shown and entered 100× off (fixed) |
-| [#972](https://github.com/azimul-kabir/actua/issues/972) | Lower | Hidden decimals truncate instead of rounding |
+| [#972](https://github.com/azimul-kabir/actua/issues/972) | Lower | Hidden decimals truncate instead of rounding (fixed) |
 | [#973](https://github.com/azimul-kabir/actua/issues/973) | Lower | Display ignores the budget's synced number, date, fraction, privacy and currency preferences |
 | [#974](https://github.com/azimul-kabir/actua/issues/974) | Lower | Demo budget's credit-card limit uses the wrong field |
 
