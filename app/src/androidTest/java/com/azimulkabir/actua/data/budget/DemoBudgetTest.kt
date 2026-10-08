@@ -60,7 +60,11 @@ class DemoBudgetTest {
                     repository.categoryNames()
                     repository.payeeNames()
                     repository.reports()
-                    repository.creditCards()
+                    // The seeder writes Actuali's credit-card preference shape itself (#974).
+                    assertEquals(
+                        500000L,
+                        repository.creditCards().single { it.accountId == "demo-account-credit" }.config.limitCents,
+                    )
                     repository.rules()
                     repository.rulesSupported()
                     repository.scheduleOwnedRuleIds()
