@@ -832,3 +832,44 @@ class BudgetAnalysisCategoryTest {
                 """{"field":"category","op":"is","value":"food"}]}"""))
     }
 }
+
+/** Upstream `projectTrackingBudgetForecast` for a Balance Forecast with `source = tracking-budget` (actua#958). */
+class TrackingBudgetForecastTest {
+    private val today = LocalDate.of(2026, 5, 20)
+    private val context = RuleContext(offBudgetAccountIds = setOf("house"))
+    private val balances = mapOf("checking" to 1_000L, "house" to 500L)
+    private val meta = """{"source":"tracking-budget","timeFrame":{"mode":"static","start":"2026-05","end":"2026-06"}}"""
+
+    private fun expense(month: String, id: String, budgeted: Long, hidden: Boolean = false) =
+        com.azimulkabir.actua.data.budget.model.ActualCategoryBudget(
+            month, id, id, "g", "G", 1.0, 1.0, budgeted, 0, budgeted, 0, hidden, false, null, false, false, null, null, null,
+        )
+
+    private fun month(month: YearMonth, tracking: Boolean) = com.azimulkabir.actua.data.budget.model.ActualBudgetMonth(
+        month.toString(),
+        listOf(expense(month.toString(), "rent", 200)),
+        listOf(com.azimulkabir.actua.data.budget.model.ActualIncomeBudget(month.toString(), "salary", "Salary", "Income", 1.0, 300, 0, false, false)),
+        if (tracking) null else 0L,
+        listOf(expense(month.toString(), "gifts", 50, hidden = true)),
+        emptyList(),
+    )
+
+    private fun forecast(meta: String, tracking: Boolean) = CoreReportEngine.compute(
+        DashboardWidgetRow("bf", "balance-forecast-card", meta), emptyList(), context,
+        today = today, accountBalances = balances, budgetMonth = { month(it, tracking) },
+    )
+
+    @Test fun `a tracking budget forecast adds each month's budgeted income minus expenses to on-budget balances`() {
+        val widget = forecast(meta, tracking = true)
+        assertEquals(listOf("2026-05" to 1_050L, "2026-06" to 1_100L), widget.points.map { it.period to it.primaryCents })
+        assertEquals(1_100L, widget.valueCents)
+        assertEquals(1_050L, widget.comparisonCents)
+        assertEquals("Forecast = starting balance + budgeted income - budgeted expenses", widget.subtitle)
+    }
+
+    @Test fun `an envelope budget or another source uses the schedule forecast`() {
+        assertEquals("No scheduled transactions in this range", forecast(meta, tracking = false).subtitle)
+        assertEquals("No scheduled transactions in this range",
+            forecast(meta.replace("tracking-budget", "schedules"), tracking = true).subtitle)
+    }
+}

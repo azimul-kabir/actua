@@ -289,9 +289,9 @@ Upstream: `loot-core/src/server/forecast/` ([`forecast-projection.ts`][forecast]
 | Recurrence incl. skip-weekend | schedules engine | `ScheduleRecurrence` | Match |
 | `conditions` on posted and projected rows | | same | Match |
 | Headline ending and low balance; scheduled-count subtitle | | same | Match |
-| `source = tracking-budget` (tracking budgets) | budgeted income/expense projection | schedule projection | **Divergence** [#958](https://github.com/azimul-kabir/actua/issues/958) |
+| `source = tracking-budget` (tracking budgets only): on-budget balances + each month's budgeted income − budgeted expenses | `projectTrackingBudgetForecast` | same | Match (#958) |
 
-Tests: `BalanceForecastTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.balanceForecast*`.
+Tests: `BalanceForecastTest`, `TrackingBudgetForecastTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.balanceForecast*`.
 
 ### Monte Carlo (`monte-carlo-card`)
 

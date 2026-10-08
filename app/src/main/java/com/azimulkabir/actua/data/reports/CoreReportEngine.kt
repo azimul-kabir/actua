@@ -152,8 +152,15 @@ object CoreReportEngine {
                 accountBalances, today)
             "budget-analysis-card" -> budgetAnalysis(row.id, name, meta, context, budgetMonth, start, end)
             "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, start, end)
-            "balance-forecast-card" -> balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context,
-                transferAccountByPayee, start, end)
+            // Upstream's card only uses the tracking-budget source in a tracking budget file.
+            "balance-forecast-card" -> if (meta?.optString("source") == "tracking-budget" &&
+                budgetMonth(YearMonth.from(start))?.isTracking == true
+            ) {
+                trackingBudgetForecast(row.id, name, accountBalances, context, budgetMonth, start, end)
+            } else {
+                balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context,
+                    transferAccountByPayee, start, end)
+            }
             "monte-carlo-card" -> monteCarlo(row.id, name, meta, accountBalances, today)
             else -> ReportWidget(row.id, ReportWidgetKind.UNSUPPORTED, name, sourceType = row.type)
         }
@@ -648,6 +655,35 @@ object CoreReportEngine {
             id, ReportWidgetKind.BALANCE_FORECAST, name,
             valueCents = points.last().primaryCents, comparisonCents = lowestBalance,
             points = points, subtitle = subtitle,
+        )
+    }
+
+    /**
+     * Upstream's `projectTrackingBudgetForecast` (`forecast/forecast-tracking-budget.ts`): starting
+     * from every on-budget account's current balance, each month of the range adds its budgeted
+     * income minus its budgeted expenses (the sheet's `total-budget-income` and `total-budgeted`),
+     * one point per month. Account and condition filters don't apply to this source.
+     */
+    private fun trackingBudgetForecast(
+        id: String, name: String, balances: Map<String, Long>, context: RuleContext,
+        budgetMonth: (YearMonth) -> ActualBudgetMonth?, start: LocalDate, end: LocalDate,
+    ): ReportWidget {
+        var running = balances.filterKeys { it !in context.offBudgetAccountIds }.values.sum()
+        val startingBalance = running
+        val points = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
+            .takeWhile { !it.isAfter(YearMonth.from(end)) }.map { month ->
+                val budget = budgetMonth(month)
+                val income = budget?.let { it.incomeCategories + it.hiddenIncomeCategories }.orEmpty().sumOf { it.budgetedCents }
+                val expenses = budget?.let { it.categories + it.hiddenCategories }.orEmpty().sumOf { it.budgetedCents }
+                running += income - expenses
+                ReportPoint(month.toString(), running)
+            }.toList()
+        return ReportWidget(
+            id, ReportWidgetKind.BALANCE_FORECAST, name,
+            valueCents = points.lastOrNull()?.primaryCents ?: startingBalance,
+            comparisonCents = points.minOfOrNull { it.primaryCents } ?: startingBalance,
+            points = points,
+            subtitle = "Forecast = starting balance + budgeted income - budgeted expenses",
         )
     }
 
