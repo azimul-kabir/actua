@@ -793,3 +793,42 @@ class AgeOfMoneyGranularityTest {
         assertEquals(10, daily.size)
     }
 }
+
+/** Upstream `createBudgetAnalysisSpreadsheet` category selection (actua#956). */
+class BudgetAnalysisCategoryTest {
+    private val today = LocalDate.of(2026, 5, 20)
+    private val timeFrame = """"timeFrame":{"mode":"static","start":"2026-05","end":"2026-05"}"""
+
+    private fun category(id: String, budgeted: Long, hidden: Boolean = false, groupHidden: Boolean = false) =
+        com.azimulkabir.actua.data.budget.model.ActualCategoryBudget(
+            "2026-05", id, id, "group", "Group", 1.0, 1.0, budgeted, 0, budgeted, 0,
+            hidden, groupHidden, null, false, false, null, null, null,
+        )
+
+    private val month = com.azimulkabir.actua.data.budget.model.ActualBudgetMonth(
+        "2026-05",
+        listOf(category("food", 1_000), category("rent", 2_000)),
+        emptyList(), null,
+        // A visible category in a hidden group, and a hidden category.
+        listOf(category("travel", 400, groupHidden = true), category("gifts", 500, hidden = true)),
+        emptyList(),
+    )
+
+    private fun budgeted(meta: String) = CoreReportEngine.compute(
+        DashboardWidgetRow("w", "budget-analysis-card", meta), emptyList(),
+        budgetMonth = { month }, today = today,
+    ).points.single().primaryCents
+
+    @Test fun `a visible category in a hidden group counts, a hidden category doesn't`() {
+        assertEquals(3_400L, budgeted("{$timeFrame}"))
+        assertEquals(3_900L, budgeted("""{$timeFrame,"showHiddenCategories":true}"""))
+    }
+
+    @Test fun `an unsupported condition operator matches no category`() {
+        assertEquals(0L, budgeted(
+            """{$timeFrame,"conditions":[{"field":"category","op":"gt","value":"food"}]}"""))
+        assertEquals(1_000L, budgeted(
+            """{$timeFrame,"conditionsOp":"or","conditions":[{"field":"category","op":"gt","value":"x"},""" +
+                """{"field":"category","op":"is","value":"food"}]}"""))
+    }
+}
