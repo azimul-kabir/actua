@@ -129,7 +129,10 @@ object CoreReportEngine {
                 context, conditions, start, minOf(end, today),
             )
             "formula-card" -> formula(row.id, name, meta, transactions, context, today)
-            "custom-report" -> customReport(row.id, name, filtered, context, incomeCategoryIds)
+            // [dashboards] renders a live saved report itself; reaching here means it is missing,
+            // which upstream's `CustomReportListCards` shows as a deleted-report placeholder.
+            "custom-report" -> ReportWidget(row.id, ReportWidgetKind.MISSING_REPORT, name,
+                markdown = "This custom report has been deleted.")
             "calendar-card" -> {
                 val monthStart = start.withDayOfMonth(1)
                 val monthEnd = end.withDayOfMonth(end.lengthOfMonth())
@@ -232,24 +235,6 @@ object CoreReportEngine {
         val value = ArithmeticParser(expression).parse()?.times(100)?.roundToLong()
         return ReportWidget(id, ReportWidgetKind.FORMULA, name, valueCents = value,
             markdown = if (value == null) "This formula uses functions Actua cannot evaluate." else null)
-    }
-
-    private fun customReport(
-        id: String, name: String, transactions: List<ActualTransaction>, context: RuleContext,
-        incomeCategoryIds: Set<String>,
-    ): ReportWidget {
-        val expenses = transactions.filter { it.amountCents < 0 && it.transferAccountId == null &&
-            it.accountId !in context.offBudgetAccountIds && it.categoryId !in incomeCategoryIds }
-        val categories = expenses.groupBy {
-            it.categoryId?.let(context.categoryNames::get).orEmpty().ifBlank { "Uncategorized" }
-        }
-            .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, -rows.sumOf { it.amountCents }) }
-            .sortedByDescending { it.spentCents }
-        val points = expenses.groupBy { YearMonth.from(it.localDate()) }.toSortedMap().map { (month, rows) ->
-            ReportPoint(month.toString(), -rows.sumOf { it.amountCents })
-        }
-        return ReportWidget(id, ReportWidgetKind.CUSTOM_REPORT, name,
-            valueCents = categories.sumOf { it.spentCents }, categories = categories, points = points)
     }
 
     private fun calendar(id: String, name: String, transactions: List<ActualTransaction>): ReportWidget {

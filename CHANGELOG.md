@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- A dashboard widget for a deleted custom report says so instead of showing other totals ([#961](https://github.com/azimul-kabir/actua/pull/961))
 - Dashboard report widgets use Actual's default and quarter date ranges ([#960](https://github.com/azimul-kabir/actua/pull/960))
 - Editing a schedule can no longer give it another schedule's name ([#943](https://github.com/azimul-kabir/actua/pull/943))
 - Schedules use the budget-wide upcoming length setting when they have none of their own ([#942](https://github.com/azimul-kabir/actua/pull/942))
