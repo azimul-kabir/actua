@@ -25,4 +25,10 @@ data class SavedReportRow(
     val mode: String = "total",
     /** `include_current`: live "Last N" ranges also cover the current week/month. */
     val includeCurrent: Boolean = false,
+    /** `sort_by`: `asc`, `desc` (upstream's default), `name` or `budget`. */
+    val sortBy: String = "desc",
+    /** `show_empty`: list every group, including ones with no value. */
+    val showEmpty: Boolean = false,
+    /** `trim_intervals`: drop leading and trailing intervals with no value. */
+    val trimIntervals: Boolean = false,
 )

@@ -1393,13 +1393,28 @@ class ActualBudgetReadModelTest {
                 db.execSQL("CREATE TABLE custom_reports ($columns)")
                 db.execSQL(insert)
             }
-            ActualBudgetDatabase.open(file).use { assertEquals(false, it.fetchSavedReports().single().includeCurrent) }
+            ActualBudgetDatabase.open(file).use { database ->
+                val report = database.fetchSavedReports().single()
+                assertEquals(false, report.includeCurrent)
+                assertEquals("desc", report.sortBy)
+                assertEquals(false, report.showEmpty)
+                assertEquals(false, report.trimIntervals)
+            }
 
             SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
                 db.execSQL("ALTER TABLE custom_reports ADD COLUMN include_current INTEGER DEFAULT 0")
-                db.execSQL("UPDATE custom_reports SET include_current = 1")
+                db.execSQL("ALTER TABLE custom_reports ADD COLUMN sort_by TEXT DEFAULT 'desc'")
+                db.execSQL("ALTER TABLE custom_reports ADD COLUMN show_empty INTEGER DEFAULT 0")
+                db.execSQL("ALTER TABLE custom_reports ADD COLUMN trim_intervals INTEGER DEFAULT 0")
+                db.execSQL("UPDATE custom_reports SET include_current = 1, sort_by = 'name', show_empty = 1, trim_intervals = 1")
             }
-            ActualBudgetDatabase.open(file).use { assertEquals(true, it.fetchSavedReports().single().includeCurrent) }
+            ActualBudgetDatabase.open(file).use { database ->
+                val report = database.fetchSavedReports().single()
+                assertEquals(true, report.includeCurrent)
+                assertEquals("name", report.sortBy)
+                assertEquals(true, report.showEmpty)
+                assertEquals(true, report.trimIntervals)
+            }
         } finally {
             file.delete()
         }
