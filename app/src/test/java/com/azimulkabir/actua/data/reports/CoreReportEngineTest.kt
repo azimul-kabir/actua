@@ -54,6 +54,56 @@ class SankeyTest {
         assertEquals(listOf("Bills" to 300000L), widget.categories.map { it.name to it.spentCents })
     }
 
+    private val april = """{"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}}"""
+
+    @Test fun `a refund to an expense category reduces that category's outflow instead of adding income`() {
+        val rows = listOf(
+            tx("1", 20260405, 800000, "salary"),
+            tx("2", 20260410, -300000, "rent"),
+            tx("3", 20260412, 50000, "rent"),
+        )
+        val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
+        assertEquals(800000L, widget.valueCents)
+        assertEquals(listOf("Bills" to 250000L), widget.categories.map { it.name to it.spentCents })
+        assertEquals(250000L, widget.comparisonCents)
+    }
+
+    @Test fun `uncategorized transactions and transfers stay out of the graph`() {
+        val transfer = tx("4", 20260415, -100000, null).copy(transferAccountId = "savings")
+        val rows = listOf(
+            tx("1", 20260405, 800000, "salary"),
+            tx("2", 20260410, -300000, "rent"),
+            tx("3", 20260411, 20000, null),
+            tx("5", 20260412, -7000, null),
+            transfer,
+        )
+        val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
+        assertEquals(800000L, widget.valueCents)
+        assertEquals(300000L, widget.comparisonCents)
+        assertEquals(listOf("Salary"), widget.incomeCategories.map { it.name })
+    }
+
+    @Test fun `a net-positive expense category flows in rather than counting as spending`() {
+        val rows = listOf(
+            tx("1", 20260410, -10000, "rent"),
+            tx("2", 20260412, 30000, "rent"),
+        )
+        val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
+        assertEquals(listOf("Rent" to 20000L), widget.incomeCategories.map { it.name to it.spentCents })
+        assertEquals(emptyList<Any>(), widget.categories)
+        assertEquals(0L, widget.comparisonCents)
+    }
+
+    @Test fun `a net-negative income category flows out`() {
+        val rows = listOf(
+            tx("1", 20260405, 800000, "salary"),
+            tx("2", 20260406, -5000, "bonus"),
+        )
+        val widget = CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds)
+        assertEquals(800000L, widget.valueCents)
+        assertEquals(listOf("Bonus" to 5000L), widget.categories.map { it.name to it.spentCents })
+    }
+
     @Test fun `sets a subtitle with the resolved date range`() {
         val widget = CoreReportEngine.compute(
             row("""{"timeFrame":{"mode":"static","start":"2026-04","end":"2026-09"}}"""),

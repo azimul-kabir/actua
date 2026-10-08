@@ -455,34 +455,48 @@ object CoreReportEngine {
             balanceCents = points.lastOrNull()?.tertiaryCents)
     }
 
+    /**
+     * Upstream's Sankey `spent` mode (`sankey-spreadsheet.ts`, `fetchCategoryData` and
+     * `createTransactionsGraph`): only categorized transactions count, netted per category and
+     * account (and payee, for income categories), and each net's sign decides its side. A net-positive
+     * expense category (refunds) flows in and a net-negative income category flows out, so a refund
+     * no longer inflates both totals; uncategorized rows and same-side transfers have no category and
+     * stay out. Income is broken down per income category; outflows per category group.
+     */
     private fun sankey(
         id: String, name: String, transactions: List<ActualTransaction>, context: RuleContext,
         incomeCategoryIds: Set<String>, start: LocalDate, end: LocalDate,
     ): ReportWidget {
-        fun groupLabel(transaction: ActualTransaction) =
-            transaction.categoryId?.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
-                .orEmpty().ifBlank { "Other" }
-        // Income is broken down per source category/payee (matching Actual's PWA), not per category
-        // group like expenses: budgets typically keep every income source in a single "Income" group,
-        // so grouping by group name would collapse them all into one bar.
-        fun incomeLabel(transaction: ActualTransaction) =
-            transaction.categoryId?.let(context.categoryNames::get)?.takeIf(String::isNotBlank)
-                ?: transaction.payeeName?.takeIf(String::isNotBlank) ?: "Other"
-        val incomeRows = transactions.filter { it.amountCents > 0 && it.transferAccountId == null &&
-            it.accountId !in context.offBudgetAccountIds }
-        val income = incomeRows.sumOf { it.amountCents }
-        val incomeCategories = incomeRows.groupBy(::incomeLabel)
-            .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, rows.sumOf { it.amountCents }) }
+        data class Flow(val label: String, val cents: Long)
+        val inflows = mutableListOf<Flow>()
+        val outflows = mutableListOf<Flow>()
+        transactions.filter { it.categoryId != null && it.categoryId in context.categoryNames }
+            .groupBy { tx ->
+                val isIncome = tx.categoryId in incomeCategoryIds
+                Triple(tx.categoryId!!, tx.accountId, if (isIncome) tx.payeeId else null)
+            }
+            .forEach { (key, rows) ->
+                val net = rows.sumOf { it.amountCents }
+                if (net == 0L) return@forEach
+                val categoryName = context.categoryNames[key.first].orEmpty().ifBlank { "Other" }
+                if (net > 0) {
+                    inflows += Flow(categoryName, net)
+                } else {
+                    val label = if (key.first in incomeCategoryIds) categoryName
+                        else key.first.let(context.categoryGroupIds::get)?.let(context.categoryGroupNames::get)
+                            .orEmpty().ifBlank { "Other" }
+                    outflows += Flow(label, -net)
+                }
+            }
+        fun breakdown(flows: List<Flow>) = flows.groupBy { it.label }
+            .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, rows.sumOf { it.cents }) }
             .sortedByDescending { it.spentCents }
-        val categories = transactions.filter { it.amountCents < 0 && it.transferAccountId == null &&
-            it.accountId !in context.offBudgetAccountIds && it.categoryId !in incomeCategoryIds }
-            .groupBy(::groupLabel)
-            .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, -rows.sumOf { it.amountCents }) }
-            .sortedByDescending { it.spentCents }
+        val incomeCategories = breakdown(inflows)
+        val categories = breakdown(outflows)
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
         val subtitle = if (YearMonth.from(start) == YearMonth.from(end)) start.format(formatter)
             else "${start.format(formatter)} - ${end.format(formatter)}"
-        return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = income,
+        return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = incomeCategories.sumOf { it.spentCents },
             comparisonCents = categories.sumOf { it.spentCents }, categories = categories,
             incomeCategories = incomeCategories, subtitle = subtitle)
     }
