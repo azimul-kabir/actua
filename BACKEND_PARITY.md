@@ -374,13 +374,15 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   transaction history, including transfers, splits, and the opening balance
 - Full mobile account reconciliation with bank-balance comparison, difference display,
   uncleared-transaction review, optional cleared adjustment, and atomic CRDT locking
-  of every cleared stored row including split parents and children. Unlocking, rules on the
-  adjustment, `last_reconciled` and "Use last synced total" aren't ported yet
-  ([#992](https://github.com/azimul-kabir/actua/issues/992)–[#995](https://github.com/azimul-kabir/actua/issues/995))
-- Actual's reconciled-row guards: the editor shows a locked Reconciled toggle, edits keep a
-  reconciled row cleared, moving one to another account clears `reconciled`, and saving or
-  deleting a reconciled row (or a transfer whose other leg is reconciled) asks first with
-  Actual's `confirm-transaction-edit` texts, in the editor and the bulk actions
+  of every cleared stored row including split parents and children. Rules on the adjustment,
+  `last_reconciled` and "Use last synced total" aren't ported yet
+  ([#993](https://github.com/azimul-kabir/actua/issues/993)–[#995](https://github.com/azimul-kabir/actua/issues/995))
+- Actual's reconciled-row guards: reconciled rows show a lock that unlocks them after Actual's
+  `unlockReconciled` confirmation, bulk cleared edits skip them, the editor shows a locked
+  Reconciled toggle, edits keep a reconciled row cleared, moving one to another account clears
+  `reconciled`, and saving or deleting a reconciled row (or a transfer whose other leg is
+  reconciled) asks first with Actual's `confirm-transaction-edit` texts, in the editor and the
+  bulk actions
 - Merging two selected transactions like Actual's `transactions-merge`: same account and amount,
   the bank import (then the imported payee, then the earlier date) is kept and fills its empty
   fields from the other, a dropped split's lines move to the kept row, and transfer links are

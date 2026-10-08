@@ -54,4 +54,23 @@ class ReconciledWarningsTest {
             reconciledWarning(rows + row(reconciled = true), ReconciledAction.DELETE),
         )
     }
+
+    @Test
+    fun bulkClearedEditsSkipReconciledRows() {
+        val uncleared = row().copy(id = "u", cleared = false)
+        val cleared = row().copy(id = "c")
+        val reconciled = row(reconciled = true).copy(id = "r")
+        val rows = listOf(uncleared, cleared, reconciled)
+        assertEquals(listOf("u"), bulkClearedTargets(rows, cleared = true).map { it.id })
+        assertEquals(listOf("c"), bulkClearedTargets(rows, cleared = false).map { it.id })
+    }
+
+    @Test
+    fun unlockUsesActualsUnlockReconciledText() {
+        assertEquals(
+            "Unlocking this transaction means you won't be warned about changes that can impact your " +
+                "reconciled balance. (Changes to amount, account, payee, etc).",
+            UNLOCK_RECONCILED_WARNING,
+        )
+    }
 }

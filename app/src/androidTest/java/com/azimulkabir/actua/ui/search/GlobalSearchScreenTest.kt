@@ -23,7 +23,7 @@ class GlobalSearchScreenTest {
                         listOf(Transaction(query, "20260908", "Parent for $query", "Split", "Checking", -10, false))
                     },
                     hideDecimalPlaces = false, onBack = {}, onTransactionEdit = {},
-                    onTransactionDelete = {}, onTransactionClearedChange = { _, _ -> },
+                    onTransactionDelete = {}, onTransactionClearedChange = { _, _ -> }, onTransactionUnlock = {},
                     onAccountClick = {}, onCategoryClick = {}, onPayeeClick = {},
                 )
             }

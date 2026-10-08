@@ -37,6 +37,7 @@ import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.transactions.TransactionDetailsSheet
 import com.azimulkabir.actua.ui.transactions.TransactionRow
+import com.azimulkabir.actua.ui.transactions.rememberClearedToggle
 
 private enum class SearchFilter(val label: String) { ALL("All"), TRANSACTIONS("Transactions"), ACCOUNTS("Accounts"), PAYEES("Payees"), CATEGORIES("Categories") }
 
@@ -52,6 +53,7 @@ fun GlobalSearchScreen(
     onTransactionEdit: (Transaction) -> Unit,
     onTransactionDelete: (Transaction) -> Unit,
     onTransactionClearedChange: (Transaction, Boolean) -> Unit,
+    onTransactionUnlock: (Transaction) -> Unit,
     onAccountClick: (String) -> Unit,
     onCategoryClick: (String) -> Unit,
     onPayeeClick: (String) -> Unit,
@@ -60,6 +62,7 @@ fun GlobalSearchScreen(
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(SearchFilter.ALL) }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
+    val toggleCleared = rememberClearedToggle(onTransactionClearedChange, onTransactionUnlock)
     val term = query.trim()
     var page by remember(term, transactions) { mutableStateOf(0) }
     var matchingTransactions by remember(term, transactions) { mutableStateOf(emptyList<Transaction>()) }
@@ -123,7 +126,7 @@ fun GlobalSearchScreen(
                             showAccount = true,
                             onClick = { selectedTransaction = transaction },
                             onLongClick = { selectedTransaction = transaction },
-                            onClearedClick = { onTransactionClearedChange(transaction, !transaction.cleared) },
+                            onClearedClick = { toggleCleared(transaction) },
                         )
                     }
                 }
