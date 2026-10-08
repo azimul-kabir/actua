@@ -1,11 +1,11 @@
 package com.azimulkabir.actua.ui.transactions
 
+import com.azimulkabir.actua.data.budget.TagSyntax
 import com.azimulkabir.actua.model.Transaction
 
 /**
- * Returns true when [notes] contains an exact hashtag token for [tag].
- * `##` is an escaped literal hash and is never treated as a tag opener.
- * Discovery is case-insensitive; canonical rename remains case-sensitive.
+ * Returns true when [notes] contains an exact hashtag token for [tag], case-sensitively like
+ * Actual's `hasTags` transaction filter. A `#` that follows another `#` never opens a tag.
  */
 internal fun notesContainTag(notes: String?, tag: String): Boolean {
     val wanted = tag.trim().removePrefix("#")
@@ -15,12 +15,12 @@ internal fun notesContainTag(notes: String?, tag: String): Boolean {
     val text = notes.orEmpty()
     while (index < text.length) {
         if (text[index] != '#') { index += 1; continue }
-        if (index + 1 < text.length && text[index + 1] == '#') { index += 2; continue }
+        val run = TagSyntax.hashRun(text, index)
+        if (run > 1) { index += run; continue }
 
         val start = index + 1
-        var end = start
-        while (end < text.length && text[end] != '#' && !text[end].isWhitespace()) end += 1
-        if (end > start && text.substring(start, end).equals(wanted, ignoreCase = true)) return true
+        val end = TagSyntax.nameEnd(text, start)
+        if (end > start && text.substring(start, end) == wanted) return true
         index = if (end > index) end else index + 1
     }
     return false

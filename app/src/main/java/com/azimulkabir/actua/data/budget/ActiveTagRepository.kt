@@ -86,7 +86,7 @@ class ActiveTagRepository(context: Context) {
 }
 
 internal fun validateTagName(value: String): String = value.trim().also {
-    require(it.isNotEmpty() && it.none { char -> char == '#' || char.isWhitespace() }) {
+    require(it.isNotEmpty() && it.none { char -> char == '#' || TagSyntax.isWhitespace(char) }) {
         "Tag names cannot be empty or contain whitespace or #"
     }
 }
@@ -101,15 +101,16 @@ internal fun renameTagInNotes(notes: String, oldName: String, newName: String): 
             out.append(notes[index++])
             continue
         }
-        if (index + 1 < notes.length && notes[index + 1] == '#') {
-            out.append("##")
-            index += 2
-            while (index < notes.length && notes[index] != '#' && !notes[index].isWhitespace()) out.append(notes[index++])
+        // A # that follows another # never opens a tag (Actual's `(?<!#)#`), so the run and the word after it stay.
+        val run = TagSyntax.hashRun(notes, index)
+        if (run > 1) {
+            val wordEnd = TagSyntax.nameEnd(notes, index + run)
+            out.append(notes, index, wordEnd)
+            index = wordEnd
             continue
         }
         val start = index + 1
-        var end = start
-        while (end < notes.length && notes[end] != '#' && !notes[end].isWhitespace()) end++
+        val end = TagSyntax.nameEnd(notes, start)
         val token = notes.substring(start, end)
         out.append('#').append(if (token == oldName) newName else token)
         index = end
