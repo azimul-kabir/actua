@@ -79,6 +79,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Every synced `preferences` key (honoured, ignored or overridden by a device-local setting), notes
   ids per entity, and amount/date formatting are itemized with upstream links and filed divergences
   in [docs/PREFERENCES_NOTES_PARITY.md](docs/PREFERENCES_NOTES_PARITY.md)
+- Account reconciliation (cleared-balance comparison, locking, the adjustment transaction,
+  unlocking, reconciled-row confirmations, `hide-reconciled-<id>` and `last_reconciled`) is
+  itemized with upstream links and filed divergences in
+  [docs/RECONCILIATION_PARITY.md](docs/RECONCILIATION_PARITY.md)
 - Actual's experimental account grouping: existing `account_groups` data synced from the server is
   detected and the Accounts screen displays on/off-budget accounts nested under their configured
   group, ordered by the group's own sort order, with an ungrouped bucket for accounts left outside
@@ -370,7 +374,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   transaction history, including transfers, splits, and the opening balance
 - Full mobile account reconciliation with bank-balance comparison, difference display,
   uncleared-transaction review, optional cleared adjustment, and atomic CRDT locking
-  of every cleared stored row including split parents and children
+  of every cleared stored row including split parents and children. Unlocking, rules on the
+  adjustment, `last_reconciled` and "Use last synced total" aren't ported yet
+  ([#992](https://github.com/azimul-kabir/actua/issues/992)–[#995](https://github.com/azimul-kabir/actua/issues/995))
 - Actual's reconciled-row guards: the editor shows a locked Reconciled toggle, edits keep a
   reconciled row cleared, moving one to another account clears `reconciled`, and saving or
   deleting a reconciled row (or a transfer whose other leg is reconciled) asks first with
