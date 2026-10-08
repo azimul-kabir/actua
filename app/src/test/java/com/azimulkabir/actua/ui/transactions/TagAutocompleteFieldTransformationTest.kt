@@ -8,7 +8,7 @@ import org.junit.Test
 
 class TagAutocompleteFieldTransformationTest {
     @Test fun `recognized tags are styled without changing the displayed text`() {
-        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = false)
+        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = false, defaultTagColor = Color.Gray)
 
         val transformed = transformation.filter(AnnotatedString("Pickup #school today"))
 
@@ -19,16 +19,18 @@ class TagAutocompleteFieldTransformationTest {
         assertEquals(14, spans[0].end)
     }
 
-    @Test fun `unrecognized and escaped tokens are left unstyled`() {
-        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = false)
+    @Test fun `tags without a color use the default and escaped tokens stay unstyled`() {
+        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = false, defaultTagColor = Color.Gray)
 
         val transformed = transformation.filter(AnnotatedString("#unknown ##escaped"))
 
-        assertTrue(transformed.text.spanStyles.isEmpty())
+        val span = transformed.text.spanStyles.single()
+        assertEquals(0, span.start)
+        assertEquals(8, span.end)
     }
 
     @Test fun `offset mapping is identity since styling never changes text length`() {
-        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = false)
+        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = false, defaultTagColor = Color.Gray)
 
         val transformed = transformation.filter(AnnotatedString("Pickup #school today"))
 
@@ -38,7 +40,7 @@ class TagAutocompleteFieldTransformationTest {
 
     @Test fun `styled color matches the same theme-aware contrast used after saving`() {
         val purple = Color(0xFF800080)
-        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = true)
+        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = true, defaultTagColor = Color.Gray)
 
         val transformed = transformation.filter(AnnotatedString("#school"))
 
@@ -49,7 +51,7 @@ class TagAutocompleteFieldTransformationTest {
     @Test fun `recognized tags are not given a flat span background`() {
         // The pill background is drawn separately as a rounded rect (see tagChipRects) so it can
         // be rounded like the post-save chip; a flat SpanStyle background would paint square corners.
-        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = false)
+        val transformation = tagHighlightTransformation(mapOf("school" to "#800080"), darkTheme = false, defaultTagColor = Color.Gray)
 
         val transformed = transformation.filter(AnnotatedString("#school"))
 

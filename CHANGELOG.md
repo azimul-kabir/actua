@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Every #tag in notes shows as a chip, and tags created from notes no longer get a default color ([#991](https://github.com/azimul-kabir/actua/pull/991))
 - Currency, number and date formats, decimal places and balance hiding follow the budget's Actual settings unless set on the device ([#979](https://github.com/azimul-kabir/actua/pull/979))
 
 ### Fixed

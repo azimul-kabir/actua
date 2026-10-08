@@ -80,7 +80,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
-import com.azimulkabir.actua.data.budget.DEFAULT_TAG_COLOR
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.model.PickerChoices
 import com.azimulkabir.actua.model.Transaction
@@ -511,7 +510,7 @@ fun AddTransactionScreen(
                                     value = line.notes,
                                     tags = availableTags,
                                     onValueChange = { value -> update(line.copy(notes = value)) },
-                                    onCreateTag = { name -> tagRepository.create(name, DEFAULT_TAG_COLOR)?.also { tagVersion += 1 } },
+                                    onCreateTag = { name -> tagRepository.create(name)?.also { tagVersion += 1 } },
                                     label = "Split note",
                                     modifier = Modifier.fillMaxWidth(),
                                     rowIcon = Icons.AutoMirrored.Outlined.Notes,
@@ -566,7 +565,7 @@ fun AddTransactionScreen(
                     value = notes,
                     tags = availableTags,
                     onValueChange = { notes = it },
-                    onCreateTag = { name -> tagRepository.create(name, DEFAULT_TAG_COLOR)?.also { tagVersion += 1 } },
+                    onCreateTag = { name -> tagRepository.create(name)?.also { tagVersion += 1 } },
                     label = "Notes",
                     modifier = Modifier.fillMaxWidth(),
                     rowIcon = Icons.AutoMirrored.Outlined.Notes,

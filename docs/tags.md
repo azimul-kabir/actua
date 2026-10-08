@@ -4,7 +4,7 @@ Actua uses Actual Budget's canonical tag metadata and keeps tag behavior compati
 
 ## Notes and autocomplete
 
-In a transaction note, type `#` to search managed tags. Suggestions update as the active hashtag token changes. Hidden tags are excluded from autocomplete. A `#` that follows another `#` never starts a tag, so `##tag` and `###tag` are plain text. Recognized `#tag` tokens are shown with the same colored pill in the notes field as you type, matching the tag's chip once the transaction is saved.
+In a transaction note, type `#` to search managed tags. Suggestions update as the active hashtag token changes. Hidden tags are excluded from autocomplete. A `#` that follows another `#` never starts a tag, so `##tag` and `###tag` are plain text. Every `#tag` token is shown as a chip, in the notes field as you type and once the transaction is saved; a tag with no color, or with no managed metadata, uses the theme's color, as in Actual.
 
 Tag matching follows Actual: viewing a tag's transactions, rename and report filters are case-sensitive, while rules ignore case. A tag filter matches an exact hashtag token, so `#travel` does not match `#travel2026`.
 
@@ -50,7 +50,7 @@ Audit of tags against Actual Budget, tracked in
 | Writes go through CRDT messages | `db.insertTag`/`updateTag`/`delete_` | `ActualTagWriter` → `applyLocalMessages` | Match |
 | Name: trimmed, no whitespace or `#`, not empty | `renameTag` check; `createTag` trims | `validateTagName` / `ActualTagWriter.validTag` | Match |
 | Create a name that exists | updates the existing row, deleted or live, and clears `tombstone` | returns a live match; a deleted match is brought back on its own row (`ActualTagWriter.create`, `ActualBudgetDatabase.fetchTagRowByName`) | Match ([#983](https://github.com/azimul-kabir/actua/issues/983)) |
-| Color on create | trimmed, `null` when empty; tags created from a note get `null` | trimmed, `null` when empty; tags created from a note or Label get `#690CB0` | **Divergence** ([#986](https://github.com/azimul-kabir/actua/issues/986)) |
+| Color on create | trimmed, `null` when empty; tags created from a note get `null` | trimmed, `null` when empty; tags created from a note or Label get `null` | Match ([#986](https://github.com/azimul-kabir/actua/issues/986)) |
 | Description | stored as typed | blank stored as `null` | Intentional (other clients show an empty description either way) |
 | Edit | writes the fields passed | writes name (if changed), color, description and hidden | Match |
 | Hide / show | `hidden` 1/0; hidden tags left out of autocomplete | same; hidden tags left out of autocomplete (`ui/transactions/TagAutocomplete.kt`) | Match |
@@ -79,7 +79,7 @@ follows another `#` never starts a tag. All of the following come from the corpu
 | `#food.`, `#food,y`, `#a+b`, `#café` | the whole word is the tag (`food.`, `food,y`, …) | same | Match |
 | `#`, `# food` | no tag | same | Match |
 | Tag ended by a tab, a no-break space or another JS `\s` character | ends the tag | same everywhere (`data/budget/TagSyntax.kt`) | Match ([#985](https://github.com/azimul-kabir/actua/issues/985)) |
-| Rendering | every `#tag` is a chip, with a theme default color when the tag has none | a chip only for tags with a stored color | **Divergence** ([#986](https://github.com/azimul-kabir/actua/issues/986)) |
+| Rendering | every `#tag` is a chip, with a theme default color when the tag has none | every `#tag` is a chip; tags with no color use the theme's primary color (`ui/components/TagText.kt`) | Match ([#986](https://github.com/azimul-kabir/actua/issues/986)); Actual's default tag colors differ by theme |
 | Shown text for `##food` | `#food` (one `#` dropped) | `##food` as typed | Intentional (display only; stored notes are identical) |
 
 ### Filters, rules and discovery
@@ -100,7 +100,7 @@ follows another `#` never starts a tag. All of the following come from the corpu
 | [#983](https://github.com/azimul-kabir/actua/issues/983) | P1 | Creating or renaming to a deleted tag's name adds a second row with that name and breaks sync for Actual clients (fixed) |
 | [#984](https://github.com/azimul-kabir/actua/issues/984) | P2 | Rename skips split-line notes and isn't one atomic write (fixed) |
 | [#985](https://github.com/azimul-kabir/actua/issues/985) | Lower | `###tag`, case in views and report filters, and Unicode spaces in rules (fixed) |
-| [#986](https://github.com/azimul-kabir/actua/issues/986) | Lower | Tags with no color aren't shown as chips; tags created from notes get a default color |
+| [#986](https://github.com/azimul-kabir/actua/issues/986) | Lower | Tags with no color aren't shown as chips; tags created from notes get a default color (fixed) |
 
 **Limitations:** source comparison plus a corpus test of the parsing functions; no budget was opened
 in both clients.
