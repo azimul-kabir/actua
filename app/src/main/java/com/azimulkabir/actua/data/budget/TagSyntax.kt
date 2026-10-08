@@ -10,8 +10,8 @@ internal object TagSyntax {
 
     /** True for the characters JS `\s` matches; Kotlin's isWhitespace differs at the edges. */
     fun isWhitespace(char: Char): Boolean = when (char) {
-        '\t', '\n', '\u000B', '\u000C', '\r', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '　', '﻿' -> true
-        else -> char in ' '..' '
+        '\t', '\n', '\u000B', '\u000C', '\r', ' ', '\u00A0', '\u1680', '\u2028', '\u2029', '\u202F', '\u205F', '\u3000', '\uFEFF' -> true
+        else -> char in '\u2000'..'\u200A'
     }
 
     /** End of the tag name starting at [start]: the next `#`, JS whitespace or the end of [text]. */
