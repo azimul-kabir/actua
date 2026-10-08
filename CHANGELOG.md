@@ -15,6 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Upcoming transactions list every scheduled occurrence in the upcoming window, including paid and account-less schedules ([#941](https://github.com/azimul-kabir/actua/pull/941))
 - Paid schedules move to their next date, and paid one-off schedules complete, as in Actual ([#940](https://github.com/azimul-kabir/actua/pull/940))
 - Posting a transfer schedule moves the money into the other account too ([#939](https://github.com/azimul-kabir/actua/pull/939))
 - Renaming or moving a category, or renaming a group, can't create a duplicate name, as in Actual ([#932](https://github.com/azimul-kabir/actua/pull/932))
