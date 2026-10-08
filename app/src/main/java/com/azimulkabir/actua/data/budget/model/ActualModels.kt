@@ -28,6 +28,8 @@ data class ActualAccount(
     val unclearedCents: Long = 0,
     val reconciledCents: Long = 0,
     val groupId: String? = null,
+    /** Actual's `last_reconciled`: epoch milliseconds as a string, or null when never reconciled. */
+    val lastReconciled: String? = null,
 )
 
 /** Actual's experimental `account_groups`: a user-named container accounts can be assigned to. */

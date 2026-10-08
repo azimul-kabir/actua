@@ -103,9 +103,10 @@ class ActualBudgetDatabase private constructor(
         }
 
         val result = mutableListOf<ActualAccount>()
+        val lastReconciled = if ("last_reconciled" in columns("accounts")) "last_reconciled" else "NULL"
         database.rawQuery(
             """
-                SELECT id, name, type, offbudget, closed, sort_order, account_group_id
+                SELECT id, name, type, offbudget, closed, sort_order, account_group_id, $lastReconciled
                 FROM accounts
                 WHERE tombstone = 0 OR tombstone IS NULL
                 ORDER BY sort_order ASC
@@ -125,6 +126,7 @@ class ActualBudgetDatabase private constructor(
                     unclearedCents = (balances[id]?.total ?: 0) - (balances[id]?.cleared ?: 0),
                     reconciledCents = balances[id]?.reconciled ?: 0,
                     groupId = cursor.stringOrNull(6),
+                    lastReconciled = cursor.stringOrNull(7),
                 )
             }
         }

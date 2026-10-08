@@ -752,6 +752,7 @@ class ActuaRepository(context: Context) {
                     groupId = group?.id,
                     groupName = group?.name,
                     groupSortOrder = group?.sortOrder ?: 0.0,
+                    lastReconciled = it.lastReconciled,
                 )
             }
         }
@@ -1823,7 +1824,7 @@ class ActuaRepository(context: Context) {
 
     fun reconcileAccount(accountId: String): Boolean {
         val writer = actualWriter ?: return false
-        writer.reconcileClearedTransactions(accountId)
+        writer.reconcileClearedTransactions(accountId, reconciledAt = System.currentTimeMillis())
         return true
     }
 

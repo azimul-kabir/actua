@@ -182,12 +182,19 @@ class ActualTransactionWriter(
         if (updates.isNotEmpty()) mutate(updates = updates)
     }
 
-    /** Lock all cleared rows for one account in a single CRDT/database transaction. */
+    /**
+     * Lock all cleared rows for one account in a single CRDT/database transaction. With
+     * [reconciledAt] (epoch milliseconds), `accounts.last_reconciled` is stamped in the same batch,
+     * as a string like Actual's `Date.now().toString()` (#994).
+     */
     @Synchronized
-    fun reconcileClearedTransactions(accountId: String): Int {
+    fun reconcileClearedTransactions(accountId: String, reconciledAt: Long? = null): Int {
         val originals = database.fetchClearedUnreconciledTransactions(accountId)
-        if (originals.isEmpty()) return 0
-        mutate(updates = originals.map { it to it.copy(reconciled = true) })
+        val messages = originals.map { message("transactions", it.id, "reconciled", 1) } +
+            listOfNotNull(reconciledAt?.let { message("accounts", accountId, "last_reconciled", it.toString()) })
+        if (messages.isEmpty()) return 0
+        database.applyLocalMessages(messages)
+        saveClock()
         return originals.size
     }
 
