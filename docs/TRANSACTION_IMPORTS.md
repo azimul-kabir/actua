@@ -4,6 +4,9 @@ Actua imports bank data through reviewable transaction candidates. Parsing never
 the budget. Only rows selected on the review screen are committed, together, through the normal
 Actual-compatible CRDT transaction writer.
 
+How bank sync and file import compare with Actual Budget, row by row, is tracked in
+[BANK_SYNC_PARITY.md](BANK_SYNC_PARITY.md).
+
 ## CSV statements
 
 The file picker accepts local CSV or plain-text files. Processing stays on the device. Actua detects
