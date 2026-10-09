@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.network
 
 import com.azimulkabir.actua.data.sync.ServerKeyInfo
+import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URI
@@ -679,12 +680,22 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         headers: Map<String, String> = emptyMap(),
         body: ByteArray? = null,
         readTimeoutMillis: Int? = null,
-    ): ActualHttpResponse = transport.execute(
-        ActualHttpRequest(
-            URL(normalizeServerUrl(serverUrl) + path), method,
-            mapOf("Accept" to "application/json") + customHeaders + headers, body, readTimeoutMillis,
-        ),
-    )
+    ): ActualHttpResponse {
+        val started = System.nanoTime()
+        fun elapsedMillis() = (System.nanoTime() - started) / 1_000_000
+        // Diagnostics get the method, the path's shape, the status and the timing only (#225).
+        return try {
+            transport.execute(
+                ActualHttpRequest(
+                    URL(normalizeServerUrl(serverUrl) + path), method,
+                    mapOf("Accept" to "application/json") + customHeaders + headers, body, readTimeoutMillis,
+                ),
+            ).also { DiagnosticsLog.http(method, path, it.status, elapsedMillis()) }
+        } catch (error: Exception) {
+            DiagnosticsLog.http(method, path, null, elapsedMillis(), error)
+            throw error
+        }
+    }
 
     private fun actualHeaders(token: String) = mapOf("X-ACTUAL-TOKEN" to token)
 

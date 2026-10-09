@@ -44,6 +44,7 @@ import com.azimulkabir.actua.data.budget.BudgetOpenProbe
 import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.location.Coordinates
 import com.azimulkabir.actua.data.location.PayeeLocationWriter
+import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import com.azimulkabir.actua.data.importing.ImportMatch
 import com.azimulkabir.actua.data.importing.TitleCase
 import com.azimulkabir.actua.model.Account
@@ -764,10 +765,18 @@ class ActuaRepository(context: Context) {
     fun syncBanks(accountId: String? = null): BankSyncResult {
         val database = actualDatabase ?: error("Open an Actual budget before syncing banks.")
         val (server, serverUrl, token) = bankSyncClient()
-        return BankSyncService(
-            database, requireNotNull(actualWriter), requireNotNull(actualEntities), server,
-            enableBankingEnabled = ExperimentalPreferences(appContext).enableBanking,
-        ).sync(serverUrl, token, accountId)
+        val result = runCatching {
+            BankSyncService(
+                database, requireNotNull(actualWriter), requireNotNull(actualEntities), server,
+                enableBankingEnabled = ExperimentalPreferences(appContext).enableBanking,
+            ).sync(serverUrl, token, accountId)
+        }.onFailure { DiagnosticsLog.bankSyncFailed(it) }.getOrThrow()
+        // Diagnostics get counts and each synced account's status code, never account names (#225).
+        val statuses = database.fetchBankSyncAccounts()
+            .filter { !it.closed && (accountId == null || it.id == accountId) }
+            .map { it.status ?: "none" }
+        DiagnosticsLog.bankSync(result.accountsSynced, result.imported, result.matched, result.updated, statuses)
+        return result
     }
 
     private data class BankSyncClient(val server: ActualServerClient, val serverUrl: String, val token: String)

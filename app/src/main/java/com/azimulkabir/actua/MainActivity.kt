@@ -1,5 +1,6 @@
 package com.azimulkabir.actua
 
+import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -36,6 +37,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        DiagnosticsLog.attach(this)
         launchRequest = intent.toLaunchRequest()
         enableEdgeToEdge()
         setContent {

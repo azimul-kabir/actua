@@ -93,6 +93,7 @@ internal enum class SettingsPage(val title: String, val depth: Int) {
     CategoryColors("Category status colors", 3),
     Experimental("Experimental", 2),
     About("About", 2),
+    Diagnostics("Diagnostics", 3),
 }
 
 internal fun isForwardSettingsNavigation(from: SettingsPage, to: SettingsPage): Boolean =
@@ -223,6 +224,7 @@ fun SettingsScreen(
         SettingsPage.Experimental, SettingsPage.About,
         -> SettingsPage.General
         SettingsPage.CategoryColors -> SettingsPage.Budget
+        SettingsPage.Diagnostics -> SettingsPage.About
         SettingsPage.General -> SettingsPage.Manage
         SettingsPage.Manage -> SettingsPage.Manage
     }
@@ -256,7 +258,9 @@ fun SettingsScreen(
         },
         label = "Settings navigation motion",
     ) { shownPage ->
-        if (shownPage == SettingsPage.Tags) {
+        if (shownPage == SettingsPage.Diagnostics) {
+            DiagnosticsScreen(onBack = ::navigateBack, modifier = Modifier.fillMaxSize())
+        } else if (shownPage == SettingsPage.Tags) {
             ManageTagsScreen(
                 tags = managedTags,
                 hiddenSupported = tagCapabilities.hidden,
@@ -622,6 +626,10 @@ fun SettingsScreen(
                         AboutRow("Privacy Policy", "What data Actua stores, syncs and never collects") {
                             uriHandler.openUri("https://github.com/azimul-kabir/actua/blob/main/PRIVACY.md")
                         }
+                        SettingsDivider()
+                        AboutRow("Diagnostics", "Copy, save or email a report of recent connection and sync activity") {
+                            page = SettingsPage.Diagnostics
+                        }
                     }
                     SettingsGroup("Credits") {
                         AboutRow(
@@ -644,7 +652,7 @@ fun SettingsScreen(
                         )
                     }
                 }
-                SettingsPage.Tags -> Unit
+                SettingsPage.Tags, SettingsPage.Diagnostics -> Unit
             }
             Spacer(Modifier.height(Spacing.xl))
         }
