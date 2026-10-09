@@ -45,7 +45,7 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Atomic batch, transfers, `sort_order` | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | Match (neither client learns from imports) |
 | File import: formats and mapping | Intentional boundary (CSV only in common) |
-| File import: payee title-case, cleared default | Divergence ([#1008](https://github.com/azimul-kabir/actua/issues/1008)) |
+| File import: payee title-case, cleared default | Match ([#1008](https://github.com/azimul-kabir/actua/issues/1008)) |
 | File import: matching existing transactions | Divergence ([#1009](https://github.com/azimul-kabir/actua/issues/1009)) |
 
 **Same synthetic payload, both clients.** Consider a booked row with an id, a non-blank payee, notes
@@ -200,8 +200,8 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 | CSV mapping | date, payee, notes, category, amount or inflow/outflow, in/out column, multiplier, flip, skip lines, header toggle, delimiter | date, payee, notes, reference, amount or debit/credit, "expenses are positive", auto delimiter, header row, saved profiles | Match for date/payee/notes/amount. Category column and multiplier: N/A. Reference is Android-only and appended to notes as `Reference: …`. |
 | `imported_id` | from OFX/QFX FITID and CAMT ids; CSV has none | none (CSV/XLSX/PDF carry no stable id) | Match for CSV |
 | Rules before payee creation | `runRules` on each row | `ImportRules.apply` | Match |
-| Payee name normalization | trimmed and title-cased (`title()`) | trimmed only | **Divergence** [#1008](https://github.com/azimul-kabir/actua/issues/1008) |
-| `cleared` | **Clear transactions on import**, on by default | always `cleared = 0` | **Divergence** [#1008](https://github.com/azimul-kabir/actua/issues/1008) |
+| Payee name normalization | trimmed and title-cased (`title()`) | same (`TitleCase.title`, a port) | Match ([#1008](https://github.com/azimul-kabir/actua/issues/1008)) |
+| `cleared` | **Clear transactions on import**, on by default | **Mark as cleared**, on by default | Match ([#1008](https://github.com/azimul-kabir/actua/issues/1008)) |
 | Matching existing transactions | same amount ±7 days without an `imported_id`, payee pass first; matched rows are **updated**; user can force-add | rows with the same date, amount and normalized payee are flagged and unchecked; nothing is updated | **Divergence** [#1009](https://github.com/azimul-kabir/actua/issues/1009) |
 | Duplicates inside the same file | each row matched separately (one candidate claimed once) | an earlier identical row in the file is flagged | Intentional (review-only hint; the user decides) |
 | Nothing written before confirmation | preview runs with `isPreview` | parsing and review never write | Match |
@@ -220,5 +220,5 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 | [#1005](https://github.com/azimul-kabir/actua/issues/1005) | Fixed | Unlink cells and GoCardless requisition removal |
 | [#1006](https://github.com/azimul-kabir/actua/issues/1006) | Fixed | Per-account bank sync preferences, including reimport of deleted rows |
 | [#1007](https://github.com/azimul-kabir/actua/issues/1007) | Fixed | Atomic import batch, transfer counterparts, `sort_order` |
-| [#1008](https://github.com/azimul-kabir/actua/issues/1008) | P2 | File import payee title-case and cleared default |
+| [#1008](https://github.com/azimul-kabir/actua/issues/1008) | Fixed | File import payee title-case and cleared default |
 | [#1009](https://github.com/azimul-kabir/actua/issues/1009) | P2 | File import fuzzy matching against existing rows |

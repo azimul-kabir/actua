@@ -2222,9 +2222,9 @@ fun AppNavigation(
             DetailDestination.ImportTransactions -> ImportTransactionsScreen(
                 accounts = accounts.filterNot { it.closed },
                 duplicateKeys = repository::importDuplicateKeys,
-                onImport = { accountId, candidates, onImported ->
+                onImport = { accountId, candidates, cleared, onImported ->
                     mutate("Importing transactions", onChanged = onImported) {
-                        repository.importTransactions(accountId, candidates) == candidates.size
+                        repository.importTransactions(accountId, candidates, cleared) == candidates.size
                     }
                 },
                 onBack = { detail = DetailDestination.Main },

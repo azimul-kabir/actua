@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -107,7 +108,8 @@ private data class ReviewRow(
 fun ImportTransactionsScreen(
     accounts: List<Account>,
     duplicateKeys: (String) -> Set<String>,
-    onImport: (String, List<ImportCandidate>, onImported: () -> Unit) -> Unit,
+    /** Account id, reviewed candidates, whether to mark them cleared, and a callback once imported. */
+    onImport: (String, List<ImportCandidate>, Boolean, onImported: () -> Unit) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialSharedText: String? = null,
@@ -127,6 +129,8 @@ fun ImportTransactionsScreen(
     var sourceFormat by remember { mutableStateOf(StatementFormat.CSV) }
     var profileName by remember { mutableStateOf("") }
     var history by remember { mutableStateOf(importPreferences.history()) }
+    // Actual's "Clear transactions on import", on by default (#1008).
+    var markCleared by rememberSaveable { mutableStateOf(true) }
     var profileMenu by remember { mutableStateOf(false) }
     val notificationPreferences = remember { NotificationImportPreferences(context) }
     var captureEnabled by remember { mutableStateOf(notificationPreferences.enabled) }
@@ -428,6 +432,15 @@ fun ImportTransactionsScreen(
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            if (rows.isNotEmpty()) ActuaFormCard(Modifier.padding(top = Spacing.md)) {
+                ActuaFormRow(
+                    icon = Icons.Outlined.Check,
+                    label = "Mark as cleared",
+                    value = null,
+                    checked = markCleared,
+                    onClick = { markCleared = !markCleared },
+                )
+            }
             rows.forEachIndexed { index, row ->
                 val candidate = row.toCandidateOrNull()
                 val invalid = candidate == null
@@ -474,7 +487,7 @@ fun ImportTransactionsScreen(
             text = "Approve and import ${ready.size}",
             onClick = {
                 val target = account ?: return@ActuaPrimaryActionBar
-                onImport(target.id, ready) {
+                onImport(target.id, ready, markCleared) {
                     message = "Imported ${ready.size} transaction${if (ready.size == 1) "" else "s"}."
                     importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, target.name,
                         ready.size, rows.size - ready.size, System.currentTimeMillis()))

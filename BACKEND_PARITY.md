@@ -138,8 +138,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   `findOrCreateBank` does (#1004), and unlinking clears Actual's cells and removes an unused
   GoCardless requisition (#1005). Per-account sync preferences set in Actual are honoured, but
   can only be edited in Actual (#1006). Each account's download and each imported file is written
-  as one CRDT batch, with transfer legs and Actual's sort order (#1007). Known boundaries until fixed:
-  - File import keeps payee names as written and leaves rows uncleared (#1008)
+  as one CRDT batch, with transfer legs and Actual's sort order (#1007). File import title-cases payee names and
+  marks rows cleared by default (#1008). Known boundaries until fixed:
   - File import flags only same-date duplicates instead of matching within seven days (#1009)
 - On-device financial-message parsing for explicitly pasted/shared text and opt-in future
   notifications from an explicit allowed-app list, with configurable debit/credit terms, amount/date/reference/payee extraction,
