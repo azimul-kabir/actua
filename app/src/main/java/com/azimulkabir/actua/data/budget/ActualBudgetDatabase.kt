@@ -257,10 +257,10 @@ class ActualBudgetDatabase private constructor(
     }
 
     @Synchronized
-    fun oldestTransactionDate(accountId: String): Int? = database.rawQuery(
-        """SELECT MIN(date) FROM transactions WHERE acct = ? AND date IS NOT NULL
+    fun oldestTransactionDate(accountId: String, onOrBefore: Int = Int.MAX_VALUE): Int? = database.rawQuery(
+        """SELECT MIN(date) FROM transactions WHERE acct = ? AND date IS NOT NULL AND date <= ?
             AND (tombstone = 0 OR tombstone IS NULL)""",
-        arrayOf(accountId),
+        arrayOf(accountId, onOrBefore.toString()),
     ).use { cursor ->
         if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getInt(0) else null
     }
