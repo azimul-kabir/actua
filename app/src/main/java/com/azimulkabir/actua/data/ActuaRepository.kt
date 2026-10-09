@@ -1090,24 +1090,31 @@ class ActuaRepository(context: Context) {
             idFactory = newId,
         )
         if (prepared.isEmpty()) return 0
-        val rows = mutableListOf<ActualTransaction>()
+        // One batch for the whole file: payees, rows, splits and any transfer a rule's payee
+        // implies, with Actual's `now - index × increment` sort order to keep the file order (#1007).
+        val batch = writer.importBatch()
+        val now = System.currentTimeMillis()
+        var addedCount = 0
+        fun nextSortOrder() = (now - addedCount++ * ActualTransactionWriter.TRANSACTION_SORT_INCREMENT).toDouble()
+        val offBudget = db.fetchAccounts().any { it.id == accountId && it.offBudget }
         prepared.forEach { item ->
             if (item.splitChildren.isEmpty()) {
-                rows += item.createPayeeName?.let {
-                    item.transaction.copy(payeeId = writer.resolveOrCreatePayee(it).id)
-                } ?: item.transaction
+                val payeeId = item.createPayeeName?.let(batch::payee) ?: item.transaction.payeeId
+                batch.insert(item.transaction.copy(payeeId = payeeId, sortOrder = nextSortOrder()))
             } else {
-                val parent = item.transaction.copy(payeeId = null, categoryId = null, isParent = true)
-                val offBudget = db.fetchAccounts().any { it.id == parent.accountId && it.offBudget }
-                val children = item.splitChildren.map { child ->
-                    val payeeId = child.pendingPayeeName?.let { writer.resolveOrCreatePayee(it).id }
-                        ?: child.transaction.payeeId
-                    child.transaction.copy(payeeId = payeeId, categoryId = child.transaction.categoryId.takeUnless { offBudget })
+                val parent = item.transaction.copy(payeeId = null, categoryId = null, isParent = true, sortOrder = nextSortOrder())
+                val children = item.splitChildren.mapIndexed { index, child ->
+                    nextSortOrder()
+                    child.transaction.copy(
+                        payeeId = child.pendingPayeeName?.let(batch::payee) ?: child.transaction.payeeId,
+                        categoryId = child.transaction.categoryId.takeUnless { offBudget },
+                        sortOrder = (0 - index).toDouble(),
+                    )
                 }
-                writer.createSplit(parent, children, allowSingleChild = true)
+                batch.insertSplit(parent, children)
             }
         }
-        if (rows.isNotEmpty()) writer.mutate(inserts = rows)
+        batch.commit()
         return prepared.size
     }
 

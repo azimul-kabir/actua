@@ -39,12 +39,18 @@ class ActualEntityWriter(
      * `updateAccountBalance`, written after every successful download that reports a balance.
      */
     fun recordBankSyncStatus(id: String, status: String, syncedAt: String? = null, balanceCurrent: Long? = null) = update(
-        "accounts", id, buildMap {
-            put("bank_sync_status", status)
-            if (syncedAt != null) put("last_sync", syncedAt)
-            if (balanceCurrent != null) put("balance_current", balanceCurrent)
-        },
+        "accounts", id, bankSyncStatusCells(status, syncedAt, balanceCurrent),
     )
+
+    /** The `accounts` cells [recordBankSyncStatus] writes, for an import batch to include. */
+    fun bankSyncStatusCells(status: String, syncedAt: String? = null, balanceCurrent: Long? = null): Map<String, Any?> = buildMap {
+        put("bank_sync_status", status)
+        if (syncedAt != null) put("last_sync", syncedAt)
+        if (balanceCurrent != null) put("balance_current", balanceCurrent)
+    }
+
+    /** Cells for one synced row, so another writer's batch can commit them together with its own. */
+    data class Cells(val dataset: String, val row: String, val values: Map<String, Any?>)
 
     /**
      * Actual's first-sync opening row (`processBankSyncDownload` with `getStartingBalancePayee`): a
@@ -53,26 +59,32 @@ class ActualEntityWriter(
      */
     @Synchronized
     fun addStartingBalance(accountId: String, amountCents: Long, date: Int) {
-        val offBudget = database.fetchAccounts().firstOrNull { it.id == accountId }?.offBudget ?: false
-        persist(startingBalanceMessages(accountId, offBudget, amountCents, date))
+        persist(startingBalanceCells(accountId, amountCents, date).flatMap { fields(it.dataset, it.row, it.values) })
     }
 
-    private fun startingBalanceMessages(accountId: String, offBudget: Boolean, amountCents: Long, date: Int): List<CrdtMessage> {
-        val messages = mutableListOf<CrdtMessage>()
+    /** The cells [addStartingBalance] writes, for an import batch to include (#1007). */
+    @Synchronized
+    fun startingBalanceCells(accountId: String, amountCents: Long, date: Int): List<Cells> {
+        val offBudget = database.fetchAccounts().firstOrNull { it.id == accountId }?.offBudget ?: false
+        return startingBalanceCells(accountId, offBudget, amountCents, date)
+    }
+
+    private fun startingBalanceCells(accountId: String, offBudget: Boolean, amountCents: Long, date: Int): List<Cells> {
+        val cells = mutableListOf<Cells>()
         val payee = database.findPayeeByName("Starting Balance")
         val payeeId = payee?.id ?: idFactory().also { newId ->
-            messages += fields("payees", newId, linkedMapOf("name" to "Starting Balance", "transfer_acct" to null, "tombstone" to 0))
-            messages += fields("payee_mapping", newId, linkedMapOf("targetId" to newId))
+            cells += Cells("payees", newId, linkedMapOf("name" to "Starting Balance", "transfer_acct" to null, "tombstone" to 0))
+            cells += Cells("payee_mapping", newId, linkedMapOf("targetId" to newId))
         }
         val category = if (offBudget) null else database.fetchCategoryGroups().flatMap { it.categories }
             .filter { it.isIncome }.let { rows -> rows.firstOrNull { it.name.equals("Starting Balances", true) } ?: rows.firstOrNull() }
-        messages += fields("transactions", idFactory(), linkedMapOf(
+        cells += Cells("transactions", idFactory(), linkedMapOf(
             "acct" to accountId, "date" to date, "description" to payeeId,
             "category" to category?.id, "amount" to amountCents, "notes" to null,
             "cleared" to 1, "reconciled" to 0, "transferred_id" to null, "isParent" to 0,
             "isChild" to 0, "parent_id" to null, "tombstone" to 0, "sort_order" to nowMillis().toDouble(),
             "imported_description" to null, "schedule" to null, "starting_balance_flag" to 1))
-        return messages
+        return cells
     }
 
     /**
@@ -513,7 +525,8 @@ class ActualEntityWriter(
         messages += fields("payees", transferPayeeId, linkedMapOf("name" to "", "transfer_acct" to accountId, "tombstone" to 0))
         messages += fields("payee_mapping", transferPayeeId, linkedMapOf("targetId" to transferPayeeId))
         if (startingBalanceCents != 0L) {
-            messages += startingBalanceMessages(accountId, offBudget, startingBalanceCents, DayDate.today().yyyymmdd)
+            messages += startingBalanceCells(accountId, offBudget, startingBalanceCents, DayDate.today().yyyymmdd)
+                .flatMap { fields(it.dataset, it.row, it.values) }
         }
         persist(messages); return accountId
     }
