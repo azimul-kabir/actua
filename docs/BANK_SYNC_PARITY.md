@@ -34,13 +34,13 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Linking: `banks` row (SimpleFIN missing, GoCardless unnamed) | Divergence ([#1004](https://github.com/azimul-kabir/actua/issues/1004)) |
 | Starting balance on the first sync; `balance_current` | Divergence ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
 | Unlinking | Divergence ([#1005](https://github.com/azimul-kabir/actua/issues/1005)) |
-| Start date, timeouts, error → `bank_sync_status`, `last_sync` | Match, with edge cases in [#1002](https://github.com/azimul-kabir/actua/issues/1002) |
-| Row normalization (ids, payee, notes, amount) | Divergence ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
+| Start date, timeouts, error → `bank_sync_status`, `last_sync` | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
+| Row normalization (ids, payee, notes, amount) | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)); conflicting ids are an intentional boundary |
 | Rules before matching; payee creation only when used | Match |
 | Exact `imported_id` match for new rows | Match |
 | Exact `imported_id` match for rows already imported (update path) | Match ([#1001](https://github.com/azimul-kabir/actua/issues/1001)) |
 | Fuzzy matching (±7 days, payee pass, then date pass) | Match |
-| Updating a fuzzy-matched row | Match, except `raw_synced_data` ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
+| Updating a fuzzy-matched row | Match |
 | Per-account sync preferences (`sync-import-pending-…` etc.) | Divergence ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
 | Atomic batch, transfers, `sort_order` | Divergence ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | Match (neither client learns from imports) |
@@ -74,7 +74,7 @@ Actua: `ActuaRepository.setSimpleFinToken` / `setGoCardlessCredentials` (`data/A
 | Remove a secret (`value: null` → `DELETE /secret/<name>`) | offered | not offered | N/A |
 | `X-Actual-File-Id` header on `/secret` | sent when a file is open | not sent | Intentional. The header only scopes Pluggy.ai secrets, which Actua doesn't support. |
 | Secrets on the client | sent once; not persisted by the client | held in composable `remember` state, cleared after **Save**, never written to preferences, the budget, logs or error messages. Server error bodies are not logged. | Match |
-| Synced rows from the provider | `raw_synced_data` keeps the provider row (may include account names and descriptions) | not written ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) | Divergence in content, not a secret leak |
+| Synced rows from the provider | `raw_synced_data` keeps the provider row (may include account names and descriptions) | same ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) | Match. It is budget data, like Actual's, not a secret. |
 
 ## 2. Discovery, linking and unlinking
 
@@ -118,12 +118,12 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:39`),
 
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| Start date = max(today − 89, oldest row) | oldest row with `date <= today` | `MIN(date)` over live rows, future rows included | Match, except an account holding only future-dated rows ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
+| Start date = max(today − 89, oldest row) | oldest row with `date <= today` | same (`oldestTransactionDate(onOrBefore = today)`) | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | SimpleFIN: one batch request for all linked accounts | `accountId[]`, `startDate[]`, 5-minute timeout | same (`BANK_SYNC_READ_TIMEOUT_MILLIS`) | Match |
 | GoCardless request body | `requisitionId`, `accountId`, `startDate`, `includeBalance = newAccount` | `requisitionId`, `accountId`, `startDate`, `endDate = today`; no `includeBalance`, so the server fetches balances every time | **Divergence** [#1003](https://github.com/azimul-kabir/actua/issues/1003) |
 | Accounts synced | live, open, with `account_id` (+ `bank` outside the SimpleFIN batch) | live, open, with `account_id` and `account_sync_source` | Match for Actua-initiated syncs (see #1004 for the reverse) |
 | Timeout → `timed-out`; batch-missing account → `account-missing`; `ITEM_LOGIN_REQUIRED`/`INVALID_ACCESS_TOKEN` → `reauth-required`; `ACCOUNT_NEEDS_ATTENTION` → `attention-required`; `RATE_LIMIT_EXCEEDED` → `rate-limit-exceeded`; else `failed` | `getBankSyncStatusFromError` | `downloadFailure`, `bankSyncStatus` | Match (`src/test/.../BankSyncDownloadFailureTest`, `ActualServerBankSyncTest`) |
-| SimpleFIN batch entry carrying both rows and an error | error stored, **no rows imported** | error stored, rows imported | **Divergence** [#1002](https://github.com/azimul-kabir/actua/issues/1002) |
+| SimpleFIN batch entry carrying both rows and an error | error stored, **no rows imported** | same | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | Success → `last_sync = now ms`, `bank_sync_status = 'ok'` | `handleSyncResponse` | `recordBankSyncStatus(…, "ok", now)` | Match |
 | GoCardless account with no `banks` row | skipped, status untouched | skipped with a message, status untouched | Match |
 | Pluggy.ai / Akahu | synced | reported as unsupported, status untouched | N/A (BACKEND_PARITY boundary) |
@@ -141,17 +141,17 @@ in `BankSyncService.sync`.
 
 | Field | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| `cleared` | `Boolean(booked)` | `booked` | Match |
+| `cleared` | `Boolean(booked)`, so a missing `booked` is pending | same | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | `pending` column | not written (stays 0) | `pending = !booked` | Intentional. Actual's AQL schema doesn't read the column, so other clients see nothing different. |
-| Amount | `amountToInteger(transactionAmount.amount)` (rounds) | exact `BigDecimal` cents; more than two decimals → row dropped | Match for ≤2 decimals; otherwise **Divergence** [#1002](https://github.com/azimul-kabir/actua/issues/1002) |
+| Amount | `amountToInteger(amount ?? transactionAmount.amount)` (rounds) | same rounding on a double (`floor(x × 100 + 0.5)`) | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | Date | mapped field (`date` by default) | `date` | Match for the default mapping; custom mappings → [#1006](https://github.com/azimul-kabir/actua/issues/1006) |
 | Payee name | mapped field (`payeeName`), not title-cased, trimmed into `imported_description` | `payeeName` | Match |
-| Blank payee name | `imported_description = ""`, no payee | `"Unknown"` payee and description | **Divergence** [#1002](https://github.com/azimul-kabir/actua/issues/1002) |
-| Notes | mapped field (`notes`), trimmed, `#` → `##` | raw `notes` | **Divergence** [#1002](https://github.com/azimul-kabir/actua/issues/1002) |
-| `imported_id` | `transactionId`; booked without it → `<provider account>-<internalTransactionId>`; neither → none | `transactionId`; otherwise the row is **dropped** | **Divergence** [#1002](https://github.com/azimul-kabir/actua/issues/1002) |
+| Blank payee name | `imported_description = ""`, no payee | same | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
+| Notes | mapped field (`notes`), trimmed, `#` → `##` | same for the default mapping | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
+| `imported_id` | `transactionId`; booked without it → `<account>-<internalTransactionId>`; neither → none | same | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | Provider `category` | kept if it is an existing category id | ignored | Match in practice (SimpleFIN/GoCardless don't send Actual ids) |
-| `raw_synced_data` | provider row JSON | not written | **Divergence** [#1002](https://github.com/azimul-kabir/actua/issues/1002) |
-| Same id twice in one download with different data | both rows go through matching | the group is skipped with a "conflicting" message | **Divergence** [#1002](https://github.com/azimul-kabir/actua/issues/1002) |
+| `raw_synced_data` | provider row JSON (kept on a matched row that already has one) | provider row JSON, same keep rule | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)). Actual stringifies the row after normalizing it, so the JSON text differs. |
+| Same id twice in one download with different data | both rows go through matching | the group is skipped with a "conflicting" message | Intentional ([#1002](https://github.com/azimul-kabir/actua/issues/1002)): Actua won't guess which of two different rows the bank meant |
 
 ## 5. Rules, matching and writes
 
@@ -172,7 +172,7 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:107-211`), `ImportR
 | Fuzzy dataset | live rows in the account, same amount, ±7 days; bank-sync accounts use `strictIdChecking = false`, so rows with another `imported_id` count | same window and filters; rows taken by an exact id in this download are excluded | Match (`BankSyncReconciliationTest.reDownloadUnderANewIdMatchesTheAlreadyImportedTransaction`) |
 | Pass 1 same payee, pass 2 any; closest date first; a candidate is claimed once | yes | yes | Match (`src/test/.../BankSyncMatcherTest`) |
 | Matched reconciled row | ignored | counted as matched, not written | Match |
-| Fuzzy-matched update cells | `imported_id`, payee/category/notes fill-only, `imported_description`, `cleared` OR, `raw_synced_data` kept | same, except `raw_synced_data`, plus `pending` | Match except [#1002](https://github.com/azimul-kabir/actua/issues/1002) (`BankSyncReconciliationTest.syncReconcilesAManuallyEnteredTransactionPostedOnADifferentDate`, `matchedTransactionTakesTheRuleCategoryWhereItsOwnIsEmpty`) |
+| Fuzzy-matched update cells | `imported_id`, payee/category/notes fill-only, `imported_description`, `cleared` OR, `raw_synced_data` kept | same, plus `pending` | Match (`BankSyncReconciliationTest.syncReconcilesAManuallyEnteredTransactionPostedOnADifferentDate`, `matchedTransactionTakesTheRuleCategoryWhereItsOwnIsEmpty`) |
 | Rule deletes a new row | not added | not added | Match |
 | Rule splits a new row | parent + children via `makeSplitTransaction` | `createSplit` with the rule's children; off-budget children have no category | Match |
 | One account's writes in one batch | `batchUpdateTransactions({added, updated})` after `createNewPayees` | row-by-row writes; payees and splits separate | **Divergence** [#1007](https://github.com/azimul-kabir/actua/issues/1007) |
@@ -214,7 +214,7 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 | Issue | Severity | Summary |
 | --- | --- | --- |
 | [#1001](https://github.com/azimul-kabir/actua/issues/1001) | Fixed | Update rows downloaded again under the same id (pending → booked) |
-| [#1002](https://github.com/azimul-kabir/actua/issues/1002) | P2 | Normalize rows as Actual does (ids, blank payee, notes, rounding, raw data, batch errors, start date) |
+| [#1002](https://github.com/azimul-kabir/actua/issues/1002) | Fixed | Normalize rows as Actual does (ids, blank payee, notes, rounding, raw data, batch errors, start date) |
 | [#1003](https://github.com/azimul-kabir/actua/issues/1003) | P2 | Starting balance on first sync, `balance_current`, GoCardless `includeBalance` |
 | [#1004](https://github.com/azimul-kabir/actua/issues/1004) | P2 | `banks` rows as `findOrCreateBank` writes them (SimpleFIN missing, GoCardless unnamed) |
 | [#1005](https://github.com/azimul-kabir/actua/issues/1005) | P2 | Unlink cells and GoCardless requisition removal |

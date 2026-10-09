@@ -8,7 +8,7 @@ class ActualServerBankSyncTest {
     private val client = ActualServerClient()
 
     @Test
-    fun `parses normalized SimpleFIN rows using exact integer cents`() {
+    fun `parses normalized SimpleFIN rows rounding amounts like Actual`() {
         val response = JSONObject("""
             {"data":{"external-1":{"startingBalance":1250,"transactions":{"all":[
               {"transactionId":"bank-tx-1","date":"2026-09-20","payeeName":"Market",
@@ -22,10 +22,13 @@ class ActualServerBankSyncTest {
 
         assertEquals("external-1", download.externalAccountId)
         assertEquals("ok", download.status)
-        assertEquals(1, download.transactions.size)
-        assertEquals(-1234L, download.transactions.single().amountCents)
-        assertEquals(20260920, download.transactions.single().date)
-        assertEquals(true, download.transactions.single().booked)
+        assertEquals(2, download.transactions.size)
+        assertEquals(-1234L, download.transactions.first().amountCents)
+        assertEquals(20260920, download.transactions.first().date)
+        assertEquals(true, download.transactions.first().booked)
+        // Actual's amountToInteger: 12.345 * 100 is 1234.5 as a double, and Math.round gives 1235; a missing `booked` is pending.
+        assertEquals(1235L, download.transactions[1].amountCents)
+        assertEquals(false, download.transactions[1].booked)
     }
 
     @Test

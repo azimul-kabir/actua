@@ -25,12 +25,18 @@ data class FileEncryptionMetadata(
 )
 
 data class BankSyncTransaction(
-    val financialId: String,
+    /** The provider's `transactionId`; null when it sent none (Actual then imports it without one). */
+    val financialId: String?,
     val date: Int,
     val amountCents: Long,
+    /** The provider's payee name, possibly blank. */
     val payeeName: String,
     val notes: String?,
     val booked: Boolean,
+    /** The provider's own id, used for booked rows that carry no [financialId]. */
+    val internalTransactionId: String? = null,
+    /** The provider row as JSON, kept as Actual's `raw_synced_data`. */
+    val rawJson: String? = null,
 )
 
 data class BankSyncDownload(
@@ -664,7 +670,9 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
             val firstError = accountErrors?.optJSONObject(0)
             if (account == null && firstError == null) return@mapNotNull null
             val status = firstError?.optString("error_code")?.let(::bankSyncStatus) ?: "ok"
-            val transactions = parseBankSyncRows(account?.optJSONObject("transactions")?.optJSONArray("all"))
+            // Actual's `simpleFinBatchSync` imports nothing for an account the batch reports an error for.
+            val transactions = if (firstError != null) emptyList()
+                else parseBankSyncRows(account?.optJSONObject("transactions")?.optJSONArray("all"))
             BankSyncDownload(accountId, transactions, status,
                 firstError?.optString("reason")?.takeIf(String::isNotBlank))
         }
@@ -679,26 +687,34 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         return BankSyncDownload(accountId, parseBankSyncRows(data.optJSONObject("transactions")?.optJSONArray("all")), "ok")
     }
 
+    /**
+     * Actual's `normalizeBankSyncTransactions` field rules: `booked` absent means pending, the
+     * amount is `transactionAmount.amount` (or `amount`) rounded like `amountToInteger`, and a row
+     * without an id is still imported. Rows without a date are skipped (Actual rejects them).
+     */
     private fun parseBankSyncRows(all: org.json.JSONArray?): List<BankSyncTransaction> = buildList {
         if (all == null) return@buildList
         for (index in 0 until all.length()) {
             val item = all.optJSONObject(index) ?: continue
-            val id = item.optString("transactionId").takeIf(String::isNotBlank) ?: continue
-            val date = item.optString("date").replace("-", "").toIntOrNull() ?: continue
-            val amount = item.optJSONObject("transactionAmount")?.optString("amount")
-                ?.toBigDecimalOrNull()?.movePointRight(2)?.let {
-                    runCatching { it.longValueExact() }.getOrNull()
-                } ?: continue
+            val date = item.optionalString("date")?.replace("-", "")?.toIntOrNull() ?: continue
+            val amountText = item.optionalString("amount")
+                ?: item.optJSONObject("transactionAmount")?.optionalString("amount")
+            val amount = amountText?.toDoubleOrNull()?.takeIf { it.isFinite() }?.let(::amountToInteger) ?: continue
             add(BankSyncTransaction(
-                financialId = id,
+                financialId = item.optionalString("transactionId"),
                 date = date,
                 amountCents = amount,
-                payeeName = item.optString("payeeName").ifBlank { "Unknown" },
-                notes = item.optString("notes").takeIf(String::isNotBlank),
-                booked = item.optBoolean("booked", true),
+                payeeName = if (item.isNull("payeeName")) "" else item.optString("payeeName"),
+                notes = if (item.isNull("notes")) null else item.optString("notes"),
+                booked = item.optBoolean("booked", false),
+                internalTransactionId = item.optionalString("internalTransactionId"),
+                rawJson = item.toString(),
             ))
         }
     }
+
+    /** loot-core `amountToInteger`: `Math.round(amount * 100)` on a double, rounding halves up. */
+    private fun amountToInteger(amount: Double): Long = kotlin.math.floor(amount * 100 + 0.5).toLong()
 
     private fun bankSyncStatus(code: String): String = when (code) {
         "ITEM_LOGIN_REQUIRED", "INVALID_ACCESS_TOKEN" -> "reauth-required"
