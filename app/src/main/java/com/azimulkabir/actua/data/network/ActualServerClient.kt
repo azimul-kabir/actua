@@ -503,6 +503,17 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         })
     }
 
+    /** Deletes a GoCardless requisition no account uses any more, as Actual's `unlinkAccount` does. */
+    fun goCardlessRemoveAccount(serverUrl: String, token: String, requisitionId: String) {
+        val body = JSONObject().put("requisitionId", requisitionId).toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/gocardless/remove-account", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        requireSuccess(response)
+    }
+
     /** Downloads Actual's normalized GoCardless feed for a single linked account. */
     fun downloadGoCardlessTransactions(
         serverUrl: String, token: String, requisitionId: String, accountId: String,

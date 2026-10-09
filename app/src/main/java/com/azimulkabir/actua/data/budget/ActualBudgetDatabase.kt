@@ -246,6 +246,40 @@ class ActualBudgetDatabase private constructor(
         )
     }
 
+    /** What Actual's `unlinkAccount` reads: the account's `bank` row id, sync source and balance columns. */
+    data class BankLink(val bankRowId: String?, val source: String?, val balanceColumns: List<String>)
+
+    @Synchronized
+    fun fetchBankLink(accountId: String): BankLink? {
+        val accountColumns = columns("accounts")
+        if ("bank" !in accountColumns || "account_sync_source" !in accountColumns) return null
+        return database.rawQuery(
+            "SELECT bank, account_sync_source FROM accounts WHERE id = ?", arrayOf(accountId),
+        ).use { cursor ->
+            if (!cursor.moveToFirst()) return null
+            BankLink(
+                cursor.stringOrNull(0), cursor.stringOrNull(1),
+                listOf("balance_current", "balance_available", "balance_limit").filter { it in accountColumns },
+            )
+        }
+    }
+
+    /**
+     * The GoCardless requisition behind [bankRowId] when no account points at that `banks` row any
+     * more (Actual's `SELECT COUNT(*) FROM accounts WHERE bank = ?`), else null.
+     */
+    @Synchronized
+    fun unusedBankRequisition(bankRowId: String): String? {
+        if (!hasTable("banks")) return null
+        val used = database.rawQuery("SELECT COUNT(*) FROM accounts WHERE bank = ?", arrayOf(bankRowId)).use { cursor ->
+            cursor.moveToFirst() && cursor.getInt(0) > 0
+        }
+        if (used) return null
+        return database.rawQuery("SELECT bank_id FROM banks WHERE id = ?", arrayOf(bankRowId)).use { cursor ->
+            if (cursor.moveToFirst()) cursor.stringOrNull(0) else null
+        }
+    }
+
     /** Actual's `SELECT id FROM payees WHERE transfer_acct = ?`, preferring a live payee. */
     @Synchronized
     fun transferPayeeId(accountId: String): String? = database.rawQuery(
