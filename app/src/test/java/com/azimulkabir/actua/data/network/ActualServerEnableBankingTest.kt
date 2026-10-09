@@ -162,7 +162,8 @@ class ActualServerEnableBankingTest {
         assertEquals("uid-1", download.externalAccountId)
         assertEquals("ok", download.status)
         assertEquals(listOf(-90_000L, 1_234L), download.transactions.map { it.amountCents })
-        assertEquals(listOf("Landlord", "Unknown"), download.transactions.map { it.payeeName })
+        // Actual keeps a blank payee name blank (#1002).
+        assertEquals(listOf("Landlord", ""), download.transactions.map { it.payeeName })
         assertEquals(listOf(true, false), download.transactions.map { it.booked })
         assertEquals("Rent", download.transactions.first().notes)
     }
