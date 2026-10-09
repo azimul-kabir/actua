@@ -33,7 +33,7 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Linking: `account_id`, `account_sync_source` | Match |
 | Linking: `banks` rows (`findOrCreateBank`) | Match ([#1004](https://github.com/azimul-kabir/actua/issues/1004)) |
 | Starting balance on the first sync; `balance_current` | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
-| Unlinking | Divergence ([#1005](https://github.com/azimul-kabir/actua/issues/1005)) |
+| Unlinking | Match ([#1005](https://github.com/azimul-kabir/actua/issues/1005)); an account without a `bank` row is still unlinked |
 | Start date, timeouts, error → `bank_sync_status`, `last_sync` | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | Row normalization (ids, payee, notes, amount) | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)); conflicting ids are an intentional boundary |
 | Rules before matching; payee creation only when used | Match |
@@ -97,8 +97,8 @@ Actua: `ActualEntityWriter.linkBankAccount` / `unlinkBankAccount` (`data/budget/
 | GoCardless `banks` row (`bank_id` = requisition id) | `findOrCreateBank(institution, requisitionId)`: `name` = institution, reused on `bank_id` + `name IS ?` | same | Match ([#1004](https://github.com/azimul-kabir/actua/issues/1004)) |
 | SimpleFIN `banks` row (`bank_id` = org domain ?? org id, name = institution) | written; Actual's **Sync all** includes only accounts with `bank` | same | Match ([#1004](https://github.com/azimul-kabir/actua/issues/1004)). Accounts linked earlier gain the row when relinked. |
 | New linked account | inserts `name`, `official_name`, `mask`, `offbudget`, transfer payee, then syncs immediately | `createAccount(…, 0)` + link; the first sync, when the user refreshes, writes Actual's starting balance | Intentional. Same rows once synced; Actua waits for the user's refresh. |
-| Unlink cells | clears `account_id`, `bank`, `balance_current/available/limit`, `account_sync_source`, `bank_sync_status`; keeps `last_sync` | clears `account_id`, `account_sync_source`, `bank`, `bank_sync_status`, **`last_sync`**; keeps balances | **Divergence** [#1005](https://github.com/azimul-kabir/actua/issues/1005) |
-| Unlink removes the GoCardless requisition once unused | `POST /gocardless/remove-account` | only when closing the account | **Divergence** [#1005](https://github.com/azimul-kabir/actua/issues/1005) |
+| Unlink cells | clears `account_id`, `bank`, `balance_current/available/limit`, `account_sync_source`, `bank_sync_status`; keeps `last_sync`; does nothing without a `bank` | same; without a `bank` the cells are still cleared | Match ([#1005](https://github.com/azimul-kabir/actua/issues/1005)). Intentional difference for accounts with no `bank`, so SimpleFIN links made before #1004 can be unlinked. |
+| Unlink removes the GoCardless requisition once unused | `POST /gocardless/remove-account` | same, best effort | Match ([#1005](https://github.com/azimul-kabir/actua/issues/1005)) |
 
 ## 3. Download
 
@@ -217,7 +217,7 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 | [#1002](https://github.com/azimul-kabir/actua/issues/1002) | Fixed | Normalize rows as Actual does (ids, blank payee, notes, rounding, raw data, batch errors, start date) |
 | [#1003](https://github.com/azimul-kabir/actua/issues/1003) | Fixed | Starting balance on first sync, `balance_current`, GoCardless `includeBalance` |
 | [#1004](https://github.com/azimul-kabir/actua/issues/1004) | Fixed | `banks` rows as `findOrCreateBank` writes them (SimpleFIN missing, GoCardless unnamed) |
-| [#1005](https://github.com/azimul-kabir/actua/issues/1005) | P2 | Unlink cells and GoCardless requisition removal |
+| [#1005](https://github.com/azimul-kabir/actua/issues/1005) | Fixed | Unlink cells and GoCardless requisition removal |
 | [#1006](https://github.com/azimul-kabir/actua/issues/1006) | P2 | Per-account bank sync preferences, including reimport of deleted rows |
 | [#1007](https://github.com/azimul-kabir/actua/issues/1007) | P2 | Atomic import batch, transfer counterparts, `sort_order` |
 | [#1008](https://github.com/azimul-kabir/actua/issues/1008) | P2 | File import payee title-case and cleared default |
