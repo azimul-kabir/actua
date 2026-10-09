@@ -2221,10 +2221,10 @@ fun AppNavigation(
             )
             DetailDestination.ImportTransactions -> ImportTransactionsScreen(
                 accounts = accounts.filterNot { it.closed },
-                duplicateKeys = repository::importDuplicateKeys,
-                onImport = { accountId, candidates, cleared, onImported ->
+                findMatches = repository::importMatches,
+                onImport = { accountId, candidates, cleared, addAsNew, onImported ->
                     mutate("Importing transactions", onChanged = onImported) {
-                        repository.importTransactions(accountId, candidates, cleared) == candidates.size
+                        repository.importTransactions(accountId, candidates, cleared, addAsNew) == candidates.size
                     }
                 },
                 onBack = { detail = DetailDestination.Main },

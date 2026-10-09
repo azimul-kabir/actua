@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,6 +48,7 @@ import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.importing.ImportColumnMapping
 import com.azimulkabir.actua.data.importing.ImportColumnRole
 import com.azimulkabir.actua.data.importing.ImportDuplicateDetector
+import com.azimulkabir.actua.data.importing.ImportMatch
 import com.azimulkabir.actua.data.importing.ImportHistoryEntry
 import com.azimulkabir.actua.data.importing.ImportPreferences
 import com.azimulkabir.actua.data.importing.ImportProblem
@@ -102,14 +104,20 @@ private data class ReviewRow(
     val selected: Boolean,
     val confidence: ImportConfidence = ImportConfidence.HIGH,
     val sourceLabel: String = "Statement",
+    /** Add the row even though it matches an existing transaction (Actual's `forceAddTransaction`). */
+    val addAsNew: Boolean = false,
 )
 
 @Composable
 fun ImportTransactionsScreen(
     accounts: List<Account>,
-    duplicateKeys: (String) -> Set<String>,
-    /** Account id, reviewed candidates, whether to mark them cleared, and a callback once imported. */
-    onImport: (String, List<ImportCandidate>, Boolean, onImported: () -> Unit) -> Unit,
+    /** For an account and candidates, the existing transaction each would update (null: added). Blocking. */
+    findMatches: (String, List<ImportCandidate>) -> List<ImportMatch?>,
+    /**
+     * Account id, reviewed candidates, whether to mark them cleared, the candidate indexes to add
+     * even though they match, and a callback once imported.
+     */
+    onImport: (String, List<ImportCandidate>, Boolean, Set<Int>, onImported: () -> Unit) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialSharedText: String? = null,
@@ -148,14 +156,25 @@ fun ImportTransactionsScreen(
             info.activityInfo.packageName to info.loadLabel(context.packageManager).toString()
         }.distinctBy { it.first }.sortedBy { it.second.lowercase() }
     }
-    val existingKeys = remember(account?.id, rows.size) { account?.id?.let(duplicateKeys).orEmpty() }
+    // Selected, valid rows with their candidates; matching follows Actual's file import (#1009).
+    val readyRows = rows.withIndex().filter { it.value.selected }
+        .mapNotNull { (index, row) -> row.toCandidateOrNull()?.let { index to it } }
+    val matchesByRow by produceState(emptyMap<Int, ImportMatch>(), account?.id, readyRows) {
+        val accountId = account?.id
+        value = if (accountId == null || readyRows.isEmpty()) emptyMap() else runCatching {
+            withContext(Dispatchers.IO) { findMatches(accountId, readyRows.map { it.second }) }
+        }.getOrDefault(emptyList()).withIndex()
+            .mapNotNull { (position, match) -> match?.let { readyRows[position].first to it } }.toMap()
+    }
 
     fun reviewCandidates(candidates: List<ImportCandidate>, parseProblems: List<ImportProblem>) {
         candidates.mapNotNull(ImportCandidate::accountHint).distinct().singleOrNull()?.let { hint ->
             accounts.singleOrNull { hint in it.name.filter(Char::isDigit) }?.let { account = it }
         }
         rows.clear()
-        val knownKeys = account?.id?.let(duplicateKeys).orEmpty().toMutableSet()
+        // Rows the account already holds are matched and updated instead (#1009); only repeats
+        // inside this file start unchecked.
+        val knownKeys = mutableSetOf<String>()
         rows += candidates.map { candidate ->
             val key = ImportDuplicateDetector.key(candidate.date, candidate.amountCents, candidate.payee)
             val duplicate = !knownKeys.add(key)
@@ -445,16 +464,13 @@ fun ImportTransactionsScreen(
                 val candidate = row.toCandidateOrNull()
                 val invalid = candidate == null
                 val candidateKey = candidate?.let { ImportDuplicateDetector.key(it.date, it.amountCents, it.payee) }
-                val duplicate = candidateKey != null && (candidateKey in existingKeys || rows.take(index).any {
+                val duplicate = candidateKey != null && rows.take(index).any {
                     it.toCandidateOrNull()?.let { prior ->
                         ImportDuplicateDetector.key(prior.date, prior.amountCents, prior.payee) == candidateKey
                     } == true
-                })
-                val duplicateReason = when {
-                    candidateKey != null && candidateKey in existingKeys -> "Already in this account"
-                    duplicate -> "Repeated in this file"
-                    else -> null
                 }
+                val duplicateReason = if (duplicate) "Repeated in this file" else null
+                val match = matchesByRow[index]
                 ActuaFormCard(Modifier.padding(top = Spacing.md)) {
                     Column(Modifier.padding(start = Spacing.xs, end = Spacing.md, bottom = Spacing.sm)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -465,6 +481,21 @@ fun ImportTransactionsScreen(
                     }
                     Text("${row.confidence.name.lowercase().replaceFirstChar(Char::uppercase)} confidence · ${row.sourceLabel}",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (match != null) {
+                        val existing = "${match.payeeName ?: "a transaction"} on ${formatDate(match.date)}"
+                        Text(
+                            when {
+                                row.addAsNew -> "Matches $existing, but will be added as a new transaction."
+                                match.reconciled -> "Matches $existing, which is reconciled, so nothing is imported."
+                                else -> "Matches $existing. Importing updates it instead of adding a copy."
+                            },
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary,
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = row.addAsNew, onCheckedChange = { rows[index] = row.copy(addAsNew = it) })
+                            Text("Add as a new transaction", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
                     OutlinedTextField(row.date, { rows[index] = row.copy(date = it) }, label = { Text("Date (YYYY-MM-DD)") },
                         isError = invalid, singleLine = true, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(row.payee, { rows[index] = row.copy(payee = it) }, label = { Text("Payee") },
@@ -483,11 +514,13 @@ fun ImportTransactionsScreen(
         }
         val selected = rows.filter(ReviewRow::selected)
         val ready = selected.mapNotNull(ReviewRow::toCandidateOrNull)
+        val addAsNew = selected.mapNotNull { row -> row.toCandidateOrNull()?.let { row.addAsNew } }
+            .withIndex().filter { it.value }.mapTo(mutableSetOf()) { it.index }
         ActuaPrimaryActionBar(
             text = "Approve and import ${ready.size}",
             onClick = {
                 val target = account ?: return@ActuaPrimaryActionBar
-                onImport(target.id, ready, markCleared) {
+                onImport(target.id, ready, markCleared, addAsNew) {
                     message = "Imported ${ready.size} transaction${if (ready.size == 1) "" else "s"}."
                     importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, target.name,
                         ready.size, rows.size - ready.size, System.currentTimeMillis()))

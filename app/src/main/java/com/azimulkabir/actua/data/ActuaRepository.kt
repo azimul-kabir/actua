@@ -44,7 +44,7 @@ import com.azimulkabir.actua.data.budget.BudgetOpenProbe
 import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.location.Coordinates
 import com.azimulkabir.actua.data.location.PayeeLocationWriter
-import com.azimulkabir.actua.data.importing.ImportDuplicateDetector
+import com.azimulkabir.actua.data.importing.ImportMatch
 import com.azimulkabir.actua.data.importing.TitleCase
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
@@ -1043,21 +1043,19 @@ class ActuaRepository(context: Context) {
             .let { rows -> toTransactions(db, rows, accountNames, offBudgetAccountIds) }
     }
 
-    fun importDuplicateKeys(accountId: String): Set<String> {
-        val db = actualDatabase ?: return emptySet()
-        return db.fetchTransactions(limit = Int.MAX_VALUE)
-            .asSequence()
-            .filter { it.accountId == accountId && !it.tombstone && !it.isParent }
-            .map { ImportDuplicateDetector.key(it.date, it.amountCents, it.payeeName ?: it.importedPayee.orEmpty()) }
-            .toSet()
-    }
+    /** Rules-processed import rows and the existing transaction each would merge into (#1009). */
+    private class ImportPlan(
+        val prepared: List<com.azimulkabir.actua.data.importing.ImportRules.Prepared>,
+        val matches: List<com.azimulkabir.actua.data.bank.BankSyncMatchCandidate?>,
+    )
 
-    /** Commits reviewed candidates together through the normal CRDT transaction writer. */
-    fun importTransactions(accountId: String, candidates: List<ImportCandidate>, cleared: Boolean = true): Int {
-        if (candidates.isEmpty()) return 0
-        val db = actualDatabase ?: return 0
-        val writer = actualWriter ?: return 0
-        require(db.fetchAccounts().any { it.id == accountId && !it.closed }) { "That account is unavailable" }
+    /**
+     * Actual's file import with "Merge with existing transactions" (`reconcileTransactions`,
+     * `strictIdChecking`): rules run on each row with its payee resolved by name, then each row
+     * looks for a live transaction in the account with the same amount within seven days, first
+     * one with the same payee, then the closest date, each existing row claimed once.
+     */
+    private fun planImport(db: ActualBudgetDatabase, accountId: String, candidates: List<ImportCandidate>, cleared: Boolean): ImportPlan {
         val drafts = candidates.map { candidate ->
             ActualTransaction(
                 id = java.util.UUID.randomUUID().toString().lowercase(),
@@ -1083,41 +1081,111 @@ class ActuaRepository(context: Context) {
                 transferAccountId = null,
             )
         }
-        // Rules run on every imported row before payees are created, as in Actual's import.
         val newId = { java.util.UUID.randomUUID().toString().lowercase() }
+        // Deleted rows are kept so indexes line up; a rule-deleted row is only skipped when inserting.
         val prepared = com.azimulkabir.actua.data.importing.ImportRules.apply(
             drafts, db.fetchRules(), db.ruleContext(),
             existingPayeeId = { db.findPayeeByName(it)?.id },
             newId = newId,
+            keepDeleted = true,
             idFactory = newId,
         )
-        if (prepared.isEmpty()) return 0
-        // One batch for the whole file: payees, rows, splits and any transfer a rule's payee
+        fun shift(day: Int, days: Long): Int {
+            val date = java.time.LocalDate.of(day / 10000, day / 100 % 100, day % 100).plusDays(days)
+            return date.year * 10000 + date.monthValue * 100 + date.dayOfMonth
+        }
+        val rows = prepared.mapIndexed { index, item ->
+            // A new payee's provisional id never matches an existing row.
+            val payee = item.createPayeeName?.let { db.findPayeeByName(it)?.id }
+                ?: item.transaction.payeeId.takeIf { item.createPayeeName == null }
+            com.azimulkabir.actua.data.bank.BankSyncMatchRow("$index", item.transaction.date, payee)
+        }
+        val candidatesByRow = prepared.withIndex().associate { (index, item) ->
+            "$index" to db.fuzzyMatchCandidates(
+                accountId, item.transaction.amountCents,
+                dateFrom = shift(item.transaction.date, -7), dateTo = shift(item.transaction.date, 7),
+            ).map { com.azimulkabir.actua.data.bank.BankSyncMatchCandidate(it.id, it.date, it.payeeId, it.reconciled) }
+        }
+        val matches = com.azimulkabir.actua.data.bank.BankSyncMatcher.match(rows, candidatesByRow)
+        return ImportPlan(prepared, prepared.indices.map { matches["$it"] })
+    }
+
+    /**
+     * The existing transaction each candidate would update instead of being added (null when it
+     * would be added), for the review screen. Read-only; call off the main thread.
+     */
+    fun importMatches(accountId: String, candidates: List<ImportCandidate>): List<ImportMatch?> {
+        val db = actualDatabase ?: return candidates.map { null }
+        if (candidates.isEmpty()) return emptyList()
+        val payees = db.fetchPayees().associate { it.id to it.name }
+        return planImport(db, accountId, candidates, cleared = true).matches.map { match ->
+            match?.let { ImportMatch(it.id, it.date, it.payeeId?.let(payees::get), it.reconciled) }
+        }
+    }
+
+    /**
+     * Commits reviewed candidates as one CRDT batch. A candidate that matches an existing
+     * transaction updates it as Actual's `reconcileTransactions` does (fill-only payee, category and
+     * notes, imported payee, OR'd cleared; a reconciled match is left alone), unless its index is in
+     * [addAsNew], Actual's `forceAddTransaction`. Returns how many candidates were handled.
+     */
+    fun importTransactions(
+        accountId: String, candidates: List<ImportCandidate>, cleared: Boolean = true, addAsNew: Set<Int> = emptySet(),
+    ): Int {
+        if (candidates.isEmpty()) return 0
+        val db = actualDatabase ?: return 0
+        val writer = actualWriter ?: return 0
+        require(db.fetchAccounts().any { it.id == accountId && !it.closed }) { "That account is unavailable" }
+        val plan = planImport(db, accountId, candidates, cleared)
+        // One batch for the whole file: payees, rows, splits, updates and any transfer a rule's payee
         // implies, with Actual's `now - index × increment` sort order to keep the file order (#1007).
         val batch = writer.importBatch()
         val now = System.currentTimeMillis()
         var addedCount = 0
         fun nextSortOrder() = (now - addedCount++ * ActualTransactionWriter.TRANSACTION_SORT_INCREMENT).toDouble()
         val offBudget = db.fetchAccounts().any { it.id == accountId && it.offBudget }
-        prepared.forEach { item ->
+        plan.prepared.forEachIndexed { index, item ->
+            val match = plan.matches[index]?.takeIf { index !in addAsNew }
+            if (match != null) {
+                if (match.reconciled) return@forEachIndexed
+                val original = db.fetchTransactionRow(match.id) ?: return@forEachIndexed
+                val bank = item.transaction
+                val isCleared = original.cleared || bank.cleared
+                // File rows carry no imported id, so Actual's `imported_id: trans.imported_id || null` clears it.
+                batch.update(original, original.copy(
+                    financialId = null,
+                    payeeId = original.payeeId ?: (item.createPayeeName?.let(batch::payee) ?: bank.payeeId),
+                    categoryId = original.categoryId ?: bank.categoryId,
+                    notes = original.notes ?: bank.notes,
+                    importedPayee = bank.importedPayee,
+                    cleared = isCleared,
+                    pending = original.pending && !isCleared,
+                ))
+                if (original.isParent && original.cleared != isCleared) {
+                    db.fetchChildTransactions(original.id).filter { it.cleared != isCleared }
+                        .forEach { batch.update(it, it.copy(cleared = isCleared)) }
+                }
+                return@forEachIndexed
+            }
+            if (item.deleted) return@forEachIndexed
             if (item.splitChildren.isEmpty()) {
                 val payeeId = item.createPayeeName?.let(batch::payee) ?: item.transaction.payeeId
                 batch.insert(item.transaction.copy(payeeId = payeeId, sortOrder = nextSortOrder()))
             } else {
                 val parent = item.transaction.copy(payeeId = null, categoryId = null, isParent = true, sortOrder = nextSortOrder())
-                val children = item.splitChildren.mapIndexed { index, child ->
+                val children = item.splitChildren.mapIndexed { childIndex, child ->
                     nextSortOrder()
                     child.transaction.copy(
                         payeeId = child.pendingPayeeName?.let(batch::payee) ?: child.transaction.payeeId,
                         categoryId = child.transaction.categoryId.takeUnless { offBudget },
-                        sortOrder = (0 - index).toDouble(),
+                        sortOrder = (0 - childIndex).toDouble(),
                     )
                 }
                 batch.insertSplit(parent, children)
             }
         }
         batch.commit()
-        return prepared.size
+        return candidates.size
     }
 
     /** Read-only drill-down: the transactions behind a report segment, newest first. */

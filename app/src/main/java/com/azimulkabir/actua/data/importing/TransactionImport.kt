@@ -173,6 +173,12 @@ object CsvTransactionCandidateSource : TransactionCandidateSource {
     }
 }
 
+/**
+ * An existing transaction a reviewed import row would update instead of being added, as Actual's
+ * file import merges with existing transactions (#1009).
+ */
+data class ImportMatch(val transactionId: String, val date: Int, val payeeName: String?, val reconciled: Boolean)
+
 object ImportDuplicateDetector {
     fun key(date: Int, amountCents: Long, payee: String): String =
         "$date|$amountCents|${payee.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")}"
