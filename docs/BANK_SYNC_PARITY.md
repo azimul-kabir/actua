@@ -42,7 +42,7 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Fuzzy matching (±7 days, payee pass, then date pass) | Match |
 | Updating a fuzzy-matched row | Match |
 | Per-account sync preferences (`sync-import-pending-…` etc.) | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)); not editable in Actua yet |
-| Atomic batch, transfers, `sort_order` | Divergence ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
+| Atomic batch, transfers, `sort_order` | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | Match (neither client learns from imports) |
 | File import: formats and mapping | Intentional boundary (CSV only in common) |
 | File import: payee title-case, cleared default | Divergence ([#1008](https://github.com/azimul-kabir/actua/issues/1008)) |
@@ -175,9 +175,9 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:107-211`), `ImportR
 | Fuzzy-matched update cells | `imported_id`, payee/category/notes fill-only, `imported_description`, `cleared` OR, `raw_synced_data` kept | same, plus `pending` | Match (`BankSyncReconciliationTest.syncReconcilesAManuallyEnteredTransactionPostedOnADifferentDate`, `matchedTransactionTakesTheRuleCategoryWhereItsOwnIsEmpty`) |
 | Rule deletes a new row | not added | not added | Match |
 | Rule splits a new row | parent + children via `makeSplitTransaction` | `createSplit` with the rule's children; off-budget children have no category | Match |
-| One account's writes in one batch | `batchUpdateTransactions({added, updated})` after `createNewPayees` | row-by-row writes; payees and splits separate | **Divergence** [#1007](https://github.com/azimul-kabir/actua/issues/1007) |
-| Transfer payee set by a rule creates the counterpart | `runTransfers = true` | not created | **Divergence** [#1007](https://github.com/azimul-kabir/actua/issues/1007) |
-| New rows' `sort_order` | `now − index × increment` | writer default | **Divergence** [#1007](https://github.com/azimul-kabir/actua/issues/1007) |
+| One account's writes in one batch | `batchUpdateTransactions({added, updated})` after `createNewPayees` | `ActualTransactionWriter.ImportBatch`: payees, rows, splits, updates, opening balance and status in one CRDT batch and SQLite transaction | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
+| Transfer payee set by a rule creates the counterpart | `runTransfers = true` | same (`ImportBatch.insert` → `transferLegsFor`) | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
+| New rows' `sort_order` | `now − index × 1024`, download order; split children `0 − index` | same | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | `learnCategories = false` for imports | not run | Match |
 | Per-account preferences (`sync-import-pending`, `sync-import-notes`, `sync-import-transactions`, `sync-update-dates`, `sync-reimport-deleted`, `custom-sync-mappings`) | read from synced `preferences` | read and applied the same way; editing them needs Actual | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
 
@@ -205,7 +205,7 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 | Matching existing transactions | same amount ±7 days without an `imported_id`, payee pass first; matched rows are **updated**; user can force-add | rows with the same date, amount and normalized payee are flagged and unchecked; nothing is updated | **Divergence** [#1009](https://github.com/azimul-kabir/actua/issues/1009) |
 | Duplicates inside the same file | each row matched separately (one candidate claimed once) | an earlier identical row in the file is flagged | Intentional (review-only hint; the user decides) |
 | Nothing written before confirmation | preview runs with `isPreview` | parsing and review never write | Match |
-| One batch, transfers, `sort_order` | `batchUpdateTransactions` with `runTransfers`; file order kept | inserts batched; payees and splits separate; no transfers | **Divergence** [#1007](https://github.com/azimul-kabir/actua/issues/1007) |
+| One batch, transfers, `sort_order` | `batchUpdateTransactions` with `runTransfers`; file order kept | same, one `ImportBatch` per file | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | off for imports | off | Match |
 | Import history | none | device-local last 20 import summaries, no rows | Intentional (device-only) |
 
@@ -219,6 +219,6 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 | [#1004](https://github.com/azimul-kabir/actua/issues/1004) | Fixed | `banks` rows as `findOrCreateBank` writes them (SimpleFIN missing, GoCardless unnamed) |
 | [#1005](https://github.com/azimul-kabir/actua/issues/1005) | Fixed | Unlink cells and GoCardless requisition removal |
 | [#1006](https://github.com/azimul-kabir/actua/issues/1006) | Fixed | Per-account bank sync preferences, including reimport of deleted rows |
-| [#1007](https://github.com/azimul-kabir/actua/issues/1007) | P2 | Atomic import batch, transfer counterparts, `sort_order` |
+| [#1007](https://github.com/azimul-kabir/actua/issues/1007) | Fixed | Atomic import batch, transfer counterparts, `sort_order` |
 | [#1008](https://github.com/azimul-kabir/actua/issues/1008) | P2 | File import payee title-case and cleared default |
 | [#1009](https://github.com/azimul-kabir/actua/issues/1009) | P2 | File import fuzzy matching against existing rows |
