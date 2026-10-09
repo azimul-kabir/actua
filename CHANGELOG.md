@@ -22,6 +22,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Bank sync follows each account's sync settings from Actual, such as skipping pending transactions or custom field mappings ([#1016](https://github.com/azimul-kabir/actua/pull/1016))
 - Unlinking a bank account clears its synced balance and removes an unused GoCardless connection from the server, as in Actual ([#1015](https://github.com/azimul-kabir/actua/pull/1015))
 - SimpleFIN accounts linked in Actua are included in Actual's "Sync all", and linked banks keep their name ([#1014](https://github.com/azimul-kabir/actua/pull/1014))
 - A newly linked bank account starts from the bank's balance, and later syncs keep the last synced balance, as in Actual ([#1013](https://github.com/azimul-kabir/actua/pull/1013))
