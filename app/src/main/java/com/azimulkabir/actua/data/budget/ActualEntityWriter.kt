@@ -34,12 +34,46 @@ class ActualEntityWriter(
     fun renameAccount(id: String, name: String) = update("accounts", id, mapOf("name" to requiredName(name)))
     fun setAccountClosed(id: String, closed: Boolean) = update("accounts", id, mapOf("closed" to flag(closed)))
     fun setAccountType(id: String, type: String) = update("accounts", id, mapOf("type" to type))
-    fun recordBankSyncStatus(id: String, status: String, syncedAt: String? = null) = update(
+    /**
+     * Stores a sync outcome; with [balanceCurrent] (integer cents) also Actual's
+     * `updateAccountBalance`, written after every successful download that reports a balance.
+     */
+    fun recordBankSyncStatus(id: String, status: String, syncedAt: String? = null, balanceCurrent: Long? = null) = update(
         "accounts", id, buildMap {
             put("bank_sync_status", status)
             if (syncedAt != null) put("last_sync", syncedAt)
+            if (balanceCurrent != null) put("balance_current", balanceCurrent)
         },
     )
+
+    /**
+     * Actual's first-sync opening row (`processBankSyncDownload` with `getStartingBalancePayee`): a
+     * cleared `starting_balance_flag` row for [amountCents] on [date], paid by "Starting Balance"
+     * and, on budget, categorized as the "Starting Balances" (or first) income category.
+     */
+    @Synchronized
+    fun addStartingBalance(accountId: String, amountCents: Long, date: Int) {
+        val offBudget = database.fetchAccounts().firstOrNull { it.id == accountId }?.offBudget ?: false
+        persist(startingBalanceMessages(accountId, offBudget, amountCents, date))
+    }
+
+    private fun startingBalanceMessages(accountId: String, offBudget: Boolean, amountCents: Long, date: Int): List<CrdtMessage> {
+        val messages = mutableListOf<CrdtMessage>()
+        val payee = database.findPayeeByName("Starting Balance")
+        val payeeId = payee?.id ?: idFactory().also { newId ->
+            messages += fields("payees", newId, linkedMapOf("name" to "Starting Balance", "transfer_acct" to null, "tombstone" to 0))
+            messages += fields("payee_mapping", newId, linkedMapOf("targetId" to newId))
+        }
+        val category = if (offBudget) null else database.fetchCategoryGroups().flatMap { it.categories }
+            .filter { it.isIncome }.let { rows -> rows.firstOrNull { it.name.equals("Starting Balances", true) } ?: rows.firstOrNull() }
+        messages += fields("transactions", idFactory(), linkedMapOf(
+            "acct" to accountId, "date" to date, "description" to payeeId,
+            "category" to category?.id, "amount" to amountCents, "notes" to null,
+            "cleared" to 1, "reconciled" to 0, "transferred_id" to null, "isParent" to 0,
+            "isChild" to 0, "parent_id" to null, "tombstone" to 0, "sort_order" to nowMillis().toDouble(),
+            "imported_description" to null, "schedule" to null, "starting_balance_flag" to 1))
+        return messages
+    }
 
     /**
      * Links an existing Actual account to a discovered provider account. Like Actual, a GoCardless
@@ -465,19 +499,7 @@ class ActualEntityWriter(
         messages += fields("payees", transferPayeeId, linkedMapOf("name" to "", "transfer_acct" to accountId, "tombstone" to 0))
         messages += fields("payee_mapping", transferPayeeId, linkedMapOf("targetId" to transferPayeeId))
         if (startingBalanceCents != 0L) {
-            val payee = database.findPayeeByName("Starting Balance")
-            val payeeId = payee?.id ?: idFactory().also { newId ->
-                messages += fields("payees", newId, linkedMapOf("name" to "Starting Balance", "transfer_acct" to null, "tombstone" to 0))
-                messages += fields("payee_mapping", newId, linkedMapOf("targetId" to newId))
-            }
-            val category = if (offBudget) null else database.fetchCategoryGroups().flatMap { it.categories }
-                .filter { it.isIncome }.let { rows -> rows.firstOrNull { it.name.equals("Starting Balances", true) } ?: rows.firstOrNull() }
-            messages += fields("transactions", idFactory(), linkedMapOf(
-                "acct" to accountId, "date" to DayDate.today().yyyymmdd, "description" to payeeId,
-                "category" to category?.id, "amount" to startingBalanceCents, "notes" to null,
-                "cleared" to 1, "reconciled" to 0, "transferred_id" to null, "isParent" to 0,
-                "isChild" to 0, "parent_id" to null, "tombstone" to 0, "sort_order" to nowMillis().toDouble(),
-                "imported_description" to null, "schedule" to null, "starting_balance_flag" to 1))
+            messages += startingBalanceMessages(accountId, offBudget, startingBalanceCents, DayDate.today().yyyymmdd)
         }
         persist(messages); return accountId
     }
@@ -537,7 +559,7 @@ class ActualEntityWriter(
 
         internal val allowedFields = mapOf(
             "accounts" to setOf("name", "type", "closed", "offbudget", "tombstone", "sort_order",
-                "bank_sync_status", "last_sync", "account_id", "account_sync_source", "bank"),
+                "bank_sync_status", "last_sync", "account_id", "account_sync_source", "bank", "balance_current"),
             "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order", "goal_def", "template_settings", "cleanup_def"),
             "category_groups" to setOf("name", "hidden", "tombstone", "sort_order"),
             "cleanup_groups" to setOf("name", "tombstone"),

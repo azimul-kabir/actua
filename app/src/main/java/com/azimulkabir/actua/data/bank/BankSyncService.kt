@@ -55,7 +55,10 @@ class BankSyncService(
             val day = oldest?.coerceAtLeast(floor) ?: floor
             return "%04d-%02d-%02d".format(day / 10000, day / 100 % 100, day % 100)
         }
-        val today = today().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        // Actual's `newAccount`: no transactions dated today or earlier. Its first sync gets a
+        // starting-balance row, and GoCardless is only asked for balances then (#1003).
+        val newAccounts = accounts.filter { database.oldestTransactionDate(it.id, onOrBefore = todayDay) == null }
+            .mapTo(mutableSetOf()) { it.id }
 
         val simpleFin = accounts.filter { it.source == "simpleFin" }
         // A SimpleFIN timeout fails the whole batch; Actual reports it as TIMED_OUT for each account.
@@ -85,7 +88,8 @@ class BankSyncService(
                     if (requisitionId == null) Result.failure(BankSyncFailure("this account is missing its GoCardless connection.", status = null))
                     else runCatching {
                         server.downloadGoCardlessTransactions(
-                            serverUrl, token, requisitionId, account.externalId, startDateFor(account.id), today,
+                            serverUrl, token, requisitionId, account.externalId, startDateFor(account.id),
+                            includeBalance = account.id in newAccounts,
                         )
                     }.recoverCatching { throw downloadFailure(it) }
                 }
@@ -110,6 +114,11 @@ class BankSyncService(
                 return@forEach
             }
             download.problem?.let { problems += "${account.name}: $it" }
+            val newAccount = account.id in newAccounts
+            if (newAccount) startingBalance(account.source, download)?.let { amount ->
+                val date = download.transactions.lastOrNull()?.date ?: todayDay
+                entities.addStartingBalance(account.id, amount, date)
+            }
             // Actual's `normalizeBankSyncTransactions`: the provider's id, or for a booked row
             // without one `<account>-<internalTransactionId>`; a row with neither is still imported
             // (and fuzzy-matched on later syncs). Each row is keyed by its position.
@@ -268,12 +277,36 @@ class BankSyncService(
             entities.recordBankSyncStatus(
                 account.id, download.status,
                 syncedAt = if (download.status == "ok") System.currentTimeMillis().toString() else null,
+                // Actual writes `balance_current` on every sync except an account's first.
+                balanceCurrent = download.balanceCents.takeUnless { newAccount },
             )
         }
         return BankSyncResult(
             accountsSynced = outcomes.size, imported = imported, matched = matched, updated = updated, problems = problems,
         )
     }
+
+    /**
+     * The opening balance for an account's first sync, from `processBankSyncDownload`. The server's
+     * `startingBalance` is the current balance; SimpleFIN and Enable Banking subtract the downloaded
+     * rows from it (SimpleFIN with Actual's `parseInt(amount.replace('.', ''))`), and GoCardless
+     * sends the opening balance itself. Null when the server sent no balance.
+     */
+    private fun startingBalance(source: String, download: BankSyncDownload): Long? {
+        val current = download.balanceCents ?: return null
+        return when (source) {
+            "simpleFin" -> download.transactions.fold<BankSyncTransaction, Long?>(current) { total, row ->
+                val cents = row.amountText?.let(::simpleFinCents) ?: return@fold null
+                total?.minus(cents)
+            }
+            "enableBanking" -> current - download.transactions.sumOf { it.amountCents }
+            else -> current
+        }
+    }
+
+    /** JavaScript's `parseInt(text.replace('.', ''))`: the first `.` removed, leading digits read. */
+    private fun simpleFinCents(text: String): Long? =
+        Regex("""^\s*[+-]?\d+""").find(text.replaceFirst(".", ""))?.value?.trim()?.toLongOrNull()
 
     /** A downloaded row, its key in this download, and the `imported_id` Actual would give it. */
     private data class KeyedRow(val key: String, val importedId: String?, val row: BankSyncTransaction)

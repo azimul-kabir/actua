@@ -57,7 +57,7 @@ class ActualServerBankSyncTest {
         }
 
         client.downloadSimpleFinTransactions("https://actual.test", "token", listOf("a"), listOf("2026-09-01"))
-        client.downloadGoCardlessTransactions("https://actual.test", "token", "req", "a", "2026-09-01", "2026-09-30")
+        client.downloadGoCardlessTransactions("https://actual.test", "token", "req", "a", "2026-09-01", includeBalance = false)
         client.simpleFinStatus("https://actual.test", "token")
 
         assertEquals(

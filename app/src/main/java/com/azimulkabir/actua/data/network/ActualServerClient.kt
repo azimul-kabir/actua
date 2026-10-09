@@ -37,6 +37,8 @@ data class BankSyncTransaction(
     val internalTransactionId: String? = null,
     /** The provider row as JSON, kept as Actual's `raw_synced_data`. */
     val rawJson: String? = null,
+    /** `transactionAmount.amount` as sent, for Actual's SimpleFIN starting-balance arithmetic. */
+    val amountText: String? = null,
 )
 
 data class BankSyncDownload(
@@ -44,6 +46,8 @@ data class BankSyncDownload(
     val transactions: List<BankSyncTransaction>,
     val status: String,
     val problem: String? = null,
+    /** The server's `startingBalance`, which is the account's current balance in integer cents. */
+    val balanceCents: Long? = null,
 )
 
 data class SimpleFinAccount(val id: String, val name: String, val orgName: String?)
@@ -488,10 +492,11 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
     /** Downloads Actual's normalized GoCardless feed for a single linked account. */
     fun downloadGoCardlessTransactions(
         serverUrl: String, token: String, requisitionId: String, accountId: String,
-        startDate: String, endDate: String,
+        startDate: String, includeBalance: Boolean,
     ): BankSyncDownload {
+        // Like Actual's client: no end date, and balances only for an account's first sync.
         val body = JSONObject().put("requisitionId", requisitionId).put("accountId", accountId)
-            .put("startDate", startDate).put("endDate", endDate).toString().encodeToByteArray()
+            .put("startDate", startDate).put("includeBalance", includeBalance).toString().encodeToByteArray()
         val response = request(
             serverUrl, "/gocardless/transactions", "POST",
             actualHeaders(token) + ("Content-Type" to "application/json"), body,
@@ -674,7 +679,8 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
             val transactions = if (firstError != null) emptyList()
                 else parseBankSyncRows(account?.optJSONObject("transactions")?.optJSONArray("all"))
             BankSyncDownload(accountId, transactions, status,
-                firstError?.optString("reason")?.takeIf(String::isNotBlank))
+                firstError?.optString("reason")?.takeIf(String::isNotBlank),
+                balanceCents = account?.startingBalance().takeIf { firstError == null })
         }
     }
 
@@ -684,7 +690,10 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         data.optString("error_code").takeIf(String::isNotBlank)?.let {
             return BankSyncDownload(accountId, emptyList(), bankSyncStatus(it), data.optString("reason", "Bank sync failed ($it)."))
         }
-        return BankSyncDownload(accountId, parseBankSyncRows(data.optJSONObject("transactions")?.optJSONArray("all")), "ok")
+        return BankSyncDownload(
+            accountId, parseBankSyncRows(data.optJSONObject("transactions")?.optJSONArray("all")), "ok",
+            balanceCents = data.startingBalance(),
+        )
     }
 
     /**
@@ -709,9 +718,15 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
                 booked = item.optBoolean("booked", false),
                 internalTransactionId = item.optionalString("internalTransactionId"),
                 rawJson = item.toString(),
+                amountText = item.optJSONObject("transactionAmount")?.optionalString("amount"),
             ))
         }
     }
+
+    /** The server's integer-cent `startingBalance`, or null when it sent none. */
+    private fun JSONObject.startingBalance(): Long? =
+        if (has("startingBalance") && !isNull("startingBalance")) optDouble("startingBalance").takeIf { it.isFinite() }?.let { Math.round(it) }
+        else null
 
     /** loot-core `amountToInteger`: `Math.round(amount * 100)` on a double, rounding halves up. */
     private fun amountToInteger(amount: Double): Long = kotlin.math.floor(amount * 100 + 0.5).toLong()
