@@ -131,9 +131,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   errors as `failed`, as in Actual. Accounts linked through providers Actua can't download yet
   (Pluggy.ai, Akahu, and Enable Banking while its experiment is off) are named as unsupported and
   their stored status is left to Actual. Parity matrix:
-  [docs/BANK_SYNC_PARITY.md](docs/BANK_SYNC_PARITY.md). Known boundaries until fixed: rows without a provider id, blank
-  payees, `#` in notes, sub-cent amounts and `raw_synced_data` are normalized differently (#1002);
-  no starting-balance row on the first sync and no `balance_current` write (#1003); SimpleFIN links
+  [docs/BANK_SYNC_PARITY.md](docs/BANK_SYNC_PARITY.md). Rows are normalized as in Actual's `normalizeBankSyncTransactions` (#1002),
+  except that two different rows sent under one provider id are skipped rather than guessed at.
+  Known boundaries until fixed: no starting-balance row on the first sync and no `balance_current` write (#1003); SimpleFIN links
   have no `banks` row and GoCardless ones are unnamed (#1004); unlink cells differ (#1005);
   per-account sync preferences are ignored (#1006); imports are not one batch and create no
   transfer counterparts (#1007). File import keeps payee names as written, leaves rows uncleared
