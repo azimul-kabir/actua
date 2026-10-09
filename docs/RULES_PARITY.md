@@ -279,9 +279,11 @@ upstream's class-based `Condition`/`Action`/`Rule`.
 - **Template, formula and split actions are applied but not authored.** Rules created in Actual with
   these actions run in Actua ([#888](https://github.com/azimul-kabir/actua/pull/888)); Actua's rule
   editor does not create or edit them and keeps their stored JSON unchanged.
-- **No automatic category-rule suggestion/creation** (upstream's `updateCategoryRules`, which offers
-  to create or extend a payee rule after a user repeatedly recategorizes transactions from the same
-  payee). Actua only supports explicit rule creation/editing through the Rules screen.
+- **Category learning** (upstream's `updateCategoryRules`, which creates or updates a payee's
+  category rule after the same category is used repeatedly for that payee) runs on transaction-form
+  saves, honouring the `learn-categories` preference and `payees.learn_categories`
+  ([#901](https://github.com/azimul-kabir/actua/pull/901)). See
+  [PAYEES_PARITY.md](PAYEES_PARITY.md#5-favorite-learn_categories-and-category-learning).
 
 ## Result
 

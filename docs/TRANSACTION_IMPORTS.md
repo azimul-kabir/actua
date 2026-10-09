@@ -21,10 +21,16 @@ data.
 
 ## Review, duplicates, and history
 
-Malformed rows are excluded and reported. Candidate rows remain editable and unchecked by default
-when the normalized date, amount, and payee match either an existing transaction in the selected
-account or an earlier row in the same file. The review screen explains which case was detected. A
-user may deliberately select a flagged row, because some banks legitimately repeat equal purchases.
+Malformed rows are excluded and reported. Candidate rows remain editable. A row whose normalized
+date, amount, and payee repeat an earlier row in the same file starts unchecked and is labelled
+"Repeated in this file"; a user may deliberately select it, because some banks legitimately repeat
+equal purchases.
+
+As in Actual, a row with the same amount as an existing transaction in the selected account dated
+within seven days (a matching payee is preferred) is shown with that match, and importing updates
+the existing transaction instead of adding a copy. Tick **Add as a new transaction** to import it
+separately; a match that is reconciled is left unchanged. Imported payee names are title-cased, and
+**Mark as cleared** (on by default) sets whether imported rows arrive cleared.
 
 After approval, Actua stores a bounded device-local history of the latest 20 imports: source file
 name, format, target account name, imported/skipped counts, and time. Raw rows, messages, balances,
