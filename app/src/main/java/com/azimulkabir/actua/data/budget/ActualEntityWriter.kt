@@ -102,12 +102,23 @@ class ActualEntityWriter(
         persist(messages)
     }
 
-    fun unlinkBankAccount(id: String) = update(
-        "accounts", id, mapOf(
-            "account_id" to null, "account_sync_source" to null,
-            "bank" to null, "bank_sync_status" to null, "last_sync" to null,
-        ),
-    )
+    /**
+     * Actual's `unlinkAccount`: clears the link, the provider balances and the sync status, and keeps
+     * `last_sync`. Returns the GoCardless requisition to remove from the server once no account
+     * uses its `banks` row any more, else null.
+     */
+    @Synchronized
+    fun unlinkBankAccount(id: String): String? {
+        val link = database.fetchBankLink(id) ?: return null
+        // Actual skips an account without a `bank`; Actua still clears it so SimpleFIN links made
+        // before banks rows were written (#1004) can be unlinked.
+        persist(fields("accounts", id, linkedMapOf<String, Any?>("account_id" to null, "bank" to null).apply {
+            link.balanceColumns.forEach { put(it, null) }
+            put("account_sync_source", null); put("bank_sync_status", null)
+        }))
+        val bankRowId = link.bankRowId ?: return null
+        return if (link.source == "goCardless") database.unusedBankRequisition(bankRowId) else null
+    }
     /**
      * Budgets created by Actua before #716 were uploaded without a dashboard page, and Actual's Reports
      * screen needs one. When no live page exists, create Actual's `Main` page through the message log:

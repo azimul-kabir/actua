@@ -867,7 +867,12 @@ class ActuaRepository(context: Context) {
 
     fun unlinkBankAccount(accountId: String): Boolean {
         val entities = actualEntities ?: return false
-        entities.unlinkBankAccount(accountId)
+        val requisitionId = entities.unlinkBankAccount(accountId)
+        // Best effort, as in Actual: the unlink stands even if the server can't be reached.
+        if (requisitionId != null) runCatching {
+            val (server, serverUrl, token) = bankSyncClient()
+            server.goCardlessRemoveAccount(serverUrl, token, requisitionId)
+        }
         return true
     }
 
