@@ -331,6 +331,83 @@ class ActualTransactionWriter(
         saveClock()
     }
 
+    /**
+     * Collects one import's writes (new payees, inserted rows, splits, transfers, updates and other
+     * cells) and commits them as one CRDT batch in one SQLite transaction, as Actual's
+     * `createNewPayees` + `batchUpdateTransactions` do inside one mutator (#1007). Nothing is
+     * written until [commit].
+     */
+    inner class ImportBatch internal constructor() {
+        private val messages = mutableListOf<CrdtMessage>()
+        private val createdPayees = mutableMapOf<String, ActualPayee>()
+
+        /** The payee named [name]: an existing one, or one this batch creates once per name. */
+        fun payee(name: String): String {
+            val clean = name.trim()
+            require(clean.isNotEmpty()) { "Payee name cannot be empty" }
+            database.findPayeeByName(clean)?.let { return it.id }
+            return createdPayees.getOrPut(clean.lowercase()) {
+                ActualPayee(idFactory(), clean, null).also { payee ->
+                    messages += fields("payees", payee.id, linkedMapOf(
+                        "name" to payee.name, "transfer_acct" to null, "tombstone" to 0,
+                    )) + fields("payee_mapping", payee.id, linkedMapOf("targetId" to payee.id))
+                }
+            }.id
+        }
+
+        /**
+         * Adds [transaction]; when its payee is another account's transfer payee the other leg is
+         * added too, as `batchUpdateTransactions` (`runTransfers`) → `transfer.onInsert` does.
+         */
+        fun insert(transaction: ActualTransaction) {
+            val offBudget = database.fetchAccounts().any { it.id == transaction.accountId && it.offBudget }
+            val final = if (offBudget) transaction.copy(categoryId = null) else transaction
+            validateBase(final)
+            require(!final.isParent && final.parentId == null) { "Use insertSplit for split rows" }
+            val legs = if (final.transferId == null) transferLegsFor(final) else null
+            if (legs != null) {
+                messages += fieldsForInsert(legs.first) + fieldsForInsert(legs.second)
+            } else {
+                messages += fieldsForInsert(final)
+            }
+        }
+
+        fun insertSplit(parent: ActualTransaction, children: List<ActualTransaction>) {
+            validateBase(parent)
+            require(parent.isParent && parent.parentId == null && parent.categoryId == null) { "Invalid split parent" }
+            require(children.isNotEmpty()) { "A split needs at least 1 line" }
+            require(children.all { it.parentId == parent.id && !it.isParent && it.accountId == parent.accountId }) {
+                "Every split child must reference its parent and account"
+            }
+            require(children.sumOf(ActualTransaction::amountCents) == parent.amountCents) { "Split amount does not match parent" }
+            children.forEach(::validateBase)
+            messages += (listOf(parent) + children).flatMap(::fieldsForInsert)
+        }
+
+        /** Writes only the cells that differ between [original] and [updated]. */
+        fun update(original: ActualTransaction, updated: ActualTransaction) {
+            validateBase(updated)
+            val changed = changedFields(original, updated)
+            if (changed.isNotEmpty()) messages += fields("transactions", updated.id, transactionFields(updated, changed))
+        }
+
+        /** Other synced cells (account status, balances, an opening balance row) in the same batch. */
+        fun cells(dataset: String, row: String, values: Map<String, Any?>) {
+            if (values.isNotEmpty()) messages += fields(dataset, row, values)
+        }
+
+        fun commit() {
+            if (messages.isEmpty()) return
+            database.applyLocalMessages(messages.toList())
+            saveClock()
+            messages.clear()
+            createdPayees.clear()
+        }
+    }
+
+    @Synchronized
+    fun importBatch(): ImportBatch = ImportBatch()
+
     private fun validateBase(transaction: ActualTransaction) {
         require(transaction.id.isNotBlank() && transaction.accountId.isNotBlank())
         require(transaction.date in 19000101..29991231) { "Invalid Actual YYYYMMDD date" }
@@ -392,6 +469,9 @@ class ActualTransactionWriter(
     }
 
     companion object {
+        /** loot-core `TRANSACTION_SORT_INCREMENT`: imported rows get `now - index × increment`. */
+        const val TRANSACTION_SORT_INCREMENT = 1024
+
         /** Actual's (English) reconciliation adjustment note. */
         const val RECONCILIATION_ADJUSTMENT_NOTE = "Reconciliation balance adjustment"
 

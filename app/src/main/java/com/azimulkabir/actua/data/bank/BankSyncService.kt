@@ -123,9 +123,11 @@ class BankSyncService(
                 return@forEach
             }
             val newAccount = account.id in newAccounts
+            // Everything this account's download writes is committed together below (#1007).
+            val batch = transactions.importBatch()
             if (newAccount) startingBalance(account.source, download, settings.importPending)?.let { amount ->
                 val date = download.transactions.lastOrNull()?.date ?: todayDay
-                entities.addStartingBalance(account.id, amount, date)
+                entities.startingBalanceCells(account.id, amount, date).forEach { batch.cells(it.dataset, it.row, it.values) }
             }
             // "Import transactions" off keeps only the balance update, except on a first sync.
             val rows = if (!settings.importTransactions && !newAccount) emptyList()
@@ -136,7 +138,7 @@ class BankSyncService(
             val keyed = rows.mapIndexed { index, row ->
                 val importedId = row.financialId
                     ?: row.internalTransactionId?.takeIf { row.booked }?.let { "${account.id}-$it" }
-                KeyedRow(importedId ?: "#$index", importedId, row)
+                KeyedRow("$index", importedId, row)
             }
             // Two rows under one id with different data stay out rather than guessing which is right.
             val (withId, withoutId) = keyed.partition { it.importedId != null }
@@ -145,14 +147,15 @@ class BankSyncService(
                 .values.map { it.first() }
             val conflicts = withId.mapTo(mutableSetOf()) { it.importedId }.size - unambiguousWithId.size
             if (conflicts > 0) problems += "${account.name}: skipped $conflicts conflicting bank transactions."
-            val unambiguous = unambiguousWithId + withoutId
+            val unambiguous = (unambiguousWithId + withoutId).sortedBy { it.key.index() }
             // Actual's exact `imported_id` match: a row the account already holds under the same id
             // goes through the update path below instead of being imported again (#1001). Ids that
             // only deleted rows carry are not imported again.
             // With "reimport deleted" on (Actual's default) an id only deleted rows carry is new again.
             val known = database.financialIdRows(account.id, unambiguousWithId.mapTo(mutableSetOf()) { it.importedId!! })
                 .filterValues { it != null || !settings.reimportDeleted }
-            val newRows = unambiguous.filterNot { it.importedId != null && it.importedId in known }.sortedBy { it.row.date }
+            // Download order, as Actual processes and inserts rows.
+            val newRows = unambiguous.filterNot { it.importedId != null && it.importedId in known }.sortedBy { it.key.index() }
             val exactRows = unambiguous.filter { it.importedId != null && known[it.importedId] != null }
             // As in Actual's `matchTransactions`, rules run on every downloaded row first, with the
             // bank's name as imported_payee and the payee resolved by name (a new name gets a
@@ -179,7 +182,11 @@ class BankSyncService(
             )).toMap()
             fun ruledRow(row: KeyedRow) = ruled.getValue(row.key)
             fun payeeId(prepared: ImportRules.Prepared): String? =
-                prepared.createPayeeName?.let { transactions.resolveOrCreatePayee(it).id } ?: prepared.transaction.payeeId
+                prepared.createPayeeName?.let(batch::payee) ?: prepared.transaction.payeeId
+            // Actual's `sort_order ??= now - index * TRANSACTION_SORT_INCREMENT` over the added rows.
+            val now = System.currentTimeMillis()
+            var addedCount = 0
+            fun nextSortOrder() = (now - addedCount++ * ActualTransactionWriter.TRANSACTION_SORT_INCREMENT).toDouble()
 
             /**
              * Actual's update path for a matched row (`reconcileTransactions`): the bank's id and
@@ -216,7 +223,7 @@ class BankSyncService(
                     }
                 }
                 if (updates.isEmpty()) return false
-                transactions.mutate(updates = updates)
+                updates.forEach { (before, after) -> batch.update(before, after) }
                 return true
             }
 
@@ -263,25 +270,22 @@ class BankSyncService(
                         // A row a rule deleted is not imported (Actual skips a tombstoned new row).
                         if (prepared.deleted) return@forEach
                         if (prepared.splitChildren.isEmpty()) {
-                            val created = transactions.createTransaction(bank.copy(payeeId = payeeId(prepared)), applyRules = false)
-                            if (created != null) imported++
+                            batch.insert(bank.copy(payeeId = payeeId(prepared), sortOrder = nextSortOrder()))
                         } else {
                             val offBudget = database.fetchAccounts().any { it.id == bank.accountId && it.offBudget }
-                            val children = prepared.splitChildren.map { child ->
-                                val childPayee = child.pendingPayeeName?.let(transactions::resolveOrCreatePayee)?.id
-                                    ?: child.transaction.payeeId
+                            val parent = bank.copy(payeeId = null, categoryId = null, isParent = true, sortOrder = nextSortOrder())
+                            // `makeSplitTransaction` gives children `sort_order = 0 - index`.
+                            val children = prepared.splitChildren.mapIndexed { index, child ->
+                                nextSortOrder()
                                 child.transaction.copy(
-                                    payeeId = childPayee,
+                                    payeeId = child.pendingPayeeName?.let(batch::payee) ?: child.transaction.payeeId,
                                     categoryId = child.transaction.categoryId.takeUnless { offBudget },
+                                    sortOrder = (0 - index).toDouble(),
                                 )
                             }
-                            transactions.createSplit(
-                                bank.copy(payeeId = null, categoryId = null, isParent = true),
-                                children,
-                                allowSingleChild = true,
-                            )
-                            imported++
+                            batch.insertSplit(parent, children)
                         }
+                        imported++
                     }
                     match.reconciled -> {
                         // Locked transaction: it's already accounted for, so don't duplicate the bank row.
@@ -294,12 +298,13 @@ class BankSyncService(
                     }
                 }
             }
-            entities.recordBankSyncStatus(
-                account.id, download.status,
+            batch.cells("accounts", account.id, entities.bankSyncStatusCells(
+                download.status,
                 syncedAt = if (download.status == "ok") System.currentTimeMillis().toString() else null,
                 // Actual writes `balance_current` on every sync except an account's first.
                 balanceCurrent = download.balanceCents.takeUnless { newAccount },
-            )
+            ))
+            batch.commit()
         }
         return BankSyncResult(
             accountsSynced = outcomes.size, imported = imported, matched = matched, updated = updated, problems = problems,
@@ -393,6 +398,8 @@ class BankSyncService(
 
     /** A downloaded row, its key in this download, and the `imported_id` Actual would give it. */
     private data class KeyedRow(val key: String, val importedId: String?, val row: BankSyncTransaction)
+
+    private fun String.index(): Int = toInt()
 
     /** Actual trims imported notes and escapes `#` as `##`, so bank text never becomes a tag. */
     private fun importedNotes(notes: String?): String? =
