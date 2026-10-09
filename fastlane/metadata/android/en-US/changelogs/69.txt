@@ -1,0 +1,5 @@
+• Added payee management, budget averages and copies, and account group totals
+• Added a privacy-safe Diagnostics page in About
+• Formats now follow your budget's Actual settings; fixed yen, won and rial amounts
+• Bank sync, imports, reconciliation and tags now behave like Actual
+• Fixed many budget, category, schedule and report differences from Actual

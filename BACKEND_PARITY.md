@@ -457,9 +457,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Transfer split lines (a split child whose payee is another account, with its own other leg, as
   in loot-core `transfer.ts`); the split editor does not offer `Transfer:` payees and saving
   one is refused
-- "Apply rule now" bulk re-application of a rule to existing transactions, a live
-  matching-transaction preview in the rule editor, and automatic category-rule suggestion from
-  repeated recategorization (see [docs/RULES_PARITY.md](docs/RULES_PARITY.md))
+- "Apply rule now" bulk re-application of a rule to existing transactions and a live
+  matching-transaction preview in the rule editor (see [docs/RULES_PARITY.md](docs/RULES_PARITY.md))
 - Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
   cleanup source/sink groups already shipped
 - Pluggy.ai and Akahu account discovery, linking, and transaction download (Enable Banking is

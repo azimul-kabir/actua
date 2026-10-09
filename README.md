@@ -28,23 +28,24 @@ Actua is an independent community project and is not affiliated with or endorsed
 - App-wide favorites for categories, accounts and reports, shared by Home, the Budget favorites filter and the home-screen widget
 - Password and OpenID/OIDC login
 - Offline budgets with encrypted Actual sync
-- Budgeting, categories and money movement, including one-tap cover for overspent categories
-- Transactions, splits, transfers, merging duplicates and reconciliation
+- Budgeting, categories and money movement, including one-tap cover for overspent categories and Actual's budget actions (3/6/12-month averages, copy last month or to year end, hold income)
+- Transactions, splits, transfers, merging duplicates and reconciliation, including "Use last synced total" for bank-synced accounts
 - Bank sync through your Actual server (SimpleFIN and GoCardless), plus experimental Enable Banking for European banks
 - Category targets and budget automations, including `#template` notes, checked against Actual's own template engine
 - Scheduled transactions and Bills calendar
-- Accounts, credit cards and payment reminders
+- Accounts with group totals, credit cards and payment reminders
 - Actual dashboard and saved custom reports (read-only), with donut and per-interval charts, optional total and average per period, date/account filtering and drill-down to transactions
 - Rules and automatic categorization, run on manual entry, transfers, imports and bank sync as in Actual, including template, formula and split actions created in Actual
 - CSV, XLSX, PDF, SMS and notification imports, plus [Tasker intents](docs/TRANSACTION_IMPORTS.md#tasker-and-other-automation-apps)
-- Location-aware payee suggestions
+- Payee management (rename, merge, delete, favorite, category learning), with suggested and location-aware payees
 - Global search, and transaction search that also matches amounts and dates
 - Automatic local backups and restore
 - Home-screen widgets and launcher shortcuts
-- Configurable currency, dates, numbers and appearance, with an optional Material You dynamic-color mode (Android 12+)
+- Currency, date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
 - Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering
 - Multiple downloaded budgets with a quick switcher in Manage
 - Built-in local demo budget
+- Privacy-safe Diagnostics report you can copy, save or email when reporting a problem
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status.
 

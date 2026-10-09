@@ -74,6 +74,11 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Set a Cover schedule or From history (average) automation's signed increase/decrease adjustment, save, and verify it reloads correctly; set % of income to a specific income category (not just available funds/all income), save, reopen the editor and verify the selected category round-trips instead of reverting to the default.
 - [ ] Budget screen overflow menu → "Copy last month's budget": verify it copies the previous month's budgeted amounts into visible expense categories (and visible income categories on a tracking budget) for the selected month, and leaves hidden categories/groups unchanged.
 - [ ] With "Show warnings" enabled in Settings → Budget, verify the Budget screen shows an uncategorized-transactions banner alongside the overspent-categories banner when the selected month has uncategorized transactions, and both banners disappear when "Show warnings" is toggled off.
+- [ ] Budget overflow menu: set budgets to a 3, 6 and 12-month average; on a category, copy last month's budget and copy it to the rest of the year; in an envelope budget turn an income category's "Hold automatically" on and off; sync and verify Actual shows the same budgeted and held amounts.
+- [ ] Move money between categories and cover an overspent category, then verify the month's notes gain a "Reassigned …" line as in Actual; try to move more than To Budget holds from To Budget or "Cover From" and verify the amount is capped.
+- [ ] In a tracking budget, verify the month summary shows Saved/Overspent for past months and Projected savings from the current month on; in an envelope budget with a hidden category, verify month totals include it.
+- [ ] Verify the month picker only offers months inside Actual's budget range and that a budget row older than the range doesn't change To Budget.
+- [ ] Delete a category with transactions or a budget amount and verify Actua asks for a target category, then moves its transactions and budget there; rename or move a category, or rename a group, to a name already used and verify it's rejected; move a category into a hidden group and verify its own hidden flag is unchanged.
 
 ## Transactions and accounts
 
@@ -131,6 +136,13 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Tap a credit card's history icon (or the Billing cycle card's "Statement history" link) and verify the last 3 closed statements list with correct due amounts; opening a statement shows the correct transactions for that billing cycle; use the system back gesture/button from the statements list and from a statement's transaction list and verify it returns to the account page instead of skipping to Main.
 - [ ] Open an account's dropdown menu and toggle "Show credit card section" off/on; verify the billing cycle/statement history section hides/shows accordingly.
 - [ ] Toggle the global "Notes" setting under Display off and verify the notes field is hidden on accounts and budget categories; toggle it back on and verify notes reappear unchanged.
+- [ ] Manage → Payees: rename, favorite, delete and turn category learning off for a payee; merge A into B and then B into C, and verify A's transactions show C; sync and verify Actual shows the same payees and mappings.
+- [ ] In the payee picker, verify the Suggested group lists favorites first, then the most-used payees of the last 12 weeks, up to five; categorise the same payee's transactions three times and verify a category rule is created or updated.
+- [ ] Accounts list: verify each account group shows its total balance and the totals agree with the accounts in it.
+- [ ] Reconcile an account: verify the "Reconciled …" / "Not yet reconciled" line, that locking stamps the time Actual shows, that a bank-synced account offers "Use last synced total", that an adjustment transaction goes through a matching rule, and that tapping a reconciled row's lock asks before unlocking it.
+- [ ] Bank sync: link an account and verify the first sync adds a starting balance from the bank; turn off importing pending transactions for it in Actual, sync in Actua and verify pending rows are skipped; a pending row the bank later books is cleared rather than duplicated; unlink and verify the synced balance is cleared and Actual still syncs.
+- [ ] Import a CSV with lower-case payees and a row matching a transaction entered by hand within the last week: verify payees are title-cased, rows arrive cleared, and the matching transaction is updated rather than duplicated; verify the whole import appears at once in the bank's order.
+- [ ] Tags: delete a tag and create it again and verify one row comes back and Actual keeps syncing; rename a tag used in a split line's note and verify the split note changes; verify `###tag` is not a tag and tag views are case-sensitive.
 
 ## Rules, schedules and reports
 
@@ -191,6 +203,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Open saved reports set to include the current month/week, and ones using week, quarter and last-30-days ranges, and verify they include the current period and follow today's date.
 - [ ] Open saved reports using the Net Payment and Net Deposit balance types and verify they show net amounts matching Actual.
 - [ ] Add a transfer between an on-budget account and an off-budget account and verify the Accounts tab's "All accounts" monthly summary counts the on-budget leg as an expense or income (by direction) without double-counting the off-budget leg; verify a transfer between two on-budget accounts, and one between two off-budget accounts, remain excluded as before.
+- [ ] Schedules: post a transfer schedule and verify both accounts get a leg; mark a recurring schedule paid and verify it moves to its next date (a one-off completes); verify upcoming transactions list every occurrence in the window, using the budget-wide upcoming length when the schedule has none; rename a schedule to another schedule's name and verify it's rejected.
+- [ ] Reports: set the budget's first day of the week in Actual and verify weekly reports and the calendar start on it; verify a Markdown widget renders formatted text, a widget for a deleted custom report says so, and the Age of Money chart follows its daily/weekly/monthly setting.
 
 ## Android integrations
 
@@ -239,6 +253,8 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] No obvious clipping, blank space, overlapping text or inaccessible actions on the primary test device.
 - [ ] Typing in the Transactions search field and toggling row selection feel responsive with no visible lag on a large transaction list; switching Budget between Plan/Table view and scrolling through many category groups feels smooth with no stutter at income/Plan/Table section boundaries.
 - [ ] Budget category details, Accounts list scrolling (including a budget with many credit-card accounts), and opening Add/Edit Transaction's payee/category/account pickers all remain responsive while typing.
+- [ ] With device formats left on "Same as budget", change the budget's number format, date format, hide decimals and currency in Actual, sync, and verify Actua follows each; set a device override and verify it wins. On a `JPY` budget verify amounts show and are entered as whole yen.
+- [ ] Settings → About → Diagnostics: verify recent activity (screens, syncs, a forced failed action) is listed, copy, save and email the report, and confirm it contains no server address, credentials, budget names or amounts; clear the log and verify it empties.
 
 ## Release/distribution
 

@@ -4,9 +4,11 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.7.0] - 2026-10-09
+
 ### Added
 
-- A Diagnostics page in About lets you copy, save or email a privacy-safe report of recent app activity, including crashes and errors, ([#1020](https://github.com/azimul-kabir/actua/pull/1020))
+- A Diagnostics page in About lets you copy, save or email a privacy-safe report of recent app activity, including crashes and errors ([#1020](https://github.com/azimul-kabir/actua/pull/1020))
 - Reconciling a bank-synced account offers "Use last synced total" ([#1000](https://github.com/azimul-kabir/actua/pull/1000))
 - Reconciling shows when the account was last reconciled, and locking records the time for Actual too ([#999](https://github.com/azimul-kabir/actua/pull/999))
 - Account groups in the Accounts list show their total balance ([#925](https://github.com/azimul-kabir/actua/pull/925))
@@ -65,6 +67,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - "Copy last month's budget" no longer resets categories that had no budget last month ([#913](https://github.com/azimul-kabir/actua/pull/913))
 - Entering a payee in different capitals, like "CAFÉ" for "Café", reuses the existing payee for non-English names too ([#905](https://github.com/azimul-kabir/actua/pull/905))
 - Rules for a payee or category that was merged keep matching after the merge ([#900](https://github.com/azimul-kabir/actua/pull/900))
+- Merging a payee that earlier payees were merged into keeps their transactions on the new target ([#902](https://github.com/azimul-kabir/actua/pull/902))
 - "Color balances" now also colors Balance pills in Plan view ([#892](https://github.com/azimul-kabir/actua/pull/892))
 
 ## [1.6.0] - 2026-10-07
