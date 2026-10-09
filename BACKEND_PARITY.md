@@ -126,11 +126,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   logging, per-account status/last-sync fields, exact-ID deduplication, and Actual's bank-sync
   fuzzy matching (same amount within 7 days, including rows already imported under a different
   provider ID); a row downloaded again under a stored ID updates the stored row as Actual's
-  `reconcileTransactions` does (#1001). Downloads get Actual's 5-minute bank-sync read timeout; a timeout is stored as
-  `timed-out`, an account left out of a SimpleFIN batch as `account-missing`, and other download
-  errors as `failed`, as in Actual. Accounts linked through providers Actua can't download yet
-  (Pluggy.ai, Akahu, and Enable Banking while its experiment is off) are named as unsupported and
-  their stored status is left to Actual. Parity matrix:
+  `reconcileTransactions` does (#1001). Downloads get Actual's 5-minute bank-sync read timeout; a
+  timeout is stored as `timed-out`, an account left out of a SimpleFIN batch as `account-missing`,
+  and other download errors as `failed`, as in Actual. Accounts linked through providers Actua
+  can't download yet (Pluggy.ai, Akahu, and Enable Banking while its experiment is off) are named
+  as unsupported and their stored status is left to Actual. Parity matrix:
   [docs/BANK_SYNC_PARITY.md](docs/BANK_SYNC_PARITY.md). Rows are normalized as in Actual's
   `normalizeBankSyncTransactions` (#1002), except that two different rows sent under one provider
   id are skipped rather than guessed at. An account's first sync writes Actual's starting-balance
@@ -138,9 +138,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   `findOrCreateBank` does (#1004), and unlinking clears Actual's cells and removes an unused
   GoCardless requisition (#1005). Per-account sync preferences set in Actual are honoured, but
   can only be edited in Actual (#1006). Each account's download and each imported file is written
-  as one CRDT batch, with transfer legs and Actual's sort order (#1007). File import title-cases payee names and
-  marks rows cleared by default (#1008). Known boundaries until fixed:
-  - File import flags only same-date duplicates instead of matching within seven days (#1009)
+  as one CRDT batch, with transfer legs and Actual's sort order (#1007). File import title-cases
+  payee names and marks rows cleared by default (#1008), and it updates a matching transaction
+  within seven days instead of adding a copy (#1009).
 - On-device financial-message parsing for explicitly pasted/shared text and opt-in future
   notifications from an explicit allowed-app list, with configurable debit/credit terms, amount/date/reference/payee extraction,
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion
