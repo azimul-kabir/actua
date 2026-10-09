@@ -41,7 +41,7 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Exact `imported_id` match for rows already imported (update path) | Match ([#1001](https://github.com/azimul-kabir/actua/issues/1001)) |
 | Fuzzy matching (±7 days, payee pass, then date pass) | Match |
 | Updating a fuzzy-matched row | Match |
-| Per-account sync preferences (`sync-import-pending-…` etc.) | Divergence ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
+| Per-account sync preferences (`sync-import-pending-…` etc.) | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)); not editable in Actua yet |
 | Atomic batch, transfers, `sort_order` | Divergence ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | Match (neither client learns from imports) |
 | File import: formats and mapping | Intentional boundary (CSV only in common) |
@@ -144,7 +144,7 @@ in `BankSyncService.sync`.
 | `cleared` | `Boolean(booked)`, so a missing `booked` is pending | same | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | `pending` column | not written (stays 0) | `pending = !booked` | Intentional. Actual's AQL schema doesn't read the column, so other clients see nothing different. |
 | Amount | `amountToInteger(amount ?? transactionAmount.amount)` (rounds) | same rounding on a double (`floor(x × 100 + 0.5)`) | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
-| Date | mapped field (`date` by default) | `date` | Match for the default mapping; custom mappings → [#1006](https://github.com/azimul-kabir/actua/issues/1006) |
+| Date | mapped field (`date` by default) | same | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
 | Payee name | mapped field (`payeeName`), not title-cased, trimmed into `imported_description` | `payeeName` | Match |
 | Blank payee name | `imported_description = ""`, no payee | same | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | Notes | mapped field (`notes`), trimmed, `#` → `##` | same for the default mapping | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
@@ -168,7 +168,7 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:107-211`), `ImportR
 | Payee resolved by name before rules; new names get a provisional id; created only if still used | `resolvePayee` → `runRules` → `createNewPayees` | `ImportRules.apply`; `createPayeeName` resolved only when the row is written | Match (`BankSyncReconciliationTest.ruleRenamedPayeeLeavesNoBankNamedPayeeBehind`) |
 | Rules run on every downloaded row | yes, including rows that match by id | yes, except ids only deleted rows carry | Match |
 | Id already stored on a live row | update path: `imported_description` replaced, payee/category/notes filled only if empty, `cleared` OR'd, split children's `cleared` copied; reconciled rows untouched | same; rules run first, `pending` clears with `cleared`, unchanged rows write nothing | Match ([#1001](https://github.com/azimul-kabir/actua/issues/1001)) |
-| Id stored only on a deleted row | re-imported by default (`sync-reimport-deleted` true) | never re-imported (`existingFinancialIds` counts tombstones) | **Divergence** [#1006](https://github.com/azimul-kabir/actua/issues/1006) |
+| Id stored only on a deleted row | re-imported by default (`sync-reimport-deleted` true) | same, following the preference | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
 | Fuzzy dataset | live rows in the account, same amount, ±7 days; bank-sync accounts use `strictIdChecking = false`, so rows with another `imported_id` count | same window and filters; rows taken by an exact id in this download are excluded | Match (`BankSyncReconciliationTest.reDownloadUnderANewIdMatchesTheAlreadyImportedTransaction`) |
 | Pass 1 same payee, pass 2 any; closest date first; a candidate is claimed once | yes | yes | Match (`src/test/.../BankSyncMatcherTest`) |
 | Matched reconciled row | ignored | counted as matched, not written | Match |
@@ -179,7 +179,7 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:107-211`), `ImportR
 | Transfer payee set by a rule creates the counterpart | `runTransfers = true` | not created | **Divergence** [#1007](https://github.com/azimul-kabir/actua/issues/1007) |
 | New rows' `sort_order` | `now − index × increment` | writer default | **Divergence** [#1007](https://github.com/azimul-kabir/actua/issues/1007) |
 | Category learning | `learnCategories = false` for imports | not run | Match |
-| Per-account preferences (`sync-import-pending`, `sync-import-notes`, `sync-import-transactions`, `sync-update-dates`, `sync-reimport-deleted`, `custom-sync-mappings`) | read from synced `preferences` | ignored; behaves as the defaults, except reimport-deleted (above) | **Divergence** [#1006](https://github.com/azimul-kabir/actua/issues/1006) |
+| Per-account preferences (`sync-import-pending`, `sync-import-notes`, `sync-import-transactions`, `sync-update-dates`, `sync-reimport-deleted`, `custom-sync-mappings`) | read from synced `preferences` | read and applied the same way; editing them needs Actual | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
 
 ## 6. File import
 
@@ -218,7 +218,7 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 | [#1003](https://github.com/azimul-kabir/actua/issues/1003) | Fixed | Starting balance on first sync, `balance_current`, GoCardless `includeBalance` |
 | [#1004](https://github.com/azimul-kabir/actua/issues/1004) | Fixed | `banks` rows as `findOrCreateBank` writes them (SimpleFIN missing, GoCardless unnamed) |
 | [#1005](https://github.com/azimul-kabir/actua/issues/1005) | Fixed | Unlink cells and GoCardless requisition removal |
-| [#1006](https://github.com/azimul-kabir/actua/issues/1006) | P2 | Per-account bank sync preferences, including reimport of deleted rows |
+| [#1006](https://github.com/azimul-kabir/actua/issues/1006) | Fixed | Per-account bank sync preferences, including reimport of deleted rows |
 | [#1007](https://github.com/azimul-kabir/actua/issues/1007) | P2 | Atomic import batch, transfer counterparts, `sort_order` |
 | [#1008](https://github.com/azimul-kabir/actua/issues/1008) | P2 | File import payee title-case and cleared default |
 | [#1009](https://github.com/azimul-kabir/actua/issues/1009) | P2 | File import fuzzy matching against existing rows |

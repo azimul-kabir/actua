@@ -8,6 +8,7 @@ import com.azimulkabir.actua.data.importing.ImportRules
 import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.network.BankSyncDownload
 import com.azimulkabir.actua.data.network.BankSyncTransaction
+import org.json.JSONObject
 import java.net.SocketTimeoutException
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -114,15 +115,25 @@ class BankSyncService(
                 return@forEach
             }
             download.problem?.let { problems += "${account.name}: $it" }
+            // The account's bank sync preferences from Actual's Bank Sync page (#1006). A custom
+            // mapping that isn't valid JSON fails the account, as Actual's `mappingsFromString` does.
+            val settings = runCatching { SyncSettings.read(database, account.id) }.getOrElse { error ->
+                problems += "${account.name}: ${error.message ?: "its field mapping is invalid."}"
+                entities.recordBankSyncStatus(account.id, "failed")
+                return@forEach
+            }
             val newAccount = account.id in newAccounts
-            if (newAccount) startingBalance(account.source, download)?.let { amount ->
+            if (newAccount) startingBalance(account.source, download, settings.importPending)?.let { amount ->
                 val date = download.transactions.lastOrNull()?.date ?: todayDay
                 entities.addStartingBalance(account.id, amount, date)
             }
+            // "Import transactions" off keeps only the balance update, except on a first sync.
+            val rows = if (!settings.importTransactions && !newAccount) emptyList()
+                else download.transactions.filter { settings.importPending || it.booked }.map(settings::mapped)
             // Actual's `normalizeBankSyncTransactions`: the provider's id, or for a booked row
             // without one `<account>-<internalTransactionId>`; a row with neither is still imported
             // (and fuzzy-matched on later syncs). Each row is keyed by its position.
-            val keyed = download.transactions.mapIndexed { index, row ->
+            val keyed = rows.mapIndexed { index, row ->
                 val importedId = row.financialId
                     ?: row.internalTransactionId?.takeIf { row.booked }?.let { "${account.id}-$it" }
                 KeyedRow(importedId ?: "#$index", importedId, row)
@@ -138,7 +149,9 @@ class BankSyncService(
             // Actual's exact `imported_id` match: a row the account already holds under the same id
             // goes through the update path below instead of being imported again (#1001). Ids that
             // only deleted rows carry are not imported again.
+            // With "reimport deleted" on (Actual's default) an id only deleted rows carry is new again.
             val known = database.financialIdRows(account.id, unambiguousWithId.mapTo(mutableSetOf()) { it.importedId!! })
+                .filterValues { it != null || !settings.reimportDeleted }
             val newRows = unambiguous.filterNot { it.importedId != null && it.importedId in known }.sortedBy { it.row.date }
             val exactRows = unambiguous.filter { it.importedId != null && known[it.importedId] != null }
             // As in Actual's `matchTransactions`, rules run on every downloaded row first, with the
@@ -150,7 +163,7 @@ class BankSyncService(
                 ActualTransaction(
                     id = idFactory(), accountId = account.id, date = row.date,
                     amountCents = row.amountCents, payeeId = null, payeeName = null,
-                    categoryId = null, categoryName = null, notes = importedNotes(row.notes),
+                    categoryId = null, categoryName = null, notes = importedNotes(row.notes).takeIf { settings.importNotes },
                     cleared = row.booked, reconciled = false, transferId = null,
                     isParent = false, parentId = null, tombstone = false, sortOrder = null,
                     importedPayee = row.payeeName.trim(), scheduleId = null, transferAccountId = null,
@@ -177,7 +190,10 @@ class BankSyncService(
             fun updateMatched(original: ActualTransaction, prepared: ImportRules.Prepared, row: KeyedRow): Boolean {
                 val bank = prepared.transaction
                 val cleared = original.cleared || bank.cleared
+                // "Update dates" moves a matched row (and a split's children) to the bank's date.
+                val date = if (settings.updateDates) bank.date else original.date
                 val linked = original.copy(
+                    date = date,
                     financialId = row.importedId,
                     payeeId = original.payeeId ?: payeeId(prepared),
                     categoryId = original.categoryId ?: bank.categoryId,
@@ -189,10 +205,14 @@ class BankSyncService(
                 )
                 val updates = buildList {
                     if (ActualTransactionWriter.changedFields(original, linked).isNotEmpty()) add(original to linked)
-                    if (original.isParent && original.cleared != cleared) {
+                    if (original.isParent && (original.cleared != cleared || original.date != date)) {
                         database.fetchChildTransactions(original.id)
-                            .filter { it.cleared != cleared }
-                            .forEach { add(it to it.copy(cleared = cleared)) }
+                            .map { it to it.copy(
+                                cleared = if (original.cleared != cleared) cleared else it.cleared,
+                                date = if (original.date != date) date else it.date,
+                            ) }
+                            .filter { (before, after) -> before != after }
+                            .forEach { add(it) }
                     }
                 }
                 if (updates.isEmpty()) return false
@@ -292,14 +312,14 @@ class BankSyncService(
      * rows from it (SimpleFIN with Actual's `parseInt(amount.replace('.', ''))`), and GoCardless
      * sends the opening balance itself. Null when the server sent no balance.
      */
-    private fun startingBalance(source: String, download: BankSyncDownload): Long? {
+    private fun startingBalance(source: String, download: BankSyncDownload, importPending: Boolean): Long? {
         val current = download.balanceCents ?: return null
         return when (source) {
             "simpleFin" -> download.transactions.fold<BankSyncTransaction, Long?>(current) { total, row ->
                 val cents = row.amountText?.let(::simpleFinCents) ?: return@fold null
                 total?.minus(cents)
             }
-            "enableBanking" -> current - download.transactions.sumOf { it.amountCents }
+            "enableBanking" -> current - download.transactions.filter { importPending || it.booked }.sumOf { it.amountCents }
             else -> current
         }
     }
@@ -307,6 +327,69 @@ class BankSyncService(
     /** JavaScript's `parseInt(text.replace('.', ''))`: the first `.` removed, leading digits read. */
     private fun simpleFinCents(text: String): Long? =
         Regex("""^\s*[+-]?\d+""").find(text.replaceFirst(".", ""))?.value?.trim()?.toLongOrNull()
+
+    /**
+     * Actual's per-account bank sync preferences (`sync-import-pending-<id>` and friends, stored as
+     * the strings "true"/"false" in the synced `preferences` table) and `custom-sync-mappings-<id>`.
+     */
+    private class SyncSettings(
+        val importPending: Boolean,
+        val importNotes: Boolean,
+        val importTransactions: Boolean,
+        val updateDates: Boolean,
+        val reimportDeleted: Boolean,
+        /** Provider field for `date`, `payee` and `notes`, for payments and for deposits. */
+        val payment: Map<String, String>,
+        val deposit: Map<String, String>,
+    ) {
+        /** Actual's `trans[mapping.get(field)] ?? fallback`, read from the provider row. */
+        fun mapped(row: BankSyncTransaction): BankSyncTransaction {
+            val mapping = if (row.amountCents <= 0) payment else deposit
+            if (mapping == DEFAULT_MAPPING) return row
+            val raw = row.rawJson?.let { runCatching { JSONObject(it) }.getOrNull() } ?: return row
+            fun field(name: String): String? = mapping[name]?.let { key ->
+                if (raw.has(key) && !raw.isNull(key)) raw.opt(key)?.toString() else null
+            }
+            val date = field("date")?.take(10)?.replace("-", "")?.toIntOrNull()?.takeIf { it in 19000101..29991231 }
+            return row.copy(
+                date = date ?: row.date,
+                payeeName = field("payee") ?: row.payeeName,
+                notes = field("notes"),
+            )
+        }
+
+        companion object {
+            private val DEFAULT_MAPPING = mapOf("date" to "date", "payee" to "payeeName", "notes" to "notes")
+
+            fun read(database: ActualBudgetDatabase, accountId: String): SyncSettings {
+                val keys = listOf("sync-import-pending", "sync-import-notes", "sync-import-transactions",
+                    "sync-update-dates", "sync-reimport-deleted", "custom-sync-mappings").map { "$it-$accountId" }
+                val prefs = database.fetchPreferences(keys)
+                // Actual's `String(value ?? default) === 'true'`.
+                fun flag(name: String, default: Boolean) = (prefs["$name-$accountId"] ?: default.toString()) == "true"
+                val mappings = prefs["custom-sync-mappings-$accountId"]?.let(::parseMappings)
+                return SyncSettings(
+                    importPending = flag("sync-import-pending", true),
+                    importNotes = flag("sync-import-notes", true),
+                    importTransactions = flag("sync-import-transactions", true),
+                    updateDates = flag("sync-update-dates", false),
+                    reimportDeleted = flag("sync-reimport-deleted", true),
+                    payment = mappings?.get("payment") ?: DEFAULT_MAPPING,
+                    deposit = mappings?.get("deposit") ?: DEFAULT_MAPPING,
+                )
+            }
+
+            /** `mappingsFromString`: `{"payment": {"date": …, "payee": …, "notes": …}, "deposit": {…}}`. */
+            private fun parseMappings(text: String): Map<String, Map<String, String>> {
+                val root = runCatching { JSONObject(text) }
+                    .getOrElse { throw IllegalArgumentException("its custom field mapping can't be read. Fix it in Actual's Bank Sync settings.") }
+                return root.keys().asSequence().associateWith { direction ->
+                    val fields = root.optJSONObject(direction) ?: JSONObject()
+                    fields.keys().asSequence().associateWith { fields.optString(it) }
+                }
+            }
+        }
+    }
 
     /** A downloaded row, its key in this download, and the `imported_id` Actual would give it. */
     private data class KeyedRow(val key: String, val importedId: String?, val row: BankSyncTransaction)
