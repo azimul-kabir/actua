@@ -51,6 +51,18 @@ produce, which sync to your own Actual server like any other budget data.
 Actua does not include analytics, crash reporting, advertising or other
 third-party tracking SDKs, and does not collect usage data about you.
 
+## Diagnostics
+
+Actua keeps a short log of recent app activity on your device (Settings →
+About → Diagnostics) to help troubleshoot problems: crashes, failed actions,
+screens opened, syncs and server requests. It records error types, code
+locations, request paths, status codes, timings and counts only. It never
+records error text, your server address, passwords, tokens, encryption keys or
+budget data.
+Entries older than seven days are deleted, and you can clear the log at any
+time. The log never leaves your device unless you copy, save or email the
+report yourself.
+
 ## Backups
 
 Automatic local backups are stored on your device's storage and are not

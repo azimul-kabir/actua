@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.sync
 
+import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import android.content.Context
 import android.os.SystemClock
 import androidx.work.BackoffPolicy
@@ -52,6 +53,7 @@ object ActualSyncRunner {
         trigger: String = "Sync",
     ): SyncRunResult {
         val app = context.applicationContext
+        DiagnosticsLog.attach(app)
         val status = SyncStatusStore(app)
         val budgetId = ActiveBudgetStore(app).budgetId ?: return SyncRunResult.NotConfigured.also {
             status.stoppedWithoutSync()
@@ -93,6 +95,8 @@ object ActualSyncRunner {
             return requireNotNull(lastSuccess)
         }
         status.started(trigger)
+        DiagnosticsLog.syncStarted(trigger)
+        val startedAt = SystemClock.elapsedRealtime()
         return try {
             val result = ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { database ->
                 val server = ActualServerClient(UrlConnectionTransport(TrustedCertificateStore(context))).apply { customHeaders = credentials.customHeaders }
@@ -115,11 +119,16 @@ object ActualSyncRunner {
             lastSuccessElapsedMillis = SystemClock.elapsedRealtime()
             lastSuccess = result
             status.succeeded(result.outcome)
+            DiagnosticsLog.syncSucceeded(
+                result.outcome.sentMessages, result.outcome.receivedMessages, result.outcome.attempts,
+                SystemClock.elapsedRealtime() - startedAt,
+            )
             SyncSignals.dataChanged()
             result
         } catch (error: Exception) {
             if (error is ActualServerException.SessionExpired) credentials.expireSession()
             status.failed(error)
+            DiagnosticsLog.syncFailed(error, SystemClock.elapsedRealtime() - startedAt)
             throw error
         }
     }
@@ -162,19 +171,25 @@ class ActualSyncWorker(context: Context, parameters: WorkerParameters) : Corouti
                 trigger = syncTriggerLabel(reason),
             )) {
                 is SyncRunResult.Success -> {
+                    DiagnosticsLog.background("${syncTriggerLabel(reason)} sync succeeded")
                     CreditCardDueNotificationScheduler.refresh(applicationContext)
                     WidgetUpdater.requestAll(applicationContext)
                     Result.success()
                 }
                 SyncRunResult.NotConfigured -> Result.success()
+                    .also { DiagnosticsLog.background("${syncTriggerLabel(reason)} sync not configured") }
                 SyncRunResult.EncryptionKeyUnavailable -> Result.failure()
+                    .also { DiagnosticsLog.background("${syncTriggerLabel(reason)} sync needs the encryption key") }
             }
         } catch (error: Exception) {
             when {
                 // Retrying can't help until the user acts; the next scheduled or manual sync tries again.
                 !SyncFailurePolicy.isRetryable(error) -> Result.failure()
+                    .also { DiagnosticsLog.background("${syncTriggerLabel(reason)} sync failed, not retrying") }
                 runAttemptCount < 5 -> Result.retry()
+                    .also { DiagnosticsLog.background("${syncTriggerLabel(reason)} sync failed, retry ${runAttemptCount + 1}") }
                 else -> Result.failure()
+                    .also { DiagnosticsLog.background("${syncTriggerLabel(reason)} sync failed, out of retries") }
             }
         } finally {
             if (inputData.getBoolean(BACKGROUND_KEY, false)) {
