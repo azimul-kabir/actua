@@ -38,7 +38,7 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Row normalization (ids, payee, notes, amount) | Divergence ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | Rules before matching; payee creation only when used | Match |
 | Exact `imported_id` match for new rows | Match |
-| Exact `imported_id` match for rows already imported (update path) | Divergence ([#1001](https://github.com/azimul-kabir/actua/issues/1001)) |
+| Exact `imported_id` match for rows already imported (update path) | Match ([#1001](https://github.com/azimul-kabir/actua/issues/1001)) |
 | Fuzzy matching (±7 days, payee pass, then date pass) | Match |
 | Updating a fuzzy-matched row | Match, except `raw_synced_data` ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | Per-account sync preferences (`sync-import-pending-…` etc.) | Divergence ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
@@ -166,8 +166,8 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:107-211`), `ImportR
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | Payee resolved by name before rules; new names get a provisional id; created only if still used | `resolvePayee` → `runRules` → `createNewPayees` | `ImportRules.apply`; `createPayeeName` resolved only when the row is written | Match (`BankSyncReconciliationTest.ruleRenamedPayeeLeavesNoBankNamedPayeeBehind`) |
-| Rules run on every downloaded row | yes, including rows that match by id | only on rows whose id isn't stored yet | Same result for new rows; see the next row for stored ids |
-| Id already stored on a live row | update path: `imported_description` replaced, payee/category/notes filled only if empty, `cleared` OR'd, split children's `cleared` copied; reconciled rows untouched | row skipped entirely, so a pending row stays uncleared after it is booked | **Divergence** [#1001](https://github.com/azimul-kabir/actua/issues/1001) |
+| Rules run on every downloaded row | yes, including rows that match by id | yes, except ids only deleted rows carry | Match |
+| Id already stored on a live row | update path: `imported_description` replaced, payee/category/notes filled only if empty, `cleared` OR'd, split children's `cleared` copied; reconciled rows untouched | same; rules run first, `pending` clears with `cleared`, unchanged rows write nothing | Match ([#1001](https://github.com/azimul-kabir/actua/issues/1001)) |
 | Id stored only on a deleted row | re-imported by default (`sync-reimport-deleted` true) | never re-imported (`existingFinancialIds` counts tombstones) | **Divergence** [#1006](https://github.com/azimul-kabir/actua/issues/1006) |
 | Fuzzy dataset | live rows in the account, same amount, ±7 days; bank-sync accounts use `strictIdChecking = false`, so rows with another `imported_id` count | same window and filters; rows taken by an exact id in this download are excluded | Match (`BankSyncReconciliationTest.reDownloadUnderANewIdMatchesTheAlreadyImportedTransaction`) |
 | Pass 1 same payee, pass 2 any; closest date first; a candidate is claimed once | yes | yes | Match (`src/test/.../BankSyncMatcherTest`) |
@@ -213,7 +213,7 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 
 | Issue | Severity | Summary |
 | --- | --- | --- |
-| [#1001](https://github.com/azimul-kabir/actua/issues/1001) | P2 | Update rows downloaded again under the same id (pending → booked) |
+| [#1001](https://github.com/azimul-kabir/actua/issues/1001) | Fixed | Update rows downloaded again under the same id (pending → booked) |
 | [#1002](https://github.com/azimul-kabir/actua/issues/1002) | P2 | Normalize rows as Actual does (ids, blank payee, notes, rounding, raw data, batch errors, start date) |
 | [#1003](https://github.com/azimul-kabir/actua/issues/1003) | P2 | Starting balance on first sync, `balance_current`, GoCardless `includeBalance` |
 | [#1004](https://github.com/azimul-kabir/actua/issues/1004) | P2 | `banks` rows as `findOrCreateBank` writes them (SimpleFIN missing, GoCardless unnamed) |

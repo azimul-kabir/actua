@@ -265,14 +265,28 @@ class ActualBudgetDatabase private constructor(
         if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getInt(0) else null
     }
 
+    /**
+     * Rows in [accountId] whose `financial_id` is one of [ids], by financial id: the live row's id,
+     * or null when only deleted rows carry that id. Actual's exact `imported_id` match (#1001).
+     */
     @Synchronized
-    fun existingFinancialIds(accountId: String, ids: Set<String>): Set<String> {
-        if (ids.isEmpty()) return emptySet()
+    fun financialIdRows(accountId: String, ids: Set<String>): Map<String, String?> {
+        if (ids.isEmpty()) return emptyMap()
         val placeholders = ids.joinToString(",") { "?" }
-        return database.rawQuery(
-            "SELECT financial_id FROM transactions WHERE acct = ? AND financial_id IN ($placeholders)",
+        val result = mutableMapOf<String, String?>()
+        database.rawQuery(
+            """SELECT financial_id, id, tombstone FROM transactions
+                WHERE acct = ? AND financial_id IN ($placeholders)
+                ORDER BY (tombstone = 0 OR tombstone IS NULL) DESC, sort_order DESC""",
             (listOf(accountId) + ids).toTypedArray(),
-        ).use { cursor -> buildSet { while (cursor.moveToNext()) cursor.stringOrNull(0)?.let(::add) } }
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val financialId = cursor.stringOrNull(0) ?: continue
+                if (financialId in result) continue
+                result[financialId] = cursor.getString(1).takeIf { cursor.intOrZero(2) == 0 }
+            }
+        }
+        return result
     }
 
     /**
