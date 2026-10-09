@@ -45,6 +45,7 @@ import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.location.Coordinates
 import com.azimulkabir.actua.data.location.PayeeLocationWriter
 import com.azimulkabir.actua.data.importing.ImportDuplicateDetector
+import com.azimulkabir.actua.data.importing.TitleCase
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
@@ -1052,7 +1053,7 @@ class ActuaRepository(context: Context) {
     }
 
     /** Commits reviewed candidates together through the normal CRDT transaction writer. */
-    fun importTransactions(accountId: String, candidates: List<ImportCandidate>): Int {
+    fun importTransactions(accountId: String, candidates: List<ImportCandidate>, cleared: Boolean = true): Int {
         if (candidates.isEmpty()) return 0
         val db = actualDatabase ?: return 0
         val writer = actualWriter ?: return 0
@@ -1069,14 +1070,15 @@ class ActuaRepository(context: Context) {
                 categoryName = null,
                 notes = listOfNotNull(candidate.notes.takeIf(String::isNotBlank), candidate.reference?.let { "Reference: $it" })
                     .joinToString(" · ").takeIf(String::isNotBlank),
-                cleared = false,
+                cleared = cleared,
                 reconciled = false,
                 transferId = null,
                 isParent = false,
                 parentId = null,
                 tombstone = false,
                 sortOrder = null,
-                importedPayee = candidate.payee.trim().takeIf(String::isNotEmpty),
+                // Actual's import title-cases payee names by default (`payeeNameNormalization`).
+                importedPayee = candidate.payee.trim().takeIf(String::isNotEmpty)?.let(TitleCase::title)?.trim(),
                 scheduleId = null,
                 transferAccountId = null,
             )
