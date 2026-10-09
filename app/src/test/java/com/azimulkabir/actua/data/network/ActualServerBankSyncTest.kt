@@ -26,8 +26,8 @@ class ActualServerBankSyncTest {
         assertEquals(-1234L, download.transactions.first().amountCents)
         assertEquals(20260920, download.transactions.first().date)
         assertEquals(true, download.transactions.first().booked)
-        // Actual's amountToInteger rounds Math.round(12.345 * 100) = 1234; a missing `booked` is pending.
-        assertEquals(1234L, download.transactions[1].amountCents)
+        // Actual's amountToInteger: 12.345 * 100 is 1234.5 as a double, and Math.round gives 1235; a missing `booked` is pending.
+        assertEquals(1235L, download.transactions[1].amountCents)
         assertEquals(false, download.transactions[1].booked)
     }
 
