@@ -92,6 +92,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
 import com.azimulkabir.actua.ui.accounts.CloseAccountOptions
 import com.azimulkabir.actua.ui.accounts.CloseCategoryGroup
@@ -452,6 +453,10 @@ fun AppNavigation(
     var selectedTab by rememberSaveable { mutableStateOf(destination) }
     var tabSwitchJob by remember { mutableStateOf<Job?>(null) }
     var detail by rememberSaveable { mutableStateOf(DetailDestination.Main) }
+    // Diagnostics: which tab or detail screen the user was on before a problem (#225).
+    LaunchedEffect(selectedTab, detail) {
+        DiagnosticsLog.screen(if (detail == DetailDestination.Main) "Tab $selectedTab" else "Screen $detail")
+    }
     // Re-read after sync status changes (a sync can expire the session) and after leaving Connection.
     val sessionExpired = remember(syncStatusGeneration, detail) { CredentialStore(context).sessionExpired }
     var transactionAccount by rememberSaveable { mutableStateOf<String?>(null) }
@@ -603,10 +608,12 @@ fun AppNavigation(
                         dataVersion += 1
                         onChanged()
                     } else {
+                        DiagnosticsLog.actionRejected(label)
                         errorMessage = "$label could not be completed."
                     }
                 },
                 onFailure = { error ->
+                    DiagnosticsLog.actionFailed(label, error)
                     errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
                 },
             )
@@ -620,10 +627,14 @@ fun AppNavigation(
     // [mutate].
     fun mutateSync(label: String, action: () -> Boolean): Boolean = runCatching(action).fold(
         onSuccess = { changed ->
-            if (changed) dataVersion += 1 else errorMessage = "$label could not be completed."
+            if (changed) dataVersion += 1 else {
+                DiagnosticsLog.actionRejected(label)
+                errorMessage = "$label could not be completed."
+            }
             changed
         },
         onFailure = { error ->
+            DiagnosticsLog.actionFailed(label, error)
             errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
             false
         },
@@ -656,10 +667,12 @@ fun AppNavigation(
                         transactionImpactCues = impactCues(before, after)
                         onChanged()
                     } else {
+                        DiagnosticsLog.actionRejected(label)
                         errorMessage = "$label could not be completed."
                     }
                 },
                 onFailure = { error ->
+                    DiagnosticsLog.actionFailed(label, error)
                     errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
                 },
             )
@@ -690,6 +703,7 @@ fun AppNavigation(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
+                DiagnosticsLog.actionFailed("Pull to refresh", error)
                 errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Sync failed."
             } finally {
                 transactionsRefreshing = false
@@ -718,6 +732,7 @@ fun AppNavigation(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
+                DiagnosticsLog.actionFailed("Pull to refresh", error)
                 errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Sync failed."
             } finally {
                 accountsRefreshing = false
@@ -794,6 +809,7 @@ fun AppNavigation(
                     }
                 },
                 onFailure = { error ->
+                    DiagnosticsLog.actionFailed("Loading SimpleFIN accounts", error)
                     com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(error.message ?: "Could not load SimpleFIN accounts.")
                 },
             )
@@ -851,6 +867,7 @@ fun AppNavigation(
                     }
                 },
                 onFailure = { error ->
+                    DiagnosticsLog.actionFailed("Checking GoCardless accounts", error)
                     com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(error.message ?: "Could not check GoCardless accounts.")
                 },
             )
@@ -920,10 +937,12 @@ fun AppNavigation(
                         dataVersion += 1
                         onChanged()
                     } else {
+                        DiagnosticsLog.actionRejected(label)
                         errorMessage = "$label could not be completed."
                     }
                 },
                 onFailure = { error ->
+                    DiagnosticsLog.actionFailed(label, error)
                     errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
                 },
             )
@@ -943,10 +962,12 @@ fun AppNavigation(
                         transactionImpactCues = impactCues(before, after)
                         onChanged()
                     } else {
+                        DiagnosticsLog.actionRejected(label)
                         errorMessage = "$label could not be completed."
                     }
                 },
                 onFailure = { error ->
+                    DiagnosticsLog.actionFailed(label, error)
                     errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
                 },
             )
@@ -1059,6 +1080,7 @@ fun AppNavigation(
                 reportSnapshotVersion = dataVersion
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
+                DiagnosticsLog.actionFailed("Loading reports", e)
                 errorMessage = "Failed to load reports: ${e.localizedMessage}"
             }
         }

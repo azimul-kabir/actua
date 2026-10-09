@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
-- A Diagnostics page in About lets you copy, save or email a privacy-safe report of recent connection and sync activity ([#1020](https://github.com/azimul-kabir/actua/pull/1020))
+- A Diagnostics page in About lets you copy, save or email a privacy-safe report of recent app activity, including crashes and errors, ([#1020](https://github.com/azimul-kabir/actua/pull/1020))
 - Reconciling a bank-synced account offers "Use last synced total" ([#1000](https://github.com/azimul-kabir/actua/pull/1000))
 - Reconciling shows when the account was last reconciled, and locking records the time for Actual too ([#999](https://github.com/azimul-kabir/actua/pull/999))
 - Account groups in the Accounts list show their total balance ([#925](https://github.com/azimul-kabir/actua/pull/925))

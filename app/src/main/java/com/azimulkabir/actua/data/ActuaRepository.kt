@@ -159,6 +159,7 @@ class ActuaRepository(context: Context) {
         val database = runCatching { ActualBudgetDatabase.open(files.databaseFile(budgetId)) }
             .onFailure {
                 Log.e("ActuaRepository", "Could not open a local budget (${it.javaClass.simpleName})")
+                DiagnosticsLog.actionFailed("Opening the local budget", it)
                 discardUnreadableBudget(files, budgetId)
             }
             .getOrNull()
@@ -171,6 +172,7 @@ class ActuaRepository(context: Context) {
             throw error
         } catch (error: Exception) {
             Log.e("ActuaRepository", "Skipping an unusable local budget (${error.javaClass.simpleName})")
+            DiagnosticsLog.actionFailed("Checking the local budget", error)
             database.close()
             discardUnreadableBudget(files, budgetId)
             null

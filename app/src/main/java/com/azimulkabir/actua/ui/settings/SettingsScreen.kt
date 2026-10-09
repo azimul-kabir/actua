@@ -627,7 +627,7 @@ fun SettingsScreen(
                             uriHandler.openUri("https://github.com/azimul-kabir/actua/blob/main/PRIVACY.md")
                         }
                         SettingsDivider()
-                        AboutRow("Diagnostics", "Copy, save or email a report of recent connection and sync activity") {
+                        AboutRow("Diagnostics", "Copy, save or email a report of recent app activity to troubleshoot problems") {
                             page = SettingsPage.Diagnostics
                         }
                     }

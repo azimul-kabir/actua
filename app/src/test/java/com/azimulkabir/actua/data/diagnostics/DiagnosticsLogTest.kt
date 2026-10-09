@@ -50,6 +50,26 @@ class DiagnosticsLogTest {
         assertTrue(report, report.contains("statuses=ok=1,other=1,timed-out=1"))
     }
 
+    @Test fun `failed actions and crashes keep the error type and app frames but not the message`() {
+        val error = IllegalArgumentException("payee 'Corner Shop' is not valid")
+        error.stackTrace = arrayOf(
+            StackTraceElement("java.util.ArrayList", "get", "ArrayList.java", 10),
+            StackTraceElement("com.azimulkabir.actua.data.ActuaRepository", "importTransactions", "ActuaRepository.kt", 1132),
+            StackTraceElement("com.azimulkabir.actua.ui.navigation.AppNavigationKt\$mutate\$1", "invoke", "AppNavigation.kt", 600),
+        )
+        DiagnosticsLog.actionFailed("Importing transactions", error)
+        DiagnosticsLog.crash(Thread.currentThread(), RuntimeException("budget Household", error))
+        val lines = DiagnosticsLog.events().map { it.line() }
+
+        assertTrue(lines.toString(), lines.none { "Corner Shop" in it || "Household" in it })
+        assertTrue(lines[0], lines[0].endsWith(
+            "ERROR Importing transactions failed IllegalArgumentException " +
+                "at ActuaRepository.importTransactions:1132 < AppNavigationKt\$mutate\$1.invoke:600",
+        ))
+        assertTrue(lines[1], lines[1].contains("CRASH "))
+        assertTrue(lines[1], lines[1].contains("RuntimeException<-IllegalArgumentException at ActuaRepository.importTransactions:1132"))
+    }
+
     @Test fun `the log keeps only the most recent events`() {
         repeat(DiagnosticsLog.MAX_EVENTS + 25) { DiagnosticsLog.syncStarted("Background") }
         assertEquals(DiagnosticsLog.MAX_EVENTS, DiagnosticsLog.events().size)

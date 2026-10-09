@@ -44,8 +44,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Recent connection and sync events for bug reports (#225). The report can be copied, saved as a
- * text file or emailed to Actua; it never contains server addresses, credentials or budget data.
+ * Recent app activity for bug reports (#225): crashes, failed actions, screens, syncs and server
+ * requests. The report can be copied, saved as a text file or emailed to Actua; it never contains
+ * server addresses, credentials or budget data.
  */
 @Composable
 fun DiagnosticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
@@ -74,9 +75,10 @@ fun DiagnosticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         ) {
             item {
                 Text(
-                    "Recent connection and sync activity, kept on this device for 7 days. Share it with Actua " +
-                        "when reporting a problem. It lists request paths, status codes, timings, counts and " +
-                        "error types only, with no server address, passwords, tokens, keys or budget data.",
+                    "Recent app activity, kept on this device for 7 days: crashes, failed actions, screens " +
+                        "opened, syncs and server requests. Share it with Actua when reporting a problem. It " +
+                        "lists error types, code locations, request paths, status codes, timings and counts " +
+                        "only, with no server address, passwords, tokens, keys or budget data.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
@@ -126,7 +128,7 @@ fun DiagnosticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 )
             }
             if (events.isEmpty()) item {
-                Text("No events yet. They appear after the app connects or syncs.",
+                Text("No events yet. They appear as you use the app.",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm))
             }

@@ -7,12 +7,15 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 /**
- * A bounded, privacy-safe record of recent connection and sync events for bug reports (#225).
+ * A bounded, privacy-safe record of recent app activity for bug reports (#225): app launches,
+ * screens opened, failed actions, crashes, server requests, syncs and bank syncs.
  *
  * Nothing sensitive can enter it: callers pass only typed values (an HTTP method, a server path,
- * a status code, a duration, counts, an exception's class), and every value is reduced here to a
- * fixed shape before it is stored. Server URLs and hosts, headers, tokens, passwords, keys, error
- * messages, budget names and transaction data are never accepted.
+ * a status code, a duration, counts, an exception, an action or screen name from the code), and
+ * every value is reduced here to a fixed shape before it is stored. Exceptions contribute their
+ * class names and the app's own stack frames (class, method, line), never their messages. Server
+ * URLs and hosts, headers, tokens, passwords, keys, budget names and transaction data are never
+ * accepted.
  *
  * Events live in memory and are mirrored to a private file once [attach] has been called, so a
  * failure in a background sync is still there when the user opens Diagnostics. The file keeps at
@@ -27,17 +30,28 @@ object DiagnosticsLog {
         fun line(): String = "${timestamp(atMillis)} ${category.label} $detail"
     }
 
-    enum class Category(val label: String) { HTTP("HTTP"), SYNC("SYNC"), BACKGROUND("BACKGROUND"), BANK_SYNC("BANK") }
+    enum class Category(val label: String) {
+        APP("APP"), SCREEN("SCREEN"), ERROR("ERROR"), CRASH("CRASH"),
+        HTTP("HTTP"), SYNC("SYNC"), BACKGROUND("BACKGROUND"), BANK_SYNC("BANK"),
+    }
 
     private val events = ArrayDeque<Event>()
     private var file: File? = null
     private var appendedSinceTrim = 0
     internal var clock: () -> Long = System::currentTimeMillis
 
-    /** Starts mirroring to (and loads earlier events from) the app's private storage. */
+    /**
+     * Starts mirroring to (and loads earlier events from) the app's private storage, and records
+     * uncaught exceptions as crashes before handing them to the previous handler.
+     */
     @Synchronized
     fun attach(context: Context) {
         if (file != null) return
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            runCatching { crash(thread, error) }
+            previous?.uncaughtException(thread, error)
+        }
         val target = File(context.applicationContext.filesDir, FILE_NAME)
         file = target
         val pending = events.toList()
@@ -59,6 +73,24 @@ object DiagnosticsLog {
     fun clear() {
         events.clear()
         runCatching { file?.delete() }
+    }
+
+    fun appLaunched() = record(Category.APP, "launched")
+
+    /** A screen or tab the user opened, by its name in the code. */
+    fun screen(name: String) = record(Category.SCREEN, safeLabel(name))
+
+    /** A user action (named in the code, e.g. "Importing transactions") that threw. */
+    fun actionFailed(action: String, error: Throwable) =
+        record(Category.ERROR, "${safeLabel(action)} failed ${errorType(error)}${location(error)}")
+
+    /** A user action that completed without changing anything it was expected to change. */
+    fun actionRejected(action: String) = record(Category.ERROR, "${safeLabel(action)} could not be completed")
+
+    /** An uncaught exception: its types and the app frames it passed through. */
+    fun crash(thread: Thread, error: Throwable) {
+        val where = if (thread.name == "main") "main thread" else "background thread"
+        record(Category.CRASH, "$where ${errorType(error)}${location(error, frames = 6)}")
     }
 
     /** A request to the Actual server: method, path shape, status (or failure class) and duration. */
@@ -150,6 +182,26 @@ object DiagnosticsLog {
         }
         return chain.joinToString("<-")
     }
+
+    /**
+     * Where [error] happened: up to [frames] of the app's own stack frames as `Class.method:line`
+     * (falling back to the first frame), from the exception that was thrown first.
+     */
+    internal fun location(error: Throwable, frames: Int = 2): String {
+        val root = generateSequence(error) { it.cause }.take(5).last()
+        val trace = root.stackTrace.takeIf { it.isNotEmpty() } ?: error.stackTrace
+        val own = trace.filter { it.className.startsWith(APP_PACKAGE) }.take(frames)
+            .ifEmpty { trace.take(1) }
+        if (own.isEmpty()) return ""
+        return " at " + own.joinToString(" < ") { frame ->
+            val className = frame.className.substringAfterLast('.')
+                .filter { it.isLetterOrDigit() || it == '$' || it == '_' }.take(60)
+            val method = frame.methodName.filter { it.isLetterOrDigit() || it == '$' || it == '_' }.take(60)
+            "$className.$method" + (frame.lineNumber.takeIf { it > 0 }?.let { ":$it" } ?: "")
+        }
+    }
+
+    private const val APP_PACKAGE = "com.azimulkabir.actua"
 
     /** Letters, digits, spaces and a few separators, at most 40 characters. */
     internal fun safeLabel(value: String): String =
