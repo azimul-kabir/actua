@@ -131,13 +131,16 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   errors as `failed`, as in Actual. Accounts linked through providers Actua can't download yet
   (Pluggy.ai, Akahu, and Enable Banking while its experiment is off) are named as unsupported and
   their stored status is left to Actual. Parity matrix:
-  [docs/BANK_SYNC_PARITY.md](docs/BANK_SYNC_PARITY.md). Rows are normalized as in Actual's `normalizeBankSyncTransactions` (#1002),
-  except that two different rows sent under one provider id are skipped rather than guessed at.
-  Known boundaries until fixed: no starting-balance row on the first sync and no `balance_current` write (#1003); SimpleFIN links
-  have no `banks` row and GoCardless ones are unnamed (#1004); unlink cells differ (#1005);
-  per-account sync preferences are ignored (#1006); imports are not one batch and create no
-  transfer counterparts (#1007). File import keeps payee names as written, leaves rows uncleared
-  (#1008), and flags only same-date duplicates instead of matching within seven days (#1009).
+  [docs/BANK_SYNC_PARITY.md](docs/BANK_SYNC_PARITY.md). Rows are normalized as in Actual's
+  `normalizeBankSyncTransactions` (#1002), except that two different rows sent under one provider
+  id are skipped rather than guessed at. An account's first sync writes Actual's starting-balance
+  row, and later syncs store `balance_current` (#1003). Known boundaries until fixed:
+  - SimpleFIN links have no `banks` row, and GoCardless ones are unnamed (#1004)
+  - Unlinking writes different cells and keeps the GoCardless requisition (#1005)
+  - Per-account sync preferences are ignored (#1006)
+  - Imports are not one batch and create no transfer counterparts (#1007)
+  - File import keeps payee names as written and leaves rows uncleared (#1008)
+  - File import flags only same-date duplicates instead of matching within seven days (#1009)
 - On-device financial-message parsing for explicitly pasted/shared text and opt-in future
   notifications from an explicit allowed-app list, with configurable debit/credit terms, amount/date/reference/payee extraction,
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion

@@ -22,6 +22,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- A newly linked bank account starts from the bank's balance, and later syncs keep the last synced balance, as in Actual ([#1013](https://github.com/azimul-kabir/actua/pull/1013))
 - Bank sync imports transactions without a bank id, keeps blank payees empty and stops turning `#` in bank notes into tags, as Actual does ([#1012](https://github.com/azimul-kabir/actua/pull/1012))
 - Bank sync clears a pending transaction once the bank books it, as Actual does ([#1011](https://github.com/azimul-kabir/actua/pull/1011))
 - Reconciliation adjustments run through your rules, as in Actual ([#998](https://github.com/azimul-kabir/actua/pull/998))
