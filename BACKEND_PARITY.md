@@ -134,8 +134,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   [docs/BANK_SYNC_PARITY.md](docs/BANK_SYNC_PARITY.md). Rows are normalized as in Actual's
   `normalizeBankSyncTransactions` (#1002), except that two different rows sent under one provider
   id are skipped rather than guessed at. An account's first sync writes Actual's starting-balance
-  row, and later syncs store `balance_current` (#1003). Known boundaries until fixed:
-  - SimpleFIN links have no `banks` row, and GoCardless ones are unnamed (#1004)
+  row, and later syncs store `balance_current` (#1003). Linking writes `banks` rows as
+  `findOrCreateBank` does (#1004). Known boundaries until fixed:
   - Unlinking writes different cells and keeps the GoCardless requisition (#1005)
   - Per-account sync preferences are ignored (#1006)
   - Imports are not one batch and create no transfer counterparts (#1007)

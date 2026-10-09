@@ -31,7 +31,7 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Provider secrets (`/secret`) and status endpoints | Match. Secrets are never logged or stored on the device (§1). |
 | Account discovery (SimpleFIN, GoCardless) | Match |
 | Linking: `account_id`, `account_sync_source` | Match |
-| Linking: `banks` row (SimpleFIN missing, GoCardless unnamed) | Divergence ([#1004](https://github.com/azimul-kabir/actua/issues/1004)) |
+| Linking: `banks` rows (`findOrCreateBank`) | Match ([#1004](https://github.com/azimul-kabir/actua/issues/1004)) |
 | Starting balance on the first sync; `balance_current` | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
 | Unlinking | Divergence ([#1005](https://github.com/azimul-kabir/actua/issues/1005)) |
 | Start date, timeouts, error → `bank_sync_status`, `last_sync` | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
@@ -94,8 +94,8 @@ Actua: `ActualEntityWriter.linkBankAccount` / `unlinkBankAccount` (`data/budget/
 | SimpleFIN discovery | `POST /simplefin/accounts` | same | Match |
 | GoCardless banks, web token, accounts for a requisition | `/gocardless/get-banks`, `/create-web-token`, `/get-accounts` (polled) | same calls; the user taps "check accounts" instead of a poll loop | Intentional (Android lifecycle) |
 | Link writes `account_id`, `account_sync_source` | yes | yes | Match |
-| GoCardless `banks` row (`bank_id` = requisition id) | `findOrCreateBank(institution, requisitionId)`: `name` = institution, reused on `bank_id` + `name IS ?` | `bank_id` written and reused by `bank_id`; `name` null, so Actual won't reuse it or show the bank name | **Divergence** [#1004](https://github.com/azimul-kabir/actua/issues/1004) |
-| SimpleFIN `banks` row (`bank_id` = org domain ?? org id, name = institution) | written; Actual's **Sync all** includes only accounts with `bank` | not written | **Divergence** [#1004](https://github.com/azimul-kabir/actua/issues/1004) |
+| GoCardless `banks` row (`bank_id` = requisition id) | `findOrCreateBank(institution, requisitionId)`: `name` = institution, reused on `bank_id` + `name IS ?` | same | Match ([#1004](https://github.com/azimul-kabir/actua/issues/1004)) |
+| SimpleFIN `banks` row (`bank_id` = org domain ?? org id, name = institution) | written; Actual's **Sync all** includes only accounts with `bank` | same | Match ([#1004](https://github.com/azimul-kabir/actua/issues/1004)). Accounts linked earlier gain the row when relinked. |
 | New linked account | inserts `name`, `official_name`, `mask`, `offbudget`, transfer payee, then syncs immediately | `createAccount(…, 0)` + link; the first sync, when the user refreshes, writes Actual's starting balance | Intentional. Same rows once synced; Actua waits for the user's refresh. |
 | Unlink cells | clears `account_id`, `bank`, `balance_current/available/limit`, `account_sync_source`, `bank_sync_status`; keeps `last_sync` | clears `account_id`, `account_sync_source`, `bank`, `bank_sync_status`, **`last_sync`**; keeps balances | **Divergence** [#1005](https://github.com/azimul-kabir/actua/issues/1005) |
 | Unlink removes the GoCardless requisition once unused | `POST /gocardless/remove-account` | only when closing the account | **Divergence** [#1005](https://github.com/azimul-kabir/actua/issues/1005) |
@@ -216,7 +216,7 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 | [#1001](https://github.com/azimul-kabir/actua/issues/1001) | Fixed | Update rows downloaded again under the same id (pending → booked) |
 | [#1002](https://github.com/azimul-kabir/actua/issues/1002) | Fixed | Normalize rows as Actual does (ids, blank payee, notes, rounding, raw data, batch errors, start date) |
 | [#1003](https://github.com/azimul-kabir/actua/issues/1003) | Fixed | Starting balance on first sync, `balance_current`, GoCardless `includeBalance` |
-| [#1004](https://github.com/azimul-kabir/actua/issues/1004) | P2 | `banks` rows as `findOrCreateBank` writes them (SimpleFIN missing, GoCardless unnamed) |
+| [#1004](https://github.com/azimul-kabir/actua/issues/1004) | Fixed | `banks` rows as `findOrCreateBank` writes them (SimpleFIN missing, GoCardless unnamed) |
 | [#1005](https://github.com/azimul-kabir/actua/issues/1005) | P2 | Unlink cells and GoCardless requisition removal |
 | [#1006](https://github.com/azimul-kabir/actua/issues/1006) | P2 | Per-account bank sync preferences, including reimport of deleted rows |
 | [#1007](https://github.com/azimul-kabir/actua/issues/1007) | P2 | Atomic import batch, transfer counterparts, `sort_order` |

@@ -858,9 +858,12 @@ class ActuaRepository(context: Context) {
         bankName: String? = null,
     ): Boolean {
         val entities = actualEntities ?: return false
-        entities.linkBankAccount(accountId, externalAccountId, source, requisitionId, bankName)
+        entities.linkBankAccount(accountId, externalAccountId, source, requisitionId, bankName, createBank = createsBankRow(source, requisitionId))
         return true
     }
+
+    /** Actual's link handlers all call `findOrCreateBank`; SimpleFIN does so even without an org id. */
+    private fun createsBankRow(source: String, bankId: String?) = source == "simpleFin" || bankId != null
 
     fun unlinkBankAccount(accountId: String): Boolean {
         val entities = actualEntities ?: return false
@@ -875,7 +878,7 @@ class ActuaRepository(context: Context) {
     ): Boolean {
         val entities = actualEntities ?: return false
         val accountId = entities.createAccount(name, offBudget, 0L, ActualAccountType.CHECKING.name.lowercase())
-        entities.linkBankAccount(accountId, externalAccountId, source, requisitionId, bankName)
+        entities.linkBankAccount(accountId, externalAccountId, source, requisitionId, bankName, createBank = createsBankRow(source, requisitionId))
         return true
     }
 

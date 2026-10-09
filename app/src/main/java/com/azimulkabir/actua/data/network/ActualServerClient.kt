@@ -50,10 +50,18 @@ data class BankSyncDownload(
     val balanceCents: Long? = null,
 )
 
-data class SimpleFinAccount(val id: String, val name: String, val orgName: String?)
+/** A SimpleFIN account; Actual keys its `banks` row on [orgDomain] ?? [orgId] and names it [orgName]. */
+data class SimpleFinAccount(
+    val id: String, val name: String, val orgName: String?,
+    val orgDomain: String? = null, val orgId: String? = null,
+)
 data class GoCardlessInstitution(val id: String, val name: String, val transactionTotalDays: Int?)
 data class GoCardlessWebToken(val link: String, val requisitionId: String)
-data class GoCardlessAccount(val id: String, val iban: String?, val name: String?, val institutionId: String?)
+data class GoCardlessAccount(
+    val id: String, val iban: String?, val name: String?, val institutionId: String?,
+    /** The institution's name, which Actual stores as the `banks` row name. */
+    val institutionName: String? = null,
+)
 
 /** A bank (ASPSP) Enable Banking can connect, from `/enablebanking/aspsps`. */
 data class EnableBankingBank(
@@ -421,7 +429,11 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
             for (index in 0 until accounts.length()) {
                 val item = accounts.optJSONObject(index) ?: continue
                 val id = item.optString("id").takeIf(String::isNotBlank) ?: continue
-                add(SimpleFinAccount(id, item.optString("name", id), item.optJSONObject("org")?.optString("name")))
+                val org = item.optJSONObject("org")
+                add(SimpleFinAccount(
+                    id, item.optString("name", id), org?.optionalString("name"),
+                    orgDomain = org?.optionalString("domain"), orgId = org?.optionalString("id"),
+                ))
             }
         })
     }
@@ -484,6 +496,8 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
                 add(GoCardlessAccount(
                     id, item.optionalString("iban"), item.optionalString("name") ?: item.optionalString("displayName"),
                     item.optionalString("institution_id"),
+                    institutionName = item.optionalString("institution")
+                        ?: item.optJSONObject("institution")?.optionalString("name"),
                 ))
             }
         })

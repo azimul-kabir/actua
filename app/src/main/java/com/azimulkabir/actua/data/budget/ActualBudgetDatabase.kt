@@ -193,12 +193,19 @@ class ActualBudgetDatabase private constructor(
 
     /** The live `banks` row Actual uses for this provider connection id (a GoCardless requisition). */
     @Synchronized
-    fun findBankId(bankId: String): String? {
+    /**
+     * Actual's `findOrCreateBank` lookup: a live `banks` row with this `bank_id` and the same
+     * `name`, compared with `IS` so a null bank id or name matches a null.
+     */
+    fun findBankId(bankId: String?, name: String?): String? {
         if (!hasTable("banks")) return null
+        // rawQuery can't bind null, so a null side is written as `IS NULL`.
+        val idClause = if (bankId == null) "bank_id IS NULL" else "bank_id = ?"
+        val nameClause = if (name == null) "name IS NULL" else "name = ?"
         return database.rawQuery(
-            """SELECT id FROM banks WHERE bank_id = ? AND (tombstone = 0 OR tombstone IS NULL)
+            """SELECT id FROM banks WHERE $idClause AND $nameClause AND (tombstone = 0 OR tombstone IS NULL)
                 ORDER BY id LIMIT 1""",
-            arrayOf(bankId),
+            listOfNotNull(bankId, name).toTypedArray(),
         ).use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
     }
 

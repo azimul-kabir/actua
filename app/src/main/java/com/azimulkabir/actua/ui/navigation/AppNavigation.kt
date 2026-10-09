@@ -783,7 +783,11 @@ fun AppNavigation(
                 onSuccess = { result ->
                     when (result) {
                         is com.azimulkabir.actua.data.network.SimpleFinAccountsResult.Available -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Available(
-                            result.accounts.map { com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount(it.id, it.name, it.orgName) },
+                            result.accounts.map {
+                                com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount(
+                                    it.id, it.name, it.orgName, bankId = it.orgDomain ?: it.orgId, bankName = it.orgName,
+                                )
+                            },
                         )
                         is com.azimulkabir.actua.data.network.SimpleFinAccountsResult.Error ->
                             com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(result.reason)
@@ -836,6 +840,7 @@ fun AppNavigation(
                             result.accounts.map {
                                 com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount(
                                     "$requisitionId::${it.id}", it.name ?: it.iban ?: it.id, it.iban,
+                                    bankName = it.institutionName,
                                 )
                             },
                         )
@@ -863,9 +868,11 @@ fun AppNavigation(
             "goCardless" -> splitGoCardlessId(discovered.id)
             // Enable Banking keeps one `banks` row per account, keyed by the account id itself.
             "enableBanking" -> discovered.id to discovered.id
+            // SimpleFIN's `banks` row is keyed on the org domain, or its id (#1004).
+            "simpleFin" -> discovered.bankId to discovered.id
             else -> null to discovered.id
         }
-        val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else null
+        val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else discovered.bankName
         mutate(
             "Linking account",
             onChanged = {
@@ -882,9 +889,10 @@ fun AppNavigation(
         val (requisitionId, externalId) = when (source) {
             "goCardless" -> splitGoCardlessId(discovered.id)
             "enableBanking" -> discovered.id to discovered.id
+            "simpleFin" -> discovered.bankId to discovered.id
             else -> null to discovered.id
         }
-        val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else null
+        val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else discovered.bankName
         mutate(
             "Creating account",
             onChanged = {

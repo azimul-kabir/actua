@@ -86,12 +86,15 @@ class ActualEntityWriter(
     fun linkBankAccount(
         id: String, externalAccountId: String, source: String, requisitionId: String? = null,
         bankName: String? = null,
+        /** SimpleFIN links get a `banks` row even when the org reports no domain or id. */
+        createBank: Boolean = requisitionId != null,
     ) {
         require(id.isNotBlank() && externalAccountId.isNotBlank() && source.isNotBlank())
         val messages = mutableListOf<CrdtMessage>()
         val account = linkedMapOf<String, Any?>("account_id" to externalAccountId, "account_sync_source" to source)
-        if (requisitionId != null) {
-            account["bank"] = database.findBankId(requisitionId) ?: idFactory().also { bankId ->
+        if (createBank) {
+            // Actual's `findOrCreateBank`: reuse a row only when both the bank id and name match.
+            account["bank"] = database.findBankId(requisitionId, bankName) ?: idFactory().also { bankId ->
                 messages += fields("banks", bankId, linkedMapOf("bank_id" to requisitionId, "name" to bankName, "tombstone" to 0))
             }
         }

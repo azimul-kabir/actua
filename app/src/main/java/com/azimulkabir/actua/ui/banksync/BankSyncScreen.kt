@@ -51,7 +51,11 @@ import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
 
 /** A bank-sync provider account discovered on the server, not yet linked to an Actua account. */
-data class DiscoveredBankAccount(val id: String, val label: String, val subtitle: String? = null)
+/** A provider account to link; [bankId] and [bankName] become Actual's `banks` row. */
+data class DiscoveredBankAccount(
+    val id: String, val label: String, val subtitle: String? = null,
+    val bankId: String? = null, val bankName: String? = null,
+)
 
 sealed class DiscoveryState {
     data object Idle : DiscoveryState()
