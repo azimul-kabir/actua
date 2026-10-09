@@ -32,7 +32,7 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Account discovery (SimpleFIN, GoCardless) | Match |
 | Linking: `account_id`, `account_sync_source` | Match |
 | Linking: `banks` row (SimpleFIN missing, GoCardless unnamed) | Divergence ([#1004](https://github.com/azimul-kabir/actua/issues/1004)) |
-| Starting balance on the first sync; `balance_current` | Divergence ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
+| Starting balance on the first sync; `balance_current` | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
 | Unlinking | Divergence ([#1005](https://github.com/azimul-kabir/actua/issues/1005)) |
 | Start date, timeouts, error → `bank_sync_status`, `last_sync` | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | Row normalization (ids, payee, notes, amount) | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)); conflicting ids are an intentional boundary |
@@ -96,7 +96,7 @@ Actua: `ActualEntityWriter.linkBankAccount` / `unlinkBankAccount` (`data/budget/
 | Link writes `account_id`, `account_sync_source` | yes | yes | Match |
 | GoCardless `banks` row (`bank_id` = requisition id) | `findOrCreateBank(institution, requisitionId)`: `name` = institution, reused on `bank_id` + `name IS ?` | `bank_id` written and reused by `bank_id`; `name` null, so Actual won't reuse it or show the bank name | **Divergence** [#1004](https://github.com/azimul-kabir/actua/issues/1004) |
 | SimpleFIN `banks` row (`bank_id` = org domain ?? org id, name = institution) | written; Actual's **Sync all** includes only accounts with `bank` | not written | **Divergence** [#1004](https://github.com/azimul-kabir/actua/issues/1004) |
-| New linked account | inserts `name`, `official_name`, `mask`, `offbudget`, transfer payee, then syncs immediately | `createAccount(…, 0)` + link; no sync until the user refreshes | **Divergence** [#1003](https://github.com/azimul-kabir/actua/issues/1003) (see §3) |
+| New linked account | inserts `name`, `official_name`, `mask`, `offbudget`, transfer payee, then syncs immediately | `createAccount(…, 0)` + link; the first sync, when the user refreshes, writes Actual's starting balance | Intentional. Same rows once synced; Actua waits for the user's refresh. |
 | Unlink cells | clears `account_id`, `bank`, `balance_current/available/limit`, `account_sync_source`, `bank_sync_status`; keeps `last_sync` | clears `account_id`, `account_sync_source`, `bank`, `bank_sync_status`, **`last_sync`**; keeps balances | **Divergence** [#1005](https://github.com/azimul-kabir/actua/issues/1005) |
 | Unlink removes the GoCardless requisition once unused | `POST /gocardless/remove-account` | only when closing the account | **Divergence** [#1005](https://github.com/azimul-kabir/actua/issues/1005) |
 
@@ -120,15 +120,15 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:39`),
 | --- | --- | --- | --- |
 | Start date = max(today − 89, oldest row) | oldest row with `date <= today` | same (`oldestTransactionDate(onOrBefore = today)`) | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | SimpleFIN: one batch request for all linked accounts | `accountId[]`, `startDate[]`, 5-minute timeout | same (`BANK_SYNC_READ_TIMEOUT_MILLIS`) | Match |
-| GoCardless request body | `requisitionId`, `accountId`, `startDate`, `includeBalance = newAccount` | `requisitionId`, `accountId`, `startDate`, `endDate = today`; no `includeBalance`, so the server fetches balances every time | **Divergence** [#1003](https://github.com/azimul-kabir/actua/issues/1003) |
+| GoCardless request body | `requisitionId`, `accountId`, `startDate`, `includeBalance = newAccount` | same | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
 | Accounts synced | live, open, with `account_id` (+ `bank` outside the SimpleFIN batch) | live, open, with `account_id` and `account_sync_source` | Match for Actua-initiated syncs (see #1004 for the reverse) |
 | Timeout → `timed-out`; batch-missing account → `account-missing`; `ITEM_LOGIN_REQUIRED`/`INVALID_ACCESS_TOKEN` → `reauth-required`; `ACCOUNT_NEEDS_ATTENTION` → `attention-required`; `RATE_LIMIT_EXCEEDED` → `rate-limit-exceeded`; else `failed` | `getBankSyncStatusFromError` | `downloadFailure`, `bankSyncStatus` | Match (`src/test/.../BankSyncDownloadFailureTest`, `ActualServerBankSyncTest`) |
 | SimpleFIN batch entry carrying both rows and an error | error stored, **no rows imported** | same | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | Success → `last_sync = now ms`, `bank_sync_status = 'ok'` | `handleSyncResponse` | `recordBankSyncStatus(…, "ok", now)` | Match |
 | GoCardless account with no `banks` row | skipped, status untouched | skipped with a message, status untouched | Match |
 | Pluggy.ai / Akahu | synced | reported as unsupported, status untouched | N/A (BACKEND_PARITY boundary) |
-| First sync of an empty account inserts a Starting Balance row | yes | no | **Divergence** [#1003](https://github.com/azimul-kabir/actua/issues/1003) |
-| `balance_current` updated from the download | every non-initial sync | never written | **Divergence** [#1003](https://github.com/azimul-kabir/actua/issues/1003) |
+| First sync of an empty account inserts a Starting Balance row | yes | yes (`ActualEntityWriter.addStartingBalance`), same amount per provider, date, payee, category and flags | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
+| `balance_current` updated from the download | every non-initial sync | same, with the sync status | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
 | Per-account error reporting | `errors[]` with the account name, notification per account | one summary line per account in a snackbar | Match (presentation differs) |
 
 ## 4. Row normalization
@@ -215,7 +215,7 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 | --- | --- | --- |
 | [#1001](https://github.com/azimul-kabir/actua/issues/1001) | Fixed | Update rows downloaded again under the same id (pending → booked) |
 | [#1002](https://github.com/azimul-kabir/actua/issues/1002) | Fixed | Normalize rows as Actual does (ids, blank payee, notes, rounding, raw data, batch errors, start date) |
-| [#1003](https://github.com/azimul-kabir/actua/issues/1003) | P2 | Starting balance on first sync, `balance_current`, GoCardless `includeBalance` |
+| [#1003](https://github.com/azimul-kabir/actua/issues/1003) | Fixed | Starting balance on first sync, `balance_current`, GoCardless `includeBalance` |
 | [#1004](https://github.com/azimul-kabir/actua/issues/1004) | P2 | `banks` rows as `findOrCreateBank` writes them (SimpleFIN missing, GoCardless unnamed) |
 | [#1005](https://github.com/azimul-kabir/actua/issues/1005) | P2 | Unlink cells and GoCardless requisition removal |
 | [#1006](https://github.com/azimul-kabir/actua/issues/1006) | P2 | Per-account bank sync preferences, including reimport of deleted rows |
