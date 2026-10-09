@@ -125,13 +125,13 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   Imports preserve provider IDs, pending/cleared state, integer cents, rules, CRDT mutation
   logging, per-account status/last-sync fields, exact-ID deduplication, and Actual's bank-sync
   fuzzy matching (same amount within 7 days, including rows already imported under a different
-  provider ID). Downloads get Actual's 5-minute bank-sync read timeout; a timeout is stored as
+  provider ID); a row downloaded again under a stored ID updates the stored row as Actual's
+  `reconcileTransactions` does (#1001). Downloads get Actual's 5-minute bank-sync read timeout; a timeout is stored as
   `timed-out`, an account left out of a SimpleFIN batch as `account-missing`, and other download
   errors as `failed`, as in Actual. Accounts linked through providers Actua can't download yet
   (Pluggy.ai, Akahu, and Enable Banking while its experiment is off) are named as unsupported and
   their stored status is left to Actual. Parity matrix:
-  [docs/BANK_SYNC_PARITY.md](docs/BANK_SYNC_PARITY.md). Known boundaries until fixed: a row
-  downloaded again under a stored id is not updated (#1001); rows without a provider id, blank
+  [docs/BANK_SYNC_PARITY.md](docs/BANK_SYNC_PARITY.md). Known boundaries until fixed: rows without a provider id, blank
   payees, `#` in notes, sub-cent amounts and `raw_synced_data` are normalized differently (#1002);
   no starting-balance row on the first sync and no `balance_current` write (#1003); SimpleFIN links
   have no `banks` row and GoCardless ones are unnamed (#1004); unlink cells differ (#1005);
