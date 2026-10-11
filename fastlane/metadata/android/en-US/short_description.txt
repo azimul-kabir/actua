@@ -1,1 +1,1 @@
-Native Android companion for self-hosted Actual Budget
+Unofficial native Android client for Actual Budget. Plan and manage your money.
