@@ -31,4 +31,4 @@ Actua is an independent community project. It is not affiliated with, endorsed b
 IMPORTANT
 Actua requires access to your own Actual Budget server for connected budgeting features. Actua can write changes to your synchronized budget. Back up your important budget data before connecting a new client, and report bugs or unexpected synchronization behavior through the project's issue tracker.
 
-Website: https://actua.pages.dev
+Website: https://actua.azimulkabir.com
