@@ -71,7 +71,7 @@ Users may optionally enable Android notification-listener access for future tran
 This is a system-level sensitive permission and is never enabled silently. Actua ignores messages
 from apps the user has not explicitly selected, ignores messages that do not match the financial
 parser, and stores at most 100 normalized candidates. An empty allowed-app list captures nothing. Raw notification
-text is not retained. With **Notify me about captured transactions** on (off by default; Android 13+
+text is not retained. With **Notify about captures** on (off by default; Android 13+
 asks for notification permission), each queued transaction also posts a notification showing its
 payee and amount, hidden on the lock screen unless the system allows private content. **Review**
 opens the queue. **Import** appears only when the transaction already has an account (from its hint
@@ -81,7 +81,7 @@ stays queued and the notification says why. Captured data, parser settings, and 
 
 Debit and credit keyword sets are configurable for different bank wording. Confidence is high when
 both a payee and reference are found, medium when a payee is found, and low when the source must be
-used as the payee. An unambiguous card/account suffix can select an Actual account whose name contains
+used as the payee. For captured notifications the source is the app's name, such as "Chase", not its package. An unambiguous card/account suffix can select an Actual account whose name contains
 the same digits. Category assignment is not guessed from merchant text; Actual rules run on every
 imported row, as they do in Actual's import, and can categorize or rename it.
 

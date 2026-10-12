@@ -205,10 +205,15 @@ class FinancialNotificationListenerService : NotificationListenerService() {
         val extras = sbn.notification.extras
         val content = listOfNotNull(extras.getCharSequence("android.title"), extras.getCharSequence("android.text"))
             .joinToString(" ").trim()
-        FinancialMessageParser.parse(content, sbn.packageName, profile = store.profile()).candidates
+        FinancialMessageParser.parse(content, notificationAppLabel(sbn.packageName), profile = store.profile()).candidates
             .forEach { CapturedTransactionNotifications.queue(this, store, it) }
     }
 }
+
+/** The app's name as the launcher shows it, so a payee-less alert reads "Chase", not its package. */
+private fun Context.notificationAppLabel(sourcePackage: String): String = runCatching {
+    packageManager.getApplicationLabel(packageManager.getApplicationInfo(sourcePackage, 0)).toString()
+}.getOrNull()?.takeIf(String::isNotBlank) ?: sourcePackage
 
 internal fun shouldCaptureNotification(
     enabled: Boolean,

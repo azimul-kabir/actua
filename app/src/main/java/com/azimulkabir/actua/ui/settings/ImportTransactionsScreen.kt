@@ -205,6 +205,9 @@ fun ImportTransactionsScreen(
         }.getOrDefault(emptyList()).mapNotNull { (index, match) -> match?.let { index to it } }.toMap()
     }
 
+    fun prefilledAccountId(hint: String?, source: String): String? =
+        prefilledImportAccount(hint, source, accounts) { notificationPreferences.rememberedAccount(budgetId, it) }?.id
+
     fun reviewCandidates(candidates: List<ImportCandidate>, parseProblems: List<ImportProblem>) {
         if (!perRowAccounts()) candidates.mapNotNull(ImportCandidate::accountHint).distinct().singleOrNull()?.let { hint ->
             accountForImportHint(hint, accounts)?.let { account = it }
@@ -219,9 +222,7 @@ fun ImportTransactionsScreen(
             ReviewRow(candidate.sourceRow, formatDate(candidate.date), candidate.payee,
                 BigDecimal.valueOf(candidate.amountCents, 2).toPlainString(), candidate.notes,
                 candidate.reference, selected = !duplicate, candidate.confidence, candidate.sourceLabel,
-                accountId = if (perRowAccounts()) prefilledImportAccount(candidate.accountHint, candidate.sourceLabel, accounts) {
-                    notificationPreferences.rememberedAccount(budgetId, it)
-                }?.id else null,
+                accountId = if (perRowAccounts()) prefilledAccountId(candidate.accountHint, candidate.sourceLabel) else null,
                 accountHint = candidate.accountHint, queueId = candidate.queueId)
         }
         problems = parseProblems
@@ -329,7 +330,7 @@ fun ImportTransactionsScreen(
                 ActuaCardDivider()
                 ActuaFormRow(
                     icon = Icons.Outlined.Notifications,
-                    label = "Notify me about captured transactions",
+                    label = "Notify about captures",
                     value = null,
                     caption = "Review or import each one from a notification",
                     checked = confirmNotifications,
@@ -625,10 +626,8 @@ fun ImportTransactionsScreen(
                 val imported = importPlan.importCount
                 val accountNames = importPlan.groups.mapNotNull { group -> accounts.firstOrNull { it.id == group.accountId }?.name }
                 // Ticked rows still without an account stay for review, and stay queued (#1037).
-                val leftover = rows.filter { it.selected && it.toCandidateOrNull() != null && it.targetAccountId() == null }
+                var leftover = rows.filter { it.selected && it.toCandidateOrNull() != null && it.targetAccountId() == null }
                 onImport(importPlan.groups, markCleared) {
-                    message = "Imported $imported transaction${if (imported == 1) "" else "s"}." +
-                        if (leftover.isNotEmpty()) " ${leftover.size} still need an account." else ""
                     importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, accountNames.joinToString(", "),
                         imported, rows.size - imported, System.currentTimeMillis()))
                     history = importPreferences.history()
@@ -640,9 +639,16 @@ fun ImportTransactionsScreen(
                         notificationPreferences.rememberAccounts(budgetId, selected.mapNotNull { row ->
                             row.accountId?.let { importAccountMemoryKey(row.accountHint, row.sourceLabel) to it }
                         }.toMap())
+                        // Rows left waiting pick up the choices just remembered, as new captures do.
+                        leftover = leftover.map { row ->
+                            row.copy(accountId = prefilledAccountId(row.accountHint, row.sourceLabel))
+                        }
                         val remaining = leftover.mapNotNull(ReviewRow::toQueuedCandidateOrNull)
                         notificationPreferences.replaceQueue(remaining); queued = remaining
                     }
+                    val waitingForAccount = leftover.count { it.targetAccountId() == null }
+                    message = "Imported $imported transaction${if (imported == 1) "" else "s"}." +
+                        if (waitingForAccount > 0) " $waitingForAccount still need an account." else ""
                     rows.clear(); rows += leftover; problems = emptyList()
                 }
             },

@@ -7,6 +7,7 @@ import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.importing.NotificationImportPreferences
+import com.azimulkabir.actua.data.sync.SyncSignals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -35,10 +36,13 @@ class CapturedImportTest {
         val tapped = store.enqueue(coffee)
         val other = store.enqueue(coffee.copy(payee = "Fuel", amountCents = -4_000))
 
+        val generation = SyncSignals.dataGeneration.value
         val outcome = importCapturedTransaction(context, requireNotNull(tapped.queueId), "card")
 
         assertTrue(outcome is CapturedImportOutcome.Imported)
         assertEquals(listOf("card" to -500L), rows())
+        // An open app is told to reload, so the new row and balance show without a restart.
+        assertTrue(SyncSignals.dataGeneration.value > generation)
         assertEquals(listOf(other.queueId), store.queued().map { it.queueId })
         assertEquals("card", store.rememberedAccount(requireNotNull(ActiveBudgetStore(context).budgetId), "source:com.bank.app"))
         // A second tap finds nothing to import.
@@ -49,11 +53,13 @@ class CapturedImportTest {
     @Test fun aMissingAccountLeavesTheRowQueued() = withBudget { rows ->
         val tapped = store.enqueue(coffee)
 
+        val generation = SyncSignals.dataGeneration.value
         val outcome = importCapturedTransaction(context, requireNotNull(tapped.queueId), "gone")
 
         assertEquals(CapturedImportOutcome.Failed("That account is no longer open"), outcome)
         assertTrue(rows().isEmpty())
         assertEquals(listOf(tapped.queueId), store.queued().map { it.queueId })
+        assertEquals(generation, SyncSignals.dataGeneration.value)
     }
 
     private fun withBudget(block: (rows: () -> List<Pair<String, Long>>) -> Unit) {

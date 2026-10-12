@@ -30,6 +30,7 @@ import com.azimulkabir.actua.data.importing.NotificationImportPreferences
 import com.azimulkabir.actua.data.importing.StatementFormat
 import com.azimulkabir.actua.data.importing.importAccountMemoryKey
 import com.azimulkabir.actua.data.importing.prefilledImportAccount
+import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
@@ -216,6 +217,8 @@ fun importCapturedTransaction(context: Context, queueId: String, accountId: Stri
         ImportPreferences(context).addHistory(ImportHistoryEntry(
             "Captured notification", StatementFormat.NOTIFICATION, outcome.accountName, 1, 0, System.currentTimeMillis(),
         ))
+        // An open app reloads its balances and lists, as it does after a background sync.
+        SyncSignals.dataChanged()
     } else {
         store.enqueue(candidate)
     }
