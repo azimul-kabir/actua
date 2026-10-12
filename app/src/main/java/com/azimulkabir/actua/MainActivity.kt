@@ -21,6 +21,7 @@ import com.azimulkabir.actua.ui.theme.CategoryStatusColorState
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
 import com.azimulkabir.actua.data.notifications.CreditCardDueLaunch
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 import com.azimulkabir.actua.widget.WidgetActions
@@ -94,6 +95,8 @@ class MainActivity : ComponentActivity() {
     }?.let { AppLaunchRequest(it, getStringExtra(WidgetActions.EXTRA_TARGET)) }
         ?: takeIf { action == CreditCardDueLaunch.ACTION }
             ?.let { AppLaunchRequest(CreditCardDueLaunch.ACTION, getStringExtra(CreditCardDueLaunch.EXTRA_ACCOUNT_ID)) }
+        ?: takeIf { action == CapturedTransactionNotifications.ACTION_REVIEW }
+            ?.let { AppLaunchRequest(CapturedTransactionNotifications.ACTION_REVIEW, null) }
         ?: takeIf { action == Intent.ACTION_SEND && type?.startsWith("text/") == true }
             ?.getStringExtra(Intent.EXTRA_TEXT)?.takeIf(String::isNotBlank)
             ?.let { AppLaunchRequest(SHARED_IMPORT_ACTION, it) }

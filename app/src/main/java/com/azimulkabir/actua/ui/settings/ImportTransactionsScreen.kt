@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.settings
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
@@ -9,7 +10,10 @@ import android.os.Build
 import android.os.PersistableBundle
 import android.content.Intent
 import android.provider.OpenableColumns
+import android.content.pm.PackageManager
 import android.provider.Settings
+import androidx.core.content.ContextCompat
+import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -96,6 +100,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.UploadFile
@@ -118,6 +123,8 @@ private data class ReviewRow(
     /** This row's own account when queued rows are reviewed (#1037); null until one is chosen. */
     val accountId: String? = null,
     val accountHint: String? = null,
+    /** The captured row's queue id, so its notification can be dismissed once handled (#1046). */
+    val queueId: String? = null,
 )
 
 @Composable
@@ -134,6 +141,9 @@ fun ImportTransactionsScreen(
     modifier: Modifier = Modifier,
     initialSharedText: String? = null,
     onSharedTextConsumed: () -> Unit = {},
+    /** Opened from a captured-transaction notification: load the queue for review (#1046). */
+    reviewCapturedOnOpen: Boolean = false,
+    onReviewCapturedConsumed: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -195,6 +205,9 @@ fun ImportTransactionsScreen(
         }.getOrDefault(emptyList()).mapNotNull { (index, match) -> match?.let { index to it } }.toMap()
     }
 
+    fun prefilledAccountId(hint: String?, source: String): String? =
+        prefilledImportAccount(hint, source, accounts) { notificationPreferences.rememberedAccount(budgetId, it) }?.id
+
     fun reviewCandidates(candidates: List<ImportCandidate>, parseProblems: List<ImportProblem>) {
         if (!perRowAccounts()) candidates.mapNotNull(ImportCandidate::accountHint).distinct().singleOrNull()?.let { hint ->
             accountForImportHint(hint, accounts)?.let { account = it }
@@ -209,10 +222,8 @@ fun ImportTransactionsScreen(
             ReviewRow(candidate.sourceRow, formatDate(candidate.date), candidate.payee,
                 BigDecimal.valueOf(candidate.amountCents, 2).toPlainString(), candidate.notes,
                 candidate.reference, selected = !duplicate, candidate.confidence, candidate.sourceLabel,
-                accountId = if (perRowAccounts()) prefilledImportAccount(candidate.accountHint, candidate.sourceLabel, accounts) {
-                    notificationPreferences.rememberedAccount(budgetId, it)
-                }?.id else null,
-                accountHint = candidate.accountHint)
+                accountId = if (perRowAccounts()) prefilledAccountId(candidate.accountHint, candidate.sourceLabel) else null,
+                accountHint = candidate.accountHint, queueId = candidate.queueId)
         }
         problems = parseProblems
         message = if (rows.isEmpty()) "No valid transactions found." else null
@@ -228,6 +239,26 @@ fun ImportTransactionsScreen(
         val result = FinancialMessageParser.parse(value, source, profile = notificationPreferences.profile())
         sourceName = source; sourceFormat = format; table = null; mapping = null
         reviewCandidates(result.candidates, result.problems)
+    }
+
+    fun reviewCaptured() {
+        queued = notificationPreferences.queued()
+        sourceName = "Captured notifications"; sourceFormat = StatementFormat.NOTIFICATION
+        table = null; mapping = null; reviewCandidates(queued, emptyList())
+    }
+
+    LaunchedEffect(reviewCapturedOnOpen) {
+        if (reviewCapturedOnOpen) {
+            reviewCaptured()
+            onReviewCapturedConsumed()
+        }
+    }
+
+    var confirmNotifications by remember { mutableStateOf(notificationPreferences.confirmNotificationsEnabled) }
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        confirmNotifications = granted
+        notificationPreferences.confirmNotificationsEnabled = granted
+        if (!granted) message = "Allow notifications for Actua to get captured transactions."
     }
 
     LaunchedEffect(initialSharedText) {
@@ -276,10 +307,7 @@ fun ImportTransactionsScreen(
                 TextButton(enabled = pastedText.isNotBlank(), onClick = {
                     reviewText(pastedText, "Pasted message", StatementFormat.SHARED_TEXT)
                 }) { Text("Review text") }
-                if (queued.isNotEmpty()) TextButton(onClick = {
-                    sourceName = "Captured notifications"; sourceFormat = StatementFormat.NOTIFICATION
-                    table = null; mapping = null; reviewCandidates(queued, emptyList())
-                }) { Text("Review captured (${queued.size})") }
+                if (queued.isNotEmpty()) TextButton(onClick = ::reviewCaptured) { Text("Review captured (${queued.size})") }
             }
             ActuaGroupLabel("Bank notifications")
             ActuaFormCard {
@@ -296,6 +324,26 @@ fun ImportTransactionsScreen(
                         } else {
                             captureEnabled = enabled; notificationPreferences.enabled = enabled
                             if (enabled) context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        }
+                    },
+                )
+                ActuaCardDivider()
+                ActuaFormRow(
+                    icon = Icons.Outlined.Notifications,
+                    label = "Notify about captures",
+                    value = null,
+                    caption = "Review or import each one from a notification",
+                    checked = confirmNotifications,
+                    onClick = {
+                        val enabled = !confirmNotifications
+                        if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            confirmNotifications = enabled
+                            notificationPreferences.confirmNotificationsEnabled = enabled
                         }
                     },
                 )
@@ -349,7 +397,8 @@ fun ImportTransactionsScreen(
                     }
                 }) { Text("Save parser words") }
                 TextButton(onClick = {
-                    notificationPreferences.clearAll(); captureEnabled = false; queued = emptyList()
+                    CapturedTransactionNotifications.cancel(context, notificationPreferences.queued().mapNotNull { it.queueId })
+                    notificationPreferences.clearAll(); captureEnabled = false; confirmNotifications = false; queued = emptyList()
                     automationEnabled = false; automationToken = null
                     message = "Deleted captured candidates and parser settings."
                 }) { Text("Delete notification data") }
@@ -577,21 +626,29 @@ fun ImportTransactionsScreen(
                 val imported = importPlan.importCount
                 val accountNames = importPlan.groups.mapNotNull { group -> accounts.firstOrNull { it.id == group.accountId }?.name }
                 // Ticked rows still without an account stay for review, and stay queued (#1037).
-                val leftover = rows.filter { it.selected && it.toCandidateOrNull() != null && it.targetAccountId() == null }
+                var leftover = rows.filter { it.selected && it.toCandidateOrNull() != null && it.targetAccountId() == null }
                 onImport(importPlan.groups, markCleared) {
-                    message = "Imported $imported transaction${if (imported == 1) "" else "s"}." +
-                        if (leftover.isNotEmpty()) " ${leftover.size} still need an account." else ""
                     importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, accountNames.joinToString(", "),
                         imported, rows.size - imported, System.currentTimeMillis()))
                     history = importPreferences.history()
                     if (sourceFormat == StatementFormat.NOTIFICATION) {
+                        // Rows imported or dropped here no longer need their notifications (#1046).
+                        val keptIds = leftover.mapNotNull(ReviewRow::queueId).toSet()
+                        CapturedTransactionNotifications.cancel(context, rows.mapNotNull(ReviewRow::queueId).filterNot(keptIds::contains))
                         // The next row from the same card or app starts with the account chosen now (#1045).
                         notificationPreferences.rememberAccounts(budgetId, selected.mapNotNull { row ->
                             row.accountId?.let { importAccountMemoryKey(row.accountHint, row.sourceLabel) to it }
                         }.toMap())
+                        // Rows left waiting pick up the choices just remembered, as new captures do.
+                        leftover = leftover.map { row ->
+                            row.copy(accountId = prefilledAccountId(row.accountHint, row.sourceLabel))
+                        }
                         val remaining = leftover.mapNotNull(ReviewRow::toQueuedCandidateOrNull)
                         notificationPreferences.replaceQueue(remaining); queued = remaining
                     }
+                    val waitingForAccount = leftover.count { it.targetAccountId() == null }
+                    message = "Imported $imported transaction${if (imported == 1) "" else "s"}." +
+                        if (waitingForAccount > 0) " $waitingForAccount still need an account." else ""
                     rows.clear(); rows += leftover; problems = emptyList()
                 }
             },
@@ -617,7 +674,7 @@ private fun ReviewRow.toCandidateOrNull(): ImportCandidate? = runCatching {
 
 /** The row as it goes back to the notification queue, keeping its source and account hint. */
 private fun ReviewRow.toQueuedCandidateOrNull(): ImportCandidate? =
-    toCandidateOrNull()?.copy(confidence = confidence, sourceLabel = sourceLabel, accountHint = accountHint)
+    toCandidateOrNull()?.copy(confidence = confidence, sourceLabel = sourceLabel, accountHint = accountHint, queueId = queueId)
 
 private fun formatDate(value: Int): String = "%04d-%02d-%02d".format(value / 10_000, value / 100 % 100, value % 100)
 

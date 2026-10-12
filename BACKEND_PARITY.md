@@ -146,7 +146,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   confidence labels, last-digit account hints, bounded normalized-candidate storage, and deletion
 - Opt-in, token-protected broadcast intent and Tasker plugin action ("Queue transaction") for
   Tasker and other automation apps that add pre-parsed transactions to the same review queue; they
-  never write to the budget directly (see
+  never write to the budget directly; an optional notification per captured transaction offers
+  Review, or a one-tap Import of that row through the normal import path when its account is known (see
   [docs/TRANSACTION_IMPORTS.md](docs/TRANSACTION_IMPORTS.md))
 - Single-page Add/Edit transaction form where the amount's sign selects expense or income and
   choosing an account as the payee makes a transfer, backed by transaction form planning and

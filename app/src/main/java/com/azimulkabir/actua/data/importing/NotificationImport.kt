@@ -4,11 +4,13 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.SecureRandom
 import java.time.LocalDate
 import java.util.Locale
+import java.util.UUID
 
 object FinancialMessageParser {
     private val currencyAmount = Regex("(?i)(?:BDT|TK\\.?|USD|EUR|GBP|৳|\\$)\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)")
@@ -138,11 +140,25 @@ class NotificationImportPreferences(context: Context) {
             .putStringSet("creditKeywords", profile.creditKeywords).apply()
     }
 
-    fun enqueue(candidate: ImportCandidate) {
+    /** Adds [candidate] to the front of the queue and returns it with its queue id. */
+    fun enqueue(candidate: ImportCandidate): ImportCandidate {
+        val stored = candidate.copy(queueId = candidate.queueId ?: UUID.randomUUID().toString())
         synchronized(NotificationImportPreferences::class.java) {
-            writeQueue(queued().toMutableList().apply { add(0, candidate) })
+            writeQueue(queued().toMutableList().apply { add(0, stored) })
         }
+        return stored
     }
+
+    /** Removes the queued row [queueId] and returns it, or null when it is no longer queued. */
+    fun removeQueued(queueId: String): ImportCandidate? = synchronized(NotificationImportPreferences::class.java) {
+        val rows = queued()
+        rows.firstOrNull { it.queueId == queueId }?.also { removed -> writeQueue(rows - removed) }
+    }
+
+    /** Whether captured rows also post a notification to review or import them (#1046). Off by default. */
+    var confirmNotificationsEnabled: Boolean
+        get() = preferences.getBoolean("confirmNotifications", false)
+        set(value) { preferences.edit().putBoolean("confirmNotifications", value).apply() }
 
     /** Keeps only [candidates] queued, e.g. the rows an import left without an account (#1037). */
     fun replaceQueue(candidates: List<ImportCandidate>) {
@@ -150,7 +166,8 @@ class NotificationImportPreferences(context: Context) {
     }
 
     private fun writeQueue(candidates: List<ImportCandidate>) {
-        val json = JSONArray(candidates.take(100).map { JSONObject().put("date", it.date).put("payee", it.payee)
+        val json = JSONArray(candidates.take(100).map { JSONObject().put("id", it.queueId ?: UUID.randomUUID().toString())
+            .put("date", it.date).put("payee", it.payee)
             .put("notes", it.notes).put("amount", it.amountCents).put("reference", it.reference)
             .put("confidence", it.confidence.name).put("source", it.sourceLabel).put("accountHint", it.accountHint) })
         preferences.edit().putString("queue", json.toString()).apply()
@@ -162,7 +179,8 @@ class NotificationImportPreferences(context: Context) {
             index + 1, row.getInt("date"), row.getString("payee"), row.optString("notes"), row.getLong("amount"),
             row.optString("reference").takeIf { it.isNotBlank() && it != "null" },
             ImportConfidence.valueOf(row.getString("confidence")), row.getString("source"),
-            row.optString("accountHint").takeIf { it.isNotBlank() && it != "null" }) } }
+            row.optString("accountHint").takeIf { it.isNotBlank() && it != "null" },
+            row.optString("id").takeIf(String::isNotBlank)) } }
     }.getOrDefault(emptyList())
 
     fun clearQueue() = preferences.edit().remove("queue").apply()
@@ -187,9 +205,15 @@ class FinancialNotificationListenerService : NotificationListenerService() {
         val extras = sbn.notification.extras
         val content = listOfNotNull(extras.getCharSequence("android.title"), extras.getCharSequence("android.text"))
             .joinToString(" ").trim()
-        FinancialMessageParser.parse(content, sbn.packageName, profile = store.profile()).candidates.forEach(store::enqueue)
+        FinancialMessageParser.parse(content, notificationAppLabel(sbn.packageName), profile = store.profile()).candidates
+            .forEach { CapturedTransactionNotifications.queue(this, store, it) }
     }
 }
+
+/** The app's name as the launcher shows it, so a payee-less alert reads "Chase", not its package. */
+private fun Context.notificationAppLabel(sourcePackage: String): String = runCatching {
+    packageManager.getApplicationLabel(packageManager.getApplicationInfo(sourcePackage, 0)).toString()
+}.getOrNull()?.takeIf(String::isNotBlank) ?: sourcePackage
 
 internal fun shouldCaptureNotification(
     enabled: Boolean,
