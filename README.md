@@ -2,7 +2,7 @@
 
 **A native Android client for [Actual Budget](https://actualbudget.org/), built with Kotlin and Jetpack Compose.**
 
-[Website](https://actua.azimulkabir.com) • [Download APK](https://github.com/azimul-kabir/actua/releases/latest) • [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) • [Discord](https://discord.gg/FhedEyP97f) • [Report an issue](https://github.com/azimul-kabir/actua/issues/new/choose)
+[Website](https://actua.azimulkabir.com) • [Developer website](https://www.azimulkabir.com) • [Download APK](https://github.com/azimul-kabir/actua/releases/latest) • [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) • [Discord](https://discord.gg/FhedEyP97f) • [Report an issue](https://github.com/azimul-kabir/actua/issues/new/choose)
 
 ![Android 9+](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack_Compose-7F52FF?logo=kotlin&logoColor=white)
@@ -119,7 +119,7 @@ The project aims for compatibility with [Actual Budget](https://actualbudget.org
 
 Found a bug or have an idea? [Open an issue](https://github.com/azimul-kabir/actua/issues).
 
-Want to discuss Actua, test beta builds, or help with development? [Join the Discord server](https://discord.gg/FyGxRjmhw).
+Want to discuss Actua, test beta builds, or help with development? [Join the Discord server](https://discord.gg/FhedEyP97f).
 
 ## License
 

@@ -606,6 +606,10 @@ fun SettingsScreen(
                             uriHandler.openUri("https://actua.azimulkabir.com")
                         }
                         SettingsDivider()
+                        AboutRow("Developer website", "www.azimulkabir.com") {
+                            uriHandler.openUri("https://www.azimulkabir.com")
+                        }
+                        SettingsDivider()
                         AboutRow("FAQ", "Answers to common questions about Actua") {
                             uriHandler.openUri("https://actua.azimulkabir.com#faq")
                         }
