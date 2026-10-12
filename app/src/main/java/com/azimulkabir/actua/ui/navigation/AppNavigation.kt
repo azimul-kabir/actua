@@ -535,6 +535,8 @@ fun AppNavigation(
     var decimalPlacesMode by remember { mutableStateOf(displayPreferences.decimalPlacesMode) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
     var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
+    var currencySymbolPosition by remember { mutableStateOf(displayPreferences.currencySymbolPosition) }
+    var currencySymbolSpacing by remember { mutableStateOf(displayPreferences.currencySymbolSpacing) }
     var dateFormat by remember { mutableStateOf(displayPreferences.dateFormat) }
     var numberFormat by remember { mutableStateOf(displayPreferences.numberFormat) }
     var showHiddenCategories by remember { mutableStateOf(displayPreferences.showHiddenCategories) }
@@ -576,7 +578,8 @@ fun AppNavigation(
     val budgetDisplayFormats = remember(dataVersion, repository) { repository.budgetDisplayFormats() }
     // Device choices, or the budget's synced preferences where the device is set to "Same as budget".
     val displayFormats = EffectiveDisplayFormats.resolve(
-        currencyCode, currencySymbolOnly, dateFormat, numberFormat, decimalPlacesMode, privacyMode, budgetDisplayFormats,
+        currencyCode, currencySymbolOnly, currencySymbolPosition, currencySymbolSpacing,
+        dateFormat, numberFormat, decimalPlacesMode, privacyMode, budgetDisplayFormats,
     )
     val hideDecimalPlaces = displayFormats.hideDecimals
     val hideBalances = displayFormats.hideBalances
@@ -2940,6 +2943,18 @@ fun AppNavigation(
                     onCurrencySymbolOnlyChange = {
                         displayPreferences.currencySymbolOnly = it
                         currencySymbolOnly = it
+                        WidgetUpdater.requestAll(context)
+                    },
+                    currencySymbolPosition = currencySymbolPosition,
+                    onCurrencySymbolPositionChange = {
+                        displayPreferences.currencySymbolPosition = it
+                        currencySymbolPosition = it
+                        WidgetUpdater.requestAll(context)
+                    },
+                    currencySymbolSpacing = currencySymbolSpacing,
+                    onCurrencySymbolSpacingChange = {
+                        displayPreferences.currencySymbolSpacing = it
+                        currencySymbolSpacing = it
                         WidgetUpdater.requestAll(context)
                     },
                     dateFormat = dateFormat,

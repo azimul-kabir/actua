@@ -54,7 +54,8 @@ class BudgetDisplayFormatsTest {
             currencyCode = "EUR", symbolAfterAmount = true, spaceBetweenAmountAndSymbol = true,
         )
         val formats = EffectiveDisplayFormats.resolve(
-            FOLLOW_BUDGET, false, FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET, budget,
+            FOLLOW_BUDGET, false, FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET,
+            FOLLOW_BUDGET, budget,
         )
         assertEquals("EUR", formats.currencyCode)
         assertTrue(formats.currencySymbolOnly)
@@ -72,7 +73,8 @@ class BudgetDisplayFormatsTest {
             currencyCode = "EUR", symbolAfterAmount = true, spaceBetweenAmountAndSymbol = true,
         )
         val formats = EffectiveDisplayFormats.resolve(
-            "USD", false, "YYYY-MM-DD", "1,234.56", EffectiveDisplayFormats.SHOW, EffectiveDisplayFormats.SHOW, budget,
+            "USD", false, EffectiveDisplayFormats.BEFORE_AMOUNT, EffectiveDisplayFormats.NO_SPACE,
+            "YYYY-MM-DD", "1,234.56", EffectiveDisplayFormats.SHOW, EffectiveDisplayFormats.SHOW, budget,
         )
         assertEquals("USD", formats.currencyCode)
         assertFalse(formats.currencySymbolOnly)
@@ -82,5 +84,25 @@ class BudgetDisplayFormatsTest {
         assertEquals("1,234.56", formats.numberFormat)
         assertFalse(formats.hideDecimals)
         assertFalse(formats.hideBalances)
+    }
+
+    @Test fun symbolPlacementFollowsTheBudgetEvenWithADeviceCurrency() {
+        val budget = BudgetDisplayFormats(currencyCode = "EUR", symbolAfterAmount = true, spaceBetweenAmountAndSymbol = true)
+        val formats = EffectiveDisplayFormats.resolve(
+            "USD", true, FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET, budget,
+        )
+        assertEquals("USD", formats.currencyCode)
+        assertTrue(formats.symbolAfterAmount)
+        assertTrue(formats.spaceBetweenAmountAndSymbol)
+    }
+
+    @Test fun deviceSymbolPlacementOverridesTheBudget() {
+        val formats = EffectiveDisplayFormats.resolve(
+            FOLLOW_BUDGET, false, EffectiveDisplayFormats.AFTER_AMOUNT, EffectiveDisplayFormats.SPACE,
+            FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET, FOLLOW_BUDGET, BudgetDisplayFormats(currencyCode = "EUR"),
+        )
+        assertEquals("EUR", formats.currencyCode)
+        assertTrue(formats.symbolAfterAmount)
+        assertTrue(formats.spaceBetweenAmountAndSymbol)
     }
 }

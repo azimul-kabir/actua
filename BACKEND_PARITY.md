@@ -315,8 +315,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Explicit pull-to-refresh for the Transactions view, plus a loading state while switching
   budgets so stale content is not presented as the newly selected budget; both remain
   read-only refresh paths until an existing writer is invoked
-- Decimal places, number and date formats, currency and balance masking follow the budget's synced
-  Actual preferences by default ("Same as budget"), with a device-local override for each
+- Decimal places, number and date formats, currency, currency symbol position and spacing
+  (`currencySymbolPosition`, `currencySpaceBetweenAmountAndSymbol`) and balance masking follow the
+  budget's synced Actual preferences by default ("Same as budget"), with a device-local override for
+  each; amount entry fields place the symbol the same way as displayed amounts
 - Per-budget device-local quick-access favorites for categories, accounts, and report dashboards;
   these are intentionally not synced because Actual has no favorite fields. Budget's Favorites
   filter composes with the other category filters, and the Favorites widget reads the same

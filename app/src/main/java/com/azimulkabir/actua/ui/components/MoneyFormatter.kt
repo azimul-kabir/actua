@@ -64,11 +64,18 @@ fun formatMoneyCents(
     }
     val decimals = if (hideDecimalPlaces || decimalPlaces == 0) "" else
         "$decimalSeparator${(magnitude % scale).toString().padStart(decimalPlaces, '0')}"
-    val symbol = currencyInputPrefix()
-    if (symbol.isEmpty()) return "$sign$whole$decimals"
+    return sign + withCurrencySymbol("$whole$decimals")
+}
+
+/**
+ * [amount] with the display currency [symbol] on the side Actual's `currencySymbolPosition` puts it,
+ * separated by a narrow no-break space when `currencySpaceBetweenAmountAndSymbol` is on.
+ * Amount entry fields use this too, so typed and displayed amounts match.
+ */
+fun withCurrencySymbol(amount: String, symbol: String = currencyInputPrefix()): String {
+    if (symbol.isEmpty()) return amount
     val space = if (CurrencyDisplay.spaceBetweenAmountAndSymbol) "\u202F" else ""
-    return if (CurrencyDisplay.symbolAfterAmount) "$sign$whole$decimals$space$symbol"
-    else "$sign$symbol$space$whole$decimals"
+    return if (CurrencyDisplay.symbolAfterAmount) "$amount$space$symbol" else "$symbol$space$amount"
 }
 
 // NumberFormat construction does a locale resource lookup and isn't cheap; this path is hit
