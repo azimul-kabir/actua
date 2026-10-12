@@ -38,12 +38,15 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,6 +72,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
@@ -163,6 +167,8 @@ fun AccountsScreen(
     onFavoriteAccountChange: (String, Boolean) -> Unit = { _, _ -> },
     scrollToTopRequest: Int = 0,
     hasFab: Boolean = true,
+    pendingCaptureCount: Int = 0,
+    onReviewCaptures: () -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     LaunchedEffect(scrollToTopRequest) {
@@ -212,14 +218,12 @@ fun AccountsScreen(
                 tonalElevation = 2.dp,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (pendingCaptureCount > 0) PendingCapturesButton(pendingCaptureCount, onReviewCaptures)
                     IconButton(onClick = onSearch) {
                         Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
                     }
                     IconButton(onClick = { showAddSheet = true }) {
                         Icon(Icons.Outlined.Add, contentDescription = "Add account")
-                    }
-                    IconButton(onClick = onReorderAccounts) {
-                        Icon(Icons.Outlined.SwapVert, contentDescription = "Reorder accounts")
                     }
                     Box {
                         IconButton(onClick = { accountMenuExpanded = true }) {
@@ -239,6 +243,14 @@ fun AccountsScreen(
                                 },
                                 onClick = {
                                     onShowMonthlySummaryChange(!showMonthlySummary)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Reorder accounts") },
+                                leadingIcon = { Icon(Icons.Outlined.SwapVert, contentDescription = null) },
+                                onClick = {
+                                    accountMenuExpanded = false
+                                    onReorderAccounts()
                                 },
                             )
                             HorizontalDivider()
@@ -602,4 +614,21 @@ private fun AddAccountSheet(onDismiss: () -> Unit, onCreateLocal: () -> Unit, on
 @Composable
 private fun AccountSheetAction(icon: ImageVector, label: String, onClick: () -> Unit, destructive: Boolean = false) {
     ActuaSheetAction(label, onClick = onClick, icon = icon, destructive = destructive)
+}
+
+/** The badge text for [count] pending captures: the count, capped at "99+". */
+internal fun pendingCaptureBadge(count: Int): String = if (count > 99) "99+" else count.toString()
+
+/** Opens the capture review queue; shown only while captured transactions wait to be imported (#1050). */
+@Composable
+private fun PendingCapturesButton(count: Int, onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        // The icon's description already says the count, so TalkBack reads it once.
+        BadgedBox(badge = { Badge(Modifier.clearAndSetSemantics {}) { Text(pendingCaptureBadge(count)) } }) {
+            Icon(
+                Icons.Outlined.MoveToInbox,
+                contentDescription = "Review $count captured transaction${if (count == 1) "" else "s"}",
+            )
+        }
+    }
 }

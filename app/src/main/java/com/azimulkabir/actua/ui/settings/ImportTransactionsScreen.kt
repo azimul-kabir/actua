@@ -141,9 +141,12 @@ fun ImportTransactionsScreen(
     modifier: Modifier = Modifier,
     initialSharedText: String? = null,
     onSharedTextConsumed: () -> Unit = {},
-    /** Opened from a captured-transaction notification: load the queue for review (#1046). */
-    reviewCapturedOnOpen: Boolean = false,
-    onReviewCapturedConsumed: () -> Unit = {},
+    /**
+     * Shows only the capture review queue on its own page (#1050), opened from the Accounts tab, a
+     * captured-transaction notification (#1046) or [onOpenCapturedReview].
+     */
+    capturedReviewOnly: Boolean = false,
+    onOpenCapturedReview: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -247,10 +250,10 @@ fun ImportTransactionsScreen(
         table = null; mapping = null; reviewCandidates(queued, emptyList())
     }
 
-    LaunchedEffect(reviewCapturedOnOpen) {
-        if (reviewCapturedOnOpen) {
+    LaunchedEffect(capturedReviewOnly) {
+        if (capturedReviewOnly) {
             reviewCaptured()
-            onReviewCapturedConsumed()
+            if (rows.isEmpty()) message = "No captured transactions are waiting."
         }
     }
 
@@ -296,236 +299,238 @@ fun ImportTransactionsScreen(
     }
 
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Import transactions", onBack = onBack)
+        ActuaScreenHeader(title = if (capturedReviewOnly) "Review captured" else "Import transactions", onBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = Spacing.screenHorizontal)) {
-            Text("CSV, XLSX, and text-based PDF files stay on this device. Every valid row is shown for review before anything is saved.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            ActuaGroupLabel("Message")
-            OutlinedTextField(pastedText, { pastedText = it }, label = { Text("Paste SMS or email alert") },
-                minLines = 3, modifier = Modifier.fillMaxWidth())
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(enabled = pastedText.isNotBlank(), onClick = {
-                    reviewText(pastedText, "Pasted message", StatementFormat.SHARED_TEXT)
-                }) { Text("Review text") }
-                if (queued.isNotEmpty()) TextButton(onClick = ::reviewCaptured) { Text("Review captured (${queued.size})") }
-            }
-            ActuaGroupLabel("Bank notifications")
-            ActuaFormCard {
-                ActuaFormRow(
-                    icon = Icons.Outlined.NotificationsActive,
-                    label = "Capture future bank notifications",
-                    value = null,
-                    checked = captureEnabled,
-                    onClick = {
-                        val enabled = !captureEnabled
-                        if (enabled && allowedPackages.isEmpty()) {
-                            message = "Select at least one app before enabling capture."
-                            appMenu = true
-                        } else {
-                            captureEnabled = enabled; notificationPreferences.enabled = enabled
-                            if (enabled) context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                        }
-                    },
-                )
-                ActuaCardDivider()
-                ActuaFormRow(
-                    icon = Icons.Outlined.Notifications,
-                    label = "Notify about captures",
-                    value = null,
-                    caption = "Review or import each one from a notification",
-                    checked = confirmNotifications,
-                    onClick = {
-                        val enabled = !confirmNotifications
-                        if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-                            PackageManager.PERMISSION_GRANTED
-                        ) {
-                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            confirmNotifications = enabled
-                            notificationPreferences.confirmNotificationsEnabled = enabled
-                        }
-                    },
-                )
-                ActuaCardDivider()
-                Box(Modifier.fillMaxWidth()) {
-                    ActuaFormRow(
-                        icon = Icons.Outlined.Apps,
-                        label = "Notification apps",
-                        value = if (allowedPackages.isEmpty()) "Select notification apps" else "${allowedPackages.size} selected",
-                        valueIsPlaceholder = allowedPackages.isEmpty(),
-                        onClick = { appMenu = true },
-                    )
-                    DropdownMenu(appMenu, { appMenu = false }) {
-                        notificationApps.forEach { (packageName, label) ->
-                            DropdownMenuItem(
-                                text = { Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(packageName in allowedPackages, null)
-                                    Text(label)
-                                } },
-                                onClick = {
-                                    allowedPackages = allowedPackages.toMutableSet().apply {
-                                        if (!add(packageName)) remove(packageName)
-                                    }
-                                    notificationPreferences.allowedPackages = allowedPackages
-                                    if (allowedPackages.isEmpty()) {
-                                        captureEnabled = false; notificationPreferences.enabled = false
-                                    }
-                                },
-                            )
-                        }
-                    }
+            if (!capturedReviewOnly) {
+                Text("CSV, XLSX, and text-based PDF files stay on this device. Every valid row is shown for review before anything is saved.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                ActuaGroupLabel("Message")
+                OutlinedTextField(pastedText, { pastedText = it }, label = { Text("Paste SMS or email alert") },
+                    minLines = 3, modifier = Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(enabled = pastedText.isNotBlank(), onClick = {
+                        reviewText(pastedText, "Pasted message", StatementFormat.SHARED_TEXT)
+                    }) { Text("Review text") }
+                    if (queued.isNotEmpty()) TextButton(onClick = onOpenCapturedReview) { Text("Review captured (${queued.size})") }
                 }
-                ActuaCardDivider()
-                ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingDown, label = "Debit keywords",
-                    value = debitKeywords, onValueChange = { debitKeywords = it })
-                ActuaCardDivider()
-                ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingUp, label = "Credit keywords",
-                    value = creditKeywords, onValueChange = { creditKeywords = it })
-            }
-            Text("Optional notification access processes alerts on-device and stores only recognized candidates, not raw notifications.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onClick = {
-                    val debit = debitKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
-                    val credit = creditKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
-                    if (debit.isEmpty() || credit.isEmpty()) message = "Keep at least one debit and credit keyword."
-                    else {
-                        notificationPreferences.saveProfile(FinancialMessageProfile(debit, credit))
-                        message = "Saved message parser keywords."
-                    }
-                }) { Text("Save parser words") }
-                TextButton(onClick = {
-                    CapturedTransactionNotifications.cancel(context, notificationPreferences.queued().mapNotNull { it.queueId })
-                    notificationPreferences.clearAll(); captureEnabled = false; confirmNotifications = false; queued = emptyList()
-                    automationEnabled = false; automationToken = null
-                    message = "Deleted captured candidates and parser settings."
-                }) { Text("Delete notification data") }
-            }
-            ActuaGroupLabel("Automation apps")
-            ActuaFormCard {
-                ActuaFormRow(
-                    icon = Icons.Outlined.Bolt,
-                    label = "Accept transactions from Tasker",
-                    value = null,
-                    checked = automationEnabled,
-                    onClick = {
-                        automationEnabled = !automationEnabled
-                        notificationPreferences.automationEnabled = automationEnabled
-                        automationToken = notificationPreferences.automationToken
-                    },
-                )
-                automationToken?.let { token ->
-                    ActuaCardDivider()
+                ActuaGroupLabel("Bank notifications")
+                ActuaFormCard {
                     ActuaFormRow(
-                        icon = Icons.Outlined.Key,
-                        label = "Token",
-                        value = token,
-                        caption = "Tap to copy",
+                        icon = Icons.Outlined.NotificationsActive,
+                        label = "Capture future bank notifications",
+                        value = null,
+                        checked = captureEnabled,
                         onClick = {
-                            copySensitiveText(context, "Actua automation token", token)
-                            message = "Copied the automation token."
+                            val enabled = !captureEnabled
+                            if (enabled && allowedPackages.isEmpty()) {
+                                message = "Select at least one app before enabling capture."
+                                appMenu = true
+                            } else {
+                                captureEnabled = enabled; notificationPreferences.enabled = enabled
+                                if (enabled) context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                            }
                         },
                     )
-                }
-                automationRejection?.let { rejection ->
                     ActuaCardDivider()
                     ActuaFormRow(
-                        icon = Icons.Outlined.ErrorOutline,
-                        label = "Last broadcast ignored",
+                        icon = Icons.Outlined.Notifications,
+                        label = "Notify about captures",
                         value = null,
-                        caption = rejection.reason,
-                        supportingValue = relativeTime(rejection.atMillis),
+                        caption = "Review or import each one from a notification",
+                        checked = confirmNotifications,
+                        onClick = {
+                            val enabled = !confirmNotifications
+                            if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                                PackageManager.PERMISSION_GRANTED
+                            ) {
+                                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                confirmNotifications = enabled
+                                notificationPreferences.confirmNotificationsEnabled = enabled
+                            }
+                        },
                     )
+                    ActuaCardDivider()
+                    Box(Modifier.fillMaxWidth()) {
+                        ActuaFormRow(
+                            icon = Icons.Outlined.Apps,
+                            label = "Notification apps",
+                            value = if (allowedPackages.isEmpty()) "Select notification apps" else "${allowedPackages.size} selected",
+                            valueIsPlaceholder = allowedPackages.isEmpty(),
+                            onClick = { appMenu = true },
+                        )
+                        DropdownMenu(appMenu, { appMenu = false }) {
+                            notificationApps.forEach { (packageName, label) ->
+                                DropdownMenuItem(
+                                    text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(packageName in allowedPackages, null)
+                                        Text(label)
+                                    } },
+                                    onClick = {
+                                        allowedPackages = allowedPackages.toMutableSet().apply {
+                                            if (!add(packageName)) remove(packageName)
+                                        }
+                                        notificationPreferences.allowedPackages = allowedPackages
+                                        if (allowedPackages.isEmpty()) {
+                                            captureEnabled = false; notificationPreferences.enabled = false
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    ActuaCardDivider()
+                    ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingDown, label = "Debit keywords",
+                        value = debitKeywords, onValueChange = { debitKeywords = it })
+                    ActuaCardDivider()
+                    ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingUp, label = "Credit keywords",
+                        value = creditKeywords, onValueChange = { creditKeywords = it })
                 }
-            }
-            Text(
-                "Send a broadcast intent with action ${AutomationIntent.ACTION_QUEUE_TRANSACTION} to package " +
-                    "${context.packageName}. Extras: token, amount (for example -12.34), and optionally type " +
-                    "(debit or credit), payee, date (YYYY-MM-DD), notes, reference, account and source. Send text " +
-                    "instead of amount to use Actua's message parser. Transactions wait here for review.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm))
-            if (automationToken != null) TextButton(onClick = {
-                automationToken = notificationPreferences.regenerateAutomationToken()
-                message = "Created a new token. Update it in Tasker."
-            }) { Text("New token") }
-            ActuaGroupLabel("Statement file")
-            ActuaFormCard {
-                ActuaMenuRow(
-                    icon = Icons.Outlined.AccountBalanceWallet,
-                    label = "Import into",
-                    value = account?.name ?: "No open account",
-                    valueIsPlaceholder = account == null,
-                    choices = accounts.map { it.name to it },
-                ) { account = it }
-            }
-            ActuaSecondaryButton(
-                text = if (busy) "Reading…" else "Choose statement file",
-                icon = Icons.Outlined.UploadFile,
-                enabled = !busy && account != null,
-                onClick = { picker.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/pdf")) },
-                modifier = Modifier.padding(vertical = Spacing.md),
-            )
-            val activeTable = table
-            val activeMapping = mapping
-            if (activeTable != null && activeMapping != null) {
-                ActuaGroupLabel("Column mapping")
+                Text("Optional notification access processes alerts on-device and stores only recognized candidates, not raw notifications.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(onClick = {
+                        val debit = debitKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
+                        val credit = creditKeywords.split(',').map { it.trim().lowercase() }.filter(String::isNotBlank).toSet()
+                        if (debit.isEmpty() || credit.isEmpty()) message = "Keep at least one debit and credit keyword."
+                        else {
+                            notificationPreferences.saveProfile(FinancialMessageProfile(debit, credit))
+                            message = "Saved message parser keywords."
+                        }
+                    }) { Text("Save parser words") }
+                    TextButton(onClick = {
+                        CapturedTransactionNotifications.cancel(context, notificationPreferences.queued().mapNotNull { it.queueId })
+                        notificationPreferences.clearAll(); captureEnabled = false; confirmNotifications = false; queued = emptyList()
+                        automationEnabled = false; automationToken = null
+                        message = "Deleted captured candidates and parser settings."
+                    }) { Text("Delete notification data") }
+                }
+                ActuaGroupLabel("Automation apps")
                 ActuaFormCard {
-                    activeTable.headers.forEachIndexed { index, header ->
-                        if (index > 0) ActuaCardDivider()
-                        ActuaMenuRow(
-                            icon = Icons.Outlined.ViewColumn,
-                            label = header.ifBlank { "Column ${index + 1}" },
-                            value = activeMapping.roles.getOrElse(index) { ImportColumnRole.IGNORE }.displayName(),
-                            choices = ImportColumnRole.entries.map { it.displayName() to it },
-                        ) { role ->
-                            val roles = activeMapping.roles.toMutableList().apply { this[index] = role }
-                            review(activeTable, activeMapping.copy(roles = roles))
-                        }
-                    }
-                }
-                ActuaFormCard(Modifier.padding(top = Spacing.md)) {
                     ActuaFormRow(
-                        icon = Icons.Outlined.SwapVert,
-                        label = "Expenses are positive",
+                        icon = Icons.Outlined.Bolt,
+                        label = "Accept transactions from Tasker",
                         value = null,
-                        checked = activeMapping.expensesArePositive,
-                        onClick = { review(activeTable, activeMapping.copy(expensesArePositive = !activeMapping.expensesArePositive)) },
+                        checked = automationEnabled,
+                        onClick = {
+                            automationEnabled = !automationEnabled
+                            notificationPreferences.automationEnabled = automationEnabled
+                            automationToken = notificationPreferences.automationToken
+                        },
                     )
-                    ActuaCardDivider()
-                    ActuaMenuRow(
-                        icon = Icons.Outlined.CalendarMonth,
-                        label = "Date format",
-                        value = activeMapping.datePattern,
-                        choices = listOf("Auto", "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "dd MMM yyyy")
-                            .map { it to it },
-                    ) { pattern -> review(activeTable, activeMapping.copy(datePattern = pattern)) }
-                    ActuaCardDivider()
-                    ActuaFormTextField(icon = Icons.Outlined.Edit, label = "Mapping profile name",
-                        value = profileName, onValueChange = { profileName = it })
+                    automationToken?.let { token ->
+                        ActuaCardDivider()
+                        ActuaFormRow(
+                            icon = Icons.Outlined.Key,
+                            label = "Token",
+                            value = token,
+                            caption = "Tap to copy",
+                            onClick = {
+                                copySensitiveText(context, "Actua automation token", token)
+                                message = "Copied the automation token."
+                            },
+                        )
+                    }
+                    automationRejection?.let { rejection ->
+                        ActuaCardDivider()
+                        ActuaFormRow(
+                            icon = Icons.Outlined.ErrorOutline,
+                            label = "Last broadcast ignored",
+                            value = null,
+                            caption = rejection.reason,
+                            supportingValue = relativeTime(rejection.atMillis),
+                        )
+                    }
                 }
-                Row {
-                    Box {
-                        TextButton(enabled = importPreferences.profileNames().isNotEmpty(), onClick = { profileMenu = true }) {
-                            Text("Load profile")
-                        }
-                        DropdownMenu(profileMenu, { profileMenu = false }) {
-                            importPreferences.profileNames().forEach { name -> DropdownMenuItem(text = { Text(name) }, onClick = {
-                                val saved = importPreferences.profile(name)
-                                profileMenu = false
-                                if (saved?.roles?.size == activeTable.headers.size) {
-                                    profileName = name; review(activeTable, saved)
-                                } else message = "That profile has a different number of columns."
-                            }) }
+                Text(
+                    "Send a broadcast intent with action ${AutomationIntent.ACTION_QUEUE_TRANSACTION} to package " +
+                        "${context.packageName}. Extras: token, amount (for example -12.34), and optionally type " +
+                        "(debit or credit), payee, date (YYYY-MM-DD), notes, reference, account and source. Send text " +
+                        "instead of amount to use Actua's message parser. Transactions wait here for review.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.xs, vertical = Spacing.sm))
+                if (automationToken != null) TextButton(onClick = {
+                    automationToken = notificationPreferences.regenerateAutomationToken()
+                    message = "Created a new token. Update it in Tasker."
+                }) { Text("New token") }
+                ActuaGroupLabel("Statement file")
+                ActuaFormCard {
+                    ActuaMenuRow(
+                        icon = Icons.Outlined.AccountBalanceWallet,
+                        label = "Import into",
+                        value = account?.name ?: "No open account",
+                        valueIsPlaceholder = account == null,
+                        choices = accounts.map { it.name to it },
+                    ) { account = it }
+                }
+                ActuaSecondaryButton(
+                    text = if (busy) "Reading…" else "Choose statement file",
+                    icon = Icons.Outlined.UploadFile,
+                    enabled = !busy && account != null,
+                    onClick = { picker.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/pdf")) },
+                    modifier = Modifier.padding(vertical = Spacing.md),
+                )
+                val activeTable = table
+                val activeMapping = mapping
+                if (activeTable != null && activeMapping != null) {
+                    ActuaGroupLabel("Column mapping")
+                    ActuaFormCard {
+                        activeTable.headers.forEachIndexed { index, header ->
+                            if (index > 0) ActuaCardDivider()
+                            ActuaMenuRow(
+                                icon = Icons.Outlined.ViewColumn,
+                                label = header.ifBlank { "Column ${index + 1}" },
+                                value = activeMapping.roles.getOrElse(index) { ImportColumnRole.IGNORE }.displayName(),
+                                choices = ImportColumnRole.entries.map { it.displayName() to it },
+                            ) { role ->
+                                val roles = activeMapping.roles.toMutableList().apply { this[index] = role }
+                                review(activeTable, activeMapping.copy(roles = roles))
+                            }
                         }
                     }
-                    TextButton(enabled = profileName.isNotBlank(), onClick = {
-                        importPreferences.saveProfile(profileName.trim(), activeMapping)
-                        message = "Saved mapping profile ${profileName.trim()}."
-                    }) { Text("Save profile") }
+                    ActuaFormCard(Modifier.padding(top = Spacing.md)) {
+                        ActuaFormRow(
+                            icon = Icons.Outlined.SwapVert,
+                            label = "Expenses are positive",
+                            value = null,
+                            checked = activeMapping.expensesArePositive,
+                            onClick = { review(activeTable, activeMapping.copy(expensesArePositive = !activeMapping.expensesArePositive)) },
+                        )
+                        ActuaCardDivider()
+                        ActuaMenuRow(
+                            icon = Icons.Outlined.CalendarMonth,
+                            label = "Date format",
+                            value = activeMapping.datePattern,
+                            choices = listOf("Auto", "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "dd MMM yyyy")
+                                .map { it to it },
+                        ) { pattern -> review(activeTable, activeMapping.copy(datePattern = pattern)) }
+                        ActuaCardDivider()
+                        ActuaFormTextField(icon = Icons.Outlined.Edit, label = "Mapping profile name",
+                            value = profileName, onValueChange = { profileName = it })
+                    }
+                    Row {
+                        Box {
+                            TextButton(enabled = importPreferences.profileNames().isNotEmpty(), onClick = { profileMenu = true }) {
+                                Text("Load profile")
+                            }
+                            DropdownMenu(profileMenu, { profileMenu = false }) {
+                                importPreferences.profileNames().forEach { name -> DropdownMenuItem(text = { Text(name) }, onClick = {
+                                    val saved = importPreferences.profile(name)
+                                    profileMenu = false
+                                    if (saved?.roles?.size == activeTable.headers.size) {
+                                        profileName = name; review(activeTable, saved)
+                                    } else message = "That profile has a different number of columns."
+                                }) }
+                            }
+                        }
+                        TextButton(enabled = profileName.isNotBlank(), onClick = {
+                            importPreferences.saveProfile(profileName.trim(), activeMapping)
+                            message = "Saved mapping profile ${profileName.trim()}."
+                        }) { Text("Save profile") }
+                    }
                 }
             }
             if (problems.isNotEmpty()) Text(
@@ -535,11 +540,13 @@ fun ImportTransactionsScreen(
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             message?.let { Text(it, modifier = Modifier.padding(bottom = 8.dp)) }
-            if (history.isNotEmpty()) {
-                ActuaGroupLabel("Recent imports")
-                history.take(3).forEach { entry ->
-                    Text("${entry.sourceName}: ${entry.imported} imported, ${entry.skipped} skipped · ${entry.accountName}",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!capturedReviewOnly) {
+                if (history.isNotEmpty()) {
+                    ActuaGroupLabel("Recent imports")
+                    history.take(3).forEach { entry ->
+                        Text("${entry.sourceName}: ${entry.imported} imported, ${entry.skipped} skipped · ${entry.accountName}",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
             if (rows.isNotEmpty()) ActuaFormCard(Modifier.padding(top = Spacing.md)) {
@@ -655,9 +662,11 @@ fun ImportTransactionsScreen(
             enabled = selected.isNotEmpty() && reviewed.size == selected.size && importPlan.importCount > 0,
             icon = Icons.Outlined.Check,
         )
-        if (history.isNotEmpty()) {
-            TextButton(onClick = { importPreferences.clearHistory(); history = emptyList() },
-                modifier = Modifier.align(Alignment.End)) { Text("Clear import history (${history.size})") }
+        if (!capturedReviewOnly) {
+            if (history.isNotEmpty()) {
+                TextButton(onClick = { importPreferences.clearHistory(); history = emptyList() },
+                    modifier = Modifier.align(Alignment.End)) { Text("Clear import history (${history.size})") }
+            }
         }
     }
 }

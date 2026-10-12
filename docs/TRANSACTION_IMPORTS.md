@@ -71,10 +71,12 @@ Users may optionally enable Android notification-listener access for future tran
 This is a system-level sensitive permission and is never enabled silently. Actua ignores messages
 from apps the user has not explicitly selected, ignores messages that do not match the financial
 parser, and stores at most 100 normalized candidates. An empty allowed-app list captures nothing. Raw notification
-text is not retained. With **Notify about captures** on (off by default; Android 13+
+text is not retained. While captured transactions wait, the Accounts tab shows an inbox icon with their
+count; it opens **Review captured**, a page with only the waiting rows. Android 15 hides alert text
+that looks like a one-time code from notification listeners, so such alerts cannot be captured. With **Notify about captures** on (off by default; Android 13+
 asks for notification permission), each queued transaction also posts a notification showing its
 payee and amount, hidden on the lock screen unless the system allows private content. **Review**
-opens the queue. **Import** appears only when the transaction already has an account (from its hint
+opens **Review captured**. **Import** appears only when the transaction already has an account (from its hint
 or the account last chosen for the same card or app) and imports just that row through the same
 path as the review screen, after the tap and never automatically. If the import fails, the row
 stays queued and the notification says why. Captured data, parser settings, and capture state can be deleted together.
@@ -149,7 +151,7 @@ Example Tasker extras: `token:%ACTUA_TOKEN`, `amount:-%amount`, `payee:%merchant
    | Class | empty |
    | Target | **Broadcast Receiver** |
 
-4. Run the task, then open the import screen again and tap **Review captured**.
+4. Run the task, then tap the inbox icon on the Accounts tab (or **Review captured** on the import screen).
 
 Each Extra must start with its key and a colon. `%amount` on its own sends no `amount` extra, and a
 broadcast without `token:` is ignored. When a broadcast is ignored, the import screen shows

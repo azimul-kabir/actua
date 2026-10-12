@@ -185,6 +185,15 @@ class NotificationImportPreferences(context: Context) {
 
     fun clearQueue() = preferences.edit().remove("queue").apply()
 
+    /** Calls [onChange] when the review queue changes (#1050); invoke the returned function to stop. */
+    fun observeQueue(onChange: () -> Unit): () -> Unit {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || key == "queue") onChange()
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        return { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
     /** The account last imported for a captured row's hint or source in [budgetId] (#1045). */
     fun rememberedAccount(budgetId: String, key: String): String? =
         preferences.getString(accountMemoryKey(budgetId, key), null)
