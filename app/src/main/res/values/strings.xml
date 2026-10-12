@@ -16,6 +16,7 @@
     <string name="widget_upcoming_schedules">Upcoming schedules</string>
     <string name="widget_no_schedules">No upcoming scheduled transactions</string>
     <string name="shortcut_add_expense">Add expense</string>
+    <string name="tasker_queue_transaction">Queue transaction</string>
     <string name="shortcut_add_income">Add income</string>
     <string name="shortcut_add_transfer">Add transfer</string>
     <string name="shortcut_search">Search</string>

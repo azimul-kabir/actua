@@ -80,7 +80,20 @@ hand Actua the result. This helps with apps that post alerts for many cards in c
 such as Google Pay. The integration is off by default. Turning on **Accept transactions from Tasker**
 on the import screen creates a random per-install token, which can be copied or replaced there.
 
-Send a broadcast (Tasker: *Send Intent*, Target *Broadcast Receiver*) with:
+### Tasker plugin (recommended)
+
+In a Tasker task, add *Plugin → Actua → Queue transaction*. The form has a field for every value
+below, and each field accepts Tasker variables such as `%amount` or `-%amount`. The token is filled
+in for you, and the form offers to turn the integration on if it is off. Currency symbols are
+removed from the amount, and a variable that is still unset when the action runs (a literal
+`%payee`) counts as empty. Tasker waits for the result: if Actua ignores the transaction, the action
+fails and `%errmsg` holds the same reason the import screen shows. Replacing the token in Actua stops
+saved actions until each is opened and saved again.
+
+### Broadcast intent
+
+Other automation apps, or Tasker without the plugin, send a broadcast (Tasker: *Send Intent*,
+Target *Broadcast Receiver*) with:
 
 - Action: `com.azimulkabir.actua.action.QUEUE_TRANSACTION`
 - Package: `com.azimulkabir.actua`
@@ -102,7 +115,7 @@ Send a broadcast (Tasker: *Send Intent*, Target *Broadcast Receiver*) with:
 Example Tasker extras: `token:%ACTUA_TOKEN`, `amount:-%amount`, `payee:%merchant`,
 `source:Tasker: GPay`.
 
-### Step by step in Tasker
+### Step by step with Tasker's Send Intent
 
 1. In Actua, open **Import transactions**, turn on **Accept transactions from Tasker**, and tap
    **Token** to copy it. In Tasker, store it in a global variable such as `%ACTUA_TOKEN`.
