@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -13,8 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,7 +34,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
+import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.importing.AutomationIntent
+import com.azimulkabir.actua.data.importing.importHintAccountNames
 import com.azimulkabir.actua.data.importing.NotificationImportPreferences
 import com.azimulkabir.actua.data.importing.TaskerPlugin
 import com.azimulkabir.actua.ui.components.ActuaFormCard
@@ -39,6 +46,9 @@ import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.theme.ActuaTheme
 import com.azimulkabir.actua.ui.theme.Spacing
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Tasker's edit screen for the "Queue transaction" plugin action (#1040). Saving returns the
@@ -58,12 +68,22 @@ class TaskerEditActivity : ComponentActivity() {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(caller, 0)).toString()
         }.getOrDefault(caller)
         val preferences = NotificationImportPreferences(this)
+        var accountNames by mutableStateOf(emptyList<String>())
+        lifecycleScope.launch {
+            accountNames = withContext(Dispatchers.IO) {
+                runCatching {
+                    val repository = ActuaRepository(this@TaskerEditActivity)
+                    try { importHintAccountNames(repository.accounts()) } finally { repository.close() }
+                }.getOrDefault(emptyList())
+            }
+        }
         enableEdgeToEdge()
         setContent {
             ActuaTheme {
                 TaskerQueueTransactionScreen(
                     initial = initial,
                     callerLabel = callerLabel,
+                    accountNames = accountNames,
                     integrationOn = { preferences.automationEnabled && preferences.automationToken != null },
                     onTurnOn = { preferences.automationEnabled = true },
                     onCancel = ::finish,
@@ -101,16 +121,33 @@ private val textFields = listOf(
     FieldSpec(AutomationIntent.EXTRA_DATE, "Date", "YYYY-MM-DD. Empty means today."),
     FieldSpec(AutomationIntent.EXTRA_NOTES, "Notes"),
     FieldSpec(AutomationIntent.EXTRA_REFERENCE, "Reference"),
-    FieldSpec(AutomationIntent.EXTRA_ACCOUNT, "Account", "The exact account name, or digits that appear in its name."),
+    FieldSpec(AutomationIntent.EXTRA_ACCOUNT, "Account", "Choose an account, or type its exact name, digits from it, or a variable."),
     FieldSpec(AutomationIntent.EXTRA_SOURCE, "Source", "Shown during review. Empty means Tasker."),
     FieldSpec(AutomationIntent.EXTRA_TEXT, "Alert text", "Instead of an amount: the raw alert, read by Actua's own parser."),
 )
+
+/** Lists the open accounts whose names select themselves on review (#1042); typing still works. */
+@Composable
+private fun AccountPicker(names: List<String>, onPick: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Outlined.ArrowDropDown, contentDescription = "Choose account")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            names.forEach { name ->
+                DropdownMenuItem(text = { Text(name) }, onClick = { expanded = false; onPick(name) })
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TaskerQueueTransactionScreen(
     initial: Map<String, String>,
     callerLabel: String,
+    accountNames: List<String>,
     integrationOn: () -> Boolean,
     onTurnOn: () -> Unit,
     onCancel: () -> Unit,
@@ -175,6 +212,9 @@ internal fun TaskerQueueTransactionScreen(
                     label = { Text(spec.label) },
                     supportingText = spec.hint?.let { { Text(it) } },
                     singleLine = spec.extra != AutomationIntent.EXTRA_TEXT && spec.extra != AutomationIntent.EXTRA_NOTES,
+                    trailingIcon = if (spec.extra == AutomationIntent.EXTRA_ACCOUNT && accountNames.isNotEmpty()) {
+                        { AccountPicker(accountNames) { fields[AutomationIntent.EXTRA_ACCOUNT] = it } }
+                    } else null,
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs),
                 )
             }

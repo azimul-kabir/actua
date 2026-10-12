@@ -84,7 +84,8 @@ on the import screen creates a random per-install token, which can be copied or 
 
 In a Tasker task, add *Plugin → Actua → Queue transaction*. The form has a field for every value
 below, and each field accepts Tasker variables such as `%amount` or `-%amount`. The token is filled
-in for you, and the form offers to turn the integration on if it is off. Currency symbols are
+in for you, and the form offers to turn the integration on if it is off. **Account** has a list of
+the open accounts whose names select them on review; typing a name, digits or a variable still works. Currency symbols are
 removed from the amount, and a variable that is still unset when the action runs (a literal
 `%payee`) counts as empty. Tasker waits for the result: if Actua ignores the transaction, the action
 fails and `%errmsg` holds the same reason the import screen shows. Replacing the token in Actua stops

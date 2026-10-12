@@ -51,4 +51,14 @@ class ImportAccountHintTest {
         assertNull(accountForImportHint("Brokerage", accounts))
         assertNull(accountForImportHint("  ", accounts))
     }
+
+    @Test
+    fun `the plugin offers open account names that select their own account`() {
+        val closed = Account(name = "Old Card", balance = 0, type = "credit", id = "old", closed = true)
+        val twins = listOf(account("Joint", id = "j1"), account("joint ", id = "j2"))
+        assertEquals(
+            listOf("Checking", "Amex Gold", "Visa 1234"),
+            importHintAccountNames(accounts + closed + twins),
+        )
+    }
 }
