@@ -13,3 +13,12 @@ fun accountForImportHint(hint: String, accounts: List<Account>): Account? {
     accounts.filter { it.name.trim().equals(wanted, ignoreCase = true) }.singleOrNull()?.let { return it }
     return accounts.singleOrNull { wanted in it.name.filter(Char::isDigit) }
 }
+
+/**
+ * Names of open [accounts] that, sent as an import hint, select exactly that account: what the
+ * Tasker plugin form offers to pick (#1042). A name shared by two accounts selects neither.
+ */
+fun importHintAccountNames(accounts: List<Account>): List<String> {
+    val open = accounts.filterNot(Account::closed)
+    return open.filter { accountForImportHint(it.name, open)?.id == it.id }.map { it.name.trim() }
+}
