@@ -166,6 +166,17 @@ class NotificationImportPreferences(context: Context) {
     }.getOrDefault(emptyList())
 
     fun clearQueue() = preferences.edit().remove("queue").apply()
+
+    /** The account last imported for a captured row's hint or source in [budgetId] (#1045). */
+    fun rememberedAccount(budgetId: String, key: String): String? =
+        preferences.getString(accountMemoryKey(budgetId, key), null)
+
+    fun rememberAccounts(budgetId: String, choices: Map<String, String>) {
+        if (choices.isEmpty()) return
+        preferences.edit().apply { choices.forEach { (key, id) -> putString(accountMemoryKey(budgetId, key), id) } }.apply()
+    }
+
+    private fun accountMemoryKey(budgetId: String, key: String) = "accountMemory:$budgetId:$key"
     fun clearAll() = preferences.edit().clear().apply()
 }
 

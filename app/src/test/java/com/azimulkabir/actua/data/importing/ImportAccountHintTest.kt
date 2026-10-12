@@ -61,4 +61,33 @@ class ImportAccountHintTest {
             importHintAccountNames(accounts + closed + twins),
         )
     }
+
+    @Test
+    fun `memory keys use the hint, else the source`() {
+        assertEquals("hint:9921", importAccountMemoryKey(" 9921 ", "com.bank.app"))
+        assertEquals("hint:amex", importAccountMemoryKey("AMEX", "Tasker"))
+        assertEquals("source:com.bank.app", importAccountMemoryKey(null, "com.bank.app"))
+        assertEquals("source:Tasker: GPay", importAccountMemoryKey("  ", "Tasker: GPay"))
+    }
+
+    @Test
+    fun `prefill prefers the hint's account, then the remembered hint, then the remembered source`() {
+        val memory = mapOf("hint:9921" to visa.id, "source:com.bank.app" to checking.id, "hint:1234" to checking.id)
+        fun prefill(hint: String?, source: String = "com.bank.app") =
+            prefilledImportAccount(hint, source, accounts) { memory[it] }
+
+        // "1234" names Visa 1234 directly, so the remembered Checking is ignored.
+        assertEquals(visa, prefill("1234"))
+        assertEquals(visa, prefill("9921"))
+        assertEquals(checking, prefill(null))
+        assertEquals(checking, prefill("5555"))
+        assertNull(prefill(null, source = "other.app"))
+    }
+
+    @Test
+    fun `remembered accounts that are closed or gone are not prefilled`() {
+        val closedVisa = visa.copy(closed = true)
+        val memory = mapOf("hint:9921" to visa.id, "source:com.bank.app" to "deleted-account")
+        assertNull(prefilledImportAccount("9921", "com.bank.app", listOf(checking, closedVisa)) { memory[it] })
+    }
 }

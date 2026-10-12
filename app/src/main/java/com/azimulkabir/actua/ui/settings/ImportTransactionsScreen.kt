@@ -43,7 +43,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.importing.accountForImportHint
+import com.azimulkabir.actua.data.importing.importAccountMemoryKey
+import com.azimulkabir.actua.data.importing.prefilledImportAccount
 import com.azimulkabir.actua.data.importing.AutomationIntent
 import com.azimulkabir.actua.data.importing.CsvTransactionCandidateSource
 import com.azimulkabir.actua.data.importing.ImportCandidate
@@ -150,6 +153,7 @@ fun ImportTransactionsScreen(
     var markCleared by rememberSaveable { mutableStateOf(true) }
     var profileMenu by remember { mutableStateOf(false) }
     val notificationPreferences = remember { NotificationImportPreferences(context) }
+    val budgetId = remember { ActiveBudgetStore(context).budgetId ?: "no-budget" }
     var captureEnabled by remember { mutableStateOf(notificationPreferences.enabled) }
     var queued by remember { mutableStateOf(notificationPreferences.queued()) }
     var automationEnabled by remember { mutableStateOf(notificationPreferences.automationEnabled) }
@@ -205,7 +209,9 @@ fun ImportTransactionsScreen(
             ReviewRow(candidate.sourceRow, formatDate(candidate.date), candidate.payee,
                 BigDecimal.valueOf(candidate.amountCents, 2).toPlainString(), candidate.notes,
                 candidate.reference, selected = !duplicate, candidate.confidence, candidate.sourceLabel,
-                accountId = if (perRowAccounts()) candidate.accountHint?.let { accountForImportHint(it, accounts)?.id } else null,
+                accountId = if (perRowAccounts()) prefilledImportAccount(candidate.accountHint, candidate.sourceLabel, accounts) {
+                    notificationPreferences.rememberedAccount(budgetId, it)
+                }?.id else null,
                 accountHint = candidate.accountHint)
         }
         problems = parseProblems
@@ -579,6 +585,10 @@ fun ImportTransactionsScreen(
                         imported, rows.size - imported, System.currentTimeMillis()))
                     history = importPreferences.history()
                     if (sourceFormat == StatementFormat.NOTIFICATION) {
+                        // The next row from the same card or app starts with the account chosen now (#1045).
+                        notificationPreferences.rememberAccounts(budgetId, selected.mapNotNull { row ->
+                            row.accountId?.let { importAccountMemoryKey(row.accountHint, row.sourceLabel) to it }
+                        }.toMap())
                         val remaining = leftover.mapNotNull(ReviewRow::toQueuedCandidateOrNull)
                         notificationPreferences.replaceQueue(remaining); queued = remaining
                     }
