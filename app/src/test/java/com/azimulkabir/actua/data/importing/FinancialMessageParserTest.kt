@@ -52,4 +52,42 @@ class FinancialMessageParserTest {
         assertTrue(!shouldCaptureNotification(false, setOf("bank"), "bank", "actua"))
         assertTrue(!shouldCaptureNotification(true, setOf("actua"), "actua", "actua"))
     }
+
+    private fun payee(text: String) = FinancialMessageParser.parse(text, "Bank app").candidates.single().payee
+
+    @Test
+    fun `money out names the merchant, not where it was paid from`() {
+        assertEquals("Starbucks", payee("Paid $5.00 to Starbucks from Wallet"))
+        assertEquals("Tesco", payee("You spent $12.40 at Tesco from Current Account"))
+        assertEquals("Coffee House", payee("Card ending 4321 charged USD 3.50 at Coffee House"))
+    }
+
+    @Test
+    fun `money in names the sender, not the receiving account`() {
+        assertEquals("Alex", payee("Received $50.00 from Alex to Savings"))
+        assertEquals("Employer", payee("USD 900.00 deposited to your account from Employer"))
+    }
+
+    @Test
+    fun `funding sources are skipped even when they come first`() {
+        assertEquals("Grocer", payee("Paid $8.00 from your wallet to Grocer"))
+        assertEquals("Landlord", payee("Debited $700.00 from account XX5678 to Landlord"))
+    }
+
+    @Test
+    fun `a single phrase is used whatever its direction`() {
+        assertEquals("Refund Desk", payee("Refund credited $4.00 at Refund Desk"))
+        assertEquals("Gym", payee("Paid $30.00 from Gym"))
+    }
+
+    @Test
+    fun `at inside a word is not a phrase`() {
+        // "Combat" used to read as "at Sports purchase $9".
+        assertEquals("Bank app", payee("Combat Sports purchase $9.99"))
+    }
+
+    @Test
+    fun `only funding phrases fall back to the source`() {
+        assertEquals("Bank app", payee("Paid $5.00 from Wallet"))
+    }
 }
