@@ -69,7 +69,7 @@ import com.azimulkabir.actua.ui.components.ActuaMenuRow
 import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
 import com.azimulkabir.actua.ui.components.centsToInput
-import com.azimulkabir.actua.ui.components.currencyInputPrefix
+import com.azimulkabir.actua.ui.components.withCurrencySymbol
 import com.azimulkabir.actua.ui.components.parseInputCents
 import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
@@ -373,7 +373,7 @@ private fun NoteField(note: String, onChange: (String) -> Unit) {
 @Composable
 private fun AmountHero(caption: String, cents: Long, conventionalAmountEntry: Boolean, onChange: (Long) -> Unit) {
     var calculatorOpen by remember { mutableStateOf(false) }
-    val shown = currencyInputPrefix() + amountText(cents)
+    val shown = withCurrencySymbol(amountText(cents))
     ActuaHeroAmount(
         amount = shown,
         caption = caption,
@@ -401,7 +401,7 @@ private fun AmountRow(label: String, cents: Long, conventionalAmountEntry: Boole
     ActuaFormRow(
         icon = Icons.Outlined.Calculate,
         label = label,
-        value = currencyInputPrefix() + amountText(cents),
+        value = withCurrencySymbol(amountText(cents)),
         valueIsPlaceholder = cents == 0L,
         onClick = { calculatorOpen = true },
     )

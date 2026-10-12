@@ -27,6 +27,18 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(CURRENCY_SYMBOL_ONLY, false)
         set(value) { preferences.edit().putBoolean(CURRENCY_SYMBOL_ONLY, value).apply() }
 
+    /** Before amount, After amount, or Same as budget (the budget's synced `currencySymbolPosition`). */
+    var currencySymbolPosition: String
+        get() = preferences.getString(CURRENCY_SYMBOL_POSITION, EffectiveDisplayFormats.FOLLOW_BUDGET)
+            ?: EffectiveDisplayFormats.FOLLOW_BUDGET
+        set(value) { preferences.edit().putString(CURRENCY_SYMBOL_POSITION, value).apply() }
+
+    /** Space, No space, or Same as budget (the budget's synced `currencySpaceBetweenAmountAndSymbol`). */
+    var currencySymbolSpacing: String
+        get() = preferences.getString(CURRENCY_SYMBOL_SPACING, EffectiveDisplayFormats.FOLLOW_BUDGET)
+            ?: EffectiveDisplayFormats.FOLLOW_BUDGET
+        set(value) { preferences.edit().putString(CURRENCY_SYMBOL_SPACING, value).apply() }
+
     var dateFormat: String
         get() = preferences.getString(DATE_FORMAT, EffectiveDisplayFormats.FOLLOW_BUDGET)
             ?: EffectiveDisplayFormats.FOLLOW_BUDGET
@@ -101,7 +113,8 @@ class DisplayPreferences(context: Context) {
 
     /** The formats to show with, given the open budget's synced [budget] preferences. */
     fun resolve(budget: BudgetDisplayFormats) = EffectiveDisplayFormats.resolve(
-        currencyCode, currencySymbolOnly, dateFormat, numberFormat, decimalPlacesMode, privacyMode, budget,
+        currencyCode, currencySymbolOnly, currencySymbolPosition, currencySymbolSpacing,
+        dateFormat, numberFormat, decimalPlacesMode, privacyMode, budget,
     )
 
     var appearance: String
@@ -189,6 +202,8 @@ class DisplayPreferences(context: Context) {
         const val PRIVACY_MODE = "privacy_mode"
         const val CURRENCY_CODE = "currency_code"
         const val CURRENCY_SYMBOL_ONLY = "currency_symbol_only"
+        const val CURRENCY_SYMBOL_POSITION = "currency_symbol_position"
+        const val CURRENCY_SYMBOL_SPACING = "currency_symbol_spacing"
         const val DATE_FORMAT = "date_format"
         const val NUMBER_FORMAT = "number_format"
         const val SHOW_HIDDEN_CATEGORIES = "show_hidden_categories"

@@ -79,6 +79,7 @@ import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSectionHeader
+import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.ui.theme.Spacing
 
@@ -118,6 +119,10 @@ fun SettingsScreen(
     onCurrencyCodeChange: (String) -> Unit = {},
     currencySymbolOnly: Boolean = false,
     onCurrencySymbolOnlyChange: (Boolean) -> Unit = {},
+    currencySymbolPosition: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
+    onCurrencySymbolPositionChange: (String) -> Unit = {},
+    currencySymbolSpacing: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
+    onCurrencySymbolSpacingChange: (String) -> Unit = {},
     dateFormat: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
     onDateFormatChange: (String) -> Unit = {},
     numberFormat: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
@@ -433,6 +438,38 @@ fun SettingsScreen(
                                 "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
                                 currencySymbolOnly, onCurrencySymbolOnlyChange)
                         }
+                        if (currencyCode.isNotBlank()) {
+                            SettingsDivider()
+                            SettingsChoice(
+                                "Symbol position",
+                                currencySymbolPosition,
+                                listOf(
+                                    EffectiveDisplayFormats.FOLLOW_BUDGET,
+                                    EffectiveDisplayFormats.BEFORE_AMOUNT,
+                                    EffectiveDisplayFormats.AFTER_AMOUNT,
+                                ),
+                                preview = "Preview: ${currencyPlacementPreview()}" +
+                                    if (currencySymbolPosition == EffectiveDisplayFormats.FOLLOW_BUDGET) {
+                                        ". Budget: ${if (budgetDisplayFormats.symbolAfterAmount) "after" else "before"} the amount"
+                                    } else "",
+                                onChange = onCurrencySymbolPositionChange,
+                            )
+                            SettingsDivider()
+                            SettingsChoice(
+                                "Space between amount and symbol",
+                                currencySymbolSpacing,
+                                listOf(
+                                    EffectiveDisplayFormats.FOLLOW_BUDGET,
+                                    EffectiveDisplayFormats.SPACE,
+                                    EffectiveDisplayFormats.NO_SPACE,
+                                ),
+                                preview = "Preview: ${currencyPlacementPreview()}" +
+                                    if (currencySymbolSpacing == EffectiveDisplayFormats.FOLLOW_BUDGET) {
+                                        ". Budget: ${if (budgetDisplayFormats.spaceBetweenAmountAndSymbol) "space" else "no space"}"
+                                    } else "",
+                                onChange = onCurrencySymbolSpacingChange,
+                            )
+                        }
                         SettingsDivider()
                         SettingsChoice(
                             "Date format",
@@ -737,6 +774,10 @@ private fun datePreview(format: String): String = when (format) {
     else -> java.time.LocalDate.of(2026, 12, 31)
         .format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
 }
+
+/** A sample amount in the applied display formats, so symbol placement can be checked before leaving. */
+private fun currencyPlacementPreview(): String =
+    formatMoneyCents(123456, hideDecimalPlaces = false, respectBalanceVisibility = false)
 
 private fun numberPreview(format: String): String = when (format) {
     "1,234.56" -> "1,234.56"
