@@ -88,7 +88,7 @@ Send a broadcast (Tasker: *Send Intent*, Target *Broadcast Receiver*) with:
 | `date` | no | `YYYY-MM-DD`; defaults to today |
 | `notes` | no | Transaction notes |
 | `reference` | no | Bank reference or transaction ID |
-| `account` | no | Account hint, such as the last card digits |
+| `account` | no | Account to select on review: an exact account name (case-insensitive), or digits such as the last card digits that appear in exactly one account's name |
 | `source` | no | Label shown during review; defaults to `Tasker` |
 | `text` | no | Raw alert text to run through Actua's own message parser instead of `amount` |
 
