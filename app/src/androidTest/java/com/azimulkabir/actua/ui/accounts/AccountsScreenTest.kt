@@ -54,8 +54,8 @@ class AccountsScreenTest {
         compose.onAllNodesWithText("Savings").assertCountEquals(1)
     }
 
-    /** Regression coverage for issue #597: a reorder entry point sits beside the add-account button. */
-    @Test fun reorderIconInvokesOnReorderAccounts() {
+    /** Regression coverage for issue #597: Reorder accounts is reachable from the account options menu. */
+    @Test fun reorderMenuItemInvokesOnReorderAccounts() {
         var reorderClicked = false
 
         compose.setContent {
@@ -68,7 +68,8 @@ class AccountsScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Reorder accounts").performClick()
+        compose.onNodeWithContentDescription("Account display options").performClick()
+        compose.onNodeWithText("Reorder accounts").performClick()
         assert(reorderClicked)
     }
 

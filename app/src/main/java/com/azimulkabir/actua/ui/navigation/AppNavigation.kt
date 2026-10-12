@@ -60,9 +60,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -93,6 +96,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
+import com.azimulkabir.actua.data.importing.NotificationImportPreferences
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
 import com.azimulkabir.actua.ui.accounts.CloseAccountOptions
 import com.azimulkabir.actua.ui.accounts.CloseCategoryGroup
@@ -201,7 +205,7 @@ private fun TabItem.toMainDestination(): MainDestination? = when (this) {
     TabItem.ADD -> null
 }
 
-private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, PayeeLocations, ManagePayees, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
+private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, ReviewCaptured, PayeeLocations, ManagePayees, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -362,7 +366,15 @@ fun AppNavigation(
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
     var sharedImportText by remember { mutableStateOf<String?>(null) }
-    var reviewCapturedOnOpen by remember { mutableStateOf(false) }
+    // Each request reloads the capture queue, even when Review captured is already open.
+    var capturedReviewRequest by remember { mutableIntStateOf(0) }
+    var capturedReviewReturnsToImport by remember { mutableStateOf(false) }
+    val captureQueue = remember { NotificationImportPreferences(context) }
+    var pendingCaptureCount by remember { mutableIntStateOf(0) }
+    DisposableEffect(captureQueue) {
+        pendingCaptureCount = captureQueue.queued().size
+        onDispose(captureQueue.observeQueue { pendingCaptureCount = captureQueue.queued().size })
+    }
     val syncStatusStore = remember { SyncStatusStore(context) }
     val syncStatusGeneration by SyncSignals.statusGeneration.collectAsState()
     val syncDataGeneration by SyncSignals.dataGeneration.collectAsState()
@@ -455,6 +467,15 @@ fun AppNavigation(
     var selectedTab by rememberSaveable { mutableStateOf(destination) }
     var tabSwitchJob by remember { mutableStateOf<Job?>(null) }
     var detail by rememberSaveable { mutableStateOf(DetailDestination.Main) }
+    fun openCapturedReview(fromImport: Boolean = false) {
+        capturedReviewRequest += 1
+        capturedReviewReturnsToImport = fromImport
+        detail = DetailDestination.ReviewCaptured
+    }
+    fun returnFromCapturedReview() {
+        detail = if (capturedReviewReturnsToImport) DetailDestination.ImportTransactions else DetailDestination.Main
+        capturedReviewReturnsToImport = false
+    }
     // Diagnostics: which tab or detail screen the user was on before a problem (#225).
     LaunchedEffect(selectedTab, detail) {
         DiagnosticsLog.screen(if (detail == DetailDestination.Main) "Tab $selectedTab" else "Screen $detail")
@@ -1138,9 +1159,8 @@ fun AppNavigation(
                 detail = DetailDestination.ImportTransactions
             }
             CapturedTransactionNotifications.ACTION_REVIEW -> {
-                reviewCapturedOnOpen = true
-                destination = MainDestination.Manage
-                detail = DetailDestination.ImportTransactions
+                destination = MainDestination.Accounts
+                openCapturedReview()
             }
             WidgetActions.BUDGET -> {
                 destination = MainDestination.Budget
@@ -1229,6 +1249,7 @@ fun AppNavigation(
             detail == DetailDestination.ReorderGroups -> {
                 detail = DetailDestination.ManageCategories
             }
+            detail == DetailDestination.ReviewCaptured -> returnFromCapturedReview()
             detail == DetailDestination.CustomizeHome -> {
                 detail = DetailDestination.Main
             }
@@ -2266,9 +2287,22 @@ fun AppNavigation(
                 modifier = contentModifier,
                 initialSharedText = sharedImportText,
                 onSharedTextConsumed = { sharedImportText = null },
-                reviewCapturedOnOpen = reviewCapturedOnOpen,
-                onReviewCapturedConsumed = { reviewCapturedOnOpen = false },
+                onOpenCapturedReview = { openCapturedReview(fromImport = true) },
             )
+            DetailDestination.ReviewCaptured -> key(capturedReviewRequest) {
+                ImportTransactionsScreen(
+                    accounts = accounts.filterNot { it.closed },
+                    findMatches = repository::importMatches,
+                    onImport = { groups, cleared, onImported ->
+                        mutate("Importing transactions", onChanged = onImported) {
+                            repository.importTransactions(groups, cleared) == groups.sumOf { it.candidates.size }
+                        }
+                    },
+                    onBack = { returnFromCapturedReview() },
+                    modifier = contentModifier,
+                    capturedReviewOnly = true,
+                )
+            }
             DetailDestination.BillsCalendar -> BillsCalendarScreen(
                 loadItems = { year, month, cardBills ->
                     repository.billCalendarItems(year, month, cardBills)
@@ -2701,6 +2735,8 @@ fun AppNavigation(
                         mutate("Creating account") { repository.createAccount(name, offBudget, balance, type) }
                     },
                     onReorderAccounts = { detail = DetailDestination.ReorderAccounts },
+                    pendingCaptureCount = pendingCaptureCount,
+                    onReviewCaptures = { openCapturedReview() },
                     onSearch = { detail = DetailDestination.Search },
                     onSetUpBankSync = { loadBankSyncProviderStatus(); detail = DetailDestination.BankSync },
                     isRefreshing = accountsRefreshing,
