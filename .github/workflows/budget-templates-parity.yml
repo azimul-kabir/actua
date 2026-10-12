@@ -54,7 +54,7 @@ jobs:
           docker logs actual-server
           exit 1
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
