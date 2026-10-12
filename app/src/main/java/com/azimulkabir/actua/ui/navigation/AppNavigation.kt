@@ -93,6 +93,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
@@ -162,6 +163,9 @@ import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
 import com.azimulkabir.actua.data.notifications.CreditCardDueLaunch
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 import com.azimulkabir.actua.data.notifications.CreditCardNotificationSettings
+import com.azimulkabir.actua.data.notifications.ScheduleReminderLaunch
+import com.azimulkabir.actua.data.notifications.ScheduleReminderScheduler
+import com.azimulkabir.actua.data.notifications.ScheduleReminderSettings
 import com.azimulkabir.actua.ui.components.BalanceVisibility
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -349,6 +353,15 @@ fun AppNavigation(
         creditCardNotificationsEnabled = granted
         CreditCardDueNotificationScheduler.refresh(context)
     }
+    val scheduleReminderSettings = remember { ScheduleReminderSettings(context) }
+    var scheduleRemindersEnabled by remember { mutableStateOf(scheduleReminderSettings.isEnabled) }
+    var scheduleReminderLeadDays by remember { mutableStateOf(scheduleReminderSettings.leadDays) }
+    val scheduleReminderPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        scheduleReminderSettings.isEnabled = granted
+        scheduleRemindersEnabled = granted
+    }
     var repositoryVersion by remember { mutableStateOf(0) }
     var budgetReplacementInProgress by remember { mutableStateOf(false) }
     var budgetReplacementCompleted by remember { mutableStateOf(false) }
@@ -443,6 +456,12 @@ fun AppNavigation(
     // or refetches rule-editor data (accounts/categories/payees) that nothing is currently
     // showing — matching the existing pattern `payeeLocations` already used below.
     val schedules = remember(dataVersion) { repository.schedules() }
+    // Replan schedule reminders after any local write, sync or budget switch, so posted, skipped,
+    // matched, edited and deleted occurrences stop notifying. Rapid successive writes replan once.
+    LaunchedEffect(dataVersion, repositoryVersion, scheduleRemindersEnabled, scheduleReminderLeadDays) {
+        delay(1_000)
+        withContext(Dispatchers.IO) { ScheduleReminderScheduler.refresh(appContext) }
+    }
     val upcomingTransactions = remember(schedules) {
         upcomingTransactionsFrom(schedules, defaultUpcomingLength = repository.upcomingScheduleLength())
     }
@@ -1192,6 +1211,20 @@ fun AppNavigation(
                 transactionMonth = null
                 transactionSearch = ""
                 detail = if (accountName == null) DetailDestination.Main else DetailDestination.Transactions
+            }
+            ScheduleReminderLaunch.ACTION -> {
+                // A schedule deleted (or in another budget) since the reminder opens the schedule list.
+                val scheduleId = ScheduleReminderLaunch.scheduleId(schedules, request.target)
+                destination = MainDestination.Manage
+                if (scheduleId == null) {
+                    detail = DetailDestination.Schedules
+                } else {
+                    editingScheduleId = scheduleId
+                    scheduleReturnsToBills = false
+                    scheduleReturnsToTransactions = false
+                    scheduleReturnsToTransactionsTab = false
+                    detail = DetailDestination.EditSchedule
+                }
             }
             WidgetActions.SEARCH -> {
                 destination = MainDestination.Transactions
@@ -2243,6 +2276,22 @@ fun AppNavigation(
                 },
                 onDelete = { id ->
                     mutate("Deleting schedule") { repository.deleteSchedule(id) }
+                },
+                remindersEnabled = scheduleRemindersEnabled,
+                onRemindersEnabledChange = { enabled ->
+                    if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                        PackageManager.PERMISSION_GRANTED) {
+                        scheduleReminderPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        scheduleReminderSettings.isEnabled = enabled
+                        scheduleRemindersEnabled = enabled
+                    }
+                },
+                reminderLeadDays = scheduleReminderLeadDays,
+                onReminderLeadDaysChange = { days ->
+                    scheduleReminderSettings.leadDays = days
+                    scheduleReminderLeadDays = days
                 },
                 modifier = contentModifier,
             )

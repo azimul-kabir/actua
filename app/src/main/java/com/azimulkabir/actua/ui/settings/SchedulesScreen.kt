@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Add
@@ -23,6 +25,7 @@ import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SkipNext
@@ -36,6 +39,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,9 +49,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.data.notifications.ScheduleReminderPlanner
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
 import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
@@ -55,6 +61,7 @@ import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
 import com.azimulkabir.actua.data.schedules.ScheduledAmount
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSheetAction
@@ -86,8 +93,13 @@ fun SchedulesScreen(
     onSetCompleted: (String, Boolean) -> Unit,
     onDelete: (String) -> Unit,
     modifier: Modifier = Modifier,
+    remindersEnabled: Boolean = false,
+    onRemindersEnabledChange: (Boolean) -> Unit = {},
+    reminderLeadDays: Int = ScheduleReminderPlanner.DEFAULT_LEAD_DAYS,
+    onReminderLeadDaysChange: (Int) -> Unit = {},
 ) {
     var search by remember { mutableStateOf("") }
+    var remindersOpen by remember { mutableStateOf(false) }
     var showSearch by remember { mutableStateOf(false) }
     var showCompleted by remember { mutableStateOf(false) }
     var optionsOpen by remember { mutableStateOf(false) }
@@ -127,6 +139,11 @@ fun SchedulesScreen(
                     DropdownMenuItem(
                         text = { Text("Find Schedules") },
                         onClick = { optionsOpen = false; onFind() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Reminders") },
+                        leadingIcon = { Icon(Icons.Outlined.NotificationsActive, contentDescription = null) },
+                        onClick = { optionsOpen = false; remindersOpen = true },
                     )
                 }
             }
@@ -197,6 +214,15 @@ fun SchedulesScreen(
                 actionItem = null
                 deleteItem = item
             },
+        )
+    }
+    if (remindersOpen) {
+        ScheduleRemindersSheet(
+            enabled = remindersEnabled,
+            onEnabledChange = onRemindersEnabledChange,
+            leadDays = reminderLeadDays,
+            onLeadDaysChange = onReminderLeadDaysChange,
+            onDismiss = { remindersOpen = false },
         )
     }
     deleteItem?.let { item ->
@@ -279,6 +305,61 @@ private fun ScheduleRow(
             modifier = Modifier.padding(start = 8.dp),
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScheduleRemindersSheet(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    leadDays: Int,
+    onLeadDaysChange: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        ActuaSheetContent {
+            ActuaSheetTitle("Reminders")
+            ActuaSheetCard {
+                ActuaFormRow(
+                    icon = Icons.Outlined.NotificationsActive,
+                    label = "Scheduled transaction reminders",
+                    value = null,
+                    caption = "Notify before bills, income and other schedules are due. " +
+                        "Posted, skipped and paid occurrences stop notifying.",
+                    checked = enabled,
+                    onClick = { onEnabledChange(!enabled) },
+                )
+            }
+            if (enabled) {
+                ActuaSheetCard(Modifier.selectableGroup()) {
+                    ScheduleReminderPlanner.leadDayOptions.forEachIndexed { index, days ->
+                        if (index > 0) ActuaCardDivider()
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .selectable(selected = days == leadDays, role = Role.RadioButton) { onLeadDaysChange(days) }
+                                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = days == leadDays, onClick = null)
+                            Text(reminderLeadLabel(days), Modifier.padding(start = Spacing.md))
+                        }
+                    }
+                }
+                Text(
+                    "Reminders arrive at 9 AM for the open budget, with another on the due date.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.screenHorizontal),
+                )
+            }
+        }
+    }
+}
+
+internal fun reminderLeadLabel(days: Int): String = when (days) {
+    0 -> "On the due date"
+    1 -> "1 day before"
+    else -> "$days days before"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

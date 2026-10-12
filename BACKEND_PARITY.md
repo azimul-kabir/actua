@@ -18,7 +18,7 @@ server authentication, budget download/local storage, automatic and manual sync,
 backup/restore, accounts/categories/payees, budget amounts and transfers,
 transactions/transfers/splits, imported rules, scheduled transactions, category
 targets, mobile reconciliation, synced report dashboards, Android credit-card
-payment reminders, home-screen widgets, and launcher actions. Every action
+payment and scheduled-transaction reminders, home-screen widgets, and launcher actions. Every action
 displayed in the release UI must work.
 
 Features that still require substantial new financial semantics or external
@@ -424,6 +424,15 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Opt-in Android credit-card payment reminders at 7, 5, 3, and 1 days before
   due for an unpaid statement, with permission handling, stale-work cancellation,
   delivery-time statement validation, and unpaid-first stable due-date sorting
+- Opt-in, device-local scheduled-transaction reminders for the open budget, at 9 AM on the
+  due date and optionally 1, 3 or 7 days before it. A reminder targets a schedule's
+  persisted `next_date` occurrence while it is neither completed nor paid, so posting,
+  skipping, matching a transaction (early payments included), editing or deleting it
+  replans or withdraws the reminder after the next local write or sync; each reminder is
+  re-validated against the budget when it fires. WorkManager keeps planned reminders across
+  process death, reboots and updates. Hidden balances omit the amount, and the secure lock
+  screen shows a generic public version. Tapping opens the schedule, or the schedule list
+  when it no longer exists. Missed (overdue) occurrences are not re-notified.
 - Database-backed complete-history transaction search, including live split-child
   payees, notes, imported descriptions and categories; stable database paging
 - Character-by-character payee-picker filtering with one alphabetical result list
@@ -475,7 +484,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   available as an experiment); and bank-feed pending-import approval
 - Broader country/bank parser templates beyond configurable financial-message keywords
 - General Android transaction notifications and new-transaction detection beyond
-  the credit-card payment reminders already shipped
+  the credit-card payment and scheduled-transaction reminders already shipped
 - Broader place metadata or background geofencing beyond the shipped foreground-only,
   opt-in 500-metre payee suggestions and synchronized location management
 

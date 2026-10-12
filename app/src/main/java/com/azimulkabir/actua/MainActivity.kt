@@ -24,6 +24,7 @@ import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
 import com.azimulkabir.actua.data.notifications.CreditCardDueLaunch
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
+import com.azimulkabir.actua.data.notifications.ScheduleReminderLaunch
 import com.azimulkabir.actua.widget.WidgetActions
 import com.azimulkabir.actua.widget.WidgetUpdater
 import kotlinx.coroutines.Dispatchers
@@ -95,6 +96,8 @@ class MainActivity : ComponentActivity() {
     }?.let { AppLaunchRequest(it, getStringExtra(WidgetActions.EXTRA_TARGET)) }
         ?: takeIf { action == CreditCardDueLaunch.ACTION }
             ?.let { AppLaunchRequest(CreditCardDueLaunch.ACTION, getStringExtra(CreditCardDueLaunch.EXTRA_ACCOUNT_ID)) }
+        ?: takeIf { action == ScheduleReminderLaunch.ACTION }
+            ?.let { AppLaunchRequest(ScheduleReminderLaunch.ACTION, getStringExtra(ScheduleReminderLaunch.EXTRA_SCHEDULE_ID)) }
         ?: takeIf { action == CapturedTransactionNotifications.ACTION_REVIEW }
             ?.let { AppLaunchRequest(CapturedTransactionNotifications.ACTION_REVIEW, null) }
         ?: takeIf { action == Intent.ACTION_SEND && type?.startsWith("text/") == true }
