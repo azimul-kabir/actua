@@ -38,12 +38,13 @@ fun handleAutomationExtras(
     extras: Map<String, String?>,
     today: LocalDate = LocalDate.now(),
     profile: FinancialMessageProfile = FinancialMessageParser.defaultProfile,
+    tokenAdvice: String = "Copy the current token from this screen",
 ): AutomationResult {
     val providedToken = extras[AutomationIntent.EXTRA_TOKEN]
     val rejection = when {
         !enabled || expectedToken.isNullOrBlank() -> "Received while Accept transactions from Tasker was off"
         providedToken.isNullOrBlank() -> "No token extra. Write each extra as key:value, for example token:…"
-        !isAuthorizedAutomation(enabled, expectedToken, providedToken) -> "Wrong token. Copy the current token from this screen"
+        !isAuthorizedAutomation(enabled, expectedToken, providedToken) -> "Wrong token. $tokenAdvice"
         else -> null
     }
     if (rejection != null) return AutomationResult(emptyList(), rejection)

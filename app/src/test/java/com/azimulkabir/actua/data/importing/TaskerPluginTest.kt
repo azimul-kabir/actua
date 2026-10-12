@@ -1,0 +1,95 @@
+package com.azimulkabir.actua.data.importing
+
+import java.time.LocalDate
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class TaskerPluginTest {
+    private val token = "0123456789abcdef"
+    private val form = mapOf("amount" to "-%amount", "payee" to "%payee", "account" to "Amex Gold", "notes" to "  ")
+
+    @Test
+    fun `saved bundle holds the token and every filled field`() {
+        val values = TaskerPlugin.bundleValues(form, token)
+        assertEquals(
+            mapOf(
+                TaskerPlugin.key("token") to token, TaskerPlugin.key("amount") to "-%amount",
+                TaskerPlugin.key("payee") to "%payee", TaskerPlugin.key("account") to "Amex Gold",
+            ),
+            values,
+        )
+    }
+
+    @Test
+    fun `every field but the token gets Tasker variable replacement`() {
+        val keys = TaskerPlugin.replaceKeys(TaskerPlugin.bundleValues(form, token)).split(" ").toSet()
+        assertEquals(setOf("amount", "payee", "account").map(TaskerPlugin::key).toSet(), keys)
+        assertFalse(keys.any { it.contains(' ') })
+    }
+
+    @Test
+    fun `a stored bundle reads back into the form without the token`() {
+        val stored = TaskerPlugin.bundleValues(form, token) + (TaskerPlugin.KEY_VARIABLE_REPLACE to "ignored")
+        assertEquals(mapOf("amount" to "-%amount", "payee" to "%payee", "account" to "Amex Gold"), TaskerPlugin.fieldsOf(stored))
+    }
+
+    @Test
+    fun `blurb lists the filled fields and never the token`() {
+        val blurb = TaskerPlugin.blurb(form)
+        assertEquals("amount: -%amount\npayee: %payee\naccount: Amex Gold", blurb)
+        assertFalse(token in blurb)
+        assertEquals("Nothing set", TaskerPlugin.blurb(emptyMap()))
+    }
+
+    @Test
+    fun `saving needs an amount or alert text`() {
+        assertTrue(TaskerPlugin.canSave(mapOf("amount" to "%amount")))
+        assertTrue(TaskerPlugin.canSave(mapOf("text" to "%antext")))
+        assertFalse(TaskerPlugin.canSave(mapOf("payee" to "Coffee", "amount" to " ")))
+    }
+
+    @Test
+    fun `fired values strip currency from the amount and drop unset variables`() {
+        val extras = TaskerPlugin.extrasOf(mapOf(
+            TaskerPlugin.key("token") to token, TaskerPlugin.key("amount") to "-$ 1,234.50",
+            TaskerPlugin.key("payee") to "%payee", TaskerPlugin.key("notes") to "Lunch at %place",
+        ))
+        assertEquals(token, extras["token"])
+        assertEquals("-1,234.50", extras["amount"])
+        assertNull(extras["payee"])
+        assertEquals("Lunch at %place", extras["notes"])
+        assertEquals(AutomationIntent.EXTRAS.toSet(), extras.keys)
+    }
+
+    @Test
+    fun `a fired bundle queues like the equivalent broadcast`() {
+        val today = LocalDate.of(2026, 10, 12)
+        val fired = TaskerPlugin.extrasOf(TaskerPlugin.bundleValues(
+            mapOf("amount" to "-$25.00", "payee" to "Coffee", "account" to "Amex Gold"), token,
+        ))
+        val result = handleAutomationExtras(true, token, fired, today, tokenAdvice = TaskerPlugin.TOKEN_ADVICE)
+        val candidate = result.candidates.single()
+        assertNull(result.rejection)
+        assertEquals(-2_500L, candidate.amountCents)
+        assertEquals("Coffee", candidate.payee)
+        assertEquals("Amex Gold", candidate.accountHint)
+        assertEquals("Tasker", candidate.sourceLabel)
+    }
+
+    @Test
+    fun `a stale plugin token asks to save the action again`() {
+        val fired = TaskerPlugin.extrasOf(TaskerPlugin.bundleValues(mapOf("amount" to "1"), "old-token"))
+        val result = handleAutomationExtras(true, token, fired, tokenAdvice = TaskerPlugin.TOKEN_ADVICE)
+        assertTrue(result.candidates.isEmpty())
+        assertEquals("Wrong token. Open the Actua action in Tasker and save it again", result.rejection)
+    }
+
+    @Test
+    fun `an unset amount variable is reported as missing`() {
+        val fired = TaskerPlugin.extrasOf(TaskerPlugin.bundleValues(mapOf("amount" to "%amount"), token))
+        assertEquals("No amount or text was provided", handleAutomationExtras(true, token, fired).rejection)
+    }
+}

@@ -45,6 +45,25 @@
                 <action android:name="com.azimulkabir.actua.action.QUEUE_TRANSACTION" />
             </intent-filter>
         </receiver>
+        <!-- Tasker/Locale action plugin "Queue transaction" (#1040). The fire receiver checks the
+             automation token like AutomationIntentReceiver. -->
+        <activity
+            android:name=".tasker.TaskerEditActivity"
+            android:exported="true"
+            android:label="@string/tasker_queue_transaction"
+            android:theme="@style/Theme.Actua"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="com.twofortyfouram.locale.intent.action.EDIT_SETTING" />
+            </intent-filter>
+        </activity>
+        <receiver
+            android:name=".data.importing.TaskerFireReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.twofortyfouram.locale.intent.action.FIRE_SETTING" />
+            </intent-filter>
+        </receiver>
         <activity
             android:name=".DisconnectResetActivity"
             android:exported="false"
