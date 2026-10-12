@@ -89,6 +89,7 @@ import com.azimulkabir.actua.model.resolveChoices
 import com.azimulkabir.actua.model.withChoiceLabels
 import com.azimulkabir.actua.ui.components.centsToInput
 import com.azimulkabir.actua.ui.components.currencyInputPrefix
+import com.azimulkabir.actua.ui.components.withCurrencySymbol
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
 import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.parseStoredDate
@@ -215,7 +216,7 @@ fun AddTransactionScreen(
         label = "Amount cursor alpha",
     )
     val blinkingCursor = if (cursorAlpha > 0.5f) " │" else ""
-    val currencyPrefix = currencyInputPrefix()
+    val currencySymbol = currencyInputPrefix()
     val signToggleLabel = when {
         isTransfer -> "Reverse transfer"
         incoming -> "Switch to expense"
@@ -310,7 +311,7 @@ fun AddTransactionScreen(
                     amountCents == 0L -> "0"
                     else -> centsToInput(amountCents)
                 },
-                currencyPrefix = currencyPrefix,
+                currencySymbol = currencySymbol,
                 kind = when {
                     isTransfer -> AmountKind.Transfer
                     incoming -> AmountKind.Income
@@ -457,7 +458,7 @@ fun AddTransactionScreen(
                                     else -> centsToInput(line.amountCents)
                                 }
                                 val splitAmountPresentation = amountFieldPresentation(
-                                    currencyPrefix = currencyPrefix,
+                                    currencySymbol = currencySymbol,
                                     input = splitAmountInput,
                                     active = splitCalculatorIndex == index,
                                     cursor = blinkingCursor,
@@ -466,12 +467,12 @@ fun AddTransactionScreen(
                                     icon = Icons.Outlined.Calculate,
                                     label = "Amount",
                                     value = splitAmountPresentation.value.ifEmpty {
-                                        if (splitAmountPresentation.showEmptyCaret) currencyPrefix + blinkingCursor.trim()
+                                        if (splitAmountPresentation.showEmptyCaret) withCurrencySymbol(blinkingCursor.trim(), currencySymbol)
                                         else "Add amount"
                                     },
                                     valueIsPlaceholder = line.amountCents == 0L,
                                     caption = if (line.amountCents == 0L && remaining > 0) {
-                                        "Remaining $currencyPrefix${centsToInput(remaining)}"
+                                        "Remaining ${withCurrencySymbol(centsToInput(remaining), currencySymbol)}"
                                     } else null,
                                     trailing = if (line.amountCents == 0L && remaining > 0) {
                                         {
@@ -526,7 +527,7 @@ fun AddTransactionScreen(
                     )
                     Text(
                         if (splitTotal == amountCents) "Split total matches the transaction amount"
-                        else "Remaining: $currencyPrefix${centsToInput(amountCents - splitTotal)}",
+                        else "Remaining: ${withCurrencySymbol(centsToInput(amountCents - splitTotal), currencySymbol)}",
                         color = if (splitTotal == amountCents) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
@@ -738,7 +739,7 @@ private enum class AmountKind { Expense, Income, Transfer }
 @Composable
 private fun AmountHero(
     amountText: String,
-    currencyPrefix: String,
+    currencySymbol: String,
     kind: AmountKind,
     isZero: Boolean,
     direction: String?,
@@ -764,7 +765,7 @@ private fun AmountHero(
         AmountKind.Income -> "+"
         AmountKind.Transfer -> ""
     }
-    val shown = "$sign$currencyPrefix$amountText"
+    val shown = sign + withCurrencySymbol(amountText, currencySymbol)
     ActuaHeroAmount(
         amount = shown,
         caption = caption,
@@ -1307,7 +1308,7 @@ internal data class AmountFieldPresentation(
 )
 
 internal fun amountFieldPresentation(
-    currencyPrefix: String,
+    currencySymbol: String,
     input: String,
     active: Boolean,
     cursor: String,
@@ -1319,7 +1320,7 @@ internal fun amountFieldPresentation(
     )
 } else {
     AmountFieldPresentation(
-        value = currencyPrefix + input + if (active) cursor else "",
+        value = withCurrencySymbol(input + if (active) cursor else "", currencySymbol),
         placeholder = "Amount",
         showEmptyCaret = false,
     )

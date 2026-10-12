@@ -72,10 +72,16 @@ data class EffectiveDisplayFormats(
         const val FOLLOW_BUDGET = "Same as budget"
         const val SHOW = "Show"
         const val HIDE = "Hide"
+        const val BEFORE_AMOUNT = "Before amount"
+        const val AFTER_AMOUNT = "After amount"
+        const val SPACE = "Space"
+        const val NO_SPACE = "No space"
 
         fun resolve(
             currencyCode: String,
             currencySymbolOnly: Boolean,
+            symbolPosition: String,
+            symbolSpacing: String,
             dateFormat: String,
             numberFormat: String,
             decimalPlacesMode: String,
@@ -87,8 +93,17 @@ data class EffectiveDisplayFormats(
                 currencyCode = if (followCurrency) budget.currencyCode else currencyCode,
                 // Actual shows its own short symbol (`currencies.ts`), e.g. $ for USD.
                 currencySymbolOnly = if (followCurrency) true else currencySymbolOnly,
-                symbolAfterAmount = followCurrency && budget.symbolAfterAmount,
-                spaceBetweenAmountAndSymbol = followCurrency && budget.spaceBetweenAmountAndSymbol,
+                // Placement follows the budget independently of the currency, so it also applies to a device currency.
+                symbolAfterAmount = when (symbolPosition) {
+                    AFTER_AMOUNT -> true
+                    BEFORE_AMOUNT -> false
+                    else -> budget.symbolAfterAmount
+                },
+                spaceBetweenAmountAndSymbol = when (symbolSpacing) {
+                    SPACE -> true
+                    NO_SPACE -> false
+                    else -> budget.spaceBetweenAmountAndSymbol
+                },
                 dateFormat = if (dateFormat == FOLLOW_BUDGET) budget.dateFormat else dateFormat,
                 numberFormat = if (numberFormat == FOLLOW_BUDGET) budget.numberFormat else numberFormat,
                 hideDecimals = when (decimalPlacesMode) {

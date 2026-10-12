@@ -36,6 +36,28 @@ class MoneyFormatterTest {
         assertEquals("1.234,56", formatMoneyCents(123456, false))
     }
 
+    @Test fun symbolAfterTheAmountKeepsSignsAndHiddenDecimals() {
+        CurrencyDisplay.code = "EUR"
+        CurrencyDisplay.symbolOnly = true
+        CurrencyDisplay.symbolAfterAmount = true
+        assertEquals("1,000.00€", formatMoneyCents(100000, false))
+        assertEquals("−1,000.00€", formatMoneyCents(-100000, false))
+        assertEquals("+1,000.00€", formatMoneyCents(100000, false, showPositiveSign = true))
+        assertEquals("1,001€", formatMoneyCents(100050, hideDecimalPlaces = true))
+        assertEquals("0€", formatMoneyCents(-40, hideDecimalPlaces = true))
+    }
+
+    @Test fun entryTextPlacesTheSymbolLikeDisplayedAmounts() {
+        assertEquals("€12.34", withCurrencySymbol("12.34", "€"))
+        CurrencyDisplay.spaceBetweenAmountAndSymbol = true
+        assertEquals("€\u202F12.34", withCurrencySymbol("12.34", "€"))
+        CurrencyDisplay.symbolAfterAmount = true
+        assertEquals("12.34\u202F€", withCurrencySymbol("12.34", "€"))
+        CurrencyDisplay.spaceBetweenAmountAndSymbol = false
+        assertEquals("12.34€", withCurrencySymbol("12.34", "€"))
+        assertEquals("12.34", withCurrencySymbol("12.34", ""))
+    }
+
     @Test fun supportsApostropheGrouping() {
         NumberDisplay.format = "1’234.56"
         assertEquals("৳1’234’567.89", formatMoneyCents(123456789, false))

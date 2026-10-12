@@ -46,6 +46,7 @@ import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
 import com.azimulkabir.actua.ui.components.centsToInput
 import com.azimulkabir.actua.ui.components.currencyInputPrefix
+import com.azimulkabir.actua.ui.components.withCurrencySymbol
 import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.Sizes
@@ -148,11 +149,11 @@ fun EditScheduleScreen(
         return
     }
 
-    val currencyPrefix = currencyInputPrefix()
+    val currencySymbol = currencyInputPrefix()
     val sign = if (income) "+" else "−"
     val kindColor = if (income) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
     val caption = if (income) "Income" else "Expense"
-    val shownAmount = "$sign$currencyPrefix${heroAmountText(amountLow)}"
+    val shownAmount = sign + withCurrencySymbol(heroAmountText(amountLow), currencySymbol)
 
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize().imePadding()) {
@@ -204,10 +205,10 @@ fun EditScheduleScreen(
                 supportingText = when (amountOp) {
                     ScheduleAmountOp.EXACT -> "Exact amount"
                     ScheduleAmountOp.APPROXIMATE -> "Approximate amount"
-                    ScheduleAmountOp.BETWEEN -> "to $sign$currencyPrefix${heroAmountText(amountHigh)}"
+                    ScheduleAmountOp.BETWEEN -> "to $sign${withCurrencySymbol(heroAmountText(amountHigh), currencySymbol)}"
                 },
                 contentDescription = if (amountOp == ScheduleAmountOp.BETWEEN) {
-                    "Amount, $caption between $shownAmount and $sign$currencyPrefix${heroAmountText(amountHigh)}"
+                    "Amount, $caption between $shownAmount and $sign${withCurrencySymbol(heroAmountText(amountHigh), currencySymbol)}"
                 } else "Amount, $caption $shownAmount",
                 onClickLabel = "Edit amount",
                 onClick = { calculatorTarget = 0 },
@@ -247,14 +248,14 @@ fun EditScheduleScreen(
                     ActuaFormRow(
                         icon = Icons.Outlined.Calculate,
                         label = "From",
-                        value = "$currencyPrefix${centsToInput(amountLow)}",
+                        value = withCurrencySymbol(centsToInput(amountLow), currencySymbol),
                         onClick = { calculatorTarget = 0 },
                     )
                     ActuaCardDivider()
                     ActuaFormRow(
                         icon = Icons.Outlined.Calculate,
                         label = "To",
-                        value = "$currencyPrefix${centsToInput(amountHigh)}",
+                        value = withCurrencySymbol(centsToInput(amountHigh), currencySymbol),
                         onClick = { calculatorTarget = 1 },
                     )
                 }

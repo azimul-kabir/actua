@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Currency symbols can go after the amount, with or without a space, as in Actual ([#1054](https://github.com/azimul-kabir/actua/pull/1054))
 - The Accounts tab shows how many captured transactions are waiting, and opens them on their own review page ([#1052](https://github.com/azimul-kabir/actua/pull/1052))
 - Captured transactions can post a notification to review them or import them with one tap ([#1049](https://github.com/azimul-kabir/actua/pull/1049))
 - Captured transactions start with the account you last chose for the same card or app ([#1048](https://github.com/azimul-kabir/actua/pull/1048))
