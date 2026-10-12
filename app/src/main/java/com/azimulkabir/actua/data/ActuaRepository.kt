@@ -42,6 +42,7 @@ import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BudgetOpenProbe
 import com.azimulkabir.actua.data.importing.ImportCandidate
+import com.azimulkabir.actua.data.importing.ImportGroup
 import com.azimulkabir.actua.data.location.Coordinates
 import com.azimulkabir.actua.data.location.PayeeLocationWriter
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
@@ -1142,19 +1143,44 @@ class ActuaRepository(context: Context) {
      */
     fun importTransactions(
         accountId: String, candidates: List<ImportCandidate>, cleared: Boolean = true, addAsNew: Set<Int> = emptySet(),
-    ): Int {
-        if (candidates.isEmpty()) return 0
+    ): Int = importTransactions(listOf(ImportGroup(accountId, candidates, addAsNew)), cleared)
+
+    /**
+     * Commits several accounts' reviewed candidates as one CRDT batch, each [ImportGroup] matched
+     * and planned against its own account as [importTransactions] does for one (#1037).
+     */
+    fun importTransactions(groups: List<ImportGroup>, cleared: Boolean = true): Int {
+        val nonEmpty = groups.filter { it.candidates.isNotEmpty() }
+        if (nonEmpty.isEmpty()) return 0
         val db = actualDatabase ?: return 0
         val writer = actualWriter ?: return 0
-        require(db.fetchAccounts().any { it.id == accountId && !it.closed }) { "That account is unavailable" }
-        val plan = planImport(db, accountId, candidates, cleared)
-        // One batch for the whole file: payees, rows, splits, updates and any transfer a rule's payee
+        val accounts = db.fetchAccounts()
+        nonEmpty.forEach { group ->
+            require(accounts.any { it.id == group.accountId && !it.closed }) { "That account is unavailable" }
+        }
+        // One batch for every account: payees, rows, splits, updates and any transfer a rule's payee
         // implies, with Actual's `now - index × increment` sort order to keep the file order (#1007).
         val batch = writer.importBatch()
         val now = System.currentTimeMillis()
         var addedCount = 0
         fun nextSortOrder() = (now - addedCount++ * ActualTransactionWriter.TRANSACTION_SORT_INCREMENT).toDouble()
-        val offBudget = db.fetchAccounts().any { it.id == accountId && it.offBudget }
+        nonEmpty.forEach { group ->
+            stageImport(db, batch, group, cleared, accounts.any { it.id == group.accountId && it.offBudget }, ::nextSortOrder)
+        }
+        batch.commit()
+        return nonEmpty.sumOf { it.candidates.size }
+    }
+
+    private fun stageImport(
+        db: ActualBudgetDatabase,
+        batch: ActualTransactionWriter.ImportBatch,
+        group: ImportGroup,
+        cleared: Boolean,
+        offBudget: Boolean,
+        nextSortOrder: () -> Double,
+    ) {
+        val addAsNew = group.addAsNew
+        val plan = planImport(db, group.accountId, group.candidates, cleared)
         plan.prepared.forEachIndexed { index, item ->
             val match = plan.matches[index]?.takeIf { index !in addAsNew }
             if (match != null) {
@@ -1195,8 +1221,6 @@ class ActuaRepository(context: Context) {
                 batch.insertSplit(parent, children)
             }
         }
-        batch.commit()
-        return candidates.size
     }
 
     /** Read-only drill-down: the transactions behind a report segment, newest first. */

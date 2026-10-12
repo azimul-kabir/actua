@@ -123,12 +123,20 @@ class NotificationImportPreferences(context: Context) {
 
     fun enqueue(candidate: ImportCandidate) {
         synchronized(NotificationImportPreferences::class.java) {
-            val rows = queued().toMutableList().apply { add(0, candidate) }.take(100)
-            val json = JSONArray(rows.map { JSONObject().put("date", it.date).put("payee", it.payee)
-                .put("notes", it.notes).put("amount", it.amountCents).put("reference", it.reference)
-            .put("confidence", it.confidence.name).put("source", it.sourceLabel).put("accountHint", it.accountHint) })
-            preferences.edit().putString("queue", json.toString()).apply()
+            writeQueue(queued().toMutableList().apply { add(0, candidate) })
         }
+    }
+
+    /** Keeps only [candidates] queued, e.g. the rows an import left without an account (#1037). */
+    fun replaceQueue(candidates: List<ImportCandidate>) {
+        synchronized(NotificationImportPreferences::class.java) { writeQueue(candidates) }
+    }
+
+    private fun writeQueue(candidates: List<ImportCandidate>) {
+        val json = JSONArray(candidates.take(100).map { JSONObject().put("date", it.date).put("payee", it.payee)
+            .put("notes", it.notes).put("amount", it.amountCents).put("reference", it.reference)
+            .put("confidence", it.confidence.name).put("source", it.sourceLabel).put("accountHint", it.accountHint) })
+        preferences.edit().putString("queue", json.toString()).apply()
     }
 
     fun queued(): List<ImportCandidate> = runCatching {

@@ -2250,9 +2250,9 @@ fun AppNavigation(
             DetailDestination.ImportTransactions -> ImportTransactionsScreen(
                 accounts = accounts.filterNot { it.closed },
                 findMatches = repository::importMatches,
-                onImport = { accountId, candidates, cleared, addAsNew, onImported ->
+                onImport = { groups, cleared, onImported ->
                     mutate("Importing transactions", onChanged = onImported) {
-                        repository.importTransactions(accountId, candidates, cleared, addAsNew) == candidates.size
+                        repository.importTransactions(groups, cleared) == groups.sumOf { it.candidates.size }
                     }
                 },
                 onBack = { detail = DetailDestination.Main },

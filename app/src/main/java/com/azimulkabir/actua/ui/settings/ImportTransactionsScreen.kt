@@ -47,6 +47,9 @@ import com.azimulkabir.actua.data.importing.accountForImportHint
 import com.azimulkabir.actua.data.importing.AutomationIntent
 import com.azimulkabir.actua.data.importing.CsvTransactionCandidateSource
 import com.azimulkabir.actua.data.importing.ImportCandidate
+import com.azimulkabir.actua.data.importing.ImportGroup
+import com.azimulkabir.actua.data.importing.ReviewedCandidate
+import com.azimulkabir.actua.data.importing.groupImportRows
 import com.azimulkabir.actua.data.importing.ImportColumnMapping
 import com.azimulkabir.actua.data.importing.ImportColumnRole
 import com.azimulkabir.actua.data.importing.ImportDuplicateDetector
@@ -109,6 +112,9 @@ private data class ReviewRow(
     val sourceLabel: String = "Statement",
     /** Add the row even though it matches an existing transaction (Actual's `forceAddTransaction`). */
     val addAsNew: Boolean = false,
+    /** This row's own account when queued rows are reviewed (#1037); null until one is chosen. */
+    val accountId: String? = null,
+    val accountHint: String? = null,
 )
 
 @Composable
@@ -117,10 +123,10 @@ fun ImportTransactionsScreen(
     /** For an account and candidates, the existing transaction each would update (null: added). Blocking. */
     findMatches: (String, List<ImportCandidate>) -> List<ImportMatch?>,
     /**
-     * Account id, reviewed candidates, whether to mark them cleared, the candidate indexes to add
-     * even though they match, and a callback once imported.
+     * The reviewed candidates grouped by account, whether to mark them cleared, and a callback once
+     * they are all imported in one batch.
      */
-    onImport: (String, List<ImportCandidate>, Boolean, Set<Int>, onImported: () -> Unit) -> Unit,
+    onImport: (List<ImportGroup>, Boolean, onImported: () -> Unit) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     initialSharedText: String? = null,
@@ -166,19 +172,27 @@ fun ImportTransactionsScreen(
             info.activityInfo.packageName to info.loadLabel(context.packageManager).toString()
         }.distinctBy { it.first }.sortedBy { it.second.lowercase() }
     }
+    // Queued notifications and broadcasts can belong to different accounts, so each row picks its
+    // own (#1037); statement files and pasted text import into the one chosen account.
+    // Read from state on every call, so handlers that switch the source see the new value.
+    fun perRowAccounts() = sourceFormat == StatementFormat.NOTIFICATION
+    fun ReviewRow.targetAccountId(): String? = if (perRowAccounts()) accountId else account?.id
     // Selected, valid rows with their candidates; matching follows Actual's file import (#1009).
     val readyRows = rows.withIndex().filter { it.value.selected }
-        .mapNotNull { (index, row) -> row.toCandidateOrNull()?.let { index to it } }
-    val matchesByRow by produceState(emptyMap<Int, ImportMatch>(), account?.id, readyRows) {
-        val accountId = account?.id
-        value = if (accountId == null || readyRows.isEmpty()) emptyMap() else runCatching {
-            withContext(Dispatchers.IO) { findMatches(accountId, readyRows.map { it.second }) }
-        }.getOrDefault(emptyList()).withIndex()
-            .mapNotNull { (position, match) -> match?.let { readyRows[position].first to it } }.toMap()
+        .mapNotNull { (index, row) -> row.toCandidateOrNull()?.let { Triple(index, it, row.targetAccountId()) } }
+    val matchesByRow by produceState(emptyMap<Int, ImportMatch>(), readyRows) {
+        value = runCatching {
+            withContext(Dispatchers.IO) {
+                readyRows.filter { it.third != null }.groupBy { requireNotNull(it.third) }
+                    .flatMap { (accountId, inAccount) ->
+                        inAccount.map { it.first }.zip(findMatches(accountId, inAccount.map { it.second }))
+                    }
+            }
+        }.getOrDefault(emptyList()).mapNotNull { (index, match) -> match?.let { index to it } }.toMap()
     }
 
     fun reviewCandidates(candidates: List<ImportCandidate>, parseProblems: List<ImportProblem>) {
-        candidates.mapNotNull(ImportCandidate::accountHint).distinct().singleOrNull()?.let { hint ->
+        if (!perRowAccounts()) candidates.mapNotNull(ImportCandidate::accountHint).distinct().singleOrNull()?.let { hint ->
             accountForImportHint(hint, accounts)?.let { account = it }
         }
         rows.clear()
@@ -190,7 +204,9 @@ fun ImportTransactionsScreen(
             val duplicate = !knownKeys.add(key)
             ReviewRow(candidate.sourceRow, formatDate(candidate.date), candidate.payee,
                 BigDecimal.valueOf(candidate.amountCents, 2).toPlainString(), candidate.notes,
-                candidate.reference, selected = !duplicate, candidate.confidence, candidate.sourceLabel)
+                candidate.reference, selected = !duplicate, candidate.confidence, candidate.sourceLabel,
+                accountId = if (perRowAccounts()) candidate.accountHint?.let { accountForImportHint(it, accounts)?.id } else null,
+                accountHint = candidate.accountHint)
         }
         problems = parseProblems
         message = if (rows.isEmpty()) "No valid transactions found." else null
@@ -501,6 +517,16 @@ fun ImportTransactionsScreen(
                     }
                     Text("${row.confidence.name.lowercase().replaceFirstChar(Char::uppercase)} confidence · ${row.sourceLabel}",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (perRowAccounts()) {
+                        val rowAccount = accounts.firstOrNull { it.id == row.accountId }
+                        ActuaMenuRow(
+                            icon = Icons.Outlined.AccountBalanceWallet,
+                            label = "Account",
+                            value = rowAccount?.name ?: "Choose an account",
+                            valueIsPlaceholder = rowAccount == null,
+                            choices = accounts.map { it.name to it.id },
+                        ) { rows[index] = row.copy(accountId = it) }
+                    }
                     if (match != null) {
                         val existing = "${match.payeeName ?: "a transaction"} on ${formatDate(match.date)}"
                         Text(
@@ -533,25 +559,33 @@ fun ImportTransactionsScreen(
             Spacer(Modifier.height(Spacing.md))
         }
         val selected = rows.filter(ReviewRow::selected)
-        val ready = selected.mapNotNull(ReviewRow::toCandidateOrNull)
-        val addAsNew = selected.mapNotNull { row -> row.toCandidateOrNull()?.let { row.addAsNew } }
-            .withIndex().filter { it.value }.mapTo(mutableSetOf()) { it.index }
+        val reviewed = selected.mapNotNull { row ->
+            row.toCandidateOrNull()?.let { ReviewedCandidate(it, row.targetAccountId(), row.addAsNew) }
+        }
+        val importPlan = groupImportRows(reviewed)
+        val waiting = importPlan.unassigned.size
         ActuaPrimaryActionBar(
-            text = "Approve and import ${ready.size}",
+            text = if (waiting > 0) "Import ${importPlan.importCount} ($waiting need an account)"
+                else "Approve and import ${importPlan.importCount}",
             onClick = {
-                val target = account ?: return@ActuaPrimaryActionBar
-                onImport(target.id, ready, markCleared, addAsNew) {
-                    message = "Imported ${ready.size} transaction${if (ready.size == 1) "" else "s"}."
-                    importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, target.name,
-                        ready.size, rows.size - ready.size, System.currentTimeMillis()))
+                val imported = importPlan.importCount
+                val accountNames = importPlan.groups.mapNotNull { group -> accounts.firstOrNull { it.id == group.accountId }?.name }
+                // Ticked rows still without an account stay for review, and stay queued (#1037).
+                val leftover = rows.filter { it.selected && it.toCandidateOrNull() != null && it.targetAccountId() == null }
+                onImport(importPlan.groups, markCleared) {
+                    message = "Imported $imported transaction${if (imported == 1) "" else "s"}." +
+                        if (leftover.isNotEmpty()) " ${leftover.size} still need an account." else ""
+                    importPreferences.addHistory(ImportHistoryEntry(sourceName, sourceFormat, accountNames.joinToString(", "),
+                        imported, rows.size - imported, System.currentTimeMillis()))
                     history = importPreferences.history()
                     if (sourceFormat == StatementFormat.NOTIFICATION) {
-                        notificationPreferences.clearQueue(); queued = emptyList()
+                        val remaining = leftover.mapNotNull(ReviewRow::toQueuedCandidateOrNull)
+                        notificationPreferences.replaceQueue(remaining); queued = remaining
                     }
-                    rows.clear(); problems = emptyList()
+                    rows.clear(); rows += leftover; problems = emptyList()
                 }
             },
-            enabled = selected.isNotEmpty() && ready.size == selected.size,
+            enabled = selected.isNotEmpty() && reviewed.size == selected.size && importPlan.importCount > 0,
             icon = Icons.Outlined.Check,
         )
         if (history.isNotEmpty()) {
@@ -570,6 +604,10 @@ private fun ReviewRow.toCandidateOrNull(): ImportCandidate? = runCatching {
     ImportCandidate(sourceRow, parsedDate.year * 10_000 + parsedDate.monthValue * 100 + parsedDate.dayOfMonth,
         payee.trim(), notes.trim(), cents, reference)
 }.getOrNull()
+
+/** The row as it goes back to the notification queue, keeping its source and account hint. */
+private fun ReviewRow.toQueuedCandidateOrNull(): ImportCandidate? =
+    toCandidateOrNull()?.copy(confidence = confidence, sourceLabel = sourceLabel, accountHint = accountHint)
 
 private fun formatDate(value: Int): String = "%04d-%02d-%02d".format(value / 10_000, value / 100 % 100, value % 100)
 
