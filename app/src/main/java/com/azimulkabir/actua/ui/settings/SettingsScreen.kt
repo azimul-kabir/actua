@@ -438,7 +438,10 @@ fun SettingsScreen(
                                 "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
                                 currencySymbolOnly, onCurrencySymbolOnlyChange)
                         }
-                        if (currencyCode.isNotBlank()) {
+                        val shownCurrency = if (currencyCode == EffectiveDisplayFormats.FOLLOW_BUDGET) {
+                            budgetDisplayFormats.currencyCode
+                        } else currencyCode
+                        if (shownCurrency.isNotBlank()) {
                             SettingsDivider()
                             SettingsChoice(
                                 "Symbol position",
