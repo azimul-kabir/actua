@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.data.importing.accountForImportHint
 import com.azimulkabir.actua.data.importing.AutomationIntent
 import com.azimulkabir.actua.data.importing.CsvTransactionCandidateSource
 import com.azimulkabir.actua.data.importing.ImportCandidate
@@ -169,7 +170,7 @@ fun ImportTransactionsScreen(
 
     fun reviewCandidates(candidates: List<ImportCandidate>, parseProblems: List<ImportProblem>) {
         candidates.mapNotNull(ImportCandidate::accountHint).distinct().singleOrNull()?.let { hint ->
-            accounts.singleOrNull { hint in it.name.filter(Char::isDigit) }?.let { account = it }
+            accountForImportHint(hint, accounts)?.let { account = it }
         }
         rows.clear()
         // Rows the account already holds are matched and updated instead (#1009); only repeats

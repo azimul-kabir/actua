@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Tasker's `account` extra now selects an account by its exact name, not only by digits in the name ([#1034](https://github.com/azimul-kabir/actua/pull/1034))
 - Updated Actua and developer website, support email and Discord links ([#1030](https://github.com/azimul-kabir/actua/pull/1030))
 
 ## [1.7.0] - 2026-10-09
