@@ -122,8 +122,8 @@ fun CompactCalculatorPad(
     val rows = listOf(
         listOf("7", "8", "9", "×", "÷"),
         listOf("4", "5", "6", "+", "−"),
-        listOf("1", "2", "3", "±", "="),
-        listOf(".", "0", "⌫", "✓"),
+        listOf("1", "2", "3", "⌫", "="),
+        listOf(".", "0", "±", "✓"),
     )
     Column(
         Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 6.dp),
