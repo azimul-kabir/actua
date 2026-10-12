@@ -71,5 +71,5 @@ uploaded anywhere by Actua.
 ## Contact
 
 Questions about this policy can be sent to
-[actua.mobile@gmail.com](mailto:actua.mobile@gmail.com), or raised as an
+[actua@azimulkabir.com](mailto:actua@azimulkabir.com), or raised as an
 issue on [GitHub](https://github.com/azimul-kabir/actua/issues).

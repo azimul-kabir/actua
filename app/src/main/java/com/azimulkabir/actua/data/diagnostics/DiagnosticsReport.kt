@@ -5,7 +5,7 @@ import com.azimulkabir.actua.BuildConfig
 
 /** The text a user copies, saves or emails with a bug report: app/device versions and the event log. */
 object DiagnosticsReport {
-    const val SUPPORT_EMAIL = "actua.mobile@gmail.com"
+    const val SUPPORT_EMAIL = "actua@azimulkabir.com"
 
     fun build(
         events: List<DiagnosticsLog.Event> = DiagnosticsLog.events(),

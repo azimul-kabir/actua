@@ -602,16 +602,20 @@ fun SettingsScreen(
                             uriHandler.openUri("https://github.com/azimul-kabir/actua")
                         }
                         SettingsDivider()
-                        AboutRow("Website", "actua.pages.dev") {
-                            uriHandler.openUri("https://actua.pages.dev")
+                        AboutRow("Website", "actua.azimulkabir.com") {
+                            uriHandler.openUri("https://actua.azimulkabir.com")
+                        }
+                        SettingsDivider()
+                        AboutRow("Developer website", "www.azimulkabir.com") {
+                            uriHandler.openUri("https://www.azimulkabir.com")
                         }
                         SettingsDivider()
                         AboutRow("FAQ", "Answers to common questions about Actua") {
-                            uriHandler.openUri("https://actua.pages.dev#faq")
+                            uriHandler.openUri("https://actua.azimulkabir.com#faq")
                         }
                         SettingsDivider()
                         AboutRow("Join Discord", "Discuss Actua, test beta builds and help with development") {
-                            uriHandler.openUri("https://discord.gg/FyGxRjmhw")
+                            uriHandler.openUri("https://discord.gg/FhedEyP97f")
                         }
                         SettingsDivider()
                         AboutRow(
@@ -619,8 +623,8 @@ fun SettingsScreen(
                             "Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.",
                         )
                         SettingsDivider()
-                        AboutRow("Contact", "actua.mobile@gmail.com") {
-                            uriHandler.openUri("mailto:actua.mobile@gmail.com")
+                        AboutRow("Contact", "actua@azimulkabir.com") {
+                            uriHandler.openUri("mailto:actua@azimulkabir.com")
                         }
                         SettingsDivider()
                         AboutRow("Privacy Policy", "What data Actua stores, syncs and never collects") {
