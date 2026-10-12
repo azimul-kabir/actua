@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -163,7 +164,12 @@ fun CompactCalculatorPad(
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val gap = 4.dp
-            val keyWidth = (maxWidth - gap * 4) / 5
+            // Sized in whole pixels so ✓ is exactly two keys and a gap wide at every density.
+            val density = LocalDensity.current
+            val gapPx = with(density) { gap.roundToPx() }
+            val keyPx = (constraints.maxWidth - gapPx * 4) / 5
+            val keyWidth = with(density) { keyPx.toDp() }
+            val wideKeyWidth = with(density) { (keyPx * 2 + gapPx).toDp() }
             Column(verticalArrangement = Arrangement.spacedBy(gap)) {
                 rows.forEach { keys ->
                     Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
@@ -175,7 +181,7 @@ fun CompactCalculatorPad(
                                 enabled = key != "✓" || canFinish(calculator.cents),
                                 description = if (key == "±" && onToggleSign != null) toggleSignLabel
                                     else calculatorKeyDescriptions[key],
-                                modifier = Modifier.width(if (key == "✓") keyWidth * 2 + gap else keyWidth),
+                                modifier = Modifier.width(if (key == "✓") wideKeyWidth else keyWidth),
                                 onClick = { press(key) },
                             )
                         }
