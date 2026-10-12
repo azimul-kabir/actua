@@ -22,3 +22,29 @@ fun importHintAccountNames(accounts: List<Account>): List<String> {
     val open = accounts.filterNot(Account::closed)
     return open.filter { accountForImportHint(it.name, open)?.id == it.id }.map { it.name.trim() }
 }
+
+/**
+ * The key a captured row's chosen account is remembered under (#1045): its account hint when it
+ * has one ("9921"), otherwise its source ("com.bank.app", "Tasker: GPay").
+ */
+fun importAccountMemoryKey(hint: String?, source: String): String =
+    hint?.trim()?.takeIf(String::isNotEmpty)?.let { "hint:" + it.lowercase() } ?: "source:" + source.trim()
+
+/**
+ * The account a captured row starts with on review: the account its [hint] names, else the account
+ * last chosen for that hint, else the one last chosen for its [source]. [remembered] maps a
+ * memory key to an account id; closed or missing accounts are never returned.
+ */
+fun prefilledImportAccount(
+    hint: String?,
+    source: String,
+    accounts: List<Account>,
+    remembered: (String) -> String?,
+): Account? {
+    val open = accounts.filterNot(Account::closed)
+    fun byId(key: String) = remembered(key)?.let { id -> open.firstOrNull { it.id == id } }
+    val cleanHint = hint?.trim()?.takeIf(String::isNotEmpty)
+    return cleanHint?.let { accountForImportHint(it, open) }
+        ?: cleanHint?.let { byId(importAccountMemoryKey(it, source)) }
+        ?: byId(importAccountMemoryKey(null, source))
+}
