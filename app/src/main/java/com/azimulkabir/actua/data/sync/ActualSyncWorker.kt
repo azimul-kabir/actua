@@ -26,6 +26,7 @@ import com.azimulkabir.actua.data.network.ActualServerException
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
 import com.azimulkabir.actua.data.network.UrlConnectionTransport
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
+import com.azimulkabir.actua.data.notifications.ScheduleReminderScheduler
 import com.azimulkabir.actua.data.schedules.ActualScheduleWriter
 import com.azimulkabir.actua.data.schedules.SchedulePoster
 import com.azimulkabir.actua.data.security.BudgetEncryptionKeyStore
@@ -173,6 +174,7 @@ class ActualSyncWorker(context: Context, parameters: WorkerParameters) : Corouti
                 is SyncRunResult.Success -> {
                     DiagnosticsLog.background("${syncTriggerLabel(reason)} sync succeeded")
                     CreditCardDueNotificationScheduler.refresh(applicationContext)
+                    ScheduleReminderScheduler.refresh(applicationContext)
                     WidgetUpdater.requestAll(applicationContext)
                     Result.success()
                 }
