@@ -38,7 +38,9 @@ digits that appear in exactly one account's name). Every ticked row that has an 
 together in one batch, each matched against its own account; ticked rows without an account stay
 queued until one is chosen. When no hint names an account, a row starts with the account last imported for
 the same hint (such as the card's last digits) or, without a hint, the same source app. These
-choices are kept on the device per budget and cleared with the notification data. Statement files and pasted text import into the single **Import into**
+choices are kept on the device per budget and cleared with the notification data. Automation rows
+without an `account` share their `source` (default `Tasker`), so send `account` or a distinct `source`
+per card if one automation feeds several accounts. Statement files and pasted text import into the single **Import into**
 account.
 
 After approval, Actua stores a bounded device-local history of the latest 20 imports: source file
