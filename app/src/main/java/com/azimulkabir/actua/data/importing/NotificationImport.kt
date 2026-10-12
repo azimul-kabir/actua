@@ -31,9 +31,7 @@ object FinancialMessageParser {
         val parsedDate = date.find(normalized)?.destructured?.let { (day, month, year) ->
             runCatching { LocalDate.of(year.toInt(), month.toInt(), day.toInt()) }.getOrNull()
         } ?: today
-        val merchant = Regex("(?i)(?:at|to|from)\\s+(.+?)(?=\\s+(?:at|to|from|on|ref|trx|txn|using|card|a/c|account)\\b|[.;]|$)")
-            .findAll(normalized).lastOrNull()?.groupValues?.get(1)?.trim()
-            ?: source
+        val merchant = counterparty(normalized, outgoing = debit != null) ?: source
         val ref = reference.find(normalized)?.groupValues?.get(1)
         val accountHint = account.find(normalized)?.groupValues?.get(1)
         val confidence = when {
@@ -47,6 +45,25 @@ object FinancialMessageParser {
     }
 
     private fun failure(message: String) = ImportParseResult(emptyList(), listOf(ImportProblem(1, message)))
+
+    private val party = Regex("(?i)\\b(at|to|from)\\s+(.+?)(?=\\s+(?:at|to|from|on|ref|trx|txn|using|card|a/c|account)\\b|[.;]|$)")
+
+    /** "your wallet", "card ending 1234", "account XX5678": where the money came from or went, not who. */
+    private val fundingSource = Regex("(?i)^(?:(?:your|my)\\s+)?(?:wallet|balance|card|account|a/c)\\b.*")
+
+    /**
+     * The other party of a transaction (#1044): for money out the first "at"/"to" phrase, for money
+     * in the first "from" phrase, skipping phrases that name the funding source; otherwise the first
+     * remaining phrase. "Paid $5 to Starbucks from Wallet" is Starbucks, not Wallet.
+     */
+    internal fun counterparty(text: String, outgoing: Boolean): String? {
+        val phrases = party.findAll(text)
+            .map { it.groupValues[1].lowercase(Locale.ROOT) to it.groupValues[2].trim() }
+            .filterNot { (_, phrase) -> phrase.isEmpty() || fundingSource.matches(phrase) }
+            .toList()
+        val preferred = if (outgoing) setOf("at", "to") else setOf("from")
+        return (phrases.firstOrNull { it.first in preferred } ?: phrases.firstOrNull())?.second
+    }
 }
 
 data class FinancialMessageProfile(

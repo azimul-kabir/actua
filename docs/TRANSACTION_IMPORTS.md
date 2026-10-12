@@ -59,7 +59,9 @@ limited to 25 MB, and expanded XLSX worksheet parts are bounded to reduce malfor
 SMS or email transaction alerts can be pasted into the import screen or shared to Actua through
 Android's text share sheet. Actua requests neither SMS access nor mailbox access. The parser requires
 explicit debit/credit wording and a labeled or currency-prefixed amount, then extracts the date,
-payee, reference, and account/card suffix when available. Every result remains review-only.
+payee, reference, and account/card suffix when available. The payee is the merchant for money out
+(the first "at"/"to") and the sender for money in (the first "from"), skipping phrases that name a
+wallet, balance, card or account. Every result remains review-only.
 
 Users may optionally enable Android notification-listener access for future transaction alerts.
 This is a system-level sensitive permission and is never enabled silently. Actua ignores messages
