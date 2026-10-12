@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Updated Actua and developer website, support email and Discord links ([#1030](https://github.com/azimul-kabir/actua/pull/1030))
+
 ## [1.7.0] - 2026-10-09
 
 ### Added
