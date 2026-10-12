@@ -1955,6 +1955,13 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    /** Link two existing transactions in different accounts as a transfer (Actual's "Make transfer"). */
+    fun linkAsTransfer(firstId: String, secondId: String): Boolean {
+        val writer = actualWriter ?: return false
+        writer.linkAsTransfer(firstId, secondId)
+        return true
+    }
+
     fun linkScheduleTransactions(scheduleId: String, transactionIds: Collection<String>): Int {
         val db = actualDatabase ?: return 0
         val writer = actualWriter ?: return 0

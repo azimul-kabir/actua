@@ -200,6 +200,7 @@ fun TransactionsScreen(
     onMoveMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
     onLabelMultiple: (List<Transaction>, String) -> Unit = { _, _ -> },
     onMergeTransactions: (Transaction, Transaction) -> Unit = { _, _ -> },
+    onMakeTransfer: (Transaction, Transaction) -> Unit = { _, _ -> },
 ) {
     val listState = rememberLazyListState()
     var search by remember(initialSearch) { mutableStateOf(initialSearch) }
@@ -314,6 +315,10 @@ fun TransactionsScreen(
     val mergePair = remember(visible, selectedIds) {
         val byId = visible.associateBy { it.id }
         mergeablePair(selectedIds.mapNotNull(byId::get))
+    }
+    val transferPair = remember(visible, selectedIds) {
+        val byId = visible.associateBy { it.id }
+        transferablePair(selectedIds.mapNotNull(byId::get))
     }
     val runningBalances = remember(allTransactions, accountName, showRunningBalance) {
         if (showRunningBalance && accountName != null) accountRunningBalances(allTransactions, accountName)
@@ -510,6 +515,19 @@ fun TransactionsScreen(
                                     mergePair?.let { (first, second) ->
                                         confirmReconciled(listOf(first, second)) {
                                             onMergeTransactions(first, second)
+                                            selectionModeOn = false
+                                        }
+                                    }
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Make transfer") },
+                                enabled = transferPair != null,
+                                onClick = {
+                                    bulkMenuOpen = false
+                                    transferPair?.let { (first, second) ->
+                                        confirmReconciled(listOf(first, second)) {
+                                            onMakeTransfer(first, second)
                                             selectionModeOn = false
                                         }
                                     }

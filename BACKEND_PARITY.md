@@ -399,6 +399,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   the bank import (then the imported payee, then the earlier date) is kept and fills its empty
   fields from the other, a dropped split's lines move to the kept row, and transfer links are
   carried or both transfers' other legs merged, all in one CRDT batch
+- Make transfer for two selected transactions like Actual's desktop action (`validForTransfer`):
+  different accounts, amounts that cancel out and neither already a transfer; both rows take the
+  other account's transfer payee, link to each other and lose their category in one CRDT batch,
+  keeping dates, cleared/reconciled state and import data. Split rows are refused (#748)
 - Collapsible account balance details with compact Budget-tab typography
 - Credit-card account details with limit, available credit, current billing cycle
   (including its date range), cycle spending, and calculated payment due date using
