@@ -287,6 +287,18 @@ class ActualTransactionWriter(
     }
 
     /**
+     * Link two existing transactions in different accounts as one transfer in a single batch (the
+     * desktop "Make transfer" action, see [TransactionTransferLink]). No row is inserted.
+     */
+    @Synchronized
+    fun linkAsTransfer(firstId: String, secondId: String) {
+        val first = database.fetchTransactionRow(firstId)
+        val second = database.fetchTransactionRow(secondId)
+        TransactionTransferLink.invalidReason(first, second)?.let { throw IllegalArgumentException(it) }
+        mutate(updates = TransactionTransferLink.plan(requireNotNull(first), requireNotNull(second), database::transferPayeeId))
+    }
+
+    /**
      * loot-core's `removeTransfer` for every leg in [legs] that has a counterpart: the counterpart is
      * tombstoned, or unlinked (`transferred_id` and payee cleared) when it is a split child, and the
      * leg's own `transferred_id` is cleared. Counterparts in [removedIds] are already being deleted.
