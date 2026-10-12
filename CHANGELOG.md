@@ -20,6 +20,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- The demo budget has a year of everyday activity and a fuller Reports dashboard ([#1057](https://github.com/azimul-kabir/actua/pull/1057))
 - Tasker's `account` extra now selects an account by its exact name, not only by digits in the name ([#1034](https://github.com/azimul-kabir/actua/pull/1034))
 - Updated Actua and developer website, support email and Discord links ([#1030](https://github.com/azimul-kabir/actua/pull/1030))
 
