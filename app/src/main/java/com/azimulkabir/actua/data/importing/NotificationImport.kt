@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.importing
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import org.json.JSONArray
@@ -53,6 +54,8 @@ data class FinancialMessageProfile(
     val creditKeywords: Set<String> = setOf("credited", "credit", "refund", "received", "deposited", "deposit"),
 )
 
+data class AutomationRejection(val reason: String, val atMillis: Long)
+
 class NotificationImportPreferences(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences("notification_import", Context.MODE_PRIVATE)
     var enabled: Boolean
@@ -68,6 +71,7 @@ class NotificationImportPreferences(context: Context) {
         set(value) {
             if (value && automationToken == null) regenerateAutomationToken()
             preferences.edit().putBoolean("automationEnabled", value).apply()
+            clearAutomationRejection()
         }
 
     val automationToken: String?
@@ -76,7 +80,33 @@ class NotificationImportPreferences(context: Context) {
     fun regenerateAutomationToken(): String {
         val token = ByteArray(16).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
         preferences.edit().putString("automationToken", token).apply()
+        clearAutomationRejection()
         return token
+    }
+
+    /** Why the latest automation broadcast was dropped, and when; only a fixed reason is kept. */
+    val automationRejection: AutomationRejection?
+        get() = preferences.getString("automationRejection", null)?.let {
+            AutomationRejection(it, preferences.getLong("automationRejectedAt", 0))
+        }
+
+    fun recordAutomationRejection(reason: String, atMillis: Long = System.currentTimeMillis()) {
+        preferences.edit().putString("automationRejection", reason).putLong("automationRejectedAt", atMillis).apply()
+    }
+
+    fun clearAutomationRejection() {
+        if (preferences.contains("automationRejection")) {
+            preferences.edit().remove("automationRejection").remove("automationRejectedAt").apply()
+        }
+    }
+
+    /** Calls [onChange] when the rejection changes; invoke the returned function to stop. */
+    fun observeAutomationRejection(onChange: () -> Unit): () -> Unit {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || key == "automationRejection") onChange()
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        return { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
     fun profile(): FinancialMessageProfile = FinancialMessageProfile(

@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -87,6 +88,7 @@ import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.SwapVert
@@ -146,6 +148,13 @@ fun ImportTransactionsScreen(
     var queued by remember { mutableStateOf(notificationPreferences.queued()) }
     var automationEnabled by remember { mutableStateOf(notificationPreferences.automationEnabled) }
     var automationToken by remember { mutableStateOf(notificationPreferences.automationToken) }
+    var automationRejection by remember { mutableStateOf(notificationPreferences.automationRejection) }
+    DisposableEffect(notificationPreferences) {
+        val stop = notificationPreferences.observeAutomationRejection {
+            automationRejection = notificationPreferences.automationRejection
+        }
+        onDispose(stop)
+    }
     var pastedText by remember { mutableStateOf(initialSharedText.orEmpty()) }
     var debitKeywords by remember { mutableStateOf(notificationPreferences.profile().debitKeywords.joinToString(", ")) }
     var creditKeywords by remember { mutableStateOf(notificationPreferences.profile().creditKeywords.joinToString(", ")) }
@@ -347,6 +356,16 @@ fun ImportTransactionsScreen(
                             copySensitiveText(context, "Actua automation token", token)
                             message = "Copied the automation token."
                         },
+                    )
+                }
+                automationRejection?.let { rejection ->
+                    ActuaCardDivider()
+                    ActuaFormRow(
+                        icon = Icons.Outlined.ErrorOutline,
+                        label = "Last broadcast ignored",
+                        value = null,
+                        caption = rejection.reason,
+                        supportingValue = relativeTime(rejection.atMillis),
                     )
                 }
             }
