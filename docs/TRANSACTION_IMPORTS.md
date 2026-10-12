@@ -32,6 +32,13 @@ the existing transaction instead of adding a copy. Tick **Add as a new transacti
 separately; a match that is reconciled is left unchanged. Imported payee names are title-cased, and
 **Mark as cleared** (on by default) sets whether imported rows arrive cleared.
 
+Captured notifications and automation broadcasts can belong to different accounts, so each queued
+row has its own **Account**, pre-filled when its account hint names one (an exact account name, or
+digits that appear in exactly one account's name). Every ticked row that has an account is imported
+together in one batch, each matched against its own account; ticked rows without an account stay
+queued until one is chosen. Statement files and pasted text import into the single **Import into**
+account.
+
 After approval, Actua stores a bounded device-local history of the latest 20 imports: source file
 name, format, target account name, imported/skipped counts, and time. Raw rows, messages, balances,
 and statement files are not retained. History can be cleared from the import screen.
@@ -127,7 +134,8 @@ a new token, turning the integration off, or deleting notification data.
 - **Credit cards:** `amount:-%amount` turns a charge shown as `25.00` into an outflow. Use
   `amount:%amount` where the notification already has the right sign, or send `type:debit`.
 - **Two accounts in one app:** create one profile per notification title, each with its own Send
-  Intent, and send `account:` with the exact Actual account name, e.g. `account:Amex Gold`.
+  Intent, and send `account:` with the exact Actual account name, e.g. `account:Amex Gold`. Both
+  accounts' rows can then be imported together.
 - **Fewer Extra fields:** if your Tasker version shows only three Extra fields, use them for
   `token`, `amount` and `payee`, or send the broadcast from a *Java Code* action instead.
 
