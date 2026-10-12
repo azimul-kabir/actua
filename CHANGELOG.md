@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- The import screen shows why the last Tasker broadcast was ignored ([#1035](https://github.com/azimul-kabir/actua/pull/1035))
+
 ### Changed
 
 - Tasker's `account` extra now selects an account by its exact name, not only by digits in the name ([#1034](https://github.com/azimul-kabir/actua/pull/1034))

@@ -95,7 +95,70 @@ Send a broadcast (Tasker: *Send Intent*, Target *Broadcast Receiver*) with:
 Example Tasker extras: `token:%ACTUA_TOKEN`, `amount:-%amount`, `payee:%merchant`,
 `source:Tasker: GPay`.
 
+### Step by step in Tasker
+
+1. In Actua, open **Import transactions**, turn on **Accept transactions from Tasker**, and tap
+   **Token** to copy it. In Tasker, store it in a global variable such as `%ACTUA_TOKEN`.
+2. Create a profile that fires on the bank app's notification (*Event → UI → Notification*, or an
+   AutoNotification intercept) and set variables for the amount and payee from its title and text.
+   Remove currency symbols from the amount: `$25.00` is rejected, `1,234.56` is accepted.
+3. Add the task action *System → Send Intent* and fill in:
+
+   | Field | Value |
+   |---|---|
+   | Action | `com.azimulkabir.actua.action.QUEUE_TRANSACTION` |
+   | Cat | None |
+   | Mime Type, Data | empty |
+   | Extra | `token:%ACTUA_TOKEN` |
+   | Extra | `amount:-%amount` |
+   | Extra | `payee:%payee` |
+   | Package | `com.azimulkabir.actua` |
+   | Class | empty |
+   | Target | **Broadcast Receiver** |
+
+4. Run the task, then open the import screen again and tap **Review captured**.
+
+Each Extra must start with its key and a colon. `%amount` on its own sends no `amount` extra, and a
+broadcast without `token:` is ignored. When a broadcast is ignored, the import screen shows
+**Last broadcast ignored** with the reason, such as a missing or wrong token or an invalid amount.
+The reason and time are kept, never the values sent; it clears after the next accepted broadcast,
+a new token, turning the integration off, or deleting notification data.
+
+- **Credit cards:** `amount:-%amount` turns a charge shown as `25.00` into an outflow. Use
+  `amount:%amount` where the notification already has the right sign, or send `type:debit`.
+- **Two accounts in one app:** create one profile per notification title, each with its own Send
+  Intent, and send `account:` with the exact Actual account name, e.g. `account:Amex Gold`.
+- **Fewer Extra fields:** if your Tasker version shows only three Extra fields, use them for
+  `token`, `amount` and `payee`, or send the broadcast from a *Java Code* action instead.
+
+### Sending every extra with Tasker's Java Code action
+
+Tasker's *Code → Java Code* action can send all extras in one step, without the Extra field limit.
+Set local variables such as `%amount`, `%payee` or `%account` earlier in the task; unset or empty
+ones are skipped. The token is read from the global `%ACTUA_TOKEN`.
+
+```java
+import android.content.Intent;
+
+intent = new Intent("com.azimulkabir.actua.action.QUEUE_TRANSACTION");
+intent.setPackage("com.azimulkabir.actua");
+intent.putExtra("token", tasker.getVariable("ACTUA_TOKEN"));
+
+/* Tasker variable names without the % prefix. */
+String[] keys = { "amount", "type", "payee", "date", "notes", "reference", "account", "source", "text" };
+for (int i = 0; i < keys.length; i++) {
+    String value = tasker.getVariable(keys[i]);
+    /* Keep digits, minus, comma and point, so "$ -12.34" is sent as "-12.34". */
+    if (value != null && keys[i].equals("amount")) value = value.replaceAll("[^0-9.,-]", "");
+    if (value != null && value.length() > 0) intent.putExtra(keys[i], value);
+}
+context.sendBroadcast(intent);
+```
+
+The cleanup keeps commas as thousands separators, so amounts must use a point for decimals.
+
 Accepted broadcasts join the same bounded review queue as captured notifications and are reviewed
 and imported the same way. Nothing is written to the budget until the user imports it. Broadcasts
-are ignored when the integration is off, the token is missing or wrong, or the fields are invalid.
+are ignored when the integration is off, the token is missing or wrong, or the fields are invalid,
+and the import screen names the reason.
 Turning the integration off, replacing the token, or deleting notification data stops old senders.

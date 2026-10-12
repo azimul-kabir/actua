@@ -16,15 +16,40 @@ import java.util.Locale
 class AutomationIntentReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != AutomationIntent.ACTION_QUEUE_TRANSACTION) return
-        val bundle = intent.extras ?: return
+        val bundle = intent.extras
         val extras = AutomationIntent.EXTRAS.associateWith { key ->
             @Suppress("DEPRECATION") // Tasker infers numeric extra types, so accept any value.
-            bundle.get(key)?.toString()
+            bundle?.get(key)?.toString()
         }
         val store = NotificationImportPreferences(context)
-        if (!isAuthorizedAutomation(store.automationEnabled, store.automationToken, extras[AutomationIntent.EXTRA_TOKEN])) return
-        parseAutomationExtras(extras, profile = store.profile()).candidates.forEach(store::enqueue)
+        val result = handleAutomationExtras(store.automationEnabled, store.automationToken, extras, profile = store.profile())
+        result.candidates.forEach(store::enqueue)
+        result.rejection?.let(store::recordAutomationRejection) ?: store.clearAutomationRejection()
     }
+}
+
+/** What one broadcast queues, or why it was dropped; [rejection] never contains extras' values. */
+data class AutomationResult(val candidates: List<ImportCandidate>, val rejection: String?)
+
+/** Authorizes and parses one broadcast, naming the reason when nothing is queued (#1032). */
+fun handleAutomationExtras(
+    enabled: Boolean,
+    expectedToken: String?,
+    extras: Map<String, String?>,
+    today: LocalDate = LocalDate.now(),
+    profile: FinancialMessageProfile = FinancialMessageParser.defaultProfile,
+): AutomationResult {
+    val providedToken = extras[AutomationIntent.EXTRA_TOKEN]
+    val rejection = when {
+        !enabled || expectedToken.isNullOrBlank() -> "Received while Accept transactions from Tasker was off"
+        providedToken.isNullOrBlank() -> "No token extra. Write each extra as key:value, for example token:…"
+        !isAuthorizedAutomation(enabled, expectedToken, providedToken) -> "Wrong token. Copy the current token from this screen"
+        else -> null
+    }
+    if (rejection != null) return AutomationResult(emptyList(), rejection)
+    val parsed = parseAutomationExtras(extras, today, profile)
+    return AutomationResult(parsed.candidates,
+        if (parsed.candidates.isEmpty()) parsed.problems.firstOrNull()?.message ?: "Nothing to queue" else null)
 }
 
 object AutomationIntent {
