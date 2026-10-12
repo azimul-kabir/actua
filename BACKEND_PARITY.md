@@ -172,7 +172,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Synced account/category notes, per-account working/cleared/uncleared/reconciled
   balances, and category rollover-overspending preferences
 - Shared compact calculator-style amount entry for budget and transaction writes,
-  including complete expression display and predictable operator backspace editing
+  including complete expression display and predictable operator backspace editing, with
+  + − × ÷ and = keys; the number after × or ÷ is a plain decimal factor, as in Actual's
+  arithmetic amount input
 - Local backup snapshots, CRDT stripping, retention, validated document-picker import,
   restore, and one-shot revert; snapshots list only Actual's migration ids so Actual accepts
   them, and use `VACUUM INTO` based on the device's SQLite version (3.27+), not its API level

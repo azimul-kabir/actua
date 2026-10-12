@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- The amount keypad has multiply, divide and equals keys ([#1039](https://github.com/azimul-kabir/actua/pull/1039))
 - Captured transactions each have their own account, so a queue for several accounts imports in one go ([#1038](https://github.com/azimul-kabir/actua/pull/1038))
 - Make transfer links two selected transactions in different accounts as one transfer, as in Actual ([#1036](https://github.com/azimul-kabir/actua/pull/1036))
 - The import screen shows why the last Tasker broadcast was ignored ([#1035](https://github.com/azimul-kabir/actua/pull/1035))
