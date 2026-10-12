@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
 import android.os.Bundle
 
 /**
@@ -21,7 +22,7 @@ class TaskerFireReceiver : BroadcastReceiver() {
             store.automationEnabled, store.automationToken, TaskerPlugin.extrasOf(values),
             profile = store.profile(), tokenAdvice = TaskerPlugin.TOKEN_ADVICE,
         )
-        result.candidates.forEach(store::enqueue)
+        result.candidates.forEach { CapturedTransactionNotifications.queue(context, store, it) }
         result.rejection?.let(store::recordAutomationRejection) ?: store.clearAutomationRejection()
         if (isOrderedBroadcast) {
             val rejection = result.rejection

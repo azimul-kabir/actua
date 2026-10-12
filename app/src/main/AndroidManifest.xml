@@ -64,6 +64,9 @@
                 <action android:name="com.twofortyfouram.locale.intent.action.FIRE_SETTING" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".data.notifications.CapturedImportReceiver"
+            android:exported="false" />
         <activity
             android:name=".DisconnectResetActivity"
             android:exported="false"

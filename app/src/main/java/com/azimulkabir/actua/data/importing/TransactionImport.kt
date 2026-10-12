@@ -17,6 +17,8 @@ data class ImportCandidate(
     val confidence: ImportConfidence = ImportConfidence.HIGH,
     val sourceLabel: String = "Statement",
     val accountHint: String? = null,
+    /** Identifies a row in the capture review queue, so a notification can act on it (#1046). */
+    val queueId: String? = null,
 )
 
 data class ImportProblem(val sourceRow: Int, val message: String)

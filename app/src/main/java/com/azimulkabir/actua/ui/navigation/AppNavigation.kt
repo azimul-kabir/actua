@@ -154,6 +154,7 @@ import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.preferences.LocationPreferences
+import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
 import com.azimulkabir.actua.data.notifications.CreditCardDueLaunch
 import com.azimulkabir.actua.data.notifications.CreditCardDueNotificationScheduler
 import com.azimulkabir.actua.data.notifications.CreditCardNotificationSettings
@@ -361,6 +362,7 @@ fun AppNavigation(
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
     var sharedImportText by remember { mutableStateOf<String?>(null) }
+    var reviewCapturedOnOpen by remember { mutableStateOf(false) }
     val syncStatusStore = remember { SyncStatusStore(context) }
     val syncStatusGeneration by SyncSignals.statusGeneration.collectAsState()
     val syncDataGeneration by SyncSignals.dataGeneration.collectAsState()
@@ -1132,6 +1134,11 @@ fun AppNavigation(
         when (request.action) {
             SHARED_IMPORT_ACTION -> {
                 sharedImportText = request.target
+                destination = MainDestination.Manage
+                detail = DetailDestination.ImportTransactions
+            }
+            CapturedTransactionNotifications.ACTION_REVIEW -> {
+                reviewCapturedOnOpen = true
                 destination = MainDestination.Manage
                 detail = DetailDestination.ImportTransactions
             }
@@ -2259,6 +2266,8 @@ fun AppNavigation(
                 modifier = contentModifier,
                 initialSharedText = sharedImportText,
                 onSharedTextConsumed = { sharedImportText = null },
+                reviewCapturedOnOpen = reviewCapturedOnOpen,
+                onReviewCapturedConsumed = { reviewCapturedOnOpen = false },
             )
             DetailDestination.BillsCalendar -> BillsCalendarScreen(
                 loadItems = { year, month, cardBills ->

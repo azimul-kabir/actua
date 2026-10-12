@@ -3,6 +3,7 @@ package com.azimulkabir.actua.data.importing
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
 import java.math.BigDecimal
 import java.security.MessageDigest
 import java.time.LocalDate
@@ -23,7 +24,7 @@ class AutomationIntentReceiver : BroadcastReceiver() {
         }
         val store = NotificationImportPreferences(context)
         val result = handleAutomationExtras(store.automationEnabled, store.automationToken, extras, profile = store.profile())
-        result.candidates.forEach(store::enqueue)
+        result.candidates.forEach { CapturedTransactionNotifications.queue(context, store, it) }
         result.rejection?.let(store::recordAutomationRejection) ?: store.clearAutomationRejection()
     }
 }

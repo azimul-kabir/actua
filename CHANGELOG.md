@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Captured transactions can post a notification to review them or import them with one tap ([#1049](https://github.com/azimul-kabir/actua/pull/1049))
 - Captured transactions start with the account you last chose for the same card or app ([#1048](https://github.com/azimul-kabir/actua/pull/1048))
 - The Tasker plugin form lets you pick the account from a list ([#1043](https://github.com/azimul-kabir/actua/pull/1043))
 - A Tasker plugin action, Queue transaction, sends transactions to the review queue from a ready-made form ([#1041](https://github.com/azimul-kabir/actua/pull/1041))
