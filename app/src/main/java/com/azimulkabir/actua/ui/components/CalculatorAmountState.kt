@@ -23,18 +23,25 @@ class CalculatorAmountState(
     private var decimalDigits: Int? = null
     private val expressionParts = mutableListOf<String>()
     private val scale = minorUnitsPerWhole(decimalPlaces)
+    /**
+     * The number typed after × or ÷, as typed ("3", "1.5"): a plain factor, not an amount, as in
+     * Actual's arithmetic amount input (#1028). Null while the operand is an amount.
+     */
+    private var factor: String? = null
+
+    private val factorPending: Boolean get() = pending == Operator.MULTIPLY || pending == Operator.DIVIDE
 
     // Bumped by setCents so composables that read `cents` recompose after a programmatic change.
     private var version by mutableIntStateOf(0)
 
     val cents: Long
         get() = version.let { accumulatorCents?.let { left ->
-            if (hasOperand) apply(left, operandCents, requireNotNull(pending)) else left
+            if (hasOperand) apply(left, requireNotNull(pending)) else left
         } ?: operandCents }
 
     val display: String
         get() {
-            val operand = format(operandCents)
+            val operand = factor ?: format(operandCents)
             val left = accumulatorCents ?: return operand
             val op = pending ?: return operand
             return if (hasOperand) "${format(left)} ${op.symbol} $operand" else "${format(left)} ${op.symbol}"
@@ -43,11 +50,23 @@ class CalculatorAmountState(
     val expressionDisplay: String
         get() = buildList {
             addAll(expressionParts)
-            if (hasOperand || expressionParts.isEmpty()) add(formatCompact(operandCents))
+            if (hasOperand || expressionParts.isEmpty()) add(operandText())
         }.joinToString(" ")
+
+    private fun operandText(): String = factor ?: formatCompact(operandCents)
 
     fun digit(value: Int) {
         require(value in 0..9)
+        if (factorPending) {
+            val typed = factor.orEmpty()
+            // Up to 9 whole and 4 fraction digits keep the arithmetic well inside Long.
+            val whole = typed.substringBefore('.').trimStart('-')
+            if (if ('.' in typed) typed.substringAfter('.').length < 4 else whole.length < 9) {
+                factor = if (typed == "0" || typed == "-0") typed.dropLast(1) + value else typed + value
+            }
+            hasOperand = true
+            return
+        }
         val sign = if (operandCents < 0) -1 else 1
         val magnitude = kotlin.math.abs(operandCents)
         if (conventionalAmountEntry) {
@@ -73,11 +92,20 @@ class CalculatorAmountState(
     }
 
     fun decimalPoint() {
+        if (factorPending) {
+            val typed = factor.orEmpty()
+            if ('.' !in typed) factor = (if (typed.isEmpty() || typed == "-") typed + "0" else typed) + "."
+            hasOperand = true
+            return
+        }
         if (conventionalAmountEntry && decimalDigits == null && decimalPlaces > 0) decimalDigits = 0
     }
 
     fun backspace() {
-        if (hasOperand) {
+        if (hasOperand && factor != null) {
+            factor = requireNotNull(factor).dropLast(1).takeIf { it.isNotEmpty() && it != "-" }
+            hasOperand = factor != null
+        } else if (hasOperand) {
             if (conventionalAmountEntry) {
                 val sign = if (operandCents < 0) -1 else 1
                 val magnitude = kotlin.math.abs(operandCents)
@@ -109,6 +137,7 @@ class CalculatorAmountState(
         pending = null
         hasOperand = false
         decimalDigits = null
+        factor = null
         expressionParts.clear()
     }
 
@@ -121,23 +150,27 @@ class CalculatorAmountState(
     }
 
     fun toggleSign() {
-        if (allowsNegative) operandCents = -operandCents
+        if (!allowsNegative) return
+        val typed = factor
+        if (factorPending && typed != null) factor = if (typed.startsWith("-")) typed.drop(1) else "-$typed"
+        else operandCents = -operandCents
     }
 
     fun operator(operator: Operator) {
         if (accumulatorCents == null && !hasOperand) return
         if (hasOperand) {
-            expressionParts += formatCompact(operandCents)
+            expressionParts += operandText()
             expressionParts += operator.symbol
         } else if (expressionParts.isNotEmpty()) {
             expressionParts[expressionParts.lastIndex] = operator.symbol
         }
         if (hasOperand) {
-            accumulatorCents = accumulatorCents?.let { apply(it, operandCents, requireNotNull(pending)) }
+            accumulatorCents = accumulatorCents?.let { apply(it, requireNotNull(pending)) }
                 ?: operandCents
             operandCents = 0
             hasOperand = false
             decimalDigits = null
+            factor = null
         }
         pending = operator
     }
@@ -146,20 +179,29 @@ class CalculatorAmountState(
         val result = cents
         accumulatorCents = null
         pending = null
+        factor = null
+        decimalDigits = null
         operandCents = result
         hasOperand = result != 0L
         expressionParts.clear()
         return result
     }
 
-    private fun apply(left: Long, right: Long, operator: Operator): Long = when (operator) {
-        Operator.ADD -> left + right
-        Operator.SUBTRACT -> left - right
-        Operator.MULTIPLY -> BigDecimal(left).multiply(BigDecimal(right))
-            .divide(BigDecimal(scale), 0, RoundingMode.HALF_UP).longValueExact()
-        Operator.DIVIDE -> if (right == 0L) left else BigDecimal(left).multiply(BigDecimal(scale))
-            .divide(BigDecimal(right), 0, RoundingMode.HALF_UP).longValueExact()
-    }.let { if (allowsNegative) it else kotlin.math.abs(it) }
+    /** [left] combined with the current operand: an amount for + and −, a plain factor for × and ÷. */
+    private fun apply(left: Long, operator: Operator): Long {
+        val by = factor?.toBigDecimalOrNull() ?: BigDecimal.ONE
+        return when (operator) {
+            Operator.ADD -> left + operandCents
+            Operator.SUBTRACT -> left - operandCents
+            Operator.MULTIPLY -> BigDecimal(left).multiply(by).setScale(0, RoundingMode.HALF_UP).toLongOr(left)
+            Operator.DIVIDE -> if (by.signum() == 0) left
+                else BigDecimal(left).divide(by, 0, RoundingMode.HALF_UP).toLongOr(left)
+        }.let { if (allowsNegative) it else kotlin.math.abs(it) }
+    }
+
+    /** A result too large for an amount leaves the running total unchanged, like ÷ 0. */
+    private fun BigDecimal.toLongOr(fallback: Long): Long =
+        if (toBigInteger().bitLength() < 63) longValueExact() else fallback
 
     private fun format(value: Long): String {
         val magnitude = kotlin.math.abs(value)

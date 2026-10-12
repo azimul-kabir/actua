@@ -3,6 +3,7 @@ package com.azimulkabir.actua.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -106,6 +108,7 @@ fun CompactCalculatorPad(
             "−" -> calculator.operator(CalculatorAmountState.Operator.SUBTRACT)
             "×" -> calculator.operator(CalculatorAmountState.Operator.MULTIPLY)
             "÷" -> calculator.operator(CalculatorAmountState.Operator.DIVIDE)
+            "=" -> calculator.finish()
             "✓" -> if (canFinish(calculator.cents)) onDone()
             else -> calculator.digit(key.toInt())
         }
@@ -115,10 +118,11 @@ fun CompactCalculatorPad(
             onExpressionChange(calculator.expressionDisplay)
         }
     }
+    // Five equal columns; ✓ spans the last two (#1028).
     val rows = listOf(
-        listOf("7", "8", "9", "⌫"),
-        listOf("4", "5", "6", "−"),
-        listOf("1", "2", "3", "+"),
+        listOf("7", "8", "9", "×", "÷"),
+        listOf("4", "5", "6", "+", "−"),
+        listOf("1", "2", "3", "⌫", "="),
         listOf(".", "0", "±", "✓"),
     )
     Column(
@@ -158,18 +162,30 @@ fun CompactCalculatorPad(
                 )
             }
         }
-        rows.forEach { keys ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                keys.forEachIndexed { columnIndex, key ->
-                    CompactCalculatorKey(
-                        label = key,
-                        operator = key in setOf("÷", "×", "−", "+"),
-                        confirm = key == "✓",
-                        enabled = key != "✓" || canFinish(calculator.cents),
-                        description = toggleSignLabel.takeIf { key == "±" && onToggleSign != null },
-                        modifier = Modifier.weight(if (columnIndex < 3) 1.1f else 0.9f),
-                        onClick = { press(key) },
-                    )
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val gap = 4.dp
+            // Sized in whole pixels so ✓ is exactly two keys and a gap wide at every density.
+            val density = LocalDensity.current
+            val gapPx = with(density) { gap.roundToPx() }
+            val keyPx = (constraints.maxWidth - gapPx * 4) / 5
+            val keyWidth = with(density) { keyPx.toDp() }
+            val wideKeyWidth = with(density) { (keyPx * 2 + gapPx).toDp() }
+            Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+                rows.forEach { keys ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                        keys.forEach { key ->
+                            CompactCalculatorKey(
+                                label = key,
+                                operator = key in setOf("÷", "×", "−", "+", "="),
+                                confirm = key == "✓",
+                                enabled = key != "✓" || canFinish(calculator.cents),
+                                description = if (key == "±" && onToggleSign != null) toggleSignLabel
+                                    else calculatorKeyDescriptions[key],
+                                modifier = Modifier.width(if (key == "✓") wideKeyWidth else keyWidth),
+                                onClick = { press(key) },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -177,6 +193,12 @@ fun CompactCalculatorPad(
     }
     @Suppress("UNUSED_EXPRESSION") revision
 }
+
+/** Spoken labels for keys whose symbol TalkBack reads poorly. */
+private val calculatorKeyDescriptions = mapOf(
+    "×" to "Multiply", "÷" to "Divide", "+" to "Add", "−" to "Subtract", "=" to "Equals",
+    "." to "Decimal point", "⌫" to "Backspace", "✓" to "Done",
+)
 
 @Composable
 private fun CompactCalculatorKey(
