@@ -12,6 +12,8 @@ import java.util.UUID
 internal object DemoBudgetSeeder {
     const val BUDGET_ID = "demo"
     const val BUDGET_NAME = "Actua Demo Budget"
+    private const val HISTORY_MONTHS = 12
+    private const val CARD_PAYMENT_DAY = 25
 
     fun seed(database: SQLiteDatabase, now: LocalDate = LocalDate.now()) {
         database.beginTransaction()
@@ -51,20 +53,20 @@ internal object DemoBudgetSeeder {
             val emergency = category(database, "Emergency Fund", goalsGroup, false, 1.0)
             val vacation = category(database, "Vacation", goalsGroup, false, 2.0)
 
-            setTarget(database, groceries, BudgetTarget(BudgetTarget.Type.FIXED, 60000, startingDate = now.withDayOfMonth(1).toString()))
-            setTarget(database, emergency, BudgetTarget(BudgetTarget.Type.FIXED, 25000, startingDate = now.withDayOfMonth(1).toString()))
-            setTarget(database, vacation, BudgetTarget(BudgetTarget.Type.BY_DATE, 180000, YearMonth.from(now).plusMonths(6).toString()))
+            setTarget(database, groceries, BudgetTarget(BudgetTarget.Type.FIXED, 55000, startingDate = now.withDayOfMonth(1).toString()))
+            setTarget(database, emergency, BudgetTarget(BudgetTarget.Type.FIXED, 35000, startingDate = now.withDayOfMonth(1).toString()))
+            setTarget(database, vacation, BudgetTarget(BudgetTarget.Type.BY_DATE, 500000, YearMonth.from(now).plusMonths(6).toString()))
             setTargets(
                 database, dining,
                 listOf(
-                    BudgetTarget(BudgetTarget.Type.LIMIT, 25000, limitPeriod = BudgetTarget.LimitPeriod.MONTHLY),
+                    BudgetTarget(BudgetTarget.Type.LIMIT, 14000, limitPeriod = BudgetTarget.LimitPeriod.MONTHLY),
                     BudgetTarget(BudgetTarget.Type.REFILL),
                 ),
             )
             setTarget(
                 database, transport,
                 BudgetTarget(
-                    BudgetTarget.Type.FIXED, 5000, startingDate = now.withDayOfMonth(1).toString(),
+                    BudgetTarget.Type.FIXED, 3500, startingDate = now.withDayOfMonth(1).toString(),
                     period = BudgetTarget.Period.WEEK,
                 ),
             )
@@ -79,54 +81,93 @@ internal object DemoBudgetSeeder {
             val paycheck = payee(database, "Employer")
             val landlord = payee(database, "Landlord")
             val supermarket = payee(database, "Fresh Market")
+            val cornerGrocer = payee(database, "Corner Grocer")
+            val bigBox = payee(database, "Big Box Store")
             val utilityCo = payee(database, "City Utilities")
+            val internet = payee(database, "Fiber Net")
+            val mobile = payee(database, "Mobile Co")
             val fuel = payee(database, "Fuel Station")
+            val transit = payee(database, "City Transit")
             val restaurant = payee(database, "Neighborhood Cafe")
+            val pizza = payee(database, "Slice House")
+            val sushi = payee(database, "Sakura Sushi")
             val streaming = payee(database, "StreamBox")
+            val cinema = payee(database, "Cineplex")
+            val books = payee(database, "Page Turner Books")
+            val airline = payee(database, "SkyWay Airlines")
+            val indexFund = payee(database, "Index Fund")
             val cardPayment = payee(database, "Credit Card Payment")
             val transferPayees = listOf(checking, savings, credit, investment).associateWith { transferPayee(database, it) }
+            fun transferPayeeOf(account: String) = requireNotNull(transferPayees[account])
 
-            opening(database, checking, starting, now.minusMonths(6).withDayOfMonth(1), 450000)
-            opening(database, savings, starting, now.minusMonths(6).withDayOfMonth(1), 150000)
-            opening(database, investment, starting, now.minusMonths(6).withDayOfMonth(1), 300000)
+            val firstMonth = YearMonth.from(now).minusMonths(HISTORY_MONTHS - 1L)
+            val openingDate = firstMonth.minusMonths(1).atDay(1)
+            opening(database, checking, starting, openingDate, 450000)
+            opening(database, savings, starting, openingDate, 150000)
+            opening(database, investment, starting, openingDate, 300000)
 
-            repeat(6) { monthsAgo ->
-                val month = YearMonth.from(now).minusMonths(monthsAgo.toLong())
-                val base = month.atDay(1)
-                txn(database, checking, salary, paycheck, safeDay(base, 2), 220000, true, true)
-                txn(database, checking, rent, landlord, safeDay(base, 3), -80000, true, true)
-                txn(database, checking, groceries, supermarket, safeDay(base, 6), -22000 - monthsAgo * 800L, true, monthsAgo > 0)
-                txn(database, credit, dining, restaurant, safeDay(base, 10), -6500 - monthsAgo * 300L, true, monthsAgo > 0)
-                txn(database, credit, entertainment, streaming, safeDay(base, 12), -1200, true, monthsAgo > 0)
-                txn(database, checking, utilities, utilityCo, safeDay(base, 15), -9000 - monthsAgo * 250L, true, monthsAgo > 0)
-                txn(database, credit, transport, fuel, safeDay(base, 18), -7500 - monthsAgo * 200L, true, monthsAgo > 0)
-                if (monthsAgo > 0) transfer(
-                    database,
-                    fromAccount = checking,
-                    toAccount = credit,
-                    fromPayee = requireNotNull(transferPayees[credit]),
-                    toPayee = requireNotNull(transferPayees[checking]),
-                    date = safeDay(base, 25),
-                    amount = 25000,
-                    reconciled = true,
-                )
+            // A year of everyday activity. Amounts vary deterministically by month so reports have
+            // texture without making the demo differ between resets. Nothing is dated after today.
+            repeat(HISTORY_MONTHS) { monthsAgo ->
+                val base = YearMonth.from(now).minusMonths(monthsAgo.toLong()).atDay(1)
+                var cardCharges = 0L
+                fun vary(min: Long, max: Long, seed: Int): Long = min + Math.floorMod(monthsAgo * 7919L + seed * 104729L, max - min + 1)
+                fun dateOf(day: Int): LocalDate? = safeDay(base, day).takeUnless { it.isAfter(now) }
+                fun cleared(date: LocalDate) = monthsAgo > 0 || date.isBefore(now.minusDays(3))
+                fun spend(day: Int, account: String, category: String, payee: String, cents: Long) {
+                    val date = dateOf(day) ?: return
+                    txn(database, account, category, payee, date, -cents, cleared(date), monthsAgo > 0)
+                    if (account == credit && day < CARD_PAYMENT_DAY) cardCharges += cents
+                }
+
+                dateOf(1)?.let { txn(database, checking, salary, paycheck, it, 290000, true, monthsAgo > 0) }
+                spend(3, checking, rent, landlord, 110000)
+                spend(4, checking, groceries, supermarket, vary(9500, 13500, 1))
+                spend(7, credit, dining, restaurant, vary(1200, 2000, 2))
+                dateOf(8)?.let { date ->
+                    val household = vary(4000, 6500, 3); val treats = vary(1500, 3200, 4)
+                    split(database, credit, bigBox, date, listOf(groceries to -household, entertainment to -treats), cleared(date), monthsAgo > 0)
+                    cardCharges += household + treats
+                }
+                spend(9, checking, utilities, utilityCo, vary(7000, 9500, 5))
+                spend(10, credit, transport, fuel, vary(4500, 6000, 6))
+                spend(11, credit, groceries, cornerGrocer, vary(3000, 5500, 7))
+                spend(12, credit, entertainment, streaming, 1299)
+                spend(13, checking, groceries, supermarket, vary(10000, 14000, 8))
+                spend(14, checking, utilities, internet, 6500)
+                spend(15, credit, transport, transit, vary(2500, 3500, 9))
+                spend(16, credit, dining, pizza, vary(2400, 3800, 10))
+                spend(18, checking, utilities, mobile, 3500)
+                spend(19, credit, entertainment, cinema, vary(1800, 3200, 11))
+                spend(20, checking, groceries, supermarket, vary(9000, 13000, 12))
+                spend(21, credit, dining, restaurant, vary(900, 1600, 13))
+                spend(22, credit, transport, fuel, vary(4500, 6000, 14))
+                spend(24, credit, dining, sushi, vary(4000, 6000, 15))
+                if (monthsAgo == 5) spend(17, credit, vacation, airline, 64800)
+                dateOf(CARD_PAYMENT_DAY)?.let { date ->
+                    transfer(database, checking, credit, transferPayeeOf(credit), transferPayeeOf(checking), date, cardCharges, monthsAgo > 0)
+                }
+                spend(26, credit, groceries, cornerGrocer, vary(2500, 4500, 16))
+                spend(27, credit, entertainment, books, vary(1500, 3000, 17))
+                dateOf(28)?.let { date ->
+                    transfer(database, checking, savings, transferPayeeOf(savings), transferPayeeOf(checking), date, 35000, monthsAgo > 0)
+                    // Off-budget growth keeps Net Worth trending like a real portfolio.
+                    txn(database, investment, null, indexFund, date, vary(9000, 24000, 18), true, monthsAgo > 0)
+                }
             }
 
-            // Current-month examples for uncleared/reconciliation states.
-            txn(database, checking, groceries, supermarket, now.minusDays(1), -8200, false, false)
-            txn(database, credit, dining, restaurant, now, -3400, false, false)
-
-            // Budget allocations for current and previous months.
-            repeat(4) { i ->
+            // Every seeded month is fully allocated; the oldest month also seeds the savings goals.
+            repeat(HISTORY_MONTHS) { i ->
                 val ym = YearMonth.from(now).minusMonths(i.toLong())
-                budget(database, ym, rent, 80000)
-                budget(database, ym, groceries, 60000)
-                budget(database, ym, utilities, 12000)
-                budget(database, ym, transport, 22000)
-                budget(database, ym, dining, 25000)
-                budget(database, ym, entertainment, 12000)
-                budget(database, ym, emergency, 25000)
-                budget(database, ym, vacation, 30000)
+                val oldest = i == HISTORY_MONTHS - 1
+                budget(database, ym, rent, 110000)
+                budget(database, ym, groceries, 55000)
+                budget(database, ym, utilities, 19000)
+                budget(database, ym, transport, 16000)
+                budget(database, ym, dining, 14000)
+                budget(database, ym, entertainment, 11000)
+                budget(database, ym, emergency, if (oldest) 335000 else 35000)
+                budget(database, ym, vacation, if (oldest) 130000 else 30000)
             }
 
             note(database, groceries, "Monthly household groceries. Try changing the target or moving money into this category.")
@@ -138,9 +179,16 @@ internal object DemoBudgetSeeder {
                 arrayOf<Any?>("actuali:credit_card:$credit", JSONObject().put("statementDay", 20).put("dueOffsetDays", 15).put("limit", 500000).toString()),
             )
 
-            seedRules(database, groceries, supermarket, entertainment, streaming, transport, fuel)
+            seedRules(
+                database,
+                listOf(
+                    supermarket to groceries, cornerGrocer to groceries, streaming to entertainment,
+                    cinema to entertainment, fuel to transport, transit to transport, internet to utilities,
+                ),
+            )
             seedSchedules(database, now, checking, credit, paycheck, landlord, streaming, cardPayment)
-            seedDashboard(database)
+            val reports = seedCustomReports(database)
+            seedDashboard(database, now, reports, groceries, dining)
 
             database.setTransactionSuccessful()
         } finally {
@@ -212,6 +260,31 @@ internal object DemoBudgetSeeder {
         )
     }
 
+    private fun split(
+        db: SQLiteDatabase,
+        account: String,
+        payee: String,
+        date: LocalDate,
+        parts: List<Pair<String, Long>>,
+        cleared: Boolean,
+        reconciled: Boolean,
+    ) {
+        val parentId = id()
+        val ymd = date.format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE).toInt()
+        val sortOrder = System.nanoTime().toDouble()
+        val flags = arrayOf<Any?>(if (cleared) 1 else 0, if (reconciled) 1 else 0)
+        db.execSQL(
+            "INSERT INTO transactions(id,isParent,isChild,acct,category,amount,description,date,tombstone,cleared,reconciled,sort_order) VALUES(?,1,0,?,NULL,?,?,?,0,?,?,?)",
+            arrayOf<Any?>(parentId, account, parts.sumOf { it.second }, payee, ymd, *flags, sortOrder),
+        )
+        parts.forEachIndexed { index, (category, amount) ->
+            db.execSQL(
+                "INSERT INTO transactions(id,isParent,isChild,parent_id,acct,category,amount,description,date,tombstone,cleared,reconciled,sort_order) VALUES(?,0,1,?,?,?,?,?,?,0,?,?,?)",
+                arrayOf<Any?>(id(), parentId, account, category, amount, payee, ymd, *flags, sortOrder - (index + 1) / 100.0),
+            )
+        }
+    }
+
     private fun budget(db: SQLiteDatabase, month: YearMonth, category: String, amount: Long) {
         val key = month.year * 100 + month.monthValue
         db.execSQL("INSERT OR REPLACE INTO zero_budgets(id,month,category,amount,carryover) VALUES(?,?,?,?,0)", arrayOf<Any?>("$key-$category", key, category, amount))
@@ -220,19 +293,18 @@ internal object DemoBudgetSeeder {
 
     private fun note(db: SQLiteDatabase, id: String, text: String) = db.execSQL("INSERT OR REPLACE INTO notes(id,note) VALUES(?,?)", arrayOf(id, text))
 
-    private fun seedRules(db: SQLiteDatabase, groceries: String, supermarket: String, entertainment: String, streaming: String, transport: String, fuel: String) {
-        fun rule(payee: String, category: String) {
+    private fun seedRules(db: SQLiteDatabase, payeeCategories: List<Pair<String, String>>) {
+        payeeCategories.forEach { (payee, category) ->
             val conditions = JSONArray().put(JSONObject().put("op", "is").put("field", "description").put("type", "id").put("value", payee))
             val actions = JSONArray().put(JSONObject().put("op", "set").put("field", "category").put("type", "id").put("value", category))
             db.execSQL("INSERT INTO rules(id,stage,conditions,actions,tombstone,conditions_op) VALUES(?,NULL,?,?,0,'and')", arrayOf(id(), conditions.toString(), actions.toString()))
         }
-        rule(supermarket, groceries); rule(streaming, entertainment); rule(fuel, transport)
     }
 
     private fun seedSchedules(db: SQLiteDatabase, now: LocalDate, checking: String, credit: String, paycheck: String, landlord: String, streaming: String, cardPayment: String) {
-        schedule(db, "Monthly salary", checking, paycheck, 220000, now.plusMonths(1).withDayOfMonth(2), "monthly", true)
-        schedule(db, "Rent", checking, landlord, -80000, now.plusMonths(1).withDayOfMonth(3), "monthly", false)
-        schedule(db, "Streaming subscription", credit, streaming, -1200, now.plusMonths(1).withDayOfMonth(12), "monthly", true)
+        schedule(db, "Monthly salary", checking, paycheck, 290000, now.plusMonths(1).withDayOfMonth(1), "monthly", true)
+        schedule(db, "Rent", checking, landlord, -110000, now.plusMonths(1).withDayOfMonth(3), "monthly", false)
+        schedule(db, "Streaming subscription", credit, streaming, -1299, now.plusMonths(1).withDayOfMonth(12), "monthly", true)
         schedule(db, "Credit card payment", checking, cardPayment, -25000, now.plusMonths(1).withDayOfMonth(25), "monthly", false)
     }
 
@@ -252,13 +324,52 @@ internal object DemoBudgetSeeder {
         db.execSQL("INSERT INTO schedules_next_date(id,schedule_id,local_next_date,local_next_date_ts,base_next_date,base_next_date_ts,tombstone) VALUES(?,?,?,?,?,?,0)", arrayOf<Any?>(nextId, scheduleId, ymd, ts, ymd, ts))
     }
 
-    private fun seedDashboard(db: SQLiteDatabase) {
+    private fun seedCustomReports(db: SQLiteDatabase): List<String> {
+        fun report(name: String, graph: String, mode: String, groupBy: String, range: String): String = id().also {
+            db.execSQL(
+                "INSERT INTO custom_reports(id,name,date_static,date_range,mode,group_by,balance_type,graph_type,interval,include_current,conditions,conditions_op,tombstone) " +
+                    "VALUES(?,?,0,?,?,?,'Payment',?,'Monthly',1,'[]','and',0)",
+                arrayOf<Any?>(it, name, range, mode, groupBy, graph),
+            )
+        }
+        return listOf(
+            report("Spending by category", "DonutGraph", "total", "Category", "Last 3 months"),
+            report("Monthly spending", "StackedBarGraph", "time", "Group", "Last 6 months"),
+            report("Top payees", "BarGraph", "total", "Payee", "Last 3 months"),
+            report("Spending trend", "LineGraph", "time", "Group", "Last 12 months"),
+        )
+    }
+
+    private fun seedDashboard(db: SQLiteDatabase, now: LocalDate, reports: List<String>, groceries: String, dining: String) {
         val page = "demo-dashboard-main"
         db.execSQL("INSERT OR REPLACE INTO dashboard_pages(id,name,tombstone) VALUES(?,?,0)", arrayOf(page, "Overview"))
-        val welcome = JSONObject().put("content", "**Welcome to Actua Demo** 👋\\n\\nThis budget is stored only on this device. Try targets, rules, schedules, reconciliation, credit cards and reports.")
-        db.execSQL("INSERT INTO dashboard(id,type,width,height,x,y,meta,tombstone,dashboard_page_id) VALUES(?,?,?,?,?,?,?,0,?)", arrayOf<Any?>(id(), "markdown-card", 12, 2, 0, 0, welcome.toString(), page))
-        db.execSQL("INSERT INTO dashboard(id,type,width,height,x,y,meta,tombstone,dashboard_page_id) VALUES(?,?,?,?,?,?,?,0,?)", arrayOf<Any?>(id(), "spending-card", 12, 2, 0, 2, "{\"name\":\"This Month\",\"mode\":\"single-month\"}", page))
-        db.execSQL("INSERT INTO dashboard(id,type,width,height,x,y,meta,tombstone,dashboard_page_id) VALUES(?,?,?,?,?,?,?,0,?)", arrayOf<Any?>(id(), "net-worth-card", 12, 2, 0, 4, "{}", page))
+        var y = 0
+        fun card(type: String, meta: JSONObject?, width: Int = 12, height: Int = 2) {
+            db.execSQL(
+                "INSERT INTO dashboard(id,type,width,height,x,y,meta,tombstone,dashboard_page_id) VALUES(?,?,?,?,?,?,?,0,?)",
+                arrayOf<Any?>(id(), type, width, height, 0, y, meta?.toString(), page),
+            )
+            y += height
+        }
+        val lastSixMonths = JSONObject().put("start", YearMonth.from(now).minusMonths(5).toString())
+            .put("end", YearMonth.from(now).toString()).put("mode", "sliding-window")
+        card("markdown-card", JSONObject().put("content", "**Welcome to Actua Demo** 👋\n\nThis budget is stored only on this device. Try targets, rules, schedules, reconciliation, credit cards and reports."))
+        card("spending-card", JSONObject().put("name", "This Month").put("mode", "single-month"))
+        card("net-worth-card", JSONObject().put("name", "Net Worth"))
+        card("cash-flow-card", JSONObject().put("name", "Cash Flow").put("timeFrame", lastSixMonths))
+        card(
+            "summary-card",
+            JSONObject().put("name", "Food per month")
+                .put("content", JSONObject().put("type", "avgPerMonth").toString())
+                .put("conditions", JSONArray().put(JSONObject().put("field", "category").put("op", "oneOf").put("value", JSONArray().put(groceries).put(dining))))
+                .put("conditionsOp", "and")
+                .put("timeFrame", JSONObject().put("start", YearMonth.from(now).minusMonths(2).toString()).put("end", YearMonth.from(now).toString()).put("mode", "sliding-window")),
+        )
+        reports.forEach { card("custom-report", JSONObject().put("id", it)) }
+        card("sankey-card", JSONObject().put("name", "Where the money went").put("timeFrame", lastSixMonths))
+        card("budget-analysis-card", JSONObject().put("name", "Budget Analysis").put("timeFrame", lastSixMonths))
+        card("age-of-money-card", JSONObject().put("name", "Age of Money"))
+        card("calendar-card", JSONObject().put("name", "Calendar"))
     }
 
     private fun safeDay(base: LocalDate, day: Int): LocalDate = base.withDayOfMonth(minOf(day, base.lengthOfMonth()))
