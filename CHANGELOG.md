@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Captured transactions can use a default account, and Review captured sets an account for all rows at once ([#1067](https://github.com/azimul-kabir/actua/pull/1067))
 - Optional reminders before scheduled transactions are due ([#1055](https://github.com/azimul-kabir/actua/pull/1055))
 - Currency symbols can go after the amount, with or without a space, as in Actual ([#1054](https://github.com/azimul-kabir/actua/pull/1054))
 - The Accounts tab shows how many captured transactions are waiting, and opens them on their own review page ([#1052](https://github.com/azimul-kabir/actua/pull/1052))
