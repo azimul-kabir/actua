@@ -20,5 +20,6 @@
     <string name="shortcut_add_income">Add income</string>
     <string name="shortcut_add_transfer">Add transfer</string>
     <string name="shortcut_search">Search</string>
+    <string name="shortcut_review_captured">Review captured</string>
     <string name="shortcut_unavailable">Open Actua to use this action</string>
 </resources>

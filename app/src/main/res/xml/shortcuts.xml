@@ -24,4 +24,10 @@
         <intent android:action="com.azimulkabir.actua.widget.SEARCH"
             android:targetPackage="com.azimulkabir.actua" android:targetClass="com.azimulkabir.actua.MainActivity" />
     </shortcut>
+    <shortcut android:shortcutId="review_captured" android:enabled="true"
+        android:icon="@drawable/ic_shortcut_review_captured" android:shortcutShortLabel="@string/shortcut_review_captured"
+        android:shortcutLongLabel="@string/shortcut_review_captured" android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent android:action="com.azimulkabir.actua.action.REVIEW_CAPTURED"
+            android:targetPackage="com.azimulkabir.actua" android:targetClass="com.azimulkabir.actua.MainActivity" />
+    </shortcut>
 </shortcuts>
