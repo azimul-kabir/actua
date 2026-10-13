@@ -211,6 +211,27 @@ fun ImportTransactionsScreen(
     fun prefilledAccountId(hint: String?, source: String): String? =
         prefilledImportAccount(hint, source, accounts) { notificationPreferences.rememberedAccount(budgetId, it) }?.id
 
+    fun assignUnassignedRows(accountId: String) = rows.indices.forEach { index ->
+        if (rows[index].accountId == null) rows[index] = rows[index].copy(accountId = accountId)
+    }
+
+    val openAccounts = accounts.filterNot(Account::closed)
+    var defaultAccountId by remember { mutableStateOf(notificationPreferences.defaultAccount(budgetId)) }
+    val defaultAccount = openAccounts.firstOrNull { it.id == defaultAccountId }
+
+    @Composable
+    fun DefaultAccountRow() = ActuaMenuRow(
+        icon = Icons.Outlined.AccountBalanceWallet,
+        label = "Default account",
+        value = defaultAccount?.name ?: "None",
+        valueIsPlaceholder = defaultAccount == null,
+        choices = listOf("None" to null) + openAccounts.map { it.name to it.id },
+    ) { id ->
+        // Rows still without an account take the new default, as new captures will (#1064).
+        notificationPreferences.setDefaultAccount(budgetId, id); defaultAccountId = id
+        if (id != null && perRowAccounts()) assignUnassignedRows(id)
+    }
+
     fun reviewCandidates(candidates: List<ImportCandidate>, parseProblems: List<ImportProblem>) {
         if (!perRowAccounts()) candidates.mapNotNull(ImportCandidate::accountHint).distinct().singleOrNull()?.let { hint ->
             accountForImportHint(hint, accounts)?.let { account = it }
@@ -381,6 +402,8 @@ fun ImportTransactionsScreen(
                         }
                     }
                     ActuaCardDivider()
+                    DefaultAccountRow()
+                    ActuaCardDivider()
                     ActuaFormTextField(icon = Icons.AutoMirrored.Outlined.TrendingDown, label = "Debit keywords",
                         value = debitKeywords, onValueChange = { debitKeywords = it })
                     ActuaCardDivider()
@@ -550,6 +573,21 @@ fun ImportTransactionsScreen(
                 }
             }
             if (rows.isNotEmpty()) ActuaFormCard(Modifier.padding(top = Spacing.md)) {
+                if (perRowAccounts()) {
+                    // Account choices come first, ahead of the rows they apply to (#1064).
+                    if (rows.any { it.accountId == null }) {
+                        ActuaMenuRow(
+                            icon = Icons.Outlined.AccountBalanceWallet,
+                            label = "Account for all",
+                            value = "Choose an account",
+                            valueIsPlaceholder = true,
+                            choices = openAccounts.map { it.name to it.id },
+                        ) { assignUnassignedRows(it) }
+                        ActuaCardDivider()
+                    }
+                    DefaultAccountRow()
+                    ActuaCardDivider()
+                }
                 ActuaFormRow(
                     icon = Icons.Outlined.Check,
                     label = "Mark as cleared",
@@ -577,8 +615,6 @@ fun ImportTransactionsScreen(
                         if (duplicateReason != null) Text("  $duplicateReason", color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.labelMedium)
                     }
-                    Text("${row.confidence.name.lowercase().replaceFirstChar(Char::uppercase)} confidence · ${row.sourceLabel}",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (perRowAccounts()) {
                         val rowAccount = accounts.firstOrNull { it.id == row.accountId }
                         ActuaMenuRow(
@@ -589,6 +625,8 @@ fun ImportTransactionsScreen(
                             choices = accounts.map { it.name to it.id },
                         ) { rows[index] = row.copy(accountId = it) }
                     }
+                    Text("${row.confidence.name.lowercase().replaceFirstChar(Char::uppercase)} confidence · ${row.sourceLabel}",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (match != null) {
                         val existing = "${match.payeeName ?: "a transaction"} on ${formatDate(match.date)}"
                         Text(

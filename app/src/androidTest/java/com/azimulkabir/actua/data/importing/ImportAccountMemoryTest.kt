@@ -30,4 +30,13 @@ class ImportAccountMemoryTest {
         store.clearAll()
         assertNull(store.rememberedAccount("budget-a", "hint:9921"))
     }
+
+    @Test fun defaultAccountIsPerBudgetAndClearable() {
+        store.setDefaultAccount("budget-a", "checking")
+        assertEquals("checking", store.defaultAccount("budget-a"))
+        assertEquals("checking", store.rememberedAccount("budget-a", DEFAULT_IMPORT_ACCOUNT_KEY))
+        assertNull(store.defaultAccount("budget-b"))
+        store.setDefaultAccount("budget-a", null)
+        assertNull(store.defaultAccount("budget-a"))
+    }
 }

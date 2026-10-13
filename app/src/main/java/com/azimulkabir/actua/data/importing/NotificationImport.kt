@@ -203,6 +203,14 @@ class NotificationImportPreferences(context: Context) {
         preferences.edit().apply { choices.forEach { (key, id) -> putString(accountMemoryKey(budgetId, key), id) } }.apply()
     }
 
+    /** The account captures in [budgetId] fall back to (#1064); null clears it. */
+    fun defaultAccount(budgetId: String): String? = rememberedAccount(budgetId, DEFAULT_IMPORT_ACCOUNT_KEY)
+
+    fun setDefaultAccount(budgetId: String, accountId: String?) {
+        val key = accountMemoryKey(budgetId, DEFAULT_IMPORT_ACCOUNT_KEY)
+        preferences.edit().apply { if (accountId == null) remove(key) else putString(key, accountId) }.apply()
+    }
+
     private fun accountMemoryKey(budgetId: String, key: String) = "accountMemory:$budgetId:$key"
     // clear() only notifies listeners from API 30, so remove each key to keep the queue and
     // rejection observers current on API 28-29 without a second notification on newer releases.
