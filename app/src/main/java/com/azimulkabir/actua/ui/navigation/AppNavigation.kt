@@ -52,6 +52,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -99,6 +101,7 @@ import kotlinx.coroutines.launch
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import com.azimulkabir.actua.data.importing.NotificationImportPreferences
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
+import com.azimulkabir.actua.ui.accounts.pendingCaptureBadge
 import com.azimulkabir.actua.ui.accounts.CloseAccountOptions
 import com.azimulkabir.actua.ui.accounts.CloseCategoryGroup
 import com.azimulkabir.actua.ui.automation.BudgetAutomationScreen
@@ -181,6 +184,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
+
+/** A tab's spoken label with how many captured transactions wait on it, e.g. "Accounts, 3 captured transactions waiting". */
+internal fun tabLabelWithCaptures(label: String, count: Int): String =
+    if (count <= 0) label else "$label, $count captured transaction${if (count == 1) "" else "s"} waiting"
 
 private enum class MainDestination(
     val label: String,
@@ -1472,7 +1479,17 @@ fun AppNavigation(
                             }
                             transactionFabExpanded = true
                         },
-                        icon = { Icon(item.icon, contentDescription = item.label) },
+                        icon = {
+                            // Waiting captures show on the Accounts tab from any tab (#1065).
+                            val captures = if (item == MainDestination.Accounts) pendingCaptureCount else 0
+                            if (captures > 0) {
+                                BadgedBox(badge = { Badge(Modifier.clearAndSetSemantics {}) { Text(pendingCaptureBadge(captures)) } }) {
+                                    Icon(item.icon, contentDescription = tabLabelWithCaptures(item.label, captures))
+                                }
+                            } else {
+                                Icon(item.icon, contentDescription = item.label)
+                            }
+                        },
                         label = if (showBottomNavigationLabels) {
                             {
                                 Text(

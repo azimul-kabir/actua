@@ -74,7 +74,9 @@ This is a system-level sensitive permission and is never enabled silently. Actua
 from apps the user has not explicitly selected, ignores messages that do not match the financial
 parser, and stores at most 100 normalized candidates. An empty allowed-app list captures nothing. Raw notification
 text is not retained. While captured transactions wait, the Accounts tab shows an inbox icon with their
-count; it opens **Review captured**, a page with only the waiting rows. Android 15 hides alert text
+count; it opens **Review captured**, a page with only the waiting rows. The Accounts tab icon in the
+bottom bar shows the same count from any tab, and long-pressing the launcher icon offers a
+**Review captured** shortcut. Android 15 hides alert text
 that looks like a one-time code from notification listeners, so such alerts cannot be captured. With **Notify about captures** on (off by default; Android 13+
 asks for notification permission), each queued transaction also posts a notification showing its
 payee and amount, hidden on the lock screen unless the system allows private content. **Review**
