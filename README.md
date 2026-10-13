@@ -2,7 +2,7 @@
 
 **A native Android client for [Actual Budget](https://actualbudget.org/), built with Kotlin and Jetpack Compose.**
 
-[Website](https://actua.azimulkabir.com) • [Developer website](https://www.azimulkabir.com) • [Download APK](https://github.com/azimul-kabir/actua/releases/latest) • [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) • [Discord](https://discord.gg/FhedEyP97f) • [Report an issue](https://github.com/azimul-kabir/actua/issues/new/choose)
+[Website](https://actua.azimulkabir.com) • [Developer website](https://www.azimulkabir.com) • [Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua) • [Download APK](https://github.com/azimul-kabir/actua/releases/latest) • [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) • [Discord](https://discord.gg/FhedEyP97f) • [Report an issue](https://github.com/azimul-kabir/actua/issues/new/choose)
 
 ![Android 9+](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack_Compose-7F52FF?logo=kotlin&logoColor=white)
@@ -29,19 +29,20 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Password and OpenID/OIDC login
 - Offline budgets with encrypted Actual sync
 - Budgeting, categories and money movement, including one-tap cover for overspent categories and Actual's budget actions (3/6/12-month averages, copy last month or to year end, hold income)
-- Transactions, splits, transfers, merging duplicates and reconciliation, including "Use last synced total" for bank-synced accounts
-- Bank sync through your Actual server (SimpleFIN and GoCardless), plus experimental Enable Banking for European banks
+- Transactions, splits, transfers, Make transfer for two existing transactions, merging duplicates and reconciliation, including "Use last synced total" for bank-synced accounts
+- Amount keypad with + − × ÷ arithmetic
+- Bank sync through your Actual server (SimpleFIN and GoCardless), plus experimental Enable Banking for European banks; newly synced transactions are marked until you view the account
 - Category targets and budget automations, including `#template` notes, checked against Actual's own template engine
-- Scheduled transactions and Bills calendar
+- Scheduled transactions and Bills calendar, with optional reminders before they are due
 - Accounts with group totals, credit cards and payment reminders
 - Actual dashboard and saved custom reports (read-only), with donut and per-interval charts, optional total and average per period, date/account filtering and drill-down to transactions
 - Rules and automatic categorization, run on manual entry, transfers, imports and bank sync as in Actual, including template, formula and split actions created in Actual
-- CSV, XLSX, PDF, SMS and notification imports, plus [Tasker intents](docs/TRANSACTION_IMPORTS.md#tasker-and-other-automation-apps)
+- CSV, XLSX, PDF, SMS and notification imports, plus a [Tasker plugin and intents](docs/TRANSACTION_IMPORTS.md#tasker-and-other-automation-apps); captured transactions wait in a review queue with per-row, remembered and default accounts, optional review notifications, a launcher shortcut and an Accounts tab badge
 - Payee management (rename, merge, delete, favorite, category learning), with suggested and location-aware payees
 - Global search, and transaction search that also matches amounts and dates
 - Automatic local backups and restore
 - Home-screen widgets and launcher shortcuts
-- Currency, date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
+- Currency (including the symbol before or after the amount), date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
 - Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering
 - Multiple downloaded budgets with a quick switcher in Manage
 - Built-in local demo budget
@@ -102,7 +103,7 @@ See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implem
 
 Actua requires **Android 9 or newer**.
 
-Download the latest APK from [GitHub Releases](https://github.com/azimul-kabir/actua/releases), or add Actua to Obtainium for update notifications and in-place upgrades.
+Install Actua from [Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua), or download the latest APK from [GitHub Releases](https://github.com/azimul-kabir/actua/releases) or add Actua to Obtainium for update notifications and in-place upgrades.
 
 Don't have an Actual server handy? Open **Manage → Connection & Data → Try demo budget** to explore Actua using a completely local sample budget.
 

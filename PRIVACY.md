@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: 2026-09-25_
+_Last updated: 2026-10-13_
 
 Actua is an independent, community-built Android client for [Actual
 Budget](https://actualbudget.org/). It is not affiliated with or endorsed by
@@ -46,6 +46,41 @@ device to create transactions in your budget. Imported files and their
 contents are not uploaded anywhere except as part of the transactions they
 produce, which sync to your own Actual server like any other budget data.
 
+## Bank notifications and automation apps
+
+Capturing bank notifications is off by default. It works only after you turn
+it on, choose which apps to read, and grant Actua notification access in
+Android's settings. Actua then reads the title and text of new notifications
+from those apps only, on your device. It keeps just the transaction details it
+recognizes (date, amount, payee, reference, a card or account suffix, the
+source app's name) in a review queue on your device; it does not store the
+notification itself and ignores notifications from every other app.
+
+Transactions sent by Tasker or other automation apps are accepted only while
+you have turned that option on, only with the private token Actua shows you,
+and they join the same queue. Nothing in the queue is written to your budget
+until you approve it.
+
+To pre-fill accounts, Actua remembers on your device the account you chose
+for each card or source and an optional default account, per budget. Deleting
+notification data on the import screen removes the queue, those choices, the
+parser settings and the token.
+
+## Notifications
+
+Actua can post notifications only when you turn them on: credit-card payment
+reminders, scheduled-transaction reminders, and a notification for each
+captured transaction. They are created on your device from your budget data
+and never sent through a notification service. Scheduled-transaction
+reminders and capture notifications hide their details on a secure lock
+screen.
+
+## Local network access
+
+On Android 17 and later, Actua asks for Nearby devices (local network) access
+only when your Actual server's address is on your local network. It is used
+only to reach that server.
+
 ## No analytics, ads or tracking
 
 Actua does not include analytics, crash reporting, advertising or other
@@ -67,6 +102,11 @@ report yourself.
 
 Automatic local backups are stored on your device's storage and are not
 uploaded anywhere by Actua.
+
+## Other on-device data
+
+Actua keeps app settings, which bank-synced transactions you haven't viewed
+yet, and similar display state on your device. None of it is sent anywhere.
 
 ## Contact
 

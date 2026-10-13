@@ -151,8 +151,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Opt-in, token-protected broadcast intent and Tasker plugin action ("Queue transaction") for
   Tasker and other automation apps that add pre-parsed transactions to the same review queue; they
   never write to the budget directly; an optional notification per captured transaction offers
-  Review, or a one-tap Import of that row through the normal import path when its account is known (see
-  [docs/TRANSACTION_IMPORTS.md](docs/TRANSACTION_IMPORTS.md))
+  Review, or a one-tap Import of that row through the normal import path when its account is known.
+  Queued rows each pick an account, pre-filled from their hint, the account remembered for that
+  card or source, or a device-local default account, with "Account for all" for the rest; the
+  queue is reachable from the Accounts header, a badge on the Accounts tab and a "Review captured"
+  launcher shortcut (see [docs/TRANSACTION_IMPORTS.md](docs/TRANSACTION_IMPORTS.md))
 - Single-page Add/Edit transaction form where the amount's sign selects expense or income and
   choosing an account as the payee makes a transfer, backed by transaction form planning and
   atomic transaction mutations, including split
@@ -309,7 +312,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   pipeline, with overdue-first ordering, a per-instance configurable 7/14/30-day period,
   privacy-aware amount formatting, a compact layout for small sizes, and a Scheduled
   Transactions deep link; no financial mutation is reachable from the widget
-- Android launcher long-press actions for preselected expense, income, and transfer entry plus search
+- Android launcher long-press actions for preselected expense, income, and transfer entry, search,
+  and Review captured
 - Manual Sync Now plus live idle/running/error, trigger, duration, last-success,
   last-app-open-refresh, and last-background-refresh status in Connection & Data
 - Dedicated backup manager with private archives, independent app-background creation,

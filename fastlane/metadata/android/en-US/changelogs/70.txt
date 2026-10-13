@@ -1,0 +1,5 @@
+• Review captured transactions faster: default account, set all at once, launcher shortcut and a tab badge
+• Optional reminders before scheduled transactions are due
+• Bank-sync transactions are marked new until you view the account
+• Tasker plugin action to queue transactions
+• Make transfer, keypad × ÷ =, and currency symbols after the amount

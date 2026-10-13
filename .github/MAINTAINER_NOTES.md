@@ -28,7 +28,8 @@ in the main branch ruleset if they should be required for merging.
 Release metadata changes on `main` run the Android Release workflow. It
 builds and validates the persistently signed release APK, creates the version tag and
 GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
-description, and attaches the versioned APK. Update `versionCode`,
+description, and attaches the versioned APK. It also uploads the signed `.aab` as the
+`Actua-v<version>-aab` artifact (kept 90 days) for manual upload to the Play Console. Update `versionCode`,
 `versionName`, and `CHANGELOG.md` together for each release.
 
 Because ordinary PRs also append to `CHANGELOG.md`'s Unreleased section (and can touch
@@ -58,7 +59,11 @@ Every release follows this sequence:
    boundary changes) are the most commonly missed spots.
 6. Add or update `RELEASE_SMOKE_TEST.md` checklist items for any new user-facing behavior
    in the release that isn't already exercised by an existing item.
-7. Open the release PR linked to that issue. Merging it to `main` triggers the Android
+7. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`, the store's "What's new"
+   text (500 characters at most), and update the store listing descriptions in that folder when
+   features change. `PRIVACY.md` must stay accurate for the Play Data safety form and any
+   permission declarations.
+8. Open the release PR linked to that issue. Merging it to `main` triggers the Android
    Release workflow's build-and-publish job, since it bumps `versionCode` in
    `app/build.gradle.kts` — the signal `check-version-bump` looks for.
 
