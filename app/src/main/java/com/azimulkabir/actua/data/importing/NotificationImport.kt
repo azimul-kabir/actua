@@ -204,7 +204,9 @@ class NotificationImportPreferences(context: Context) {
     }
 
     private fun accountMemoryKey(budgetId: String, key: String) = "accountMemory:$budgetId:$key"
-    fun clearAll() = preferences.edit().clear().apply()
+    // clear() only notifies listeners from API 30, so remove each key to keep the queue and
+    // rejection observers current on API 28-29 without a second notification on newer releases.
+    fun clearAll() = preferences.edit().apply { preferences.all.keys.forEach { remove(it) } }.apply()
 }
 
 class FinancialNotificationListenerService : NotificationListenerService() {
