@@ -145,6 +145,8 @@ private val sampleTransactions = listOf(
 @Composable
 fun TransactionsScreen(
     accountName: String?,
+    /** Transactions bank sync just added to this account, marked until the account is left (#1066). */
+    newTransactionIds: Set<String> = emptySet(),
     categoryName: String? = null,
     month: String? = null,
     onBack: () -> Unit,
@@ -672,7 +674,7 @@ fun TransactionsScreen(
                                     },
                                     onClearedClick = { toggleCleared(transaction) }, tagColors = tagColors,
                                     selectionMode = selectionModeOn, selected = isSelected,
-                                    runningBalanceCents = runningBalances[transaction.id], showDivider = false)
+                                    isNew = transaction.id in newTransactionIds, runningBalanceCents = runningBalances[transaction.id], showDivider = false)
                             }
                         }
                     }
@@ -700,7 +702,7 @@ fun TransactionsScreen(
                                 },
                                 onClearedClick = { toggleCleared(transaction) }, tagColors = tagColors,
                                 selectionMode = selectionModeOn, selected = isSelected,
-                                runningBalanceCents = runningBalances[transaction.id], showDivider = false)
+                                isNew = transaction.id in newTransactionIds, runningBalanceCents = runningBalances[transaction.id], showDivider = false)
                         }
                     }
                 }
@@ -1336,11 +1338,13 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     showDate: Boolean, showAccount: Boolean, onClick: () -> Unit, onLongClick: () -> Unit,
     onClearedClick: (() -> Unit)? = null, tagColors: Map<String, String>? = null,
     selectionMode: Boolean = false, selected: Boolean = false, runningBalanceCents: Long? = null,
-    showDivider: Boolean = true) {
+    showDivider: Boolean = true, isNew: Boolean = false) {
     val presentation = transactionRowPresentation(transaction, showAccount)
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     val upcoming = transaction.isUpcoming
-    Row(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
+    Row(modifier = Modifier.fillMaxWidth()
+        .then(if (isNew) Modifier.background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)) else Modifier)
+        .combinedClickable(onClick = onClick, onLongClick = onLongClick)
         .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md), verticalAlignment = Alignment.Top) {
         if (selectionMode && !upcoming) {
             Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
@@ -1362,6 +1366,8 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
                 fontWeight = FontWeight.SemiBold,
                 color = if (upcoming) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (isNew) Text("New from bank sync", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 2.dp))
             if (upcoming) {
                 Spacer(Modifier.height(6.dp))
                 Text(upcomingLabel, style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
