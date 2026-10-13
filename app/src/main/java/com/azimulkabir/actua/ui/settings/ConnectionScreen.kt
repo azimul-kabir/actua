@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
@@ -74,6 +75,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.network.ActualServerException
+import com.azimulkabir.actua.data.network.LocalNetworkAccess
 import com.azimulkabir.actua.data.network.OidcCallbackServer
 import com.azimulkabir.actua.data.network.RemoteBudgetFile
 import com.azimulkabir.actua.data.network.ServerCertificateInfo
@@ -502,6 +504,27 @@ fun ConnectionScreen(
         else message = "Local network access is required because this server resolves to a private network address."
     }
 
+    // Android 17+ shows ACCESS_LOCAL_NETWORK as "Nearby devices"; only ask for it when the
+    // primary or fallback server is actually on the local network.
+    fun connectWithLocalNetworkAccess(launcher: ActivityResultLauncher<String>, connect: () -> Unit) {
+        if (Build.VERSION.SDK_INT < 37 || ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_LOCAL_NETWORK,
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            connect()
+            return
+        }
+        loading = true
+        message = null
+        scope.launch {
+            val required = withContext(Dispatchers.IO) {
+                LocalNetworkAccess.isRequired(listOf(serverUrl, fallbackServerUrl))
+            }
+            loading = false
+            if (required) launcher.launch(Manifest.permission.ACCESS_LOCAL_NETWORK) else connect()
+        }
+    }
+
     LaunchedEffect(headerEntries) { client.customHeaders = headerEntries.toMap() }
     LaunchedEffect(foregroundGeneration) {
         pendingOpenIdCallback?.close()
@@ -860,32 +883,22 @@ fun ConnectionScreen(
                     },
                     primary = true,
                     busy = loading,
-                    onClick = {
-                        if (Build.VERSION.SDK_INT >= 37 && ContextCompat.checkSelfPermission(
-                                context, Manifest.permission.ACCESS_LOCAL_NETWORK,
-                            ) != PackageManager.PERMISSION_GRANTED
-                        ) {
-                            localNetworkPermission.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
-                        } else {
-                            connectWithPassword()
-                        }
-                    },
+                    onClick = { connectWithLocalNetworkAccess(localNetworkPermission, ::connectWithPassword) },
                     enabled = serverUrl.isNotBlank() && password.isNotBlank() && !loading,
                 )
                 ConnectionAction(
                     text = "Sign in with OpenID",
-                    onClick = {
-                        if (Build.VERSION.SDK_INT >= 37 && ContextCompat.checkSelfPermission(
-                                context, Manifest.permission.ACCESS_LOCAL_NETWORK,
-                            ) != PackageManager.PERMISSION_GRANTED
-                        ) {
-                            localNetworkOpenIdPermission.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
-                        } else {
-                            connectWithOpenId()
-                        }
-                    },
+                    onClick = { connectWithLocalNetworkAccess(localNetworkOpenIdPermission, ::connectWithOpenId) },
                     enabled = serverUrl.isNotBlank() && !loading,
                 )
+                if (Build.VERSION.SDK_INT >= 37) {
+                    Text(
+                        "If your server is on your home or private network, Android asks to allow Actua to " +
+                            "find \u201cNearby devices\u201d. Actua uses this only to reach that server; public servers don't need it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
                     "OpenID Connect sign-in opens your browser and returns the Actual session securely to this device. If Actual asks for the server password on the first OpenID sign-in, enter it above and retry.",
                     style = MaterialTheme.typography.bodySmall,
