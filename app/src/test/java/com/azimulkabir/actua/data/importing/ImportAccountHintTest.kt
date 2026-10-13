@@ -90,4 +90,22 @@ class ImportAccountHintTest {
         val memory = mapOf("hint:9921" to visa.id, "source:com.bank.app" to "deleted-account")
         assertNull(prefilledImportAccount("9921", "com.bank.app", listOf(checking, closedVisa)) { memory[it] })
     }
+
+    @Test
+    fun `the default account is the last fallback`() {
+        val memory = mapOf("source:com.bank.app" to checking.id, DEFAULT_IMPORT_ACCOUNT_KEY to visa.id)
+        fun prefill(hint: String?, source: String) = prefilledImportAccount(hint, source, accounts) { memory[it] }
+
+        assertEquals(checking, prefill(null, "com.bank.app"))
+        assertEquals(checking, prefill("5555", "com.bank.app"))
+        assertEquals(visa, prefill(null, "other.app"))
+        assertEquals(visa, prefill("5555", "other.app"))
+    }
+
+    @Test
+    fun `a closed or missing default account is ignored`() {
+        val memory = mapOf(DEFAULT_IMPORT_ACCOUNT_KEY to visa.id)
+        assertNull(prefilledImportAccount(null, "other.app", listOf(checking, visa.copy(closed = true))) { memory[it] })
+        assertNull(prefilledImportAccount(null, "other.app", accounts) { mapOf(DEFAULT_IMPORT_ACCOUNT_KEY to "gone")[it] })
+    }
 }

@@ -37,8 +37,10 @@ row has its own **Account**, pre-filled when its account hint names one (an exac
 digits that appear in exactly one account's name). Every ticked row that has an account is imported
 together in one batch, each matched against its own account; ticked rows without an account stay
 queued until one is chosen. When no hint names an account, a row starts with the account last imported for
-the same hint (such as the card's last digits) or, without a hint, the same source app. These
-choices are kept on the device per budget and cleared with the notification data. Automation rows
+the same hint (such as the card's last digits) or, without a hint, the same source app, and
+otherwise with the **Default account** (set under Bank notifications or at the top of Review
+captured). **Account for all** at the top of the review fills every row still without an account.
+These choices are kept on the device per budget and cleared with the notification data. Automation rows
 without an `account` share their `source` (default `Tasker`), so send `account` or a distinct `source`
 per card if one automation feeds several accounts. Statement files and pasted text import into the single **Import into**
 account.
@@ -76,8 +78,8 @@ count; it opens **Review captured**, a page with only the waiting rows. Android 
 that looks like a one-time code from notification listeners, so such alerts cannot be captured. With **Notify about captures** on (off by default; Android 13+
 asks for notification permission), each queued transaction also posts a notification showing its
 payee and amount, hidden on the lock screen unless the system allows private content. **Review**
-opens **Review captured**. **Import** appears only when the transaction already has an account (from its hint
-or the account last chosen for the same card or app) and imports just that row through the same
+opens **Review captured**. **Import** appears only when the transaction already has an account (from its hint,
+the account last chosen for the same card or app, or the default account) and imports just that row through the same
 path as the review screen, after the tap and never automatically. If the import fails, the row
 stays queued and the notification says why. Captured data, parser settings, and capture state can be deleted together.
 

@@ -30,10 +30,14 @@ fun importHintAccountNames(accounts: List<Account>): List<String> {
 fun importAccountMemoryKey(hint: String?, source: String): String =
     hint?.trim()?.takeIf(String::isNotEmpty)?.let { "hint:" + it.lowercase() } ?: "source:" + source.trim()
 
+/** The memory key of the account captures fall back to when nothing else names one (#1064). */
+const val DEFAULT_IMPORT_ACCOUNT_KEY = "default"
+
 /**
  * The account a captured row starts with on review: the account its [hint] names, else the account
- * last chosen for that hint, else the one last chosen for its [source]. [remembered] maps a
- * memory key to an account id; closed or missing accounts are never returned.
+ * last chosen for that hint, else the one last chosen for its [source], else the default capture
+ * account. [remembered] maps a memory key to an account id; closed or missing accounts are never
+ * returned.
  */
 fun prefilledImportAccount(
     hint: String?,
@@ -47,4 +51,5 @@ fun prefilledImportAccount(
     return cleanHint?.let { accountForImportHint(it, open) }
         ?: cleanHint?.let { byId(importAccountMemoryKey(it, source)) }
         ?: byId(importAccountMemoryKey(null, source))
+        ?: byId(DEFAULT_IMPORT_ACCOUNT_KEY)
 }
