@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Transactions added by bank sync are marked as new on their account until you view it ([#1069](https://github.com/azimul-kabir/actua/pull/1069))
 - A Review captured launcher shortcut, and the Accounts tab shows how many captures are waiting ([#1068](https://github.com/azimul-kabir/actua/pull/1068))
 - Captured transactions can use a default account, and Review captured sets an account for all rows at once ([#1067](https://github.com/azimul-kabir/actua/pull/1067))
 - Optional reminders before scheduled transactions are due ([#1055](https://github.com/azimul-kabir/actua/pull/1055))
