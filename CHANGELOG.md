@@ -26,6 +26,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Resetting the demo budget no longer duplicates its transactions as Uncategorized ([#1059](https://github.com/azimul-kabir/actua/pull/1059))
 - Captured alerts name the merchant or sender as payee, not the wallet or account the money moved through ([#1047](https://github.com/azimul-kabir/actua/pull/1047))
 
 ## [1.7.0] - 2026-10-09
