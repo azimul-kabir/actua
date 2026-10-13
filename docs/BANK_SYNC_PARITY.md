@@ -130,6 +130,7 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:39`),
 | First sync of an empty account inserts a Starting Balance row | yes | yes (`ActualEntityWriter.addStartingBalance`), same amount per provider, date, payee, category and flags | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
 | `balance_current` updated from the download | every non-initial sync | same, with the sync status | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
 | Per-account error reporting | `errors[]` with the account name, notification per account | one summary line per account in a snackbar | Match (presentation differs) |
+| Newly added transactions | `newTransactions` highlighted in the register; `updatedAccounts` shown bold until `markAccountRead` | "N new from bank sync" on the account and highlighted rows until the account is left; snackbar **View** for one account (#1066) | Match (presentation differs) |
 
 ## 4. Row normalization
 

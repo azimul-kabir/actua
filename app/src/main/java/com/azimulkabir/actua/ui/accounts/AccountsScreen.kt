@@ -169,6 +169,8 @@ fun AccountsScreen(
     hasFab: Boolean = true,
     pendingCaptureCount: Int = 0,
     onReviewCaptures: () -> Unit = {},
+    /** How many transactions bank sync added that haven't been looked at, by account id (#1066). */
+    newTransactionCounts: Map<String, Int> = emptyMap(),
 ) {
     val listState = rememberLazyListState()
     LaunchedEffect(scrollToTopRequest) {
@@ -326,6 +328,7 @@ fun AccountsScreen(
                                     onClick = { onAccountClick(account.name) },
                                 onLongClick = { selectedAccount = account },
                                     hideDecimalPlaces = hideDecimalPlaces,
+                                    newTransactions = newTransactionCounts[account.id] ?: 0,
                                 )
                             }
                         }
@@ -532,6 +535,7 @@ private fun AccountRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     hideDecimalPlaces: Boolean,
+    newTransactions: Int = 0,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     ActuaGroupedItem(position = position) {
@@ -546,6 +550,8 @@ private fun AccountRow(
             Spacer(Modifier.width(Spacing.lg))
             Column(modifier = Modifier.weight(1f)) {
                 Text(account.name, style = MaterialTheme.typography.bodyLarge)
+                if (newTransactions > 0) Text(newBankTransactionsLabel(newTransactions),
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Text(creditCard?.let { "${it.cycle.dueShortSummary(dueDate = it.pendingStatementDue()?.dueDate)} · Spend ${formatMoneyCents(it.cycleSpendCents, hideDecimalPlaces)}" }
                     ?: account.type, style = MaterialTheme.typography.bodySmall, color = muted)
             }
@@ -615,6 +621,9 @@ private fun AddAccountSheet(onDismiss: () -> Unit, onCreateLocal: () -> Unit, on
 private fun AccountSheetAction(icon: ImageVector, label: String, onClick: () -> Unit, destructive: Boolean = false) {
     ActuaSheetAction(label, onClick = onClick, icon = icon, destructive = destructive)
 }
+
+/** "3 new from bank sync": an account's unseen synced transactions (#1066). */
+internal fun newBankTransactionsLabel(count: Int): String = "$count new from bank sync"
 
 /** The badge text for [count] pending captures: the count, capped at "99+". */
 internal fun pendingCaptureBadge(count: Int): String = if (count > 99) "99+" else count.toString()

@@ -19,6 +19,7 @@ import com.azimulkabir.actua.data.bank.BankSyncResult
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.ExperimentalPreferences
 import com.azimulkabir.actua.data.bank.BankSyncService
+import com.azimulkabir.actua.data.bank.NewBankTransactions
 import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.network.EnableBankingAuthResult
 import com.azimulkabir.actua.data.network.EnableBankingAuthStart
@@ -779,6 +780,7 @@ class ActuaRepository(context: Context) {
             .filter { !it.closed && (accountId == null || it.id == accountId) }
             .map { it.status ?: "none" }
         DiagnosticsLog.bankSync(result.accountsSynced, result.imported, result.matched, result.updated, statuses)
+        ActiveBudgetStore(appContext).budgetId?.let { NewBankTransactions(appContext).record(it, result.added) }
         return result
     }
 

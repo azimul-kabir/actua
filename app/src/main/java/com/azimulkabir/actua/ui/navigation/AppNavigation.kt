@@ -52,6 +52,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Scaffold
@@ -160,6 +162,7 @@ import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
+import com.azimulkabir.actua.data.bank.NewBankTransactions
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.notifications.CapturedTransactionNotifications
@@ -428,6 +431,17 @@ fun AppNavigation(
     // Set during composition, before any amount below is formatted or parsed.
     CurrencyDisplay.decimalPlaces = remember(dataVersion, repository) { repository.budgetDecimalPlaces() }
     val accounts = remember(dataVersion) { repository.accounts() }
+    // Transactions bank sync added that haven't been looked at yet, by account id (#1066).
+    val newBankTransactionStore = remember { NewBankTransactions(context) }
+    var newBankTransactions by remember(activeBudgetId) {
+        mutableStateOf(activeBudgetId?.let(newBankTransactionStore::all).orEmpty())
+    }
+    DisposableEffect(newBankTransactionStore, activeBudgetId) {
+        onDispose(newBankTransactionStore.observe {
+            newBankTransactions = activeBudgetId?.let(newBankTransactionStore::all).orEmpty()
+        })
+    }
+    val newBankTransactionCounts = remember(newBankTransactions) { newBankTransactions.mapValues { it.value.size } }
     // Actual's synced per-account `hide-reconciled-<accountId>` preference, shared with the PWA.
     val hideReconciledAccountIds = remember(dataVersion) { repository.hideReconciledAccountIds() }
     var showUpcomingTransactions by remember {
@@ -509,6 +523,17 @@ fun AppNavigation(
     // Re-read after sync status changes (a sync can expire the session) and after leaving Connection.
     val sessionExpired = remember(syncStatusGeneration, detail) { CredentialStore(context).sessionExpired }
     var transactionAccount by rememberSaveable { mutableStateOf<String?>(null) }
+    // Editing one of the register's transactions doesn't leave the account.
+    val openAccountId = if (detail == DetailDestination.Transactions || detail == DetailDestination.EditTransaction) {
+        accounts.firstOrNull { it.name == transactionAccount }?.id
+    } else null
+    // Leaving an account's register marks its new transactions seen, as Actual's `markAccountRead`.
+    var lastOpenAccountId by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(openAccountId) {
+        val left = lastOpenAccountId
+        if (left != null && left != openAccountId) activeBudgetId?.let { newBankTransactionStore.clear(it, left) }
+        lastOpenAccountId = openAccountId
+    }
     var transactionCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionMonth by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionSearch by rememberSaveable { mutableStateOf("") }
@@ -770,7 +795,20 @@ fun AppNavigation(
             try {
                 if (accounts.any { it.bankSyncSource != null }) {
                     val bankResult = withContext(Dispatchers.IO) { repository.syncBanks() }
-                    snackbarHostState.showSnackbar(bankResult.summary)
+                    // One account with new rows can be opened from the message (#1066).
+                    val viewAccount = bankResult.added.keys.singleOrNull()?.let { id -> accounts.firstOrNull { it.id == id } }
+                    launch {
+                        val action = snackbarHostState.showSnackbar(
+                            bankResult.summary,
+                            actionLabel = viewAccount?.let { "View" },
+                            duration = if (viewAccount != null) SnackbarDuration.Long else SnackbarDuration.Short,
+                        )
+                        if (action == SnackbarResult.ActionPerformed && viewAccount != null) {
+                            transactionAccount = viewAccount.name; transactionCategory = null; transactionMonth = null
+                            transactionSearch = ""
+                            destination = MainDestination.Accounts; detail = DetailDestination.Transactions
+                        }
+                    }
                 }
                 when (withContext(Dispatchers.IO) {
                     ActualSyncRunner.run(appContext, trigger = "Pull to refresh")
@@ -1558,6 +1596,7 @@ fun AppNavigation(
             )
             DetailDestination.Transactions -> TransactionsScreen(
                 accountName = transactionAccount,
+                newTransactionIds = openAccountId?.let { newBankTransactions[it] }.orEmpty(),
                 categoryName = transactionCategory,
                 month = transactionMonth,
                 onBack = {
@@ -2806,6 +2845,7 @@ fun AppNavigation(
                     onReorderAccounts = { detail = DetailDestination.ReorderAccounts },
                     pendingCaptureCount = pendingCaptureCount,
                     onReviewCaptures = { openCapturedReview() },
+                    newTransactionCounts = newBankTransactionCounts,
                     onSearch = { detail = DetailDestination.Search },
                     onSetUpBankSync = { loadBankSyncProviderStatus(); detail = DetailDestination.BankSync },
                     isRefreshing = accountsRefreshing,

@@ -21,6 +21,8 @@ data class BankSyncResult(
     val problems: List<String>,
     /** Rows already imported under the same id that the bank changed, e.g. pending → booked. */
     val updated: Int = 0,
+    /** Ids of the transactions this sync added (split parents, not children), by account id (#1066). */
+    val added: Map<String, List<String>> = emptyMap(),
 ) {
     val summary: String get() = buildList {
         if (imported > 0) add("Imported $imported ${if (imported == 1) "transaction" else "transactions"}.")
@@ -106,6 +108,7 @@ class BankSyncService(
         var imported = 0
         var matched = 0
         var updated = 0
+        val added = mutableMapOf<String, List<String>>()
         val ruleInputs by lazy { database.fetchRules() to database.ruleContext() }
         accounts.forEach { account ->
             val download = outcomes.getValue(account.id).getOrElse { error ->
@@ -186,6 +189,7 @@ class BankSyncService(
             // Actual's `sort_order ??= now - index * TRANSACTION_SORT_INCREMENT` over the added rows.
             val now = System.currentTimeMillis()
             var addedCount = 0
+            val addedIds = mutableListOf<String>()
             fun nextSortOrder() = (now - addedCount++ * ActualTransactionWriter.TRANSACTION_SORT_INCREMENT).toDouble()
 
             /**
@@ -271,6 +275,7 @@ class BankSyncService(
                         if (prepared.deleted) return@forEach
                         if (prepared.splitChildren.isEmpty()) {
                             batch.insert(bank.copy(payeeId = payeeId(prepared), sortOrder = nextSortOrder()))
+                            addedIds += bank.id
                         } else {
                             val offBudget = database.fetchAccounts().any { it.id == bank.accountId && it.offBudget }
                             val parent = bank.copy(payeeId = null, categoryId = null, isParent = true, sortOrder = nextSortOrder())
@@ -284,6 +289,7 @@ class BankSyncService(
                                 )
                             }
                             batch.insertSplit(parent, children)
+                            addedIds += parent.id
                         }
                         imported++
                     }
@@ -305,9 +311,11 @@ class BankSyncService(
                 balanceCurrent = download.balanceCents.takeUnless { newAccount },
             ))
             batch.commit()
+            if (addedIds.isNotEmpty()) added[account.id] = addedIds
         }
         return BankSyncResult(
             accountsSynced = outcomes.size, imported = imported, matched = matched, updated = updated, problems = problems,
+            added = added,
         )
     }
 

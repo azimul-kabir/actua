@@ -76,6 +76,8 @@ class BankSyncReconciliationTest {
 
         assertEquals(0, result.imported)
         assertEquals(1, result.matched)
+        // A matched row is not new (#1066).
+        assertTrue(result.added.isEmpty())
         assertEquals(listOf("imported-1"), transactionIds(database))
         assertEquals("new-bank-id", requireNotNull(database.fetchTransaction("imported-1")).financialId)
     }
@@ -96,6 +98,11 @@ class BankSyncReconciliationTest {
 
         assertEquals(1, result.imported)
         assertEquals(0, result.matched)
+        // Only the row this sync inserted is reported as new (#1066).
+        assertEquals(
+            transactionIds(database).filter { requireNotNull(database.fetchTransaction(it)).financialId == "coffee-c" },
+            result.added.values.flatten(),
+        )
         assertEquals(
             setOf("coffee-a", "coffee-b", "coffee-c"),
             transactionIds(database).mapTo(mutableSetOf()) { requireNotNull(database.fetchTransaction(it)).financialId },
