@@ -27,6 +27,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - The pending-capture badge now updates after clearing captures on Android 9 and 10 ([#1063](https://github.com/azimul-kabir/actua/pull/1063))
+- Android 17 asks for Nearby devices access only when the server is on a local network, and the Connection screen explains why ([#1061](https://github.com/azimul-kabir/actua/pull/1061))
 - Resetting the demo budget no longer duplicates its transactions as Uncategorized ([#1059](https://github.com/azimul-kabir/actua/pull/1059))
 - Captured alerts name the merchant or sender as payee, not the wallet or account the money moved through ([#1047](https://github.com/azimul-kabir/actua/pull/1047))
 
