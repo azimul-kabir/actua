@@ -110,6 +110,10 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Transactions screen status filter chips (Uncategorized, Uncleared, Cleared, Reconciled) each narrow the list correctly and can be combined/cleared.
 - [ ] Enable "hide reconciled transactions", then select the Reconciled status chip in an account's transaction list and verify reconciled transactions appear (not an empty "No unreconciled transactions" state); verify the empty-state message matches whichever status chip is active.
 - [ ] Pick an explicit category in Add Transaction before typing a payee that matches a rule setting a different category, and verify the explicit choice is preserved; leave the category empty and verify the rule still fills it in.
+- [ ] Select two opposite-amount transactions in different accounts and use Make transfer; verify both become linked transfer legs without categories and stay paired after sync; verify a split, a same-account pair or mismatched amounts are refused.
+- [ ] On the amount keypad, calculate 12.50 × 3 and 100 ÷ 3 with `=` and verify the saved amounts are exact cents (37.50 and 33.33).
+- [ ] Set the currency symbol after the amount (with and without a space) in Actual or as a device override and verify amounts and entry follow it.
+- [ ] Reset the demo budget twice in a row and verify its year of transactions appears once, categorized, with a populated Reports dashboard.
 - [ ] Payee search filters character-by-character across normal payees and transfer accounts.
 - [ ] Find nearby payees requests foreground permission only after explicit use and normal search remains available on denial/failure.
 - [ ] Indoors, Find nearby payees succeeds from a recent valid fix or an enabled network/fused source when GPS alone cannot obtain a fix.
@@ -215,6 +219,15 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Credit-card reminder permission flow behaves correctly and reminders can be enabled/disabled.
 - [ ] Launcher long-press shortcuts open Expense, Income, Transfer and Search in the correct destination.
 - [ ] Turn on "Accept transactions from Tasker" on the import screen, send a `com.azimulkabir.actua.action.QUEUE_TRANSACTION` broadcast with the token and an amount from Tasker (or `adb shell am broadcast`), and verify it appears in the import review queue and nothing is written until imported; verify a wrong token, a replaced token or the switch turned off is ignored.
+- [ ] Launcher long-press offers Review captured; it opens the review page (empty state when nothing waits) and Back returns to the main screen.
+- [ ] With "Capture future bank notifications" on, notification access granted and one allowed app, post a test alert and verify it joins the queue with the merchant as payee; verify alerts from other apps are ignored.
+- [ ] While captures wait, verify the Accounts header button and the bottom-bar Accounts tab both show the count (TalkBack reads it), update live, and clear after importing or "Delete notification data", including on Android 9–10.
+- [ ] Set a Default account (Bank notifications or top of Review captured) and verify a capture with no card digits or remembered account starts with it; verify card digits and remembered accounts still win, "Account for all" fills only rows without an account, and a closed default is ignored.
+- [ ] Turn on "Notify about captures" (Android 13+ asks for permission) and verify each capture posts a notification with Review, plus Import when its account is known; Import adds just that row, and the notification hides details on a secure lock screen.
+- [ ] Add the Tasker plugin action Queue transaction, pick an account from its list, run it and verify the row reaches the queue with that account; verify a rejected broadcast's reason shows under Automation apps.
+- [ ] Turn on scheduled-transaction reminders with a lead time, and verify a schedule due within it notifies at 9 AM, posting or skipping it withdraws the reminder, tapping opens the schedule, and the lock screen shows a generic version.
+- [ ] Bank-sync an account that receives new rows and verify the Accounts list shows "N new from bank sync", the register highlights only the added rows (not matched or updated ones), editing one keeps the marks, and leaving the account clears them; with one account updated, verify the sync message's View opens it.
+- [ ] On Android 17, connect to a server on a LAN address and verify Nearby devices access is requested with an explanation; connect to a public server and verify it is not requested.
 - [ ] Budget Snapshot widget works at 2x2 and compact 3x1/4x1 sizes.
 - [ ] Quick Transaction widget works at 2x2 and compact 3x1/4x1 sizes and all three actions open correctly.
 - [ ] Favourite Categories and Account Balances widgets configure, refresh and deep-link correctly.
@@ -264,6 +277,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Obtainium can discover the new prerelease/release as intended.
 - [ ] F-Droid verification workflow runs only after the Android Release workflow succeeds.
 - [ ] Discord release notification/changelog is posted once.
+- [ ] For a Google Play release: upload the workflow's `Actua-v<version>-aab` artifact to Play Console, use `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` as "What's new", confirm the Data safety form and permission declarations (notification access, notifications, location, local network) still match PRIVACY.md, and install the Play build over a previous Play build without losing data.
 
 ## Sign-off
 

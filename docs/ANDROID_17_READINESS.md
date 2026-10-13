@@ -8,7 +8,7 @@ behaviours reviewed for issue #109 and the coverage that guards them.
 
 | Area | Status | Actua handling |
 | --- | --- | --- |
-| Local network access | Ready | `ACCESS_LOCAL_NETWORK` is declared and requested at runtime on API 37 before password or OpenID connections. This preserves access to self-hosted Actual servers on a LAN and handles denial without starting the connection. |
+| Local network access | Ready | `ACCESS_LOCAL_NETWORK` is declared and requested at runtime on API 37 only when the server address is on a local network, before password or OpenID connections; the Connection screen explains why it is needed ([#1061](https://github.com/azimul-kabir/actua/pull/1061)). This preserves access to self-hosted Actual servers on a LAN, never prompts for public servers, and handles denial without starting the connection. |
 | Edge-to-edge and insets | Ready | Both activities call `enableEdgeToEdge`; Compose scaffolds and full-screen destinations consume their supplied insets. |
 | Background work | Ready | Sync, local backup, and credit-card reminder work use WorkManager. Periodic sync uses the platform minimum 15-minute interval, network constraints, unique work, and retry/backoff behaviour. |
 | Notifications | Ready | Android 13+ notification permission is requested before Actua posts reminder notifications. Transaction import uses the user-enabled notification-listener service rather than notification permission. |
