@@ -130,4 +130,37 @@ class TaskerPluginTest {
         assertEquals(-400L, result.candidates.single().amountCents)
         assertNull(result.rejection)
     }
+
+    @Test
+    fun `amounts keep their number and sign whatever surrounds them`() {
+        assertEquals("-10.69", TaskerPlugin.cleanAmount("-$10.69"))
+        assertEquals("10.69", TaskerPlugin.cleanAmount("--10.69"))
+        assertEquals("-10.69", TaskerPlugin.cleanAmount("\u221210.69"))
+        assertEquals("10.69", TaskerPlugin.cleanAmount("Rs.10.69"))
+        assertEquals("50", TaskerPlugin.cleanAmount("Tk.50"))
+        assertEquals("10.69", TaskerPlugin.cleanAmount("10.69 USD"))
+        assertEquals("-1,234.50", TaskerPlugin.cleanAmount("-$ 1,234.50"))
+        assertEquals("", TaskerPlugin.cleanAmount("USD"))
+    }
+
+    @Test
+    fun `minus amount turns a negative refund into money in, and a prefix still reads`() {
+        val today = LocalDate.of(2026, 10, 14)
+        // -%amount where Tasker's %amount is -10.69 (a refund): minus a negative is money in.
+        val refund = TaskerPlugin.fire(true, token, TaskerPlugin.bundleValues(mapOf("amount" to "--10.69"), token), today)
+        assertEquals(1_069L, refund.candidates.single().amountCents)
+        val charge = TaskerPlugin.fire(true, token, TaskerPlugin.bundleValues(mapOf("amount" to "-10.69"), token), today)
+        assertEquals(-1_069L, charge.candidates.single().amountCents)
+        val rupees = TaskerPlugin.fire(true, token, TaskerPlugin.bundleValues(
+            mapOf("amount" to "Rs.10.69", "type" to "debit"), token,
+        ), today)
+        assertEquals(-1_069L, rupees.candidates.single().amountCents)
+    }
+
+    @Test
+    fun `an amount without digits says so`() {
+        val result = TaskerPlugin.fire(true, token, TaskerPlugin.bundleValues(mapOf("amount" to "USD"), token))
+        assertTrue(result.candidates.isEmpty())
+        assertEquals("The amount had no number in it", result.rejection)
+    }
 }

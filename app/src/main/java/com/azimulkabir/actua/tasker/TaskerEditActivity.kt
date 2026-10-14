@@ -116,7 +116,7 @@ private val typeChoices = listOf(
 private data class FieldSpec(val extra: String, val label: String, val hint: String? = null)
 
 private val textFields = listOf(
-    FieldSpec(AutomationIntent.EXTRA_AMOUNT, "Amount", "e.g. %amount, or -%amount for a card charge. Currency symbols are removed."),
+    FieldSpec(AutomationIntent.EXTRA_AMOUNT, "Amount", "e.g. %amount. For card charges, set Type to Debit, or use -%amount so a negative refund becomes money in. Currency symbols are ignored."),
     FieldSpec(AutomationIntent.EXTRA_PAYEE, "Payee"),
     FieldSpec(AutomationIntent.EXTRA_DATE, "Date", "YYYY-MM-DD. Empty means today."),
     FieldSpec(AutomationIntent.EXTRA_NOTES, "Notes"),
