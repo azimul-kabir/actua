@@ -32,6 +32,19 @@ class CapturedImportTest {
         assertEquals(listOf(second.queueId), store.queued().map { it.queueId })
     }
 
+    @Test fun rejectingARowRemovesOnlyThatRowFromTheQueue() {
+        store.clearAll()
+        val rejected = store.enqueue(coffee)
+        val kept = store.enqueue(coffee.copy(payee = "Fuel"))
+
+        CapturedTransactionNotifications.reject(context, store, requireNotNull(rejected.queueId))
+        assertEquals(listOf(kept.queueId), store.queued().map { it.queueId })
+
+        CapturedTransactionNotifications.reject(context, store, requireNotNull(kept.queueId))
+        assertTrue(store.queued().isEmpty())
+        store.clearAll()
+    }
+
     @Test fun importingWritesThatRowOnlyAndLeavesTheRestQueued() = withBudget { rows ->
         val tapped = store.enqueue(coffee)
         val other = store.enqueue(coffee.copy(payee = "Fuel", amountCents = -4_000))
