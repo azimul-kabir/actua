@@ -85,7 +85,7 @@ the account last chosen for the same card or app, or the default account) and im
 path as the review screen, after the tap and never automatically. If the import fails, the row
 stays queued and the notification says why. Captured data, parser settings, and capture state can be deleted together.
 
-Debit and credit keyword sets are configurable for different bank wording. Confidence is high when
+Debit and credit keyword sets are configurable for different bank wording. Keywords match whole words, and wording that only names the card ("credit card", or the source app's own "<App> Credit" product) is ignored, so a purchase alert from a credit card isn't read as money in. Confidence is high when
 both a payee and reference are found, medium when a payee is found, and low when the source must be
 used as the payee. For captured notifications the source is the app's name, such as "Chase", not its package. An unambiguous card/account suffix can select an Actual account whose name contains
 the same digits. Category assignment is not guessed from merchant text; Actual rules run on every

@@ -23,9 +23,9 @@ object FinancialMessageParser {
     fun parse(text: String, source: String = "Shared text", today: LocalDate = LocalDate.now(),
         profile: FinancialMessageProfile = defaultProfile): ImportParseResult {
         val normalized = text.replace(Regex("\\s+"), " ").trim()
-        val lower = normalized.lowercase(Locale.ROOT)
-        val debit = profile.debitKeywords.firstOrNull(lower::contains)
-        val credit = profile.creditKeywords.firstOrNull(lower::contains)
+        val wording = directionWording(normalized, source)
+        val debit = profile.debitKeywords.firstOrNull { wording.containsWord(it) }
+        val credit = profile.creditKeywords.firstOrNull { wording.containsWord(it) }
         if (debit == null && credit == null) return failure("No debit or credit wording was recognized")
         val parsedAmount = (currencyAmount.find(normalized) ?: labeledAmount.find(normalized))?.groupValues?.get(1)
             ?.replace(",", "")?.toBigDecimalOrNull() ?: return failure("No transaction amount was recognized")
@@ -47,6 +47,22 @@ object FinancialMessageParser {
     }
 
     private fun failure(message: String) = ImportParseResult(emptyList(), listOf(ImportProblem(1, message)))
+
+    /**
+     * The alert's text, lower-cased, without wording that only names the card (#1072): "credit
+     * card" and the source app's own "<App> Credit" product, so "Fold Credit: you spent…" isn't
+     * read as money in.
+     */
+    internal fun directionWording(text: String, source: String): String {
+        var wording = text.lowercase(Locale.ROOT).replace(Regex("\\bcredit\\s+cards?\\b"), " ")
+        val app = source.trim().lowercase(Locale.ROOT)
+        if (app.isNotEmpty()) wording = wording.replace(Regex("\\b${Regex.escape(app)}\\s+credit\\b"), " ")
+        return wording
+    }
+
+    /** Whether [keyword] appears as whole words, so "credit" doesn't match inside another word. */
+    private fun String.containsWord(keyword: String): Boolean =
+        Regex("(?<![\\p{L}\\p{N}])${Regex.escape(keyword.lowercase(Locale.ROOT))}(?![\\p{L}\\p{N}])").containsMatchIn(this)
 
     private val party = Regex("(?i)\\b(at|to|from)\\s+(.+?)(?=\\s+(?:at|to|from|on|ref|trx|txn|using|card|a/c|account)\\b|[.;]|$)")
 

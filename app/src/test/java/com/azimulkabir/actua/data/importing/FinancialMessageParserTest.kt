@@ -90,4 +90,36 @@ class FinancialMessageParserTest {
     fun `only funding phrases fall back to the source`() {
         assertEquals("Bank app", payee("Paid $5.00 from Wallet"))
     }
+
+    @Test
+    fun `a card named Credit doesn't make a purchase income`() {
+        val candidate = FinancialMessageParser.parse("Fold Credit: you spent $10.69 at Cafe", "Fold").candidates.single()
+        assertEquals(-1_069L, candidate.amountCents)
+        assertEquals("Cafe", candidate.payee)
+        assertEquals(-500L, FinancialMessageParser.parse("Your credit card was charged $5.00 at Shop", "Bank app")
+            .candidates.single().amountCents)
+    }
+
+    @Test
+    fun `an alert whose only direction wording is the card name is not captured`() {
+        val result = FinancialMessageParser.parse("Fold Credit $10.69 Starbucks", "Fold")
+        assertTrue(result.candidates.isEmpty())
+        assertTrue(FinancialMessageParser.parse("New credit card statement: $10.00", "Bank app").candidates.isEmpty())
+    }
+
+    @Test
+    fun `credits are still recognized`() {
+        assertEquals(2_500L, FinancialMessageParser.parse("$25.00 credited to your account", "Bank app")
+            .candidates.single().amountCents)
+        assertEquals(500L, FinancialMessageParser.parse("Refund of $5.00 received from Shop", "Bank app")
+            .candidates.single().amountCents)
+        assertEquals(1_000L, FinancialMessageParser.parse("Payment of $10.00 received on your credit card", "Bank app")
+            .candidates.single().amountCents)
+    }
+
+    @Test
+    fun `keywords match whole words only`() {
+        val profile = FinancialMessageProfile(setOf("paid"), setOf("credit"))
+        assertTrue(FinancialMessageParser.parse("Discredited sender $5.00", "Bank app", profile = profile).candidates.isEmpty())
+    }
 }

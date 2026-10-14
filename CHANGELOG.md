@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - A Tasker action whose amount variable wasn't set now says which variable was missing ([#1075](https://github.com/azimul-kabir/actua/pull/1075))
+- Captured alerts from a card named "Credit" are no longer imported as income ([#1074](https://github.com/azimul-kabir/actua/pull/1074))
 
 ## [1.8.0] - 2026-10-13
 
