@@ -361,239 +361,253 @@ fun BudgetScreen(
         uncategorizedTransactions.sumOf { it.amountCents }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        BudgetToolbar(
-            month = month,
-            onMonthChange = onMonthChange,
-            monthRange = monthRange,
-            optionsExpanded = optionsExpanded,
-            showSpent = showSpent,
-            showProgressBars = showProgressBars,
-            budgetView = budgetView,
-            showOverview = showOverview,
-            showBudgetStatusBanners = showBudgetStatusBanners,
-            showGroupTotals = showGroupTotals,
-            hideFullySpent = hideFullySpent,
-            showHidden = showHidden,
-            showCategoryFilters = showCategoryFilters,
-            onOptionsChange = { optionsExpanded = it },
-            onAdd = { showAddSheet = true },
-            onShowSpentChange = onShowSpentChange,
-            onShowProgressBarsChange = onShowProgressBarsChange,
-            onBudgetViewChange = onBudgetViewChange,
-            onShowOverviewChange = onShowOverviewChange,
-            onShowBudgetStatusBannersChange = onShowBudgetStatusBannersChange,
-            onShowGroupTotalsChange = onShowGroupTotalsChange,
-            onHideFullySpentChange = onHideFullySpentChange,
-            onShowHiddenChange = onShowHiddenChange,
-            onShowCategoryFiltersChange = onShowCategoryFiltersChange,
-            onExpandAll = {
-                saveCollapsedGroups(emptySet())
-                optionsExpanded = false
-            },
-            onCollapseAll = {
-                saveCollapsedGroups(groups.mapTo(mutableSetOf()) { it.name })
-                optionsExpanded = false
-            },
-            onCopyPreviousMonth = {
-                onCopyPreviousMonth()
-                optionsExpanded = false
-            },
-            onSearch = onSearch,
-            onManageCategories = onManageCategories,
-        )
-        AnimatedVisibility(
-            visible = showCategoryFilters,
-            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
-            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
-        ) {
-            BudgetCategoryFilterRow(selected = categoryView, onSelect = onCategoryViewChange,
-                favoritesOnly = favoritesOnly, onFavoritesOnlyChange = onFavoritesOnlyChange)
-        }
-        val selectedView = BudgetCategoryView.fromLabel(categoryView)
-        // Otherwise this filters every group and category on every recomposition of
-        // BudgetScreen (e.g. opening/closing any sheet), not just when the budget or these
-        // display toggles actually change. Must live outside the LazyColumn content lambda,
-        // which isn't a @Composable context.
-        // `headerGroup` is precomputed here (once per data/toggle change) rather than via
-        // `group.copy(categories = visibleCategories)` inline at each header call site, which
-        // would otherwise allocate a new BudgetGroup on every recomposition of this screen.
-        val trackingBudget = overview.toBudgetCents == null
-        val visibleGroups = remember(groups, showHidden, hideFullySpent, selectedView, scheduleFunding, favoritesOnly, favoriteCategoryIds, hideIncomeGroup, trackingBudget) {
-            groups.filter { (showHidden || !it.hidden) && !(hideIncomeGroup && it.isIncome) }.map { group ->
-                val visibleCategories = group.categories.filter { category ->
-                    (showHidden || !category.hidden) &&
-                        (!hideFullySpent || category.available != 0) &&
-                        (category.isIncome || selectedView.matches(category, scheduleFunding)) &&
-                        (!favoritesOnly || category.id in favoriteCategoryIds)
-                }
-                // Rows follow the view filters; the header shows Actual's group totals.
-                Triple(group, visibleCategories, group.copy(categories = budgetTotalCategories(group, trackingBudget)))
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val screenWidth = maxWidth
+        Column(modifier = Modifier.fillMaxSize()) {
+            BudgetToolbar(
+                month = month,
+                onMonthChange = onMonthChange,
+                monthRange = monthRange,
+                optionsExpanded = optionsExpanded,
+                showSpent = showSpent,
+                showProgressBars = showProgressBars,
+                budgetView = budgetView,
+                showOverview = showOverview,
+                showBudgetStatusBanners = showBudgetStatusBanners,
+                showGroupTotals = showGroupTotals,
+                hideFullySpent = hideFullySpent,
+                showHidden = showHidden,
+                showCategoryFilters = showCategoryFilters,
+                onOptionsChange = { optionsExpanded = it },
+                onAdd = { showAddSheet = true },
+                onShowSpentChange = onShowSpentChange,
+                onShowProgressBarsChange = onShowProgressBarsChange,
+                onBudgetViewChange = onBudgetViewChange,
+                onShowOverviewChange = onShowOverviewChange,
+                onShowBudgetStatusBannersChange = onShowBudgetStatusBannersChange,
+                onShowGroupTotalsChange = onShowGroupTotalsChange,
+                onHideFullySpentChange = onHideFullySpentChange,
+                onShowHiddenChange = onShowHiddenChange,
+                onShowCategoryFiltersChange = onShowCategoryFiltersChange,
+                onExpandAll = {
+                    saveCollapsedGroups(emptySet())
+                    optionsExpanded = false
+                },
+                onCollapseAll = {
+                    saveCollapsedGroups(groups.mapTo(mutableSetOf()) { it.name })
+                    optionsExpanded = false
+                },
+                onCopyPreviousMonth = {
+                    onCopyPreviousMonth()
+                    optionsExpanded = false
+                },
+                onSearch = onSearch,
+                onManageCategories = onManageCategories,
+            )
+            AnimatedVisibility(
+                visible = showCategoryFilters,
+                enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+                exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+            ) {
+                BudgetCategoryFilterRow(selected = categoryView, onSelect = onCategoryViewChange,
+                    favoritesOnly = favoritesOnly, onFavoritesOnlyChange = onFavoritesOnlyChange)
             }
-        }
+            val selectedView = BudgetCategoryView.fromLabel(categoryView)
+            // Otherwise this filters every group and category on every recomposition of
+            // BudgetScreen (e.g. opening/closing any sheet), not just when the budget or these
+            // display toggles actually change. Must live outside the LazyColumn content lambda,
+            // which isn't a @Composable context.
+            // `headerGroup` is precomputed here (once per data/toggle change) rather than via
+            // `group.copy(categories = visibleCategories)` inline at each header call site, which
+            // would otherwise allocate a new BudgetGroup on every recomposition of this screen.
+            val trackingBudget = overview.toBudgetCents == null
+            val visibleGroups = remember(groups, showHidden, hideFullySpent, selectedView, scheduleFunding, favoritesOnly, favoriteCategoryIds, hideIncomeGroup, trackingBudget) {
+                groups.filter { (showHidden || !it.hidden) && !(hideIncomeGroup && it.isIncome) }.map { group ->
+                    val visibleCategories = group.categories.filter { category ->
+                        (showHidden || !category.hidden) &&
+                            (!hideFullySpent || category.available != 0) &&
+                            (category.isIncome || selectedView.matches(category, scheduleFunding)) &&
+                            (!favoritesOnly || category.id in favoriteCategoryIds)
+                    }
+                    // Rows follow the view filters; the header shows Actual's group totals.
+                    Triple(group, visibleCategories, group.copy(categories = budgetTotalCategories(group, trackingBudget)))
+                }
+            }
 
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
-        ) {
-            // The Ready to Budget hero and warnings scroll with the categories; the toolbar stays.
-            item(key = "budget-overview", contentType = "budget-overview") {
-                AnimatedVisibility(
-                    visible = showOverview,
-                    enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
-                    exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
-                ) {
-                    if (budgetView == "Plan") {
-                        PlanBudgetOverview(
-                            overview = overview,
-                            hideDecimalPlaces = hideDecimalPlaces,
-                            onClick = { budgetSummaryOpen = true },
-                        )
-                    } else {
-                        BudgetOverviewRow(
-                            overview,
-                            showSpent = showSpent,
-                            hideDecimalPlaces = hideDecimalPlaces,
-                            onToBudgetClick = { budgetSummaryOpen = true },
-                        )
-                    }
-                }
-            }
-            item(key = "overspent-warning", contentType = "overspent-warning") {
-                AnimatedVisibility(
-                    visible = showBudgetStatusBanners && overspentCategories.isNotEmpty(),
-                    enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
-                    exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
-                ) {
-                    OverspentWarningBanner(
-                        totalOverspentCents = totalOverspentCents,
-                        categoryCount = overspentCategories.size,
-                        hideDecimalPlaces = hideDecimalPlaces,
-                        onClick = {
-                            if (overspentCategories.size == 1) {
-                                val (group, category) = overspentCategories.first()
-                                movingBudget = group to category
-                            } else {
-                                overspentSheetOpen = true
-                            }
-                        },
-                    )
-                }
-            }
-            item(key = "uncategorized-warning", contentType = "uncategorized-warning") {
-                AnimatedVisibility(
-                    visible = showBudgetStatusBanners && uncategorizedTransactions.isNotEmpty(),
-                    enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
-                    exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
-                ) {
-                    UncategorizedWarningBanner(
-                        totalUncategorizedCents = totalUncategorizedCents,
-                        transactionCount = uncategorizedTransactions.size,
-                        hideDecimalPlaces = hideDecimalPlaces,
-                        onClick = onShowUncategorizedTransactions,
-                    )
-                }
-            }
-            visibleGroups.forEach { (group, visibleCategories, headerGroup) ->
-                val collapsed = group.name in collapsedGroups
-                stickyHeader(
-                    key = "header-${group.name}",
-                    // Lets Compose reuse composition slots across the group-header type
-                    // boundaries a scroll crosses, instead of diffing incompatible shapes.
-                    contentType = when {
-                        group.isIncome -> "income-header"
-                        budgetView == "Plan" -> "plan-header"
-                        else -> "table-header"
-                    },
-                ) {
-                    val onGroupClick = {
-                            saveCollapsedGroups(if (collapsed) {
-                                collapsedGroups - group.name
-                            } else {
-                                collapsedGroups + group.name
-                            })
-                        }
-                    if (group.isIncome) {
-                        IncomeBudgetGroupHeader(
-                            group = headerGroup,
-                            collapsed = collapsed,
-                            hideDecimalPlaces = hideDecimalPlaces,
-                            onClick = onGroupClick,
-                            onLongClick = { selectedGroup = group },
-                        )
-                    } else if (budgetView == "Plan") {
-                        PlanBudgetGroupHeader(
-                            group = headerGroup,
-                            collapsed = collapsed,
-                            showTotals = showGroupTotals,
-                            hideDecimalPlaces = hideDecimalPlaces,
-                            onClick = onGroupClick,
-                            onLongClick = { selectedGroup = group },
-                        )
-                    } else {
-                        BudgetGroupHeader(
-                            group = headerGroup,
-                            collapsed = collapsed,
-                            showSpent = showSpent,
-                            showTotals = showGroupTotals,
-                            hideDecimalPlaces = hideDecimalPlaces,
-                            onClick = onGroupClick,
-                            onLongClick = { selectedGroup = group },
-                        )
-                    }
-                }
-                itemsIndexed(
-                    visibleCategories,
-                    key = { _, category -> "${group.name}-${category.name}" },
-                    contentType = { _, category ->
-                        when {
-                            category.isIncome -> "income-row"
-                            budgetView == "Plan" -> "plan-row"
-                            else -> "table-row"
-                        }
-                    },
-                ) { index, category ->
+            // One decision for every table header and row, so their columns stay lined up.
+            val tableStacked = budgetView != "Plan" && !tableAmountsFit(
+                screenWidth - (Spacing.screenHorizontal + Spacing.lg) * 2,
+                columns = if (showSpent) 3 else 2,
+                lead = null,
+                amounts = remember(visibleGroups, showSpent, showGroupTotals, hideDecimalPlaces) {
+                    tableColumnAmounts(visibleGroups, showSpent, showGroupTotals, hideDecimalPlaces)
+                },
+            )
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
+            ) {
+                // The Ready to Budget hero and warnings scroll with the categories; the toolbar stays.
+                item(key = "budget-overview", contentType = "budget-overview") {
                     AnimatedVisibility(
-                        visible = !collapsed,
+                        visible = showOverview,
                         enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
                         exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
                     ) {
-                        if (category.isIncome) {
-                            IncomeBudgetCategoryRow(
-                                category = category,
-                                position = GroupPosition.of(index, visibleCategories.size),
+                        if (budgetView == "Plan") {
+                            PlanBudgetOverview(
+                                overview = overview,
                                 hideDecimalPlaces = hideDecimalPlaces,
-                                onClick = { onShowCategoryTransactions(category.name, true, false) },
-                                onLongClick = { selectedCategory = category },
-                            )
-                        } else if (budgetView == "Plan") {
-                            PlanBudgetCategoryRow(
-                                category = category,
-                                showSpendingDetails = showSpent,
-                                showProgressBar = showProgressBars,
-                                position = GroupPosition.of(index, visibleCategories.size),
-                                hideDecimalPlaces = hideDecimalPlaces,
-                                onClick = { editingBudget = group to category },
-                                onLongClick = { selectedCategory = category },
-                                scheduleFunding = scheduleFunding,
+                                onClick = { budgetSummaryOpen = true },
                             )
                         } else {
-                            CategoryRow(
-                                category = category,
+                            BudgetOverviewRow(
+                                overview,
                                 showSpent = showSpent,
-                                showProgressBar = showProgressBars,
-                                position = GroupPosition.of(index, visibleCategories.size),
-                                onLongClick = { selectedCategory = category },
-                                onOpen = { editingBudget = group to category },
                                 hideDecimalPlaces = hideDecimalPlaces,
-                                scheduleFunding = scheduleFunding,
+                                onToBudgetClick = { budgetSummaryOpen = true },
                             )
                         }
                     }
                 }
+                item(key = "overspent-warning", contentType = "overspent-warning") {
+                    AnimatedVisibility(
+                        visible = showBudgetStatusBanners && overspentCategories.isNotEmpty(),
+                        enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+                        exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+                    ) {
+                        OverspentWarningBanner(
+                            totalOverspentCents = totalOverspentCents,
+                            categoryCount = overspentCategories.size,
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            onClick = {
+                                if (overspentCategories.size == 1) {
+                                    val (group, category) = overspentCategories.first()
+                                    movingBudget = group to category
+                                } else {
+                                    overspentSheetOpen = true
+                                }
+                            },
+                        )
+                    }
+                }
+                item(key = "uncategorized-warning", contentType = "uncategorized-warning") {
+                    AnimatedVisibility(
+                        visible = showBudgetStatusBanners && uncategorizedTransactions.isNotEmpty(),
+                        enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+                        exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+                    ) {
+                        UncategorizedWarningBanner(
+                            totalUncategorizedCents = totalUncategorizedCents,
+                            transactionCount = uncategorizedTransactions.size,
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            onClick = onShowUncategorizedTransactions,
+                        )
+                    }
+                }
+                visibleGroups.forEach { (group, visibleCategories, headerGroup) ->
+                    val collapsed = group.name in collapsedGroups
+                    stickyHeader(
+                        key = "header-${group.name}",
+                        // Lets Compose reuse composition slots across the group-header type
+                        // boundaries a scroll crosses, instead of diffing incompatible shapes.
+                        contentType = when {
+                            group.isIncome -> "income-header"
+                            budgetView == "Plan" -> "plan-header"
+                            else -> "table-header"
+                        },
+                    ) {
+                        val onGroupClick = {
+                                saveCollapsedGroups(if (collapsed) {
+                                    collapsedGroups - group.name
+                                } else {
+                                    collapsedGroups + group.name
+                                })
+                            }
+                        if (group.isIncome) {
+                            IncomeBudgetGroupHeader(
+                                group = headerGroup,
+                                collapsed = collapsed,
+                                hideDecimalPlaces = hideDecimalPlaces,
+                                onClick = onGroupClick,
+                                onLongClick = { selectedGroup = group },
+                            )
+                        } else if (budgetView == "Plan") {
+                            PlanBudgetGroupHeader(
+                                group = headerGroup,
+                                collapsed = collapsed,
+                                showTotals = showGroupTotals,
+                                hideDecimalPlaces = hideDecimalPlaces,
+                                onClick = onGroupClick,
+                                onLongClick = { selectedGroup = group },
+                            )
+                        } else {
+                            BudgetGroupHeader(
+                                group = headerGroup,
+                                collapsed = collapsed,
+                                showSpent = showSpent,
+                                showTotals = showGroupTotals,
+                                stacked = tableStacked,
+                                hideDecimalPlaces = hideDecimalPlaces,
+                                onClick = onGroupClick,
+                                onLongClick = { selectedGroup = group },
+                            )
+                        }
+                    }
+                    itemsIndexed(
+                        visibleCategories,
+                        key = { _, category -> "${group.name}-${category.name}" },
+                        contentType = { _, category ->
+                            when {
+                                category.isIncome -> "income-row"
+                                budgetView == "Plan" -> "plan-row"
+                                else -> "table-row"
+                            }
+                        },
+                    ) { index, category ->
+                        AnimatedVisibility(
+                            visible = !collapsed,
+                            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+                            exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
+                        ) {
+                            if (category.isIncome) {
+                                IncomeBudgetCategoryRow(
+                                    category = category,
+                                    position = GroupPosition.of(index, visibleCategories.size),
+                                    hideDecimalPlaces = hideDecimalPlaces,
+                                    onClick = { onShowCategoryTransactions(category.name, true, false) },
+                                    onLongClick = { selectedCategory = category },
+                                )
+                            } else if (budgetView == "Plan") {
+                                PlanBudgetCategoryRow(
+                                    category = category,
+                                    showSpendingDetails = showSpent,
+                                    showProgressBar = showProgressBars,
+                                    position = GroupPosition.of(index, visibleCategories.size),
+                                    hideDecimalPlaces = hideDecimalPlaces,
+                                    onClick = { editingBudget = group to category },
+                                    onLongClick = { selectedCategory = category },
+                                    scheduleFunding = scheduleFunding,
+                                )
+                            } else {
+                                CategoryRow(
+                                    category = category,
+                                    showSpent = showSpent,
+                                    stacked = tableStacked,
+                                    showProgressBar = showProgressBars,
+                                    position = GroupPosition.of(index, visibleCategories.size),
+                                    onLongClick = { selectedCategory = category },
+                                    onOpen = { editingBudget = group to category },
+                                    hideDecimalPlaces = hideDecimalPlaces,
+                                    scheduleFunding = scheduleFunding,
+                                )
+                            }
+                        }
+                    }
+                }
+                item { Spacer(Modifier.height(20.dp)) }
             }
-            item { Spacer(Modifier.height(20.dp)) }
         }
     }
 
@@ -1661,24 +1675,35 @@ private fun OverviewPillAmount(amount: String, color: Color) {
         modifier = Modifier.padding(horizontal = OverviewPillPadding, vertical = 2.dp))
 }
 
-/** The table view's leading (name / To budget) column weight; each amount column weighs 1. */
-private const val LeadColumnWeight = 1.35f
+/**
+ * The table view's leading (name / To budget) column weight; each amount column weighs 1. Names
+ * ellipsize sooner so amounts keep one line on narrow screens and large fonts.
+ */
+private const val LeadColumnWeight = 1f
 
 /**
- * How far a table amount may shrink to stay on one line, as Actuali's `.minimumScaleFactor(0.75)`.
- * Below this the table's columns count as too narrow and the layout stacks instead.
+ * How far a table amount may shrink to stay on one line (further than Actuali's
+ * `.minimumScaleFactor(0.75)`, so one line holds in more cases). Below this the table's columns
+ * count as too narrow and the layout stacks instead.
  */
-private const val TableAmountMinScale = 0.75f
+private const val TableAmountMinScale = 0.6f
 
-/** A table-view amount: one line, shrinking down to [TableAmountMinScale] of bodyMedium to fit. */
+/** A table-view amount: one line, shrinking down to [TableAmountMinScale] of [style] to fit. */
 @Composable
-private fun TableAmountText(amount: String, fontWeight: FontWeight, color: Color, modifier: Modifier = Modifier) {
-    val style = MaterialTheme.typography.bodyMedium
+private fun TableAmountText(
+    amount: String,
+    fontWeight: FontWeight,
+    color: Color,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium,
+    textAlign: TextAlign? = null,
+) {
     Text(
         amount,
         style = style,
         fontWeight = fontWeight,
         color = color,
+        textAlign = textAlign,
         maxLines = 1,
         softWrap = false,
         autoSize = TextAutoSize.StepBased(minFontSize = style.fontSize * TableAmountMinScale, maxFontSize = style.fontSize),
@@ -1690,31 +1715,63 @@ private fun TableAmountText(amount: String, fontWeight: FontWeight, color: Color
 private val TableAmountGap = 6.dp
 
 /** An amount in a table column, plus the [padding] (a pill's, or [TableAmountGap]) beside it. */
-private class TableAmount(val text: String, val padding: androidx.compose.ui.unit.Dp = TableAmountGap)
+private data class TableAmount(val text: String, val padding: androidx.compose.ui.unit.Dp = TableAmountGap)
+
+/** The category table's balance pill padding (each side); see [CategoryRow]. */
+private val CategoryPillPadding = 10.dp
 
 /**
  * Whether [lead] and [amounts] fit the table's columns across [maxWidth] (a [LeadColumnWeight]
- * column, then one per amount) at no less than [TableAmountMinScale] of bodyMedium. Callers stack
- * their layout when they don't, rather than clipping digits.
+ * column, then [columns] amount columns, each of which must hold any one of [amounts]) at no less
+ * than [TableAmountMinScale] of bodyMedium. Callers stack their layout when they don't, rather than
+ * clipping digits.
  */
 @Composable
 private fun tableAmountsFit(
     maxWidth: androidx.compose.ui.unit.Dp,
     lead: TableAmount?,
     amounts: List<TableAmount>,
+    columns: Int = amounts.size,
 ): Boolean {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val base = MaterialTheme.typography.bodyMedium
     val style = base.copy(fontSize = base.fontSize * TableAmountMinScale, fontWeight = FontWeight.Bold)
-    val texts = listOfNotNull(lead?.text) + amounts.map { it.text }
-    return remember(maxWidth, texts, density, style) {
-        val unit = maxWidth / (LeadColumnWeight + amounts.size)
+    return remember(maxWidth, columns, lead?.text, lead?.padding, amounts, density, style) {
+        val unit = maxWidth / (LeadColumnWeight + columns)
         fun TableAmount.fitsIn(width: androidx.compose.ui.unit.Dp): Boolean {
             val textWidth = measurer.measure(text, style, maxLines = 1, softWrap = false, density = density).size.width
             return with(density) { textWidth.toDp() } + padding <= width
         }
-        (lead == null || lead.fitsIn(unit * LeadColumnWeight)) && amounts.all { it.fitsIn(unit) }
+        // A whole table has many amounts; only the longest of each padding can be the widest.
+        val widest = amounts.groupBy { it.padding }.values.flatMap { same ->
+            val longest = same.maxOf { it.text.length }
+            same.filter { it.text.length >= longest - 1 }.distinctBy { it.text }
+        }
+        (lead == null || lead.fitsIn(unit * LeadColumnWeight)) && widest.all { it.fitsIn(unit) }
+    }
+}
+
+/** Every amount the table view's group headers and category rows put in their amount columns. */
+private fun tableColumnAmounts(
+    groups: List<Triple<BudgetGroup, List<BudgetCategory>, BudgetGroup>>,
+    showSpent: Boolean,
+    showGroupTotals: Boolean,
+    hideDecimalPlaces: Boolean,
+): List<TableAmount> = buildList {
+    fun add(budgeted: Long, spent: Long, balance: Long, balancePadding: androidx.compose.ui.unit.Dp) {
+        add(TableAmount(formatMoneyCents(budgeted, hideDecimalPlaces)))
+        if (showSpent) add(TableAmount(formatMoneyCents(-spent, hideDecimalPlaces)))
+        add(TableAmount(formatMoneyCents(balance, hideDecimalPlaces), balancePadding))
+    }
+    groups.forEach { (group, categories, headerGroup) ->
+        if (group.isIncome) return@forEach
+        if (showGroupTotals) {
+            val totals = headerGroup.categories
+            add(totals.sumOf { it.assignedCents }, totals.sumOf { it.spentCents }, totals.sumOf { it.balanceCents }, TableAmountGap)
+        }
+        categories.filterNot { it.isIncome }
+            .forEach { add(it.assignedCents, it.spentCents, it.balanceCents, CategoryPillPadding * 2 + TableAmountGap) }
     }
 }
 
@@ -1725,6 +1782,8 @@ private fun BudgetGroupHeader(
     collapsed: Boolean,
     showSpent: Boolean,
     showTotals: Boolean,
+    /** The table is too narrow for its columns: totals go under the name; see [tableColumnAmounts]. */
+    stacked: Boolean,
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -1739,7 +1798,7 @@ private fun BudgetGroupHeader(
     val balance = group.categories.sumOf { it.balanceCents }
 
     Surface(color = MaterialTheme.colorScheme.background) {
-        BoxWithConstraints(
+        Box(
             modifier = Modifier.fillMaxWidth()
                 .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md)
                 .clip(MaterialTheme.shapes.large)
@@ -1760,17 +1819,8 @@ private fun BudgetGroupHeader(
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            val fits = !showTotals || tableAmountsFit(
-                maxWidth,
-                lead = null,
-                amounts = listOfNotNull(
-                    TableAmount(formatMoneyCents(budgeted, hideDecimalPlaces)),
-                    if (showSpent) TableAmount(formatMoneyCents(-spent, hideDecimalPlaces)) else null,
-                    TableAmount(formatMoneyCents(balance, hideDecimalPlaces)),
-                ),
-            )
-            if (!fits) {
-                // Too narrow for the category columns: totals go under the name and share the full width.
+            if (showTotals && stacked) {
+                // Too narrow for the table's columns: totals go under the name and share the full width.
                 Column {
                     nameRow(Modifier.fillMaxWidth())
                     Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1779,7 +1829,7 @@ private fun BudgetGroupHeader(
                         AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
                     }
                 }
-                return@BoxWithConstraints
+                return@Box
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 nameRow(Modifier.weight(LeadColumnWeight))
@@ -1837,6 +1887,8 @@ private fun AmountColumn(
 private fun CategoryRow(
     category: BudgetCategory,
     showSpent: Boolean,
+    /** As [BudgetGroupHeader]'s: the amounts go under the name, sharing the full width. */
+    stacked: Boolean,
     showProgressBar: Boolean,
     position: GroupPosition,
     onLongClick: () -> Unit,
@@ -1851,22 +1903,24 @@ private fun CategoryRow(
                 .padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalArrangement = Arrangement.Center,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(modifier = Modifier.weight(1.35f), verticalAlignment = Alignment.CenterVertically) {
+            val name = @Composable { modifier: Modifier ->
+                Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
                     CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
                     Text(if (category.hidden) "${category.name} · Hidden" else category.name,
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                CategoryAmount(category.assignedCents, Modifier.weight(1f), hideDecimalPlaces)
+            }
+            val amounts = @Composable { cell: (Modifier) -> Modifier ->
+                CategoryAmount(category.assignedCents, cell(Modifier), hideDecimalPlaces)
                 if (showSpent) CategoryAmount(
                     -category.spentCents,
-                    Modifier.weight(1f),
+                    cell(Modifier),
                     hideDecimalPlaces,
                     muted = category.spentCents == 0L,
                 )
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                Box(modifier = cell(Modifier).padding(start = TableAmountGap), contentAlignment = Alignment.CenterEnd) {
                     BalancePill(
                         category.balanceCents,
                         hideDecimalPlaces,
@@ -1875,9 +1929,21 @@ private fun CategoryRow(
                         modifier = Modifier.offset(x = 10.dp),
                         textStyle = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        horizontalPadding = 10.dp,
+                        horizontalPadding = CategoryPillPadding,
                         verticalPadding = 3.dp,
+                        tableAmount = true,
                     )
+                }
+            }
+            if (stacked) {
+                name(Modifier.fillMaxWidth())
+                Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    amounts { it.weight(1f) }
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    name(Modifier.weight(LeadColumnWeight))
+                    amounts { it.weight(1f) }
                 }
             }
             AnimatedVisibility(visible = showProgressBar && category.showsProgressBar) {
@@ -2213,12 +2279,12 @@ private fun InlineCalculatorAmount(label: String, amount: Long, modifier: Modifi
 
 @Composable
 private fun CategoryAmount(amount: Long, modifier: Modifier, hideDecimalPlaces: Boolean, muted: Boolean = false) {
-    ShrinkToFitText(
+    TableAmountText(
         formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodySmall,
         fontWeight = FontWeight.Normal,
         color = if (muted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
         else MaterialTheme.colorScheme.onSurface,
-        textAlign = TextAlign.End, modifier = modifier,
+        textAlign = TextAlign.End, modifier = modifier.padding(start = TableAmountGap),
     )
 }
 
@@ -2272,6 +2338,8 @@ private fun BalancePill(
     fontWeight: FontWeight = FontWeight.SemiBold,
     horizontalPadding: androidx.compose.ui.unit.Dp = 8.dp,
     verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
+    /** In the table view: shrink like the other [TableAmountText]s rather than [ShrinkToFitText]. */
+    tableAmount: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     val statusColor = categoryStatusColor(status)
@@ -2285,17 +2353,19 @@ private fun BalancePill(
             BalancePillTone.EMPTY -> Color.Transparent
         },
     ) {
-        ShrinkToFitText(
-            text = formatMoneyCents(amount, hideDecimalPlaces),
-            style = textStyle,
-            fontWeight = if (tone == BalancePillTone.EMPTY) FontWeight.Normal else fontWeight,
-            color = when (tone) {
-                BalancePillTone.ALERT -> statusColor
-                BalancePillTone.NEUTRAL -> colors.onSurface
-                BalancePillTone.EMPTY -> colors.onSurfaceVariant.copy(alpha = 0.55f)
-            },
-            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
-        )
+        val text = formatMoneyCents(amount, hideDecimalPlaces)
+        val weight = if (tone == BalancePillTone.EMPTY) FontWeight.Normal else fontWeight
+        val color = when (tone) {
+            BalancePillTone.ALERT -> statusColor
+            BalancePillTone.NEUTRAL -> colors.onSurface
+            BalancePillTone.EMPTY -> colors.onSurfaceVariant.copy(alpha = 0.55f)
+        }
+        val padding = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding)
+        if (tableAmount) {
+            TableAmountText(text, fontWeight = weight, color = color, style = textStyle, modifier = padding)
+        } else {
+            ShrinkToFitText(text = text, style = textStyle, fontWeight = weight, color = color, modifier = padding)
+        }
     }
 }
 
