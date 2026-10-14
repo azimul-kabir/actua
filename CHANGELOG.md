@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Status and navigation bar icons follow the app's Light or Dark appearance instead of the device's ([#1086](https://github.com/azimul-kabir/actua/pull/1086))
 - The Tasker action reads the amount's number even with currency prefixes like "Rs." or a doubled minus sign ([#1081](https://github.com/azimul-kabir/actua/pull/1081))
 - The splash screen follows the device's dark mode instead of always being white ([#1079](https://github.com/azimul-kabir/actua/pull/1079))
 - Rejected captured transactions no longer come back in Review captured ([#1077](https://github.com/azimul-kabir/actua/pull/1077))
