@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches ActuaDarkColorScheme.background. -->
+    <color name="actua_window_background">#141318</color>
+</resources>

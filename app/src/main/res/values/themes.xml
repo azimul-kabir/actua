@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="Theme.Actua" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- The window and splash screen take the app's light or dark background (values-night), so
+         launching Actua doesn't flash white in dark mode. -->
+    <style name="Theme.Actua" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/actua_window_background</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/actua_window_background</item>
+    </style>
 </resources>
