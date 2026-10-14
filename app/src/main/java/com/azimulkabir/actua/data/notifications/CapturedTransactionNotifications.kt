@@ -63,6 +63,15 @@ object CapturedTransactionNotifications {
 
     fun notificationId(queueId: String) = queueId.hashCode()
 
+    /**
+     * Drops the queued row [queueId] the user rejected on review, and its notification (#1076).
+     * A notification still being prepared finds the row gone and posts nothing.
+     */
+    fun reject(context: Context, store: NotificationImportPreferences, queueId: String) {
+        store.removeQueued(queueId)
+        cancel(context, listOf(queueId))
+    }
+
     /** Removes the notifications of rows imported or dropped elsewhere, e.g. on the review screen. */
     fun cancel(context: Context, queueIds: Collection<String>) {
         val manager = NotificationManagerCompat.from(context)

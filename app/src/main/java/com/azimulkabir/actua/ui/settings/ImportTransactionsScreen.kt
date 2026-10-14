@@ -651,7 +651,14 @@ fun ImportTransactionsScreen(
                     OutlinedTextField(row.notes, { rows[index] = row.copy(notes = it) }, label = { Text("Notes") },
                         modifier = Modifier.fillMaxWidth())
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { rows.removeAt(index) }) { Text("Reject") }
+                        TextButton(onClick = {
+                            rows.removeAt(index)
+                            // A rejected capture leaves the queue now, not only this page (#1076).
+                            row.queueId?.let { id ->
+                                CapturedTransactionNotifications.reject(context, notificationPreferences, id)
+                                queued = notificationPreferences.queued()
+                            }
+                        }) { Text("Reject") }
                     }
                     }
                 }
