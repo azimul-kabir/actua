@@ -163,8 +163,10 @@ broadcast without `token:` is ignored. When a broadcast is ignored, the import s
 The reason and time are kept, never the values sent; it clears after the next accepted broadcast,
 a new token, turning the integration off, or deleting notification data.
 
-- **Credit cards:** `amount:-%amount` turns a charge shown as `25.00` into an outflow. Use
-  `amount:%amount` where the notification already has the right sign, or send `type:debit`.
+- **Credit cards:** send `type:debit` with `amount:%amount` so a charge shown as `25.00` is an
+  outflow whatever sign the notification uses. A hand-typed `amount:-%amount` also works, but turns
+  an already negative amount into `--25.00`. If `%amount` wasn't set when the action ran, **Last
+  broadcast ignored** names the variable.
 - **Two accounts in one app:** create one profile per notification title, each with its own Send
   Intent, and send `account:` with the exact Actual account name, e.g. `account:Amex Gold`. Both
   accounts' rows can then be imported together.

@@ -18,10 +18,7 @@ class TaskerFireReceiver : BroadcastReceiver() {
         val bundle = intent.getBundleExtra(TaskerPlugin.EXTRA_BUNDLE)
         val values = bundle?.keySet().orEmpty().associateWith { bundle?.getString(it) }
         val store = NotificationImportPreferences(context)
-        val result = handleAutomationExtras(
-            store.automationEnabled, store.automationToken, TaskerPlugin.extrasOf(values),
-            profile = store.profile(), tokenAdvice = TaskerPlugin.TOKEN_ADVICE,
-        )
+        val result = TaskerPlugin.fire(store.automationEnabled, store.automationToken, values, profile = store.profile())
         result.candidates.forEach { CapturedTransactionNotifications.queue(context, store, it) }
         result.rejection?.let(store::recordAutomationRejection) ?: store.clearAutomationRejection()
         if (isOrderedBroadcast) {
