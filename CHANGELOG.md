@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Captured alerts from a card named "Credit" are no longer imported as income ([#1074](https://github.com/azimul-kabir/actua/pull/1074))
+
 ## [1.8.0] - 2026-10-13
 
 ### Added
