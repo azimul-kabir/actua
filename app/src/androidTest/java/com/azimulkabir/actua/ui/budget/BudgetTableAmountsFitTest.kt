@@ -67,7 +67,8 @@ class BudgetTableAmountsFitTest {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 MaterialTheme {
-                    Box(Modifier.width(360.dp)) {
+                    // The narrowest common phone width (and CI's default emulator).
+                    Box(Modifier.width(320.dp)) {
                         BudgetScreen(
                             groups = groups.value,
                             overview = overview.value,

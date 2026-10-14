@@ -2,14 +2,30 @@
 
 **A native Android client for [Actual Budget](https://actualbudget.org/), built with Kotlin and Jetpack Compose.**
 
-[Website](https://actua.azimulkabir.com) • [Developer website](https://www.azimulkabir.com) • [Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua) • [Download APK](https://github.com/azimul-kabir/actua/releases/latest) • [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua) • [Discord](https://discord.gg/FhedEyP97f) • [Report an issue](https://github.com/azimul-kabir/actua/issues/new/choose)
-
-![Android 9+](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
-![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack_Compose-7F52FF?logo=kotlin&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-48506A)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="artwork/actua-hero-dark.png">
+    <img src="artwork/actua-hero.png" alt="Actua, now on Google Play: phones showing the budget plan view, accounts and spending reports" width="900">
+  </picture>
+</p>
 
 <p align="center">
-  <img src="artwork/actua-hero.png" alt="Actua for Android showing budget, category, transaction and bills screens" width="900">
+  <a href="https://play.google.com/store/apps/details?id=com.azimulkabir.actua"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/azimul-kabir/actua/releases/latest"><img src="https://img.shields.io/badge/Download-APK-6750A4?style=for-the-badge&logo=github&logoColor=white" alt="Download APK"></a>
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua"><img src="https://img.shields.io/badge/Get_it_on-Obtainium-6750A4?style=for-the-badge&logo=android&logoColor=white" alt="Get it on Obtainium"></a>
+  <a href="https://actua.azimulkabir.com"><img src="https://img.shields.io/badge/Website-actua.azimulkabir.com-4B18D1?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website"></a>
+  <a href="https://discord.gg/FhedEyP97f"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord"></a>
+  <a href="https://github.com/azimul-kabir/actua/issues/new/choose"><img src="https://img.shields.io/badge/Report-an_issue-48506A?style=for-the-badge&logo=github&logoColor=white" alt="Report an issue"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white" alt="Android 9+">
+  <img src="https://img.shields.io/badge/Kotlin-Jetpack_Compose-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin and Jetpack Compose">
+  <img src="https://img.shields.io/badge/License-MIT-48506A" alt="MIT license">
+  <a href="https://www.azimulkabir.com"><img src="https://img.shields.io/badge/Developer-azimulkabir.com-48506A" alt="Developer website"></a>
 </p>
 
 ## About
@@ -55,55 +71,107 @@ See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implem
 <table>
   <tr>
     <td align="center" width="25%">
-      <a href="artwork/screenshots/budget.png">
-        <img src="artwork/screenshots/budget.png" width="200" alt="Actua budget view with categories, targets and progress">
+      <a href="artwork/screenshots/light/budget.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/budget.png">
+          <img src="artwork/screenshots/light/budget.png" width="200" alt="Actua budget plan view with Ready to Budget, category targets and progress">
+        </picture>
       </a>
     </td>
     <td align="center" width="25%">
-      <a href="artwork/screenshots/accounts.png">
-        <img src="artwork/screenshots/accounts.png" width="200" alt="Actua accounts overview">
+      <a href="artwork/screenshots/light/budget-table.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/budget-table.png">
+          <img src="artwork/screenshots/light/budget-table.png" width="200" alt="Actua budget table view with budgeted, spent and balance columns">
+        </picture>
       </a>
     </td>
     <td align="center" width="25%">
-      <a href="artwork/screenshots/transactions.png">
-        <img src="artwork/screenshots/transactions.png" width="200" alt="Actua transaction list">
+      <a href="artwork/screenshots/light/home.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/home.png">
+          <img src="artwork/screenshots/light/home.png" width="200" alt="Actua home dashboard with favorites and upcoming bills">
+        </picture>
       </a>
     </td>
     <td align="center" width="25%">
-      <a href="artwork/screenshots/add-transaction.png">
-        <img src="artwork/screenshots/add-transaction.png" width="200" alt="Actua add transaction screen">
+      <a href="artwork/screenshots/light/accounts.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/accounts.png">
+          <img src="artwork/screenshots/light/accounts.png" width="200" alt="Actua accounts overview with favorites and group totals">
+        </picture>
       </a>
     </td>
   </tr>
   <tr>
     <td align="center" width="25%">
-      <a href="artwork/screenshots/reports.png">
-        <img src="artwork/screenshots/reports.png" width="200" alt="Actua reports with income vs expenses chart">
+      <a href="artwork/screenshots/light/transactions.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/transactions.png">
+          <img src="artwork/screenshots/light/transactions.png" width="200" alt="Actua transaction list with splits, cleared and reconciled states">
+        </picture>
       </a>
     </td>
     <td align="center" width="25%">
-      <a href="artwork/screenshots/bills-calendar.png">
-        <img src="artwork/screenshots/bills-calendar.png" width="200" alt="Actua bills calendar">
+      <a href="artwork/screenshots/light/add-transaction.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/add-transaction.png">
+          <img src="artwork/screenshots/light/add-transaction.png" width="200" alt="Actua add transaction screen">
+        </picture>
       </a>
     </td>
     <td align="center" width="25%">
-      <a href="artwork/screenshots/rules.png">
-        <img src="artwork/screenshots/rules.png" width="200" alt="Actua rules and automatic categorization">
+      <a href="artwork/screenshots/light/reports.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/reports.png">
+          <img src="artwork/screenshots/light/reports.png" width="200" alt="Actua reports dashboard with a spending-by-category donut chart">
+        </picture>
       </a>
     </td>
     <td align="center" width="25%">
-      <a href="artwork/screenshots/budget-table.png">
-        <img src="artwork/screenshots/budget-table.png" width="200" alt="Actua budget table view with budgeted, spent and balance columns">
+      <a href="artwork/screenshots/light/net-worth.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/net-worth.png">
+          <img src="artwork/screenshots/light/net-worth.png" width="200" alt="Actua net worth and cash flow reports">
+        </picture>
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/credit-card.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/credit-card.png">
+          <img src="artwork/screenshots/light/credit-card.png" width="200" alt="Actua credit card with billing cycle and statement balance">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/bills-calendar.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/bills-calendar.png">
+          <img src="artwork/screenshots/light/bills-calendar.png" width="200" alt="Actua bills calendar with upcoming scheduled transactions">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="artwork/screenshots/light/rules.png">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="artwork/screenshots/dark/rules.png">
+          <img src="artwork/screenshots/light/rules.png" width="200" alt="Actua rules for automatic categorization">
+        </picture>
       </a>
     </td>
   </tr>
 </table>
 
+Screenshots use the built-in demo budget and follow your GitHub light or dark theme.
+
 ## Try Actua
 
 Actua requires **Android 9 or newer**.
 
-Install Actua from [Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua), or download the latest APK from [GitHub Releases](https://github.com/azimul-kabir/actua/releases) or add Actua to Obtainium for update notifications and in-place upgrades.
+Actua is available to everyone on [Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua). You can also download the latest APK from [GitHub Releases](https://github.com/azimul-kabir/actua/releases) or add Actua to Obtainium for update notifications and in-place upgrades.
 
 Don't have an Actual server handy? Open **Manage → Connection & Data → Try demo budget** to explore Actua using a completely local sample budget.
 

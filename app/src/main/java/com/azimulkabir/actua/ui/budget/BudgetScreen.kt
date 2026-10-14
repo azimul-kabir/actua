@@ -98,8 +98,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -1606,7 +1608,9 @@ private fun BudgetOverviewRow(
                     // own line so the other amounts share the full width.
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         leadCell(Modifier.fillMaxWidth())
-                        Row(verticalAlignment = Alignment.CenterVertically) { amountCells { it.weight(1f) } }
+                        StackedTableAmounts {
+                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells { it.weight(1f) } }
+                        }
                     }
                 }
             }
@@ -1688,6 +1692,22 @@ private const val LeadColumnWeight = 1f
  */
 private const val TableAmountMinScale = 0.6f
 
+/**
+ * How far an amount may shrink once its row has already stacked (the last resort): on the smallest
+ * phones at large font scales even a full-width third can't hold 7-digit amounts at
+ * [TableAmountMinScale], and small digits beat clipped ones.
+ */
+private const val TableAmountLastResortScale = 0.5f
+
+/** The smallest scale [TableAmountText] may shrink to here; see [StackedTableAmounts]. */
+private val LocalTableAmountMinScale = compositionLocalOf { TableAmountMinScale }
+
+/** Amounts in a stacked table layout, which may shrink to [TableAmountLastResortScale]. */
+@Composable
+private fun StackedTableAmounts(content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalTableAmountMinScale provides TableAmountLastResortScale, content = content)
+}
+
 /** A table-view amount: one line, shrinking down to [TableAmountMinScale] of [style] to fit. */
 @Composable
 private fun TableAmountText(
@@ -1698,6 +1718,7 @@ private fun TableAmountText(
     style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium,
     textAlign: TextAlign? = null,
 ) {
+    val minFontSize = style.fontSize * LocalTableAmountMinScale.current
     Text(
         amount,
         style = style,
@@ -1706,7 +1727,7 @@ private fun TableAmountText(
         textAlign = textAlign,
         maxLines = 1,
         softWrap = false,
-        autoSize = TextAutoSize.StepBased(minFontSize = style.fontSize * TableAmountMinScale, maxFontSize = style.fontSize),
+        autoSize = TextAutoSize.StepBased(minFontSize = minFontSize, maxFontSize = style.fontSize),
         modifier = modifier,
     )
 }
@@ -1823,10 +1844,12 @@ private fun BudgetGroupHeader(
                 // Too narrow for the table's columns: totals go under the name and share the full width.
                 Column {
                     nameRow(Modifier.fillMaxWidth())
-                    Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
-                        if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                        AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
+                    StackedTableAmounts {
+                        Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
+                            if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
+                            AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
+                        }
                     }
                 }
                 return@Box
@@ -1937,8 +1960,10 @@ private fun CategoryRow(
             }
             if (stacked) {
                 name(Modifier.fillMaxWidth())
-                Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    amounts { it.weight(1f) }
+                StackedTableAmounts {
+                    Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        amounts { it.weight(1f) }
+                    }
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
