@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- The splash screen follows the device's dark mode instead of always being white ([#1079](https://github.com/azimul-kabir/actua/pull/1079))
 - Rejected captured transactions no longer come back in Review captured ([#1077](https://github.com/azimul-kabir/actua/pull/1077))
 - A Tasker action whose amount variable wasn't set now says which variable was missing ([#1075](https://github.com/azimul-kabir/actua/pull/1075))
 - Captured alerts from a card named "Credit" are no longer imported as income ([#1074](https://github.com/azimul-kabir/actua/pull/1074))
