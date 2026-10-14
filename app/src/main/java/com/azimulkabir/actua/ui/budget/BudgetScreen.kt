@@ -24,6 +24,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -97,8 +98,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -115,9 +118,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1544,12 +1549,16 @@ private fun BudgetOverviewRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val (leadLabel, leadCents) = overview.lead()
+            val (leadLabel, leadCents) = overview.lead()
+            val leadAmount = leadCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—"
+            val budgeted = formatMoneyCents(overview.budgetedCents, hideDecimalPlaces)
+            val spent = formatMoneyCents(overview.spentCents, hideDecimalPlaces)
+            val balance = formatMoneyCents(overview.availableCents, hideDecimalPlaces)
+            val leadCell = @Composable { modifier: Modifier ->
                 OverviewCell(
                     leadLabel,
-                    leadCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
-                    Modifier.weight(1.35f),
+                    leadAmount,
+                    modifier,
                     Alignment.Start,
                     positive = leadCents?.let { it > 0 } == true,
                     negative = leadCents?.let { it < 0 } == true,
@@ -1557,11 +1566,39 @@ private fun BudgetOverviewRow(
                     pillOffset = (-8).dp,
                     onClick = onToBudgetClick,
                 )
-                OverviewCell("Budgeted", formatMoneyCents(overview.budgetedCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
-                if (showSpent) OverviewCell("Spent", formatMoneyCents(overview.spentCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
-                OverviewCell("Balance", formatMoneyCents(overview.availableCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End,
+            }
+            val amountCells = @Composable { cell: (Modifier) -> Modifier ->
+                OverviewCell("Budgeted", budgeted, cell(Modifier), Alignment.End)
+                if (showSpent) OverviewCell("Spent", spent, cell(Modifier), Alignment.End)
+                OverviewCell("Balance", balance, cell(Modifier), Alignment.End,
                     positive = overview.availableCents > 0, negative = overview.availableCents < 0,
                     pill = true, pillOffset = 8.dp)
+            }
+            BoxWithConstraints {
+                val fits = tableAmountsFit(
+                    maxWidth,
+                    lead = TableAmount(leadAmount, OverviewPillPadding * 2),
+                    amounts = listOfNotNull(
+                        TableAmount(budgeted),
+                        if (showSpent) TableAmount(spent) else null,
+                        TableAmount(balance, OverviewPillPadding * 2),
+                    ),
+                )
+                if (fits) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        leadCell(Modifier.weight(LeadColumnWeight))
+                        amountCells { it.weight(1f) }
+                    }
+                } else {
+                    // Too narrow (small screen or large font) for four columns: To budget gets its
+                    // own line so the other amounts share the full width.
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        leadCell(Modifier.fillMaxWidth())
+                        StackedTableAmounts {
+                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells { it.weight(1f) } }
+                        }
+                    }
+                }
             }
             if (overview.bufferedCents != 0L) {
                 Text(
@@ -1614,16 +1651,92 @@ private fun OverviewCell(
                 }
             }
         } else {
-            Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-                color = colors.onSurface, maxLines = 1)
+            TableAmountText(amount, fontWeight = FontWeight.SemiBold, color = colors.onSurface,
+                modifier = Modifier.padding(start = TableAmountGap))
         }
     }
 }
 
+private val OverviewPillPadding = 8.dp
+
 @Composable
 private fun OverviewPillAmount(amount: String, color: Color) {
-    Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-        color = color, maxLines = 1, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+    TableAmountText(amount, fontWeight = FontWeight.SemiBold, color = color,
+        modifier = Modifier.padding(horizontal = OverviewPillPadding, vertical = 2.dp))
+}
+
+/** The table view's leading (name / To budget) column weight; each amount column weighs 1. */
+private const val LeadColumnWeight = 1.35f
+
+/**
+ * How far a table amount may shrink to stay on one line, as Actuali's `.minimumScaleFactor(0.75)`.
+ * Below this the table's columns count as too narrow and the layout stacks instead.
+ */
+private const val TableAmountMinScale = 0.75f
+
+/**
+ * How far an amount may shrink once its row has already stacked (the last resort): on the smallest
+ * phones at large font scales even a full-width third can't hold 7-digit amounts at
+ * [TableAmountMinScale], and small digits beat clipped ones.
+ */
+private const val TableAmountLastResortScale = 0.5f
+
+/** The smallest scale [TableAmountText] may shrink to here; see [StackedTableAmounts]. */
+private val LocalTableAmountMinScale = compositionLocalOf { TableAmountMinScale }
+
+/** Amounts in a stacked table layout, which may shrink to [TableAmountLastResortScale]. */
+@Composable
+private fun StackedTableAmounts(content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalTableAmountMinScale provides TableAmountLastResortScale, content = content)
+}
+
+/** A table-view amount: one line, shrinking down to [TableAmountMinScale] of bodyMedium to fit. */
+@Composable
+private fun TableAmountText(amount: String, fontWeight: FontWeight, color: Color, modifier: Modifier = Modifier) {
+    val style = MaterialTheme.typography.bodyMedium
+    val minFontSize = style.fontSize * LocalTableAmountMinScale.current
+    Text(
+        amount,
+        style = style,
+        fontWeight = fontWeight,
+        color = color,
+        maxLines = 1,
+        softWrap = false,
+        autoSize = TextAutoSize.StepBased(minFontSize = minFontSize, maxFontSize = style.fontSize),
+        modifier = modifier,
+    )
+}
+
+/** Space kept before a plain table amount so a shrunk neighbour never runs into it. */
+private val TableAmountGap = 6.dp
+
+/** An amount in a table column, plus the [padding] (a pill's, or [TableAmountGap]) beside it. */
+private class TableAmount(val text: String, val padding: androidx.compose.ui.unit.Dp = TableAmountGap)
+
+/**
+ * Whether [lead] and [amounts] fit the table's columns across [maxWidth] (a [LeadColumnWeight]
+ * column, then one per amount) at no less than [TableAmountMinScale] of bodyMedium. Callers stack
+ * their layout when they don't, rather than clipping digits.
+ */
+@Composable
+private fun tableAmountsFit(
+    maxWidth: androidx.compose.ui.unit.Dp,
+    lead: TableAmount?,
+    amounts: List<TableAmount>,
+): Boolean {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val base = MaterialTheme.typography.bodyMedium
+    val style = base.copy(fontSize = base.fontSize * TableAmountMinScale, fontWeight = FontWeight.Bold)
+    val texts = listOfNotNull(lead?.text) + amounts.map { it.text }
+    return remember(maxWidth, texts, density, style) {
+        val unit = maxWidth / (LeadColumnWeight + amounts.size)
+        fun TableAmount.fitsIn(width: androidx.compose.ui.unit.Dp): Boolean {
+            val textWidth = measurer.measure(text, style, maxLines = 1, softWrap = false, density = density).size.width
+            return with(density) { textWidth.toDp() } + padding <= width
+        }
+        (lead == null || lead.fitsIn(unit * LeadColumnWeight)) && amounts.all { it.fitsIn(unit) }
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -1647,47 +1760,74 @@ private fun BudgetGroupHeader(
     val balance = group.categories.sumOf { it.balanceCents }
 
     Surface(color = MaterialTheme.colorScheme.background) {
-        Row(
+        BoxWithConstraints(
             modifier = Modifier.fillMaxWidth()
                 .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md)
                 .clip(MaterialTheme.shapes.large)
                 .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(modifier = Modifier.weight(1.35f), verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.KeyboardArrowDown,
-                    contentDescription = if (collapsed) "Expand ${group.name}" else "Collapse ${group.name}",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.width(24.dp).rotate(rotation),
-                )
-                Text(if (group.hidden) "${group.name} · Hidden" else group.name,
-                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
-                    color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            // Scoped to just the part that actually changes size (totals shown/hidden) instead
-            // of the whole sticky-header row, so the icon/name on the left — which never
-            // resizes — doesn't pay for an extra measure/layout pass on every scroll frame.
-            Row(
-                // This is repeated for every visible category row. Toggling the optional
-                // Spent column should update its width once rather than animate remeasurement
-                // of the whole LazyColumn.
-                modifier = Modifier.weight(if (showSpent) 2f else 1f),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (showTotals) {
-                    AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
-                    if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                } else {
-                    Spacer(Modifier.weight(if (showSpent) 2f else 1f))
+            val nameRow = @Composable { modifier: Modifier ->
+                Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Outlined.KeyboardArrowDown,
+                        contentDescription = if (collapsed) "Expand ${group.name}" else "Collapse ${group.name}",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.width(24.dp).rotate(rotation),
+                    )
+                    Text(if (group.hidden) "${group.name} · Hidden" else group.name,
+                        style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
+                        color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            if (showTotals) {
-                AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
-            } else {
-                Spacer(Modifier.weight(1f))
+            val fits = !showTotals || tableAmountsFit(
+                maxWidth,
+                lead = null,
+                amounts = listOfNotNull(
+                    TableAmount(formatMoneyCents(budgeted, hideDecimalPlaces)),
+                    if (showSpent) TableAmount(formatMoneyCents(-spent, hideDecimalPlaces)) else null,
+                    TableAmount(formatMoneyCents(balance, hideDecimalPlaces)),
+                ),
+            )
+            if (!fits) {
+                // Too narrow for the category columns: totals go under the name and share the full width.
+                Column {
+                    nameRow(Modifier.fillMaxWidth())
+                    StackedTableAmounts {
+                        Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
+                            if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
+                            AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
+                        }
+                    }
+                }
+                return@BoxWithConstraints
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                nameRow(Modifier.weight(LeadColumnWeight))
+                // Scoped to just the part that actually changes size (totals shown/hidden) instead
+                // of the whole sticky-header row, so the icon/name on the left — which never
+                // resizes — doesn't pay for an extra measure/layout pass on every scroll frame.
+                Row(
+                    // This is repeated for every visible category row. Toggling the optional
+                    // Spent column should update its width once rather than animate remeasurement
+                    // of the whole LazyColumn.
+                    modifier = Modifier.weight(if (showSpent) 2f else 1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (showTotals) {
+                        AmountColumn("Budgeted", budgeted, Modifier.weight(1f), hideDecimalPlaces)
+                        if (showSpent) AmountColumn("Spent", -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
+                    } else {
+                        Spacer(Modifier.weight(if (showSpent) 2f else 1f))
+                    }
+                }
+                if (showTotals) {
+                    AmountColumn("Balance", balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
             }
         }
     }
@@ -1705,13 +1845,13 @@ private fun AmountColumn(
     Column(modifier = modifier, horizontalAlignment = Alignment.End) {
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-        Text(formatMoneyCents(amount, hideDecimalPlaces), style = MaterialTheme.typography.bodyMedium,
+        TableAmountText(formatMoneyCents(amount, hideDecimalPlaces),
             fontWeight = if (balance) FontWeight.Bold else FontWeight.SemiBold,
             color = when {
                 balance && amount < 0L -> MaterialTheme.colorScheme.danger
                 muted -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                 else -> MaterialTheme.colorScheme.onSurface
-            }, maxLines = 1)
+            }, modifier = Modifier.padding(start = TableAmountGap))
     }
 }
 
