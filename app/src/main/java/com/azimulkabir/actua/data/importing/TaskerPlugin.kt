@@ -70,7 +70,19 @@ object TaskerPlugin {
                 ?.let { if (extra == AutomationIntent.EXTRA_AMOUNT) cleanAmount(it) else it }
         }
 
-    fun cleanAmount(raw: String): String = raw.replace(Regex("[^0-9.,-]"), "")
+    /**
+     * The first number in [raw], keeping `,` thousands separators, negative when any minus sign
+     * comes before it (#1080): "-$10.69", "--10.69", "−10.69", "Rs.10.69" and "10.69 USD" all
+     * read as 10.69 with their sign. Empty when [raw] holds no digits.
+     */
+    fun cleanAmount(raw: String): String {
+        val number = amountNumber.find(raw) ?: return ""
+        val negative = raw.substring(0, number.range.first).any { it in minusSigns }
+        return (if (negative) "-" else "") + number.value
+    }
+
+    private val amountNumber = Regex("\\d[\\d,]*(?:\\.\\d+)?")
+    private val minusSigns = setOf('-', '\u2212', '\u2012', '\u2013', '\u2014')
 
     /** The `%variable` Tasker left unreplaced in the stored amount, e.g. "%amount" in "-%amount". */
     fun unsetAmountVariable(values: Map<String, String?>): String? =
@@ -91,9 +103,16 @@ object TaskerPlugin {
         val result = handleAutomationExtras(enabled, expectedToken, extras, today, profile, TOKEN_ADVICE)
         val unset = unsetAmountVariable(values)
         val authorized = isAuthorizedAutomation(enabled, expectedToken, extras[AutomationIntent.EXTRA_TOKEN])
-        return if (authorized && unset != null && result.candidates.isEmpty() &&
-            extras[AutomationIntent.EXTRA_TEXT] == null
-        ) result.copy(rejection = "Tasker variable $unset wasn't set when the action ran") else result
+        if (!authorized || result.candidates.isNotEmpty() || extras[AutomationIntent.EXTRA_TEXT] != null) return result
+        val storedAmount = values[key(AutomationIntent.EXTRA_AMOUNT)]?.trim().orEmpty()
+        return when {
+            unset != null -> result.copy(rejection = "Tasker variable $unset wasn't set when the action ran")
+            // An amount was configured but held no digits once symbols were removed (#1080).
+            storedAmount.isNotEmpty() && !unsetVariable.matches(storedAmount) &&
+                extras[AutomationIntent.EXTRA_AMOUNT].isNullOrEmpty() ->
+                result.copy(rejection = "The amount had no number in it")
+            else -> result
+        }
     }
 
     private val unsetVariable = Regex("%[A-Za-z0-9_]+")
