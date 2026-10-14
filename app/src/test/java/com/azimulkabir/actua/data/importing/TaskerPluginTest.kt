@@ -92,4 +92,42 @@ class TaskerPluginTest {
         val fired = TaskerPlugin.extrasOf(TaskerPlugin.bundleValues(mapOf("amount" to "%amount"), token))
         assertEquals("No amount or text was provided", handleAutomationExtras(true, token, fired).rejection)
     }
+
+    @Test
+    fun `a signed amount with an unset variable names the variable`() {
+        val result = TaskerPlugin.fire(true, token, TaskerPlugin.bundleValues(mapOf("amount" to "-%amount"), token))
+        assertTrue(result.candidates.isEmpty())
+        assertEquals("Tasker variable %amount wasn't set when the action ran", result.rejection)
+        assertNull(TaskerPlugin.extrasOf(TaskerPlugin.bundleValues(mapOf("amount" to "-%amount"), token))["amount"])
+    }
+
+    @Test
+    fun `a replaced signed amount still queues`() {
+        // Tasker has already replaced -%amount with -10.69 by the time the action fires.
+        val result = TaskerPlugin.fire(true, token, TaskerPlugin.bundleValues(
+            mapOf("amount" to "-10.69", "payee" to "%payee", "account" to "Fold Credit"), token,
+        ), LocalDate.of(2026, 10, 13))
+        val candidate = result.candidates.single()
+        assertEquals(-1_069L, candidate.amountCents)
+        assertEquals("Tasker", candidate.payee)
+        assertEquals("Fold Credit", candidate.accountHint)
+    }
+
+    @Test
+    fun `an unset amount variable never hides a token or switch problem`() {
+        val values = TaskerPlugin.bundleValues(mapOf("amount" to "-%amount"), "old-token")
+        assertEquals("Wrong token. Open the Actua action in Tasker and save it again",
+            TaskerPlugin.fire(true, token, values).rejection)
+        assertEquals("Received while Accept transactions from Tasker was off",
+            TaskerPlugin.fire(false, token, values).rejection)
+    }
+
+    @Test
+    fun `alert text is still parsed when the amount variable is unset`() {
+        val result = TaskerPlugin.fire(true, token, TaskerPlugin.bundleValues(
+            mapOf("amount" to "%amount", "text" to "Paid $4.00 to Bakery"), token,
+        ))
+        assertEquals(-400L, result.candidates.single().amountCents)
+        assertNull(result.rejection)
+    }
 }

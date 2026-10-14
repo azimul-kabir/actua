@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.data.importing
 
+import java.time.LocalDate
+
 /**
  * The Tasker/Locale action plugin "Queue transaction" (#1040): the same extras as the
  * [AutomationIntent] broadcast, configured in a form and stored by Tasker as a bundle. Constants
@@ -62,12 +64,40 @@ object TaskerPlugin {
      */
     fun extrasOf(values: Map<String, String?>): Map<String, String?> =
         AutomationIntent.EXTRAS.associateWith { extra ->
-            values[key(extra)]?.trim()?.takeUnless { unsetVariable.matches(it) }?.let {
-                if (extra == AutomationIntent.EXTRA_AMOUNT) cleanAmount(it) else it
-            }
+            values[key(extra)]?.trim()?.takeUnless { unsetVariable.matches(it) }
+                // An amount can't hold text, so a variable anywhere in it, as in "-%amount", is unset (#1073).
+                ?.takeUnless { extra == AutomationIntent.EXTRA_AMOUNT && unsetAmountVariable(values) != null }
+                ?.let { if (extra == AutomationIntent.EXTRA_AMOUNT) cleanAmount(it) else it }
         }
 
     fun cleanAmount(raw: String): String = raw.replace(Regex("[^0-9.,-]"), "")
 
+    /** The `%variable` Tasker left unreplaced in the stored amount, e.g. "%amount" in "-%amount". */
+    fun unsetAmountVariable(values: Map<String, String?>): String? =
+        values[key(AutomationIntent.EXTRA_AMOUNT)]?.let { variableReference.find(it)?.value }
+
+    /**
+     * Runs a fired bundle like [handleAutomationExtras], but names the Tasker variable when an
+     * unset one left nothing to queue (#1073). The message has the variable's name, never a value.
+     */
+    fun fire(
+        enabled: Boolean,
+        expectedToken: String?,
+        values: Map<String, String?>,
+        today: LocalDate = LocalDate.now(),
+        profile: FinancialMessageProfile = FinancialMessageParser.defaultProfile,
+    ): AutomationResult {
+        val extras = extrasOf(values)
+        val result = handleAutomationExtras(enabled, expectedToken, extras, today, profile, TOKEN_ADVICE)
+        val unset = unsetAmountVariable(values)
+        val authorized = isAuthorizedAutomation(enabled, expectedToken, extras[AutomationIntent.EXTRA_TOKEN])
+        return if (authorized && unset != null && result.candidates.isEmpty() &&
+            extras[AutomationIntent.EXTRA_TEXT] == null
+        ) result.copy(rejection = "Tasker variable $unset wasn't set when the action ran") else result
+    }
+
     private val unsetVariable = Regex("%[A-Za-z0-9_]+")
+
+    /** A Tasker variable name: a letter, then at least two letters, digits or underscores. */
+    private val variableReference = Regex("%[A-Za-z][A-Za-z0-9_]{2,}")
 }
