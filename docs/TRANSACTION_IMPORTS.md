@@ -105,8 +105,10 @@ below, and each field accepts Tasker variables such as `%amount`. The token is f
 in for you, and the form offers to turn the integration on if it is off. **Account** has a list of
 the open accounts whose names select them on review; typing a name, digits or a variable still works. The amount is
 the first number in the field, so currency symbols and other text such as `Rs.10.69` or `10.69 USD`
-are ignored, and any minus sign before it makes it negative. For a card charge, set **Type** to
-Debit and use plain `%amount`. A variable that is still unset when the action runs (a literal
+are ignored. Minus signs before it are counted, so `-%amount` turns a charge of `10.69` into an
+outflow and a refund of `-10.69` into money in. **Type** Debit or Credit always wins over the sign:
+use Debit with plain `%amount` when every alert is a charge, or keep **From the amount's sign**
+with `-%amount` when the app shows refunds with a minus. A variable that is still unset when the action runs (a literal
 `%payee`) counts as empty, and an unset amount variable is named in the reason. Tasker waits for the result: if Actua ignores the transaction, the action
 fails and `%errmsg` holds the same reason the import screen shows. Replacing the token in Actua stops
 saved actions until each is opened and saved again.

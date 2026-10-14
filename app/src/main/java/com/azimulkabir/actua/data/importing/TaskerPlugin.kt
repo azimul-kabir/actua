@@ -71,13 +71,14 @@ object TaskerPlugin {
         }
 
     /**
-     * The first number in [raw], keeping `,` thousands separators, negative when any minus sign
-     * comes before it (#1080): "-$10.69", "--10.69", "−10.69", "Rs.10.69" and "10.69 USD" all
-     * read as 10.69 with their sign. Empty when [raw] holds no digits.
+     * The first number in [raw], keeping `,` thousands separators (#1080): "-$10.69", "−10.69",
+     * "Rs.10.69" and "10.69 USD" all read as 10.69 with their sign. Minus signs before it are
+     * counted, so "-%amount" with a refund of -10.69 ("--10.69") is +10.69, money in. Empty when
+     * [raw] holds no digits.
      */
     fun cleanAmount(raw: String): String {
         val number = amountNumber.find(raw) ?: return ""
-        val negative = raw.substring(0, number.range.first).any { it in minusSigns }
+        val negative = raw.substring(0, number.range.first).count { it in minusSigns } % 2 == 1
         return (if (negative) "-" else "") + number.value
     }
 
