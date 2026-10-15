@@ -1,0 +1,73 @@
+name: Google Play Listing Images
+
+# Uploads the store listing's phone screenshots and feature graphic from
+# fastlane/metadata/android/en-US/images to Google Play. It never touches the listing
+# text, the icon or any release. Run it manually after changing those images.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upload-listing-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Google API client
+        run: python3 -m pip install --quiet google-api-python-client==2.201.0 google-auth==2.59.1
+      - name: Upload screenshots and feature graphic
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+          from googleapiclient.http import MediaFileUpload
+
+          package = "com.azimulkabir.actua"
+          language = "en-US"
+          images = Path("fastlane/metadata/android/en-US/images")
+          screenshots = sorted(
+              (images / "phoneScreenshots").glob("*.png"), key=lambda path: int(path.stem)
+          )
+          feature_graphic = images / "featureGraphic.png"
+          if not 2 <= len(screenshots) <= 8:
+              raise SystemExit(f"Google Play needs 2 to 8 phone screenshots, found {len(screenshots)}")
+          if not feature_graphic.is_file():
+              raise SystemExit(f"{feature_graphic} is missing")
+
+          key = os.environ.get("PLAY_SERVICE_ACCOUNT_JSON", "")
+          if not key:
+              raise SystemExit("PLAY_SERVICE_ACCOUNT_JSON is not configured")
+          credentials = service_account.Credentials.from_service_account_info(
+              json.loads(key), scopes=["https://www.googleapis.com/auth/androidpublisher"]
+          )
+          edits = build("androidpublisher", "v3", credentials=credentials, cache_discovery=False).edits()
+
+          edit_id = edits.insert(packageName=package, body={}).execute()["id"]
+          try:
+              def replace(image_type, files):
+                  edits.images().deleteall(
+                      packageName=package, editId=edit_id, language=language, imageType=image_type
+                  ).execute()
+                  for path in files:
+                      edits.images().upload(
+                          packageName=package, editId=edit_id, language=language, imageType=image_type,
+                          media_body=MediaFileUpload(str(path), mimetype="image/png"),
+                      ).execute()
+                      print(f"Uploaded {image_type}: {path.name}")
+
+              replace("phoneScreenshots", screenshots)
+              replace("featureGraphic", [feature_graphic])
+              edits.commit(packageName=package, editId=edit_id).execute()
+          except Exception:
+              edits.delete(packageName=package, editId=edit_id).execute()
+              raise
+          print("Google Play listing images updated")
+          PY
