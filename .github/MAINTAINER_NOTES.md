@@ -28,9 +28,15 @@ in the main branch ruleset if they should be required for merging.
 Release metadata changes on `main` run the Android Release workflow. It
 builds and validates the persistently signed release APK, creates the version tag and
 GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
-description, and attaches the versioned APK. It also uploads the signed `.aab` as the
-`Actua-v<version>-aab` artifact (kept 90 days) for manual upload to the Play Console. Update `versionCode`,
-`versionName`, and `CHANGELOG.md` together for each release.
+description, and attaches the versioned APK. For a stable version (no `-beta.`/`-alpha.`/`-rc.`
+suffix) it first uploads the signed `.aab` to Google Play's production track, with that version's
+`changelogs/<versionCode>.txt` as "What's new"; Play publishes it once Google's review passes
+(Managed publishing is off). A failed upload, a missing "What's new" file or a missing
+`PLAY_SERVICE_ACCOUNT_JSON` stops the run before the F-Droid template, the GitHub release or the
+Discord post. The `.aab` is also kept as the `Actua-v<version>-aab` artifact (90 days). To
+re-run a release Play already has, run the workflow manually with "Upload a stable release to
+Google Play" turned off. Update `versionCode`, `versionName`, and `CHANGELOG.md` together for
+each release.
 
 Because ordinary PRs also append to `CHANGELOG.md`'s Unreleased section (and can touch
 `docs/releases/**`), the workflow's push trigger alone can't tell a release-prep push from a
@@ -74,6 +80,10 @@ the keystore outside the repository, then configure these GitHub Actions secrets
 - `ACTUA_RELEASE_STORE_PASSWORD`: the keystore password
 - `ACTUA_RELEASE_KEY_ALIAS`: the key alias
 - `ACTUA_RELEASE_KEY_PASSWORD`: the key password
+- `PLAY_SERVICE_ACCOUNT_JSON`: the JSON key of a Google Cloud service account (with the Google
+  Play Android Developer API enabled) invited in Play Console → Users and permissions with
+  Actua's "Release to production…", "Release apps to testing tracks" and "Manage store presence"
+  permissions only
 
 Never commit the keystore or its passwords. Losing them means future APKs cannot
 upgrade installations signed with that key. Rotating the key also requires users
