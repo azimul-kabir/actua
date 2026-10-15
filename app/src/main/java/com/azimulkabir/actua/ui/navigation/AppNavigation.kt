@@ -597,6 +597,7 @@ fun AppNavigation(
     var showBudgetOverview by remember { mutableStateOf(displayPreferences.showBudgetOverview) }
     var showBudgetStatusBanners by remember { mutableStateOf(displayPreferences.showBudgetStatusBanners) }
     var showGroupTotals by remember { mutableStateOf(displayPreferences.showGroupTotals) }
+    var showBalancePills by remember { mutableStateOf(displayPreferences.showBalancePills) }
     var hideFullySpentCategories by remember { mutableStateOf(displayPreferences.hideFullySpentCategories) }
     var budgetCategoryView by remember { mutableStateOf(displayPreferences.budgetCategoryView) }
     var showCategoryFilters by remember { mutableStateOf(displayPreferences.showCategoryFilters) }
@@ -2630,6 +2631,11 @@ fun AppNavigation(
                     onShowGroupTotalsChange = {
                         displayPreferences.showGroupTotals = it
                         showGroupTotals = it
+                    },
+                    showBalancePills = showBalancePills,
+                    onShowBalancePillsChange = {
+                        displayPreferences.showBalancePills = it
+                        showBalancePills = it
                     },
                     hideFullySpent = hideFullySpentCategories,
                     onHideFullySpentChange = {

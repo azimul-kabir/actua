@@ -87,6 +87,15 @@ class DisplayPreferencesTest {
         assertEquals(false, preferences.conventionalAmountEntry)
     }
 
+    @Test fun balancePillsDefaultOnAndPersistWhenDisabled() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(true, DisplayPreferences(context).showBalancePills)
+
+        DisplayPreferences(context).showBalancePills = false
+
+        assertEquals(false, DisplayPreferences(context).showBalancePills)
+    }
+
     @Test fun categoryStatusDotsDefaultOnAndPersistWhenDisabled() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals(true, DisplayPreferences(context).showCategoryStatusDots)

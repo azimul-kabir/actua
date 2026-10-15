@@ -230,6 +230,8 @@ fun BudgetScreen(
     onShowBudgetStatusBannersChange: (Boolean) -> Unit = {},
     showGroupTotals: Boolean = false,
     onShowGroupTotalsChange: (Boolean) -> Unit = {},
+    showBalancePills: Boolean = true,
+    onShowBalancePillsChange: (Boolean) -> Unit = {},
     hideFullySpent: Boolean = false,
     onHideFullySpentChange: (Boolean) -> Unit = {},
     categoryView: String = "All",
@@ -363,7 +365,7 @@ fun BudgetScreen(
         uncategorizedTransactions.sumOf { it.amountCents }
     }
 
-    BoxWithConstraints(modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalShowBalancePills provides showBalancePills) { BoxWithConstraints(modifier.fillMaxSize()) {
         val screenWidth = maxWidth
         Column(modifier = Modifier.fillMaxSize()) {
             BudgetToolbar(
@@ -377,6 +379,7 @@ fun BudgetScreen(
                 showOverview = showOverview,
                 showBudgetStatusBanners = showBudgetStatusBanners,
                 showGroupTotals = showGroupTotals,
+                showBalancePills = showBalancePills,
                 hideFullySpent = hideFullySpent,
                 showHidden = showHidden,
                 showCategoryFilters = showCategoryFilters,
@@ -388,6 +391,7 @@ fun BudgetScreen(
                 onShowOverviewChange = onShowOverviewChange,
                 onShowBudgetStatusBannersChange = onShowBudgetStatusBannersChange,
                 onShowGroupTotalsChange = onShowGroupTotalsChange,
+                onShowBalancePillsChange = onShowBalancePillsChange,
                 onHideFullySpentChange = onHideFullySpentChange,
                 onShowHiddenChange = onShowHiddenChange,
                 onShowCategoryFiltersChange = onShowCategoryFiltersChange,
@@ -611,7 +615,7 @@ fun BudgetScreen(
                 item { Spacer(Modifier.height(20.dp)) }
             }
         }
-    }
+    } }
 
     selectedCategory?.let { category ->
         val parent = groups.first { category in it.categories }
@@ -939,6 +943,7 @@ private fun BudgetToolbar(
     showOverview: Boolean,
     showBudgetStatusBanners: Boolean,
     showGroupTotals: Boolean,
+    showBalancePills: Boolean,
     hideFullySpent: Boolean,
     showHidden: Boolean,
     showCategoryFilters: Boolean,
@@ -950,6 +955,7 @@ private fun BudgetToolbar(
     onShowOverviewChange: (Boolean) -> Unit,
     onShowBudgetStatusBannersChange: (Boolean) -> Unit,
     onShowGroupTotalsChange: (Boolean) -> Unit,
+    onShowBalancePillsChange: (Boolean) -> Unit,
     onHideFullySpentChange: (Boolean) -> Unit,
     onShowHiddenChange: (Boolean) -> Unit,
     onShowCategoryFiltersChange: (Boolean) -> Unit,
@@ -1027,6 +1033,7 @@ private fun BudgetToolbar(
                 )
                 ToggleMenuItem("Show progress bars", showProgressBars, onShowProgressBarsChange)
                 ToggleMenuItem("Show group totals", showGroupTotals, onShowGroupTotalsChange)
+                ToggleMenuItem("Show balance pills", showBalancePills, onShowBalancePillsChange)
                 HorizontalDivider()
                 ToggleMenuItem("Hide fully spent", hideFullySpent, onHideFullySpentChange)
                 ToggleMenuItem("Show hidden categories and groups", showHidden, onShowHiddenChange)
@@ -1643,8 +1650,10 @@ private fun OverviewCell(
         Text(label, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, maxLines = 1)
         if (pill) {
             val pillModifier = Modifier.offset(x = pillOffset)
-            // Same rule as a category's BalancePill: only a negative amount takes color.
+            // Same rule as a category's BalancePill: only a negative amount takes color. The To
+            // budget chip ([onClick]) keeps its fill without balance pills; it's a button.
             val pillColor = when {
+                onClick == null && !LocalShowBalancePills.current -> Color.Transparent
                 negative -> colors.danger.copy(alpha = 0.16f)
                 positive -> colors.surfaceContainerHighest
                 else -> Color.Transparent
@@ -2351,7 +2360,8 @@ private fun ShrinkToFitText(
  * tinted with its [status] color, so overspending is what stands out. With [colorByStatus] (opt-in,
  * see Settings > Budget) every balance takes its status color, as in YNAB. Other balances sit on a faint neutral
  * pill, except an unassigned zero, which keeps the pill's footprint (so digits stay aligned) but
- * drops its fill and dims the amount to read as "nothing here".
+ * drops its fill and dims the amount to read as "nothing here". Without [LocalShowBalancePills]
+ * no pill is filled, but its padding stays so amounts keep their alignment.
  */
 private fun BalancePill(
     amount: Long,
@@ -2372,10 +2382,11 @@ private fun BalancePill(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
-        color = when (tone) {
-            BalancePillTone.ALERT -> statusColor.copy(alpha = 0.16f)
-            BalancePillTone.NEUTRAL -> colors.surfaceContainerHighest
-            BalancePillTone.EMPTY -> Color.Transparent
+        color = when {
+            !LocalShowBalancePills.current -> Color.Transparent
+            tone == BalancePillTone.ALERT -> statusColor.copy(alpha = 0.16f)
+            tone == BalancePillTone.NEUTRAL -> colors.surfaceContainerHighest
+            else -> Color.Transparent
         },
     ) {
         val text = formatMoneyCents(amount, hideDecimalPlaces)
@@ -2393,6 +2404,9 @@ private fun BalancePill(
         }
     }
 }
+
+/** Budget display option "Show balance pills": whether balances are drawn on a filled pill. */
+private val LocalShowBalancePills = compositionLocalOf { true }
 
 /** How loudly a category's balance pill is drawn; see [BalancePill]. */
 internal enum class BalancePillTone { ALERT, NEUTRAL, EMPTY }
