@@ -2,6 +2,11 @@ name: Android Release
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_to_play:
+        description: Upload a stable release to Google Play (turn off to re-run a release Play already has)
+        type: boolean
+        default: true
   push:
     branches: [main]
     paths:
@@ -100,6 +105,39 @@ jobs:
           else
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
+      # Stable releases go to Google Play's production track before anything is published or
+      # announced, so a failed upload stops the release instead of leaving Play behind GitHub.
+      - name: Prepare Google Play release notes
+        id: play
+        if: steps.channel.outputs.prerelease == 'false' && (github.event_name == 'push' || inputs.publish_to_play)
+        env:
+          HAS_PLAY_KEY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+          RELEASE_VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          if [ "$HAS_PLAY_KEY" != "true" ]; then
+            echo "::error::PLAY_SERVICE_ACCOUNT_JSON is not configured; re-run manually with Google Play upload turned off to skip it"
+            exit 1
+          fi
+          NOTES="fastlane/metadata/android/en-US/changelogs/${RELEASE_VERSION_CODE}.txt"
+          if [ ! -s "$NOTES" ]; then
+            echo "::error::$NOTES is missing; add the release's Google Play \"What's new\" text"
+            exit 1
+          fi
+          python3 -c 'import sys; n = len(open(sys.argv[1], encoding="utf-8").read().strip()); sys.exit(f"{sys.argv[1]} has {n} characters; Google Play allows 500" if n > 500 else 0)' "$NOTES"
+          mkdir -p "$RUNNER_TEMP/whatsnew"
+          cp "$NOTES" "$RUNNER_TEMP/whatsnew/whatsnew-en-US"
+          echo "published=true" >> "$GITHUB_OUTPUT"
+      - name: Upload to Google Play production
+        if: steps.play.outputs.published == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.azimulkabir.actua
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          releaseName: ${{ steps.version.outputs.code }} (${{ steps.version.outputs.name }})
+          track: production
+          status: completed
+          whatsNewDirectory: ${{ runner.temp }}/whatsnew
       - name: Update F-Droid submission template
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.name }}
@@ -219,6 +257,8 @@ jobs:
           BETA_WEBHOOK: ${{ secrets.DISCORD_BETA_WEBHOOK }}
           RELEASE_VERSION: ${{ steps.version.outputs.name }}
           IS_PRERELEASE: ${{ steps.channel.outputs.prerelease }}
+          # Every stable release is uploaded to Google Play (a manual re-run may skip a repeat upload).
+          ON_PLAY: ${{ steps.channel.outputs.prerelease == 'false' }}
           BETA_ROLE_ID: ${{ vars.DISCORD_BETA_ROLE_ID }}
           REPOSITORY: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
@@ -247,6 +287,8 @@ jobs:
           tag = f"v{version}"
           release_url = f"{server}/{repo}/releases/tag/{tag}"
           apk_url = f"{server}/{repo}/releases/download/{tag}/Actua-v{version}.apk"
+          play_url = "https://play.google.com/store/apps/details?id=com.azimulkabir.actua"
+          on_play = os.environ.get("ON_PLAY") == "true"
 
           with open("release-notes.md", encoding="utf-8") as f:
               body = f.read().strip()
@@ -263,10 +305,18 @@ jobs:
               if is_prerelease
               else "Back up your Actual Budget data before updating an important budget."
           )
+          # Lead with Google Play so people stay on the Play build; it was uploaded above but
+          # reaches users only after Google's review.
+          links = (
+              f"**[Update on Google Play]({play_url})** (rolling out, usually within a day) • "
+              f"[View release]({release_url}) • [Download APK]({apk_url})"
+              if on_play
+              else f"[View release]({release_url}) • [Download APK]({apk_url})"
+          )
           description = (
               f"{body}\n\n"
               f"{safety_notice}\n\n"
-              f"[View release]({release_url}) • [Download APK]({apk_url})"
+              f"{links}"
           )
           title_verb = "beta released" if is_prerelease else "released"
           payload = {
