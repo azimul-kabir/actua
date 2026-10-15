@@ -84,6 +84,10 @@ the keystore outside the repository, then configure these GitHub Actions secrets
 - `ACTUA_RELEASE_STORE_PASSWORD`: the keystore password
 - `ACTUA_RELEASE_KEY_ALIAS`: the key alias
 - `ACTUA_RELEASE_KEY_PASSWORD`: the key password
+- `SITES_DISPATCH_TOKEN`: a fine-grained token limited to `azimul-kabir/actua-website` and
+  `azimul-kabir/azimul-kabir.github.io` with Contents read and write. After a stable release the
+  workflow sends them an `app-released` event so both sites show the new version right away;
+  without it they catch up on their hourly schedule. It expires, so renew it before then.
 - `PLAY_SERVICE_ACCOUNT_JSON`: the JSON key of a Google Cloud service account (with the Google
   Play Android Developer API enabled) invited in Play Console → Users and permissions with
   Actua's "Release to production…", "Release apps to testing tracks" and "Manage store presence"
