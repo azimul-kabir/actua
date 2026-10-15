@@ -139,7 +139,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   GoCardless requisition (#1005). Per-account sync preferences set in Actual are honoured, but
   can only be edited in Actual (#1006). Each account's download and each imported file is written
   as one CRDT batch, with transfer legs and Actual's sort order (#1007). File import title-cases
-  payee names and marks rows cleared by default (#1008), and it updates a matching transaction
+  payee names (captured, shared and Tasker rows keep their case, as bank sync does, #1092) and marks rows cleared by default (#1008), and it updates a matching transaction
   within seven days instead of adding a copy (#1009). As Actual's `newTransactions` and
   `updatedAccounts` do, the transactions a sync adds (not matched or updated rows) are marked: the
   Accounts list shows "N new from bank sync" and the register highlights them until the account is
