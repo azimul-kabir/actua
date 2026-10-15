@@ -14,7 +14,8 @@ safe zone.
 # Hero and screenshots
 
 `actua-hero.png` and `actua-hero-dark.png` are the README hero for GitHub's light
-and dark themes. `screenshots/light/` and `screenshots/dark/` hold framed 720 × 1280
+and dark themes. They carry no buttons or calls to action, since an image can't be tapped; the
+README's real Google Play badge sits below them. `screenshots/light/` and `screenshots/dark/` hold framed 720 × 1280
 screenshots of the same screens in each theme. All of them were captured from the
 built-in demo budget (Manage → Connection & Data → Try demo budget), so they contain
 no real financial data. Recapture them when the UI changes noticeably.
