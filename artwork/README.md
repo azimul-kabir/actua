@@ -18,3 +18,8 @@ and dark themes. `screenshots/light/` and `screenshots/dark/` hold framed 720 ×
 screenshots of the same screens in each theme. All of them were captured from the
 built-in demo budget (Manage → Connection & Data → Try demo budget), so they contain
 no real financial data. Recapture them when the UI changes noticeably.
+
+The Google Play and F-Droid listing uses eight of the light screenshots, copied to
+`fastlane/metadata/android/en-US/images/phoneScreenshots/`, and `featureGraphic.png` there, a
+1024 × 500 version of the light hero without its Google Play buttons (store graphics must not
+carry calls to action). Run the **Google Play Listing Images** workflow after changing them.

@@ -67,7 +67,10 @@ Every release follows this sequence:
    in the release that isn't already exercised by an existing item.
 7. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`, the store's "What's new"
    text (500 characters at most), and update the store listing descriptions in that folder when
-   features change. `PRIVACY.md` must stay accurate for the Play Data safety form and any
+   features change. When the UI changes noticeably, refresh `images/phoneScreenshots/` (2–8 PNGs,
+   from `artwork/screenshots/light/`) and `images/featureGraphic.png` (1024 × 500, no calls to
+   action), then run the **Google Play Listing Images** workflow to upload just those images.
+   `PRIVACY.md` must stay accurate for the Play Data safety form and any
    permission declarations.
 8. Open the release PR linked to that issue. Merging it to `main` triggers the Android
    Release workflow's build-and-publish job, since it bumps `versionCode` in
