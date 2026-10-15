@@ -20,8 +20,10 @@ import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
+import com.azimulkabir.actua.ui.components.NumberDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -39,22 +41,28 @@ class BudgetTableAmountsFitTest {
     val compose = createComposeRule()
 
     private var previousCurrency = CurrencyDisplay.code
+    private var previousNumberFormat = NumberDisplay.format
 
     @Before fun useUsd() {
         previousCurrency = CurrencyDisplay.code
+        previousNumberFormat = NumberDisplay.format
         CurrencyDisplay.code = "USD"
     }
 
     @After fun restoreCurrency() {
         CurrencyDisplay.code = previousCurrency
+        NumberDisplay.format = previousNumberFormat
     }
 
     private fun setTable(groups: List<BudgetGroup>, overview: BudgetOverview, fontScale: Float) {
-        val state = mutableStateOf(overview)
-        setTable(groups, state, fontScale)
+        setTable(mutableStateOf(groups), mutableStateOf(overview), fontScale)
     }
 
     private fun setTable(groups: List<BudgetGroup>, overview: State<BudgetOverview>, fontScale: Float) {
+        setTable(mutableStateOf(groups), overview, fontScale)
+    }
+
+    private fun setTable(groups: State<List<BudgetGroup>>, overview: State<BudgetOverview>, fontScale: Float) {
         compose.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
@@ -62,7 +70,7 @@ class BudgetTableAmountsFitTest {
                     // The narrowest common phone width (and CI's default emulator).
                     Box(Modifier.width(320.dp)) {
                         BudgetScreen(
-                            groups = groups,
+                            groups = groups.value,
                             overview = overview.value,
                             budgetView = "Table",
                             showSpent = true,
@@ -121,5 +129,75 @@ class BudgetTableAmountsFitTest {
         assertShownInFull(formatMoneyCents(categories.sumOf { it.assignedCents }, false))
         assertShownInFull(formatMoneyCents(-categories.sumOf { it.spentCents }, false))
         assertShownInFull(formatMoneyCents(categories.sumOf { it.balanceCents }, false))
+    }
+
+    // #1088: category rows share the header's columns, so they must fit (or stack) with it.
+
+    private val bills = BudgetGroup(
+        name = "Bills",
+        categories = listOf(
+            BudgetCategory(name = "Rent", assigned = 1_100, spent = 1_100),
+            BudgetCategory(name = "Savings", assigned = 12_339, spent = 0),
+            BudgetCategory(name = "Groceries", assigned = 550, spent = 307),
+        ),
+    )
+
+    @Test fun categoryRowAmountsFitAtDefaultFontScale() {
+        setTable(listOf(bills), demoOverview, fontScale = 1f)
+        listOf(110_000L, -110_000L, 1_233_900L, 55_000L, -30_700L, 24_300L)
+            .forEach { assertShownInFull(formatMoneyCents(it, false)) }
+    }
+
+    @Test fun categoryRowAmountsFitAtLargeFontScale() {
+        setTable(listOf(bills), demoOverview, fontScale = 1.3f)
+        listOf(110_000L, -110_000L, 1_233_900L, 55_000L, -30_700L, 24_300L)
+            .forEach { assertShownInFull(formatMoneyCents(it, false)) }
+    }
+
+    @Test fun categoryBalanceFitsAfterGrowingPastFirstLayout() {
+        val groups = mutableStateOf(listOf(BudgetGroup(name = "Bills",
+            categories = listOf(BudgetCategory(name = "Savings", assigned = 0, spent = 0)))))
+        setTable(groups, mutableStateOf(demoOverview), fontScale = 1.3f)
+        compose.runOnIdle {
+            groups.value = listOf(BudgetGroup(name = "Bills",
+                categories = listOf(BudgetCategory(name = "Savings", assigned = 98_765, spent = 0))))
+        }
+        compose.waitForIdle()
+        assertShownInFull(formatMoneyCents(9_876_500L, false))
+    }
+
+    @Test fun categoryColumnsLineUpWithTheGroupHeaderAtLargeFontScale() {
+        setTable(listOf(bills), demoOverview, fontScale = 1.3f)
+        // Budgeted total and Rent's Budgeted sit in the same column, right-aligned.
+        val headerRight = compose.onAllNodesWithText(formatMoneyCents(1_398_900L, false), useUnmergedTree = true)
+            .fetchSemanticsNodes().single().boundsInRoot.right
+        val rowRight = compose.onAllNodesWithText(formatMoneyCents(110_000L, false), useUnmergedTree = true)
+            .fetchSemanticsNodes().first().boundsInRoot.right
+        assertEquals(headerRight, rowRight, 2f)
+    }
+
+    @Test fun lakhGroupedAmountsFitAtDefaultFontScale() = assertLakhGroupedAmountsFit(fontScale = 1f)
+
+    @Test fun lakhGroupedAmountsFitAtLargeFontScale() = assertLakhGroupedAmountsFit(fontScale = 1.3f)
+
+    private fun assertLakhGroupedAmountsFit(fontScale: Float) {
+        // "$1,00,000.00" is one character longer than "$100,000.00".
+        NumberDisplay.format = "1,23,456.78"
+        val essentials = BudgetGroup(
+            name = "Essentials",
+            categories = listOf(
+                BudgetCategory(name = "Rent", assigned = 1_100, spent = 1_100),
+                BudgetCategory(name = "Groceries", assigned = 100_000, spent = 307),
+            ),
+        )
+        val overview = BudgetOverview(
+            toBudgetCents = -9_745_000L,
+            budgetedCents = 10_235_000L,
+            spentCents = -165_456L,
+            availableCents = 11_311_574L,
+        )
+        setTable(listOf(essentials), overview, fontScale)
+        listOf(10_000_000L, -30_700L, 9_969_300L, 10_110_000L, 10_235_000L, 11_311_574L)
+            .forEach { assertShownInFull(formatMoneyCents(it, false)) }
     }
 }
