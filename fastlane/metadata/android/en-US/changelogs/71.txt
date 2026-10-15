@@ -1,0 +1,6 @@
+• Option to show Budget balances without pills
+• Splash screen follows dark mode; system bar icons follow the app's appearance
+• Budget table amounts no longer get cut off on small screens or large text
+• Tasker: amounts with currency symbols work, refunds via -%amount, clearer errors
+• Captured payees keep their original case
+• Rejected captures stay gone; "Credit" card alerts are no longer read as income
