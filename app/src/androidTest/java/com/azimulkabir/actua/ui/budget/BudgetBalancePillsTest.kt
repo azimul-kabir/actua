@@ -72,7 +72,7 @@ class BudgetBalancePillsTest {
     private fun setBudget(view: String) {
         compose.setContent {
             MaterialTheme {
-                // Wide enough that each amount has empty row background beside its pill.
+                // Wide enough that every row keeps one line (none stack).
                 Box(Modifier.width(600.dp)) {
                     BudgetScreen(
                         groups = groups,
@@ -91,17 +91,21 @@ class BudgetBalancePillsTest {
     private fun bounds(amount: String): Rect =
         compose.onAllNodesWithText(amount, useUnmergedTree = true).fetchSemanticsNodes().single().boundsInRoot
 
-    /** The color just inside a pill's padding, left of [amount]'s text. */
-    private fun insidePill(amount: String): Int = pixelLeftOf(amount, 3)
+    /** The color in a pill's bottom padding (2–3dp), just under [amount]'s text. */
+    private fun insidePill(amount: String): Int = pixelBelow(amount, 1)
 
-    /** The row's own background, well left of [amount]'s pill. */
-    private fun besidePill(amount: String): Int = pixelLeftOf(amount, 28)
+    /**
+     * The row's (or card's) own background just under [amount]'s pill. Sampled below rather than
+     * beside it: rows keep at least 9dp clear under a pill, but a neighbouring column's digits can
+     * sit anywhere to its side.
+     */
+    private fun besidePill(amount: String): Int = pixelBelow(amount, 7)
 
-    private fun pixelLeftOf(amount: String, dp: Int): Int {
+    private fun pixelBelow(amount: String, dp: Int): Int {
         val box = bounds(amount)
         val px = with(compose.density) { dp.dp.toPx() }
         val pixels = compose.onRoot().captureToImage().toPixelMap()
-        return pixels[(box.left - px).toInt(), box.center.y.toInt()].toArgb()
+        return pixels[box.center.x.toInt(), (box.bottom + px).toInt()].toArgb()
     }
 
     private fun assertPillsFollowTheOption(balances: List<String>) {
