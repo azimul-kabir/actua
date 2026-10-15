@@ -19,7 +19,16 @@ data class ImportCandidate(
     val accountHint: String? = null,
     /** Identifies a row in the capture review queue, so a notification can act on it (#1046). */
     val queueId: String? = null,
+    /**
+     * Keep the payee's own case instead of title-casing it (#1092): captured, shared and Tasker
+     * rows carry the bank's text, as bank sync does; only file imports are title-cased, as in Actual.
+     */
+    val keepPayeeCase: Boolean = false,
 )
+
+/** The trimmed imported payee, title-cased as Actual's file import does unless [ImportCandidate.keepPayeeCase]. */
+fun ImportCandidate.importedPayeeName(): String? = payee.trim().takeIf(String::isNotEmpty)
+    ?.let { if (keepPayeeCase) it else TitleCase.title(it).trim() }
 
 data class ImportProblem(val sourceRow: Int, val message: String)
 

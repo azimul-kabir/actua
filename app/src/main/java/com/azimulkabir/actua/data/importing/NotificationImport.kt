@@ -43,7 +43,7 @@ object FinancialMessageParser {
         }
         val encodedDate = parsedDate.year * 10_000 + parsedDate.monthValue * 100 + parsedDate.dayOfMonth
         return ImportParseResult(listOf(ImportCandidate(1, encodedDate, merchant, "Imported from $source", cents,
-            ref, confidence, source, accountHint)), emptyList())
+            ref, confidence, source, accountHint, keepPayeeCase = true)), emptyList())
     }
 
     private fun failure(message: String) = ImportParseResult(emptyList(), listOf(ImportProblem(1, message)))
@@ -196,7 +196,7 @@ class NotificationImportPreferences(context: Context) {
             row.optString("reference").takeIf { it.isNotBlank() && it != "null" },
             ImportConfidence.valueOf(row.getString("confidence")), row.getString("source"),
             row.optString("accountHint").takeIf { it.isNotBlank() && it != "null" },
-            row.optString("id").takeIf(String::isNotBlank)) } }
+            row.optString("id").takeIf(String::isNotBlank), keepPayeeCase = true) } }
     }.getOrDefault(emptyList())
 
     fun clearQueue() = preferences.edit().remove("queue").apply()

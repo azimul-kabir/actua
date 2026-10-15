@@ -113,6 +113,7 @@ fun parseAutomationExtras(
         confidence = ImportConfidence.HIGH,
         sourceLabel = source,
         accountHint = value(AutomationIntent.EXTRA_ACCOUNT)?.take(100),
+        keepPayeeCase = true,
     )
     return ImportParseResult(listOf(candidate), emptyList())
 }

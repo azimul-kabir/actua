@@ -29,8 +29,10 @@ equal purchases.
 As in Actual, a row with the same amount as an existing transaction in the selected account dated
 within seven days (a matching payee is preferred) is shown with that match, and importing updates
 the existing transaction instead of adding a copy. Tick **Add as a new transaction** to import it
-separately; a match that is reconciled is left unchanged. Imported payee names are title-cased, and
-**Mark as cleared** (on by default) sets whether imported rows arrive cleared.
+separately; a match that is reconciled is left unchanged. Payee names from statement files are
+title-cased, as in Actual; captured notifications, shared text and Tasker rows keep the case they
+arrived in, as bank sync does. **Mark as cleared** (on by default) sets whether imported rows arrive
+cleared.
 
 Captured notifications and automation broadcasts can belong to different accounts, so each queued
 row has its own **Account**, pre-filled when its account hint names one (an exact account name, or
