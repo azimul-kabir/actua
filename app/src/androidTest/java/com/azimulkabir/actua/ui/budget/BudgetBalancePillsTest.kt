@@ -63,10 +63,11 @@ class BudgetBalancePillsTest {
         spentCents = -1_120_00L,
         availableCents = 9_876_54L,
     )
-    private val positiveBalance = formatMoneyCents(100_00L, false)
-    private val negativeBalance = formatMoneyCents(-70_00L, false)
-    private val overviewBalance = formatMoneyCents(9_876_54L, false)
-    private val toBudget = formatMoneyCents(4_321_00L, false)
+    // Getters, not initializers: these must format after useUsd() sets the currency.
+    private val positiveBalance get() = formatMoneyCents(100_00L, false)
+    private val negativeBalance get() = formatMoneyCents(-70_00L, false)
+    private val overviewBalance get() = formatMoneyCents(9_876_54L, false)
+    private val toBudget get() = formatMoneyCents(4_321_00L, false)
 
     private fun setBudget(view: String) {
         compose.setContent {
