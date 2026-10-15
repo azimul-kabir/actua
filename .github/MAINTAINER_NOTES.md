@@ -66,7 +66,8 @@ Every release follows this sequence:
 6. Add or update `RELEASE_SMOKE_TEST.md` checklist items for any new user-facing behavior
    in the release that isn't already exercised by an existing item.
 7. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`, the store's "What's new"
-   text (500 characters at most), and update the store listing descriptions in that folder when
+   text (500 characters at most: short bullets, one change each, about six words or fewer, no
+   implementation details), and update the store listing descriptions in that folder when
    features change. `PRIVACY.md` must stay accurate for the Play Data safety form and any
    permission declarations.
 8. Open the release PR linked to that issue. Merging it to `main` triggers the Android
