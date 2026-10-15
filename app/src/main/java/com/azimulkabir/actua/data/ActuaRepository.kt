@@ -48,7 +48,7 @@ import com.azimulkabir.actua.data.location.Coordinates
 import com.azimulkabir.actua.data.location.PayeeLocationWriter
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import com.azimulkabir.actua.data.importing.ImportMatch
-import com.azimulkabir.actua.data.importing.TitleCase
+import com.azimulkabir.actua.data.importing.importedPayeeName
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
@@ -1089,8 +1089,7 @@ class ActuaRepository(context: Context) {
                 parentId = null,
                 tombstone = false,
                 sortOrder = null,
-                // Actual's import title-cases payee names by default (`payeeNameNormalization`).
-                importedPayee = candidate.payee.trim().takeIf(String::isNotEmpty)?.let(TitleCase::title)?.trim(),
+                importedPayee = candidate.importedPayeeName(),
                 scheduleId = null,
                 transferAccountId = null,
             )

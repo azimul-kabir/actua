@@ -125,6 +125,7 @@ private data class ReviewRow(
     val accountHint: String? = null,
     /** The captured row's queue id, so its notification can be dismissed once handled (#1046). */
     val queueId: String? = null,
+    val keepPayeeCase: Boolean = false,
 )
 
 @Composable
@@ -247,7 +248,7 @@ fun ImportTransactionsScreen(
                 BigDecimal.valueOf(candidate.amountCents, 2).toPlainString(), candidate.notes,
                 candidate.reference, selected = !duplicate, candidate.confidence, candidate.sourceLabel,
                 accountId = if (perRowAccounts()) prefilledAccountId(candidate.accountHint, candidate.sourceLabel) else null,
-                accountHint = candidate.accountHint, queueId = candidate.queueId)
+                accountHint = candidate.accountHint, queueId = candidate.queueId, keepPayeeCase = candidate.keepPayeeCase)
         }
         problems = parseProblems
         message = if (rows.isEmpty()) "No valid transactions found." else null
@@ -723,7 +724,7 @@ private fun ReviewRow.toCandidateOrNull(): ImportCandidate? = runCatching {
     val cents = BigDecimal(amount.trim()).setScale(2).movePointRight(2).longValueExact()
     require(payee.isNotBlank() && cents != 0L)
     ImportCandidate(sourceRow, parsedDate.year * 10_000 + parsedDate.monthValue * 100 + parsedDate.dayOfMonth,
-        payee.trim(), notes.trim(), cents, reference)
+        payee.trim(), notes.trim(), cents, reference, keepPayeeCase = keepPayeeCase)
 }.getOrNull()
 
 /** The row as it goes back to the notification queue, keeping its source and account hint. */

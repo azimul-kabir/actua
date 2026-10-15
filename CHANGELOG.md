@@ -10,6 +10,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Captured, shared and Tasker transactions keep the payee's original case ([#1093](https://github.com/azimul-kabir/actua/pull/1093))
 - Budget table view category amounts stay on one line instead of being cut off at large text sizes ([#1089](https://github.com/azimul-kabir/actua/pull/1089))
 - Budget table view amounts no longer get cut off in the overview and group totals on narrow screens or large text ([#1087](https://github.com/azimul-kabir/actua/pull/1087))
 - Status and navigation bar icons follow the app's Light or Dark appearance instead of the device's ([#1086](https://github.com/azimul-kabir/actua/pull/1086))
