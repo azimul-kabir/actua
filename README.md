@@ -5,7 +5,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="artwork/actua-hero-dark.png">
-    <img src="artwork/actua-hero.png" alt="Actua, now on Google Play: phones showing the budget plan view, accounts and spending reports" width="900">
+    <img src="artwork/actua-hero.png" alt="Actua, a native Android client for Actual Budget: phones showing the budget plan view, accounts and spending reports" width="900">
   </picture>
 </p>
 
