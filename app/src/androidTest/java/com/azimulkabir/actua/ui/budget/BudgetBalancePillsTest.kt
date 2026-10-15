@@ -79,6 +79,8 @@ class BudgetBalancePillsTest {
                         overview = overview,
                         budgetView = view,
                         showBalancePills = showPills.value,
+                        // The overspent banner repeats "−$70.00" on its own tinted background.
+                        showBudgetStatusBanners = false,
                     )
                 }
             }
@@ -87,7 +89,7 @@ class BudgetBalancePillsTest {
     }
 
     private fun bounds(amount: String): Rect =
-        compose.onAllNodesWithText(amount, useUnmergedTree = true).fetchSemanticsNodes().first().boundsInRoot
+        compose.onAllNodesWithText(amount, useUnmergedTree = true).fetchSemanticsNodes().single().boundsInRoot
 
     /** The color just inside a pill's padding, left of [amount]'s text. */
     private fun insidePill(amount: String): Int = pixelLeftOf(amount, 3)
