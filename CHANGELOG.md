@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- A Budget display option to show balances as plain amounts instead of on pills ([#1091](https://github.com/azimul-kabir/actua/pull/1091))
+
 ### Fixed
 
 - Budget table view category amounts stay on one line instead of being cut off at large text sizes ([#1089](https://github.com/azimul-kabir/actua/pull/1089))

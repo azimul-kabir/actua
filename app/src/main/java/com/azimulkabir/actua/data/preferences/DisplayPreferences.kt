@@ -86,6 +86,11 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_GROUP_TOTALS, true)
         set(value) { preferences.edit().putBoolean(SHOW_GROUP_TOTALS, value).apply() }
 
+    /** Off draws Budget tab balances as plain colored amounts, without their tinted pill. */
+    var showBalancePills: Boolean
+        get() = preferences.getBoolean(SHOW_BALANCE_PILLS, true)
+        set(value) { preferences.edit().putBoolean(SHOW_BALANCE_PILLS, value).apply() }
+
     var hideFullySpentCategories: Boolean
         get() = preferences.getBoolean(HIDE_FULLY_SPENT_CATEGORIES, false)
         set(value) { preferences.edit().putBoolean(HIDE_FULLY_SPENT_CATEGORIES, value).apply() }
@@ -215,6 +220,7 @@ class DisplayPreferences(context: Context) {
         const val SHOW_BUDGET_OVERVIEW = "show_budget_overview"
         const val SHOW_OVERSPENT_WARNING = "show_overspent_warning"
         const val SHOW_GROUP_TOTALS = "show_group_totals"
+        const val SHOW_BALANCE_PILLS = "show_balance_pills"
         const val HIDE_FULLY_SPENT_CATEGORIES = "hide_fully_spent_categories"
         const val BUDGET_CATEGORY_VIEW = "budget_category_view"
         const val SHOW_CATEGORY_FILTERS = "show_category_filters"
