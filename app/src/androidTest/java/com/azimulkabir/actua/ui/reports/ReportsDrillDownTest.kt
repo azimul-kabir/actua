@@ -149,7 +149,10 @@ class ReportsDrillDownTest {
                     hideDecimalPlaces = false,
                     loadTransactions = { ids ->
                         requestedIds = ids
-                        ids.map { id -> Transaction(id, "2026-08-15", "Store", "Shopping", "Checking", 600, cleared = true) }
+                        ids.map { id ->
+                            val payee = if (id == "tx-cal-1") "Bakery" else "Coffee Shop"
+                            Transaction(id, "2026-08-15", payee, "Shopping", "Checking", 600, cleared = true)
+                        }
                     },
                 )
             }
@@ -160,7 +163,8 @@ class ReportsDrillDownTest {
 
         compose.waitForIdle()
         assertEquals(listOf("tx-cal-1", "tx-cal-2"), requestedIds)
-        compose.onNodeWithText("Store").assertExists()
+        compose.onNodeWithText("Bakery").assertExists()
+        compose.onNodeWithText("Coffee Shop").assertExists()
         compose.onNodeWithText("2 transactions", substring = true).assertExists()
         compose.onNodeWithText("In", substring = true).assertExists()
         compose.onNodeWithText("Out", substring = true).assertExists()
