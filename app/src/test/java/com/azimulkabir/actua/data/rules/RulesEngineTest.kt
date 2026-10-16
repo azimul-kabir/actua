@@ -98,6 +98,28 @@ class RulesEngineTest {
         assertEquals(-1001L, result.splitChildren.sumOf { it.transaction.amountCents })
     }
 
+    @Test fun paycheckSplitsFixedAmountsAndLeavesRemainderInLastLine() {
+        fun fixed(index: Double, cents: Double) = Rule.Action("set-split-amount", null, RuleValue.Number(cents), mapOf(
+            "splitIndex" to RuleValue.Number(index), "method" to RuleValue.Text("fixed-amount"),
+        ))
+        fun category(index: Double, id: String) =
+            Rule.Action("set", "category", RuleValue.Text(id), mapOf("splitIndex" to RuleValue.Number(index)))
+        val rule = Rule("paycheck", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+            listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
+                fixed(1.0, 20000.0), category(1.0, "groceries"),
+                fixed(2.0, 5000.0), category(2.0, "gas"),
+                Rule.Action("set-split-amount", null, RuleValue.Null, mapOf(
+                    "splitIndex" to RuleValue.Number(3.0), "method" to RuleValue.Text("remainder"),
+                )),
+                category(3.0, "savings"),
+            ))
+        var childId = 0
+        val result = RulesEngine.apply(transaction(amount = 100000), listOf(rule), idFactory = { "child-${childId++}" })
+        assertEquals(listOf(20000L, 5000L, 75000L), result.splitChildren.map { it.transaction.amountCents })
+        assertEquals(listOf("groceries", "gas", "savings"), result.splitChildren.map { it.transaction.categoryId })
+        assertEquals(100000L, result.splitChildren.sumOf { it.transaction.amountCents })
+    }
+
     @Test fun splitAmountFormulaAndSingleRemainderFollowActualCents() {
         val rule = Rule("split-formula", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
             listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
