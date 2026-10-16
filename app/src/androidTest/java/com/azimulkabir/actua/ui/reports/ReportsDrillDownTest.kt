@@ -129,4 +129,94 @@ class ReportsDrillDownTest {
         compose.waitForIdle()
         assertEquals(listOf("tx-current"), requestedIds)
     }
+
+    @Test fun tappingACalendarDayWithTransactionsOpensItsContributingTransactionsDirectly() {
+        val widget = ReportWidget(
+            id = "calendar",
+            kind = ReportWidgetKind.CALENDAR,
+            name = "Calendar",
+            points = listOf(
+                ReportPoint("2026-08-15", 5_000_00, 1_200_00, listOf("tx-cal-1", "tx-cal-2")),
+            ),
+        )
+        val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
+        var requestedIds: List<String>? = null
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(overview)),
+                    hideDecimalPlaces = false,
+                    loadTransactions = { ids ->
+                        requestedIds = ids
+                        ids.map { id -> Transaction(id, "2026-08-15", "Store", "Shopping", "Checking", 600, cleared = true) }
+                    },
+                )
+            }
+        }
+
+        // Issue #1107: One tap on a day with transactions opens that day's sheet straight away.
+        compose.onNodeWithText("15").performClick()
+
+        compose.waitForIdle()
+        assertEquals(listOf("tx-cal-1", "tx-cal-2"), requestedIds)
+        compose.onNodeWithText("Store").assertExists()
+        compose.onNodeWithText("2 transactions", substring = true).assertExists()
+    }
+
+    @Test fun tappingACalendarDayWithoutTransactionsDoesNotOpenTransactions() {
+        val widget = ReportWidget(
+            id = "calendar",
+            kind = ReportWidgetKind.CALENDAR,
+            name = "Calendar",
+            points = listOf(
+                ReportPoint("2026-08-15", 5_000_00, 1_200_00, emptyList()),
+            ),
+        )
+        val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
+        var requestedIds: List<String>? = null
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(overview)),
+                    hideDecimalPlaces = false,
+                    loadTransactions = { ids ->
+                        requestedIds = ids
+                        emptyList()
+                    },
+                )
+            }
+        }
+
+        compose.onNodeWithText("15").performClick()
+        compose.waitForIdle()
+
+        assertEquals(null, requestedIds)
+        compose.onNodeWithText("Out", substring = true).assertExists()
+    }
+
+    @Test fun calendarDayHasTalkBackDescriptionAndActionLabel() {
+        val widget = ReportWidget(
+            id = "calendar",
+            kind = ReportWidgetKind.CALENDAR,
+            name = "Calendar",
+            points = listOf(
+                ReportPoint("2026-08-15", 5_000_00, 1_200_00, listOf("tx-cal-1")),
+            ),
+        )
+        val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(overview)),
+                    hideDecimalPlaces = false,
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("August 15, in", substring = true).assertExists()
+    }
 }
+

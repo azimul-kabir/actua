@@ -1035,14 +1035,15 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
         Spacer(Modifier.width(12.dp))
         Text("▼ ${formatMoneyCents(monthExpense, hideDecimals)}", color = MaterialTheme.colorScheme.error)
     }
+    val monthName = remember(month) { month.month.name.lowercase().replaceFirstChar(Char::uppercase) }
     selectedDay?.let { day ->
         val point = values[day]
-        val dayLabel = "${month.month.name.lowercase().replaceFirstChar(Char::uppercase)} $day"
+        val dayLabel = "$monthName $day"
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small,
             modifier = Modifier.clickable(
                 enabled = point?.transactionIds?.isNotEmpty() == true,
-                onClickLabel = "View transactions",
+                onClickLabel = "see transactions",
             ) { point?.let { onDrillDown(ReportCategory(dayLabel, it.primaryCents - it.secondaryCents, it.transactionIds)) } },
         ) {
             Text(
@@ -1066,6 +1067,32 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             (week + List(7 - week.size) { null }).forEach { day ->
                 val point = day?.let(values::get)
+                val hasTransactions = point?.transactionIds?.isNotEmpty() == true
+                val inFormatted = formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)
+                val outFormatted = formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)
+                val dayContentDescription = if (day != null) "$monthName $day, in $inFormatted, out $outFormatted" else null
+                val clickModifier = if (day != null) {
+                    val dayLabel = "$monthName $day"
+                    Modifier.clickable(
+                        onClickLabel = if (hasTransactions) "see transactions" else null,
+                    ) {
+                        if (point != null && point.transactionIds.isNotEmpty()) {
+                            selectedDay = day
+                            onDrillDown(ReportCategory(dayLabel, point.primaryCents - point.secondaryCents, point.transactionIds))
+                        } else {
+                            selectedDay = day.takeIf { it != selectedDay }
+                        }
+                    }
+                } else {
+                    Modifier
+                }
+                val semanticsModifier = if (dayContentDescription != null) {
+                    Modifier.semantics {
+                        contentDescription = dayContentDescription
+                    }
+                } else {
+                    Modifier
+                }
                 Column(
                     Modifier.weight(1f).height(38.dp)
                         .background(
@@ -1073,7 +1100,8 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
                             else MaterialTheme.colorScheme.surfaceContainerHigh,
                             MaterialTheme.shapes.small,
                         )
-                        .then(if (day != null) Modifier.clickable { selectedDay = day.takeIf { it != selectedDay } } else Modifier)
+                        .then(clickModifier)
+                        .then(semanticsModifier)
                         .padding(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
