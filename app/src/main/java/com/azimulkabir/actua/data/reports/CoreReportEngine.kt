@@ -659,13 +659,19 @@ object CoreReportEngine {
             if (runningBalance < lowestBalance) lowestBalance = runningBalance
             if (day == YearMonth.from(day).atEndOfMonth() || day == rangeEnd) {
                 val query = DrillDownQuery(endDate = day.toYmd(), accountIds = selected)
-                points += ReportPoint(YearMonth.from(day).toString(), runningBalance, drillDownQuery = query)
+                points += ReportPoint(
+                    YearMonth.from(day).toString(), runningBalance, drillDownQuery = query,
+                    isForecast = !day.isBefore(firstForecastDate),
+                )
             }
             day = day.plusDays(1)
         }
         if (points.isEmpty()) {
             val query = DrillDownQuery(endDate = rangeStart.toYmd(), accountIds = selected)
-            points += ReportPoint(YearMonth.from(rangeStart).toString(), runningBalance, drillDownQuery = query)
+            points += ReportPoint(
+                YearMonth.from(rangeStart).toString(), runningBalance, drillDownQuery = query,
+                isForecast = !rangeStart.isBefore(firstForecastDate),
+            )
         }
         if (lowestBalance == Long.MAX_VALUE) lowestBalance = runningBalance
 
@@ -701,7 +707,7 @@ object CoreReportEngine {
                 val income = budget?.let { it.incomeCategories + it.hiddenIncomeCategories }.orEmpty().sumOf { it.budgetedCents }
                 val expenses = budget?.let { it.categories + it.hiddenCategories }.orEmpty().sumOf { it.budgetedCents }
                 running += income - expenses
-                ReportPoint(month.toString(), running)
+                ReportPoint(month.toString(), running, isForecast = true)
             }.toList()
         return ReportWidget(
             id, ReportWidgetKind.BALANCE_FORECAST, name,

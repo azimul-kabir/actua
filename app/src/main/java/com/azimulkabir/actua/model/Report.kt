@@ -31,6 +31,8 @@ data class ReportPoint(
     val tertiaryCents: Long = 0,
     /** Query definition to resolve contributing transactions for this point. */
     val drillDownQuery: DrillDownQuery? = null,
+    /** True when this point is projected rather than posted, e.g. a Balance Forecast month after today. */
+    val isForecast: Boolean = false,
 )
 
 data class ReportDashboardPage(

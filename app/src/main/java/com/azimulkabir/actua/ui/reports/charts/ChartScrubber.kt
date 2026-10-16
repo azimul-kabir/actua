@@ -66,10 +66,12 @@ fun computeMonotoneCubicSpline(points: List<Offset>): List<CubicBezierSegment> {
             m[k] = 0.0
             m[k + 1] = 0.0
         } else {
-            val alpha = m[k] / delta
-            val beta = m[k + 1] / delta
-            if (alpha < 0.0) m[k] = 0.0
-            if (beta < 0.0) m[k + 1] = 0.0
+            // A slope against the segment's direction is zeroed (local extremum); the clamp below
+            // must then use the zeroed value, not the stale ratio, or it reintroduces an overshoot.
+            val alpha = (m[k] / delta).coerceAtLeast(0.0)
+            val beta = (m[k + 1] / delta).coerceAtLeast(0.0)
+            m[k] = alpha * delta
+            m[k + 1] = beta * delta
             val hyp = alpha * alpha + beta * beta
             if (hyp > 9.0) {
                 val tau = 3.0 / sqrt(hyp)
