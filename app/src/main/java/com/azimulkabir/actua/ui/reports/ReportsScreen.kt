@@ -84,6 +84,8 @@ import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.reports.charts.ChartCard
 import com.azimulkabir.actua.ui.reports.charts.ChartTrend
+import com.azimulkabir.actua.ui.reports.charts.BudgetAnalysisChart
+import com.azimulkabir.actua.ui.reports.charts.LineChartBand
 import com.azimulkabir.actua.ui.reports.charts.SankeyChart
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
@@ -728,7 +730,7 @@ private fun WidgetCard(
             }
             ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
             ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
-            ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals)
+            ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals, onDrillDown)
             ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals, onDrillDown = onDrillDown)
             ReportWidgetKind.BALANCE_FORECAST -> {
                 TrendChart(
@@ -741,7 +743,7 @@ private fun WidgetCard(
                 }
             }
             ReportWidgetKind.MONTE_CARLO -> {
-                ComparativeTrendChart(widget.points, "Median", "Conservative", hideDecimals)
+                MonteCarlo(widget.points, hideDecimals)
             }
             ReportWidgetKind.MISSING_REPORT -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
             ReportWidgetKind.UNSUPPORTED -> Unit
@@ -801,14 +803,6 @@ private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean, onDrillDo
         secondaryLabel = "Expense",
         chartContentDescription = "Cash flow chart with ${points.size} periods. Tap a period to read income and expense.",
     )
-}
-
-@Composable
-private fun LegendDot(color: androidx.compose.ui.graphics.Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.size(8.dp).background(color, androidx.compose.foundation.shape.CircleShape))
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
 }
 
 @Composable
@@ -1302,23 +1296,14 @@ private fun Crossover(widget: ReportWidget, hideDecimals: Boolean) {
 }
 
 @Composable
-private fun BudgetAnalysis(widget: ReportWidget, hideDecimals: Boolean) {
-    ComparisonSeries(widget.points, "Budgeted", "Spent", hideDecimals)
+private fun BudgetAnalysis(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
+    BudgetAnalysisChart(widget.points, hideDecimals, onDrillDown)
     widget.balanceCents?.let {
         Text(
             "Balance: ${formatMoneyCents(it, hideDecimals)}",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-}
-
-@Composable
-private fun ComparisonSeries(points: List<ReportPoint>, primary: String, secondary: String, hideDecimals: Boolean) {
-    if (points.isEmpty()) { Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant); return }
-    ComparativeTrendChart(points, primary, secondary, hideDecimals)
-    val last = points.last()
-    Text("${last.period.take(7)} · ${formatMoneyCents(last.primaryCents, hideDecimals)} / ${formatMoneyCents(last.secondaryCents, hideDecimals)}",
-        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
@@ -1336,72 +1321,33 @@ private fun Sankey(
 )
 
 @Composable
-private fun ComparativeTrendChart(
-    points: List<ReportPoint>,
-    primaryLabel: String = "Primary",
-    secondaryLabel: String = "Secondary",
-    hideDecimals: Boolean = false,
-) {
-    if (points.isEmpty()) return
-    val primary = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.tertiary
-    val gridColor = MaterialTheme.colorScheme.outlineVariant
-    val scrubColor = MaterialTheme.colorScheme.outline
-    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
-    val active = selected?.takeIf { it in points.indices }
-    val minimum = points.minOf { minOf(it.primaryCents, it.secondaryCents) }
-    val maximum = points.maxOf { maxOf(it.primaryCents, it.secondaryCents) }
-    val span = (maximum - minimum).coerceAtLeast(1)
-
-    active?.let {
-        val point = points[it]
-        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
-            Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                Text(point.period.take(10), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                Text("$primaryLabel ${formatMoneyCents(point.primaryCents, hideDecimals)} · " +
-                    "$secondaryLabel ${formatMoneyCents(point.secondaryCents, hideDecimals)}",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+private fun MonteCarlo(points: List<ReportPoint>, hideDecimals: Boolean) {
+    if (points.isEmpty() || points.any { it.percentileCents.size != 5 }) {
+        Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
     }
-    Canvas(
-        Modifier.fillMaxWidth().height(140.dp)
-            .semantics { contentDescription = "Comparison chart with ${points.size} points. Touch to read $primaryLabel and $secondaryLabel." }
-            .pointerInput(points) {
-                fun index(x: Float) = if (points.size <= 1) 0 else
-                    (x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
-                detectTapGestures { selected = index(it.x).takeIf { i -> i != selected } }
-            }
-            .pointerInput(points) {
-                detectHorizontalDragGestures { change, _ ->
-                    selected = if (points.size <= 1) 0 else
-                        (change.position.x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
-                }
-            },
-    ) {
-        val step = if (points.size <= 1) 0f else size.width / (points.size - 1)
-        fun y(value: Long) = size.height - ((value - minimum).toFloat() / span * size.height)
-        val dashed = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
-        listOf(0f, 0.5f, 1f).forEach { fraction ->
-            val lineY = size.height * fraction
-            drawLine(gridColor, Offset(0f, lineY), Offset(size.width, lineY), strokeWidth = 1.5f, pathEffect = dashed)
-        }
-        points.zipWithNext().forEachIndexed { index, pair ->
-            drawLine(primary, Offset(step * index, y(pair.first.primaryCents)),
-                Offset(step * (index + 1), y(pair.second.primaryCents)), strokeWidth = 5f, cap = StrokeCap.Round)
-            drawLine(secondary, Offset(step * index, y(pair.first.secondaryCents)),
-                Offset(step * (index + 1), y(pair.second.secondaryCents)), strokeWidth = 5f, cap = StrokeCap.Round)
-        }
-        active?.let {
-            drawLine(scrubColor.copy(alpha = 0.4f), Offset(step * it, 0f), Offset(step * it, size.height), strokeWidth = 2f)
-            drawCircle(primary, 7.dp.toPx() / 1.5f, Offset(step * it, y(points[it].primaryCents)))
-            drawCircle(secondary, 7.dp.toPx() / 1.5f, Offset(step * it, y(points[it].secondaryCents)))
-        }
-    }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        LegendDot(primary, primaryLabel)
-        LegendDot(secondary, secondaryLabel)
-    }
+    val palette = rememberChartPalette()
+    fun band(index: Int) = points.map { it.percentileCents[index] }
+    LineChart(
+        periods = points.map { it.period },
+        series = listOf(LineChartSeries("Median", palette.semantic.balance, band(2))),
+        bands = listOf(
+            LineChartBand(band(0), band(4), palette.semantic.balance, alpha = 0.14f),
+            LineChartBand(band(1), band(3), palette.semantic.balance, alpha = 0.26f),
+        ),
+        formatValue = { formatMoneyCents(it, hideDecimals) },
+        formatAxis = { formatCompactMoney(it, hideDecimals = true) },
+        detail = { i ->
+            val p = points[i].percentileCents
+            "Likely range ${formatMoneyCents(p[1], hideDecimals)} – ${formatMoneyCents(p[3], hideDecimals)} · " +
+                "10–90%: ${formatMoneyCents(p[0], hideDecimals)} – ${formatMoneyCents(p[4], hideDecimals)}"
+        },
+        contentDescription = "Monte Carlo projection over ${points.size} years: median with shaded 25 to 75 and 10 to 90 percent ranges.",
+    )
+    Text(
+        "Median line · darker band 25–75% of outcomes · lighter band 10–90%",
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable

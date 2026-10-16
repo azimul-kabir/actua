@@ -59,6 +59,14 @@ data class LineChartSeries(
     val forecastFromIndex: Int? = null,
 )
 
+/** A shaded band between [lower] and [upper] values, e.g. a range of simulated outcomes. */
+data class LineChartBand(
+    val lower: List<Long>,
+    val upper: List<Long>,
+    val color: Color,
+    val alpha: Float = 0.2f,
+)
+
 /**
  * Smooth line chart with a monotone spline that never overshoots the data, optional area fill,
  * right-hand value labels, thinned period labels, and a press-and-drag tooltip that reports the
@@ -82,6 +90,8 @@ fun LineChart(
     crossoverPosition: Float? = null,
     crossoverLabel: String? = null,
     forecastLabel: String = "Forecast",
+    bands: List<LineChartBand> = emptyList(),
+    detail: ((Int) -> String)? = null,
     canDrill: (Int) -> Boolean = { false },
     onDrillDown: ((Int) -> Unit)? = null,
 ) {
@@ -104,7 +114,9 @@ fun LineChart(
         val months = periods.map { it.take(7) }
         if (months.distinct().size == months.size) months else periods.map { it.take(10) }
     }
-    val allValues = remember(series, lowValue) { series.flatMap { it.values } + listOfNotNull(lowValue) }
+    val allValues = remember(series, lowValue, bands) {
+        series.flatMap { it.values } + listOfNotNull(lowValue) + bands.flatMap { it.lower + it.upper }
+    }
     val gridlines = remember(allValues) {
         val lo = allValues.min()
         val hi = allValues.max()
@@ -136,6 +148,9 @@ fun LineChart(
                         } + if (forecastBoundary != null && i >= forecastBoundary) " · $forecastLabel" else "",
                         style = MaterialTheme.typography.bodySmall, color = textColor,
                     )
+                    detail?.invoke(i)?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = textColor)
+                    }
                     if (drillable) {
                         Text(
                             "Tap to view transactions",
@@ -184,6 +199,24 @@ fun LineChart(
                 }
             }
 
+            val bandPaths = remember(bands, plotW, plotH, axisMin, axisMax) {
+                val span = (axisMax - axisMin).coerceAtLeast(1L).toFloat()
+                val step = if (n <= 1) 0f else plotW / (n - 1)
+                fun y(v: Long) = plotH - (v - axisMin) / span * plotH
+                bands.map { band ->
+                    val upper = computeMonotoneCubicSpline(band.upper.mapIndexed { i, v -> Offset(step * i, y(v)) })
+                    val lower = computeMonotoneCubicSpline(band.lower.mapIndexed { i, v -> Offset(step * i, y(v)) })
+                    Path().apply {
+                        if (upper.isEmpty() || lower.isEmpty()) return@apply
+                        moveTo(upper.first().start.x, upper.first().start.y)
+                        upper.forEach { cubicTo(it.control1.x, it.control1.y, it.control2.x, it.control2.y, it.end.x, it.end.y) }
+                        lineTo(lower.last().end.x, lower.last().end.y)
+                        lower.asReversed().forEach { cubicTo(it.control2.x, it.control2.y, it.control1.x, it.control1.y, it.start.x, it.start.y) }
+                        close()
+                    }
+                }
+            }
+
             val visibleLabels = remember(labels, plotW, textMeasurer, labelStyle) {
                 val sample = textMeasurer.measure(labels.maxBy { it.length }, labelStyle).size.width.toFloat()
                 // Labels are centred on points, so the first and last clamp inward: leave a label width spare.
@@ -221,6 +254,7 @@ fun LineChart(
                         val xStep = if (n <= 1) 0f else plotW / (n - 1)
                         val span = (axisMax - axisMin).coerceAtLeast(1L).toFloat()
 
+                        bandPaths.forEachIndexed { k, p -> drawPath(p, bands[k].color.copy(alpha = bands[k].alpha)) }
                         geometry.forEachIndexed { k, g ->
                             val s = series[k]
                             g.fill?.let { drawPath(it, Brush.verticalGradient(listOf(s.color.copy(alpha = 0.3f), s.color.copy(alpha = 0f)), 0f, plotH)) }

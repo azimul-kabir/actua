@@ -258,7 +258,9 @@ Upstream: [`S/budget-analysis-spreadsheet.ts`][budget-analysis], [`W/BudgetAnaly
 | `showHiddenCategories` | `isBaseCategory` (category's own flag) | same | Match (#956) |
 | Category/group conditions; unsupported operator | matches nothing | same | Match (#956) |
 | Default range | last 6 months | same | Match (#948) |
-| `graphType`, `balanceOnly` | chart style | bar chart | **Intentional** |
+| Per-month `overspendingAdjustment` = last month's negative balances on categories without carryover (`summarizeMonthCategories`); first month 0 | `intervalData[].overspendingAdjustment` | `ReportPoint.overspendingCents` (#1116) | Match |
+| Per-month balance = budgeted + spent + running carry-over | `intervalData[].balance` | `ReportPoint.tertiaryCents` (sum of category leftovers) | Match |
+| `graphType`, `balanceOnly` | chart style | budgeted/spent/overspending bars plus a balance line; tapping a Spent bar opens that month's spending | **Intentional** |
 
 Tests: `BudgetAnalysisCategoryTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.budgetAnalysisScopesBudgetedAndSpentToCategoryConditionsAndTracksBalance`, `.budgetAnalysisExcludesHiddenCategoriesUnlessRequested`.
 
@@ -305,7 +307,8 @@ Upstream: [`W/monte-carlo/monteCarloSimulation.ts`][monte-carlo]. Actua: `CRE.mo
 | `pots` (balance or `accountId`, mean, std-dev, `accessAge`), `spendingPhases`, `minimumSpending`, `contributions`, inflation mean/std-dev, `simulationCount`, `currentAge`/`targetAge` | | same | Match |
 | Withdrawal `proportional` / `sequential` | | same | Match |
 | Inflation realized after the year's withdrawal and growth | | same | Match |
-| Success rate headline; median / 10th percentile chart | | same | Match |
+| Success rate headline; median / 10th percentile | | same (unchanged by #1116) | Match |
+| Percentile bands per year | simulated balances | `ReportPoint.percentileCents` = 10th, 25th, 50th, 75th, 90th (linear interpolation), drawn as 10-90 and 25-75 bands around the median; same seed gives the same numbers | Android addition (#1116) |
 | Dynamic withdrawal rules, tax bands, fees, other strategies, historical returns, Median/Conservative comparison lines | | simplified result | **Not ported** |
 | No `pots` meta | upstream requires configuration | one pot from linked balances (6%/10%, 4% withdrawal) | **Intentional** |
 

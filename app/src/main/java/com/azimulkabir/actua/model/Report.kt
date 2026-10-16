@@ -31,6 +31,13 @@ data class ReportPoint(
     val tertiaryCents: Long = 0,
     /** Query definition to resolve contributing transactions for this point. */
     val drillDownQuery: DrillDownQuery? = null,
+    /**
+     * Budget Analysis overspending carried into this month: last month's negative category
+     * balances for categories without rollover (upstream's `overspendingAdjustment`, as a positive amount).
+     */
+    val overspendingCents: Long = 0,
+    /** Monte Carlo ending balances at the 10th, 25th, 50th, 75th and 90th percentile; empty for other widgets. */
+    val percentileCents: List<Long> = emptyList(),
     /** True when this point is projected rather than posted, e.g. a Balance Forecast month after today. */
     val isForecast: Boolean = false,
 )

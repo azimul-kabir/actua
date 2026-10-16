@@ -447,6 +447,18 @@ object CoreReportEngine {
         return if (sorted.size % 2 == 0) (sorted[mid - 1] + sorted[mid]) / 2 else sorted[mid]
     }
 
+    /** Percentiles a Monte Carlo point reports: 10th, 25th, 50th (median), 75th and 90th. */
+    private val MONTE_CARLO_PERCENTILES = listOf(0.10, 0.25, 0.50, 0.75, 0.90)
+
+    /** Linearly interpolated percentile of an already sorted array. */
+    internal fun percentileOfSorted(sorted: DoubleArray, fraction: Double): Long {
+        val position = (sorted.size - 1) * fraction
+        val lower = position.toInt()
+        val upper = kotlin.math.ceil(position).toInt().coerceAtMost(sorted.size - 1)
+        val weight = position - lower
+        return (sorted[lower] * (1 - weight) + sorted[upper] * weight).roundToLong()
+    }
+
     private fun mean(values: List<Double>): Double = if (values.isEmpty()) 0.0 else values.sum() / values.size
 
     private fun hampelFilteredMedian(values: List<Double>): Double {
@@ -486,16 +498,32 @@ object CoreReportEngine {
                 categoryMatches(it.categoryId, categoryConditions, conditions.second, context)
             }
         }
-        val points = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
-            .takeWhile { !it.isAfter(YearMonth.from(end)) }.map { month ->
-                val categories = selected(month)
-                ReportPoint(
-                    month.toString(),
-                    categories.sumOf { it.budgetedCents },
-                    categories.sumOf { -it.spentCents },
-                    tertiaryCents = categories.sumOf { it.availableCents },
-                )
-            }.toList()
+        val monthsInRange = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
+            .takeWhile { !it.isAfter(YearMonth.from(end)) }.toList()
+        // Upstream's `summarizeMonthCategories`: a negative balance on a category without rollover
+        // is zeroed at the month boundary and surfaces as the next month's overspending adjustment.
+        var overspendingFromPreviousMonth = 0L
+        val points = monthsInRange.map { month ->
+            val categories = selected(month)
+            val point = ReportPoint(
+                month.toString(),
+                categories.sumOf { it.budgetedCents },
+                categories.sumOf { -it.spentCents },
+                tertiaryCents = categories.sumOf { it.availableCents },
+                overspendingCents = overspendingFromPreviousMonth,
+                // The month's spending in the selected categories, for tapping the Spent bar. No query
+                // when nothing is selected: an empty category set would mean "every category".
+                drillDownQuery = categories.map { it.categoryId }.toSet().takeIf { it.isNotEmpty() }?.let { ids ->
+                    DrillDownQuery(
+                        startDate = month.atDay(1).toYmd(), endDate = month.atEndOfMonth().toYmd(),
+                        categoryIds = ids, direction = DrillDownDirection.EXPENSE, month = month.toString(),
+                    )
+                },
+            )
+            overspendingFromPreviousMonth = categories
+                .filter { it.availableCents < 0 && !it.carryoverEnabled }.sumOf { -it.availableCents }
+            point
+        }
         return ReportWidget(id, ReportWidgetKind.BUDGET_ANALYSIS, name, points = points,
             valueCents = points.sumOf { it.primaryCents }, comparisonCents = points.sumOf { it.secondaryCents },
             balanceCents = points.lastOrNull()?.tertiaryCents)
@@ -890,19 +918,14 @@ object CoreReportEngine {
         }
         val successRate = if (simulationCount > 0) survived.toDouble() / simulationCount * 100.0 else 0.0
 
-        fun percentile(values: DoubleArray, fraction: Double): Long {
-            val sorted = values.sortedArray()
-            val position = (sorted.size - 1) * fraction
-            val lower = position.toInt()
-            val upper = kotlin.math.ceil(position).toInt().coerceAtMost(sorted.size - 1)
-            val weight = position - lower
-            return (sorted[lower] * (1 - weight) + sorted[upper] * weight).roundToLong()
-        }
         val points = (0..horizonYears).map { year ->
+            val sortedYear = balancesByYear[year].sortedArray()
+            val bands = MONTE_CARLO_PERCENTILES.map { percentileOfSorted(sortedYear, it) }
             ReportPoint(
                 YearMonth.from(today).plusYears(year.toLong()).toString(),
-                percentile(balancesByYear[year], 0.5),
-                percentile(balancesByYear[year], 0.1),
+                bands[2],
+                bands[0],
+                percentileCents = bands,
             )
         }
         return ReportWidget(
