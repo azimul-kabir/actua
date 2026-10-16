@@ -18,6 +18,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Pop-up messages such as "No network" and "Merged transactions" now use the app's own colours and rounded style instead of a black bar ([#1139](https://github.com/azimul-kabir/actua/pull/1139))
 - Reports animate in (unless system animations are off), use one green/red colour language across cards, and read better with TalkBack and at large font sizes ([#1137](https://github.com/azimul-kabir/actua/pull/1137))
 - Reports dashboard widgets move their title and headline metrics into unified card headers ([#1126](https://github.com/azimul-kabir/actua/pull/1126))
 
