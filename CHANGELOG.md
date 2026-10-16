@@ -17,6 +17,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Line chart axis labels show whole units and month labels no longer overlap ([#1131](https://github.com/azimul-kabir/actua/pull/1131))
 - Tapping a day in the Calendar report opens its transactions directly instead of only selecting it ([#1123](https://github.com/azimul-kabir/actua/pull/1123))
 
 ## [1.8.1] - 2026-10-15
