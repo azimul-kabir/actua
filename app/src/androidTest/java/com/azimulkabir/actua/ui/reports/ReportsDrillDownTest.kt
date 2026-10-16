@@ -165,9 +165,9 @@ class ReportsDrillDownTest {
         assertEquals(listOf("tx-cal-1", "tx-cal-2"), requestedIds)
         compose.onNodeWithText("Bakery").assertExists()
         compose.onNodeWithText("Coffee Shop").assertExists()
-        compose.onNodeWithText("2 transactions", substring = true).assertExists()
-        compose.onNodeWithText("In", substring = true).assertExists()
-        compose.onNodeWithText("Out", substring = true).assertExists()
+        compose.onNodeWithText("Calendar · 2 transactions · In", substring = true).assertExists()
+        compose.onNodeWithText("net", substring = true).assertExists()
+        compose.onNodeWithText("August 15 · In", substring = true).assertExists()
     }
 
     @Test fun tappingACalendarDayWithoutTransactionsDoesNotOpenTransactions() {
@@ -199,7 +199,7 @@ class ReportsDrillDownTest {
         compose.waitForIdle()
 
         assertEquals(null, requestedIds)
-        compose.onNodeWithText("Out", substring = true).assertExists()
+        compose.onNodeWithText("August 15 · In", substring = true).assertExists()
     }
 
     @Test fun calendarDayHasTalkBackDescriptionAndActionLabel() {
