@@ -84,6 +84,11 @@ import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.reports.charts.ChartCard
 import com.azimulkabir.actua.ui.reports.charts.ChartTrend
+import com.azimulkabir.actua.ui.reports.charts.LineChart
+import com.azimulkabir.actua.ui.reports.charts.LineChartSeries
+import com.azimulkabir.actua.ui.reports.charts.findCrossoverPosition
+import com.azimulkabir.actua.ui.reports.charts.formatCompactMoney
+import com.azimulkabir.actua.ui.reports.charts.rememberChartPalette
 import com.azimulkabir.actua.ui.reports.charts.ChartTrendDirection
 import com.azimulkabir.actua.ui.reports.charts.GroupedBarChart
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -701,7 +706,6 @@ private fun WidgetCard(
             )
             ReportWidgetKind.NET_WORTH -> {
                 TrendChart(widget.points, hideDecimals, onDrillDown = onDrillDown)
-                PointLabels(widget.points, hideDecimals)
             }
             ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals, onDrillDown)
             ReportWidgetKind.INCOME_EXPENSE -> IncomeExpense(widget, hideDecimals, onDrillDown)
@@ -718,8 +722,11 @@ private fun WidgetCard(
             ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals)
             ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals, onDrillDown = onDrillDown)
             ReportWidgetKind.BALANCE_FORECAST -> {
-                TrendChart(widget.points, hideDecimals, onDrillDown = onDrillDown)
-                PointLabels(widget.points, hideDecimals)
+                TrendChart(
+                    widget.points, hideDecimals, onDrillDown = onDrillDown,
+                    lowValue = widget.comparisonCents,
+                    description = "Balance forecast with ${widget.points.size} months. The dashed part is a forecast.",
+                )
                 widget.subtitle?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -739,112 +746,39 @@ private fun TrendChart(
     hideDecimals: Boolean = false,
     isMoney: Boolean = true,
     onDrillDown: ((ReportCategory) -> Unit)? = null,
+    lowValue: Long? = null,
+    description: String = "Trend chart with ${points.size} points. Touch to read a value.",
 ) {
-    val color = MaterialTheme.colorScheme.primary
-    val gridColor = MaterialTheme.colorScheme.outlineVariant
-    if (points.isEmpty()) return
-    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
-    val active = selected?.takeIf { it in points.indices }
-    val minimum = points.minOf { it.primaryCents }
-    val maximum = points.maxOf { it.primaryCents }
-    val span = (maximum - minimum).coerceAtLeast(1)
-    fun label(cents: Long) = if (isMoney) formatMoneyCents(cents, hideDecimals) else "$cents days"
-    active?.let {
-        val point = points[it]
-        val canDrill = onDrillDown != null && (point.drillDownQuery != null || point.transactionIds.isNotEmpty())
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = MaterialTheme.shapes.small,
-            modifier = if (canDrill) {
-                Modifier.clickable(onClickLabel = "View transactions") {
-                    onDrillDown(ReportCategory(point.period.take(10), point.primaryCents, point.transactionIds, drillDownQuery = point.drillDownQuery))
-                }
-            } else Modifier,
-        ) {
-            Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                Text(
-                    "${point.period.take(10)} · ${label(point.primaryCents)}",
-                    style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
-                )
-                if (canDrill) {
-                    Text(
-                        "Tap to view transactions",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-        }
+    if (points.isEmpty()) {
+        Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
     }
-    Row(Modifier.fillMaxWidth().height(130.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Canvas(
-            Modifier.weight(1f).fillMaxSize()
-                .semantics { contentDescription = "Trend chart with ${points.size} points. Touch to read a value." }
-                .pointerInput(points) {
-                    fun index(x: Float) = if (points.size <= 1) 0 else
-                        (x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
-                    detectTapGestures { selected = index(it.x).takeIf { i -> i != selected } }
-                }
-                .pointerInput(points) {
-                    detectHorizontalDragGestures { change, _ ->
-                        selected = if (points.size <= 1) 0 else
-                            (change.position.x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
-                    }
-                },
-        ) {
-            val step = if (points.size <= 1) 0f else size.width / (points.size - 1)
-            fun y(value: Long) = size.height - ((value - minimum).toFloat() / span * size.height)
-
-            val dashed = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
-            listOf(0f, 0.5f, 1f).forEach { fraction ->
-                val lineY = size.height * fraction
-                drawLine(gridColor, Offset(0f, lineY), Offset(size.width, lineY), strokeWidth = 1.5f, pathEffect = dashed)
+    val palette = rememberChartPalette()
+    val forecastFrom = points.indexOfFirst { it.isForecast }.takeIf { it >= 0 }
+    fun drillable(point: ReportPoint) = point.drillDownQuery != null || point.transactionIds.isNotEmpty()
+    LineChart(
+        periods = points.map { it.period },
+        series = listOf(
+            LineChartSeries(
+                label = "Value",
+                color = if (forecastFrom != null) palette.semantic.forecast else palette.semantic.balance,
+                values = points.map { it.primaryCents },
+                fill = true,
+                forecastFromIndex = forecastFrom,
+            ),
+        ),
+        formatValue = { if (isMoney) formatMoneyCents(it, hideDecimals) else "$it days" },
+        formatAxis = { if (isMoney) formatCompactMoney(it, hideDecimals) else "$it d" },
+        contentDescription = description,
+        lowValue = lowValue,
+        canDrill = { drillable(points[it]) },
+        onDrillDown = onDrillDown?.let { drill ->
+            { i ->
+                val point = points[i]
+                drill(ReportCategory(point.period.take(10), point.primaryCents, point.transactionIds, drillDownQuery = point.drillDownQuery))
             }
-
-            val linePath = Path().apply {
-                points.forEachIndexed { index, point ->
-                    val x = step * index
-                    val py = y(point.primaryCents)
-                    if (index == 0) moveTo(x, py) else lineTo(x, py)
-                }
-            }
-            val fillPath = Path().apply {
-                addPath(linePath)
-                lineTo(step * (points.size - 1), size.height)
-                lineTo(0f, size.height)
-                close()
-            }
-            drawPath(fillPath, Brush.verticalGradient(listOf(color.copy(alpha = 0.35f), color.copy(alpha = 0f))))
-            drawPath(linePath, color, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5f, cap = StrokeCap.Round))
-
-            active?.let {
-                drawLine(color.copy(alpha = 0.4f), Offset(step * it, 0f), Offset(step * it, size.height), strokeWidth = 2f)
-                drawCircle(color, 8.dp.toPx() / 1.5f, Offset(step * it, y(points[it].primaryCents)))
-            }
-        }
-        Column(Modifier.fillMaxHeight().width(72.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            listOf(maximum, minimum + span / 2, minimum).forEach { value ->
-                Text(
-                    label(value), style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PointLabels(points: List<ReportPoint>, hideDecimals: Boolean) {
-    if (points.isEmpty()) Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    else Row(Modifier.fillMaxWidth()) {
-        Text(points.first().period.take(7), style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(formatMoneyCents(points.last().primaryCents, hideDecimals), style = MaterialTheme.typography.bodySmall)
-        Spacer(Modifier.width(8.dp))
-        Text(points.last().period.take(7), style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
+        },
+    )
 }
 
 @Composable
@@ -910,14 +844,7 @@ private fun Spending(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (
 
 @Composable
 private fun AgeOfMoney(widget: ReportWidget) {
-    TrendChart(widget.points, isMoney = false)
-    if (widget.points.isNotEmpty()) Row(Modifier.fillMaxWidth()) {
-        // Daily and weekly periods are dates, monthly ones months.
-        Text(widget.points.first().period, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(widget.points.last().period, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
+    TrendChart(widget.points, isMoney = false, description = "Age of money over ${widget.points.size} periods. Touch to read the age.")
 }
 
 @Composable
@@ -1109,7 +1036,6 @@ private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
             widget.points.isNotEmpty() -> IntervalBars(widget.points, hideDecimals)
         (widget.graphType == "LineGraph" || widget.graphType == "AreaGraph") && widget.points.size > 1 -> {
             TrendChart(widget.points, hideDecimals)
-            PointLabels(widget.points, hideDecimals)
         }
         else -> CategoryBars(widget, hideDecimals, onDrillDown)
     }
@@ -1320,7 +1246,24 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
 
 @Composable
 private fun Crossover(widget: ReportWidget, hideDecimals: Boolean) {
-    ComparativeTrendChart(widget.points, "Investment income", "Monthly expenses", hideDecimals)
+    val points = widget.points
+    val palette = rememberChartPalette()
+    val incomes = points.map { it.primaryCents }
+    val expenses = points.map { it.secondaryCents }
+    val crossing = findCrossoverPosition(incomes, expenses)
+    LineChart(
+        periods = points.map { it.period },
+        series = listOf(
+            LineChartSeries("Investment income", palette.semantic.income, incomes),
+            LineChartSeries("Monthly expenses", palette.semantic.expense, expenses),
+        ),
+        formatValue = { formatMoneyCents(it, hideDecimals) },
+        formatAxis = { formatCompactMoney(it, hideDecimals) },
+        contentDescription = "Crossover chart with ${points.size} points" +
+            (crossing?.let { ", lines meet around ${points[it.roundToInt().coerceIn(0, points.lastIndex)].period.take(7)}" } ?: ""),
+        crossoverPosition = crossing,
+        crossoverLabel = crossing?.let { "Crossover ${points[it.roundToInt().coerceIn(0, points.lastIndex)].period.take(7)}" },
+    )
     Text("Investment income vs ${formatMoneyCents(widget.comparisonCents ?: 0, hideDecimals)} monthly expenses",
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
