@@ -270,11 +270,12 @@ private fun ActionEditor(index: Int, action: Rule.Action, data: RuleEditorData,
             icon = Icons.Outlined.Bolt,
             label = "Action",
             value = RuleSchema.opLabel(action.op),
-            choices = listOf("set", "prepend-notes", "append-notes", "delete-transaction")
+            choices = listOf("set", "set-split-amount", "prepend-notes", "append-notes", "delete-transaction")
                 .map { RuleSchema.opLabel(it) to it },
         ) { op ->
             onChange(when (op) {
                 "set" -> Rule.Action(op, "category", RuleValue.Null)
+                "set-split-amount" -> Rule.Action(op, null, RuleValue.Number(0.0), splitOptions(1.0, "fixed-amount"))
                 "delete-transaction" -> Rule.Action(op, null, RuleValue.Null)
                 else -> Rule.Action(op, "notes", RuleValue.Text(""))
             })
@@ -288,12 +289,18 @@ private fun ActionEditor(index: Int, action: Rule.Action, data: RuleEditorData,
                 value = RuleSchema.fieldLabel(field),
                 choices = RuleSchema.actionFields.map { RuleSchema.fieldLabel(it) to it },
             ) {
-                onChange(action.copy(field = it, value = defaultValue(it, "is"), options = emptyMap()))
+                onChange(action.copy(field = it, value = defaultValue(it, "is"), options = action.options.filterKeys { key -> key == SPLIT_INDEX }))
             }
             ActuaCardDivider()
             RuleValueEditor(field, "is", action.value, action.options, data) { value, options ->
                 onChange(action.copy(value = value, options = options))
             }
+            ActuaCardDivider()
+            SplitLineRow(action.options[SPLIT_INDEX]?.number, allowNone = true) { index ->
+                onChange(action.copy(options = action.options.withSplitIndex(index)))
+            }
+        } else if (action.op == "set-split-amount") {
+            SplitAmountEditor(action, onChange)
         } else if (action.op != "delete-transaction") {
             ActuaCardDivider()
             ActuaFormTextField(
@@ -301,6 +308,67 @@ private fun ActionEditor(index: Int, action: Rule.Action, data: RuleEditorData,
                 label = "Text",
                 value = action.value.text.orEmpty(),
                 onValueChange = { onChange(action.copy(value = RuleValue.Text(it))) },
+            )
+        }
+    }
+}
+
+private const val SPLIT_INDEX = "splitIndex"
+private const val SPLIT_METHOD = "method"
+private const val MAX_SPLIT_LINES = 10
+
+private fun splitOptions(index: Double, method: String) =
+    mapOf(SPLIT_INDEX to RuleValue.Number(index), SPLIT_METHOD to RuleValue.Text(method))
+
+private fun Map<String, RuleValue>.withSplitIndex(index: Double?): Map<String, RuleValue> =
+    if (index == null) this - SPLIT_INDEX else this + (SPLIT_INDEX to RuleValue.Number(index))
+
+/** Picks which split line an action targets; [allowNone] adds "Whole transaction" for `set` actions. */
+@Composable
+private fun SplitLineRow(index: Double?, allowNone: Boolean, onChange: (Double?) -> Unit) {
+    val lines = (1..MAX_SPLIT_LINES).map { "Split $it" to it.toDouble() }
+    ActuaMenuRow(
+        icon = Icons.AutoMirrored.Outlined.FormatListBulleted,
+        label = "Applies to",
+        value = index?.let { "Split ${it.toInt()}" } ?: "Whole transaction",
+        choices = (if (allowNone) listOf("Whole transaction" to null) else emptyList()) + lines.map { it.first to it.second },
+    ) { onChange(it) }
+}
+
+@Composable
+private fun SplitAmountEditor(action: Rule.Action, onChange: (Rule.Action) -> Unit) {
+    val method = action.options[SPLIT_METHOD]?.text ?: "fixed-amount"
+    val methods = listOf("fixed-amount" to "Fixed amount", "fixed-percent" to "Percent of remainder", "remainder" to "Remainder")
+    ActuaCardDivider()
+    SplitLineRow(action.options[SPLIT_INDEX]?.number ?: 1.0, allowNone = false) { index ->
+        onChange(action.copy(options = action.options.withSplitIndex(index)))
+    }
+    ActuaCardDivider()
+    ActuaMenuRow(
+        icon = Icons.Outlined.Tune,
+        label = "Method",
+        value = methods.firstOrNull { it.first == method }?.second ?: method,
+        choices = (methods + if (method == "formula") listOf("formula" to "Formula") else emptyList())
+            .map { it.second to it.first },
+    ) { chosen ->
+        onChange(action.copy(
+            value = if (chosen == "remainder") RuleValue.Null else RuleValue.Number(0.0),
+            options = action.options + (SPLIT_METHOD to RuleValue.Text(chosen)),
+        ))
+    }
+    when (method) {
+        "fixed-amount" -> {
+            ActuaCardDivider()
+            NumberInput("Amount", action.value.number) { onChange(action.copy(value = RuleValue.Number(it))) }
+        }
+        "fixed-percent" -> {
+            ActuaCardDivider()
+            ActuaFormTextField(
+                icon = Icons.Outlined.Calculate,
+                label = "Percent",
+                value = action.value.number?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() }.orEmpty(),
+                onValueChange = { text -> text.toDoubleOrNull()?.let { onChange(action.copy(value = RuleValue.Number(it))) } },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
         }
     }
@@ -419,7 +487,17 @@ private fun conditionSummary(condition: Rule.Condition, names: Map<String, Strin
     "${RuleSchema.fieldLabel(condition.field)} ${RuleSchema.opLabel(condition.op)} ${valueLabel(condition.value, names)}".trim()
 
 private fun actionSummary(action: Rule.Action, names: Map<String, String>) = when (action.op) {
-    "set" -> "Set ${action.field?.let(RuleSchema::fieldLabel).orEmpty()} to ${valueLabel(action.value, names)}"
+    "set" -> "Set ${action.field?.let(RuleSchema::fieldLabel).orEmpty()} to ${valueLabel(action.value, names)}" +
+        (action.options[SPLIT_INDEX]?.number?.let { " (split ${it.toInt()})" } ?: "")
+    "set-split-amount" -> {
+        val line = action.options[SPLIT_INDEX]?.number?.toInt() ?: 1
+        when (action.options[SPLIT_METHOD]?.text) {
+            "fixed-percent" -> "Split $line: ${action.value.number?.let { if (it % 1.0 == 0.0) it.toLong() else it }}% of remainder"
+            "remainder" -> "Split $line: remainder"
+            "formula" -> "Split $line: formula"
+            else -> "Split $line: ${valueLabel(action.value, names)}"
+        }
+    }
     "prepend-notes" -> "Prepend to notes ${action.value.text.orEmpty()}"
     "append-notes" -> "Append to notes ${action.value.text.orEmpty()}"
     "delete-transaction" -> "Delete transaction"

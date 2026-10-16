@@ -276,9 +276,12 @@ upstream's class-based `Condition`/`Action`/`Rule`.
   today, not a deliberate simplification of an implemented behavior.
 - **Bank sync and file import** run rules in the same order as Actual
   ([#851](https://github.com/azimul-kabir/actua/issues/851), [#850](https://github.com/azimul-kabir/actua/issues/850)). See "Where rules run" above.
-- **Template, formula and split actions are applied but not authored.** Rules created in Actual with
-  these actions run in Actua ([#888](https://github.com/azimul-kabir/actua/pull/888)); Actua's rule
-  editor does not create or edit them and keeps their stored JSON unchanged.
+- **Template and formula actions are applied but not authored; split actions are both.** Rules
+  created in Actual with these actions run in Actua ([#888](https://github.com/azimul-kabir/actua/pull/888)).
+  Actua's rule editor creates and edits split actions ("Set split amount" with fixed-amount,
+  fixed-percent or remainder, and a "Applies to" split line on `set` actions, up to 10 lines;
+  [#1119](https://github.com/azimul-kabir/actua/issues/1119)). It does not create template or formula
+  actions and keeps their stored JSON unchanged.
 - **Category learning** (upstream's `updateCategoryRules`, which creates or updates a payee's
   category rule after the same category is used repeatedly for that payee) runs on transaction-form
   saves, honouring the `learn-categories` preference and `payees.learn_categories`
