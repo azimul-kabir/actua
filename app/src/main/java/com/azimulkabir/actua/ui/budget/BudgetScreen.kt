@@ -440,15 +440,31 @@ fun BudgetScreen(
                 }
             }
 
-            // One decision for every table header and row, so their columns stay lined up.
-            val tableStacked = budgetView != "Plan" && !tableAmountsFit(
-                screenWidth - (Spacing.screenHorizontal + Spacing.lg) * 2,
-                columns = if (showSpent) 3 else 2,
-                lead = null,
-                amounts = remember(visibleGroups, showSpent, showGroupTotals, hideDecimalPlaces) {
-                    tableColumnAmounts(visibleGroups, showSpent, showGroupTotals, hideDecimalPlaces)
-                },
-            )
+            // One decision and one font scale for the overview, every table header and every row, so
+            // their columns stay lined up and the whole table reads uniformly.
+            val tableColumns = if (showSpent) 3 else 2
+            val tableWidth = screenWidth - (Spacing.screenHorizontal + Spacing.lg) * 2
+            val overviewLead = remember(overview, hideDecimalPlaces) {
+                TableAmount(overview.lead().second?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—", OverviewPillPadding * 2)
+            }
+            val tableAmounts = remember(visibleGroups, overview, showSpent, showGroupTotals, hideDecimalPlaces) {
+                tableColumnAmounts(visibleGroups, showSpent, showGroupTotals, hideDecimalPlaces) + listOfNotNull(
+                    TableAmount(formatMoneyCents(overview.budgetedCents, hideDecimalPlaces)),
+                    if (showSpent) TableAmount(formatMoneyCents(overview.spentCents, hideDecimalPlaces)) else null,
+                    TableAmount(formatMoneyCents(overview.availableCents, hideDecimalPlaces), OverviewPillPadding * 2),
+                )
+            }
+            val columnScale = if (budgetView == "Plan") 1f else tableAmountScale(tableWidth, overviewLead, tableAmounts, tableColumns)
+            val tableStacked = budgetView != "Plan" && columnScale == null
+            val stackedScale = if (tableStacked) {
+                tableAmountScale(tableWidth, null, tableAmounts, tableColumns, leadWeight = 0f, steps = StackedTableScaleSteps)
+                    ?: StackedTableScaleSteps.last()
+            } else 1f
+            CompositionLocalProvider(
+                LocalTableScale provides (columnScale ?: 1f),
+                LocalStackedTableScale provides stackedScale,
+                LocalTableStacked provides tableStacked,
+            ) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -613,6 +629,7 @@ fun BudgetScreen(
                     }
                 }
                 item { Spacer(Modifier.height(20.dp)) }
+            }
             }
         }
     } }
@@ -1595,16 +1612,10 @@ private fun BudgetOverviewRow(
                     positive = overview.availableCents > 0, negative = overview.availableCents < 0,
                     pill = true, pillOffset = 8.dp)
             }
-            BoxWithConstraints {
-                val fits = tableAmountsFit(
-                    maxWidth,
-                    lead = TableAmount(leadAmount, OverviewPillPadding * 2),
-                    amounts = listOfNotNull(
-                        TableAmount(budgeted),
-                        if (showSpent) TableAmount(spent) else null,
-                        TableAmount(balance, OverviewPillPadding * 2),
-                    ),
-                )
+            Box {
+                // Decided once for the whole table (see BudgetScreen), so the overview never shrinks its
+                // amounts on its own while the rows below are stacked, or the other way round.
+                val fits = !LocalTableStacked.current
                 if (fits) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         leadCell(Modifier.weight(LeadColumnWeight))
@@ -1646,36 +1657,44 @@ private fun OverviewCell(
     onClick: (() -> Unit)? = null,
 ) {
     val colors = MaterialTheme.colorScheme
+    // The To budget chip is a button, so Material gives it a 48dp minimum height. Every cell's value gets
+    // the same minimum height, so the labels and the amounts of all four cells line up on one row.
+    val valueMinHeight = if (LocalTableStacked.current) 28.dp else 48.dp
     Column(modifier = modifier, horizontalAlignment = alignment, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, maxLines = 1)
-        if (pill) {
-            val pillModifier = Modifier.offset(x = pillOffset)
-            // Same rule as a category's BalancePill: only a negative amount takes color. The To
-            // budget chip ([onClick]) keeps its fill without balance pills; it's a button.
-            val pillColor = when {
-                onClick == null && !LocalShowBalancePills.current -> Color.Transparent
-                negative -> colors.danger.copy(alpha = 0.16f)
-                positive -> colors.surfaceContainerHighest
-                else -> Color.Transparent
-            }
-            val textColor = when {
-                negative -> colors.danger
-                positive -> colors.onSurface
-                else -> colors.onSurfaceVariant.copy(alpha = 0.55f)
-            }
-            if (onClick != null) {
-                Surface(onClick = onClick, modifier = pillModifier, color = pillColor,
-                    shape = MaterialTheme.shapes.small) {
-                    OverviewPillAmount(amount, textColor)
+        Box(
+            Modifier.heightIn(min = valueMinHeight),
+            contentAlignment = if (alignment == Alignment.Start) Alignment.CenterStart else Alignment.CenterEnd,
+        ) {
+            if (pill) {
+                val pillModifier = Modifier.offset(x = pillOffset)
+                // Same rule as a category's BalancePill: only a negative amount takes color. The To
+                // budget chip ([onClick]) keeps its fill without balance pills; it's a button.
+                val pillColor = when {
+                    onClick == null && !LocalShowBalancePills.current -> Color.Transparent
+                    negative -> colors.danger.copy(alpha = 0.16f)
+                    positive -> colors.surfaceContainerHighest
+                    else -> Color.Transparent
+                }
+                val textColor = when {
+                    negative -> colors.danger
+                    positive -> colors.onSurface
+                    else -> colors.onSurfaceVariant.copy(alpha = 0.55f)
+                }
+                if (onClick != null) {
+                    Surface(onClick = onClick, modifier = pillModifier, color = pillColor,
+                        shape = MaterialTheme.shapes.small) {
+                        OverviewPillAmount(amount, textColor)
+                    }
+                } else {
+                    Surface(modifier = pillModifier, color = pillColor, shape = MaterialTheme.shapes.small) {
+                        OverviewPillAmount(amount, textColor)
+                    }
                 }
             } else {
-                Surface(modifier = pillModifier, color = pillColor, shape = MaterialTheme.shapes.small) {
-                    OverviewPillAmount(amount, textColor)
-                }
+                TableAmountText(amount, fontWeight = FontWeight.SemiBold, color = colors.onSurface,
+                    modifier = Modifier.padding(start = TableAmountGap))
             }
-        } else {
-            TableAmountText(amount, fontWeight = FontWeight.SemiBold, color = colors.onSurface,
-                modifier = Modifier.padding(start = TableAmountGap))
         }
     }
 }
@@ -1689,35 +1708,59 @@ private fun OverviewPillAmount(amount: String, color: Color) {
 }
 
 /**
- * The table view's leading (name / To budget) column weight; each amount column weighs 1. Names
- * ellipsize sooner so amounts keep one line on narrow screens and large fonts.
+ * The table view's leading (name / To budget) column weight; each amount column weighs 1. At 1 the name
+ * got a quarter of a phone's width and "Essentials" read "Essen…". A little more room, plus a slight
+ * shrink (see [TableName]), fits typical names while the amounts barely change.
  */
-private const val LeadColumnWeight = 1f
+private const val LeadColumnWeight = 1.25f
 
-/**
- * How far a table amount may shrink to stay on one line (further than Actuali's
- * `.minimumScaleFactor(0.75)`, so one line holds in more cases). Below this the table's columns
- * count as too narrow and the layout stacks instead.
- */
-private const val TableAmountMinScale = 0.6f
-
-/**
- * How far an amount may shrink once its row has already stacked (the last resort): on the smallest
- * phones at large font scales even a full-width third can't hold 7-digit amounts at
- * [TableAmountMinScale], and small digits beat clipped ones.
- */
-private const val TableAmountLastResortScale = 0.5f
-
-/** The smallest scale [TableAmountText] may shrink to here; see [StackedTableAmounts]. */
-private val LocalTableAmountMinScale = compositionLocalOf { TableAmountMinScale }
-
-/** Amounts in a stacked table layout, which may shrink to [TableAmountLastResortScale]. */
+/** A one-line table name at the table's shared scale (see [LocalTableScale]), ellipsized only if it still doesn't fit. */
 @Composable
-private fun StackedTableAmounts(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalTableAmountMinScale provides TableAmountLastResortScale, content = content)
+private fun TableName(
+    text: String,
+    style: androidx.compose.ui.text.TextStyle,
+    color: Color,
+    modifier: Modifier = Modifier,
+    fontWeight: FontWeight? = null,
+) {
+    val size = style.fontSize * LocalTableScale.current
+    Text(
+        text, style = style, fontWeight = fontWeight, color = color, modifier = modifier,
+        maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+        autoSize = TextAutoSize.StepBased(minFontSize = size * 0.85f, maxFontSize = size),
+    )
 }
 
-/** A table-view amount: one line, shrinking down to [TableAmountMinScale] of [style] to fit. */
+/**
+ * The font scales the table view can use, largest first. The whole table (overview, group headers,
+ * category rows, names and amounts) shares one scale, so it reads uniformly instead of each amount
+ * shrinking on its own. When even the smallest doesn't fit, the layout stacks instead.
+ */
+private val TableScaleSteps = listOf(1f, 0.95f, 0.9f, 0.85f, 0.8f, 0.75f, 0.7f)
+
+/**
+ * Scales for the stacked layout (the last resort): on the smallest phones at large font scales even
+ * a full-width third can't hold 7-digit amounts at [TableScaleSteps]' smallest, and small digits
+ * beat clipped ones.
+ */
+private val StackedTableScaleSteps = TableScaleSteps + listOf(0.65f, 0.6f, 0.55f, 0.5f)
+
+/** The one font scale for the table's amounts and names; see [TableScaleSteps]. */
+private val LocalTableScale = compositionLocalOf { 1f }
+
+/** The font scale for amounts once the table has stacked; see [StackedTableScaleSteps]. */
+private val LocalStackedTableScale = compositionLocalOf { 1f }
+
+/** Whether the table is too narrow for its columns, decided once for the overview, headers and rows. */
+private val LocalTableStacked = compositionLocalOf { false }
+
+/** Amounts in a stacked table layout, which use the (possibly smaller) stacked scale. */
+@Composable
+private fun StackedTableAmounts(content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalTableScale provides LocalStackedTableScale.current, content = content)
+}
+
+/** A table-view amount: one line at the table's shared scale of [style] (see [LocalTableScale]). */
 @Composable
 private fun TableAmountText(
     amount: String,
@@ -1727,7 +1770,7 @@ private fun TableAmountText(
     style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium,
     textAlign: TextAlign? = null,
 ) {
-    val minFontSize = style.fontSize * LocalTableAmountMinScale.current
+    val size = style.fontSize * LocalTableScale.current
     Text(
         amount,
         style = style,
@@ -1736,7 +1779,9 @@ private fun TableAmountText(
         textAlign = textAlign,
         maxLines = 1,
         softWrap = false,
-        autoSize = TextAutoSize.StepBased(minFontSize = minFontSize, maxFontSize = style.fontSize),
+        // The table's scale already fits this amount; stepping down is only a safety net against
+        // clipping if a font renders wider than it measured.
+        autoSize = TextAutoSize.StepBased(minFontSize = size * 0.85f, maxFontSize = size),
         modifier = modifier,
     )
 }
@@ -1751,34 +1796,38 @@ private data class TableAmount(val text: String, val padding: androidx.compose.u
 private val CategoryPillPadding = 10.dp
 
 /**
- * Whether [lead] and [amounts] fit the table's columns across [maxWidth] (a [LeadColumnWeight]
- * column, then [columns] amount columns, each of which must hold any one of [amounts]) at no less
- * than [TableAmountMinScale] of bodyMedium. Callers stack their layout when they don't, rather than
- * clipping digits.
+ * The largest of [steps] (a font scale) at which [lead] and [amounts] fit the table's columns across
+ * [maxWidth] (a [leadWeight] column, then [columns] amount columns, each of which must hold any one
+ * of [amounts]), or null when none does. Callers stack their layout on null, rather than clipping
+ * digits.
  */
 @Composable
-private fun tableAmountsFit(
+private fun tableAmountScale(
     maxWidth: androidx.compose.ui.unit.Dp,
     lead: TableAmount?,
     amounts: List<TableAmount>,
     columns: Int = amounts.size,
-): Boolean {
+    leadWeight: Float = LeadColumnWeight,
+    steps: List<Float> = TableScaleSteps,
+): Float? {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val base = MaterialTheme.typography.bodyMedium
-    val style = base.copy(fontSize = base.fontSize * TableAmountMinScale, fontWeight = FontWeight.Bold)
-    return remember(maxWidth, columns, lead?.text, lead?.padding, amounts, density, style) {
-        val unit = maxWidth / (LeadColumnWeight + columns)
-        fun TableAmount.fitsIn(width: androidx.compose.ui.unit.Dp): Boolean {
-            val textWidth = measurer.measure(text, style, maxLines = 1, softWrap = false, density = density).size.width
-            return with(density) { textWidth.toDp() } + padding <= width
-        }
+    return remember(maxWidth, columns, leadWeight, steps, lead?.text, lead?.padding, amounts, density, base) {
+        val unit = maxWidth / (leadWeight + columns)
         // A whole table has many amounts; only the longest of each padding can be the widest.
         val widest = amounts.groupBy { it.padding }.values.flatMap { same ->
             val longest = same.maxOf { it.text.length }
             same.filter { it.text.length >= longest - 1 }.distinctBy { it.text }
         }
-        (lead == null || lead.fitsIn(unit * LeadColumnWeight)) && widest.all { it.fitsIn(unit) }
+        steps.firstOrNull { scale ->
+            val style = base.copy(fontSize = base.fontSize * scale, fontWeight = FontWeight.Bold)
+            fun TableAmount.fitsIn(width: androidx.compose.ui.unit.Dp): Boolean {
+                val textWidth = measurer.measure(text, style, maxLines = 1, softWrap = false, density = density).size.width
+                return with(density) { textWidth.toDp() } + padding <= width
+            }
+            (lead == null || leadWeight <= 0f || lead.fitsIn(unit * leadWeight)) && widest.all { it.fitsIn(unit) }
+        }
     }
 }
 
@@ -1843,10 +1892,9 @@ private fun BudgetGroupHeader(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.width(24.dp).rotate(rotation),
                     )
-                    Text(if (group.hidden) "${group.name} · Hidden" else group.name,
+                    TableName(if (group.hidden) "${group.name} · Hidden" else group.name,
                         style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
-                        color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
                 }
             }
             if (showTotals && stacked) {
@@ -1938,10 +1986,9 @@ private fun CategoryRow(
             val name = @Composable { modifier: Modifier ->
                 Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
                     CategoryStatusDot(category.statusState(scheduleFunding), modifier = Modifier.padding(end = 6.dp))
-                    Text(if (category.hidden) "${category.name} · Hidden" else category.name,
+                    TableName(if (category.hidden) "${category.name} · Hidden" else category.name,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
                 }
             }
             val amounts = @Composable { cell: (Modifier) -> Modifier ->
