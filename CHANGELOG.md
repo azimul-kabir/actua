@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Donut reports gain slice gaps, one-tap slice drill-down, long-press focus and an "Other" slice for more than 12 categories ([#1132](https://github.com/azimul-kabir/actua/pull/1132))
 - Net Worth, Age of Money, Balance Forecast and Crossover use smooth line charts with value and month labels, a drag tooltip and View transactions on Net Worth months ([#1129](https://github.com/azimul-kabir/actua/pull/1129))
 - Tapping an Income/Expense or Cash Flow bar opens that month's transactions in the drill-down sheet ([#1128](https://github.com/azimul-kabir/actua/pull/1128))
 - Drill-down transaction sheet in Reports with search, sorting, full register viewing and tap-to-edit ([#1125](https://github.com/azimul-kabir/actua/pull/1125))
