@@ -126,6 +126,18 @@ data class ReportViewFilter(
     }
 }
 
+/**
+ * Viewer-side time range for a widget's full-screen view. It only changes what is computed for that
+ * view; it is never written back to the synced Actual widget settings.
+ */
+enum class ReportRange(val label: String, val preset: String, val months: Int? = null) {
+    THREE_MONTHS("3 months", "Last 3 months", 3),
+    SIX_MONTHS("6 months", "Last 6 months", 6),
+    TWELVE_MONTHS("12 months", "Last 12 months", 12),
+    YEAR_TO_DATE("Year to date", "Year to date"),
+    ALL_TIME("All time", "All time"),
+}
+
 data class ReportAccountOption(val id: String, val name: String)
 
 data class ReportSnapshot(

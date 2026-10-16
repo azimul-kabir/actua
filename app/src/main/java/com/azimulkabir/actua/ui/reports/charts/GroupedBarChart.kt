@@ -153,7 +153,7 @@ fun GroupedBarChart(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(chartHeight),
+                .height(chartHeight * LocalChartScale.current),
         ) {
             val density = LocalDensity.current
             val totalWidthPx = constraints.maxWidth.toFloat()

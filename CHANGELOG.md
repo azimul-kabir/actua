@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Report cards open a full-screen view with a larger chart, a view-only time range and a data table ([#1136](https://github.com/azimul-kabir/actua/pull/1136))
 - Budget Analysis shows budgeted, spent and overspending bars with a balance line, and Monte Carlo shows shaded outcome ranges around the median ([#1135](https://github.com/azimul-kabir/actua/pull/1135))
 - Sankey reports draw names and shares inside the bars, and tapping a node or flow opens its transactions ([#1134](https://github.com/azimul-kabir/actua/pull/1134))
 - Calendar report gains month swipe, per-day bars with today highlighted and a long-press category breakdown ([#1133](https://github.com/azimul-kabir/actua/pull/1133))

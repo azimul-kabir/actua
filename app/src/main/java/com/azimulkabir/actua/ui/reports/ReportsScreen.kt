@@ -21,6 +21,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.azimulkabir.actua.model.ReportAccountOption
@@ -84,6 +85,13 @@ import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.reports.charts.ChartCard
 import com.azimulkabir.actua.ui.reports.charts.ChartTrend
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.ui.semantics.heading
+import com.azimulkabir.actua.model.ReportRange
+import com.azimulkabir.actua.ui.reports.charts.LocalChartScale
 import com.azimulkabir.actua.ui.reports.charts.BudgetAnalysisChart
 import com.azimulkabir.actua.ui.reports.charts.LineChartBand
 import com.azimulkabir.actua.ui.reports.charts.SankeyChart
@@ -140,6 +148,7 @@ fun ReportsScreen(
     initialPageId: String? = null,
     initialPageRequest: Int = 0,
     hasFab: Boolean = true,
+    loadWidgetForRange: (suspend (String, ReportRange) -> ReportWidget?)? = null,
 ) {
     val listState = rememberLazyListState()
     var datePreset by rememberSaveable { mutableStateOf<String?>(null) }
@@ -187,9 +196,15 @@ fun ReportsScreen(
         if (scrollToTopRequest > 0) listState.animateScrollToItem(0)
     }
 
+    var expandedWidgetId by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedRange by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedTab by rememberSaveable { mutableStateOf(0) }
+    var expandedWidget by remember { mutableStateOf<ReportWidget?>(null) }
+    Box(modifier.fillMaxSize()) {
     LazyColumn(
         state = listState,
-        modifier = modifier.fillMaxSize(),
+        // While the full-screen view covers the dashboard, hide it from accessibility services.
+        modifier = if (expandedWidgetId != null) Modifier.fillMaxSize().clearAndSetSemantics {} else Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
             Spacing.screenHorizontal, Spacing.screenHorizontal, Spacing.screenHorizontal,
             if (hasFab) 96.dp else 0.dp,
@@ -248,10 +263,51 @@ fun ReportsScreen(
             val visible = shownWidgets.filterNot { it.kind == ReportWidgetKind.UNSUPPORTED }
             if (visible.isEmpty()) item { EmptyReports() }
             items(visible, key = { it.id }) { widget ->
+                if (widget.id == expandedWidgetId) expandedWidget = widget
                 WidgetCard(widget, hideDecimalPlaces, showReportSummary, onShowReportSummaryChange,
-                    onDrillDown = { updateDrill(it to widget.name) })
+                    onDrillDown = { updateDrill(it to widget.name) },
+                    onExpand = if (canExpand(widget.kind)) ({ expandedWidgetId = widget.id; expandedRange = null; expandedTab = 0 }) else null)
             }
         }
+    }
+    expandedWidgetId?.let { id ->
+        val base = expandedWidget?.takeIf { it.id == id }
+        if (base != null) {
+            val range = expandedRange?.let { name -> ReportRange.entries.firstOrNull { it.name == name } }
+            val onSavedPage = selected?.id == SAVED_PAGE_ID
+            var loading by remember { mutableStateOf(false) }
+            val ranged by produceState<ReportWidget?>(null, id, range) {
+                value = null
+                if (range != null) {
+                    loading = true
+                    value = try {
+                        if (onSavedPage) loadSavedReports(ReportViewFilter(datePreset = range.preset)).firstOrNull { it.id == id }
+                        else loadWidgetForRange?.invoke(id, range)
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        null
+                    }
+                    loading = false
+                }
+            }
+            FullScreenWidget(
+                widget = ranged ?: base,
+                hideDecimals = hideDecimalPlaces,
+                showSummary = showReportSummary,
+                onShowSummaryChange = onShowReportSummaryChange,
+                range = range,
+                onRangeChange = { expandedRange = it?.name },
+                rangeAvailable = isRangeable(base.kind) && (onSavedPage || loadWidgetForRange != null),
+                loading = loading,
+                tab = expandedTab,
+                onTabChange = { expandedTab = it },
+                onDrillDown = { updateDrill(it to base.name) },
+                onBack = { expandedWidgetId = null },
+                backEnabled = currentDrill == null,
+            )
+        }
+    }
     }
     if (currentDrill != null) {
         androidx.activity.compose.BackHandler {
@@ -700,6 +756,7 @@ private fun WidgetCard(
     showSummary: Boolean,
     onShowSummaryChange: (Boolean) -> Unit,
     onDrillDown: (ReportCategory) -> Unit,
+    onExpand: (() -> Unit)? = null,
 ) {
     val header = calculateWidgetHeader(widget, hideDecimals)
 
@@ -708,7 +765,21 @@ private fun WidgetCard(
         headlineValue = header.headlineValue,
         caption = header.caption,
         trend = header.trend,
+        onExpand = onExpand,
     ) {
+        WidgetBody(widget, hideDecimals, showSummary, onShowSummaryChange, onDrillDown)
+    }
+}
+
+@Composable
+private fun WidgetBody(
+    widget: ReportWidget,
+    hideDecimals: Boolean,
+    showSummary: Boolean,
+    onShowSummaryChange: (Boolean) -> Unit,
+    onDrillDown: (ReportCategory) -> Unit,
+) {
+    run {
         when (widget.kind) {
             ReportWidgetKind.SUMMARY -> ActuaHeroAmount(
                 amount = widget.percentage?.let { "${"%.2f".format(it)}%" }
@@ -1348,6 +1419,127 @@ private fun MonteCarlo(points: List<ReportPoint>, hideDecimals: Boolean) {
         "Median line · darker band 25–75% of outcomes · lighter band 10–90%",
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun FullScreenWidget(
+    widget: ReportWidget,
+    hideDecimals: Boolean,
+    showSummary: Boolean,
+    onShowSummaryChange: (Boolean) -> Unit,
+    range: ReportRange?,
+    onRangeChange: (ReportRange?) -> Unit,
+    rangeAvailable: Boolean,
+    loading: Boolean,
+    tab: Int,
+    onTabChange: (Int) -> Unit,
+    onDrillDown: (ReportCategory) -> Unit,
+    onBack: () -> Unit,
+    backEnabled: Boolean,
+) {
+    androidx.activity.compose.BackHandler(enabled = backEnabled, onBack = onBack)
+    val table = remember(widget, hideDecimals) { reportDataTable(widget) { formatMoneyCents(it, hideDecimals) } }
+    Surface(Modifier.fillMaxSize().testTag("fullScreenWidget"), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.fillMaxSize()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back to dashboard")
+                }
+                Text(
+                    widget.name, style = MaterialTheme.typography.titleLarge, maxLines = 1,
+                    modifier = Modifier.weight(1f).semantics { heading() },
+                )
+                if (loading) CircularProgressIndicator(Modifier.size(20.dp).padding(end = 4.dp), strokeWidth = 2.dp)
+            }
+            if (rangeAvailable) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = Spacing.screenHorizontal),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    androidx.compose.material3.FilterChip(
+                        selected = range == null, onClick = { onRangeChange(null) }, label = { Text("As saved") },
+                    )
+                    ReportRange.entries.forEach { option ->
+                        androidx.compose.material3.FilterChip(
+                            selected = range == option, onClick = { onRangeChange(option) }, label = { Text(option.label) },
+                        )
+                    }
+                }
+            }
+            androidx.compose.material3.TabRow(selectedTabIndex = tab) {
+                androidx.compose.material3.Tab(selected = tab == 0, onClick = { onTabChange(0) }, text = { Text("Chart") })
+                androidx.compose.material3.Tab(selected = tab == 1, onClick = { onTabChange(1) }, text = { Text("Data table") })
+            }
+            if (tab == 0) {
+                val header = calculateWidgetHeader(widget, hideDecimals)
+                Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenHorizontal),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    header.headlineValue?.let {
+                        Text(it, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    }
+                    header.caption?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    androidx.compose.runtime.CompositionLocalProvider(LocalChartScale provides 1.8f) {
+                        WidgetBody(widget, hideDecimals, showSummary, onShowSummaryChange, onDrillDown)
+                    }
+                }
+            } else {
+                DataTableTab(table, widget.name, onDrillDown)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DataTableTab(table: ReportDataTable?, name: String, onDrillDown: (ReportCategory) -> Unit) {
+    if (table == null || table.rows.isEmpty()) {
+        Text(
+            "No figures to tabulate for $name.", Modifier.padding(Spacing.screenHorizontal),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal)) {
+        item {
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                table.headers.forEachIndexed { i, header ->
+                    Text(
+                        header, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                        textAlign = if (i == 0) androidx.compose.ui.text.style.TextAlign.Start else androidx.compose.ui.text.style.TextAlign.End,
+                    )
+                }
+            }
+            androidx.compose.material3.HorizontalDivider()
+        }
+        items(table.rows.size) { index ->
+            val row = table.rows[index]
+            Column {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .then(
+                            if (row.canDrill) Modifier.clickable(onClickLabel = "View transactions") { onDrillDown(row.drill!!) } else Modifier,
+                        )
+                        .padding(vertical = 12.dp)
+                        .semantics(mergeDescendants = true) {},
+                ) {
+                    row.cells.forEachIndexed { i, cell ->
+                        Text(
+                            cell, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
+                            fontWeight = if (i == 0) FontWeight.Medium else FontWeight.Normal,
+                            textAlign = if (i == 0) androidx.compose.ui.text.style.TextAlign.Start else androidx.compose.ui.text.style.TextAlign.End,
+                        )
+                    }
+                }
+                androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        }
+    }
 }
 
 @Composable

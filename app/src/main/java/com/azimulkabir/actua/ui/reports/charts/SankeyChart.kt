@@ -137,7 +137,8 @@ fun SankeyChart(
 
         val textMeasurer = rememberTextMeasurer()
         val labelStyle = MaterialTheme.typography.labelSmall
-        BoxWithConstraints(Modifier.fillMaxWidth().height(240.dp)) {
+        val chartHeight = 240.dp * LocalChartScale.current
+        BoxWithConstraints(Modifier.fillMaxWidth().height(chartHeight)) {
             val density = LocalDensity.current
             val w = constraints.maxWidth.toFloat()
             val h = constraints.maxHeight.toFloat()
@@ -169,7 +170,7 @@ fun SankeyChart(
             val rightLabels = remember(rightNodes, labelWidth, income) { labels(rightNodes) }
 
             Canvas(
-                Modifier.fillMaxWidth().height(240.dp)
+                Modifier.fillMaxWidth().height(chartHeight)
                     .semantics {
                         contentDescription = "Sankey diagram from ${leftNodes.size} income sources to ${rightNodes.size} " +
                             "expense categories. Tap a node or flow to see its transactions; long press to focus it."

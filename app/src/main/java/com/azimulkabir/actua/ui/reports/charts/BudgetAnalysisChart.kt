@@ -143,7 +143,7 @@ fun BudgetAnalysisChart(
             }
         }
 
-        BoxWithConstraints(Modifier.fillMaxWidth().height(chartHeight)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().height(chartHeight * LocalChartScale.current)) {
             val density = LocalDensity.current
             val totalW = constraints.maxWidth.toFloat()
             val totalH = constraints.maxHeight.toFloat()
