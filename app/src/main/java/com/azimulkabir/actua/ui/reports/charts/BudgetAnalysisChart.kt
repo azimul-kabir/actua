@@ -34,9 +34,14 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
@@ -85,6 +90,7 @@ fun BudgetAnalysisChart(
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val labelStyle = MaterialTheme.typography.labelSmall
 
+    val reveal = rememberChartReveal(points)
     var selectedIndex by rememberSaveable(n) { mutableStateOf<Int?>(null) }
     val activeIndex = selectedIndex?.takeIf { it in 0 until n }
 
@@ -122,7 +128,7 @@ fun BudgetAnalysisChart(
             val p = points[i]
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small,
-                modifier = Modifier.fillMaxWidth().then(
+                modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }.then(
                     if (onDrillDown != null && drillable(p)) Modifier.clickable(onClickLabel = "View spending") { openSpending(i) } else Modifier,
                 ),
             ) {
@@ -157,6 +163,7 @@ fun BudgetAnalysisChart(
             val span = (axisMax - axisMin).coerceAtLeast(1L).toFloat()
             fun y(v: Long) = plotH - (v - axisMin) / span * plotH
             val zeroY = y(0)
+            val balanceStroke = remember(density) { Stroke(with(density) { 2.5.dp.toPx() }, cap = StrokeCap.Round) }
 
             val bars = remember(points, plotW, plotH, axisMin, axisMax, barW) {
                 buildList {
@@ -179,7 +186,17 @@ fun BudgetAnalysisChart(
             Box(Modifier.fillMaxSize()) {
                 Canvas(
                     Modifier.fillMaxSize()
-                        .semantics { contentDescription = "Budget analysis with $n months: budgeted, spent, overspending and balance. Tap a Spent bar to see that month's spending." }
+                        .semantics {
+                            contentDescription = "Budget analysis with $n months: budgeted, spent, overspending and balance. " +
+                                "Total budgeted ${formatMoneyCents(points.sumOf { it.primaryCents }, hideDecimals)}, " +
+                                "total spent ${formatMoneyCents(points.sumOf { it.secondaryCents }, hideDecimals)}, " +
+                                "latest balance ${formatMoneyCents(points.last().tertiaryCents, hideDecimals)}. " +
+                                "Tap a Spent bar to see that month's spending."
+                            customActions = listOf(
+                                CustomAccessibilityAction("Next period") { selectedIndex = stepPeriodIndex(selectedIndex, 1, n); true },
+                                CustomAccessibilityAction("Previous period") { selectedIndex = stepPeriodIndex(selectedIndex, -1, n); true },
+                            )
+                        }
                         .chartScrubber(
                             onScrub = { pos -> selectedIndex = (pos.x.coerceIn(0f, currentPlotW) / (currentPlotW / n)).toInt().coerceIn(0, n - 1) },
                             onTap = { pos ->
@@ -205,7 +222,7 @@ fun BudgetAnalysisChart(
                         bars.forEach { seg ->
                             val color = when (seg.segmentIndex) { BUDGETED -> budgetedColor; SPENT -> spentColor; else -> overColor }
                             val alpha = if (activeIndex == null || activeIndex == seg.groupIndex) 1f else 0.4f
-                            val h = seg.bottom - seg.top
+                            val h = (seg.bottom - seg.top) * reveal.value
                             if (h > 0.5f) {
                                 val up = seg.segmentIndex == BUDGETED
                                 val r = min(corner, h)
@@ -213,7 +230,7 @@ fun BudgetAnalysisChart(
                                     Path().apply {
                                         addRoundRect(
                                             RoundRect(
-                                                Rect(seg.left, seg.top, seg.right, seg.bottom),
+                                                if (up) Rect(seg.left, seg.bottom - h, seg.right, seg.bottom) else Rect(seg.left, seg.top, seg.right, seg.top + h),
                                                 topLeft = if (up) CornerRadius(r) else CornerRadius.Zero,
                                                 topRight = if (up) CornerRadius(r) else CornerRadius.Zero,
                                                 bottomLeft = if (up) CornerRadius.Zero else CornerRadius(r),
@@ -225,7 +242,9 @@ fun BudgetAnalysisChart(
                                 )
                             }
                         }
-                        drawPath(balancePath, balanceColor, style = Stroke(2.5.dp.toPx(), cap = StrokeCap.Round))
+                        clipRect(right = plotW * reveal.value + 8.dp.toPx(), top = -topInset, bottom = plotH + 8.dp.toPx()) {
+                            drawPath(balancePath, balanceColor, style = balanceStroke)
+                        }
                         points.forEachIndexed { i, p ->
                             val r = if (i == activeIndex) 4.5.dp.toPx() else 2.5.dp.toPx()
                             drawCircle(balanceColor, r, Offset(slot * i + slot / 2f, y(p.tertiaryCents)))

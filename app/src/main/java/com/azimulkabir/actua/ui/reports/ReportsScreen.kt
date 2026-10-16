@@ -536,8 +536,9 @@ private fun DrillDownSheet(
 
 @Composable
 private fun IncomeExpense(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
-    val income = MaterialTheme.colorScheme.primary
-    val expense = MaterialTheme.colorScheme.error
+    val palette = rememberChartPalette()
+    val income = palette.semantic.income
+    val expense = palette.semantic.expense
     val points = widget.points
     widget.subtitle?.let {
         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -568,6 +569,9 @@ private fun IncomeExpense(widget: ReportWidget, hideDecimals: Boolean, onDrillDo
         }
     }
 }
+
+/** Magnitude bars in lists and cards are tinted, not full strength; the figures next to them carry the colour. */
+private const val SoftBarAlpha = 0.45f
 
 private const val SAVED_PAGE_ID = "saved-reports"
 
@@ -796,8 +800,11 @@ private fun WidgetBody(
             ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
             ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
             ReportWidgetKind.CUSTOM_REPORT -> {
-                CustomReport(widget, hideDecimals, onDrillDown)
-                widget.summary?.let { CustomReportSummary(it, hideDecimals, showSummary, onShowSummaryChange) }
+                // The summary and its show/hide control (Actual's device-local `reportsViewSummary`
+                // setting) sit at the top, under the subtitle, where they are seen before a long legend.
+                CustomReport(widget, hideDecimals, onDrillDown, summary = {
+                    widget.summary?.let { CustomReportSummary(it, hideDecimals, showSummary, onShowSummaryChange) }
+                })
             }
             ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
             ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
@@ -843,7 +850,9 @@ private fun TrendChart(
         series = listOf(
             LineChartSeries(
                 label = "Value",
-                color = if (forecastFrom != null) palette.semantic.forecast else palette.semantic.balance,
+                // Green while the latest value is non-negative, red below zero: the same income/expense
+                // language as the bar charts. A forecast keeps its colour; its dashed part says it's projected.
+                color = if (points.last().primaryCents < 0) palette.semantic.expense else palette.semantic.income,
                 values = points.map { it.primaryCents },
                 fill = true,
                 forecastFromIndex = forecastFrom,
@@ -904,13 +913,13 @@ private fun Spending(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (
     if (delta != 0L) Text(
         (if (delta > 0) "↑ " else "↓ ") + "${formatMoneyCents(delta.absoluteValue, hideDecimals)} " +
             if (delta > 0) "more spent" else "less spent",
-        color = if (delta > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        color = if (delta > 0) rememberChartPalette().semantic.expense else rememberChartPalette().semantic.income,
         style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
     )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         val currentFraction = (current.toFloat() / maximum).coerceIn(0.02f, 0.98f)
         Spacer(Modifier.weight(currentFraction).height(9.dp)
-            .background(MaterialTheme.colorScheme.primary, PillShape))
+            .background(rememberChartPalette().semantic.expense.copy(alpha = SoftBarAlpha), PillShape))
         Spacer(Modifier.weight(1f - currentFraction).height(9.dp)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh, PillShape))
     }
@@ -931,7 +940,9 @@ private fun Formula(widget: ReportWidget, hideDecimals: Boolean) {
 
 @Composable
 private fun IntervalBars(points: List<ReportPoint>, hideDecimals: Boolean) {
-    val color = MaterialTheme.colorScheme.primary
+    val palette = rememberChartPalette()
+    val incomeColor = palette.semantic.income
+    val expenseColor = palette.semantic.expense
     var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
     val active = selected?.takeIf { it in points.indices }
     val maximum = points.maxOf { it.primaryCents.absoluteValue }.coerceAtLeast(1)
@@ -954,6 +965,7 @@ private fun IntervalBars(points: List<ReportPoint>, hideDecimals: Boolean) {
         val barWidth = (slot * 0.7f).coerceAtLeast(1f)
         points.forEachIndexed { i, p ->
             val h = p.primaryCents.absoluteValue.toFloat() / maximum * size.height
+            val color = if (p.primaryCents < 0) expenseColor else incomeColor
             drawRect(if (i == active) color else color.copy(alpha = 0.6f),
                 Offset(slot * i + (slot - barWidth) / 2, size.height - h),
                 androidx.compose.ui.geometry.Size(barWidth, h))
@@ -969,11 +981,9 @@ private fun IntervalBars(points: List<ReportPoint>, hideDecimals: Boolean) {
 
 @Composable
 private fun StackedIntervalBars(points: List<ReportPoint>, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
-    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    val palette = rememberChartPalette()
     val names = points.firstOrNull { it.segments.isNotEmpty() }?.segments?.map { it.name }.orEmpty()
-    val colorByName = names.withIndex().associate { (i, name) ->
-        name to androidx.compose.ui.graphics.Color.hsl(donutHues[i % donutHues.size], 0.55f, if (dark) 0.62f else 0.48f)
-    }
+    val colorByName = names.withIndex().associate { (i, name) -> name to palette.categorical[i % palette.categorical.size] }
     val fallbackColor = MaterialTheme.colorScheme.outlineVariant
     var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
     val active = selected?.takeIf { it in points.indices }
@@ -1044,8 +1054,6 @@ private fun StackedIntervalBars(points: List<ReportPoint>, hideDecimals: Boolean
     }
 }
 
-private val donutHues = floatArrayOf(210f, 20f, 140f, 280f, 50f, 350f, 175f, 320f, 100f, 240f)
-
 /**
  * Upstream's custom-report Summary panel (`ReportSummary.tsx`): the range total and its average
  * per interval, behind the same device-local show/hide preference as the PWA's summary toggle.
@@ -1071,21 +1079,38 @@ private fun CustomReportSummary(
             "Yearly" -> "Per year"
             else -> "Per month"
         }
-        Row(Modifier.fillMaxWidth().testTag("customReportSummary"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SummaryFigure(totalLabel, formatMoneyCents(summary.totalCents, hideDecimals), null, Modifier.weight(1f))
-            SummaryFigure(averageLabel, formatMoneyCents(summary.averageCents, hideDecimals), per, Modifier.weight(1f))
+        val palette = rememberChartPalette()
+        fun figureColor(cents: Long) = when (summary.kind) {
+            ReportSummaryKind.SPENDING -> palette.semantic.expense
+            ReportSummaryKind.DEPOSITS -> palette.semantic.income
+            ReportSummaryKind.BUDGETED -> androidx.compose.ui.graphics.Color.Unspecified
+            ReportSummaryKind.NET_PAYMENT, ReportSummaryKind.NET_DEPOSIT ->
+                if (cents < 0) palette.semantic.expense else palette.semantic.income
+        }
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.padding(12.dp).testTag("customReportSummary"),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                SummaryFigure(totalLabel, formatMoneyCents(summary.totalCents, hideDecimals), null, figureColor(summary.totalCents), Modifier.weight(1f))
+                SummaryFigure(averageLabel, formatMoneyCents(summary.averageCents, hideDecimals), per, figureColor(summary.averageCents), Modifier.weight(1f))
+            }
         }
     }
-    androidx.compose.material3.TextButton(onClick = { onVisibleChange(!visible) }) {
+    // A quiet control rather than the theme's accent colour, so it doesn't compete with the chart.
+    androidx.compose.material3.TextButton(
+        onClick = { onVisibleChange(!visible) },
+        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+    ) {
         Text(if (visible) "Hide summary" else "Show summary")
     }
 }
 
 @Composable
-private fun SummaryFigure(label: String, amount: String, caption: String?, modifier: Modifier) {
+private fun SummaryFigure(label: String, amount: String, caption: String?, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
     Column(modifier.semantics(mergeDescendants = true) {}) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = color)
         caption?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -1093,10 +1118,16 @@ private fun SummaryFigure(label: String, amount: String, caption: String?, modif
 }
 
 @Composable
-private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
+private fun CustomReport(
+    widget: ReportWidget,
+    hideDecimals: Boolean,
+    onDrillDown: (ReportCategory) -> Unit,
+    summary: @Composable () -> Unit = {},
+) {
     widget.subtitle?.let {
         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+    summary()
     val segments = widget.categories.filter { it.spentCents != 0L }
     if (segments.isEmpty() && widget.points.all { it.primaryCents == 0L }) {
         Text("No transactions match this report's filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1122,6 +1153,7 @@ private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
         return
     }
     val maximum = widget.categories.maxOf { it.spentCents.absoluteValue }.coerceAtLeast(1)
+    val palette = rememberChartPalette()
     widget.categories.take(10).forEach { category ->
         Column(Modifier.clickable(enabled = onDrillDown != null && (category.drillDownQuery != null || category.transactionIds.isNotEmpty()),
             onClickLabel = "View transactions") { onDrillDown?.invoke(category) }, verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -1130,7 +1162,7 @@ private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
                 Text(formatMoneyCents(category.spentCents, hideDecimals), fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.fillMaxWidth((category.spentCents.absoluteValue.toFloat() / maximum).coerceIn(0f, 1f))
-                .height(7.dp).background(MaterialTheme.colorScheme.primary, PillShape))
+                .height(7.dp).background((if (category.spentCents < 0) palette.semantic.expense else palette.semantic.income).copy(alpha = SoftBarAlpha), PillShape))
         }
     }
 }
