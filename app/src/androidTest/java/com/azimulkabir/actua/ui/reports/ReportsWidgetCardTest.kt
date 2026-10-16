@@ -81,7 +81,7 @@ class ReportsWidgetCardTest {
             id = "nw",
             kind = ReportWidgetKind.NET_WORTH,
             name = "Net Worth",
-            valueCents = 120_000_00L,
+            valueCents = 135_000_00L,
             points = listOf(ReportPoint("2026-01", 100_000_00L), ReportPoint("2026-02", 120_000_00L)),
         )
         val snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(ReportDashboardPage("p", "Main", listOf(widget))))
@@ -97,7 +97,7 @@ class ReportsWidgetCardTest {
             .assertIsDisplayed()
 
         // Headline value on card
-        compose.onNodeWithText(formatMoneyCents(120_000_00L, false)).assertIsDisplayed()
+        compose.onNodeWithText(formatMoneyCents(135_000_00L, false)).assertIsDisplayed()
     }
 
     @Test
@@ -152,9 +152,9 @@ class ReportsWidgetCardTest {
             id = "bf",
             kind = ReportWidgetKind.BALANCE_FORECAST,
             name = "Balance Forecast",
-            valueCents = 15_000_00L,
+            valueCents = 16_000_00L,
             comparisonCents = 4_500_00L,
-            points = listOf(ReportPoint("2026-01", 10_000_00L), ReportPoint("2026-02", 15_000_00L)),
+            points = listOf(ReportPoint("2026-01", 10_000_00L), ReportPoint("2026-02", 12_000_00L)),
         )
         val snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(ReportDashboardPage("p", "Main", listOf(widget))))
 
@@ -166,7 +166,7 @@ class ReportsWidgetCardTest {
 
         compose.onNode(hasText("Balance Forecast") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
             .assertIsDisplayed()
-        compose.onNodeWithText(formatMoneyCents(15_000_00L, false)).assertIsDisplayed()
+        compose.onNodeWithText(formatMoneyCents(16_000_00L, false)).assertIsDisplayed()
         compose.onNodeWithText("Low: ${formatMoneyCents(4_500_00L, false)}").assertIsDisplayed()
     }
 
