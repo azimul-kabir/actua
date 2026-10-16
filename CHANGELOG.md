@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Sankey reports draw names and shares inside the bars, and tapping a node or flow opens its transactions ([#1134](https://github.com/azimul-kabir/actua/pull/1134))
 - Calendar report gains month swipe, per-day bars with today highlighted and a long-press category breakdown ([#1133](https://github.com/azimul-kabir/actua/pull/1133))
 - Donut reports gain slice gaps, one-tap slice drill-down, long-press focus and an "Other" slice for more than 12 categories ([#1132](https://github.com/azimul-kabir/actua/pull/1132))
 - Net Worth, Age of Money, Balance Forecast and Crossover use smooth line charts with value and month labels, a drag tooltip and View transactions on Net Worth months ([#1129](https://github.com/azimul-kabir/actua/pull/1129))

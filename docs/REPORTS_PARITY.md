@@ -272,6 +272,8 @@ Upstream: [`S/sankey-spreadsheet.ts#L173-L838`][sankey], [`W/SankeyCard.tsx#L53-
 | Income broken down per income category | | same | Match |
 | `mode = budgeted` | budget cells | always spent | **Not ported** |
 | `topNcategories` "Other", `groupAccounts`, `layerFrom`/`layerTo`, `categorySort`, `showPercentages` | layout options | not read | **Not ported** |
+| Account column | optional `GraphLayers.Account` layer, only with `groupAccounts` (default off; [`GRAPH_LAYER_ORDER`][sankey-layers]) | not drawn; Actuali's account column is not copied because Actual only shows it when `groupAccounts` is on | **Not ported** (#1115) |
+| Drill-down | none | tap a node or ribbon opens its transactions via `DrillDownQuery`; long-press focuses a flow | Android addition |
 | Default range | last 6 months | same | Match (#948) |
 
 Tests: `SankeyTest`, `src/androidTest/.../ui/reports/ReportsChartInteractionTest.sankeyRendersACategoryPerNodeAndARemainingNodeForUnspentIncome`.
@@ -404,6 +406,7 @@ stays open.
 [budget-analysis-card]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/reports/BudgetAnalysisCard.tsx#L46-L76
 [sankey]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/spreadsheets/sankey-spreadsheet.ts#L173-L838
 [sankey-card]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/reports/SankeyCard.tsx#L53-L150
+[sankey-layers]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/spreadsheets/sankey-spreadsheet.ts#L138-L156
 [forecast]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/forecast/forecast-projection.ts
 [forecast-card]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/reports/BalanceForecastCard.tsx#L56-L100
 [monte-carlo]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/reports/monte-carlo/monteCarloSimulation.ts
