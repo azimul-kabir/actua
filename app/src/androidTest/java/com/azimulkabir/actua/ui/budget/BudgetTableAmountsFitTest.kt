@@ -1,7 +1,7 @@
 package com.azimulkabir.actua.ui.budget
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
@@ -40,9 +40,6 @@ class BudgetTableAmountsFitTest {
     @get:Rule
     val compose = createComposeRule()
 
-    /** The table's width; the narrowest common phone (and CI's default emulator) unless a test widens it. */
-    private var tableWidth = 320.dp
-
     private var previousCurrency = CurrencyDisplay.code
     private var previousNumberFormat = NumberDisplay.format
 
@@ -70,8 +67,8 @@ class BudgetTableAmountsFitTest {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 MaterialTheme {
-                    // requiredWidth, not width: a small device's screen would otherwise clamp a wider table to its own width.
-                    Box(Modifier.requiredWidth(tableWidth)) {
+                    // The narrowest common phone width (and CI's default emulator).
+                    Box(Modifier.width(320.dp)) {
                         BudgetScreen(
                             groups = groups.value,
                             overview = overview.value,
@@ -202,126 +199,5 @@ class BudgetTableAmountsFitTest {
         setTable(listOf(essentials), overview, fontScale)
         listOf(10_000_000L, -30_700L, 9_969_300L, 10_110_000L, 10_235_000L, 11_311_574L)
             .forEach { assertShownInFull(formatMoneyCents(it, false)) }
-    }
-
-    // #1140: group and category names are not cut to a few letters ("Essen…") on a 360dp phone.
-
-    private val essentials = BudgetGroup(
-        name = "Essentials",
-        categories = listOf(
-            BudgetCategory(name = "Rent", assigned = 1_100, spent = 1_100),
-            BudgetCategory(name = "Groceries", assigned = 550, spent = 307),
-            BudgetCategory(name = "Transport", assigned = 160, spent = 86),
-            BudgetCategory(name = "Entertainment", assigned = 110, spent = 33),
-        ),
-    )
-
-    private fun assertNameShownInFull(name: String) {
-        val nodes = compose.onAllNodesWithText(name, useUnmergedTree = true).fetchSemanticsNodes()
-        assertTrue("$name is not shown", nodes.isNotEmpty())
-        nodes.forEach { node ->
-            val layouts = mutableListOf<TextLayoutResult>()
-            node.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(layouts)
-            layouts.forEach {
-                assertFalse("$name is cut off", it.hasVisualOverflow)
-                assertEquals("$name wraps onto a second line", 1, it.lineCount)
-            }
-        }
-    }
-
-    @Test fun namesAreShownInFullOnA360dpPhone() {
-        tableWidth = 360.dp
-        setTable(listOf(essentials), demoOverview, fontScale = 1f)
-        listOf("Essentials", "Rent", "Groceries", "Transport", "Entertainment").forEach(::assertNameShownInFull)
-    }
-
-    @Test fun namesAreShownInFullOnAWidePhone() {
-        tableWidth = 411.dp
-        setTable(listOf(essentials), demoOverview, fontScale = 1f)
-        listOf("Essentials", "Groceries", "Transport", "Entertainment").forEach(::assertNameShownInFull)
-    }
-
-    @Test fun amountsStillFitOnA360dpPhone() {
-        tableWidth = 360.dp
-        setTable(listOf(essentials), demoOverview, fontScale = 1f)
-        listOf(290_000L, -165_456L, 1_366_500L, 110_000L, -110_000L).forEach { assertShownInFull(formatMoneyCents(it, false)) }
-    }
-
-    // Bangladeshi taka: 5-6 figure amounts with lakh grouping are everyday values (#1140).
-
-    private val taka = BudgetGroup(
-        name = "Essentials",
-        categories = listOf(
-            BudgetCategory(name = "House Rent", assigned = 25_000, spent = 25_000),
-            BudgetCategory(name = "Groceries", assigned = 18_500, spent = 12_307),
-            BudgetCategory(name = "Transport", assigned = 125_000, spent = 8_576),
-            BudgetCategory(name = "Emergency Fund", assigned = 150_000, spent = 0),
-        ),
-    )
-
-    private val takaOverview = BudgetOverview(
-        toBudgetCents = 15_000_000L,
-        budgetedCents = 48_500_000L,
-        spentCents = -31_245_000L,
-        availableCents = 84_020_000L,
-    )
-
-    private fun useTaka() {
-        CurrencyDisplay.code = "BDT"
-        NumberDisplay.format = "1,23,456.78"
-    }
-
-    private fun assertTakaTableIsShownInFull(widthDp: Int) {
-        tableWidth = widthDp.dp
-        useTaka()
-        setTable(listOf(taka), takaOverview, fontScale = 1f)
-        listOf("Essentials", "House Rent", "Groceries", "Transport", "Emergency Fund").forEach(::assertNameShownInFull)
-        listOf(48_500_000L, -31_245_000L, 84_020_000L, 15_000_000L, 2_500_000L, 12_500_000L, 15_000_000L)
-            .forEach { assertShownInFull(formatMoneyCents(it, false)) }
-    }
-
-    @Test fun sixFigureTakaAmountsAndNamesAreShownInFullOn360dp() = assertTakaTableIsShownInFull(360)
-
-    @Test fun sixFigureTakaAmountsAndNamesAreShownInFullOn411dp() = assertTakaTableIsShownInFull(411)
-
-    @Test fun sixFigureTakaAmountsAndNamesAreShownInFullOn320dp() = assertTakaTableIsShownInFull(320)
-
-    /** The font size a node's text was laid out at. */
-    private fun fontSizeOf(text: String): Float {
-        val node = compose.onAllNodesWithText(text, useUnmergedTree = true).fetchSemanticsNodes().first()
-        val layouts = mutableListOf<TextLayoutResult>()
-        node.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(layouts)
-        return layouts.first().layoutInput.style.fontSize.value
-    }
-
-    @Test fun overviewAndGroupTotalsUseOneFontSize() {
-        tableWidth = 360.dp
-        useTaka()
-        setTable(listOf(taka), takaOverview, fontScale = 1f)
-        // The overview's Budgeted total and the group header's Budgeted total are the same style,
-        // so a single table scale gives them the same size (they used to shrink independently).
-        val groupBudgeted = taka.categories.sumOf { it.assignedCents }
-        assertEquals(
-            fontSizeOf(formatMoneyCents(takaOverview.budgetedCents, false)),
-            fontSizeOf(formatMoneyCents(groupBudgeted, false)),
-            0.01f,
-        )
-    }
-
-    /** The top edge of the overview card's [label]: the highest node with that text on the screen. */
-    private fun overviewLabelTop(label: String): Float =
-        compose.onAllNodesWithText(label, useUnmergedTree = true).fetchSemanticsNodes().minOf { it.boundsInRoot.top }
-
-    /**
-     * In the columns layout (always the case at this width) To budget, Budgeted, Spent and Balance
-     * share one row. When a narrow table stacks, To budget deliberately gets its own line, so the
-     * property is tested where the layout can't depend on a device's exact text widths.
-     */
-    @Test fun overviewLabelsShareOneLineInTheColumnsLayout() {
-        tableWidth = 600.dp
-        setTable(listOf(essentials), demoOverview, fontScale = 1f)
-        // To budget is a button (48dp minimum height); it used to push its label above the others.
-        val tops = listOf("To budget", "Budgeted", "Spent", "Balance").map(::overviewLabelTop)
-        tops.forEach { assertEquals("labels are on different lines: $tops", tops.first(), it, 1f) }
     }
 }
