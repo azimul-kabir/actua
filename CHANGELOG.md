@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Rules can now split a transaction across categories with fixed, percent or remainder amounts ([#1122](https://github.com/azimul-kabir/actua/pull/1122))
+
 ## [1.8.1] - 2026-10-15
 
 ### Added
