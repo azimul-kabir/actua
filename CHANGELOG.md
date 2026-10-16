@@ -8,6 +8,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Rules can now split a transaction across categories with fixed, percent or remainder amounts ([#1122](https://github.com/azimul-kabir/actua/pull/1122))
 
+### Fixed
+
+- Tapping a day in the Calendar report opens its transactions directly instead of only selecting it ([#1123](https://github.com/azimul-kabir/actua/pull/1123))
+
 ## [1.8.1] - 2026-10-15
 
 ### Added

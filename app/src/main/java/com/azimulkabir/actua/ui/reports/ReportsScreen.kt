@@ -227,8 +227,12 @@ private fun DrillDownSheet(
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
             Text(segment.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("$reportName · ${segment.transactionIds.size} transactions · " +
-                formatMoneyCents(segment.spentCents, hideDecimals),
+            val breakdown = if (segment.incomeCents != null && segment.expenseCents != null) {
+                "In ${formatMoneyCents(segment.incomeCents, hideDecimals)} · Out ${formatMoneyCents(segment.expenseCents, hideDecimals)} (${formatMoneyCents(segment.spentCents, hideDecimals)} net)"
+            } else {
+                formatMoneyCents(segment.spentCents, hideDecimals)
+            }
+            Text("$reportName · ${segment.transactionIds.size} transactions · $breakdown",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (segment.transactionIds.size > limit) Text("Showing the first $limit.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -608,7 +612,8 @@ private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean, onDrillDo
         val point = points[it]
         Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small,
             modifier = Modifier.clickable(enabled = point.transactionIds.isNotEmpty(), onClickLabel = "View transactions") {
-                onDrillDown(ReportCategory(point.period.take(7), point.primaryCents - point.secondaryCents, point.transactionIds))
+                onDrillDown(ReportCategory(point.period.take(7), point.primaryCents - point.secondaryCents, point.transactionIds,
+                    incomeCents = point.primaryCents, expenseCents = point.secondaryCents))
             }) {
             Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                 Text(point.period.take(7), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
@@ -1035,15 +1040,17 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
         Spacer(Modifier.width(12.dp))
         Text("▼ ${formatMoneyCents(monthExpense, hideDecimals)}", color = MaterialTheme.colorScheme.error)
     }
+    val monthName = remember(month) { month.month.name.lowercase().replaceFirstChar(Char::uppercase) }
     selectedDay?.let { day ->
         val point = values[day]
-        val dayLabel = "${month.month.name.lowercase().replaceFirstChar(Char::uppercase)} $day"
+        val dayLabel = "$monthName $day"
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small,
             modifier = Modifier.clickable(
                 enabled = point?.transactionIds?.isNotEmpty() == true,
-                onClickLabel = "View transactions",
-            ) { point?.let { onDrillDown(ReportCategory(dayLabel, it.primaryCents - it.secondaryCents, it.transactionIds)) } },
+                onClickLabel = "see transactions",
+            ) { point?.let { onDrillDown(ReportCategory(dayLabel, it.primaryCents - it.secondaryCents, it.transactionIds,
+                incomeCents = it.primaryCents, expenseCents = it.secondaryCents)) } },
         ) {
             Text(
                 "$dayLabel · In ${formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)} · Out ${formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)}",
@@ -1066,6 +1073,33 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             (week + List(7 - week.size) { null }).forEach { day ->
                 val point = day?.let(values::get)
+                val hasTransactions = point?.transactionIds?.isNotEmpty() == true
+                val inFormatted = formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)
+                val outFormatted = formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)
+                val dayContentDescription = if (day != null) "$monthName $day, in $inFormatted, out $outFormatted" else null
+                val clickModifier = if (day != null) {
+                    val dayLabel = "$monthName $day"
+                    Modifier.clickable(
+                        onClickLabel = if (hasTransactions) "see transactions" else null,
+                    ) {
+                        if (point != null && point.transactionIds.isNotEmpty()) {
+                            selectedDay = day
+                            onDrillDown(ReportCategory(dayLabel, point.primaryCents - point.secondaryCents, point.transactionIds,
+                                incomeCents = point.primaryCents, expenseCents = point.secondaryCents))
+                        } else {
+                            selectedDay = day.takeIf { it != selectedDay }
+                        }
+                    }
+                } else {
+                    Modifier
+                }
+                val semanticsModifier = if (dayContentDescription != null) {
+                    Modifier.semantics {
+                        contentDescription = dayContentDescription
+                    }
+                } else {
+                    Modifier
+                }
                 Column(
                     Modifier.weight(1f).height(38.dp)
                         .background(
@@ -1073,7 +1107,8 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
                             else MaterialTheme.colorScheme.surfaceContainerHigh,
                             MaterialTheme.shapes.small,
                         )
-                        .then(if (day != null) Modifier.clickable { selectedDay = day.takeIf { it != selectedDay } } else Modifier)
+                        .then(clickModifier)
+                        .then(semanticsModifier)
                         .padding(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
