@@ -57,7 +57,6 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
@@ -176,6 +175,7 @@ import com.azimulkabir.actua.data.notifications.CreditCardNotificationSettings
 import com.azimulkabir.actua.data.notifications.ScheduleReminderLaunch
 import com.azimulkabir.actua.data.notifications.ScheduleReminderScheduler
 import com.azimulkabir.actua.data.notifications.ScheduleReminderSettings
+import com.azimulkabir.actua.ui.components.ActuaSnackbarHost
 import com.azimulkabir.actua.ui.components.BalanceVisibility
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -1395,7 +1395,7 @@ fun AppNavigation(
     Box(modifier = modifier.fillMaxSize()) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { ActuaSnackbarHost(snackbarHostState) },
         topBar = {
             if (sessionExpired && repository.isUsingActualBudget && !DemoBudgetManager.isDemoBudget(favoriteBudgetId) &&
                 detail != DetailDestination.Connection
