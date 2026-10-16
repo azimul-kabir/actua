@@ -768,7 +768,7 @@ private fun TrendChart(
             ),
         ),
         formatValue = { if (isMoney) formatMoneyCents(it, hideDecimals) else "$it days" },
-        formatAxis = { if (isMoney) formatCompactMoney(it, hideDecimals) else "$it d" },
+        formatAxis = { if (isMoney) formatCompactMoney(it, hideDecimals = true) else "$it d" },
         contentDescription = description,
         lowValue = lowValue,
         canDrill = { drillable(points[it]) },
@@ -1258,7 +1258,7 @@ private fun Crossover(widget: ReportWidget, hideDecimals: Boolean) {
             LineChartSeries("Monthly expenses", palette.semantic.expense, expenses),
         ),
         formatValue = { formatMoneyCents(it, hideDecimals) },
-        formatAxis = { formatCompactMoney(it, hideDecimals) },
+        formatAxis = { formatCompactMoney(it, hideDecimals = true) },
         contentDescription = "Crossover chart with ${points.size} points" +
             (crossing?.let { ", lines meet around ${points[it.roundToInt().coerceIn(0, points.lastIndex)].period.take(7)}" } ?: ""),
         crossoverPosition = crossing,
