@@ -1280,6 +1280,68 @@ class ActuaRepository(context: Context) {
         )
     }
 
+    /** Computes the dashboard widgets; with [range] only [widgetFilter] widgets, over the viewer's range. */
+    private fun computeDashboards(
+        db: ActualBudgetDatabase,
+        inputs: ReportInputs,
+        dashboardPages: List<com.azimulkabir.actua.data.reports.DashboardPageRow>,
+        savedReportRows: List<com.azimulkabir.actua.data.reports.SavedReportRow>,
+        payees: List<com.azimulkabir.actua.data.budget.model.ActualPayee>,
+        firstDayOfWeek: Int,
+        reportBudgets: MutableMap<java.time.YearMonth, Map<String, Long>>,
+        reportBudgetMonths: MutableMap<java.time.YearMonth, com.azimulkabir.actua.data.budget.model.ActualBudgetMonth?>,
+        widgetFilter: (com.azimulkabir.actua.data.reports.DashboardWidgetRow) -> Boolean = { true },
+        range: com.azimulkabir.actua.model.ReportRange? = null,
+    ): List<com.azimulkabir.actua.model.ReportDashboardPage> {
+        val accounts = inputs.accounts
+        val groups = inputs.groups
+        val allRows = inputs.rows
+        return com.azimulkabir.actua.data.reports.CoreReportEngine.dashboards(
+            dashboardPages,
+            widgets = db::fetchDashboardWidgets,
+            transactions = allRows,
+            accounts = accounts,
+            groups = groups,
+            savedReports = savedReportRows,
+            schedules = db.fetchScheduleSummaries(),
+            transferAccountByPayee = payees
+                .mapNotNull { payee -> payee.transferAccountId?.let { payee.id to it } }.toMap(),
+            payees = payees,
+            firstDayOfWeek = firstDayOfWeek,
+            budgetedByCategory = { month ->
+                reportBudgets.getOrPut(month) {
+                    reportBudgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() }
+                        ?.let { it.categories + it.hiddenCategories }
+                        ?.associate { it.categoryId to it.budgetedCents }
+                        .orEmpty()
+                }
+            },
+            budgetMonth = { month ->
+                reportBudgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() }
+            },
+            widgetFilter = widgetFilter,
+            range = range,
+        )
+    }
+
+    /**
+     * One dashboard widget recomputed over a viewer-chosen [range], for the full-screen view.
+     * Nothing is written: the widget's synced time frame is untouched.
+     */
+    fun reportWidgetForRange(
+        widgetId: String,
+        range: com.azimulkabir.actua.model.ReportRange,
+        dataVersion: Int = -1,
+    ): com.azimulkabir.actua.model.ReportWidget? {
+        val db = actualDatabase ?: return null
+        val inputs = if (dataVersion < 0) ReportInputs(-1, db, db.fetchAccounts(), db.fetchCategoryGroups(),
+            db.fetchTransactionsForReports()) else reportInputs(db, dataVersion)
+        return computeDashboards(
+            db, inputs, db.fetchDashboardPages(), db.fetchSavedReports(), db.fetchPayees(), db.firstDayOfWeekPreference(),
+            mutableMapOf(), mutableMapOf(), widgetFilter = { it.id == widgetId }, range = range,
+        ).asSequence().flatMap { it.widgets.asSequence() }.firstOrNull { it.id == widgetId }
+    }
+
     fun reports(dataVersion: Int = -1): ReportSnapshot {
         val db = actualDatabase ?: return ReportSnapshot(emptyList(), emptyList(), 0)
         val inputs = if (dataVersion < 0) ReportInputs(-1, db, db.fetchAccounts(), db.fetchCategoryGroups(),
@@ -1312,30 +1374,8 @@ class ActuaRepository(context: Context) {
         val savedReportRows = db.fetchSavedReports()
         val payees = db.fetchPayees()
         val firstDayOfWeek = db.firstDayOfWeekPreference()
-        val dashboards = com.azimulkabir.actua.data.reports.CoreReportEngine.dashboards(
-            dashboardPages,
-            widgets = db::fetchDashboardWidgets,
-            transactions = allRows,
-            accounts = accounts,
-            groups = groups,
-            savedReports = savedReportRows,
-            schedules = db.fetchScheduleSummaries(),
-            transferAccountByPayee = payees
-                .mapNotNull { payee -> payee.transferAccountId?.let { payee.id to it } }.toMap(),
-            payees = payees,
-            firstDayOfWeek = firstDayOfWeek,
-            budgetedByCategory = { month ->
-                reportBudgets.getOrPut(month) {
-                    reportBudgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() }
-                        ?.let { it.categories + it.hiddenCategories }
-                        ?.associate { it.categoryId to it.budgetedCents }
-                        .orEmpty()
-                }
-            },
-            budgetMonth = { month ->
-                reportBudgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() }
-            },
-        )
+        val dashboards = computeDashboards(db, inputs, dashboardPages, savedReportRows, payees, firstDayOfWeek,
+            reportBudgets, reportBudgetMonths)
         val savedWidgets = com.azimulkabir.actua.data.reports.SavedReportEngine.computeAll(
             savedReportRows, allRows, accounts, groups,
             budgetMonth = { month ->

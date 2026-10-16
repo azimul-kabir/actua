@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,7 +36,12 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
@@ -82,6 +88,7 @@ fun GroupedBarChart(
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
 
+    val reveal = rememberChartReveal(points)
     var showIncome by rememberSaveable { mutableStateOf(true) }
     var showExpense by rememberSaveable { mutableStateOf(true) }
     var selectedIndex by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
@@ -104,7 +111,7 @@ fun GroupedBarChart(
     val axisMeasurements = rememberChartValueAxis(
         gridlines = gridlines,
         textMeasurer = textMeasurer,
-        formatLabel = { formatCompactMoney(it, hideDecimals) },
+        formatLabel = { formatCompactMoney(it, hideDecimals = true) },
     )
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -117,6 +124,7 @@ fun GroupedBarChart(
                 shape = MaterialTheme.shapes.small,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
                     .clickable(
                         enabled = point.drillDownQuery != null || point.transactionIds.isNotEmpty(),
                         onClickLabel = "View transactions",
@@ -153,7 +161,7 @@ fun GroupedBarChart(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(chartHeight),
+                .height(chartHeight * LocalChartScale.current),
         ) {
             val density = LocalDensity.current
             val totalWidthPx = constraints.maxWidth.toFloat()
@@ -204,6 +212,12 @@ fun GroupedBarChart(
                         .fillMaxSize()
                         .semantics {
                             contentDescription = effectiveContentDesc
+                            stateDescription = "Total $primaryLabel ${formatMoneyCents(points.sumOf { it.primaryCents }, hideDecimals)}, " +
+                                "total $secondaryLabel ${formatMoneyCents(points.sumOf { it.secondaryCents }, hideDecimals)}."
+                            customActions = listOf(
+                                CustomAccessibilityAction("Next period") { selectedIndex = stepPeriodIndex(selectedIndex, 1, points.size); true },
+                                CustomAccessibilityAction("Previous period") { selectedIndex = stepPeriodIndex(selectedIndex, -1, points.size); true },
+                            )
                             onClick(label = "Select period") {
                                 selectedIndex = if (points.size == 1) 0 else (selectedIndex?.plus(1) ?: 0).coerceIn(0, points.size - 1)
                                 true
@@ -278,13 +292,14 @@ fun GroupedBarChart(
                         val isIncome = seg.segmentIndex == 0
                         val color = if (isIncome) incomeColor else expenseColor
                         val alpha = if (activeIndex == null || activeIndex == seg.groupIndex) 1f else 0.4f
-                        val h = seg.bottom - seg.top
+                        // Bars grow up from the baseline; the progress is read here so frames only redraw.
+                        val h = (seg.bottom - seg.top) * reveal.value
                         if (h > 0f) {
                             val r = min(cornerRadiusPx, h)
                             val path = Path().apply {
                                 addRoundRect(
                                     RoundRect(
-                                        rect = Rect(seg.left, seg.top, seg.right, seg.bottom),
+                                        rect = Rect(seg.left, seg.bottom - h, seg.right, seg.bottom),
                                         topLeft = CornerRadius(r, r),
                                         topRight = CornerRadius(r, r),
                                         bottomLeft = CornerRadius.Zero,
@@ -400,7 +415,9 @@ fun GroupedBarChart(
             }
             val labelWidthPx = sampleLayout.size.width.toFloat()
             val visibleIndices = remember(monthLabels, chartAreaWidthPx, labelWidthPx) {
-                thinMonthLabels(monthLabels, chartAreaWidthPx, labelWidthPx, minSpacingPx = with(density) { 8.dp.toPx() })
+                // Labels are centred on their slots and the first and last sit against the edges, so leave
+                // two label widths spare; this keeps neighbours from touching.
+                thinMonthLabels(monthLabels, chartAreaWidthPx - 2 * labelWidthPx, labelWidthPx, minSpacingPx = with(density) { 12.dp.toPx() })
             }
 
             Box(modifier = Modifier.width(chartAreaWidthDp)) {
@@ -414,12 +431,18 @@ fun GroupedBarChart(
                                 .padding(start = slotWidthDp * idx),
                             contentAlignment = Alignment.Center,
                         ) {
+                            // Centred on the slot at its natural width, so a large font never clips it to the slot.
                             Text(
                                 text = monthLabels[idx],
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
+                                softWrap = false,
                                 textAlign = TextAlign.Center,
+                                modifier = Modifier.wrapContentWidth(
+                                    when (idx) { 0 -> Alignment.Start; n - 1 -> Alignment.End; else -> Alignment.CenterHorizontally },
+                                    unbounded = true,
+                                ),
                             )
                         }
                     }

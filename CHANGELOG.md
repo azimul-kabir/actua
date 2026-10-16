@@ -6,6 +6,9 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Report cards open a full-screen view with a larger chart, a view-only time range and a data table ([#1136](https://github.com/azimul-kabir/actua/pull/1136))
+- Budget Analysis shows budgeted, spent and overspending bars with a balance line, and Monte Carlo shows shaded outcome ranges around the median ([#1135](https://github.com/azimul-kabir/actua/pull/1135))
+- Sankey reports draw names and shares inside the bars, and tapping a node or flow opens its transactions ([#1134](https://github.com/azimul-kabir/actua/pull/1134))
 - Calendar report gains month swipe, per-day bars with today highlighted and a long-press category breakdown ([#1133](https://github.com/azimul-kabir/actua/pull/1133))
 - Donut reports gain slice gaps, one-tap slice drill-down, long-press focus and an "Other" slice for more than 12 categories ([#1132](https://github.com/azimul-kabir/actua/pull/1132))
 - Net Worth, Age of Money, Balance Forecast and Crossover use smooth line charts with value and month labels, a drag tooltip and View transactions on Net Worth months ([#1129](https://github.com/azimul-kabir/actua/pull/1129))
@@ -15,6 +18,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Reports animate in (unless system animations are off), use one green/red colour language across cards, and read better with TalkBack and at large font sizes ([#1137](https://github.com/azimul-kabir/actua/pull/1137))
 - Reports dashboard widgets move their title and headline metrics into unified card headers ([#1126](https://github.com/azimul-kabir/actua/pull/1126))
 
 ### Fixed
