@@ -85,6 +85,7 @@ import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.reports.charts.ChartCard
 import com.azimulkabir.actua.ui.reports.charts.ChartTrend
 import com.azimulkabir.actua.ui.reports.charts.ChartTrendDirection
+import com.azimulkabir.actua.ui.reports.charts.GroupedBarChart
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
@@ -466,52 +467,23 @@ private fun IncomeExpense(widget: ReportWidget, hideDecimals: Boolean, onDrillDo
     val income = MaterialTheme.colorScheme.primary
     val expense = MaterialTheme.colorScheme.error
     val points = widget.points
-    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
-    val active = selected?.takeIf { it in points.indices }
     widget.subtitle?.let {
         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     Text("Net ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-    if (points.isEmpty() || widget.categories.all { it.spentCents == 0L }) {
+    if (points.isEmpty() || (points.all { it.primaryCents == 0L && it.secondaryCents == 0L } && (widget.categories.isEmpty() || widget.categories.all { it.spentCents == 0L }))) {
         Text("No income or expenses in this period.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
-    Text(
-        active?.let {
-            val p = points[it]
-            "${p.period} · In ${formatMoneyCents(p.primaryCents, hideDecimals)} · Out ${formatMoneyCents(p.secondaryCents, hideDecimals)} · Net ${formatMoneyCents(p.primaryCents - p.secondaryCents, hideDecimals)}"
-        } ?: "Tap a month for details",
-        style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    GroupedBarChart(
+        points = widget.points,
+        hideDecimals = hideDecimals,
+        onDrillDown = onDrillDown,
+        primaryLabel = "Income",
+        secondaryLabel = "Expense",
+        chartContentDescription = "Income and expenses by month, ${points.size} months. Tap a month for details.",
     )
-    val maximum = points.maxOf { max(it.primaryCents.absoluteValue, it.secondaryCents.absoluteValue) }.coerceAtLeast(1)
-    Canvas(
-        Modifier.fillMaxWidth().height(140.dp)
-            .semantics { contentDescription = "Income and expenses by month, ${points.size} months. Tap a month for details." }
-            .pointerInput(points) {
-                detectTapGestures { tap ->
-                    val i = (tap.x / size.width * points.size).toInt().coerceIn(0, points.size - 1)
-                    selected = i.takeIf { it != selected }
-                }
-            },
-    ) {
-        val slot = size.width / points.size
-        val bar = (slot * 0.36f).coerceAtLeast(1f)
-        points.forEachIndexed { i, p ->
-            val alpha = if (active == null || active == i) 1f else 0.45f
-            val inH = p.primaryCents.absoluteValue.toFloat() / maximum * size.height
-            val outH = p.secondaryCents.absoluteValue.toFloat() / maximum * size.height
-            val x = slot * i + slot * 0.1f
-            drawRect(income.copy(alpha = alpha), Offset(x, size.height - inH), androidx.compose.ui.geometry.Size(bar, inH))
-            drawRect(expense.copy(alpha = alpha), Offset(x + bar + 1f, size.height - outH), androidx.compose.ui.geometry.Size(bar, outH))
-        }
-    }
-    Row(Modifier.fillMaxWidth()) {
-        Text(points.first().period, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(points.last().period, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
     widget.categories.forEach { category ->
         Row(Modifier.fillMaxWidth().clickable(enabled = category.drillDownQuery != null || category.transactionIds.isNotEmpty(),
             onClickLabel = "View transactions") { onDrillDown(category) }.padding(vertical = 6.dp),
@@ -878,69 +850,14 @@ private fun PointLabels(points: List<ReportPoint>, hideDecimals: Boolean) {
 @Composable
 private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
     if (points.isEmpty()) { Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant); return }
-    val incomeColor = MaterialTheme.colorScheme.primary
-    val expenseColor = MaterialTheme.colorScheme.error
-    val gridColor = MaterialTheme.colorScheme.outlineVariant
-    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
-    val active = selected?.takeIf { it in points.indices }
-    val maximum = points.maxOf { max(it.primaryCents, it.secondaryCents) }.coerceAtLeast(1)
-
-    active?.let {
-        val point = points[it]
-        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small,
-            modifier = Modifier.clickable(enabled = point.drillDownQuery != null || point.transactionIds.isNotEmpty(), onClickLabel = "View transactions") {
-                onDrillDown(ReportCategory(point.period.take(7), point.primaryCents - point.secondaryCents, point.transactionIds,
-                    incomeCents = point.primaryCents, expenseCents = point.secondaryCents, drillDownQuery = point.drillDownQuery))
-            }) {
-            Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                Text(point.period.take(7), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                Text("Income ${formatMoneyCents(point.primaryCents, hideDecimals)} · Expense ${formatMoneyCents(point.secondaryCents, hideDecimals)} · " +
-                    "Net ${formatMoneyCents(point.primaryCents - point.secondaryCents, hideDecimals)}",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-
-    Canvas(
-        Modifier.fillMaxWidth().height(140.dp)
-            .semantics { contentDescription = "Cash flow chart with ${points.size} periods. Tap a period to read income and expense." }
-            .pointerInput(points) {
-                detectTapGestures { tap ->
-                    val i = (tap.x / size.width * points.size).toInt().coerceIn(0, points.size - 1)
-                    selected = i.takeIf { it != selected }
-                }
-            },
-    ) {
-        val dashed = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
-        listOf(0f, 0.5f, 1f).forEach { fraction ->
-            val lineY = size.height * fraction
-            drawLine(gridColor, Offset(0f, lineY), Offset(size.width, lineY), strokeWidth = 1.5f, pathEffect = dashed)
-        }
-        val slot = size.width / points.size
-        val barWidth = (slot * 0.32f).coerceAtLeast(1f)
-        points.forEachIndexed { i, p ->
-            val alpha = if (active == null || active == i) 1f else 0.45f
-            val incomeHeight = p.primaryCents.toFloat() / maximum * size.height
-            val expenseHeight = p.secondaryCents.toFloat() / maximum * size.height
-            val groupCenter = slot * i + slot / 2
-            drawRect(incomeColor.copy(alpha = alpha),
-                Offset(groupCenter - barWidth - 2f, size.height - incomeHeight),
-                androidx.compose.ui.geometry.Size(barWidth, incomeHeight))
-            drawRect(expenseColor.copy(alpha = alpha),
-                Offset(groupCenter + 2f, size.height - expenseHeight),
-                androidx.compose.ui.geometry.Size(barWidth, expenseHeight))
-        }
-    }
-    Row(Modifier.fillMaxWidth()) {
-        Text(points.first().period.take(7), style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(points.last().period.take(7), style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        LegendDot(incomeColor, "Income")
-        LegendDot(expenseColor, "Expense")
-    }
+    GroupedBarChart(
+        points = points,
+        hideDecimals = hideDecimals,
+        onDrillDown = onDrillDown,
+        primaryLabel = "Income",
+        secondaryLabel = "Expense",
+        chartContentDescription = "Cash flow chart with ${points.size} periods. Tap a period to read income and expense.",
+    )
 }
 
 @Composable
