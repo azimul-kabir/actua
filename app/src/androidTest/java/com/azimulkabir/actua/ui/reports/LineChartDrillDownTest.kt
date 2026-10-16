@@ -3,6 +3,7 @@ package com.azimulkabir.actua.ui.reports
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -51,7 +52,7 @@ class LineChartDrillDownTest {
             }
         }
 
-        compose.onNodeWithContentDescription("2026-05-31:", substring = true).performClick()
+        compose.onNodeWithContentDescription("2026-05:", substring = true).performClick()
         compose.onNodeWithText("Tap to view transactions").assertIsDisplayed().performClick()
         compose.waitForIdle()
 
@@ -74,8 +75,10 @@ class LineChartDrillDownTest {
                 )
             }
         }
+        val before = compose.onAllNodesWithText("34 days").fetchSemanticsNodes().size
         compose.onNodeWithContentDescription("2026-05:", substring = true).performClick()
-        compose.onNodeWithText("34 days").assertIsDisplayed()
+        compose.waitForIdle()
+        assertEquals(before + 1, compose.onAllNodesWithText("34 days").fetchSemanticsNodes().size)
         compose.onNodeWithText("Tap to view transactions").assertDoesNotExist()
     }
 }
