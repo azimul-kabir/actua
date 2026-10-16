@@ -258,7 +258,9 @@ Upstream: [`S/budget-analysis-spreadsheet.ts`][budget-analysis], [`W/BudgetAnaly
 | `showHiddenCategories` | `isBaseCategory` (category's own flag) | same | Match (#956) |
 | Category/group conditions; unsupported operator | matches nothing | same | Match (#956) |
 | Default range | last 6 months | same | Match (#948) |
-| `graphType`, `balanceOnly` | chart style | bar chart | **Intentional** |
+| Per-month `overspendingAdjustment` = last month's negative balances on categories without carryover (`summarizeMonthCategories`); first month 0 | `intervalData[].overspendingAdjustment` | `ReportPoint.overspendingCents` (#1116) | Match |
+| Per-month balance = budgeted + spent + running carry-over | `intervalData[].balance` | `ReportPoint.tertiaryCents` (sum of category leftovers) | Match |
+| `graphType`, `balanceOnly` | chart style | budgeted/spent/overspending bars plus a balance line; tapping a Spent bar opens that month's spending | **Intentional** |
 
 Tests: `BudgetAnalysisCategoryTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.budgetAnalysisScopesBudgetedAndSpentToCategoryConditionsAndTracksBalance`, `.budgetAnalysisExcludesHiddenCategoriesUnlessRequested`.
 
@@ -272,6 +274,8 @@ Upstream: [`S/sankey-spreadsheet.ts#L173-L838`][sankey], [`W/SankeyCard.tsx#L53-
 | Income broken down per income category | | same | Match |
 | `mode = budgeted` | budget cells | always spent | **Not ported** |
 | `topNcategories` "Other", `groupAccounts`, `layerFrom`/`layerTo`, `categorySort`, `showPercentages` | layout options | not read | **Not ported** |
+| Account column | optional `GraphLayers.Account` layer, only with `groupAccounts` (default off; [`GRAPH_LAYER_ORDER`][sankey-layers]) | not drawn; Actuali's account column is not copied because Actual only shows it when `groupAccounts` is on | **Not ported** (#1115) |
+| Drill-down | none | tap a node or ribbon opens its transactions via `DrillDownQuery`; long-press focuses a flow | Android addition |
 | Default range | last 6 months | same | Match (#948) |
 
 Tests: `SankeyTest`, `src/androidTest/.../ui/reports/ReportsChartInteractionTest.sankeyRendersACategoryPerNodeAndARemainingNodeForUnspentIncome`.
@@ -303,7 +307,8 @@ Upstream: [`W/monte-carlo/monteCarloSimulation.ts`][monte-carlo]. Actua: `CRE.mo
 | `pots` (balance or `accountId`, mean, std-dev, `accessAge`), `spendingPhases`, `minimumSpending`, `contributions`, inflation mean/std-dev, `simulationCount`, `currentAge`/`targetAge` | | same | Match |
 | Withdrawal `proportional` / `sequential` | | same | Match |
 | Inflation realized after the year's withdrawal and growth | | same | Match |
-| Success rate headline; median / 10th percentile chart | | same | Match |
+| Success rate headline; median / 10th percentile | | same (unchanged by #1116) | Match |
+| Percentile bands per year | simulated balances | `ReportPoint.percentileCents` = 10th, 25th, 50th, 75th, 90th (linear interpolation), drawn as 10-90 and 25-75 bands around the median; same seed gives the same numbers | Android addition (#1116) |
 | Dynamic withdrawal rules, tax bands, fees, other strategies, historical returns, Median/Conservative comparison lines | | simplified result | **Not ported** |
 | No `pots` meta | upstream requires configuration | one pot from linked balances (6%/10%, 4% withdrawal) | **Intentional** |
 
@@ -404,6 +409,7 @@ stays open.
 [budget-analysis-card]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/reports/BudgetAnalysisCard.tsx#L46-L76
 [sankey]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/spreadsheets/sankey-spreadsheet.ts#L173-L838
 [sankey-card]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/reports/SankeyCard.tsx#L53-L150
+[sankey-layers]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/spreadsheets/sankey-spreadsheet.ts#L138-L156
 [forecast]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/loot-core/src/server/forecast/forecast-projection.ts
 [forecast-card]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/reports/BalanceForecastCard.tsx#L56-L100
 [monte-carlo]: https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/components/reports/reports/monte-carlo/monteCarloSimulation.ts

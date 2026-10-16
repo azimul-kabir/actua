@@ -1565,6 +1565,9 @@ fun AppNavigation(
         val loadReportWidgets: suspend (ReportViewFilter) -> List<ReportWidget> = remember(repository, dataVersion) {
             { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } }
         }
+        val loadReportWidgetForRange: suspend (String, com.azimulkabir.actua.model.ReportRange) -> ReportWidget? = remember(repository, dataVersion) {
+            { widgetId, range -> withContext(Dispatchers.IO) { repository.reportWidgetForRange(widgetId, range, dataVersion) } }
+        }
         val loadReportTransactions: suspend (List<String>) -> List<Transaction> = remember(repository) {
             { ids -> withContext(Dispatchers.IO) { repository.reportTransactions(ids) } }
         }
@@ -1624,6 +1627,7 @@ fun AppNavigation(
                     favoriteReportIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT)
                 },
                 loadSavedReports = loadReportWidgets,
+                loadWidgetForRange = loadReportWidgetForRange,
                 loadTransactions = loadReportTransactions,
                 loadDrillDownTransactions = loadDrillDownTransactions,
                 onEditTransaction = onEditReportTransaction,
@@ -3082,6 +3086,7 @@ fun AppNavigation(
                         favoriteReportIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT)
                     },
                     loadSavedReports = loadReportWidgets,
+                    loadWidgetForRange = loadReportWidgetForRange,
                     loadTransactions = loadReportTransactions,
                     loadDrillDownTransactions = loadDrillDownTransactions,
                     onEditTransaction = onEditReportTransaction,
@@ -3314,6 +3319,7 @@ private fun NavigationReportsScreen(
     favoriteReportIds: Set<String>,
     onFavoriteReportChange: (String, Boolean) -> Unit,
     loadSavedReports: suspend (ReportViewFilter) -> List<ReportWidget>,
+    loadWidgetForRange: suspend (String, com.azimulkabir.actua.model.ReportRange) -> ReportWidget?,
     loadTransactions: suspend (List<String>) -> List<Transaction>,
     loadDrillDownTransactions: suspend (DrillDownQuery) -> List<Transaction>,
     onEditTransaction: (Transaction) -> Unit,
@@ -3336,6 +3342,7 @@ private fun NavigationReportsScreen(
         favoriteReportIds = favoriteReportIds,
         onFavoriteReportChange = onFavoriteReportChange,
         loadSavedReports = loadSavedReports,
+        loadWidgetForRange = loadWidgetForRange,
         loadTransactions = loadTransactions,
         loadDrillDownTransactions = loadDrillDownTransactions,
         onEditTransaction = onEditTransaction,

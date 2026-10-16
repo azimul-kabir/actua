@@ -21,6 +21,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.azimulkabir.actua.model.ReportAccountOption
@@ -84,6 +85,16 @@ import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.reports.charts.ChartCard
 import com.azimulkabir.actua.ui.reports.charts.ChartTrend
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.ui.semantics.heading
+import com.azimulkabir.actua.model.ReportRange
+import com.azimulkabir.actua.ui.reports.charts.LocalChartScale
+import com.azimulkabir.actua.ui.reports.charts.BudgetAnalysisChart
+import com.azimulkabir.actua.ui.reports.charts.LineChartBand
+import com.azimulkabir.actua.ui.reports.charts.SankeyChart
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -137,6 +148,7 @@ fun ReportsScreen(
     initialPageId: String? = null,
     initialPageRequest: Int = 0,
     hasFab: Boolean = true,
+    loadWidgetForRange: (suspend (String, ReportRange) -> ReportWidget?)? = null,
 ) {
     val listState = rememberLazyListState()
     var datePreset by rememberSaveable { mutableStateOf<String?>(null) }
@@ -184,9 +196,15 @@ fun ReportsScreen(
         if (scrollToTopRequest > 0) listState.animateScrollToItem(0)
     }
 
+    var expandedWidgetId by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedRange by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedTab by rememberSaveable { mutableStateOf(0) }
+    var expandedWidget by remember { mutableStateOf<ReportWidget?>(null) }
+    Box(modifier.fillMaxSize()) {
     LazyColumn(
         state = listState,
-        modifier = modifier.fillMaxSize(),
+        // While the full-screen view covers the dashboard, hide it from accessibility services.
+        modifier = if (expandedWidgetId != null) Modifier.fillMaxSize().clearAndSetSemantics {} else Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
             Spacing.screenHorizontal, Spacing.screenHorizontal, Spacing.screenHorizontal,
             if (hasFab) 96.dp else 0.dp,
@@ -245,10 +263,51 @@ fun ReportsScreen(
             val visible = shownWidgets.filterNot { it.kind == ReportWidgetKind.UNSUPPORTED }
             if (visible.isEmpty()) item { EmptyReports() }
             items(visible, key = { it.id }) { widget ->
+                if (widget.id == expandedWidgetId) expandedWidget = widget
                 WidgetCard(widget, hideDecimalPlaces, showReportSummary, onShowReportSummaryChange,
-                    onDrillDown = { updateDrill(it to widget.name) })
+                    onDrillDown = { updateDrill(it to widget.name) },
+                    onExpand = if (canExpand(widget.kind)) ({ expandedWidgetId = widget.id; expandedRange = null; expandedTab = 0 }) else null)
             }
         }
+    }
+    expandedWidgetId?.let { id ->
+        val base = expandedWidget?.takeIf { it.id == id }
+        if (base != null) {
+            val range = expandedRange?.let { name -> ReportRange.entries.firstOrNull { it.name == name } }
+            val onSavedPage = selected?.id == SAVED_PAGE_ID
+            var loading by remember { mutableStateOf(false) }
+            val ranged by produceState<ReportWidget?>(null, id, range) {
+                value = null
+                if (range != null) {
+                    loading = true
+                    value = try {
+                        if (onSavedPage) loadSavedReports(ReportViewFilter(datePreset = range.preset)).firstOrNull { it.id == id }
+                        else loadWidgetForRange?.invoke(id, range)
+                    } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        null
+                    }
+                    loading = false
+                }
+            }
+            FullScreenWidget(
+                widget = ranged ?: base,
+                hideDecimals = hideDecimalPlaces,
+                showSummary = showReportSummary,
+                onShowSummaryChange = onShowReportSummaryChange,
+                range = range,
+                onRangeChange = { expandedRange = it?.name },
+                rangeAvailable = isRangeable(base.kind) && (onSavedPage || loadWidgetForRange != null),
+                loading = loading,
+                tab = expandedTab,
+                onTabChange = { expandedTab = it },
+                onDrillDown = { updateDrill(it to base.name) },
+                onBack = { expandedWidgetId = null },
+                backEnabled = currentDrill == null,
+            )
+        }
+    }
     }
     if (currentDrill != null) {
         androidx.activity.compose.BackHandler {
@@ -477,8 +536,9 @@ private fun DrillDownSheet(
 
 @Composable
 private fun IncomeExpense(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
-    val income = MaterialTheme.colorScheme.primary
-    val expense = MaterialTheme.colorScheme.error
+    val palette = rememberChartPalette()
+    val income = palette.semantic.income
+    val expense = palette.semantic.expense
     val points = widget.points
     widget.subtitle?.let {
         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -509,6 +569,9 @@ private fun IncomeExpense(widget: ReportWidget, hideDecimals: Boolean, onDrillDo
         }
     }
 }
+
+/** Magnitude bars in lists and cards are tinted, not full strength; the figures next to them carry the colour. */
+private const val SoftBarAlpha = 0.45f
 
 private const val SAVED_PAGE_ID = "saved-reports"
 
@@ -697,6 +760,7 @@ private fun WidgetCard(
     showSummary: Boolean,
     onShowSummaryChange: (Boolean) -> Unit,
     onDrillDown: (ReportCategory) -> Unit,
+    onExpand: (() -> Unit)? = null,
 ) {
     val header = calculateWidgetHeader(widget, hideDecimals)
 
@@ -705,7 +769,21 @@ private fun WidgetCard(
         headlineValue = header.headlineValue,
         caption = header.caption,
         trend = header.trend,
+        onExpand = onExpand,
     ) {
+        WidgetBody(widget, hideDecimals, showSummary, onShowSummaryChange, onDrillDown)
+    }
+}
+
+@Composable
+private fun WidgetBody(
+    widget: ReportWidget,
+    hideDecimals: Boolean,
+    showSummary: Boolean,
+    onShowSummaryChange: (Boolean) -> Unit,
+    onDrillDown: (ReportCategory) -> Unit,
+) {
+    run {
         when (widget.kind) {
             ReportWidgetKind.SUMMARY -> ActuaHeroAmount(
                 amount = widget.percentage?.let { "${"%.2f".format(it)}%" }
@@ -722,12 +800,15 @@ private fun WidgetCard(
             ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
             ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
             ReportWidgetKind.CUSTOM_REPORT -> {
-                CustomReport(widget, hideDecimals, onDrillDown)
-                widget.summary?.let { CustomReportSummary(it, hideDecimals, showSummary, onShowSummaryChange) }
+                // The summary and its show/hide control (Actual's device-local `reportsViewSummary`
+                // setting) sit at the top, under the subtitle, where they are seen before a long legend.
+                CustomReport(widget, hideDecimals, onDrillDown, summary = {
+                    widget.summary?.let { CustomReportSummary(it, hideDecimals, showSummary, onShowSummaryChange) }
+                })
             }
             ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
             ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
-            ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals)
+            ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals, onDrillDown)
             ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals, onDrillDown = onDrillDown)
             ReportWidgetKind.BALANCE_FORECAST -> {
                 TrendChart(
@@ -740,7 +821,7 @@ private fun WidgetCard(
                 }
             }
             ReportWidgetKind.MONTE_CARLO -> {
-                ComparativeTrendChart(widget.points, "Median", "Conservative", hideDecimals)
+                MonteCarlo(widget.points, hideDecimals)
             }
             ReportWidgetKind.MISSING_REPORT -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
             ReportWidgetKind.UNSUPPORTED -> Unit
@@ -769,7 +850,9 @@ private fun TrendChart(
         series = listOf(
             LineChartSeries(
                 label = "Value",
-                color = if (forecastFrom != null) palette.semantic.forecast else palette.semantic.balance,
+                // Green while the latest value is non-negative, red below zero: the same income/expense
+                // language as the bar charts. A forecast keeps its colour; its dashed part says it's projected.
+                color = if (points.last().primaryCents < 0) palette.semantic.expense else palette.semantic.income,
                 values = points.map { it.primaryCents },
                 fill = true,
                 forecastFromIndex = forecastFrom,
@@ -803,14 +886,6 @@ private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean, onDrillDo
 }
 
 @Composable
-private fun LegendDot(color: androidx.compose.ui.graphics.Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.size(8.dp).background(color, androidx.compose.foundation.shape.CircleShape))
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
 private fun Spending(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
     val current = widget.valueCents ?: 0
     val comparison = widget.comparisonCents ?: 0
@@ -838,13 +913,13 @@ private fun Spending(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (
     if (delta != 0L) Text(
         (if (delta > 0) "↑ " else "↓ ") + "${formatMoneyCents(delta.absoluteValue, hideDecimals)} " +
             if (delta > 0) "more spent" else "less spent",
-        color = if (delta > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        color = if (delta > 0) rememberChartPalette().semantic.expense else rememberChartPalette().semantic.income,
         style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
     )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         val currentFraction = (current.toFloat() / maximum).coerceIn(0.02f, 0.98f)
         Spacer(Modifier.weight(currentFraction).height(9.dp)
-            .background(MaterialTheme.colorScheme.primary, PillShape))
+            .background(rememberChartPalette().semantic.expense.copy(alpha = SoftBarAlpha), PillShape))
         Spacer(Modifier.weight(1f - currentFraction).height(9.dp)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh, PillShape))
     }
@@ -865,7 +940,9 @@ private fun Formula(widget: ReportWidget, hideDecimals: Boolean) {
 
 @Composable
 private fun IntervalBars(points: List<ReportPoint>, hideDecimals: Boolean) {
-    val color = MaterialTheme.colorScheme.primary
+    val palette = rememberChartPalette()
+    val incomeColor = palette.semantic.income
+    val expenseColor = palette.semantic.expense
     var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
     val active = selected?.takeIf { it in points.indices }
     val maximum = points.maxOf { it.primaryCents.absoluteValue }.coerceAtLeast(1)
@@ -888,6 +965,7 @@ private fun IntervalBars(points: List<ReportPoint>, hideDecimals: Boolean) {
         val barWidth = (slot * 0.7f).coerceAtLeast(1f)
         points.forEachIndexed { i, p ->
             val h = p.primaryCents.absoluteValue.toFloat() / maximum * size.height
+            val color = if (p.primaryCents < 0) expenseColor else incomeColor
             drawRect(if (i == active) color else color.copy(alpha = 0.6f),
                 Offset(slot * i + (slot - barWidth) / 2, size.height - h),
                 androidx.compose.ui.geometry.Size(barWidth, h))
@@ -903,11 +981,9 @@ private fun IntervalBars(points: List<ReportPoint>, hideDecimals: Boolean) {
 
 @Composable
 private fun StackedIntervalBars(points: List<ReportPoint>, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
-    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    val palette = rememberChartPalette()
     val names = points.firstOrNull { it.segments.isNotEmpty() }?.segments?.map { it.name }.orEmpty()
-    val colorByName = names.withIndex().associate { (i, name) ->
-        name to androidx.compose.ui.graphics.Color.hsl(donutHues[i % donutHues.size], 0.55f, if (dark) 0.62f else 0.48f)
-    }
+    val colorByName = names.withIndex().associate { (i, name) -> name to palette.categorical[i % palette.categorical.size] }
     val fallbackColor = MaterialTheme.colorScheme.outlineVariant
     var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
     val active = selected?.takeIf { it in points.indices }
@@ -978,8 +1054,6 @@ private fun StackedIntervalBars(points: List<ReportPoint>, hideDecimals: Boolean
     }
 }
 
-private val donutHues = floatArrayOf(210f, 20f, 140f, 280f, 50f, 350f, 175f, 320f, 100f, 240f)
-
 /**
  * Upstream's custom-report Summary panel (`ReportSummary.tsx`): the range total and its average
  * per interval, behind the same device-local show/hide preference as the PWA's summary toggle.
@@ -1005,21 +1079,38 @@ private fun CustomReportSummary(
             "Yearly" -> "Per year"
             else -> "Per month"
         }
-        Row(Modifier.fillMaxWidth().testTag("customReportSummary"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SummaryFigure(totalLabel, formatMoneyCents(summary.totalCents, hideDecimals), null, Modifier.weight(1f))
-            SummaryFigure(averageLabel, formatMoneyCents(summary.averageCents, hideDecimals), per, Modifier.weight(1f))
+        val palette = rememberChartPalette()
+        fun figureColor(cents: Long) = when (summary.kind) {
+            ReportSummaryKind.SPENDING -> palette.semantic.expense
+            ReportSummaryKind.DEPOSITS -> palette.semantic.income
+            ReportSummaryKind.BUDGETED -> androidx.compose.ui.graphics.Color.Unspecified
+            ReportSummaryKind.NET_PAYMENT, ReportSummaryKind.NET_DEPOSIT ->
+                if (cents < 0) palette.semantic.expense else palette.semantic.income
+        }
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.padding(12.dp).testTag("customReportSummary"),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                SummaryFigure(totalLabel, formatMoneyCents(summary.totalCents, hideDecimals), null, figureColor(summary.totalCents), Modifier.weight(1f))
+                SummaryFigure(averageLabel, formatMoneyCents(summary.averageCents, hideDecimals), per, figureColor(summary.averageCents), Modifier.weight(1f))
+            }
         }
     }
-    androidx.compose.material3.TextButton(onClick = { onVisibleChange(!visible) }) {
+    // A quiet control rather than the theme's accent colour, so it doesn't compete with the chart.
+    androidx.compose.material3.TextButton(
+        onClick = { onVisibleChange(!visible) },
+        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+    ) {
         Text(if (visible) "Hide summary" else "Show summary")
     }
 }
 
 @Composable
-private fun SummaryFigure(label: String, amount: String, caption: String?, modifier: Modifier) {
+private fun SummaryFigure(label: String, amount: String, caption: String?, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
     Column(modifier.semantics(mergeDescendants = true) {}) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = color)
         caption?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -1027,10 +1118,16 @@ private fun SummaryFigure(label: String, amount: String, caption: String?, modif
 }
 
 @Composable
-private fun CustomReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
+private fun CustomReport(
+    widget: ReportWidget,
+    hideDecimals: Boolean,
+    onDrillDown: (ReportCategory) -> Unit,
+    summary: @Composable () -> Unit = {},
+) {
     widget.subtitle?.let {
         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+    summary()
     val segments = widget.categories.filter { it.spentCents != 0L }
     if (segments.isEmpty() && widget.points.all { it.primaryCents == 0L }) {
         Text("No transactions match this report's filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1056,6 +1153,7 @@ private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
         return
     }
     val maximum = widget.categories.maxOf { it.spentCents.absoluteValue }.coerceAtLeast(1)
+    val palette = rememberChartPalette()
     widget.categories.take(10).forEach { category ->
         Column(Modifier.clickable(enabled = onDrillDown != null && (category.drillDownQuery != null || category.transactionIds.isNotEmpty()),
             onClickLabel = "View transactions") { onDrillDown?.invoke(category) }, verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -1064,7 +1162,7 @@ private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
                 Text(formatMoneyCents(category.spentCents, hideDecimals), fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.fillMaxWidth((category.spentCents.absoluteValue.toFloat() / maximum).coerceIn(0f, 1f))
-                .height(7.dp).background(MaterialTheme.colorScheme.primary, PillShape))
+                .height(7.dp).background((if (category.spentCents < 0) palette.semantic.expense else palette.semantic.income).copy(alpha = SoftBarAlpha), PillShape))
         }
     }
 }
@@ -1301,8 +1399,8 @@ private fun Crossover(widget: ReportWidget, hideDecimals: Boolean) {
 }
 
 @Composable
-private fun BudgetAnalysis(widget: ReportWidget, hideDecimals: Boolean) {
-    ComparisonSeries(widget.points, "Budgeted", "Spent", hideDecimals)
+private fun BudgetAnalysis(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
+    BudgetAnalysisChart(widget.points, hideDecimals, onDrillDown)
     widget.balanceCents?.let {
         Text(
             "Balance: ${formatMoneyCents(it, hideDecimals)}",
@@ -1312,265 +1410,167 @@ private fun BudgetAnalysis(widget: ReportWidget, hideDecimals: Boolean) {
 }
 
 @Composable
-private fun ComparisonSeries(points: List<ReportPoint>, primary: String, secondary: String, hideDecimals: Boolean) {
-    if (points.isEmpty()) { Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant); return }
-    ComparativeTrendChart(points, primary, secondary, hideDecimals)
-    val last = points.last()
-    Text("${last.period.take(7)} · ${formatMoneyCents(last.primaryCents, hideDecimals)} / ${formatMoneyCents(last.secondaryCents, hideDecimals)}",
-        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-private data class SankeyNode(val name: String, val value: Long, val color: androidx.compose.ui.graphics.Color)
-private enum class SankeySide { INCOME, EXPENSE }
-
-@Composable
 private fun Sankey(
     widget: ReportWidget,
     hideDecimals: Boolean,
     onDrillDown: ((ReportCategory) -> Unit)? = null,
-) {
-    val income = widget.valueCents ?: 0
-    val categories = widget.categories.filter { it.spentCents > 0 }
-    val incomeCategories = widget.incomeCategories.filter { it.spentCents > 0 }
-    if (income <= 0 && categories.isEmpty() && incomeCategories.isEmpty()) {
-        Text("No transactions match this report's filters.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+) = SankeyChart(
+    income = widget.valueCents ?: 0,
+    categories = widget.categories,
+    incomeCategories = widget.incomeCategories,
+    subtitle = widget.subtitle,
+    hideDecimals = hideDecimals,
+    onDrillDown = onDrillDown,
+)
+
+@Composable
+private fun MonteCarlo(points: List<ReportPoint>, hideDecimals: Boolean) {
+    if (points.isEmpty() || points.any { it.percentileCents.size != 5 }) {
+        Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
-    val expenseTotal = categories.sumOf { it.spentCents }
-    val remaining = (income - expenseTotal).coerceAtLeast(0)
-    val dark = androidx.compose.foundation.isSystemInDarkTheme()
-    val remainingColor = MaterialTheme.colorScheme.outlineVariant
-    val rightNodes = categories.mapIndexed { i, category ->
-        SankeyNode(category.name, category.spentCents,
-            androidx.compose.ui.graphics.Color.hsl(donutHues[i % donutHues.size], 0.55f, if (dark) 0.62f else 0.48f))
-    } + (if (remaining > 0) listOf(SankeyNode("Remaining", remaining, remainingColor)) else emptyList())
-    // Income sources use the same hue wheel but from the far end, so the two sides stay visually distinct.
-    val leftNodes = incomeCategories.ifEmpty { listOf(com.azimulkabir.actua.model.ReportCategory("Income", income)) }
-        .mapIndexed { i, category ->
-            SankeyNode(category.name, category.spentCents,
-                androidx.compose.ui.graphics.Color.hsl(donutHues[donutHues.size - 1 - i % donutHues.size], 0.55f, if (dark) 0.62f else 0.48f))
-        }
-    val total = maxOf(income, leftNodes.sumOf { it.value }, rightNodes.sumOf { it.value }, 1)
-    val incomeColor = MaterialTheme.colorScheme.primary
+    val palette = rememberChartPalette()
+    fun band(index: Int) = points.map { it.percentileCents[index] }
+    LineChart(
+        periods = points.map { it.period },
+        series = listOf(LineChartSeries("Median", palette.semantic.balance, band(2))),
+        bands = listOf(
+            LineChartBand(band(0), band(4), palette.semantic.balance, alpha = 0.14f),
+            LineChartBand(band(1), band(3), palette.semantic.balance, alpha = 0.26f),
+        ),
+        formatValue = { formatMoneyCents(it, hideDecimals) },
+        formatAxis = { formatCompactMoney(it, hideDecimals = true) },
+        detail = { i ->
+            val p = points[i].percentileCents
+            "Likely range ${formatMoneyCents(p[1], hideDecimals)} – ${formatMoneyCents(p[3], hideDecimals)} · " +
+                "10–90%: ${formatMoneyCents(p[0], hideDecimals)} – ${formatMoneyCents(p[4], hideDecimals)}"
+        },
+        contentDescription = "Monte Carlo projection over ${points.size} years: median with shaded 25 to 75 and 10 to 90 percent ranges.",
+    )
+    Text(
+        "Median line · darker band 25–75% of outcomes · lighter band 10–90%",
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
 
-    var selected by rememberSaveable(leftNodes.size, rightNodes.size) { mutableStateOf<Pair<SankeySide, Int>?>(null) }
-    val activeRight = selected?.takeIf { it.first == SankeySide.EXPENSE && it.second in rightNodes.indices }?.second
-    val activeLeft = selected?.takeIf { it.first == SankeySide.INCOME && it.second in leftNodes.indices }?.second
-
-    widget.subtitle?.let {
-        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-    Row(Modifier.fillMaxWidth()) {
-        Column(Modifier.weight(1f)) {
-            Text(activeLeft?.let { leftNodes[it].name } ?: "Income",
-                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(formatMoneyCents(activeLeft?.let { leftNodes[it].value } ?: income, hideDecimals),
-                style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(activeRight?.let { rightNodes[it].name } ?: "Expenses",
-                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(formatMoneyCents(activeRight?.let { rightNodes[it].value } ?: expenseTotal, hideDecimals),
-                style = MaterialTheme.typography.titleMedium)
-        }
-    }
-    Canvas(
-        Modifier.fillMaxWidth().height(220.dp)
-            .semantics {
-                contentDescription = "Sankey diagram from ${leftNodes.size} income sources to ${rightNodes.size} " +
-                    "expense categories. Tap a category to read its amount."
-            }
-            .pointerInput(leftNodes, rightNodes) {
-                detectTapGestures { tap ->
-                    val nodeWidth = 14.dp.toPx()
-                    val side = when {
-                        tap.x <= nodeWidth -> SankeySide.INCOME
-                        tap.x >= size.width - nodeWidth -> SankeySide.EXPENSE
-                        else -> { selected = null; return@detectTapGestures }
-                    }
-                    val nodes = if (side == SankeySide.INCOME) leftNodes else rightNodes
-                    var cumulative = 0f
-                    var hit: Int? = null
-                    for ((i, node) in nodes.withIndex()) {
-                        val height = node.value.toFloat() / total * size.height
-                        if (tap.y in cumulative..(cumulative + height)) { hit = i; break }
-                        cumulative += height
-                    }
-                    selected = hit?.let { side to it }.takeIf { it != selected }
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun FullScreenWidget(
+    widget: ReportWidget,
+    hideDecimals: Boolean,
+    showSummary: Boolean,
+    onShowSummaryChange: (Boolean) -> Unit,
+    range: ReportRange?,
+    onRangeChange: (ReportRange?) -> Unit,
+    rangeAvailable: Boolean,
+    loading: Boolean,
+    tab: Int,
+    onTabChange: (Int) -> Unit,
+    onDrillDown: (ReportCategory) -> Unit,
+    onBack: () -> Unit,
+    backEnabled: Boolean,
+) {
+    androidx.activity.compose.BackHandler(enabled = backEnabled, onBack = onBack)
+    val table = remember(widget, hideDecimals) { reportDataTable(widget) { formatMoneyCents(it, hideDecimals) } }
+    Surface(Modifier.fillMaxSize().testTag("fullScreenWidget"), color = MaterialTheme.colorScheme.background) {
+        Column(Modifier.fillMaxSize()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back to dashboard")
                 }
-            },
-    ) {
-        val nodeWidth = 14.dp.toPx()
-        val cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
-        val midX = size.width / 2f
-        val incomeWidth = if (incomeCategories.isEmpty()) 0f else nodeWidth
-        val rightSpanHeight = income.toFloat() / total * size.height
-
-        if (incomeCategories.isEmpty()) {
-            // No breakdown available: draw a single income bar, same as before.
-            drawRoundRect(incomeColor, Offset(0f, 0f), androidx.compose.ui.geometry.Size(nodeWidth, rightSpanHeight), cornerRadius)
-        } else {
-            var leftCumulative = 0f
-            leftNodes.forEachIndexed { i, node ->
-                val height = node.value.toFloat() / total * size.height
-                val alpha = if (activeLeft == null || activeLeft == i) 1f else 0.35f
-                val topY = leftCumulative.coerceAtMost(rightSpanHeight)
-                val bottomY = (leftCumulative + height).coerceAtMost(rightSpanHeight)
-                if (bottomY > topY) {
-                    val link = Path().apply {
-                        moveTo(incomeWidth, leftCumulative)
-                        cubicTo(midX, leftCumulative, midX, topY, midX, topY)
-                        lineTo(midX, bottomY)
-                        cubicTo(midX, bottomY, midX, leftCumulative + height, incomeWidth, leftCumulative + height)
-                        close()
-                    }
-                    drawPath(link, node.color.copy(alpha = 0.28f * alpha))
-                }
-                drawRoundRect(node.color.copy(alpha = alpha), Offset(0f, leftCumulative),
-                    androidx.compose.ui.geometry.Size(incomeWidth, height), cornerRadius)
-                leftCumulative += height
-            }
-            // Merge point: a thin "Income" bar between the sources and the expense breakdown.
-            drawRoundRect(incomeColor, Offset(midX - nodeWidth / 2f, 0f),
-                androidx.compose.ui.geometry.Size(nodeWidth, rightSpanHeight), cornerRadius)
-        }
-
-        var cumulative = 0f
-        val rightStartX = if (incomeCategories.isEmpty()) nodeWidth else midX + nodeWidth / 2f
-        rightNodes.forEachIndexed { i, node ->
-            val height = node.value.toFloat() / total * size.height
-            val alpha = if (activeRight == null || activeRight == i) 1f else 0.35f
-            val topY = cumulative.coerceAtMost(rightSpanHeight)
-            val bottomY = (cumulative + height).coerceAtMost(rightSpanHeight)
-            if (bottomY > topY) {
-                val linkMidX = (rightStartX + size.width - nodeWidth) / 2f
-                val link = Path().apply {
-                    moveTo(rightStartX, topY)
-                    cubicTo(linkMidX, topY, linkMidX, cumulative, size.width - nodeWidth, cumulative)
-                    lineTo(size.width - nodeWidth, cumulative + height)
-                    cubicTo(linkMidX, cumulative + height, linkMidX, bottomY, rightStartX, bottomY)
-                    close()
-                }
-                drawPath(link, node.color.copy(alpha = 0.28f * alpha))
-            }
-            drawRoundRect(node.color.copy(alpha = alpha), Offset(size.width - nodeWidth, cumulative),
-                androidx.compose.ui.geometry.Size(nodeWidth, height), cornerRadius)
-            cumulative += height
-        }
-    }
-    if (incomeCategories.isNotEmpty()) {
-        Text("Income sources", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        leftNodes.forEachIndexed { i, node ->
-            val cat = incomeCategories.getOrNull(i)
-            val canDrill = onDrillDown != null && cat != null && (cat.drillDownQuery != null || cat.transactionIds.isNotEmpty())
-            Row(
-                Modifier.fillMaxWidth()
-                    .clickable(onClickLabel = if (canDrill) "View transactions" else "Highlight") {
-                        selected = (SankeySide.INCOME to i).takeIf { i != activeLeft }
-                        if (canDrill) onDrillDown(cat)
-                    }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Spacer(Modifier.size(10.dp).background(node.color, androidx.compose.foundation.shape.CircleShape))
-                Spacer(Modifier.width(8.dp))
-                Text(node.name, maxLines = 1, modifier = Modifier.weight(1f),
-                    fontWeight = if (i == activeLeft) FontWeight.Bold else FontWeight.Normal)
                 Text(
-                    "${"%.1f".format(if (income > 0) node.value * 100.0 / income else 0.0)}% · " +
-                        formatMoneyCents(node.value, hideDecimals),
-                    fontWeight = FontWeight.SemiBold,
+                    widget.name, style = MaterialTheme.typography.titleLarge, maxLines = 1,
+                    modifier = Modifier.weight(1f).semantics { heading() },
                 )
+                if (loading) CircularProgressIndicator(Modifier.size(20.dp).padding(end = 4.dp), strokeWidth = 2.dp)
             }
-        }
-    }
-    rightNodes.forEachIndexed { i, node ->
-        val cat = categories.getOrNull(i)
-        val canDrill = onDrillDown != null && cat != null && (cat.drillDownQuery != null || cat.transactionIds.isNotEmpty())
-        Row(
-            Modifier.fillMaxWidth()
-                .clickable(onClickLabel = if (canDrill) "View transactions" else "Highlight") {
-                    selected = (SankeySide.EXPENSE to i).takeIf { i != activeRight }
-                    if (canDrill) onDrillDown(cat)
+            if (rangeAvailable) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = Spacing.screenHorizontal),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    androidx.compose.material3.FilterChip(
+                        selected = range == null, onClick = { onRangeChange(null) }, label = { Text("As saved") },
+                    )
+                    ReportRange.entries.forEach { option ->
+                        androidx.compose.material3.FilterChip(
+                            selected = range == option, onClick = { onRangeChange(option) }, label = { Text(option.label) },
+                        )
+                    }
                 }
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Spacer(Modifier.size(10.dp).background(node.color, androidx.compose.foundation.shape.CircleShape))
-            Spacer(Modifier.width(8.dp))
-            Text(node.name, maxLines = 1, modifier = Modifier.weight(1f),
-                fontWeight = if (i == activeRight) FontWeight.Bold else FontWeight.Normal)
-            Text(formatMoneyCents(node.value, hideDecimals), fontWeight = FontWeight.SemiBold)
+            }
+            androidx.compose.material3.TabRow(selectedTabIndex = tab) {
+                androidx.compose.material3.Tab(selected = tab == 0, onClick = { onTabChange(0) }, text = { Text("Chart") })
+                androidx.compose.material3.Tab(selected = tab == 1, onClick = { onTabChange(1) }, text = { Text("Data table") })
+            }
+            if (tab == 0) {
+                val header = calculateWidgetHeader(widget, hideDecimals)
+                Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenHorizontal),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    header.headlineValue?.let {
+                        Text(it, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    }
+                    header.caption?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    androidx.compose.runtime.CompositionLocalProvider(LocalChartScale provides 1.8f) {
+                        WidgetBody(widget, hideDecimals, showSummary, onShowSummaryChange, onDrillDown)
+                    }
+                }
+            } else {
+                DataTableTab(table, widget.name, onDrillDown)
+            }
         }
     }
 }
 
 @Composable
-private fun ComparativeTrendChart(
-    points: List<ReportPoint>,
-    primaryLabel: String = "Primary",
-    secondaryLabel: String = "Secondary",
-    hideDecimals: Boolean = false,
-) {
-    if (points.isEmpty()) return
-    val primary = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.tertiary
-    val gridColor = MaterialTheme.colorScheme.outlineVariant
-    val scrubColor = MaterialTheme.colorScheme.outline
-    var selected by rememberSaveable(points.size) { mutableStateOf<Int?>(null) }
-    val active = selected?.takeIf { it in points.indices }
-    val minimum = points.minOf { minOf(it.primaryCents, it.secondaryCents) }
-    val maximum = points.maxOf { maxOf(it.primaryCents, it.secondaryCents) }
-    val span = (maximum - minimum).coerceAtLeast(1)
-
-    active?.let {
-        val point = points[it]
-        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
-            Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                Text(point.period.take(10), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                Text("$primaryLabel ${formatMoneyCents(point.primaryCents, hideDecimals)} · " +
-                    "$secondaryLabel ${formatMoneyCents(point.secondaryCents, hideDecimals)}",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+private fun DataTableTab(table: ReportDataTable?, name: String, onDrillDown: (ReportCategory) -> Unit) {
+    if (table == null || table.rows.isEmpty()) {
+        Text(
+            "No figures to tabulate for $name.", Modifier.padding(Spacing.screenHorizontal),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
     }
-    Canvas(
-        Modifier.fillMaxWidth().height(140.dp)
-            .semantics { contentDescription = "Comparison chart with ${points.size} points. Touch to read $primaryLabel and $secondaryLabel." }
-            .pointerInput(points) {
-                fun index(x: Float) = if (points.size <= 1) 0 else
-                    (x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
-                detectTapGestures { selected = index(it.x).takeIf { i -> i != selected } }
-            }
-            .pointerInput(points) {
-                detectHorizontalDragGestures { change, _ ->
-                    selected = if (points.size <= 1) 0 else
-                        (change.position.x / size.width * (points.size - 1)).roundToInt().coerceIn(0, points.size - 1)
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal)) {
+        item {
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                table.headers.forEachIndexed { i, header ->
+                    Text(
+                        header, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                        textAlign = if (i == 0) androidx.compose.ui.text.style.TextAlign.Start else androidx.compose.ui.text.style.TextAlign.End,
+                    )
                 }
-            },
-    ) {
-        val step = if (points.size <= 1) 0f else size.width / (points.size - 1)
-        fun y(value: Long) = size.height - ((value - minimum).toFloat() / span * size.height)
-        val dashed = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
-        listOf(0f, 0.5f, 1f).forEach { fraction ->
-            val lineY = size.height * fraction
-            drawLine(gridColor, Offset(0f, lineY), Offset(size.width, lineY), strokeWidth = 1.5f, pathEffect = dashed)
+            }
+            androidx.compose.material3.HorizontalDivider()
         }
-        points.zipWithNext().forEachIndexed { index, pair ->
-            drawLine(primary, Offset(step * index, y(pair.first.primaryCents)),
-                Offset(step * (index + 1), y(pair.second.primaryCents)), strokeWidth = 5f, cap = StrokeCap.Round)
-            drawLine(secondary, Offset(step * index, y(pair.first.secondaryCents)),
-                Offset(step * (index + 1), y(pair.second.secondaryCents)), strokeWidth = 5f, cap = StrokeCap.Round)
+        items(table.rows.size) { index ->
+            val row = table.rows[index]
+            Column {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .then(
+                            if (row.canDrill) Modifier.clickable(onClickLabel = "View transactions") { onDrillDown(row.drill!!) } else Modifier,
+                        )
+                        .padding(vertical = 12.dp)
+                        .semantics(mergeDescendants = true) {},
+                ) {
+                    row.cells.forEachIndexed { i, cell ->
+                        Text(
+                            cell, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
+                            fontWeight = if (i == 0) FontWeight.Medium else FontWeight.Normal,
+                            textAlign = if (i == 0) androidx.compose.ui.text.style.TextAlign.Start else androidx.compose.ui.text.style.TextAlign.End,
+                        )
+                    }
+                }
+                androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
         }
-        active?.let {
-            drawLine(scrubColor.copy(alpha = 0.4f), Offset(step * it, 0f), Offset(step * it, size.height), strokeWidth = 2f)
-            drawCircle(primary, 7.dp.toPx() / 1.5f, Offset(step * it, y(points[it].primaryCents)))
-            drawCircle(secondary, 7.dp.toPx() / 1.5f, Offset(step * it, y(points[it].secondaryCents)))
-        }
-    }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        LegendDot(primary, primaryLabel)
-        LegendDot(secondary, secondaryLabel)
     }
 }
 

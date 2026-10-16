@@ -29,6 +29,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +70,7 @@ fun DonutChart(
     val arcs = remember(magnitudes) { computeDonutArcs(magnitudes) }
     val hitSlices = remember(arcs) { donutHitSlices(arcs) }
 
+    val reveal = rememberChartReveal(segments)
     var selected by rememberSaveable(segments.size) { mutableStateOf<Int?>(null) }
     var focused by rememberSaveable(segments.size) { mutableStateOf<Int?>(null) }
     val activeSelected = selected?.takeIf { it in segments.indices }
@@ -86,7 +88,10 @@ fun DonutChart(
             Canvas(
                 Modifier.size(DonutSize)
                     .semantics {
-                        contentDescription = "Donut chart with ${segments.size} segments. Long press a slice to focus it."
+                        val largest = segments.indices.maxByOrNull { magnitudes[it] }
+                        contentDescription = "Donut chart with ${segments.size} segments, total ${formatMoneyCents(segments.sumOf { it.spentCents }, hideDecimals)}" +
+                            (largest?.let { ", largest ${segments[it].name} ${"%.1f".format(magnitudes[it] * 100.0 / total)}%" } ?: "") +
+                            ". Long press a slice to focus it."
                     }
                     .pointerInput(segments) {
                         val half = size.width / 2f
@@ -114,15 +119,17 @@ fun DonutChart(
                 val pop = PopOut.toPx()
                 val pad = stroke / 2f + pop
                 val base = size.width - 2 * pad
+                val ring = Stroke(stroke)
                 arcs.forEachIndexed { i, arc ->
                     val gap = if (arcs.size > 1) GapDegrees else 0f
-                    val sweep = (arc.sweepAngleDeg - gap).coerceAtLeast(0.5f)
+                    // Slices sweep round from 12 o'clock; the progress is read here so frames only redraw.
+                    val sweep = (arc.sweepAngleDeg - gap).coerceAtLeast(0.5f) * reveal.value
                     val out = if (i == activeSelected) pop else 0f
                     val alpha = if (activeFocus != null && activeFocus != i) 0.25f else 1f
                     drawArc(
-                        colors[i].copy(alpha = alpha), arc.startAngleDeg + gap / 2f, sweep, false,
+                        colors[i].copy(alpha = alpha), arc.startAngleDeg * reveal.value + (-90f) * (1f - reveal.value) + gap / 2f, sweep, false,
                         topLeft = Offset(pad - out, pad - out), size = Size(base + 2 * out, base + 2 * out),
-                        style = Stroke(stroke),
+                        style = ring,
                     )
                 }
             }
@@ -142,8 +149,13 @@ fun DonutChart(
                 )
             }
         }
+        val largeFont = LocalDensity.current.fontScale > 1.3f
         segments.forEachIndexed { i, segment ->
             val dim = activeFocus != null && activeFocus != i
+            val textColor = MaterialTheme.colorScheme.onSurface.copy(alpha = if (dim) 0.5f else 1f)
+            val nameWeight = if (i == shown) FontWeight.Bold else FontWeight.Normal
+            val share = "${"%.1f".format(magnitudes[i] * 100.0 / total)}%"
+            val amount = formatMoneyCents(segment.spentCents, hideDecimals)
             Row(
                 Modifier.fillMaxWidth()
                     .combinedClickable(
@@ -157,20 +169,22 @@ fun DonutChart(
             ) {
                 Spacer(Modifier.size(10.dp).background(colors[i].copy(alpha = if (dim) 0.35f else 1f), CircleShape))
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    segment.name, maxLines = 1, modifier = Modifier.weight(1f),
-                    fontWeight = if (i == shown) FontWeight.Bold else FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (dim) 0.5f else 1f),
-                )
-                Text(
-                    "${"%.1f".format(magnitudes[i] * 100.0 / total)}%", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    formatMoneyCents(segment.spentCents, hideDecimals), fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (dim) 0.5f else 1f),
-                )
+                if (largeFont) {
+                    // At large font sizes the name gets a line of its own so it is never cut to a few letters.
+                    Column(Modifier.weight(1f)) {
+                        Text(segment.name, maxLines = 2, fontWeight = nameWeight, color = textColor)
+                        Row {
+                            Text(share, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f))
+                            Text(amount, fontWeight = FontWeight.SemiBold, color = textColor)
+                        }
+                    }
+                } else {
+                    Text(segment.name, maxLines = 1, modifier = Modifier.weight(1f), fontWeight = nameWeight, color = textColor)
+                    Text(share, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(10.dp))
+                    Text(amount, fontWeight = FontWeight.SemiBold, color = textColor)
+                }
             }
         }
     }

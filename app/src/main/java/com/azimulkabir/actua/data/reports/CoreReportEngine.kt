@@ -50,6 +50,9 @@ object CoreReportEngine {
         transferAccountByPayee: Map<String, String> = emptyMap(),
         payees: List<com.azimulkabir.actua.data.budget.model.ActualPayee> = emptyList(),
         firstDayOfWeek: Int = 0,
+        /** With [range], only widgets passing this filter are computed, over the viewer's range. */
+        widgetFilter: (DashboardWidgetRow) -> Boolean = { true },
+        range: com.azimulkabir.actua.model.ReportRange? = null,
     ): List<ReportDashboardPage> {
         val resolvedPages = if (pages.isEmpty()) listOf(DashboardPageRow("", "Dashboard")) else pages
         val context = RuleContext(
@@ -63,19 +66,26 @@ object CoreReportEngine {
         )
         val incomeCategories = groups.flatMap { it.categories }.filter { it.isIncome }.mapTo(mutableSetOf()) { it.id }
         val savedReportsById = savedReports.associateBy { it.id }
+        val earliestMonth = transactions.asSequence().filterNot { it.tombstone }.minOfOrNull { it.date }
+            ?.let { YearMonth.of(it / 10000, it / 100 % 100) }
         val savedShared = if (savedReports.isEmpty()) null else
             SavedReportEngine.Shared(transactions, accounts, groups, payees, firstDayOfWeek)
         return resolvedPages.map { page ->
             ReportDashboardPage(
                 page.id,
                 page.name.ifBlank { "Untitled" },
-                widgets(page.id.ifBlank { null }).map { row ->
+                widgets(page.id.ifBlank { null }).filter(widgetFilter).map { sourceRow ->
+                    val row = if (range == null) sourceRow else sourceRow.copy(
+                        metaJson = overrideTimeFrame(sourceRow.metaJson, range, today, earliestMonth),
+                    )
                     val savedReport = if (row.type == "custom-report") {
                         row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
                             ?.optString("id")?.takeIf(String::isNotBlank)?.let(savedReportsById::get)
                     } else null
                     if (savedReport != null && savedShared != null) {
                         SavedReportEngine.compute(savedReport, transactions, accounts, groups, today,
+                            view = range?.let { com.azimulkabir.actua.model.ReportViewFilter(datePreset = it.preset) }
+                                ?: com.azimulkabir.actua.model.ReportViewFilter(),
                             shared = savedShared, budgetMonth = budgetMonth)
                             .copy(id = row.id)
                     } else {
@@ -88,6 +98,24 @@ object CoreReportEngine {
                 },
             )
         }
+    }
+
+    /**
+     * Returns [metaJson] with its `timeFrame` replaced by [range], for a viewer-side recomputation.
+     * The stored widget row is never modified. "All time" starts at [earliestMonth] (or the current
+     * month when there are no transactions) so a `full` range doesn't reach back to 1970.
+     */
+    internal fun overrideTimeFrame(metaJson: String?, range: com.azimulkabir.actua.model.ReportRange, today: LocalDate, earliestMonth: YearMonth?): String {
+        val meta = metaJson?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject()
+        val current = YearMonth.from(today)
+        val frame = JSONObject()
+        when {
+            range.months != null -> frame.put("mode", "static")
+                .put("start", current.minusMonths(range.months.toLong() - 1).toString()).put("end", current.toString())
+            range == com.azimulkabir.actua.model.ReportRange.YEAR_TO_DATE -> frame.put("mode", "yearToDate")
+            else -> frame.put("mode", "full").put("start", (earliestMonth ?: current).toString()).put("end", current.toString())
+        }
+        return meta.put("timeFrame", frame).toString()
     }
 
     fun compute(
@@ -447,6 +475,18 @@ object CoreReportEngine {
         return if (sorted.size % 2 == 0) (sorted[mid - 1] + sorted[mid]) / 2 else sorted[mid]
     }
 
+    /** Percentiles a Monte Carlo point reports: 10th, 25th, 50th (median), 75th and 90th. */
+    private val MONTE_CARLO_PERCENTILES = listOf(0.10, 0.25, 0.50, 0.75, 0.90)
+
+    /** Linearly interpolated percentile of an already sorted array. */
+    internal fun percentileOfSorted(sorted: DoubleArray, fraction: Double): Long {
+        val position = (sorted.size - 1) * fraction
+        val lower = position.toInt()
+        val upper = kotlin.math.ceil(position).toInt().coerceAtMost(sorted.size - 1)
+        val weight = position - lower
+        return (sorted[lower] * (1 - weight) + sorted[upper] * weight).roundToLong()
+    }
+
     private fun mean(values: List<Double>): Double = if (values.isEmpty()) 0.0 else values.sum() / values.size
 
     private fun hampelFilteredMedian(values: List<Double>): Double {
@@ -486,16 +526,32 @@ object CoreReportEngine {
                 categoryMatches(it.categoryId, categoryConditions, conditions.second, context)
             }
         }
-        val points = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
-            .takeWhile { !it.isAfter(YearMonth.from(end)) }.map { month ->
-                val categories = selected(month)
-                ReportPoint(
-                    month.toString(),
-                    categories.sumOf { it.budgetedCents },
-                    categories.sumOf { -it.spentCents },
-                    tertiaryCents = categories.sumOf { it.availableCents },
-                )
-            }.toList()
+        val monthsInRange = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
+            .takeWhile { !it.isAfter(YearMonth.from(end)) }.toList()
+        // Upstream's `summarizeMonthCategories`: a negative balance on a category without rollover
+        // is zeroed at the month boundary and surfaces as the next month's overspending adjustment.
+        var overspendingFromPreviousMonth = 0L
+        val points = monthsInRange.map { month ->
+            val categories = selected(month)
+            val point = ReportPoint(
+                month.toString(),
+                categories.sumOf { it.budgetedCents },
+                categories.sumOf { -it.spentCents },
+                tertiaryCents = categories.sumOf { it.availableCents },
+                overspendingCents = overspendingFromPreviousMonth,
+                // The month's spending in the selected categories, for tapping the Spent bar. No query
+                // when nothing is selected: an empty category set would mean "every category".
+                drillDownQuery = categories.map { it.categoryId }.toSet().takeIf { it.isNotEmpty() }?.let { ids ->
+                    DrillDownQuery(
+                        startDate = month.atDay(1).toYmd(), endDate = month.atEndOfMonth().toYmd(),
+                        categoryIds = ids, direction = DrillDownDirection.EXPENSE, month = month.toString(),
+                    )
+                },
+            )
+            overspendingFromPreviousMonth = categories
+                .filter { it.availableCents < 0 && !it.carryoverEnabled }.sumOf { -it.availableCents }
+            point
+        }
         return ReportWidget(id, ReportWidgetKind.BUDGET_ANALYSIS, name, points = points,
             valueCents = points.sumOf { it.primaryCents }, comparisonCents = points.sumOf { it.secondaryCents },
             balanceCents = points.lastOrNull()?.tertiaryCents)
@@ -890,19 +946,14 @@ object CoreReportEngine {
         }
         val successRate = if (simulationCount > 0) survived.toDouble() / simulationCount * 100.0 else 0.0
 
-        fun percentile(values: DoubleArray, fraction: Double): Long {
-            val sorted = values.sortedArray()
-            val position = (sorted.size - 1) * fraction
-            val lower = position.toInt()
-            val upper = kotlin.math.ceil(position).toInt().coerceAtMost(sorted.size - 1)
-            val weight = position - lower
-            return (sorted[lower] * (1 - weight) + sorted[upper] * weight).roundToLong()
-        }
         val points = (0..horizonYears).map { year ->
+            val sortedYear = balancesByYear[year].sortedArray()
+            val bands = MONTE_CARLO_PERCENTILES.map { percentileOfSorted(sortedYear, it) }
             ReportPoint(
                 YearMonth.from(today).plusYears(year.toLong()).toString(),
-                percentile(balancesByYear[year], 0.5),
-                percentile(balancesByYear[year], 0.1),
+                bands[2],
+                bands[0],
+                percentileCents = bands,
             )
         }
         return ReportWidget(
