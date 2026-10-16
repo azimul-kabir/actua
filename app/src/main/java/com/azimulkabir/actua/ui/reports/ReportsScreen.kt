@@ -80,9 +80,11 @@ import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaFormRow
-import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaHeroSize
+import com.azimulkabir.actua.ui.reports.charts.ChartCard
+import com.azimulkabir.actua.ui.reports.charts.ChartTrend
+import com.azimulkabir.actua.ui.reports.charts.ChartTrendDirection
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.PillShape
 import com.azimulkabir.actua.ui.theme.Spacing
@@ -647,6 +649,62 @@ private fun DashboardPicker(
     }
 }
 
+internal data class WidgetHeaderData(
+    val headlineValue: String? = null,
+    val caption: String? = null,
+    val trend: ChartTrend? = null,
+)
+
+internal fun calculateWidgetHeader(widget: ReportWidget, hideDecimals: Boolean): WidgetHeaderData {
+    return when (widget.kind) {
+        ReportWidgetKind.NET_WORTH -> WidgetHeaderData(
+            headlineValue = formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
+        )
+        ReportWidgetKind.AGE_OF_MONEY -> {
+            val headlineValue = widget.valueCents?.let { "$it days" } ?: "No age available"
+            val trend = if (widget.points.size >= 2) {
+                val latest = widget.points.last().primaryCents
+                val previous = widget.points[widget.points.size - 2].primaryCents
+                when {
+                    latest > previous -> ChartTrend(ChartTrendDirection.UP, isPositiveGood = true)
+                    latest < previous -> ChartTrend(ChartTrendDirection.DOWN, isPositiveGood = true)
+                    else -> ChartTrend(ChartTrendDirection.NEUTRAL, isPositiveGood = true)
+                }
+            } else null
+            WidgetHeaderData(
+                headlineValue = headlineValue,
+                trend = trend,
+            )
+        }
+        ReportWidgetKind.CROSSOVER -> {
+            val months = widget.valueCents
+            val headlineValue = if (months == null) "Not reached" else "${"%.1f".format(months / 12.0)} years"
+            WidgetHeaderData(
+                headlineValue = headlineValue,
+                caption = "Years to retire",
+            )
+        }
+        ReportWidgetKind.BALANCE_FORECAST -> {
+            val headlineValue = formatMoneyCents(widget.valueCents ?: 0, hideDecimals)
+            val caption = if (widget.comparisonCents != null && widget.comparisonCents != widget.valueCents) {
+                "Low: ${formatMoneyCents(widget.comparisonCents, hideDecimals)}"
+            } else null
+            WidgetHeaderData(
+                headlineValue = headlineValue,
+                caption = caption,
+            )
+        }
+        ReportWidgetKind.MONTE_CARLO -> {
+            val headlineValue = "${"%.1f".format(widget.percentage ?: 0.0)}%"
+            WidgetHeaderData(
+                headlineValue = headlineValue,
+                caption = widget.subtitle,
+            )
+        }
+        else -> WidgetHeaderData()
+    }
+}
+
 @Composable
 private fun WidgetCard(
     widget: ReportWidget,
@@ -655,64 +713,50 @@ private fun WidgetCard(
     onShowSummaryChange: (Boolean) -> Unit,
     onDrillDown: (ReportCategory) -> Unit,
 ) {
-    Column {
-        ActuaGroupLabel(widget.name, Modifier.semantics { heading() })
-        ActuaFormCard {
-            Column(Modifier.fillMaxWidth().padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                when (widget.kind) {
-                    ReportWidgetKind.SUMMARY -> ActuaHeroAmount(
-                        amount = widget.percentage?.let { "${"%.2f".format(it)}%" }
-                            ?: formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
-                        size = ActuaHeroSize.Medium,
-                    )
-                    ReportWidgetKind.NET_WORTH -> {
-                        ActuaHeroAmount(amount = formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
-                            size = ActuaHeroSize.Medium)
-                        TrendChart(widget.points, hideDecimals, onDrillDown = onDrillDown)
-                        PointLabels(widget.points, hideDecimals)
-                    }
-                    ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals, onDrillDown)
-                    ReportWidgetKind.INCOME_EXPENSE -> IncomeExpense(widget, hideDecimals, onDrillDown)
-                    ReportWidgetKind.SPENDING -> Spending(widget, hideDecimals, onDrillDown)
-                    ReportWidgetKind.MARKDOWN -> MarkdownWidget(widget.markdown.orEmpty(), widget.textAlign)
-                    ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
-                    ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
-                    ReportWidgetKind.CUSTOM_REPORT -> {
-                        CustomReport(widget, hideDecimals, onDrillDown)
-                        widget.summary?.let { CustomReportSummary(it, hideDecimals, showSummary, onShowSummaryChange) }
-                    }
-                    ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
-                    ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
-                    ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals)
-                    ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals, onDrillDown = onDrillDown)
-                    ReportWidgetKind.BALANCE_FORECAST -> {
-                        Text("Ending: ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
-                            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        if (widget.comparisonCents != null && widget.comparisonCents != widget.valueCents) {
-                            Text(
-                                "Low: ${formatMoneyCents(widget.comparisonCents, hideDecimals)}",
-                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        TrendChart(widget.points, hideDecimals, onDrillDown = onDrillDown)
-                        PointLabels(widget.points, hideDecimals)
-                        widget.subtitle?.let {
-                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    ReportWidgetKind.MONTE_CARLO -> {
-                        Text("${"%.1f".format(widget.percentage ?: 0.0)}%",
-                            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        Text(
-                            "Success rate ${widget.subtitle.orEmpty()}",
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        ComparativeTrendChart(widget.points, "Median", "Conservative", hideDecimals)
-                    }
-                    ReportWidgetKind.MISSING_REPORT -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    ReportWidgetKind.UNSUPPORTED -> Unit
+    val header = calculateWidgetHeader(widget, hideDecimals)
+
+    ChartCard(
+        title = widget.name,
+        headlineValue = header.headlineValue,
+        caption = header.caption,
+        trend = header.trend,
+    ) {
+        when (widget.kind) {
+            ReportWidgetKind.SUMMARY -> ActuaHeroAmount(
+                amount = widget.percentage?.let { "${"%.2f".format(it)}%" }
+                    ?: formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
+                size = ActuaHeroSize.Medium,
+            )
+            ReportWidgetKind.NET_WORTH -> {
+                TrendChart(widget.points, hideDecimals, onDrillDown = onDrillDown)
+                PointLabels(widget.points, hideDecimals)
+            }
+            ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals, onDrillDown)
+            ReportWidgetKind.INCOME_EXPENSE -> IncomeExpense(widget, hideDecimals, onDrillDown)
+            ReportWidgetKind.SPENDING -> Spending(widget, hideDecimals, onDrillDown)
+            ReportWidgetKind.MARKDOWN -> MarkdownWidget(widget.markdown.orEmpty(), widget.textAlign)
+            ReportWidgetKind.AGE_OF_MONEY -> AgeOfMoney(widget)
+            ReportWidgetKind.FORMULA -> Formula(widget, hideDecimals)
+            ReportWidgetKind.CUSTOM_REPORT -> {
+                CustomReport(widget, hideDecimals, onDrillDown)
+                widget.summary?.let { CustomReportSummary(it, hideDecimals, showSummary, onShowSummaryChange) }
+            }
+            ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
+            ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
+            ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals)
+            ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals, onDrillDown = onDrillDown)
+            ReportWidgetKind.BALANCE_FORECAST -> {
+                TrendChart(widget.points, hideDecimals, onDrillDown = onDrillDown)
+                PointLabels(widget.points, hideDecimals)
+                widget.subtitle?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            ReportWidgetKind.MONTE_CARLO -> {
+                ComparativeTrendChart(widget.points, "Median", "Conservative", hideDecimals)
+            }
+            ReportWidgetKind.MISSING_REPORT -> Text(widget.markdown.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ReportWidgetKind.UNSUPPORTED -> Unit
         }
     }
 }
@@ -949,10 +993,6 @@ private fun Spending(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (
 
 @Composable
 private fun AgeOfMoney(widget: ReportWidget) {
-    val days = widget.valueCents
-    Text(if (days == null) "No age available" else "$days days",
-        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary)
     TrendChart(widget.points, isMoney = false)
     if (widget.points.isNotEmpty()) Row(Modifier.fillMaxWidth()) {
         // Daily and weekly periods are dates, monthly ones months.
@@ -1363,12 +1403,6 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
 
 @Composable
 private fun Crossover(widget: ReportWidget, hideDecimals: Boolean) {
-    val months = widget.valueCents
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-        Text(if (months == null) "Not reached" else "${"%.1f".format(months / 12.0)} years",
-            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-        Text("Years to retire", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
     ComparativeTrendChart(widget.points, "Investment income", "Monthly expenses", hideDecimals)
     Text("Investment income vs ${formatMoneyCents(widget.comparisonCents ?: 0, hideDecimals)} monthly expenses",
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
