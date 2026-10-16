@@ -84,6 +84,13 @@ import com.azimulkabir.actua.ui.components.ActuaHeroAmount
 import com.azimulkabir.actua.ui.components.ActuaHeroSize
 import com.azimulkabir.actua.ui.reports.charts.ChartCard
 import com.azimulkabir.actua.ui.reports.charts.ChartTrend
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.azimulkabir.actua.ui.reports.charts.calendarBarFraction
+import com.azimulkabir.actua.ui.reports.charts.calendarSwipeStep
+import com.azimulkabir.actua.ui.reports.charts.clampMonthIndex
 import com.azimulkabir.actua.ui.reports.charts.DonutChart
 import com.azimulkabir.actua.ui.reports.charts.LineChart
 import com.azimulkabir.actua.ui.reports.charts.LineChartSeries
@@ -1062,6 +1069,7 @@ private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (ReportCategory) -> Unit) {
     val dated = remember(widget.points) {
@@ -1071,6 +1079,7 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
         Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
+    val palette = rememberChartPalette()
     val months = remember(dated) { dated.map { YearMonth.from(it.first) }.distinct().sorted() }
     var monthIndex by rememberSaveable(months) { mutableStateOf(months.lastIndex) }
     val month = months[monthIndex.coerceIn(months.indices)]
@@ -1080,23 +1089,34 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
     val monthIncome = values.values.sumOf { it.primaryCents }
     val monthExpense = values.values.sumOf { it.secondaryCents }
     var selectedDay by rememberSaveable(month) { mutableStateOf<Int?>(null) }
+    var breakdownDay by rememberSaveable(month) { mutableStateOf<Int?>(null) }
+    val today = remember { LocalDate.now() }
+    fun stepMonth(step: Int) {
+        monthIndex = clampMonthIndex(monthIndex, step, months.lastIndex)
+        selectedDay = null
+        breakdownDay = null
+    }
+    val monthName = remember(month) { month.month.name.lowercase().replaceFirstChar(Char::uppercase) }
+    fun dayCategory(day: Int, point: ReportPoint) = ReportCategory(
+        "$monthName $day", point.primaryCents - point.secondaryCents, point.transactionIds,
+        incomeCents = point.primaryCents, expenseCents = point.secondaryCents, drillDownQuery = point.drillDownQuery,
+    )
 
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { monthIndex--; selectedDay = null }, enabled = monthIndex > 0) {
+        IconButton(onClick = { stepMonth(-1) }, enabled = monthIndex > 0) {
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = "Previous month")
         }
-        Text(month.month.name.lowercase().replaceFirstChar(Char::uppercase) + " ${month.year}",
+        Text(monthName + " ${month.year}",
             fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-        IconButton(onClick = { monthIndex++; selectedDay = null }, enabled = monthIndex < months.lastIndex) {
+        IconButton(onClick = { stepMonth(1) }, enabled = monthIndex < months.lastIndex) {
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = "Next month")
         }
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-        Text("▲ ${formatMoneyCents(monthIncome, hideDecimals)}", color = MaterialTheme.colorScheme.primary)
+        Text("▲ ${formatMoneyCents(monthIncome, hideDecimals)}", color = palette.semantic.income, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.width(12.dp))
-        Text("▼ ${formatMoneyCents(monthExpense, hideDecimals)}", color = MaterialTheme.colorScheme.error)
+        Text("▼ ${formatMoneyCents(monthExpense, hideDecimals)}", color = palette.semantic.expense, fontWeight = FontWeight.SemiBold)
     }
-    val monthName = remember(month) { month.month.name.lowercase().replaceFirstChar(Char::uppercase) }
     selectedDay?.let { day ->
         val point = values[day]
         val dayLabel = "$monthName $day"
@@ -1105,8 +1125,7 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
             modifier = Modifier.clickable(
                 enabled = point != null && (point.drillDownQuery != null || point.transactionIds.isNotEmpty()),
                 onClickLabel = "see transactions",
-            ) { point?.let { onDrillDown(ReportCategory(dayLabel, it.primaryCents - it.secondaryCents, it.transactionIds,
-                incomeCents = it.primaryCents, expenseCents = it.secondaryCents, drillDownQuery = it.drillDownQuery)) } },
+            ) { point?.let { onDrillDown(dayCategory(day, it)) } },
         ) {
             Text(
                 "$dayLabel · In ${formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)} · Out ${formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)}",
@@ -1115,6 +1134,15 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
             )
         }
     }
+    breakdownDay?.let { day ->
+        val point = values[day]
+        if (point != null) DayBreakdown(
+            title = "$monthName $day", point = point, hideDecimals = hideDecimals,
+            incomeColor = palette.semantic.income, expenseColor = palette.semantic.expense,
+            onViewTransactions = { onDrillDown(dayCategory(day, point)) },
+            onDismiss = { breakdownDay = null },
+        )
+    }
     Row(Modifier.fillMaxWidth()) {
         val weekDays = listOf("S", "M", "T", "W", "T", "F", "S")
         (0 until 7).map { weekDays[(it + widget.weekStart) % 7] }.forEach { day ->
@@ -1122,64 +1150,128 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
                 modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
-    val dayMax = values.values.maxOfOrNull { max(it.primaryCents, it.secondaryCents) }?.coerceAtLeast(1) ?: 1
+    val dayMax = values.values.maxOfOrNull { max(it.primaryCents, it.secondaryCents) } ?: 0L
     val leading = (month.atDay(1).dayOfWeek.value % 7 - widget.weekStart + 7) % 7
     val cells = List(leading) { null } + (1..month.lengthOfMonth()).map { it }
-    cells.chunked(7).forEach { week ->
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            (week + List(7 - week.size) { null }).forEach { day ->
-                val point = day?.let(values::get)
-                val hasTransactions = point != null && (point.drillDownQuery != null || point.transactionIds.isNotEmpty())
-                val inFormatted = formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)
-                val outFormatted = formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)
-                val dayContentDescription = if (day != null) "$monthName $day, in $inFormatted, out $outFormatted" else null
-                val clickModifier = if (day != null) {
-                    val dayLabel = "$monthName $day"
-                    Modifier.clickable(
-                        onClickLabel = if (hasTransactions) "see transactions" else null,
-                    ) {
-                        if (point != null && (point.drillDownQuery != null || point.transactionIds.isNotEmpty())) {
-                            selectedDay = day
-                            onDrillDown(ReportCategory(dayLabel, point.primaryCents - point.secondaryCents, point.transactionIds,
-                                incomeCents = point.primaryCents, expenseCents = point.secondaryCents, drillDownQuery = point.drillDownQuery))
-                        } else {
-                            selectedDay = day.takeIf { it != selectedDay }
+    val swipeThreshold = with(androidx.compose.ui.platform.LocalDensity.current) { 64.dp.toPx() }
+    Column(
+        Modifier.fillMaxWidth()
+            .semantics { contentDescription = "Calendar for $monthName ${month.year}. Swipe left or right to change month." }
+            .pointerInput(months) {
+                var total = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { total = 0f },
+                    onDragEnd = { stepMonth(calendarSwipeStep(total, swipeThreshold)) },
+                    onDragCancel = { total = 0f },
+                ) { _, delta -> total += delta }
+            },
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        cells.chunked(7).forEach { week ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                (week + List(7 - week.size) { null }).forEach { day ->
+                    val point = day?.let(values::get)
+                    val hasTransactions = point != null && (point.drillDownQuery != null || point.transactionIds.isNotEmpty())
+                    val inFormatted = formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)
+                    val outFormatted = formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)
+                    val isToday = day != null && month.atDay(day) == today
+                    val dayContentDescription = if (day != null) {
+                        "$monthName $day, in $inFormatted, out $outFormatted" + if (isToday) ", today" else ""
+                    } else null
+                    val clickModifier = if (day != null) {
+                        Modifier.combinedClickable(
+                            onClickLabel = if (hasTransactions) "see transactions" else null,
+                            onLongClickLabel = if (point != null) "Show breakdown" else null,
+                            onLongClick = { if (point != null) { selectedDay = day; breakdownDay = day } },
+                        ) {
+                            if (point != null && hasTransactions) {
+                                selectedDay = day
+                                onDrillDown(dayCategory(day, point))
+                            } else {
+                                selectedDay = day.takeIf { it != selectedDay }
+                            }
                         }
-                    }
-                } else {
-                    Modifier
-                }
-                val semanticsModifier = if (dayContentDescription != null) {
-                    Modifier.semantics {
-                        contentDescription = dayContentDescription
-                    }
-                } else {
-                    Modifier
-                }
-                Column(
-                    Modifier.weight(1f).height(38.dp)
-                        .background(
-                            if (day != null && selectedDay == day) MaterialTheme.colorScheme.secondaryContainer
-                            else MaterialTheme.colorScheme.surfaceContainerHigh,
-                            MaterialTheme.shapes.small,
+                    } else Modifier
+                    val semanticsModifier = if (dayContentDescription != null) {
+                        Modifier.semantics { contentDescription = dayContentDescription }
+                    } else Modifier
+                    Column(
+                        Modifier.weight(1f).height(46.dp)
+                            .background(
+                                if (day != null && selectedDay == day) MaterialTheme.colorScheme.secondaryContainer
+                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                MaterialTheme.shapes.small,
+                            )
+                            .then(if (isToday) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small) else Modifier)
+                            .then(clickModifier)
+                            .then(semanticsModifier)
+                            .padding(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            day?.toString().orEmpty(), style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                         )
-                        .then(clickModifier)
-                        .then(semanticsModifier)
-                        .padding(4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(day?.toString().orEmpty(), style = MaterialTheme.typography.labelSmall)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val incomeFraction = ((point?.primaryCents ?: 0).toFloat() / dayMax).coerceIn(0f, 1f)
-                        val expenseFraction = ((point?.secondaryCents ?: 0).toFloat() / dayMax).coerceIn(0f, 1f)
-                        if (incomeFraction > 0f) Spacer(Modifier.weight(incomeFraction).height(3.dp)
-                            .background(MaterialTheme.colorScheme.primary, PillShape))
-                        if (expenseFraction > 0f) Spacer(Modifier.weight(expenseFraction).height(3.dp)
-                            .background(MaterialTheme.colorScheme.error, PillShape))
-                        if (incomeFraction == 0f && expenseFraction == 0f) Spacer(Modifier.weight(1f))
+                        Row(
+                            Modifier.fillMaxWidth().weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
+                            verticalAlignment = Alignment.Bottom,
+                        ) {
+                            val incomeFraction = calendarBarFraction(point?.primaryCents ?: 0, dayMax)
+                            val expenseFraction = calendarBarFraction(point?.secondaryCents ?: 0, dayMax)
+                            if (incomeFraction > 0f) Spacer(Modifier.width(6.dp).fillMaxHeight(incomeFraction)
+                                .background(palette.semantic.income, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)))
+                            if (expenseFraction > 0f) Spacer(Modifier.width(6.dp).fillMaxHeight(expenseFraction)
+                                .background(palette.semantic.expense, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)))
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DayBreakdown(
+    title: String, point: ReportPoint, hideDecimals: Boolean,
+    incomeColor: androidx.compose.ui.graphics.Color, expenseColor: androidx.compose.ui.graphics.Color,
+    onViewTransactions: () -> Unit, onDismiss: () -> Unit,
+) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("$title breakdown", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            val incomes = point.segments.mapNotNull { c -> c.incomeCents?.takeIf { it > 0 }?.let { c.name to it } }
+            val expenses = point.segments.mapNotNull { c -> c.expenseCents?.takeIf { it > 0 }?.let { c.name to it } }
+            if (incomes.isNotEmpty()) breakdownSection("Income", incomeColor, point.primaryCents, incomes, hideDecimals)
+            if (expenses.isNotEmpty()) breakdownSection("Expense", expenseColor, point.secondaryCents, expenses, hideDecimals)
+            if (point.segments.isEmpty()) Text(
+                "In ${formatMoneyCents(point.primaryCents, hideDecimals)} · Out ${formatMoneyCents(point.secondaryCents, hideDecimals)}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Close") }
+                androidx.compose.material3.TextButton(
+                    onClick = onViewTransactions,
+                    enabled = point.drillDownQuery != null || point.transactionIds.isNotEmpty(),
+                ) { Text("View transactions") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun breakdownSection(
+    label: String, color: androidx.compose.ui.graphics.Color, total: Long,
+    amounts: List<Pair<String, Long>>, hideDecimals: Boolean,
+) {
+    Row(Modifier.fillMaxWidth()) {
+        Text(label, color = color, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Text(formatMoneyCents(total, hideDecimals), color = color, fontWeight = FontWeight.SemiBold)
+    }
+    amounts.forEach { (name, cents) ->
+        Row(Modifier.fillMaxWidth().padding(start = 8.dp)) {
+            Text(name, style = MaterialTheme.typography.bodySmall, maxLines = 1, modifier = Modifier.weight(1f))
+            Text(formatMoneyCents(cents, hideDecimals), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

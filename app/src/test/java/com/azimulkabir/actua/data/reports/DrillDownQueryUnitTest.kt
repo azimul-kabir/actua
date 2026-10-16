@@ -193,6 +193,27 @@ class DrillDownQueryUnitTest {
     }
 
     @Test
+    fun `calendar day carries a per category breakdown that sums to the day totals`() {
+        val transactions = listOf(
+            tx("1", "chk", 20260605, 100_000, "salary"),
+            tx("2", "chk", 20260605, -30_000, "groceries"),
+            tx("3", "chk", 20260605, -5_000, "groceries"),
+            tx("4", "chk", 20260605, -20_000, "rent"),
+        )
+        val widget = CoreReportEngine.compute(
+            DashboardWidgetRow("w", "calendar-card", """{"timeFrame":{"mode":"static","start":"2026-06","end":"2026-06"}}"""),
+            transactions, context, incomeCategoryIds,
+        )
+        val day = widget.points.single()
+        assertEquals(100_000L, day.primaryCents)
+        assertEquals(55_000L, day.secondaryCents)
+        assertEquals(day.primaryCents, day.segments.sumOf { it.incomeCents ?: 0L })
+        assertEquals(day.secondaryCents, day.segments.sumOf { it.expenseCents ?: 0L })
+        assertEquals(35_000L, day.segments.first { it.name == "Groceries" }.expenseCents)
+        assertEquals(setOf("Salary", "Groceries", "Rent"), day.segments.map { it.name }.toSet())
+    }
+
+    @Test
     fun `net worth report drill down query filters by cumulative date and accounts`() {
         val transactions = listOf(
             tx("1", "chk", 20260401, 100_000),

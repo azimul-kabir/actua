@@ -149,7 +149,7 @@ object CoreReportEngine {
                     .filter { it.date in monthStart.toYmd()..monthEnd.toYmd() }
                     .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }
                     .toList()
-                calendar(row.id, name, calendarFiltered).copy(weekStart = firstDayOfWeek)
+                calendar(row.id, name, calendarFiltered, context.categoryNames).copy(weekStart = firstDayOfWeek)
             }
             "crossover-card" -> crossover(row.id, name, meta, transactions, context, incomeCategoryIds,
                 accountBalances, today)
@@ -268,16 +268,29 @@ object CoreReportEngine {
             markdown = if (value == null) "This formula uses functions Actua cannot evaluate." else null)
     }
 
-    private fun calendar(id: String, name: String, transactions: List<ActualTransaction>): ReportWidget {
+    private fun calendar(
+        id: String, name: String, transactions: List<ActualTransaction>,
+        categoryNames: Map<String, String> = emptyMap(),
+    ): ReportWidget {
         val points = transactions.groupBy { it.localDate() }.toSortedMap().map { (date, rows) ->
             val query = DrillDownQuery(startDate = date.toYmd(), endDate = date.toYmd())
+            // Per-category split of the day for the long-press breakdown; totals are unchanged.
+            val segments = rows.groupBy { it.categoryId?.let(categoryNames::get)?.ifBlank { null } ?: "Uncategorized" }
+                .map { (category, group) ->
+                    val income = group.filter { it.amountCents > 0 }.sumOf { it.amountCents }
+                    val expense = -group.filter { it.amountCents < 0 }.sumOf { it.amountCents }
+                    ReportCategory(category, income - expense, group.map { it.id }, incomeCents = income, expenseCents = expense)
+                }
+                .sortedByDescending { it.incomeCents.orZero() + it.expenseCents.orZero() }
             ReportPoint(date.toString(), rows.filter { it.amountCents > 0 }.sumOf { it.amountCents },
                 -rows.filter { it.amountCents < 0 }.sumOf { it.amountCents }, rows.map { it.id },
-                drillDownQuery = query)
+                segments = segments, drillDownQuery = query)
         }
         return ReportWidget(id, ReportWidgetKind.CALENDAR, name,
             valueCents = points.sumOf { it.primaryCents }, comparisonCents = points.sumOf { it.secondaryCents }, points = points)
     }
+
+    private fun Long?.orZero() = this ?: 0L
 
     /**
      * Ported from Actual's `crossover-spreadsheet.ts` (`recalculate`): the historical window builds
