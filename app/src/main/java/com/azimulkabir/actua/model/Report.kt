@@ -11,6 +11,10 @@ data class ReportCategory(
     val spentCents: Long,
     /** Ids of the transactions that make up [spentCents], for read-only drill-down. */
     val transactionIds: List<String> = emptyList(),
+    /** Optional income total for widgets (like Calendar and Cash Flow) that break down ins and outs. */
+    val incomeCents: Long? = null,
+    /** Optional expense total for widgets (like Calendar and Cash Flow) that break down ins and outs. */
+    val expenseCents: Long? = null,
 )
 
 data class ReportPoint(

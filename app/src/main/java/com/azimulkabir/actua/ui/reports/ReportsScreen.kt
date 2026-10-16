@@ -227,8 +227,12 @@ private fun DrillDownSheet(
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
             Text(segment.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("$reportName · ${segment.transactionIds.size} transactions · " +
-                formatMoneyCents(segment.spentCents, hideDecimals),
+            val breakdown = if (segment.incomeCents != null && segment.expenseCents != null) {
+                "In ${formatMoneyCents(segment.incomeCents, hideDecimals)} · Out ${formatMoneyCents(segment.expenseCents, hideDecimals)} (${formatMoneyCents(segment.spentCents, hideDecimals)} net)"
+            } else {
+                formatMoneyCents(segment.spentCents, hideDecimals)
+            }
+            Text("$reportName · ${segment.transactionIds.size} transactions · $breakdown",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (segment.transactionIds.size > limit) Text("Showing the first $limit.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -608,7 +612,8 @@ private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean, onDrillDo
         val point = points[it]
         Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small,
             modifier = Modifier.clickable(enabled = point.transactionIds.isNotEmpty(), onClickLabel = "View transactions") {
-                onDrillDown(ReportCategory(point.period.take(7), point.primaryCents - point.secondaryCents, point.transactionIds))
+                onDrillDown(ReportCategory(point.period.take(7), point.primaryCents - point.secondaryCents, point.transactionIds,
+                    incomeCents = point.primaryCents, expenseCents = point.secondaryCents))
             }) {
             Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                 Text(point.period.take(7), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
@@ -1044,7 +1049,8 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
             modifier = Modifier.clickable(
                 enabled = point?.transactionIds?.isNotEmpty() == true,
                 onClickLabel = "see transactions",
-            ) { point?.let { onDrillDown(ReportCategory(dayLabel, it.primaryCents - it.secondaryCents, it.transactionIds)) } },
+            ) { point?.let { onDrillDown(ReportCategory(dayLabel, it.primaryCents - it.secondaryCents, it.transactionIds,
+                incomeCents = it.primaryCents, expenseCents = it.secondaryCents)) } },
         ) {
             Text(
                 "$dayLabel · In ${formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)} · Out ${formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)}",
@@ -1078,7 +1084,8 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
                     ) {
                         if (point != null && point.transactionIds.isNotEmpty()) {
                             selectedDay = day
-                            onDrillDown(ReportCategory(dayLabel, point.primaryCents - point.secondaryCents, point.transactionIds))
+                            onDrillDown(ReportCategory(dayLabel, point.primaryCents - point.secondaryCents, point.transactionIds,
+                                incomeCents = point.primaryCents, expenseCents = point.secondaryCents))
                         } else {
                             selectedDay = day.takeIf { it != selectedDay }
                         }

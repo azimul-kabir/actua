@@ -162,6 +162,8 @@ class ReportsDrillDownTest {
         assertEquals(listOf("tx-cal-1", "tx-cal-2"), requestedIds)
         compose.onNodeWithText("Store").assertExists()
         compose.onNodeWithText("2 transactions", substring = true).assertExists()
+        compose.onNodeWithText("In", substring = true).assertExists()
+        compose.onNodeWithText("Out", substring = true).assertExists()
     }
 
     @Test fun tappingACalendarDayWithoutTransactionsDoesNotOpenTransactions() {
