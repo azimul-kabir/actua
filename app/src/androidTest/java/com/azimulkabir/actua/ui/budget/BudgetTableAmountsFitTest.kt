@@ -311,15 +311,16 @@ class BudgetTableAmountsFitTest {
     private fun overviewLabelTop(label: String): Float =
         compose.onAllNodesWithText(label, useUnmergedTree = true).fetchSemanticsNodes().minOf { it.boundsInRoot.top }
 
-    private fun assertOverviewLabelsShareOneLine(widthDp: Int) {
-        tableWidth = widthDp.dp
+    /**
+     * In the columns layout (always the case at this width) To budget, Budgeted, Spent and Balance
+     * share one row. When a narrow table stacks, To budget deliberately gets its own line, so the
+     * property is tested where the layout can't depend on a device's exact text widths.
+     */
+    @Test fun overviewLabelsShareOneLineInTheColumnsLayout() {
+        tableWidth = 600.dp
         setTable(listOf(essentials), demoOverview, fontScale = 1f)
         // To budget is a button (48dp minimum height); it used to push its label above the others.
         val tops = listOf("To budget", "Budgeted", "Spent", "Balance").map(::overviewLabelTop)
         tops.forEach { assertEquals("labels are on different lines: $tops", tops.first(), it, 1f) }
     }
-
-    @Test fun overviewLabelsShareOneLineOn360dp() = assertOverviewLabelsShareOneLine(360)
-
-    @Test fun overviewLabelsShareOneLineOn411dp() = assertOverviewLabelsShareOneLine(411)
 }
