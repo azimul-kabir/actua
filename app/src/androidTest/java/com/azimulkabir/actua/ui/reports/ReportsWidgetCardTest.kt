@@ -23,6 +23,7 @@ import com.azimulkabir.actua.model.ReportPoint
 import com.azimulkabir.actua.model.ReportSnapshot
 import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
+import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.reports.charts.ChartCard
 import com.azimulkabir.actua.ui.reports.charts.ChartTrend
 import com.azimulkabir.actua.ui.reports.charts.ChartTrendDirection
@@ -96,7 +97,7 @@ class ReportsWidgetCardTest {
             .assertIsDisplayed()
 
         // Headline value on card
-        compose.onNodeWithText("$120,000.00").assertIsDisplayed()
+        compose.onNodeWithText(formatMoneyCents(120_000_00L, false)).assertIsDisplayed()
     }
 
     @Test
@@ -106,7 +107,7 @@ class ReportsWidgetCardTest {
             kind = ReportWidgetKind.AGE_OF_MONEY,
             name = "Age of Money",
             valueCents = 45L,
-            points = listOf(ReportPoint("2026-01", 30L), ReportPoint("2026-02", 45L)),
+            points = listOf(ReportPoint("2026-01", 20L), ReportPoint("2026-02", 30L)),
         )
         val snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(ReportDashboardPage("p", "Main", listOf(widget))))
 
@@ -165,8 +166,8 @@ class ReportsWidgetCardTest {
 
         compose.onNode(hasText("Balance Forecast") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
             .assertIsDisplayed()
-        compose.onNodeWithText("$15,000.00").assertIsDisplayed()
-        compose.onNodeWithText("Low: $4,500.00").assertIsDisplayed()
+        compose.onNodeWithText(formatMoneyCents(15_000_00L, false)).assertIsDisplayed()
+        compose.onNodeWithText("Low: ${formatMoneyCents(4_500_00L, false)}").assertIsDisplayed()
     }
 
     @Test
