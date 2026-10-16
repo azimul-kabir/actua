@@ -186,7 +186,8 @@ fun LineChart(
 
             val visibleLabels = remember(labels, plotW, textMeasurer, labelStyle) {
                 val sample = textMeasurer.measure(labels.maxBy { it.length }, labelStyle).size.width.toFloat()
-                thinMonthLabels(labels, plotW, sample, minSpacingPx = pad).map { it to textMeasurer.measure(labels[it], labelStyle) }
+                // Labels are centred on points, so the first and last clamp inward: leave a label width spare.
+                thinMonthLabels(labels, plotW - 2 * sample, sample, minSpacingPx = pad).map { it to textMeasurer.measure(labels[it], labelStyle) }
             }
             val forecastText = remember(forecastLabel, textMeasurer, labelStyle) { textMeasurer.measure(forecastLabel, labelStyle) }
             val lowText = remember(lowValue, lowLabel, textMeasurer, labelStyle) {
