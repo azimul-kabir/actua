@@ -9,6 +9,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Drill-down transaction sheet in Reports with search, sorting, full register viewing and tap-to-edit ([#1125](https://github.com/azimul-kabir/actua/pull/1125))
 - Rules can now split a transaction across categories with fixed, percent or remainder amounts ([#1122](https://github.com/azimul-kabir/actua/pull/1122))
 
+### Changed
+
+- Reports dashboard widgets move their title and headline metrics into unified card headers ([#1126](https://github.com/azimul-kabir/actua/pull/1126))
+
 ### Fixed
 
 - Tapping a day in the Calendar report opens its transactions directly instead of only selecting it ([#1123](https://github.com/azimul-kabir/actua/pull/1123))

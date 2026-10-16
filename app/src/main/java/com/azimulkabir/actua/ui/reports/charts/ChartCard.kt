@@ -1,12 +1,12 @@
 package com.azimulkabir.actua.ui.reports.charts
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.danger
@@ -41,7 +42,7 @@ enum class ChartTrendDirection {
  */
 data class ChartTrend(
     val direction: ChartTrendDirection,
-    val label: String,
+    val label: String = "",
     val isPositiveGood: Boolean = true,
 )
 
@@ -73,7 +74,7 @@ fun ChartCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
                 Text(
                     text = title,
@@ -84,53 +85,58 @@ fun ChartCard(
                         .weight(1f, fill = false)
                         .semantics { heading() },
                 )
-                if (onExpand != null) {
-                    IconButton(
-                        onClick = onExpand,
-                        modifier = Modifier.size(36.dp),
+                if (headlineValue != null || trend != null || !caption.isNullOrBlank() || onExpand != null) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier
+                            .padding(start = Spacing.sm)
+                            .widthIn(max = 200.dp),
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.OpenInFull,
-                            contentDescription = "Expand chart",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp),
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            if (headlineValue != null) {
+                                Text(
+                                    text = headlineValue,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.End,
+                                )
+                            }
+                            if (trend != null) {
+                                ChartTrendBadge(trend)
+                            }
+                            if (onExpand != null) {
+                                IconButton(
+                                    onClick = onExpand,
+                                    modifier = Modifier.size(32.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.OpenInFull,
+                                        contentDescription = "Expand chart",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                            }
+                        }
+                        if (!caption.isNullOrBlank()) {
+                            Text(
+                                text = caption,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.End,
+                            )
+                        }
                     }
                 }
             }
 
-            if (headlineValue != null || trend != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    if (headlineValue != null) {
-                        Text(
-                            text = headlineValue,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                    if (trend != null) {
-                        ChartTrendBadge(trend)
-                    }
-                }
-            }
-
-            if (!caption.isNullOrBlank()) {
-                Text(
-                    text = caption,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 chart()
             }
@@ -150,7 +156,7 @@ fun ChartTrendBadge(trend: ChartTrend, modifier: Modifier = Modifier) {
         ChartTrendDirection.NEUTRAL -> colors.onSurfaceVariant
     }
     Row(
-        modifier = modifier.padding(bottom = 2.dp),
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -159,19 +165,26 @@ fun ChartTrendBadge(trend: ChartTrend, modifier: Modifier = Modifier) {
             ChartTrendDirection.DOWN -> Icons.AutoMirrored.Outlined.TrendingDown
             ChartTrendDirection.NEUTRAL -> null
         }
+        val description = when (trend.direction) {
+            ChartTrendDirection.UP -> "Trending up"
+            ChartTrendDirection.DOWN -> "Trending down"
+            ChartTrendDirection.NEUTRAL -> "Trend neutral"
+        }
         if (icon != null) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = description,
                 tint = tint,
                 modifier = Modifier.size(16.dp),
             )
         }
-        Text(
-            text = trend.label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = tint,
-        )
+        if (trend.label.isNotBlank()) {
+            Text(
+                text = trend.label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = tint,
+            )
+        }
     }
 }
