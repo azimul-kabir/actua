@@ -35,9 +35,14 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.drawText
@@ -126,6 +131,7 @@ fun LineChart(
     val axisMax = gridlines.last()
     val textMeasurer = rememberTextMeasurer()
     val axis = rememberChartValueAxis(gridlines, labelStyle, textMeasurer, formatAxis)
+    val reveal = rememberChartReveal(series to bands)
     val forecastBoundary = remember(series) { series.firstNotNullOfOrNull { it.forecastFromIndex } }
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -134,7 +140,7 @@ fun LineChart(
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 shape = MaterialTheme.shapes.small,
-                modifier = Modifier.fillMaxWidth().then(
+                modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }.then(
                     if (drillable) Modifier.clickable(onClickLabel = "View transactions") { onDrillDown?.invoke(i) }
                     else Modifier,
                 ),
@@ -195,7 +201,7 @@ fun LineChart(
                         addPath(pathOf(segments.indices))
                         lineTo(pts.last().x, plotH); lineTo(pts.first().x, plotH); close()
                     } else null
-                    LineGeometry(pts, solid, dashed, fill)
+                    LineGeometry(pts, solid, dashed, fill, fill?.let { Brush.verticalGradient(listOf(s.color.copy(alpha = 0.3f), s.color.copy(alpha = 0f)), 0f, plotH) })
                 }
             }
 
@@ -231,11 +237,20 @@ fun LineChart(
             }
             val dash = remember { PathEffect.dashPathEffect(floatArrayOf(14f, 10f)) }
             val strokeWidth = with(density) { 2.5.dp.toPx() }
+            val solidStroke = remember(strokeWidth) { Stroke(strokeWidth, cap = StrokeCap.Round) }
+            val dashedStroke = remember(strokeWidth, dash) { Stroke(strokeWidth, cap = StrokeCap.Round, pathEffect = dash) }
 
             Box(Modifier.fillMaxSize()) {
                 Canvas(
                     Modifier.fillMaxSize()
-                        .semantics { this.contentDescription = contentDescription }
+                        .semantics {
+                            this.contentDescription = contentDescription + " " +
+                                series.joinToString(" ") { seriesSummary(it.label, periods, it.values, formatValue) }
+                            customActions = listOf(
+                                CustomAccessibilityAction("Next period") { selectedIndex = stepPeriodIndex(selectedIndex, 1, n); true },
+                                CustomAccessibilityAction("Previous period") { selectedIndex = stepPeriodIndex(selectedIndex, -1, n); true },
+                            )
+                        }
                         .chartScrubber(
                             onScrub = { pos -> selectedIndex = nearestPointIndex(pos.x.coerceIn(0f, currentPlotW), currentPlotW, n) },
                             onTap = { pos ->
@@ -254,13 +269,15 @@ fun LineChart(
                         val xStep = if (n <= 1) 0f else plotW / (n - 1)
                         val span = (axisMax - axisMin).coerceAtLeast(1L).toFloat()
 
-                        bandPaths.forEachIndexed { k, p -> drawPath(p, bands[k].color.copy(alpha = bands[k].alpha)) }
-                        geometry.forEachIndexed { k, g ->
-                            val s = series[k]
-                            g.fill?.let { drawPath(it, Brush.verticalGradient(listOf(s.color.copy(alpha = 0.3f), s.color.copy(alpha = 0f)), 0f, plotH)) }
-                            drawPath(g.solid, s.color, style = Stroke(strokeWidth, cap = StrokeCap.Round))
-                            drawPath(g.dashed, s.color, style = Stroke(strokeWidth, cap = StrokeCap.Round, pathEffect = dash))
-                            if (n == 1) drawCircle(s.color, strokeWidth * 1.5f, g.points[0])
+                        // The line reveals left to right; the progress is read here so frames only redraw.
+                        clipRect(left = -strokeWidth, top = -topInset, right = plotW * reveal.value + strokeWidth, bottom = plotH + strokeWidth) {
+                            bandPaths.forEachIndexed { k, p -> drawPath(p, bands[k].color.copy(alpha = bands[k].alpha)) }
+                            geometry.forEachIndexed { k, g ->
+                                g.fill?.let { drawPath(it, g.fillBrush!!) }
+                                drawPath(g.solid, series[k].color, style = solidStroke)
+                                drawPath(g.dashed, series[k].color, style = dashedStroke)
+                                if (n == 1) drawCircle(series[k].color, strokeWidth * 1.5f, g.points[0])
+                            }
                         }
 
                         forecastBoundary?.let { b ->
@@ -345,4 +362,5 @@ private class LineGeometry(
     val solid: Path,
     val dashed: Path,
     val fill: Path?,
+    val fillBrush: Brush?,
 )

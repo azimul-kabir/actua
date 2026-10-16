@@ -90,6 +90,7 @@ fun SankeyChart(
     val hasBreakdown = sources.isNotEmpty()
     val total = maxOf(income, leftNodes.sumOf { it.value }, rightNodes.sumOf { it.value }, 1)
 
+    val reveal = rememberChartReveal(Triple(income, expenses, sources))
     var selected by rememberSaveable(leftNodes.size, rightNodes.size) { mutableStateOf<Pair<SankeySide, Int>?>(null) }
     val activeRight = selected?.takeIf { it.first == SankeySide.EXPENSE && it.second in rightNodes.indices }?.second
     val activeLeft = selected?.takeIf { it.first == SankeySide.INCOME && it.second in leftNodes.indices }?.second
@@ -173,7 +174,8 @@ fun SankeyChart(
                 Modifier.fillMaxWidth().height(chartHeight)
                     .semantics {
                         contentDescription = "Sankey diagram from ${leftNodes.size} income sources to ${rightNodes.size} " +
-                            "expense categories. Tap a node or flow to see its transactions; long press to focus it."
+                            "expense categories. Income ${formatMoneyCents(income, hideDecimals)}, expenses ${formatMoneyCents(expenseTotal, hideDecimals)}. " +
+                            "Tap a node or flow to see its transactions; long press to focus it."
                     }
                     .pointerInput(leftBars, rightBars, leftBounds, rightBounds, barW) {
                         fun locate(pos: Offset): Pair<SankeySide, Int>? {
@@ -220,11 +222,11 @@ fun SankeyChart(
 
                 leftRibbons.forEachIndexed { i, span ->
                     val alpha = if (activeLeft == null || activeLeft == i) 1f else 0.35f
-                    ribbon(span, barW, hubLeft, leftNodes[i].color.copy(alpha = 0.3f * alpha))
+                    ribbon(span, barW, hubLeft, leftNodes[i].color.copy(alpha = 0.3f * alpha * reveal.value))
                 }
                 rightRibbons.forEachIndexed { i, span ->
                     val alpha = if (activeRight == null || activeRight == i) 1f else 0.35f
-                    ribbon(span, rightX, hubRight, rightNodes[i].color.copy(alpha = 0.3f * alpha))
+                    ribbon(span, rightX, hubRight, rightNodes[i].color.copy(alpha = 0.3f * alpha * reveal.value))
                 }
                 leftBars.forEachIndexed { i, b ->
                     bar(0f, b, leftNodes[i], if (activeLeft == null || activeLeft == i) 1f else 0.35f, leftLabels[i])
@@ -265,6 +267,9 @@ private fun LegendRow(
     canDrill: Boolean, onClick: () -> Unit, onLongClick: () -> Unit,
 ) {
     val textAlpha = if (dimmed) 0.5f else 1f
+    val textColor = MaterialTheme.colorScheme.onSurface.copy(alpha = textAlpha)
+    val amount = (if (!share.isNullOrEmpty()) "$share · " else "") + formatMoneyCents(node.value, hideDecimals)
+    val nameWeight = if (selected) FontWeight.Bold else FontWeight.Normal
     Row(
         Modifier.fillMaxWidth()
             .combinedClickable(
@@ -277,14 +282,15 @@ private fun LegendRow(
     ) {
         Spacer(Modifier.size(10.dp).background(node.color.copy(alpha = if (dimmed) 0.35f else 1f), CircleShape))
         Spacer(Modifier.width(8.dp))
-        Text(
-            node.name, maxLines = 1, modifier = Modifier.weight(1f),
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = textAlpha),
-        )
-        Text(
-            (if (!share.isNullOrEmpty()) "$share · " else "") + formatMoneyCents(node.value, hideDecimals),
-            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = textAlpha),
-        )
+        if (LocalDensity.current.fontScale > 1.3f) {
+            // At large font sizes the name gets a line of its own so it is never cut to a few letters.
+            Column(Modifier.weight(1f)) {
+                Text(node.name, maxLines = 2, fontWeight = nameWeight, color = textColor)
+                Text(amount, fontWeight = FontWeight.SemiBold, color = textColor)
+            }
+        } else {
+            Text(node.name, maxLines = 1, modifier = Modifier.weight(1f), fontWeight = nameWeight, color = textColor)
+            Text(amount, fontWeight = FontWeight.SemiBold, color = textColor)
+        }
     }
 }
