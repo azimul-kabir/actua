@@ -247,12 +247,15 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   a versioned, migration-safe local UI preference
 - Saved Actual custom reports shown read-only through a shared Actual-compatible aggregator (donut and per-interval charts, device-local total/average-per-period summary, viewer-side date/account filter, drill-down to transactions); see `docs/REPORTS_PARITY.md`
 - Synced report dashboard charts (Net Worth, Balance Forecast, Age of Money, Crossover, Budget
-  Analysis, Monte Carlo, Cash Flow, Calendar) render with gradient fills, gridlines, axis labels and
-  tap/drag tooltips instead of bare lines and static text; Cash Flow is a tappable grouped
-  income/expense bar chart and Calendar supports month navigation and per-day tooltips, with each
-  visible month's totals computed from that month's own days rather than summed across all synced
-  months. Presentation and interaction only; the app's synthetic Overview page and all report
-  calculations are unaffected
+  Analysis, Monte Carlo, Cash Flow, Income/Expense, Calendar, Sankey, donut and bar graphs) are drawn
+  with a shared Compose chart toolkit: smooth lines with axes, tap-or-drag tooltips, tappable bars,
+  slices, nodes and days that open their transactions through a `DrillDownQuery` resolved on demand,
+  a Calendar with month swipe and a per-day category breakdown, Budget Analysis bars (budgeted,
+  spent, overspending) with a balance line, a Monte Carlo fan chart, and a full-screen view per card
+  with a viewer-side time range (recomputed for the view only, never written back to the widget) and
+  a data table. Budget Analysis points gain `overspendingCents` (Actual's `overspendingAdjustment`)
+  and Monte Carlo points gain 10th/25th/50th/75th/90th percentiles; every existing figure is
+  unchanged and the app's synthetic Overview page is unaffected. See `docs/REPORTS_PARITY.md`
 - Scheduled transactions projected as unposted due, upcoming and missed rows (missed ones marked) in the Transactions tab and account registers, excluded from balances and search, matching Actual's preview transactions; tapping one offers Actual's Post transaction, Post transaction today, and Skip next scheduled date (recurring) or Mark as completed (one-off) actions through the existing schedule CRDT write path
 - Home section customization (show/hide optional sections, drag-to-reorder, restore defaults) as a
   versioned, migration-safe local UI preference; reordering mutates in-memory state during the
