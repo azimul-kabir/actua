@@ -241,6 +241,7 @@ class ReportsDrillDownTest {
             kind = ReportWidgetKind.INCOME_EXPENSE,
             name = "Income vs expenses",
             valueCents = 300_00,
+            points = listOf(ReportPoint("2026-05", 300_00, 100_00)),
             categories = listOf(incomeCategory),
         )
         val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
@@ -272,6 +273,7 @@ class ReportsDrillDownTest {
             kind = ReportWidgetKind.INCOME_EXPENSE,
             name = "Income vs expenses",
             valueCents = 300_00,
+            points = listOf(ReportPoint("2026-05", 300_00, 100_00)),
             categories = listOf(incomeCategory),
         )
         val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
@@ -305,13 +307,15 @@ class ReportsDrillDownTest {
     }
 
     @Test fun openInTransactionsButtonInvokesCallback() {
-        val query = DrillDownQuery(categoryIds = setOf("food"))
-        val category = ReportCategory("Food", -50_00, drillDownQuery = query)
+        val query = DrillDownQuery(categoryIds = setOf("salary"), direction = DrillDownDirection.INCOME)
+        val incomeCategory = ReportCategory("Income", 300_00, drillDownQuery = query)
         val widget = ReportWidget(
-            id = "spending",
-            kind = ReportWidgetKind.SPENDING,
-            name = "Spending",
-            categories = listOf(category),
+            id = "income-expense",
+            kind = ReportWidgetKind.INCOME_EXPENSE,
+            name = "Income vs expenses",
+            valueCents = 300_00,
+            points = listOf(ReportPoint("2026-05", 300_00, 100_00)),
+            categories = listOf(incomeCategory),
         )
         val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
         var openedQuery: DrillDownQuery? = null
@@ -322,14 +326,14 @@ class ReportsDrillDownTest {
                     snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(overview)),
                     hideDecimalPlaces = false,
                     loadDrillDownTransactions = {
-                        listOf(Transaction("tx-1", "2026-05-10", "Bakery", "Food", "Checking", -50_00, cleared = true))
+                        listOf(Transaction("tx-1", "2026-05-10", "Employer", "Income", "Checking", 300_00, cleared = true))
                     },
                     onOpenInTransactions = { q, _ -> openedQuery = q },
                 )
             }
         }
 
-        compose.onNodeWithText("Food").performClick()
+        compose.onNodeWithText("Income").performClick()
         compose.waitForIdle()
 
         compose.onNodeWithTag("openInTransactionsButton").performClick()
@@ -339,12 +343,14 @@ class ReportsDrillDownTest {
     }
 
     @Test fun tappingTransactionOpensEditorAndReturningViaBackPreservesSheet() {
-        val category = ReportCategory("Food", -50_00, listOf("tx-1"))
+        val incomeCategory = ReportCategory("Income", 300_00, listOf("tx-1"))
         val widget = ReportWidget(
-            id = "spending",
-            kind = ReportWidgetKind.SPENDING,
-            name = "Spending",
-            categories = listOf(category),
+            id = "income-expense",
+            kind = ReportWidgetKind.INCOME_EXPENSE,
+            name = "Income vs expenses",
+            valueCents = 300_00,
+            points = listOf(ReportPoint("2026-05", 300_00, 100_00)),
+            categories = listOf(incomeCategory),
         )
         val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
         var editingTransaction: Transaction? = null
@@ -377,7 +383,7 @@ class ReportsDrillDownTest {
             }
         }
 
-        compose.onNodeWithText("Food").performClick()
+        compose.onNodeWithText("Income").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Bakery").assertExists()
 

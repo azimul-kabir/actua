@@ -511,7 +511,7 @@ private fun IncomeExpense(widget: ReportWidget, hideDecimals: Boolean, onDrillDo
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     widget.categories.forEach { category ->
-        Row(Modifier.fillMaxWidth().clickable(enabled = category.transactionIds.isNotEmpty(),
+        Row(Modifier.fillMaxWidth().clickable(enabled = category.drillDownQuery != null || category.transactionIds.isNotEmpty(),
             onClickLabel = "View transactions") { onDrillDown(category) }.padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.size(10.dp).background(if (category.name == "Income") income else expense,
@@ -1049,7 +1049,7 @@ private fun StackedIntervalBars(points: List<ReportPoint>, hideDecimals: Boolean
                         if (tap.y in (y - h)..y) { hit = segment; break }
                         y -= h
                     }
-                    if (hit != null && hit.transactionIds.isNotEmpty()) onDrillDown(hit) else selected = i.takeIf { it != selected }
+                    if (hit != null && (hit.drillDownQuery != null || hit.transactionIds.isNotEmpty())) onDrillDown(hit) else selected = i.takeIf { it != selected }
                 }
             },
     ) {
@@ -1227,7 +1227,7 @@ private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
     }
     val maximum = widget.categories.maxOf { it.spentCents.absoluteValue }.coerceAtLeast(1)
     widget.categories.take(10).forEach { category ->
-        Column(Modifier.clickable(enabled = onDrillDown != null && category.transactionIds.isNotEmpty(),
+        Column(Modifier.clickable(enabled = onDrillDown != null && (category.drillDownQuery != null || category.transactionIds.isNotEmpty()),
             onClickLabel = "View transactions") { onDrillDown?.invoke(category) }, verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(Modifier.fillMaxWidth()) {
                 Text(category.name, maxLines = 1, modifier = Modifier.weight(1f))
