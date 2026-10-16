@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Tapping an Income/Expense or Cash Flow bar opens that month's transactions in the drill-down sheet ([#1127](https://github.com/azimul-kabir/actua/pull/1127))
 - Drill-down transaction sheet in Reports with search, sorting, full register viewing and tap-to-edit ([#1125](https://github.com/azimul-kabir/actua/pull/1125))
 - Rules can now split a transaction across categories with fixed, percent or remainder amounts ([#1122](https://github.com/azimul-kabir/actua/pull/1122))
 
