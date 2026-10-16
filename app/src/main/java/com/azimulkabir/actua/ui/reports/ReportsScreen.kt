@@ -1101,6 +1101,8 @@ private fun CustomReportSummary(
     androidx.compose.material3.TextButton(
         onClick = { onVisibleChange(!visible) },
         colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+        // No side padding, so the label lines up with the subtitle and the panel above it.
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp, vertical = 8.dp),
     ) {
         Text(if (visible) "Hide summary" else "Show summary")
     }
