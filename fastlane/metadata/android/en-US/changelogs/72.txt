@@ -1,0 +1,9 @@
+• Tap any report chart for transactions
+• Full-screen reports with data tables
+• Budget Analysis bars, Monte Carlo ranges
+• Smoother, animated report charts
+• Calendar swipes between months
+• Calendar day breakdown on long-press
+• Rule editor adds split actions
+• Pop-up messages match the app
+• Better TalkBack support in reports

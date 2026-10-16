@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [1.9.0] - 2026-10-17
+
 ### Added
 
 - Report cards open a full-screen view with a larger chart, a view-only time range and a data table ([#1136](https://github.com/azimul-kabir/actua/pull/1136))

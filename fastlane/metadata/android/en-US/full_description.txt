@@ -6,7 +6,7 @@ WHAT YOU CAN DO
 • Split transactions, make transfers, and reconcile accounts
 • Manage accounts, categories, targets, and budget templates
 • View scheduled transactions and a bills calendar, with optional reminders before they are due
-• Review dashboards and reports
+• Review dashboards and reports, tap any chart to see its transactions, or open a report full screen with a data table
 • Sync with your Actual Budget server and use supported bank-sync providers through that server
 • Import transactions from CSV, XLSX, PDF, SMS, and supported bank notifications, and review captured transactions before they are saved
 • Queue transactions from Tasker and other automation apps
