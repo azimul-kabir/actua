@@ -15,6 +15,8 @@ data class ReportCategory(
     val incomeCents: Long? = null,
     /** Optional expense total for widgets (like Calendar and Cash Flow) that break down ins and outs. */
     val expenseCents: Long? = null,
+    /** Query definition to resolve contributing transactions on demand. */
+    val drillDownQuery: DrillDownQuery? = null,
 )
 
 data class ReportPoint(
@@ -27,6 +29,8 @@ data class ReportPoint(
     val segments: List<ReportCategory> = emptyList(),
     /** Running rolled-over balance for this point, e.g. Budget Analysis's carried-over leftover. */
     val tertiaryCents: Long = 0,
+    /** Query definition to resolve contributing transactions for this point. */
+    val drillDownQuery: DrillDownQuery? = null,
 )
 
 data class ReportDashboardPage(
@@ -63,6 +67,10 @@ data class ReportWidget(
     val valueTransactionIds: List<String> = emptyList(),
     /** Ids of the transactions behind [comparisonCents]. */
     val comparisonTransactionIds: List<String> = emptyList(),
+    /** Query definition behind [valueCents]. */
+    val valueDrillDownQuery: DrillDownQuery? = null,
+    /** Query definition behind [comparisonCents]. */
+    val comparisonDrillDownQuery: DrillDownQuery? = null,
     /** Rolled-over balance for the widget's final point, e.g. Budget Analysis's carried-over leftover. */
     val balanceCents: Long? = null,
     /** Total and per-interval average for a saved custom report; null for every other widget kind. */

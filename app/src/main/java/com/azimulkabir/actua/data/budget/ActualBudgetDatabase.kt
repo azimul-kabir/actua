@@ -12,6 +12,8 @@ import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualCleanupGroup
 import com.azimulkabir.actua.data.budget.model.ActualPayee
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.model.DrillDownDirection
+import com.azimulkabir.actua.model.DrillDownQuery
 import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
 import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
@@ -1502,6 +1504,89 @@ class ActualBudgetDatabase private constructor(
             """.trimIndent(),
             null,
         ).use { cursor -> while (cursor.moveToNext()) rows += cursor.toActualTransaction() }
+        return rows
+    }
+
+    /**
+     * Resolves transactions matching a [DrillDownQuery] using parameterized SQL.
+     * Excludes split parents and tombstoned rows, matching report engine invariants.
+     */
+    @Synchronized
+    fun fetchTransactionsForDrillDown(query: DrillDownQuery): List<ActualTransaction> {
+        val whereClauses = mutableListOf<String>()
+        val args = mutableListOf<String>()
+
+        whereClauses += "(t.isParent = 0 OR t.isParent IS NULL)"
+        whereClauses += """(
+            t.isChild = 0 OR t.isChild IS NULL OR EXISTS (
+                SELECT 1 FROM transactions parent
+                WHERE parent.id = t.parent_id
+                  AND (parent.tombstone = 0 OR parent.tombstone IS NULL)
+            )
+        )"""
+        whereClauses += "t.date IS NOT NULL AND t.acct IS NOT NULL"
+
+        if (query.startDate != null) {
+            whereClauses += "t.date >= ?"
+            args += query.startDate.toString()
+        }
+
+        if (query.endDate != null) {
+            whereClauses += "t.date <= ?"
+            args += query.endDate.toString()
+        }
+
+        if (!query.accountIds.isNullOrEmpty()) {
+            val placeholders = query.accountIds.joinToString { "?" }
+            whereClauses += "t.acct IN ($placeholders)"
+            args.addAll(query.accountIds)
+        }
+
+        if (!query.categoryIds.isNullOrEmpty()) {
+            val placeholders = query.categoryIds.joinToString { "?" }
+            whereClauses += "COALESCE(cm.transferId, t.category) IN ($placeholders)"
+            args.addAll(query.categoryIds)
+        }
+
+        if (query.payeeId != null) {
+            whereClauses += "COALESCE(pm.targetId, t.description) = ?"
+            args += query.payeeId
+        }
+
+        when (query.direction) {
+            DrillDownDirection.INCOME -> whereClauses += "t.amount >= 0"
+            DrillDownDirection.EXPENSE -> whereClauses += "t.amount < 0"
+            DrillDownDirection.ANY -> Unit
+        }
+
+        if (query.excludeTransfers) {
+            whereClauses += "(p.transfer_acct IS NULL AND t.transferred_id IS NULL)"
+        }
+
+        if (query.onBudgetOnly) {
+            whereClauses += """EXISTS (
+                SELECT 1 FROM accounts a
+                WHERE a.id = t.acct
+                  AND (a.offbudget = 0 OR a.offbudget IS NULL)
+                  AND (a.tombstone = 0 OR a.tombstone IS NULL)
+            )"""
+        }
+
+        if (query.excludeIncomeCategories) {
+            whereClauses += "(c.is_income = 0 OR c.is_income IS NULL)"
+        }
+
+        if (!query.includeHiddenCategories && query.categoryIds.isNullOrEmpty()) {
+            whereClauses += "(c.hidden = 0 OR c.hidden IS NULL)"
+        }
+
+        val sql = transactionChildSelect + " AND " + whereClauses.joinToString(" AND ") +
+            " ORDER BY t.date DESC, t.starting_balance_flag, t.sort_order DESC, t.id"
+
+        val rows = mutableListOf<ActualTransaction>()
+        database.rawQuery(sql, args.toTypedArray()).use { cursor ->
+            while (cursor.moveToNext()) rows += cursor.toActualTransaction()
+        }
         return rows
     }
 

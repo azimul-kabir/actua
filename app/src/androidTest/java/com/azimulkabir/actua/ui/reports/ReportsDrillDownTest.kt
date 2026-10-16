@@ -8,6 +8,14 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTextInput
+import com.azimulkabir.actua.model.DrillDownDirection
+import com.azimulkabir.actua.model.DrillDownQuery
 import com.azimulkabir.actua.model.ReportCategory
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.ReportPoint
@@ -224,5 +232,171 @@ class ReportsDrillDownTest {
 
         compose.onNodeWithContentDescription("August 15, in", substring = true).assertExists()
     }
+
+    @Test fun tappingACategoryWithDrillDownQueryResolvesViaLoadDrillDownTransactions() {
+        val query = DrillDownQuery(categoryIds = setOf("salary"), direction = DrillDownDirection.INCOME)
+        val incomeCategory = ReportCategory("Income", 300_00, drillDownQuery = query)
+        val widget = ReportWidget(
+            id = "income-expense",
+            kind = ReportWidgetKind.INCOME_EXPENSE,
+            name = "Income vs expenses",
+            valueCents = 300_00,
+            points = listOf(ReportPoint("2026-05", 300_00, 100_00)),
+            categories = listOf(incomeCategory),
+        )
+        val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
+        var receivedQuery: DrillDownQuery? = null
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(overview)),
+                    hideDecimalPlaces = false,
+                    loadDrillDownTransactions = { q ->
+                        receivedQuery = q
+                        listOf(Transaction("tx-1", "2026-05-10", "Employer", "Income", "Checking", 300_00, cleared = true))
+                    },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Income").performClick()
+        compose.waitForIdle()
+        assertEquals(query, receivedQuery)
+        compose.onNodeWithText("Employer").assertExists()
+    }
+
+    @Test fun searchFieldFiltersTransactionsInDrillDownSheet() {
+        val incomeCategory = ReportCategory("Income", 300_00, listOf("tx-1", "tx-2"))
+        val widget = ReportWidget(
+            id = "income-expense",
+            kind = ReportWidgetKind.INCOME_EXPENSE,
+            name = "Income vs expenses",
+            valueCents = 300_00,
+            points = listOf(ReportPoint("2026-05", 300_00, 100_00)),
+            categories = listOf(incomeCategory),
+        )
+        val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(overview)),
+                    hideDecimalPlaces = false,
+                    loadTransactions = {
+                        listOf(
+                            Transaction("tx-1", "2026-05-10", "Bakery", "Food", "Checking", -25_00, cleared = true),
+                            Transaction("tx-2", "2026-05-11", "Coffee Shop", "Drinks", "Checking", -5_00, cleared = true),
+                        )
+                    },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Income").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Bakery").assertExists()
+        compose.onNodeWithText("Coffee Shop").assertExists()
+
+        compose.onNodeWithTag("drillDownSearchField").performTextInput("Coffee")
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Bakery").assertDoesNotExist()
+        compose.onNodeWithText("Coffee Shop").assertExists()
+    }
+
+    @Test fun openInTransactionsButtonInvokesCallback() {
+        val query = DrillDownQuery(categoryIds = setOf("salary"), direction = DrillDownDirection.INCOME)
+        val incomeCategory = ReportCategory("Income", 300_00, drillDownQuery = query)
+        val widget = ReportWidget(
+            id = "income-expense",
+            kind = ReportWidgetKind.INCOME_EXPENSE,
+            name = "Income vs expenses",
+            valueCents = 300_00,
+            points = listOf(ReportPoint("2026-05", 300_00, 100_00)),
+            categories = listOf(incomeCategory),
+        )
+        val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
+        var openedQuery: DrillDownQuery? = null
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(overview)),
+                    hideDecimalPlaces = false,
+                    loadDrillDownTransactions = {
+                        listOf(Transaction("tx-1", "2026-05-10", "Employer", "Income", "Checking", 300_00, cleared = true))
+                    },
+                    onOpenInTransactions = { q, _ -> openedQuery = q },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Income").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("openInTransactionsButton").performClick()
+        compose.waitForIdle()
+
+        assertEquals(query, openedQuery)
+    }
+
+    @Test fun tappingTransactionOpensEditorAndReturningViaBackPreservesSheet() {
+        val incomeCategory = ReportCategory("Income", 300_00, listOf("tx-1"))
+        val widget = ReportWidget(
+            id = "income-expense",
+            kind = ReportWidgetKind.INCOME_EXPENSE,
+            name = "Income vs expenses",
+            valueCents = 300_00,
+            points = listOf(ReportPoint("2026-05", 300_00, 100_00)),
+            categories = listOf(incomeCategory),
+        )
+        val overview = ReportDashboardPage("overview", "Overview", listOf(widget))
+        var editingTransaction: Transaction? = null
+
+        compose.setContent {
+            MaterialTheme {
+                var editingTx by remember { mutableStateOf<Transaction?>(null) }
+                var activeDrillDown by remember { mutableStateOf<Pair<ReportCategory, String>?>(null) }
+
+                if (editingTx != null) {
+                    androidx.activity.compose.BackHandler {
+                        editingTx = null
+                    }
+                    androidx.compose.material3.Text("Editing " + editingTx!!.payee)
+                } else {
+                    ReportsScreen(
+                        snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(overview)),
+                        hideDecimalPlaces = false,
+                        activeDrillDown = activeDrillDown,
+                        onDrillDownChange = { activeDrillDown = it },
+                        loadTransactions = {
+                            listOf(Transaction("tx-1", "2026-05-10", "Bakery", "Food", "Checking", -50_00, cleared = true))
+                        },
+                        onEditTransaction = { tx ->
+                            editingTransaction = tx
+                            editingTx = tx
+                        },
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText("Income").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Bakery").assertExists()
+
+        compose.onNodeWithText("Bakery").performClick()
+        compose.waitForIdle()
+        assertEquals("tx-1", editingTransaction?.id)
+        compose.onNodeWithText("Editing Bakery").assertExists()
+
+        androidx.test.espresso.Espresso.pressBack()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Bakery").assertExists()
+    }
 }
+
 

@@ -34,7 +34,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SpaceDashboard
 import androidx.compose.material.icons.outlined.StarBorder
@@ -42,11 +44,15 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import com.azimulkabir.actua.model.DrillDownQuery
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -86,6 +92,13 @@ import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.roundToInt
 
+enum class DrillDownSortOrder {
+    DATE_DESC,
+    DATE_ASC,
+    AMOUNT_DESC,
+    AMOUNT_ASC,
+}
+
 @Composable
 fun ReportsScreen(
     snapshot: ReportSnapshot,
@@ -97,6 +110,11 @@ fun ReportsScreen(
     onFavoriteReportChange: (String, Boolean) -> Unit = { _, _ -> },
     loadSavedReports: suspend (ReportViewFilter) -> List<ReportWidget> = { emptyList() },
     loadTransactions: suspend (List<String>) -> List<Transaction> = { emptyList() },
+    loadDrillDownTransactions: (suspend (DrillDownQuery) -> List<Transaction>)? = null,
+    onEditTransaction: ((Transaction) -> Unit)? = null,
+    onOpenInTransactions: ((DrillDownQuery?, ReportCategory) -> Unit)? = null,
+    activeDrillDown: Pair<ReportCategory, String>? = null,
+    onDrillDownChange: ((Pair<ReportCategory, String>?) -> Unit)? = null,
     showReportSummary: Boolean = false,
     onShowReportSummaryChange: (Boolean) -> Unit = {},
     scrollToTopRequest: Int = 0,
@@ -122,7 +140,15 @@ fun ReportsScreen(
             null
         }
     }
-    var drill by remember { mutableStateOf<Pair<ReportCategory, String>?>(null) }
+    var internalDrill by remember { mutableStateOf<Pair<ReportCategory, String>?>(null) }
+    val currentDrill = activeDrillDown ?: internalDrill
+    fun updateDrill(target: Pair<ReportCategory, String>?) {
+        if (onDrillDownChange != null) {
+            onDrillDownChange(target)
+        } else {
+            internalDrill = target
+        }
+    }
     var selectedPageId by rememberSaveable { mutableStateOf<String?>(null) }
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
     val selected = snapshot.dashboards.firstOrNull { it.id == selectedPageId }
@@ -204,12 +230,26 @@ fun ReportsScreen(
             if (visible.isEmpty()) item { EmptyReports() }
             items(visible, key = { it.id }) { widget ->
                 WidgetCard(widget, hideDecimalPlaces, showReportSummary, onShowReportSummaryChange,
-                    onDrillDown = { drill = it to widget.name })
+                    onDrillDown = { updateDrill(it to widget.name) })
             }
         }
     }
-    drill?.let { (segment, reportName) ->
-        DrillDownSheet(segment, reportName, hideDecimalPlaces, loadTransactions) { drill = null }
+    if (currentDrill != null) {
+        androidx.activity.compose.BackHandler {
+            updateDrill(null)
+        }
+    }
+    currentDrill?.let { (segment, reportName) ->
+        DrillDownSheet(
+            segment = segment,
+            reportName = reportName,
+            hideDecimals = hideDecimalPlaces,
+            load = loadTransactions,
+            loadDrillDown = loadDrillDownTransactions,
+            onEditTransaction = onEditTransaction,
+            onOpenInTransactions = onOpenInTransactions,
+            onDismiss = { updateDrill(null) },
+        )
     }
 }
 
@@ -220,29 +260,200 @@ private fun DrillDownSheet(
     reportName: String,
     hideDecimals: Boolean,
     load: suspend (List<String>) -> List<Transaction>,
+    loadDrillDown: (suspend (DrillDownQuery) -> List<Transaction>)? = null,
+    onEditTransaction: ((Transaction) -> Unit)? = null,
+    onOpenInTransactions: ((DrillDownQuery?, ReportCategory) -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
-    val limit = 200
-    val rows by produceState<List<Transaction>?>(null, segment) { value = load(segment.transactionIds.take(limit)) }
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
-            Text(segment.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            val breakdown = if (segment.incomeCents != null && segment.expenseCents != null) {
-                "In ${formatMoneyCents(segment.incomeCents, hideDecimals)} · Out ${formatMoneyCents(segment.expenseCents, hideDecimals)} (${formatMoneyCents(segment.spentCents, hideDecimals)} net)"
-            } else {
-                formatMoneyCents(segment.spentCents, hideDecimals)
-            }
-            Text("$reportName · ${segment.transactionIds.size} transactions · $breakdown",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (segment.transactionIds.size > limit) Text("Showing the first $limit.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var sortOrder by rememberSaveable { mutableStateOf(DrillDownSortOrder.DATE_DESC) }
+
+    val rows by produceState<List<Transaction>?>(null, segment) {
+        value = if (segment.drillDownQuery != null && loadDrillDown != null) {
+            loadDrillDown(segment.drillDownQuery)
+        } else {
+            val limit = 200
+            load(segment.transactionIds.take(limit))
         }
+    }
+
+    val filteredRows = remember(rows, searchQuery, sortOrder) {
+        val base = rows.orEmpty().filter { tx ->
+            if (searchQuery.isBlank()) true
+            else {
+                val q = searchQuery.trim().lowercase()
+                tx.payee.lowercase().contains(q) ||
+                    tx.category.lowercase().contains(q) ||
+                    tx.notes.orEmpty().lowercase().contains(q) ||
+                    tx.account.lowercase().contains(q) ||
+                    formatMoneyCents(tx.amountCents, hideDecimals).lowercase().contains(q) ||
+                    tx.amountCents.toString().contains(q)
+            }
+        }
+        when (sortOrder) {
+            DrillDownSortOrder.DATE_DESC -> base.sortedWith(compareByDescending<Transaction> { it.date }.thenByDescending { it.id })
+            DrillDownSortOrder.DATE_ASC -> base.sortedWith(compareBy<Transaction> { it.date }.thenBy { it.id })
+            DrillDownSortOrder.AMOUNT_DESC -> base.sortedWith(compareByDescending<Transaction> { it.amountCents }.thenByDescending { it.date })
+            DrillDownSortOrder.AMOUNT_ASC -> base.sortedWith(compareBy<Transaction> { it.amountCents }.thenByDescending { it.date })
+        }
+    }
+
+    val totalAmountCents = remember(rows) {
+        rows?.sumOf { it.amountCents } ?: segment.spentCents
+    }
+
+    val title = segment.drillDownQuery?.categoryName ?: segment.name
+    val totalCount = rows?.size ?: segment.transactionIds.size
+
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("drillDownSheet"),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.screenHorizontal),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    val breakdown = if (segment.incomeCents != null && segment.expenseCents != null) {
+                        "In ${formatMoneyCents(segment.incomeCents, hideDecimals)} · Out ${formatMoneyCents(segment.expenseCents, hideDecimals)} (${formatMoneyCents(totalAmountCents, hideDecimals)} net)"
+                    } else {
+                        formatMoneyCents(totalAmountCents, hideDecimals)
+                    }
+                    Text(
+                        "$reportName · $totalCount transaction${if (totalCount == 1) "" else "s"} · $breakdown",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (onOpenInTransactions != null) {
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            onOpenInTransactions(segment.drillDownQuery, segment)
+                            onDismiss()
+                        },
+                        modifier = Modifier.testTag("openInTransactionsButton"),
+                    ) {
+                        Icon(
+                            Icons.Outlined.OpenInFull,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("Open in Transactions")
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(Spacing.sm))
+
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search transactions") },
+                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Search") },
+                trailingIcon = if (searchQuery.isNotEmpty()) {
+                    {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Outlined.Close, contentDescription = "Clear")
+                        }
+                    }
+                } else null,
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("drillDownSearchField"),
+            )
+
+            Spacer(Modifier.height(Spacing.xs))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Sort:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                val isDate = sortOrder == DrillDownSortOrder.DATE_DESC || sortOrder == DrillDownSortOrder.DATE_ASC
+                FilterChip(
+                    selected = isDate,
+                    onClick = {
+                        sortOrder = if (sortOrder == DrillDownSortOrder.DATE_DESC) {
+                            DrillDownSortOrder.DATE_ASC
+                        } else {
+                            DrillDownSortOrder.DATE_DESC
+                        }
+                    },
+                    label = {
+                        Text(if (sortOrder == DrillDownSortOrder.DATE_ASC) "Date ↑" else "Date ↓")
+                    },
+                    modifier = Modifier.testTag("sortDateChip"),
+                )
+                val isAmount = sortOrder == DrillDownSortOrder.AMOUNT_DESC || sortOrder == DrillDownSortOrder.AMOUNT_ASC
+                FilterChip(
+                    selected = isAmount,
+                    onClick = {
+                        sortOrder = if (sortOrder == DrillDownSortOrder.AMOUNT_DESC) {
+                            DrillDownSortOrder.AMOUNT_ASC
+                        } else {
+                            DrillDownSortOrder.AMOUNT_DESC
+                        }
+                    },
+                    label = {
+                        Text(if (sortOrder == DrillDownSortOrder.AMOUNT_ASC) "Amount ↑" else "Amount ↓")
+                    },
+                    modifier = Modifier.testTag("sortAmountChip"),
+                )
+            }
+
+            if (segment.drillDownQuery == null && segment.transactionIds.size > 200) {
+                Text(
+                    "Showing the first 200.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(Spacing.xs))
+
         val loaded = rows
         if (loaded == null) {
-            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        } else LazyColumn(Modifier.fillMaxWidth()) {
-            items(loaded, key = { it.id }) { tx ->
-                TransactionRow(tx, hideDecimals, showDate = true, showAccount = true, onClick = {}, onLongClick = {})
+            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (filteredRows.isEmpty()) {
+            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    if (searchQuery.isNotBlank()) "No transactions matching \"$searchQuery\"" else "No transactions",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("drillDownTransactionList"),
+            ) {
+                items(filteredRows, key = { it.id }) { tx ->
+                    TransactionRow(
+                        tx,
+                        hideDecimals,
+                        showDate = true,
+                        showAccount = true,
+                        onClick = { onEditTransaction?.invoke(tx) },
+                        onLongClick = {},
+                    )
+                }
             }
         }
     }
@@ -300,7 +511,7 @@ private fun IncomeExpense(widget: ReportWidget, hideDecimals: Boolean, onDrillDo
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     widget.categories.forEach { category ->
-        Row(Modifier.fillMaxWidth().clickable(enabled = category.transactionIds.isNotEmpty(),
+        Row(Modifier.fillMaxWidth().clickable(enabled = category.drillDownQuery != null || category.transactionIds.isNotEmpty(),
             onClickLabel = "View transactions") { onDrillDown(category) }.padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.size(10.dp).background(if (category.name == "Income") income else expense,
@@ -457,7 +668,7 @@ private fun WidgetCard(
                     ReportWidgetKind.NET_WORTH -> {
                         ActuaHeroAmount(amount = formatMoneyCents(widget.valueCents ?: 0, hideDecimals),
                             size = ActuaHeroSize.Medium)
-                        TrendChart(widget.points, hideDecimals)
+                        TrendChart(widget.points, hideDecimals, onDrillDown = onDrillDown)
                         PointLabels(widget.points, hideDecimals)
                     }
                     ReportWidgetKind.CASH_FLOW -> CashFlow(widget.points, hideDecimals, onDrillDown)
@@ -473,7 +684,7 @@ private fun WidgetCard(
                     ReportWidgetKind.CALENDAR -> CalendarReport(widget, hideDecimals, onDrillDown)
                     ReportWidgetKind.CROSSOVER -> Crossover(widget, hideDecimals)
                     ReportWidgetKind.BUDGET_ANALYSIS -> BudgetAnalysis(widget, hideDecimals)
-                    ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals)
+                    ReportWidgetKind.SANKEY -> Sankey(widget, hideDecimals, onDrillDown = onDrillDown)
                     ReportWidgetKind.BALANCE_FORECAST -> {
                         Text("Ending: ${formatMoneyCents(widget.valueCents ?: 0, hideDecimals)}",
                             style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -483,7 +694,7 @@ private fun WidgetCard(
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        TrendChart(widget.points, hideDecimals)
+                        TrendChart(widget.points, hideDecimals, onDrillDown = onDrillDown)
                         PointLabels(widget.points, hideDecimals)
                         widget.subtitle?.let {
                             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -507,7 +718,12 @@ private fun WidgetCard(
 }
 
 @Composable
-private fun TrendChart(points: List<ReportPoint>, hideDecimals: Boolean = false, isMoney: Boolean = true) {
+private fun TrendChart(
+    points: List<ReportPoint>,
+    hideDecimals: Boolean = false,
+    isMoney: Boolean = true,
+    onDrillDown: ((ReportCategory) -> Unit)? = null,
+) {
     val color = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     if (points.isEmpty()) return
@@ -519,12 +735,29 @@ private fun TrendChart(points: List<ReportPoint>, hideDecimals: Boolean = false,
     fun label(cents: Long) = if (isMoney) formatMoneyCents(cents, hideDecimals) else "$cents days"
     active?.let {
         val point = points[it]
-        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
-            Text(
-                "${point.period.take(10)} · ${label(point.primaryCents)}",
-                style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            )
+        val canDrill = onDrillDown != null && (point.drillDownQuery != null || point.transactionIds.isNotEmpty())
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = MaterialTheme.shapes.small,
+            modifier = if (canDrill) {
+                Modifier.clickable(onClickLabel = "View transactions") {
+                    onDrillDown(ReportCategory(point.period.take(10), point.primaryCents, point.transactionIds, drillDownQuery = point.drillDownQuery))
+                }
+            } else Modifier,
+        ) {
+            Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                Text(
+                    "${point.period.take(10)} · ${label(point.primaryCents)}",
+                    style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+                )
+                if (canDrill) {
+                    Text(
+                        "Tap to view transactions",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         }
     }
     Row(Modifier.fillMaxWidth().height(130.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -611,9 +844,9 @@ private fun CashFlow(points: List<ReportPoint>, hideDecimals: Boolean, onDrillDo
     active?.let {
         val point = points[it]
         Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small,
-            modifier = Modifier.clickable(enabled = point.transactionIds.isNotEmpty(), onClickLabel = "View transactions") {
+            modifier = Modifier.clickable(enabled = point.drillDownQuery != null || point.transactionIds.isNotEmpty(), onClickLabel = "View transactions") {
                 onDrillDown(ReportCategory(point.period.take(7), point.primaryCents - point.secondaryCents, point.transactionIds,
-                    incomeCents = point.primaryCents, expenseCents = point.secondaryCents))
+                    incomeCents = point.primaryCents, expenseCents = point.secondaryCents, drillDownQuery = point.drillDownQuery))
             }) {
             Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                 Text(point.period.take(7), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
@@ -682,8 +915,8 @@ private fun Spending(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (
     val delta = current - comparison
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
         Column(
-            Modifier.weight(1f).clickable(enabled = widget.valueTransactionIds.isNotEmpty(), onClickLabel = "View transactions") {
-                onDrillDown(ReportCategory("This month", current, widget.valueTransactionIds))
+            Modifier.weight(1f).clickable(enabled = widget.valueDrillDownQuery != null || widget.valueTransactionIds.isNotEmpty(), onClickLabel = "View transactions") {
+                onDrillDown(ReportCategory("This month", current, widget.valueTransactionIds, drillDownQuery = widget.valueDrillDownQuery))
             },
         ) {
             Text("This month", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -691,8 +924,8 @@ private fun Spending(widget: ReportWidget, hideDecimals: Boolean, onDrillDown: (
         }
         Column(
             horizontalAlignment = Alignment.End,
-            modifier = Modifier.clickable(enabled = widget.comparisonTransactionIds.isNotEmpty(), onClickLabel = "View transactions") {
-                onDrillDown(ReportCategory("Comparison", comparison, widget.comparisonTransactionIds))
+            modifier = Modifier.clickable(enabled = widget.comparisonDrillDownQuery != null || widget.comparisonTransactionIds.isNotEmpty(), onClickLabel = "View transactions") {
+                onDrillDown(ReportCategory("Comparison", comparison, widget.comparisonTransactionIds, drillDownQuery = widget.comparisonDrillDownQuery))
             },
         ) {
             Text("vs comparison", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -816,7 +1049,7 @@ private fun StackedIntervalBars(points: List<ReportPoint>, hideDecimals: Boolean
                         if (tap.y in (y - h)..y) { hit = segment; break }
                         y -= h
                     }
-                    if (hit != null && hit.transactionIds.isNotEmpty()) onDrillDown(hit) else selected = i.takeIf { it != selected }
+                    if (hit != null && (hit.drillDownQuery != null || hit.transactionIds.isNotEmpty())) onDrillDown(hit) else selected = i.takeIf { it != selected }
                 }
             },
     ) {
@@ -994,7 +1227,7 @@ private fun CategoryBars(widget: ReportWidget, hideDecimals: Boolean, onDrillDow
     }
     val maximum = widget.categories.maxOf { it.spentCents.absoluteValue }.coerceAtLeast(1)
     widget.categories.take(10).forEach { category ->
-        Column(Modifier.clickable(enabled = onDrillDown != null && category.transactionIds.isNotEmpty(),
+        Column(Modifier.clickable(enabled = onDrillDown != null && (category.drillDownQuery != null || category.transactionIds.isNotEmpty()),
             onClickLabel = "View transactions") { onDrillDown?.invoke(category) }, verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(Modifier.fillMaxWidth()) {
                 Text(category.name, maxLines = 1, modifier = Modifier.weight(1f))
@@ -1047,10 +1280,10 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small,
             modifier = Modifier.clickable(
-                enabled = point?.transactionIds?.isNotEmpty() == true,
+                enabled = point != null && (point.drillDownQuery != null || point.transactionIds.isNotEmpty()),
                 onClickLabel = "see transactions",
             ) { point?.let { onDrillDown(ReportCategory(dayLabel, it.primaryCents - it.secondaryCents, it.transactionIds,
-                incomeCents = it.primaryCents, expenseCents = it.secondaryCents)) } },
+                incomeCents = it.primaryCents, expenseCents = it.secondaryCents, drillDownQuery = it.drillDownQuery)) } },
         ) {
             Text(
                 "$dayLabel · In ${formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)} · Out ${formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)}",
@@ -1073,7 +1306,7 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             (week + List(7 - week.size) { null }).forEach { day ->
                 val point = day?.let(values::get)
-                val hasTransactions = point?.transactionIds?.isNotEmpty() == true
+                val hasTransactions = point != null && (point.drillDownQuery != null || point.transactionIds.isNotEmpty())
                 val inFormatted = formatMoneyCents(point?.primaryCents ?: 0, hideDecimals)
                 val outFormatted = formatMoneyCents(point?.secondaryCents ?: 0, hideDecimals)
                 val dayContentDescription = if (day != null) "$monthName $day, in $inFormatted, out $outFormatted" else null
@@ -1082,10 +1315,10 @@ private fun CalendarReport(widget: ReportWidget, hideDecimals: Boolean, onDrillD
                     Modifier.clickable(
                         onClickLabel = if (hasTransactions) "see transactions" else null,
                     ) {
-                        if (point != null && point.transactionIds.isNotEmpty()) {
+                        if (point != null && (point.drillDownQuery != null || point.transactionIds.isNotEmpty())) {
                             selectedDay = day
                             onDrillDown(ReportCategory(dayLabel, point.primaryCents - point.secondaryCents, point.transactionIds,
-                                incomeCents = point.primaryCents, expenseCents = point.secondaryCents))
+                                incomeCents = point.primaryCents, expenseCents = point.secondaryCents, drillDownQuery = point.drillDownQuery))
                         } else {
                             selectedDay = day.takeIf { it != selectedDay }
                         }
@@ -1165,7 +1398,11 @@ private data class SankeyNode(val name: String, val value: Long, val color: andr
 private enum class SankeySide { INCOME, EXPENSE }
 
 @Composable
-private fun Sankey(widget: ReportWidget, hideDecimals: Boolean) {
+private fun Sankey(
+    widget: ReportWidget,
+    hideDecimals: Boolean,
+    onDrillDown: ((ReportCategory) -> Unit)? = null,
+) {
     val income = widget.valueCents ?: 0
     val categories = widget.categories.filter { it.spentCents > 0 }
     val incomeCategories = widget.incomeCategories.filter { it.spentCents > 0 }
@@ -1298,9 +1535,14 @@ private fun Sankey(widget: ReportWidget, hideDecimals: Boolean) {
     if (incomeCategories.isNotEmpty()) {
         Text("Income sources", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         leftNodes.forEachIndexed { i, node ->
+            val cat = incomeCategories.getOrNull(i)
+            val canDrill = onDrillDown != null && cat != null && (cat.drillDownQuery != null || cat.transactionIds.isNotEmpty())
             Row(
                 Modifier.fillMaxWidth()
-                    .clickable(onClickLabel = "Highlight") { selected = (SankeySide.INCOME to i).takeIf { i != activeLeft } }
+                    .clickable(onClickLabel = if (canDrill) "View transactions" else "Highlight") {
+                        selected = (SankeySide.INCOME to i).takeIf { i != activeLeft }
+                        if (canDrill) onDrillDown(cat)
+                    }
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1317,9 +1559,14 @@ private fun Sankey(widget: ReportWidget, hideDecimals: Boolean) {
         }
     }
     rightNodes.forEachIndexed { i, node ->
+        val cat = categories.getOrNull(i)
+        val canDrill = onDrillDown != null && cat != null && (cat.drillDownQuery != null || cat.transactionIds.isNotEmpty())
         Row(
             Modifier.fillMaxWidth()
-                .clickable(onClickLabel = "Highlight") { selected = (SankeySide.EXPENSE to i).takeIf { i != activeRight } }
+                .clickable(onClickLabel = if (canDrill) "View transactions" else "Highlight") {
+                    selected = (SankeySide.EXPENSE to i).takeIf { i != activeRight }
+                    if (canDrill) onDrillDown(cat)
+                }
                 .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

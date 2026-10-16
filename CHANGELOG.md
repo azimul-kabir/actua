@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Drill-down transaction sheet in Reports with search, sorting, full register viewing and tap-to-edit ([#1125](https://github.com/azimul-kabir/actua/pull/1125))
 - Rules can now split a transaction across categories with fixed, percent or remainder amounts ([#1122](https://github.com/azimul-kabir/actua/pull/1122))
 
 ### Fixed

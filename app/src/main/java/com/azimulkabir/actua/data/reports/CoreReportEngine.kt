@@ -13,6 +13,9 @@ import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
 import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
 import com.azimulkabir.actua.data.schedules.ScheduleStatusCalculator
+import com.azimulkabir.actua.model.DrillDownDirection
+import com.azimulkabir.actua.model.DrillDownQuery
+import com.azimulkabir.actua.model.ReportCategory
 import com.azimulkabir.actua.model.ReportDashboardPage
 import com.azimulkabir.actua.model.ReportPoint
 import com.azimulkabir.actua.model.ReportWidget
@@ -120,7 +123,7 @@ object CoreReportEngine {
             "net-worth-card" -> netWorth(row.id, name, meta, transactions.filterNot { it.tombstone }
                 .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }, start, end, firstDayOfWeek)
             "cash-flow-card" -> cashFlow(row.id, name, filtered.filter { it.transferAccountId == null &&
-                it.accountId !in context.offBudgetAccountIds && it.date <= minOf(end, today).toYmd() }, start, end)
+                it.accountId !in context.offBudgetAccountIds && it.date <= minOf(end, today).toYmd() }, start, end, today)
             "spending-card" -> spending(row.id, name, meta, transactions, context, incomeCategoryIds,
                 budgetedByCategory, today)
             "markdown-card" -> ReportWidget(row.id, ReportWidgetKind.MARKDOWN, name,
@@ -267,8 +270,10 @@ object CoreReportEngine {
 
     private fun calendar(id: String, name: String, transactions: List<ActualTransaction>): ReportWidget {
         val points = transactions.groupBy { it.localDate() }.toSortedMap().map { (date, rows) ->
+            val query = DrillDownQuery(startDate = date.toYmd(), endDate = date.toYmd())
             ReportPoint(date.toString(), rows.filter { it.amountCents > 0 }.sumOf { it.amountCents },
-                -rows.filter { it.amountCents < 0 }.sumOf { it.amountCents }, rows.map { it.id })
+                -rows.filter { it.amountCents < 0 }.sumOf { it.amountCents }, rows.map { it.id },
+                drillDownQuery = query)
         }
         return ReportWidget(id, ReportWidgetKind.CALENDAR, name,
             valueCents = points.sumOf { it.primaryCents }, comparisonCents = points.sumOf { it.secondaryCents }, points = points)
@@ -516,11 +521,27 @@ object CoreReportEngine {
                     outflows += Flow(label, -net)
                 }
             }
-        fun breakdown(flows: List<Flow>) = flows.groupBy { it.label }
-            .map { (label, rows) -> com.azimulkabir.actua.model.ReportCategory(label, rows.sumOf { it.cents }) }
+        fun breakdown(flows: List<Flow>, isIncome: Boolean) = flows.groupBy { it.label }
+            .map { (label, rows) ->
+                val catIds = if (isIncome) {
+                    context.categoryNames.filterValues { it == label }.keys
+                } else {
+                    val groupIds = context.categoryGroupNames.filterValues { it == label }.keys
+                    val catIdsInGroup = context.categoryGroupIds.filterValues { it in groupIds }.keys
+                    catIdsInGroup + context.categoryNames.filterValues { it == label }.keys
+                }
+                val query = DrillDownQuery(
+                    startDate = start.toYmd(),
+                    endDate = end.toYmd(),
+                    categoryIds = catIds.takeIf { it.isNotEmpty() },
+                    direction = if (isIncome) DrillDownDirection.INCOME else DrillDownDirection.EXPENSE,
+                    categoryName = label,
+                )
+                ReportCategory(label, rows.sumOf { it.cents }, drillDownQuery = query)
+            }
             .sortedByDescending { it.spentCents }
-        val incomeCategories = breakdown(inflows)
-        val categories = breakdown(outflows)
+        val incomeCategories = breakdown(inflows, isIncome = true)
+        val categories = breakdown(outflows, isIncome = false)
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
         val subtitle = if (YearMonth.from(start) == YearMonth.from(end)) start.format(formatter)
             else "${start.format(formatter)} - ${end.format(formatter)}"
@@ -637,11 +658,15 @@ object CoreReportEngine {
             scheduledOccurrenceCount += scheduleCountByDate[ymd]?.size ?: 0
             if (runningBalance < lowestBalance) lowestBalance = runningBalance
             if (day == YearMonth.from(day).atEndOfMonth() || day == rangeEnd) {
-                points += ReportPoint(YearMonth.from(day).toString(), runningBalance)
+                val query = DrillDownQuery(endDate = day.toYmd(), accountIds = selected)
+                points += ReportPoint(YearMonth.from(day).toString(), runningBalance, drillDownQuery = query)
             }
             day = day.plusDays(1)
         }
-        if (points.isEmpty()) points += ReportPoint(YearMonth.from(rangeStart).toString(), runningBalance)
+        if (points.isEmpty()) {
+            val query = DrillDownQuery(endDate = rangeStart.toYmd(), accountIds = selected)
+            points += ReportPoint(YearMonth.from(rangeStart).toString(), runningBalance, drillDownQuery = query)
+        }
         if (lowestBalance == Long.MAX_VALUE) lowestBalance = runningBalance
 
         val hasFilters = conditions.first.isNotEmpty()
@@ -923,20 +948,39 @@ object CoreReportEngine {
         val interval = meta?.optString("interval", "Monthly") ?: "Monthly"
         val boundaries = boundaries(start, end, interval, firstDayOfWeek)
         val points = boundaries.map { boundary ->
-            ReportPoint(boundary.toString(), transactions.filter { it.date <= boundary.toYmd() }.sumOf { it.amountCents })
+            val query = DrillDownQuery(endDate = boundary.toYmd())
+            ReportPoint(
+                boundary.toString(),
+                transactions.filter { it.date <= boundary.toYmd() }.sumOf { it.amountCents },
+                drillDownQuery = query,
+            )
         }
         return ReportWidget(id, ReportWidgetKind.NET_WORTH, name,
             valueCents = points.lastOrNull()?.primaryCents ?: 0, points = points)
     }
 
     private fun cashFlow(
-        id: String, name: String, transactions: List<ActualTransaction>, start: LocalDate, end: LocalDate,
+        id: String, name: String, transactions: List<ActualTransaction>, start: LocalDate, end: LocalDate, today: LocalDate,
     ): ReportWidget {
         val points = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
             .takeWhile { !it.isAfter(YearMonth.from(end)) }.map { month ->
                 val rows = transactions.filter { YearMonth.from(it.localDate()) == month }
-                ReportPoint(month.toString(), rows.filter { it.amountCents >= 0 }.sumOf { it.amountCents },
-                    rows.filter { it.amountCents < 0 }.sumOf { -it.amountCents }, rows.map { it.id })
+                val startDay = month.atDay(1)
+                val endDay = minOf(month.atEndOfMonth(), end, today)
+                val query = DrillDownQuery(
+                    startDate = startDay.toYmd(),
+                    endDate = endDay.toYmd(),
+                    onBudgetOnly = true,
+                    excludeTransfers = true,
+                    month = month.toString(),
+                )
+                ReportPoint(
+                    month.toString(),
+                    rows.filter { it.amountCents >= 0 }.sumOf { it.amountCents },
+                    rows.filter { it.amountCents < 0 }.sumOf { -it.amountCents },
+                    rows.map { it.id },
+                    drillDownQuery = query,
+                )
             }.toList()
         return ReportWidget(id, ReportWidgetKind.CASH_FLOW, name, points = points,
             valueCents = points.sumOf { it.primaryCents - it.secondaryCents })
@@ -976,6 +1020,40 @@ object CoreReportEngine {
         val todayDay = today.dayOfMonth
         val currentCutoff = todayDay.takeIf { compare == currentMonth }
         val comparisonCutoff = todayDay.takeIf { compare == currentMonth && todayDay < 28 }
+        val currentEndDay = currentCutoff?.let { compare.atDay(it.coerceAtMost(compare.lengthOfMonth())) } ?: compare.atEndOfMonth()
+        val comparisonEndDay = comparisonCutoff?.let { compareTo.atDay(it.coerceAtMost(compareTo.lengthOfMonth())) } ?: compareTo.atEndOfMonth()
+        val explicitCatIds = buildSet {
+            conditions.first.forEach { cond ->
+                if (cond.field == "category") {
+                    when (cond.op) {
+                        "is" -> cond.value.text?.let { add(it) }
+                        "oneOf" -> cond.value.list?.mapNotNull { it.text }?.let { addAll(it) }
+                    }
+                }
+            }
+        }.takeIf { it.isNotEmpty() }
+        val explicitAccIds = buildSet {
+            conditions.first.forEach { cond ->
+                if (cond.field == "account") {
+                    when (cond.op) {
+                        "is" -> cond.value.text?.let { add(it) }
+                        "oneOf" -> cond.value.list?.mapNotNull { it.text }?.let { addAll(it) }
+                    }
+                }
+            }
+        }.takeIf { it.isNotEmpty() }
+
+        val currentQuery = DrillDownQuery(
+            startDate = compare.atDay(1).toYmd(),
+            endDate = currentEndDay.toYmd(),
+            accountIds = explicitAccIds,
+            categoryIds = explicitCatIds,
+            onBudgetOnly = true,
+            excludeIncomeCategories = true,
+            month = compare.toString(),
+        )
+        var comparisonQuery: DrillDownQuery? = null
+
         fun spentRows(month: YearMonth, throughDay: Int? = null): List<ActualTransaction> {
             val endDay = throughDay?.coerceAtMost(month.lengthOfMonth())
             return matching.filter { transaction ->
@@ -1002,7 +1080,7 @@ object CoreReportEngine {
                     (full.toDouble() / compare.lengthOfMonth() * comparisonCutoff).roundToLong()
             }
             "average" -> {
-                val range = meta?.optJSONObject("averageRange")
+                val range = meta.optJSONObject("averageRange")
                 val months = when (range?.optString("mode")) {
                     "year-to-date" -> compare.monthValue - 1
                     "all-time" -> transactions.filterNot { it.tombstone }
@@ -1014,10 +1092,22 @@ object CoreReportEngine {
                     spent(compare.minusMonths(it.toLong()), comparisonCutoff)
                 }.average().roundToLong()
             }
-            else -> spent(compareTo, comparisonCutoff).also { comparisonIds = spentRows(compareTo, comparisonCutoff).map { it.id } }
+            else -> spent(compareTo, comparisonCutoff).also {
+                comparisonIds = spentRows(compareTo, comparisonCutoff).map { it.id }
+                comparisonQuery = DrillDownQuery(
+                    startDate = compareTo.atDay(1).toYmd(),
+                    endDate = comparisonEndDay.toYmd(),
+                    accountIds = explicitAccIds,
+                    categoryIds = explicitCatIds,
+                    onBudgetOnly = true,
+                    excludeIncomeCategories = true,
+                    month = compareTo.toString(),
+                )
+            }
         }
         return ReportWidget(id, ReportWidgetKind.SPENDING, name, valueCents = current, comparisonCents = comparison,
-            valueTransactionIds = currentIds, comparisonTransactionIds = comparisonIds)
+            valueTransactionIds = currentIds, comparisonTransactionIds = comparisonIds,
+            valueDrillDownQuery = currentQuery, comparisonDrillDownQuery = comparisonQuery)
     }
 
     private fun parseConditions(meta: JSONObject?): Pair<List<Rule.Condition>, Rule.ConditionsOp> {
