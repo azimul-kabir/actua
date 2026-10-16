@@ -70,6 +70,7 @@ import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.TransactionStatusFilter
 import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.model.SplitLine
+import com.azimulkabir.actua.model.DrillDownQuery
 import com.azimulkabir.actua.model.ReportCategory
 import com.azimulkabir.actua.model.ReportMonth
 import com.azimulkabir.actua.model.ReportSnapshot
@@ -1235,6 +1236,16 @@ class ActuaRepository(context: Context) {
             .let { rows -> toTransactions(db, rows, accountNames, offBudgetAccountIds) }
     }
 
+    /** Resolves transactions for report drill-down on demand via parameterized SQL. */
+    fun drillDownTransactions(query: DrillDownQuery): List<Transaction> {
+        val db = actualDatabase ?: return emptyList()
+        val accounts = db.fetchAccounts()
+        val accountNames = accounts.associate { it.id to it.name }
+        val offBudgetAccountIds = accounts.filter { it.offBudget }.mapTo(mutableSetOf()) { it.id }
+        val rows = db.fetchTransactionsForDrillDown(query)
+        return toTransactions(db, rows, accountNames, offBudgetAccountIds)
+    }
+
     private class ReportInputs(
         val version: Int,
         val database: Any,
@@ -1745,7 +1756,7 @@ class ActuaRepository(context: Context) {
         actualEntities?.setNote(categoryId, normalized) ?: return false
         val parsed = BudgetNoteAutomationParser.parse(normalized)
         if (parsed.valid) {
-            actualEntities?.setCategoryNoteTarget(categoryId, BudgetAutomationDocument.encode(parsed.targets))
+            actualEntities.setCategoryNoteTarget(categoryId, BudgetAutomationDocument.encode(parsed.targets))
         }
         refreshCleanupDefinitions()
         return true

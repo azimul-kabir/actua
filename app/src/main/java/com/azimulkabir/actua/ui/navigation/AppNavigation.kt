@@ -140,7 +140,11 @@ import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.PickerChoices
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.TransactionStatusFilter
+import com.azimulkabir.actua.model.DrillDownQuery
+import com.azimulkabir.actua.model.ReportCategory
 import com.azimulkabir.actua.model.ReportSnapshot
+import com.azimulkabir.actua.model.ReportViewFilter
+import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.asDuplicate
 import com.azimulkabir.actua.model.asTransferDraft
 import com.azimulkabir.actua.data.ActuaRepository
@@ -549,6 +553,9 @@ fun AppNavigation(
     var newTransactionType by remember { mutableStateOf(com.azimulkabir.actua.model.Type.EXPENSE) }
     var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
     var editorReturnsToCategory by rememberSaveable { mutableStateOf(false) }
+    var editorReturnsToReports by rememberSaveable { mutableStateOf(false) }
+    var editorReturnsToReportsDetail by rememberSaveable { mutableStateOf<DetailDestination?>(null) }
+    var activeDrillDown by remember { mutableStateOf<Pair<ReportCategory, String>?>(null) }
     var activeBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var reopenBudgetCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionsReturnCategory by rememberSaveable { mutableStateOf<String?>(null) }
@@ -1324,6 +1331,13 @@ fun AppNavigation(
                 detail = if (statementsReturnToTransactions) DetailDestination.Transactions else DetailDestination.CreditCards
                 statementsReturnToTransactions = false
             }
+            detail == DetailDestination.EditTransaction && editorReturnsToReports -> {
+                destination = MainDestination.Reports
+                detail = editorReturnsToReportsDetail ?: DetailDestination.Main
+                editingTransaction = null
+                editorReturnsToReports = false
+                editorReturnsToReportsDetail = null
+            }
             detail == DetailDestination.EditTransaction && editorReturnsToTransactions -> {
                 detail = DetailDestination.Transactions
                 editingTransaction = null
@@ -1548,6 +1562,28 @@ fun AppNavigation(
         },
     ) { innerPadding ->
         val contentModifier = Modifier.padding(innerPadding).nestedScroll(fabScrollConnection)
+        val loadReportWidgets: suspend (ReportViewFilter) -> List<ReportWidget> = remember(repository, dataVersion) {
+            { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } }
+        }
+        val loadReportTransactions: suspend (List<String>) -> List<Transaction> = remember(repository) {
+            { ids -> withContext(Dispatchers.IO) { repository.reportTransactions(ids) } }
+        }
+        val loadDrillDownTransactions: suspend (DrillDownQuery) -> List<Transaction> = remember(repository) {
+            { query -> withContext(Dispatchers.IO) { repository.drillDownTransactions(query) } }
+        }
+        val onEditReportTransaction: (Transaction) -> Unit = { tx ->
+            editingTransaction = tx
+            editorReturnsToReports = true
+            editorReturnsToReportsDetail = detail
+            detail = DetailDestination.EditTransaction
+        }
+        val onOpenReportInTransactions: (DrillDownQuery?, ReportCategory) -> Unit = { query, segment ->
+            transactionAccount = null
+            transactionCategory = query?.categoryName ?: segment.name.takeUnless { it in setOf("Income", "Expenses", "Remaining", "This month", "Comparison", "Total") || it.matches(Regex("\\d{4}-\\d{2}|\\d{4}-\\d{2}-\\d{2}")) }
+            transactionMonth = query?.month ?: segment.name.takeIf { it.matches(Regex("\\d{4}-\\d{2}")) }
+            transactionSearch = ""
+            detail = DetailDestination.Transactions
+        }
         AnimatedContent(
             targetState = detail to destination,
             transitionSpec = {
@@ -1570,21 +1606,30 @@ fun AppNavigation(
         ) { (shownDetail, shownDestination) ->
         tabStateHolder.SaveableStateProvider("${shownDestination.name}:${shownDetail.name}") {
         when (shownDetail) {
-            DetailDestination.Reports -> ReportsScreen(
-                reportSnapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
-                hideDecimalPlaces, contentModifier,
-                isLoading = reportSnapshot == null || reportSnapshotVersion != dataVersion,
+            DetailDestination.Reports -> NavigationReportsScreen(
+                snapshot = reportSnapshot,
+                snapshotVersion = reportSnapshotVersion,
+                dataVersion = dataVersion,
+                hideDecimalPlaces = hideDecimalPlaces,
+                modifier = contentModifier,
                 onSearch = {
                     searchReturnsToReports = true
                     detail = DetailDestination.Search
                 },
+                favoriteBudgetId = favoriteBudgetId,
+                favoritePreferences = favoritePreferences,
                 favoriteReportIds = favoriteReportIds,
                 onFavoriteReportChange = { id, favorite ->
                     favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.REPORT, id, favorite)
                     favoriteReportIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT)
                 },
-                loadSavedReports = { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } },
-                loadTransactions = { ids -> withContext(Dispatchers.IO) { repository.reportTransactions(ids) } },
+                loadSavedReports = loadReportWidgets,
+                loadTransactions = loadReportTransactions,
+                loadDrillDownTransactions = loadDrillDownTransactions,
+                onEditTransaction = onEditReportTransaction,
+                onOpenInTransactions = onOpenReportInTransactions,
+                activeDrillDown = activeDrillDown,
+                onDrillDownChange = { activeDrillDown = it },
                 showReportSummary = showReportSummary,
                 onShowReportSummaryChange = {
                     displayPreferences.showReportSummary = it
@@ -1810,15 +1855,21 @@ fun AppNavigation(
                         reopenBudgetCategory = transactionCategory
                         destination = MainDestination.Budget
                     }
+                    if (editorReturnsToReports) {
+                        destination = MainDestination.Reports
+                    }
                     detail = when {
                         editorReturnsToStatementDetail -> DetailDestination.CreditCardStatementDetail
                         editorReturnsToTransactions -> DetailDestination.Transactions
+                        editorReturnsToReports -> editorReturnsToReportsDetail ?: DetailDestination.Main
                         else -> DetailDestination.Main
                     }
                     editingTransaction = null
-                    if (!editorReturnsToTransactions && !editorReturnsToCategory && !editorReturnsToStatementDetail) destination = addOrigin
+                    if (!editorReturnsToTransactions && !editorReturnsToCategory && !editorReturnsToStatementDetail && !editorReturnsToReports) destination = addOrigin
                     editorReturnsToCategory = false
                     editorReturnsToStatementDetail = false
+                    editorReturnsToReports = false
+                    editorReturnsToReportsDetail = null
                 },
                 onSave = { savedTransaction ->
                     val wasEditing = editingTransaction != null
@@ -1865,6 +1916,11 @@ fun AppNavigation(
                             } else if (editorReturnsToStatementDetail) {
                                 detail = DetailDestination.CreditCardStatementDetail
                                 editorReturnsToStatementDetail = false
+                            } else if (editorReturnsToReports) {
+                                destination = MainDestination.Reports
+                                detail = editorReturnsToReportsDetail ?: DetailDestination.Main
+                                editorReturnsToReports = false
+                                editorReturnsToReportsDetail = null
                             } else if (editorReturnsToTransactions) {
                                 detail = DetailDestination.Transactions
                             } else if (wasEditing) {
@@ -1893,6 +1949,13 @@ fun AppNavigation(
                                 DetailDestination.CreditCardStatementDetail
                             }
                             editorReturnsToTransactions -> DetailDestination.Transactions
+                            editorReturnsToReports -> {
+                                destination = MainDestination.Reports
+                                val target = editorReturnsToReportsDetail ?: DetailDestination.Main
+                                editorReturnsToReports = false
+                                editorReturnsToReportsDetail = null
+                                target
+                            }
                             else -> {
                                 destination = addOrigin
                                 DetailDestination.Main
@@ -3004,18 +3067,27 @@ fun AppNavigation(
                     onUpcomingAction = ::onUpcomingAction,
                     hasFab = hasFab,
                 )
-                MainDestination.Reports -> ReportsScreen(
-                    reportSnapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
-                    hideDecimalPlaces, contentModifier,
-                    isLoading = reportSnapshot == null || reportSnapshotVersion != dataVersion,
+                MainDestination.Reports -> NavigationReportsScreen(
+                    snapshot = reportSnapshot,
+                    snapshotVersion = reportSnapshotVersion,
+                    dataVersion = dataVersion,
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    modifier = contentModifier,
                     onSearch = { detail = DetailDestination.Search },
+                    favoriteBudgetId = favoriteBudgetId,
+                    favoritePreferences = favoritePreferences,
                     favoriteReportIds = favoriteReportIds,
                     onFavoriteReportChange = { id, favorite ->
                         favoritePreferences.set(favoriteBudgetId, FavoritePreferences.Type.REPORT, id, favorite)
                         favoriteReportIds = favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.REPORT)
                     },
-                    loadSavedReports = { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } },
-                    loadTransactions = { ids -> withContext(Dispatchers.IO) { repository.reportTransactions(ids) } },
+                    loadSavedReports = loadReportWidgets,
+                    loadTransactions = loadReportTransactions,
+                    loadDrillDownTransactions = loadDrillDownTransactions,
+                    onEditTransaction = onEditReportTransaction,
+                    onOpenInTransactions = onOpenReportInTransactions,
+                    activeDrillDown = activeDrillDown,
+                    onDrillDownChange = { activeDrillDown = it },
                     showReportSummary = showReportSummary,
                     onShowReportSummaryChange = {
                         displayPreferences.showReportSummary = it
@@ -3228,3 +3300,54 @@ private fun NoBudgetScreen(modifier: Modifier, onConnect: () -> Unit) {
         Button(onClick = onConnect) { Text("Connect to Actual") }
     }
 }
+
+@Composable
+private fun NavigationReportsScreen(
+    snapshot: ReportSnapshot?,
+    snapshotVersion: Int,
+    dataVersion: Int,
+    hideDecimalPlaces: Boolean,
+    modifier: Modifier,
+    onSearch: () -> Unit,
+    favoriteBudgetId: String,
+    favoritePreferences: FavoritePreferences,
+    favoriteReportIds: Set<String>,
+    onFavoriteReportChange: (String, Boolean) -> Unit,
+    loadSavedReports: suspend (ReportViewFilter) -> List<ReportWidget>,
+    loadTransactions: suspend (List<String>) -> List<Transaction>,
+    loadDrillDownTransactions: suspend (DrillDownQuery) -> List<Transaction>,
+    onEditTransaction: (Transaction) -> Unit,
+    onOpenInTransactions: (DrillDownQuery?, ReportCategory) -> Unit,
+    activeDrillDown: Pair<ReportCategory, String>?,
+    onDrillDownChange: (Pair<ReportCategory, String>?) -> Unit,
+    showReportSummary: Boolean,
+    onShowReportSummaryChange: (Boolean) -> Unit,
+    scrollToTopRequest: Int,
+    initialPageId: String?,
+    initialPageRequest: Int,
+    hasFab: Boolean,
+) {
+    ReportsScreen(
+        snapshot = snapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
+        hideDecimalPlaces = hideDecimalPlaces,
+        modifier = modifier,
+        isLoading = snapshot == null || snapshotVersion != dataVersion,
+        onSearch = onSearch,
+        favoriteReportIds = favoriteReportIds,
+        onFavoriteReportChange = onFavoriteReportChange,
+        loadSavedReports = loadSavedReports,
+        loadTransactions = loadTransactions,
+        loadDrillDownTransactions = loadDrillDownTransactions,
+        onEditTransaction = onEditTransaction,
+        onOpenInTransactions = onOpenInTransactions,
+        activeDrillDown = activeDrillDown,
+        onDrillDownChange = onDrillDownChange,
+        showReportSummary = showReportSummary,
+        onShowReportSummaryChange = onShowReportSummaryChange,
+        scrollToTopRequest = scrollToTopRequest,
+        initialPageId = initialPageId,
+        initialPageRequest = initialPageRequest,
+        hasFab = hasFab,
+    )
+}
+
