@@ -1,7 +1,7 @@
 package com.azimulkabir.actua.ui.budget
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
@@ -70,7 +70,8 @@ class BudgetTableAmountsFitTest {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 MaterialTheme {
-                    Box(Modifier.width(tableWidth)) {
+                    // requiredWidth, not width: a small device's screen would otherwise clamp a wider table to its own width.
+                    Box(Modifier.requiredWidth(tableWidth)) {
                         BudgetScreen(
                             groups = groups.value,
                             overview = overview.value,
