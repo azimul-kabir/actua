@@ -24,6 +24,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Budget overview card lines up To budget with Budgeted, Spent and Balance ([#1141](https://github.com/azimul-kabir/actua/pull/1141))
 - Line chart axis labels show whole units and month labels no longer overlap ([#1131](https://github.com/azimul-kabir/actua/pull/1131))
 - Tapping a day in the Calendar report opens its transactions directly instead of only selecting it ([#1123](https://github.com/azimul-kabir/actua/pull/1123))
 

@@ -1575,7 +1575,7 @@ private fun BudgetOverviewRow(
             val budgeted = formatMoneyCents(overview.budgetedCents, hideDecimalPlaces)
             val spent = formatMoneyCents(overview.spentCents, hideDecimalPlaces)
             val balance = formatMoneyCents(overview.availableCents, hideDecimalPlaces)
-            val leadCell = @Composable { modifier: Modifier ->
+            val leadCell = @Composable { modifier: Modifier, valueMinHeight: androidx.compose.ui.unit.Dp ->
                 OverviewCell(
                     leadLabel,
                     leadAmount,
@@ -1586,14 +1586,15 @@ private fun BudgetOverviewRow(
                     pill = true,
                     pillOffset = (-8).dp,
                     onClick = onToBudgetClick,
+                    valueMinHeight = valueMinHeight,
                 )
             }
-            val amountCells = @Composable { cell: (Modifier) -> Modifier ->
-                OverviewCell("Budgeted", budgeted, cell(Modifier), Alignment.End)
-                if (showSpent) OverviewCell("Spent", spent, cell(Modifier), Alignment.End)
+            val amountCells = @Composable { cell: (Modifier) -> Modifier, valueMinHeight: androidx.compose.ui.unit.Dp ->
+                OverviewCell("Budgeted", budgeted, cell(Modifier), Alignment.End, valueMinHeight = valueMinHeight)
+                if (showSpent) OverviewCell("Spent", spent, cell(Modifier), Alignment.End, valueMinHeight = valueMinHeight)
                 OverviewCell("Balance", balance, cell(Modifier), Alignment.End,
                     positive = overview.availableCents > 0, negative = overview.availableCents < 0,
-                    pill = true, pillOffset = 8.dp)
+                    pill = true, pillOffset = 8.dp, valueMinHeight = valueMinHeight)
             }
             BoxWithConstraints {
                 val fits = tableAmountsFit(
@@ -1607,16 +1608,18 @@ private fun BudgetOverviewRow(
                 )
                 if (fits) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        leadCell(Modifier.weight(LeadColumnWeight))
-                        amountCells { it.weight(1f) }
+                        // The To budget chip is a button (Material's 48dp minimum height), so every value gets
+                        // that height: the four labels and amounts then share one row.
+                        leadCell(Modifier.weight(LeadColumnWeight), OverviewButtonHeight)
+                        amountCells({ it.weight(1f) }, OverviewButtonHeight)
                     }
                 } else {
                     // Too narrow (small screen or large font) for four columns: To budget gets its
                     // own line so the other amounts share the full width.
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        leadCell(Modifier.fillMaxWidth())
+                        leadCell(Modifier.fillMaxWidth(), OverviewButtonHeight)
                         StackedTableAmounts {
-                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells { it.weight(1f) } }
+                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells({ it.weight(1f) }, OverviewStackedValueHeight) }
                         }
                     }
                 }
@@ -1644,43 +1647,56 @@ private fun OverviewCell(
     pill: Boolean = false,
     pillOffset: androidx.compose.ui.unit.Dp = 0.dp,
     onClick: (() -> Unit)? = null,
+    /** The value area's minimum height, so cells of different heights (a button chip, a plain amount) align. */
+    valueMinHeight: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val colors = MaterialTheme.colorScheme
     Column(modifier = modifier, horizontalAlignment = alignment, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, maxLines = 1)
-        if (pill) {
-            val pillModifier = Modifier.offset(x = pillOffset)
-            // Same rule as a category's BalancePill: only a negative amount takes color. The To
-            // budget chip ([onClick]) keeps its fill without balance pills; it's a button.
-            val pillColor = when {
-                onClick == null && !LocalShowBalancePills.current -> Color.Transparent
-                negative -> colors.danger.copy(alpha = 0.16f)
-                positive -> colors.surfaceContainerHighest
-                else -> Color.Transparent
-            }
-            val textColor = when {
-                negative -> colors.danger
-                positive -> colors.onSurface
-                else -> colors.onSurfaceVariant.copy(alpha = 0.55f)
-            }
-            if (onClick != null) {
-                Surface(onClick = onClick, modifier = pillModifier, color = pillColor,
-                    shape = MaterialTheme.shapes.small) {
-                    OverviewPillAmount(amount, textColor)
+        Box(
+            Modifier.heightIn(min = valueMinHeight),
+            contentAlignment = if (alignment == Alignment.Start) Alignment.CenterStart else Alignment.CenterEnd,
+        ) {
+            if (pill) {
+                val pillModifier = Modifier.offset(x = pillOffset)
+                // Same rule as a category's BalancePill: only a negative amount takes color. The To
+                // budget chip ([onClick]) keeps its fill without balance pills; it's a button.
+                val pillColor = when {
+                    onClick == null && !LocalShowBalancePills.current -> Color.Transparent
+                    negative -> colors.danger.copy(alpha = 0.16f)
+                    positive -> colors.surfaceContainerHighest
+                    else -> Color.Transparent
+                }
+                val textColor = when {
+                    negative -> colors.danger
+                    positive -> colors.onSurface
+                    else -> colors.onSurfaceVariant.copy(alpha = 0.55f)
+                }
+                if (onClick != null) {
+                    Surface(onClick = onClick, modifier = pillModifier, color = pillColor,
+                        shape = MaterialTheme.shapes.small) {
+                        OverviewPillAmount(amount, textColor)
+                    }
+                } else {
+                    Surface(modifier = pillModifier, color = pillColor, shape = MaterialTheme.shapes.small) {
+                        OverviewPillAmount(amount, textColor)
+                    }
                 }
             } else {
-                Surface(modifier = pillModifier, color = pillColor, shape = MaterialTheme.shapes.small) {
-                    OverviewPillAmount(amount, textColor)
-                }
+                TableAmountText(amount, fontWeight = FontWeight.SemiBold, color = colors.onSurface,
+                    modifier = Modifier.padding(start = TableAmountGap))
             }
-        } else {
-            TableAmountText(amount, fontWeight = FontWeight.SemiBold, color = colors.onSurface,
-                modifier = Modifier.padding(start = TableAmountGap))
         }
     }
 }
 
 private val OverviewPillPadding = 8.dp
+
+/** Material's minimum interactive height, which the To budget chip (a button) takes. */
+private val OverviewButtonHeight = 48.dp
+
+/** In the stacked overview only the Balance pill adds height; this evens the three amount cells out. */
+private val OverviewStackedValueHeight = 28.dp
 
 @Composable
 private fun OverviewPillAmount(amount: String, color: Color) {
