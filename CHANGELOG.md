@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added an optional one-time "Support Actua" purchase in the Play Store build ([#599](https://github.com/azimul-kabir/actua/pull/599))
+
 ## [1.9.0] - 2026-10-17
 
 ### Added
