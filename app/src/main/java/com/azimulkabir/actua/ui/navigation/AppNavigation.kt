@@ -2277,6 +2277,7 @@ fun AppNavigation(
                     mutate("Applying rule") {
                         val count = repository.applyRuleNow(rule)
                         onApplied(count)
+                        count > 0
                     }
                 },
                 onPreviewRuleMatches = { rule -> repository.matchingTransactions(rule) },
