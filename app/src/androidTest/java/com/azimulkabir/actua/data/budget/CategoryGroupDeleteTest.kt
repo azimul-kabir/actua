@@ -100,12 +100,18 @@ class CategoryGroupDeleteTest {
             db.execSQL("CREATE TABLE category_groups (id TEXT PRIMARY KEY, name TEXT, is_income INTEGER, hidden INTEGER, tombstone INTEGER, sort_order REAL)")
             db.execSQL("CREATE TABLE categories (id TEXT PRIMARY KEY, name TEXT, cat_group TEXT, is_income INTEGER, hidden INTEGER, tombstone INTEGER, sort_order REAL)")
             db.execSQL("CREATE TABLE category_mapping (id TEXT PRIMARY KEY, transferId TEXT)")
+            db.execSQL("CREATE TABLE payees (id TEXT PRIMARY KEY, name TEXT, transfer_acct TEXT, tombstone INTEGER)")
+            db.execSQL("CREATE TABLE payee_mapping (id TEXT PRIMARY KEY, targetId TEXT)")
             db.execSQL("CREATE TABLE zero_budgets (id TEXT PRIMARY KEY, month INTEGER, category TEXT, amount INTEGER, carryover INTEGER)")
             db.execSQL("CREATE TABLE reflect_budgets (id TEXT PRIMARY KEY, month INTEGER, category TEXT, amount INTEGER, carryover INTEGER)")
             db.execSQL("CREATE TABLE zero_budget_months (id TEXT PRIMARY KEY, buffered INTEGER)")
             db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY, isParent INTEGER, isChild INTEGER, parent_id TEXT, acct TEXT, category TEXT, amount INTEGER, date INTEGER, notes TEXT, imported_description TEXT, tombstone INTEGER, cleared INTEGER, error TEXT)")
-            db.execSQL("CREATE TABLE messages_crdt (timestamp TEXT PRIMARY KEY, dataset TEXT, row TEXT, column TEXT, value BLOB)")
             db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
+            db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, `column` TEXT NOT NULL, value BLOB NOT NULL)")
+            db.execSQL("CREATE TABLE preferences (id TEXT PRIMARY KEY, value TEXT)")
+
+            db.execSQL("INSERT INTO payees VALUES ('store','Store',NULL,0)")
+            db.execSQL("INSERT INTO payee_mapping VALUES ('store','store')")
 
             db.execSQL(
                 """INSERT INTO category_groups (id, name, is_income, hidden, tombstone, sort_order) VALUES
@@ -120,6 +126,10 @@ class CategoryGroupDeleteTest {
                     ('power', 'Power', 'bills', 0, 0, 0, 200.0),
                     ('groceries', 'Groceries', 'everyday', 0, 0, 0, 100.0),
                     ('salary', 'Salary', 'income', 1, 0, 0, 100.0)""",
+            )
+            db.execSQL(
+                """INSERT INTO category_mapping VALUES
+                    ('rent','rent'), ('power','power'), ('groceries','groceries'), ('salary','salary')""",
             )
         }
         val database = ActualBudgetDatabase.open(file)
