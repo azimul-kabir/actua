@@ -1644,6 +1644,8 @@ fun AppNavigation(
                 initialPageId = requestedReportPageId,
                 initialPageRequest = requestedReportPageRequest,
                 hasFab = hasFab,
+                repository = repository,
+                onMutate = { label, action -> mutate(label, action = action) },
             )
             DetailDestination.Transactions -> TransactionsScreen(
                 accountName = transactionAccount,
@@ -3099,6 +3101,8 @@ fun AppNavigation(
                     initialPageId = null,
                     initialPageRequest = 0,
                     hasFab = hasFab,
+                    repository = repository,
+                    onMutate = { label, action -> mutate(label, action = action) },
                 )
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,
@@ -3335,6 +3339,8 @@ private fun NavigationReportsScreen(
     initialPageId: String?,
     initialPageRequest: Int,
     hasFab: Boolean,
+    repository: ActuaRepository,
+    onMutate: (String, () -> Boolean) -> Unit,
 ) {
     ReportsScreen(
         snapshot = snapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
@@ -3358,6 +3364,52 @@ private fun NavigationReportsScreen(
         initialPageId = initialPageId,
         initialPageRequest = initialPageRequest,
         hasFab = hasFab,
+        savedReports = remember(dataVersion) { repository.savedReports() },
+        ruleEditorData = remember(dataVersion) { repository.ruleEditorData() },
+        onComputePreview = { draft -> repository.computeCustomReportPreview(draft) },
+        onSaveCustomReport = { draft ->
+            onMutate(if (draft.id.isBlank()) "Creating custom report" else "Updating custom report") {
+                repository.saveCustomReport(draft)
+                true
+            }
+        },
+        onDeleteCustomReport = { id ->
+            onMutate("Deleting custom report") {
+                repository.deleteCustomReport(id)
+            }
+        },
+        onAddWidgetToDashboard = { pageId, type, metaJson ->
+            onMutate("Adding dashboard card") {
+                repository.addDashboardWidget(pageId, type, metaJson)
+                true
+            }
+        },
+        onDeleteWidgetFromDashboard = { widgetId ->
+            onMutate("Removing dashboard card") {
+                repository.deleteDashboardWidget(widgetId)
+            }
+        },
+        onReorderDashboardWidgets = { pageId, widgetIds ->
+            onMutate("Reordering cards") {
+                repository.reorderDashboardWidgets(pageId, widgetIds)
+            }
+        },
+        onCreateDashboardPage = { name ->
+            onMutate("Creating dashboard page") {
+                repository.createDashboardPage(name)
+                true
+            }
+        },
+        onRenameDashboardPage = { pageId, name ->
+            onMutate("Renaming dashboard page") {
+                repository.renameDashboardPage(pageId, name)
+            }
+        },
+        onDeleteDashboardPage = { pageId ->
+            onMutate("Deleting dashboard page") {
+                repository.deleteDashboardPage(pageId)
+            }
+        },
     )
 }
 

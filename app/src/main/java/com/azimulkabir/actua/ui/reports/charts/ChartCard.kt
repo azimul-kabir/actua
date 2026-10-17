@@ -58,6 +58,7 @@ fun ChartCard(
     trend: ChartTrend? = null,
     caption: String? = null,
     onExpand: (() -> Unit)? = null,
+    menuContent: (@Composable () -> Unit)? = null,
     chart: @Composable () -> Unit,
 ) {
     Surface(
@@ -85,7 +86,7 @@ fun ChartCard(
                         .weight(1f, fill = false)
                         .semantics { heading() },
                 )
-                if (headlineValue != null || trend != null || !caption.isNullOrBlank() || onExpand != null) {
+                if (headlineValue != null || trend != null || !caption.isNullOrBlank() || onExpand != null || menuContent != null) {
                     Column(
                         horizontalAlignment = Alignment.End,
                         modifier = Modifier
@@ -120,6 +121,9 @@ fun ChartCard(
                                         modifier = Modifier.size(18.dp),
                                     )
                                 }
+                            }
+                            if (menuContent != null) {
+                                menuContent()
                             }
                         }
                         if (!caption.isNullOrBlank()) {

@@ -1694,6 +1694,44 @@ class ActualBudgetDatabase private constructor(
         return rows
     }
 
+    @Synchronized
+    fun fetchSavedReport(id: String): com.azimulkabir.actua.data.reports.SavedReportRow? {
+        if (!hasTable("custom_reports")) return null
+        val columns = columns("custom_reports")
+        fun optional(column: String, fallback: String) = if (column in columns) column else fallback
+        return database.rawQuery(
+            "SELECT id, COALESCE(name, ''), start_date, end_date, date_static, date_range, group_by, balance_type, " +
+                "show_offbudget, show_hidden, show_uncategorized, selected_categories, graph_type, conditions, " +
+                "conditions_op, interval, mode, ${optional("include_current", "0")}, " +
+                "${optional("sort_by", "NULL")}, ${optional("show_empty", "0")}, ${optional("trim_intervals", "0")} " +
+                "FROM custom_reports WHERE id = ? AND (tombstone = 0 OR tombstone IS NULL)",
+            arrayOf(id),
+        ).use { c ->
+            if (c.moveToNext()) com.azimulkabir.actua.data.reports.SavedReportRow(
+                c.getString(0), c.getString(1), c.stringOrNull(2), c.stringOrNull(3), c.longOrZero(4) == 1L,
+                c.stringOrNull(5), c.stringOrNull(6) ?: "Category", c.stringOrNull(7) ?: "Expense",
+                c.longOrZero(8) == 1L, c.longOrZero(9) == 1L, c.longOrZero(10) == 1L, c.stringOrNull(11),
+                c.stringOrNull(12) ?: "BarGraph", c.stringOrNull(13), c.stringOrNull(14), c.stringOrNull(15) ?: "Monthly", c.stringOrNull(16) ?: "total",
+                c.longOrZero(17) == 1L, c.stringOrNull(18)?.takeIf(String::isNotBlank) ?: "desc",
+                c.longOrZero(19) == 1L, c.longOrZero(20) == 1L,
+            ) else null
+        }
+    }
+
+    @Synchronized
+    fun nextDashboardWidgetY(pageId: String?): Int {
+        if (!hasTable("dashboard")) return 0
+        val columns = columns("dashboard")
+        val hasPage = "dashboard_page_id" in columns
+        val where = if (!hasPage) "" else if (pageId == null) " AND dashboard_page_id IS NULL" else " AND dashboard_page_id = ?"
+        val args = if (hasPage && pageId != null) arrayOf(pageId) else null
+        val yCol = if ("y" in columns && "height" in columns) "COALESCE(MAX(y + height), 0)" else "COUNT(*) * 2"
+        return database.rawQuery(
+            "SELECT $yCol FROM dashboard WHERE (tombstone = 0 OR tombstone IS NULL)$where",
+            args,
+        ).use { c -> if (c.moveToNext()) c.getInt(0) else 0 }
+    }
+
     data class BudgetCell(
         val table: String,
         val rowId: String,
