@@ -2324,6 +2324,9 @@ fun AppNavigation(
                 onBack = { detail = DetailDestination.Main },
                 onMoveAccount = { move -> mutateSync("Reordering account") { repository.moveAccount(move) } },
                 onMoveGroup = { move -> mutateSync("Reordering account group") { repository.moveAccountGroup(move) } },
+                onCreateGroup = { name -> mutate("Creating account group") { repository.createAccountGroup(name) } },
+                onRenameGroup = { id, name -> mutate("Renaming account group") { repository.renameAccountGroup(id, name) } },
+                onDeleteGroup = { id -> mutate("Deleting account group") { repository.deleteAccountGroup(id) } },
                 modifier = contentModifier,
             )
             DetailDestination.CustomizeHome -> CustomizeHomeScreen(
@@ -2927,18 +2930,6 @@ fun AppNavigation(
                     accountGroups = remember(dataVersion) { repository.accountGroupsForReorder() },
                     onSetAccountGroup = { account, groupId ->
                         mutate("Updating account group") { repository.setAccountGroup(account.id, groupId) }
-                    },
-                    onCreateAccountGroup = { name ->
-                        mutate("Creating account group") { repository.createAccountGroup(name) }
-                    },
-                    onRenameAccountGroup = { id, name ->
-                        mutate("Renaming account group") { repository.renameAccountGroup(id, name) }
-                    },
-                    onDeleteAccountGroup = { id ->
-                        mutate("Deleting account group") { repository.deleteAccountGroup(id) }
-                    },
-                    onMoveAccountGroup = { move ->
-                        mutateSync("Reordering account group") { repository.moveAccountGroup(move) }
                     },
                     onReorderAccounts = { detail = DetailDestination.ReorderAccounts },
                     pendingCaptureCount = pendingCaptureCount,

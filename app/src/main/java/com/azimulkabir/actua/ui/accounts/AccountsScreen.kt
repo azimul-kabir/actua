@@ -80,7 +80,6 @@ import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.model.Transaction
-import com.azimulkabir.actua.data.budget.AccountGroupReorderPlanner
 import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
@@ -164,10 +163,6 @@ fun AccountsScreen(
     onCreateAccount: (String, Boolean, String, String, String?) -> Unit = { _, _, _, _, _ -> },
     accountGroups: List<ActualAccountGroup> = emptyList(),
     onSetAccountGroup: (Account, String?) -> Unit = { _, _ -> },
-    onCreateAccountGroup: (String) -> Unit = {},
-    onRenameAccountGroup: (String, String) -> Unit = { _, _ -> },
-    onDeleteAccountGroup: (String) -> Unit = {},
-    onMoveAccountGroup: (AccountGroupReorderPlanner.GroupMove) -> Boolean = { false },
     onReorderAccounts: () -> Unit = {},
     onSearch: () -> Unit = {},
     onSetUpBankSync: () -> Unit = {},
@@ -204,7 +199,6 @@ fun AccountsScreen(
     var selectedAccount by remember { mutableStateOf<Account?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
     var showNewAccountDialog by remember { mutableStateOf(false) }
-    var showManageGroupsSheet by remember { mutableStateOf(false) }
     var accountMenuExpanded by remember { mutableStateOf(false) }
     var renamingAccount by remember { mutableStateOf<Account?>(null) }
     var closingAccount by remember { mutableStateOf<Account?>(null) }
@@ -265,14 +259,6 @@ fun AccountsScreen(
                                 onClick = {
                                     accountMenuExpanded = false
                                     onReorderAccounts()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Manage account groups") },
-                                leadingIcon = { Icon(Icons.Outlined.Folder, contentDescription = null) },
-                                onClick = {
-                                    accountMenuExpanded = false
-                                    showManageGroupsSheet = true
                                 },
                             )
                             HorizontalDivider()
@@ -414,16 +400,6 @@ fun AccountsScreen(
                 onSetAccountGroup(account, groupId)
                 changingGroupAccount = null
             },
-        )
-    }
-    if (showManageGroupsSheet) {
-        ManageAccountGroupsSheet(
-            groups = accountGroups,
-            onDismiss = { showManageGroupsSheet = false },
-            onCreateGroup = onCreateAccountGroup,
-            onRenameGroup = onRenameAccountGroup,
-            onDeleteGroup = onDeleteAccountGroup,
-            onMoveGroup = onMoveAccountGroup,
         )
     }
 }

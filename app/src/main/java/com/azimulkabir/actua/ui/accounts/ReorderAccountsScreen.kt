@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,14 +19,24 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DragHandle
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,6 +65,7 @@ import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.GroupPosition
+import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.dragReorderHandle
 import com.azimulkabir.actua.ui.theme.Spacing
 import kotlinx.coroutines.launch
@@ -124,6 +136,9 @@ fun ReorderAccountsScreen(
     modifier: Modifier = Modifier,
     groups: List<ActualAccountGroup> = emptyList(),
     onMoveGroup: ((AccountGroupReorderPlanner.GroupMove) -> Boolean)? = null,
+    onCreateGroup: ((String) -> Unit)? = null,
+    onRenameGroup: ((String, String) -> Unit)? = null,
+    onDeleteGroup: ((String) -> Unit)? = null,
 ) {
     val orderKey = remember(accounts, groups) {
         accounts.joinToString("|") { it.id } + "::" + groups.joinToString("|") { "${it.id}:${it.sortOrder}" }
@@ -135,6 +150,9 @@ fun ReorderAccountsScreen(
     var dragOffsetPx by remember { mutableStateOf(0f) }
     var collapsedSections by remember { mutableStateOf(setOf(CLOSED_SECTION_TITLE)) }
     var collapsedGroups by remember { mutableStateOf(emptySet<String>()) }
+    var showManageGroupsSheet by remember { mutableStateOf(false) }
+    var renamingGroup by remember { mutableStateOf<ActualAccountGroup?>(null) }
+    var deletingGroup by remember { mutableStateOf<ActualAccountGroup?>(null) }
     LaunchedEffect(orderKey) {
         if (draggingAccountId == null) {
             val sorted = groups.sortedWith(compareBy({ it.sortOrder }, { it.id }))
@@ -216,7 +234,13 @@ fun ReorderAccountsScreen(
     }
 
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Reorder Accounts", onBack = onBack)
+        ActuaScreenHeader(title = "Reorder Accounts", onBack = onBack) {
+            if (onCreateGroup != null || onMoveGroup != null) {
+                IconButton(onClick = { showManageGroupsSheet = true }) {
+                    Icon(Icons.Outlined.Folder, contentDescription = "Manage account groups")
+                }
+            }
+        }
         Text(
             "Drag a handle to reorder, or use the up/down arrows.",
             style = MaterialTheme.typography.bodySmall,
@@ -277,6 +301,12 @@ fun ReorderAccountsScreen(
                                             }
                                         }
                                     } else null,
+                                    onRename = if (onRenameGroup != null && currentGroup != null) {
+                                        { renamingGroup = currentGroup }
+                                    } else null,
+                                    onDelete = if (onDeleteGroup != null && currentGroup != null) {
+                                        { deletingGroup = currentGroup }
+                                    } else null,
                                 )
                             }
                         }
@@ -310,6 +340,53 @@ fun ReorderAccountsScreen(
                 }
             }
         }
+    }
+
+    if (showManageGroupsSheet && onCreateGroup != null && onRenameGroup != null && onDeleteGroup != null && onMoveGroup != null) {
+        ManageAccountGroupsSheet(
+            groups = localGroups,
+            onDismiss = { showManageGroupsSheet = false },
+            onCreateGroup = onCreateGroup,
+            onRenameGroup = onRenameGroup,
+            onDeleteGroup = onDeleteGroup,
+            onMoveGroup = onMoveGroup,
+        )
+    }
+
+    renamingGroup?.let { group ->
+        RenameDialog(
+            title = "Rename account group",
+            currentName = group.name,
+            onConfirm = { newName ->
+                onRenameGroup?.invoke(group.id, newName)
+                renamingGroup = null
+            },
+            onDismiss = { renamingGroup = null },
+        )
+    }
+
+    deletingGroup?.let { group ->
+        AlertDialog(
+            onDismissRequest = { deletingGroup = null },
+            title = { Text("Delete account group?") },
+            text = { Text("Accounts currently in \"${group.name}\" will become ungrouped.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteGroup?.invoke(group.id)
+                        deletingGroup = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deletingGroup = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 }
 
@@ -347,8 +424,11 @@ private fun ReorderGroupHeader(
     onClick: () -> Unit,
     onMoveUp: (() -> Unit)? = null,
     onMoveDown: (() -> Unit)? = null,
+    onRename: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
 ) {
     val rotation by animateFloatAsState(if (collapsed) -90f else 0f, tween(220), label = "reorder group")
+    var menuExpanded by remember { mutableStateOf(false) }
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier.fillMaxWidth()
@@ -385,6 +465,49 @@ private fun ReorderGroupHeader(
                     },
                 ) {
                     Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+            }
+            if (onRename != null || onDelete != null) {
+                Box {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.size(36.dp).semantics {
+                            contentDescription = "Group options for $name"
+                        },
+                    ) {
+                        Icon(Icons.Outlined.MoreVert, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        if (onRename != null) {
+                            DropdownMenuItem(
+                                text = { Text("Rename group") },
+                                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onRename()
+                                },
+                            )
+                        }
+                        if (onDelete != null) {
+                            DropdownMenuItem(
+                                text = { Text("Delete group") },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Outlined.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onDelete()
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
