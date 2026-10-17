@@ -1163,6 +1163,7 @@ class ActuaRepository(context: Context) {
                 importedPayee = candidate.importedPayeeName(),
                 scheduleId = null,
                 transferAccountId = null,
+                financialId = candidate.financialId,
             )
         }
         val newId = { java.util.UUID.randomUUID().toString().lowercase() }
@@ -1178,6 +1179,24 @@ class ActuaRepository(context: Context) {
             val date = java.time.LocalDate.of(day / 10000, day / 100 % 100, day % 100).plusDays(days)
             return date.year * 10000 + date.monthValue * 100 + date.dayOfMonth
         }
+        val financialIds = prepared.mapNotNull { it.transaction.financialId }.toSet()
+        val knownFinancialIds = if (financialIds.isNotEmpty()) db.financialIdRows(accountId, financialIds) else emptyMap()
+        val exactMatches = mutableMapOf<Int, com.azimulkabir.actua.data.bank.BankSyncMatchCandidate>()
+        prepared.forEachIndexed { index, item ->
+            val fid = item.transaction.financialId
+            if (fid != null && fid in knownFinancialIds) {
+                val targetId = knownFinancialIds[fid]
+                if (targetId != null) {
+                    val existing = db.fetchTransactionRow(targetId)
+                    if (existing != null) {
+                        exactMatches[index] = com.azimulkabir.actua.data.bank.BankSyncMatchCandidate(
+                            existing.id, existing.date, existing.payeeId, existing.reconciled
+                        )
+                    }
+                }
+            }
+        }
+        val claimedTargetIds = exactMatches.values.map { it.id }.toSet()
         val rows = prepared.mapIndexed { index, item ->
             // A new payee's provisional id never matches an existing row.
             val payee = item.createPayeeName?.let { db.findPayeeByName(it)?.id }
@@ -1185,13 +1204,21 @@ class ActuaRepository(context: Context) {
             com.azimulkabir.actua.data.bank.BankSyncMatchRow("$index", item.transaction.date, payee)
         }
         val candidatesByRow = prepared.withIndex().associate { (index, item) ->
-            "$index" to db.fuzzyMatchCandidates(
-                accountId, item.transaction.amountCents,
-                dateFrom = shift(item.transaction.date, -7), dateTo = shift(item.transaction.date, 7),
-            ).map { com.azimulkabir.actua.data.bank.BankSyncMatchCandidate(it.id, it.date, it.payeeId, it.reconciled) }
+            if (index in exactMatches) {
+                "$index" to emptyList()
+            } else {
+                "$index" to db.fuzzyMatchCandidates(
+                    accountId, item.transaction.amountCents,
+                    dateFrom = shift(item.transaction.date, -7), dateTo = shift(item.transaction.date, 7),
+                ).filterNot { it.id in claimedTargetIds }
+                 .map { com.azimulkabir.actua.data.bank.BankSyncMatchCandidate(it.id, it.date, it.payeeId, it.reconciled) }
+            }
         }
-        val matches = com.azimulkabir.actua.data.bank.BankSyncMatcher.match(rows, candidatesByRow)
-        return ImportPlan(prepared, prepared.indices.map { matches["$it"] })
+        val fuzzyMatches = com.azimulkabir.actua.data.bank.BankSyncMatcher.match(rows, candidatesByRow)
+        val finalMatches = prepared.indices.map { index ->
+            exactMatches[index] ?: fuzzyMatches["$index"]
+        }
+        return ImportPlan(prepared, finalMatches)
     }
 
     /**
@@ -1260,9 +1287,9 @@ class ActuaRepository(context: Context) {
                 val original = db.fetchTransactionRow(match.id) ?: return@forEachIndexed
                 val bank = item.transaction
                 val isCleared = original.cleared || bank.cleared
-                // File rows carry no imported id, so Actual's `imported_id: trans.imported_id || null` clears it.
+                // Actual's `imported_id: trans.imported_id || null`: preserves FITID / CAMT ID from structured imports (#1149).
                 batch.update(original, original.copy(
-                    financialId = null,
+                    financialId = bank.financialId ?: original.financialId,
                     payeeId = original.payeeId ?: (item.createPayeeName?.let(batch::payee) ?: bank.payeeId),
                     categoryId = original.categoryId ?: bank.categoryId,
                     notes = original.notes ?: bank.notes,

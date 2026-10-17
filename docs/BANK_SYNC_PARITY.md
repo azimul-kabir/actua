@@ -197,9 +197,9 @@ Actua: `CsvTransactionCandidateSource`, `XlsxStatementReader`, `StatementDocumen
 
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
-| Formats | CSV, QIF, OFX/QFX, CAMT.053 | CSV, XLSX, text-based PDF, pasted or shared text, notifications, Tasker broadcasts | Intentional boundary. CSV is the only format both support. |
+| Formats | CSV, QIF, OFX/QFX, CAMT.053 | CSV, OFX/QFX, QIF, CAMT.053, XLSX, text-based PDF, pasted or shared text, notifications, Tasker broadcasts | Match ([#1149](https://github.com/azimul-kabir/actua/issues/1149)) for all upstream formats |
 | CSV mapping | date, payee, notes, category, amount or inflow/outflow, in/out column, multiplier, flip, skip lines, header toggle, delimiter | date, payee, notes, reference, amount or debit/credit, "expenses are positive", auto delimiter, header row, saved profiles | Match for date/payee/notes/amount. Category column and multiplier: N/A. Reference is Android-only and appended to notes as `Reference: …`. |
-| `imported_id` | from OFX/QFX FITID and CAMT ids; CSV has none | none (CSV/XLSX/PDF carry no stable id) | Match for CSV |
+| `imported_id` | from OFX/QFX FITID and CAMT ids; CSV has none | from OFX/QFX FITID and CAMT ids; CSV has none | Match ([#1149](https://github.com/azimul-kabir/actua/issues/1149)) |
 | Rules before payee creation | `runRules` on each row | `ImportRules.apply` | Match |
 | Payee name normalization | trimmed and title-cased (`title()`) | same (`TitleCase.title`, a port) for CSV, XLSX and PDF; captured, shared and Tasker rows are only trimmed, like bank sync's payee | Match ([#1008](https://github.com/azimul-kabir/actua/issues/1008)); Android-only sources keep their case ([#1092](https://github.com/azimul-kabir/actua/issues/1092)) |
 | `cleared` | **Clear transactions on import**, on by default | **Mark as cleared**, on by default | Match ([#1008](https://github.com/azimul-kabir/actua/issues/1008)) |

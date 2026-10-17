@@ -38,6 +38,18 @@ class ActuaRepositoryMultiAccountImportTest {
         assertEquals(emptyList<Row>(), rows())
     }
 
+    @Test
+    fun importingWithFinancialIdPopulatesIdAndPreventsDuplicatesOnSubsequentImports() = withRepository { repository, _ ->
+        val candidate = ImportCandidate(1, 20261012, "Coffee Shop", "", -450L, financialId = "FITID-12345")
+        val imported = repository.importTransactions("card", listOf(candidate))
+        assertEquals(1, imported)
+
+        val matches = repository.importMatches("card", listOf(candidate))
+        assertEquals(1, matches.size)
+        org.junit.Assert.assertNotNull(matches[0])
+        assertEquals(20261012, matches[0]?.date)
+    }
+
     private fun candidate(row: Int, cents: Long, payee: String) = ImportCandidate(row, 20261012, payee, "", cents)
 
     private data class Row(val id: String, val account: String, val amount: Long)
