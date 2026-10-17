@@ -51,7 +51,7 @@ checked with a line-for-line Python port of Actua's month walk.
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
 | Type: `preferences.budgetType`, `tracking` → `reflect_budgets`, anything else → `zero_budgets` | `isTrackingBudget`, `getBudgetType` | `budgetTable()` (`:1634`): `tracking` or the legacy `report` → `reflect_budgets`; falls back to whichever table exists | Match. `report` is the pre-rename value. |
-| Switching type | `setType` rebuilds the sheet; rows of the other table stay | read-only; Actua never writes `budgetType` | N/A (switch in the PWA; Actua follows the synced preference) |
+| Switching type | `setType` rebuilds the sheet; rows of the other table stay | `setBudgetType` writes `preferences.budgetType` via CRDT; rows of the other table stay | Match |
 | `zero_budget_months` (holds) used only by envelope budgets | `loadUserBudgets` | read only when envelope | Match |
 
 ## 2. Envelope cells (`zero_budgets`)

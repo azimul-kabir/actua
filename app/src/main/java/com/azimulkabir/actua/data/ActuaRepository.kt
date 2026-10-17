@@ -736,6 +736,22 @@ class ActuaRepository(context: Context) {
     /** The budget's synced `hideFraction` preference, which budget templates round with. */
     fun budgetHidesFraction(): Boolean = actualDatabase?.hideFraction() ?: false
 
+    /** The active budget type: [ActualBudgetDatabase.BUDGET_TYPE_ENVELOPE] or [ActualBudgetDatabase.BUDGET_TYPE_TRACKING]. */
+    fun budgetType(): String = actualDatabase?.fetchBudgetType() ?: ActualBudgetDatabase.BUDGET_TYPE_ENVELOPE
+
+    /**
+     * Updates the synced `preferences.budgetType` to [type] (`"envelope"` or `"tracking"`).
+     *
+     * Persists via CRDT messages and triggers sync.
+     */
+    fun setBudgetType(type: String): Boolean {
+        require(type == ActualBudgetDatabase.BUDGET_TYPE_ENVELOPE || type == ActualBudgetDatabase.BUDGET_TYPE_TRACKING) {
+            "Unsupported budget type: $type"
+        }
+        actualEntities?.setPreference("budgetType", type) ?: return false
+        return true
+    }
+
     fun budgetScheduleFunding(month: String = currentMonth()): List<BudgetScheduleFunding> {
         val db = actualDatabase ?: return emptyList()
         val selected = runCatching { java.time.YearMonth.parse(month) }.getOrNull() ?: return emptyList()
