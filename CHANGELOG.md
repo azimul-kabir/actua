@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Add UI for creating, renaming, reordering, and assigning custom account groups ([#1148](https://github.com/azimul-kabir/actua/issues/1148))
 - Allow split rule formulas to access parent transaction fields ([#1157](https://github.com/azimul-kabir/actua/pull/1157))
 - Add 'Apply rule now' bulk execution and live matching preview to rules ([#1156](https://github.com/azimul-kabir/actua/pull/1156))
 - Support transfer lines in split transactions ([#1155](https://github.com/azimul-kabir/actua/pull/1155))

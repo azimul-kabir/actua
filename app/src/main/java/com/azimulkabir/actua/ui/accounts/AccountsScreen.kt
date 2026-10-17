@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Lock
@@ -79,6 +80,8 @@ import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.data.budget.AccountGroupReorderPlanner
+import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
@@ -89,6 +92,7 @@ import com.azimulkabir.actua.ui.components.ActuaSheetAction
 import com.azimulkabir.actua.ui.components.ActuaSheetCard
 import com.azimulkabir.actua.ui.components.ActuaSheetContent
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
+import com.azimulkabir.actua.ui.components.ChangeAccountGroupDialog
 import com.azimulkabir.actua.ui.components.ChangeAccountTypeDialog
 import com.azimulkabir.actua.ui.components.GroupPosition
 import com.azimulkabir.actua.ui.components.MonetaryText
@@ -157,7 +161,13 @@ fun AccountsScreen(
     onReopenAccount: (Account) -> Unit = {},
     onRenameAccount: (Account, String) -> Unit = { _, _ -> },
     onChangeAccountType: (Account, String) -> Unit = { _, _ -> },
-    onCreateAccount: (String, Boolean, String, String) -> Unit = { _, _, _, _ -> },
+    onCreateAccount: (String, Boolean, String, String, String?) -> Unit = { _, _, _, _, _ -> },
+    accountGroups: List<ActualAccountGroup> = emptyList(),
+    onSetAccountGroup: (Account, String?) -> Unit = { _, _ -> },
+    onCreateAccountGroup: (String) -> Unit = {},
+    onRenameAccountGroup: (String, String) -> Unit = { _, _ -> },
+    onDeleteAccountGroup: (String) -> Unit = {},
+    onMoveAccountGroup: (AccountGroupReorderPlanner.GroupMove) -> Boolean = { false },
     onReorderAccounts: () -> Unit = {},
     onSearch: () -> Unit = {},
     onSetUpBankSync: () -> Unit = {},
@@ -194,10 +204,12 @@ fun AccountsScreen(
     var selectedAccount by remember { mutableStateOf<Account?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
     var showNewAccountDialog by remember { mutableStateOf(false) }
+    var showManageGroupsSheet by remember { mutableStateOf(false) }
     var accountMenuExpanded by remember { mutableStateOf(false) }
     var renamingAccount by remember { mutableStateOf<Account?>(null) }
     var closingAccount by remember { mutableStateOf<Account?>(null) }
     var changingTypeAccount by remember { mutableStateOf<Account?>(null) }
+    var changingGroupAccount by remember { mutableStateOf<Account?>(null) }
     // Otherwise this re-filters the whole account list on every recomposition of this screen
     // (e.g. opening the overflow menu or selecting an account), not just when `accounts` changes.
     val accountSections = remember(accounts, favoriteAccountIds) {
@@ -253,6 +265,14 @@ fun AccountsScreen(
                                 onClick = {
                                     accountMenuExpanded = false
                                     onReorderAccounts()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Manage account groups") },
+                                leadingIcon = { Icon(Icons.Outlined.Folder, contentDescription = null) },
+                                onClick = {
+                                    accountMenuExpanded = false
+                                    showManageGroupsSheet = true
                                 },
                             )
                             HorizontalDivider()
@@ -346,6 +366,7 @@ fun AccountsScreen(
             onViewTransactions = { selectedAccount = null; onAccountClick(account.name) },
             onRename = { selectedAccount = null; renamingAccount = account },
             onChangeType = { selectedAccount = null; changingTypeAccount = account },
+            onChangeGroup = { selectedAccount = null; changingGroupAccount = account },
             onClose = {
                 selectedAccount = null
                 if (account.closed) onReopenAccount(account) else closingAccount = account
@@ -372,14 +393,39 @@ fun AccountsScreen(
         onCreateLocal = { showAddSheet = false; showNewAccountDialog = true },
         onSetUpBankSync = { showAddSheet = false; onSetUpBankSync() },
     )
-    if (showNewAccountDialog) NewAccountDialog(onDismiss = { showNewAccountDialog = false }) { name, offBudget, balance, type ->
-        onCreateAccount(name, offBudget, balance, type); showNewAccountDialog = false
+    if (showNewAccountDialog) NewAccountDialog(
+        accountGroups = accountGroups,
+        onDismiss = { showNewAccountDialog = false },
+    ) { name, offBudget, balance, type, groupId ->
+        onCreateAccount(name, offBudget, balance, type, groupId); showNewAccountDialog = false
     }
     renamingAccount?.let { account -> RenameDialog("Rename account", account.name,
         onDismiss = { renamingAccount = null }, onSave = { name -> onRenameAccount(account, name); renamingAccount = null }) }
     changingTypeAccount?.let { account -> ChangeAccountTypeDialog(account.name, account.type,
         onDismiss = { changingTypeAccount = null },
         onSave = { type -> onChangeAccountType(account, type); changingTypeAccount = null }) }
+    changingGroupAccount?.let { account ->
+        ChangeAccountGroupDialog(
+            accountName = account.name,
+            currentGroupId = account.groupId,
+            accountGroups = accountGroups,
+            onDismiss = { changingGroupAccount = null },
+            onSave = { groupId ->
+                onSetAccountGroup(account, groupId)
+                changingGroupAccount = null
+            },
+        )
+    }
+    if (showManageGroupsSheet) {
+        ManageAccountGroupsSheet(
+            groups = accountGroups,
+            onDismiss = { showManageGroupsSheet = false },
+            onCreateGroup = onCreateAccountGroup,
+            onRenameGroup = onRenameAccountGroup,
+            onDeleteGroup = onDeleteAccountGroup,
+            onMoveGroup = onMoveAccountGroup,
+        )
+    }
 }
 
 @Composable
@@ -569,6 +615,7 @@ private fun AccountActionsSheet(
     onViewTransactions: () -> Unit,
     onRename: () -> Unit,
     onChangeType: () -> Unit,
+    onChangeGroup: () -> Unit,
     onClose: () -> Unit,
     favorite: Boolean,
     onFavoriteChange: (Boolean) -> Unit,
@@ -588,6 +635,8 @@ private fun AccountActionsSheet(
                 AccountSheetAction(Icons.Outlined.Edit, "Rename account", onRename)
                 ActuaCardDivider()
                 AccountSheetAction(Icons.Outlined.Category, "Change account type", onChangeType)
+                ActuaCardDivider()
+                AccountSheetAction(Icons.Outlined.Folder, "Change account group", onChangeGroup)
             }
             ActuaSheetCard {
                 AccountSheetAction(

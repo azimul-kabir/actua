@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.AccountDragReorder
 import com.azimulkabir.actua.data.budget.AccountReorderPlanner
+import com.azimulkabir.actua.data.budget.AccountGroupReorderPlanner
 import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
@@ -122,18 +123,24 @@ fun ReorderAccountsScreen(
     onMoveAccount: (AccountReorderPlanner.AccountMove) -> Boolean,
     modifier: Modifier = Modifier,
     groups: List<ActualAccountGroup> = emptyList(),
+    onMoveGroup: ((AccountGroupReorderPlanner.GroupMove) -> Boolean)? = null,
 ) {
     val orderKey = remember(accounts, groups) {
         accounts.joinToString("|") { it.id } + "::" + groups.joinToString("|") { "${it.id}:${it.sortOrder}" }
     }
-    var localChunks by remember { mutableStateOf(buildReorderChunks(accounts, groups)) }
+    var localGroups by remember(groups) { mutableStateOf(groups.sortedWith(compareBy({ it.sortOrder }, { it.id }))) }
+    var localChunks by remember { mutableStateOf(buildReorderChunks(accounts, localGroups)) }
     var draggingAccountId by remember { mutableStateOf<String?>(null) }
     var dragStartChunks by remember { mutableStateOf(localChunks) }
     var dragOffsetPx by remember { mutableStateOf(0f) }
     var collapsedSections by remember { mutableStateOf(setOf(CLOSED_SECTION_TITLE)) }
     var collapsedGroups by remember { mutableStateOf(emptySet<String>()) }
     LaunchedEffect(orderKey) {
-        if (draggingAccountId == null) localChunks = buildReorderChunks(accounts, groups)
+        if (draggingAccountId == null) {
+            val sorted = groups.sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            localGroups = sorted
+            localChunks = buildReorderChunks(accounts, sorted)
+        }
     }
     val serials = remember(localChunks) { serialsBySection(localChunks) }
 
@@ -237,6 +244,10 @@ fun ReorderAccountsScreen(
                 localChunks.filter { it.sectionTitle == sectionTitle }.forEach { chunk ->
                     val groupCollapsed = chunk.groupName != null && chunk.key in collapsedGroups
                     if (chunk.groupName != null) {
+                        val currentGroup = localGroups.firstOrNull { it.name == chunk.groupName }
+                        val groupIndex = if (currentGroup != null) localGroups.indexOfFirst { it.id == currentGroup.id } else -1
+                        val canMoveGroupUp = onMoveGroup != null && groupIndex > 0
+                        val canMoveGroupDown = onMoveGroup != null && groupIndex >= 0 && groupIndex < localGroups.size - 1
                         item(key = "group:${chunk.key}") {
                             AnimatedVisibility(visible = !sectionCollapsed) {
                                 ReorderGroupHeader(
@@ -246,6 +257,26 @@ fun ReorderAccountsScreen(
                                         collapsedGroups = if (groupCollapsed) collapsedGroups - chunk.key
                                         else collapsedGroups + chunk.key
                                     },
+                                    onMoveUp = if (canMoveGroupUp) {
+                                        {
+                                            AccountGroupReorderPlanner.moveGroupUp(localGroups, currentGroup!!.id)?.let { (stepped, move) ->
+                                                if (onMoveGroup!!(move)) {
+                                                    localGroups = stepped
+                                                    localChunks = buildReorderChunks(accounts, stepped)
+                                                }
+                                            }
+                                        }
+                                    } else null,
+                                    onMoveDown = if (canMoveGroupDown) {
+                                        {
+                                            AccountGroupReorderPlanner.moveGroupDown(localGroups, currentGroup!!.id)?.let { (stepped, move) ->
+                                                if (onMoveGroup!!(move)) {
+                                                    localGroups = stepped
+                                                    localChunks = buildReorderChunks(accounts, stepped)
+                                                }
+                                            }
+                                        }
+                                    } else null,
                                 )
                             }
                         }
@@ -310,7 +341,13 @@ private fun ReorderSectionHeader(title: String, collapsed: Boolean, onClick: () 
 }
 
 @Composable
-private fun ReorderGroupHeader(name: String, collapsed: Boolean, onClick: () -> Unit) {
+private fun ReorderGroupHeader(
+    name: String,
+    collapsed: Boolean,
+    onClick: () -> Unit,
+    onMoveUp: (() -> Unit)? = null,
+    onMoveDown: (() -> Unit)? = null,
+) {
     val rotation by animateFloatAsState(if (collapsed) -90f else 0f, tween(220), label = "reorder group")
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
@@ -330,6 +367,26 @@ private fun ReorderGroupHeader(name: String, collapsed: Boolean, onClick: () -> 
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f).padding(start = 8.dp),
             )
+            if (onMoveUp != null || onMoveDown != null) {
+                IconButton(
+                    onClick = { onMoveUp?.invoke() },
+                    enabled = onMoveUp != null,
+                    modifier = Modifier.size(36.dp).semantics {
+                        contentDescription = "Move $name group up"
+                    },
+                ) {
+                    Icon(Icons.Outlined.KeyboardArrowUp, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+                IconButton(
+                    onClick = { onMoveDown?.invoke() },
+                    enabled = onMoveDown != null,
+                    modifier = Modifier.size(36.dp).semantics {
+                        contentDescription = "Move $name group down"
+                    },
+                ) {
+                    Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+            }
         }
     }
 }

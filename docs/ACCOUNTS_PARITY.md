@@ -97,7 +97,7 @@ Actua: `ActualBudgetDatabase.fetchAccountGroups` (`:131`), `ColumnMigration(1787
 | Schema: `account_groups(id, name, sort_order REAL, tombstone)`, `accounts.account_group_id TEXT DEFAULT NULL` | migration | same migration; reads skip when the table is absent | Match |
 | Live groups ordered `sort_order, id` | `getAccountGroups` | `ORDER BY sort_order`; UI chunks by `groupSortOrder, id` | Match |
 | A reference to a missing/tombstoned group is treated as ungrouped (the delete comment says consumers must do this) | `deleteAccountGroup` | `groups[groupId]` lookup → ungrouped | Match |
-| Create/rename/move/delete groups; case-insensitive unique names | `account-group-*` handlers | read-only; Actua never writes `account_groups` or `account_group_id` | **Intentional** (documented in `BACKEND_PARITY.md`) |
+| Create/rename/move/delete groups; case-insensitive unique names; assign accounts | `account-group-*` handlers, Actual 26.10 UI | Full UI: create, rename, reorder, delete groups and assign accounts via CRDT (`ActualEntityWriter`) | Match |
 | Display: on/off-budget sections, groups by sort order, then an ungrouped bucket | no upstream UI | Android presentation | **Intentional** |
 
 Tests: `src/androidTest/.../ActualBudgetReadModelTest.migrationAddsCurrentActualAccountGroupSchema`,

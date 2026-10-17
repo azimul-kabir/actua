@@ -33,6 +33,7 @@ import com.azimulkabir.actua.data.network.UrlConnectionTransport
 import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.budget.CategoryReorderPlanner
 import com.azimulkabir.actua.data.budget.AccountReorderPlanner
+import com.azimulkabir.actua.data.budget.AccountGroupReorderPlanner
 import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
@@ -1679,10 +1680,36 @@ class ActuaRepository(context: Context) {
         actualEntities!!.renameCategoryGroup(group.id, newName); return true
     }
 
-    fun createAccount(name: String, offBudget: Boolean, startingBalance: String, type: String = "Checking"): Boolean {
+    fun createAccount(
+        name: String,
+        offBudget: Boolean,
+        startingBalance: String,
+        type: String = "Checking",
+        groupId: String? = null,
+    ): Boolean {
         val cents = ActualTransactionFormService.cents(startingBalance.ifBlank { "0" }) ?: return false
         val normalized = ActualAccountType.entries.firstOrNull { it.name.equals(type, ignoreCase = true) } ?: return false
-        actualEntities?.createAccount(name, offBudget, cents, normalized.name.lowercase()) ?: return false
+        actualEntities?.createAccount(name, offBudget, cents, normalized.name.lowercase(), groupId) ?: return false
+        return true
+    }
+
+    fun createAccountGroup(name: String): Boolean {
+        actualEntities?.createAccountGroup(name) ?: return false
+        return true
+    }
+
+    fun renameAccountGroup(groupId: String, newName: String): Boolean {
+        actualEntities?.renameAccountGroup(groupId, newName) ?: return false
+        return true
+    }
+
+    fun deleteAccountGroup(groupId: String): Boolean {
+        actualEntities?.deleteAccountGroup(groupId) ?: return false
+        return true
+    }
+
+    fun setAccountGroup(accountId: String, groupId: String?): Boolean {
+        actualEntities?.setAccountGroup(accountId, groupId) ?: return false
         return true
     }
 
@@ -1765,6 +1792,11 @@ class ActuaRepository(context: Context) {
 
     fun moveAccount(move: AccountReorderPlanner.AccountMove): Boolean {
         actualEntities?.moveAccount(move.accountId, move.beforeAccountId) ?: return false
+        return true
+    }
+
+    fun moveAccountGroup(move: AccountGroupReorderPlanner.GroupMove): Boolean {
+        actualEntities?.moveAccountGroup(move.groupId, move.beforeGroupId) ?: return false
         return true
     }
 
