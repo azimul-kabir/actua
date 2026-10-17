@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Add 'Apply rule now' bulk execution and live matching preview to rules ([#1146](https://github.com/azimul-kabir/actua/issues/1146))
 - Support transfer lines in split transactions ([#1155](https://github.com/azimul-kabir/actua/pull/1155))
 - Added an optional one-time "Support Actua" purchase in the Play Store build ([#599](https://github.com/azimul-kabir/actua/pull/599))
 

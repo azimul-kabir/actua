@@ -563,6 +563,75 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    fun matchingTransactions(rule: Rule): List<ActualTransaction> {
+        val db = actualDatabase ?: return emptyList()
+        if (rule.conditions.isEmpty()) return emptyList()
+        val context = db.ruleContext()
+        return db.fetchAllAliveTransactions().filter {
+            com.azimulkabir.actua.data.rules.RulesEngine.matches(it, rule.conditions, rule.conditionsOp, context)
+        }
+    }
+
+    fun applyRuleNow(rule: Rule): Int {
+        val db = actualDatabase ?: return 0
+        val writer = actualWriter ?: return 0
+        if (rule.conditions.isEmpty() || rule.actions.isEmpty()) return 0
+        val context = db.ruleContext()
+        val matching = db.fetchAllAliveTransactions().filter {
+            com.azimulkabir.actua.data.rules.RulesEngine.matches(it, rule.conditions, rule.conditionsOp, context)
+        }
+        if (matching.isEmpty()) return 0
+
+        val updates = mutableListOf<Pair<ActualTransaction, ActualTransaction>>()
+        val inserts = mutableListOf<ActualTransaction>()
+        val tombstones = mutableListOf<String>()
+
+        for (tx in matching) {
+            val result = com.azimulkabir.actua.data.rules.RulesEngine.apply(tx, listOf(rule), context)
+            if (result.isDeleted) {
+                tombstones += tx.id
+                tx.transferId?.let { partnerId ->
+                    val partner = db.fetchTransactionRow(partnerId)
+                    if (partner != null) tombstones += partner.id
+                }
+            } else if (result.splitChildren.isNotEmpty()) {
+                val parent = result.transaction.copy(
+                    isParent = true, categoryId = null, categoryName = null,
+                )
+                updates += tx to parent
+                var nextSort = tx.sortOrder ?: System.currentTimeMillis().toDouble()
+                result.splitChildren.forEach { child ->
+                    nextSort -= 1
+                    val childTx = child.transaction.copy(
+                        id = java.util.UUID.randomUUID().toString(),
+                        parentId = tx.id,
+                        isParent = false,
+                        sortOrder = nextSort,
+                    )
+                    inserts += childTx
+                }
+            } else if (result.changedFields.isNotEmpty()) {
+                val targetAccount = db.fetchPayees().firstOrNull { it.id == result.transaction.payeeId }?.transferAccountId
+                if (targetAccount != null && targetAccount != tx.accountId && tx.transferId == null) {
+                    val legs = writer.transferLegsFor(result.transaction)
+                    if (legs != null) {
+                        updates += tx to legs.first
+                        inserts += legs.second
+                    } else {
+                        updates += tx to result.transaction
+                    }
+                } else {
+                    updates += tx to result.transaction
+                }
+            }
+        }
+
+        if (updates.isEmpty() && inserts.isEmpty() && tombstones.isEmpty()) return 0
+        writer.mutate(updates, inserts, tombstones)
+        scheduleSync()
+        return updates.size + tombstones.size + inserts.size
+    }
+
     /** The months Actual has a budget for (`getBudgetRange`); null without an open budget. */
     fun budgetMonthRange(): ClosedRange<java.time.YearMonth>? = actualDatabase?.budgetRange()
 

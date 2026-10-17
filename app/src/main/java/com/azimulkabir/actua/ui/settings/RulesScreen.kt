@@ -62,6 +62,7 @@ import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.minorUnitsPerWhole
+import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.ui.theme.Spacing
 import java.time.LocalDate
 
@@ -77,17 +78,77 @@ fun RulesScreen(
     modifier: Modifier = Modifier,
     initialRuleId: String? = null,
     onInitialRuleClosed: () -> Unit = {},
+    onApplyRule: ((Rule, onApplied: (count: Int) -> Unit) -> Unit)? = null,
+    onPreviewRuleMatches: ((Rule) -> List<ActualTransaction>)? = null,
 ) {
     var search by remember { mutableStateOf("") }
     var editing by remember(initialRuleId) {
         mutableStateOf(initialRuleId?.let { id -> rules.firstOrNull { it.id == id } })
     }
+    var ruleToApply by remember { mutableStateOf<Rule?>(null) }
+    var applyResultCount by remember { mutableStateOf<Int?>(null) }
+
     // Opened straight into one rule (e.g. a schedule's "Edit as rule"): closing it returns to the caller.
     fun closeEditor() {
         val closedInitial = initialRuleId != null && editing?.id == initialRuleId
         editing = null
         if (closedInitial) onInitialRuleClosed()
     }
+
+    ruleToApply?.let { rule ->
+        val matches = remember(rule) { onPreviewRuleMatches?.invoke(rule) ?: emptyList() }
+        val reconciledCount = remember(matches) { matches.count { it.reconciled } }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { ruleToApply = null },
+            title = { Text("Apply rule now?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (matches.isEmpty()) {
+                        Text("No existing transactions match the conditions of this rule.")
+                    } else {
+                        Text("This will apply the rule actions to ${matches.size} matching transaction${if (matches.size == 1) "" else "s"}.")
+                        if (reconciledCount > 0) {
+                            Text(
+                                "Warning: $reconciledCount reconciled transaction${if (reconciledCount == 1) "" else "s"} will be modified. Reconciled transactions are normally locked.",
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (matches.isNotEmpty()) {
+                    TextButton(onClick = {
+                        val currentRule = rule
+                        ruleToApply = null
+                        onApplyRule?.invoke(currentRule) { count ->
+                            applyResultCount = count
+                        }
+                    }) {
+                        Text("Apply")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { ruleToApply = null }) {
+                    Text(if (matches.isEmpty()) "Close" else "Cancel")
+                }
+            },
+        )
+    }
+
+    applyResultCount?.let { count ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { applyResultCount = null },
+            title = { Text("Rule applied") },
+            text = { Text("Applied rule to $count transaction${if (count == 1) "" else "s"}.") },
+            confirmButton = {
+                TextButton(onClick = { applyResultCount = null }) { Text("OK") }
+            },
+        )
+    }
+
     Column(modifier.fillMaxSize()) {
         ActuaScreenHeader(title = "Rules", onBack = onBack) {
             if (supported) IconButton(onClick = { editing = Rule.empty() }) { Icon(Icons.Outlined.Add, "Add rule") }
@@ -110,11 +171,23 @@ fun RulesScreen(
                 Surface(onClick = { editing = rule }, color = MaterialTheme.colorScheme.surfaceContainer,
                     shape = MaterialTheme.shapes.large) {
                     Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(rule.stage.name, style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                            if (rule.id in scheduleOwnedRuleIds) Text("  •  SCHEDULE", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(rule.stage.name, style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                if (rule.id in scheduleOwnedRuleIds) Text("  •  SCHEDULE", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            if (onApplyRule != null) {
+                                TextButton(onClick = { ruleToApply = rule }) {
+                                    Icon(Icons.Outlined.Bolt, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
+                                    Text("Apply now")
+                                }
+                            }
                         }
                         Text("IF", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         rule.conditions.forEachIndexed { index, condition ->
@@ -132,17 +205,37 @@ fun RulesScreen(
         }
     }
     editing?.let { rule ->
-        RuleEditor(rule, editorData, rule.id in scheduleOwnedRuleIds, onDismiss = ::closeEditor,
+        RuleEditor(
+            rule = rule,
+            data = editorData,
+            scheduleOwned = rule.id in scheduleOwnedRuleIds,
+            onDismiss = ::closeEditor,
             onSave = { onSave(it, ::closeEditor) },
-            onDelete = { onDelete(rule.id, ::closeEditor) })
+            onDelete = { onDelete(rule.id, ::closeEditor) },
+            onApply = if (onApplyRule != null) { { ruleToApply = it } } else null,
+            onPreviewMatches = onPreviewRuleMatches,
+        )
     }
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun RuleEditor(rule: Rule, data: RuleEditorData, scheduleOwned: Boolean,
-    onDismiss: () -> Unit, onSave: (Rule) -> Unit, onDelete: () -> Unit) {
+private fun RuleEditor(
+    rule: Rule,
+    data: RuleEditorData,
+    scheduleOwned: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (Rule) -> Unit,
+    onDelete: () -> Unit,
+    onApply: ((Rule) -> Unit)? = null,
+    onPreviewMatches: ((Rule) -> List<ActualTransaction>)? = null,
+) {
     var draft by remember(rule.id) { mutableStateOf(rule) }
+    var showPreviewList by remember { mutableStateOf(false) }
+    val previewMatches = remember(draft.conditions, draft.conditionsOp) {
+        if (draft.conditions.isNotEmpty()) onPreviewMatches?.invoke(draft) ?: emptyList()
+        else emptyList()
+    }
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth()) {
             Column(
@@ -200,6 +293,69 @@ private fun RuleEditor(rule: Rule, data: RuleEditorData, scheduleOwned: Boolean,
                         draft = draft.copy(actions = draft.actions + Rule.Action("set", "category", RuleValue.Null))
                     },
                 )
+                if (draft.conditions.isNotEmpty()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    "${previewMatches.size} matching transaction${if (previewMatches.size == 1) "" else "s"}",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                if (previewMatches.isNotEmpty()) {
+                                    TextButton(onClick = { showPreviewList = !showPreviewList }) {
+                                        Text(if (showPreviewList) "Hide preview" else "Preview")
+                                    }
+                                }
+                            }
+                            if (showPreviewList && previewMatches.isNotEmpty()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    previewMatches.take(10).forEach { tx ->
+                                        Row(
+                                            Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                        ) {
+                                            Text(
+                                                "${tx.date}: ${tx.payeeName ?: "No payee"}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                            Text(
+                                                com.azimulkabir.actua.ui.components.centsToInput(kotlin.math.abs(tx.amountCents)),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            )
+                                        }
+                                    }
+                                    if (previewMatches.size > 10) {
+                                        Text(
+                                            "And ${previewMatches.size - 10} more...",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (onApply != null && draft.conditions.isNotEmpty() && draft.actions.isNotEmpty()) {
+                    TextButton(onClick = { onApply(draft) }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Outlined.Bolt, null, tint = MaterialTheme.colorScheme.primary)
+                        Text("Apply rule now", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = Spacing.sm))
+                    }
+                }
                 if (!scheduleOwned && rule.conditions.isNotEmpty()) TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error)
                     Text("Delete rule", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(start = Spacing.sm))
