@@ -81,32 +81,8 @@ class CategoryGroupDeleteTest {
 
     @Test
     fun duplicateCategoryNameInTargetGroupIsRejected() = withDatabase { database, writer ->
-        // Insert a duplicate name in everyday group
-        database.applyLocalMessages(
-            listOf(
-                com.azimulkabir.actua.data.sync.CrdtMessage(
-                    timestamp = com.azimulkabir.actua.data.sync.HlcTimestamp.now("1111111111111111"),
-                    dataset = "categories",
-                    row = "rent-dup",
-                    column = "name",
-                    value = com.azimulkabir.actua.data.sync.CrdtValue.serialize("Rent"),
-                ),
-                com.azimulkabir.actua.data.sync.CrdtMessage(
-                    timestamp = com.azimulkabir.actua.data.sync.HlcTimestamp.now("1111111111111111"),
-                    dataset = "categories",
-                    row = "rent-dup",
-                    column = "cat_group",
-                    value = com.azimulkabir.actua.data.sync.CrdtValue.serialize("everyday"),
-                ),
-                com.azimulkabir.actua.data.sync.CrdtMessage(
-                    timestamp = com.azimulkabir.actua.data.sync.HlcTimestamp.now("1111111111111111"),
-                    dataset = "categories",
-                    row = "rent-dup",
-                    column = "sort_order",
-                    value = com.azimulkabir.actua.data.sync.CrdtValue.serialize(600.0),
-                ),
-            ),
-        )
+        // Create a duplicate category name in everyday group
+        writer.createCategory(name = "Rent", groupId = "everyday")
 
         assertThrows(IllegalArgumentException::class.java) {
             writer.deleteCategoryGroup("bills", targetGroupId = "everyday")
