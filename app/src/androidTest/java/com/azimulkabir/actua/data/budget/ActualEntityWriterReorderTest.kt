@@ -206,7 +206,7 @@ class ActualEntityWriterReorderTest {
             // Actual data, so shoving expense sort_order values around it never interleaves it.
             db.execSQL("INSERT INTO category_groups VALUES ('bills','Bills',0,0,1.0,0), ('fun','Fun',0,0,2.0,0), ('income','Income',1,0,1000000.0,0)")
             db.execSQL("INSERT INTO categories VALUES ('rent','Rent','bills',0,0,1.0,0), ('electric','Electric','bills',0,0,2.0,0), ('dining','Dining','fun',0,0,1.0,0), ('salary','Salary','income',1,0,1.0,0)")
-            db.execSQL("INSERT INTO accounts VALUES ('checking','Checking','checking',0,0,1.0,0), ('savings','Savings','savings',0,0,2.0,0), ('cash','Cash','cash',0,0,3.0,0)")
+            db.execSQL("INSERT INTO accounts (id, name, type, offbudget, closed, sort_order, tombstone) VALUES ('checking','Checking','checking',0,0,1.0,0), ('savings','Savings','savings',0,0,2.0,0), ('cash','Cash','cash',0,0,3.0,0)")
         }
         try {
             ActualBudgetDatabase.open(file).use { block(it, file) }
