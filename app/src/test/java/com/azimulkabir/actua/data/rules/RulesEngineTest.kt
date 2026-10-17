@@ -279,6 +279,35 @@ class RulesEngineTest {
         assertFalse(RulesEngine.matches(nonMatchingTx, conditions, Rule.ConditionsOp.AND))
     }
 
+    @Test fun splitRuleFormulasCanAccessParentTransactionFields() {
+        val rule = Rule(
+            id = "split-rule",
+            stage = Rule.Stage.DEFAULT,
+            conditionsOp = Rule.ConditionsOp.AND,
+            conditions = listOf(Rule.Condition("is", "imported_payee", RuleValue.Text("STORE"))),
+            actions = listOf(
+                Rule.Action(
+                    op = "set-split-amount",
+                    field = null,
+                    value = RuleValue.Number(50.0),
+                    options = mapOf("splitIndex" to RuleValue.Number(1.0), "method" to RuleValue.Text("fixed-percent")),
+                ),
+                Rule.Action(
+                    op = "set",
+                    field = "notes",
+                    value = RuleValue.Text("Child of {{parent_notes}} from {{parent_imported_payee}}"),
+                    options = mapOf("splitIndex" to RuleValue.Number(1.0)),
+                ),
+            ),
+        )
+        val parent = transaction(amount = -1000, imported = "STORE", notes = "Invoice #42")
+        val result = RulesEngine.apply(parent, listOf(rule))
+        assertEquals(1, result.splitChildren.size)
+        val child = result.splitChildren.first().transaction
+        assertEquals("Child of Invoice #42 from STORE", child.notes)
+        assertEquals(-500L, child.amountCents)
+    }
+
     private fun transaction(
         amount: Long = -100, imported: String? = null, payee: String? = null,
         payeeName: String? = null, notes: String? = null, date: Int = 20260503, scheduleId: String? = null,

@@ -242,6 +242,7 @@ object RulesEngine {
         val forRuleRun: Boolean = false,
         private val parentAmountCents: Long? = null,
         private val balanceTransaction: ActualTransaction = base,
+        private val parentTransaction: ActualTransaction? = null,
     ) {
         private val strings = mutableMapOf<String, String?>(
             "account" to base.accountId, "payee" to base.payeeId,
@@ -332,6 +333,16 @@ object RulesEngine {
             val account = text("account")
             val category = text("category")
             val payee = pendingPayeeName?.let { "new" } ?: text("payee")
+            val parentNotes = parentTransaction?.notes ?: text("notes")
+            val parentImportedPayee = parentTransaction?.importedPayee ?: text("imported_payee")
+            val parentPayeeId = parentTransaction?.payeeId ?: payee
+            val parentPayeeName = parentTransaction?.let { it.payeeId?.let(context.payeeNames::get) ?: it.payeeName }
+                ?: (pendingPayeeName ?: payee?.let(context.payeeNames::get) ?: base.payeeName)
+            val parentAccount = parentTransaction?.accountId ?: account
+            val parentAccountName = parentTransaction?.let { context.accountNames[it.accountId] ?: it.accountId }
+                ?: account?.let(context.accountNames::get).orEmpty()
+            val parentAmount = parentAmountCents ?: parentTransaction?.amountCents ?: number("amount") ?: base.amountCents
+
             return mapOf(
                 "id" to base.id, "account" to account, "account_name" to account?.let(context.accountNames::get).orEmpty(),
                 "date" to date, "amount" to number("amount"), "payee" to payee,
@@ -350,7 +361,13 @@ object RulesEngine {
                 "sort_order" to base.sortOrder, "tombstone" to (deleted || base.tombstone), "error" to null,
                 "_account_name" to account?.let(context.accountNames::get).orEmpty(),
                 "balance" to context.runningBalanceCents(balanceTransaction),
-                "parent_amount" to (parentAmountCents ?: base.amountCents),
+                "parent_amount" to parentAmount,
+                "parent_notes" to parentNotes,
+                "parent_imported_payee" to parentImportedPayee,
+                "parent_payee" to parentPayeeId,
+                "parent_payee_name" to parentPayeeName,
+                "parent_account" to parentAccount,
+                "parent_account_name" to parentAccountName,
                 "today" to LocalDate.now().toString(),
             ).mapKeys { it.key.lowercase() }
         }
@@ -377,7 +394,7 @@ object RulesEngine {
             val line = splitLines[index]
             return Bag(
                 line.transaction, context, forRuleRun = true, parentAmountCents = number("amount"),
-                balanceTransaction = balanceTransaction,
+                balanceTransaction = balanceTransaction, parentTransaction = transaction(),
             )
                 .also { it.pendingPayeeName = line.pendingPayeeName }
         }
