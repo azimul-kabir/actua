@@ -17,14 +17,20 @@ import org.junit.runner.RunWith
 class EntityDialogsTest {
     @get:Rule val compose = createComposeRule()
 
-    private data class NewAccount(val name: String, val offBudget: Boolean, val balance: String, val type: String)
+    private data class NewAccount(
+        val name: String,
+        val offBudget: Boolean,
+        val balance: String,
+        val type: String,
+        val groupId: String? = null,
+    )
 
     @Test fun newAccountSavesTheChosenTypeAndOffBudget() {
         var saved: NewAccount? = null
         compose.setContent {
             MaterialTheme {
-                NewAccountDialog(onDismiss = {}, onSave = { name, offBudget, balance, type ->
-                    saved = NewAccount(name, offBudget, balance, type)
+                NewAccountDialog(onDismiss = {}, onSave = { name, offBudget, balance, type, groupId ->
+                    saved = NewAccount(name, offBudget, balance, type, groupId)
                 })
             }
         }
@@ -35,7 +41,7 @@ class EntityDialogsTest {
         compose.onNodeWithText("Off budget").performClick()
         compose.onNodeWithText("Add").performClick()
 
-        assertEquals(NewAccount("Cash", true, "", "Savings"), saved)
+        assertEquals(NewAccount("Cash", true, "", "Savings", null), saved)
     }
 
     @Test fun moveCategoryCannotPickItsCurrentGroup() {
