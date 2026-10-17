@@ -126,6 +126,7 @@ private data class ReviewRow(
     /** The captured row's queue id, so its notification can be dismissed once handled (#1046). */
     val queueId: String? = null,
     val keepPayeeCase: Boolean = false,
+    val financialId: String? = null,
 )
 
 @Composable
@@ -242,13 +243,15 @@ fun ImportTransactionsScreen(
         // inside this file start unchecked.
         val knownKeys = mutableSetOf<String>()
         rows += candidates.map { candidate ->
-            val key = ImportDuplicateDetector.key(candidate.date, candidate.amountCents, candidate.payee)
+            val key = candidate.financialId?.let { "id:$it" }
+                ?: ImportDuplicateDetector.key(candidate.date, candidate.amountCents, candidate.payee)
             val duplicate = !knownKeys.add(key)
             ReviewRow(candidate.sourceRow, formatDate(candidate.date), candidate.payee,
                 BigDecimal.valueOf(candidate.amountCents, 2).toPlainString(), candidate.notes,
                 candidate.reference, selected = !duplicate, candidate.confidence, candidate.sourceLabel,
                 accountId = if (perRowAccounts()) prefilledAccountId(candidate.accountHint, candidate.sourceLabel) else null,
-                accountHint = candidate.accountHint, queueId = candidate.queueId, keepPayeeCase = candidate.keepPayeeCase)
+                accountHint = candidate.accountHint, queueId = candidate.queueId, keepPayeeCase = candidate.keepPayeeCase,
+                financialId = candidate.financialId)
         }
         problems = parseProblems
         message = if (rows.isEmpty()) "No valid transactions found." else null
@@ -302,16 +305,29 @@ fun ImportTransactionsScreen(
                 val format = when (name.substringAfterLast('.', "").lowercase()) {
                     "xlsx" -> StatementFormat.XLSX
                     "pdf" -> StatementFormat.PDF
+                    "ofx" -> StatementFormat.OFX
+                    "qfx" -> StatementFormat.QFX
+                    "qif" -> StatementFormat.QIF
+                    "xml" -> StatementFormat.CAMT053
                     else -> StatementFormat.CSV
                 }
                 val bytes = context.contentResolver.openInputStream(uri)?.use { it.readLimitedStatement() }
                     ?: error("Could not read the selected file")
                 Triple(name, format, StatementDocumentReader.read(context, bytes, format))
-            } }.onSuccess { (name, format, parsedTable) ->
-                    sourceName = name; sourceFormat = format; table = parsedTable
-                    val suggested = CsvTransactionCandidateSource.suggestedMapping(parsedTable.headers)
-                    profileName = ""
-                    review(parsedTable, suggested)
+            } }.onSuccess { (name, format, readResult) ->
+                    sourceName = name; sourceFormat = format
+                    when (readResult) {
+                        is com.azimulkabir.actua.data.importing.StatementReadResult.Table -> {
+                            table = readResult.table
+                            val suggested = CsvTransactionCandidateSource.suggestedMapping(readResult.table.headers)
+                            profileName = ""
+                            review(readResult.table, suggested)
+                        }
+                        is com.azimulkabir.actua.data.importing.StatementReadResult.Candidates -> {
+                            table = null; mapping = null; profileName = ""
+                            reviewCandidates(readResult.parseResult.candidates, readResult.parseResult.problems)
+                        }
+                    }
                 }.onFailure { message = it.message ?: "Could not parse this statement." }
             busy = false
         }
@@ -324,7 +340,7 @@ fun ImportTransactionsScreen(
         ActuaScreenHeader(title = if (capturedReviewOnly) "Review captured" else "Import transactions", onBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = Spacing.screenHorizontal)) {
             if (!capturedReviewOnly) {
-                Text("CSV, XLSX, and text-based PDF files stay on this device. Every valid row is shown for review before anything is saved.",
+                Text("CSV, OFX, QFX, QIF, CAMT.053 XML, XLSX, and text-based PDF files stay on this device. Every valid row is shown for review before anything is saved.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 ActuaGroupLabel("Message")
                 OutlinedTextField(pastedText, { pastedText = it }, label = { Text("Paste SMS or email alert") },
@@ -493,8 +509,12 @@ fun ImportTransactionsScreen(
                     text = if (busy) "Reading…" else "Choose statement file",
                     icon = Icons.Outlined.UploadFile,
                     enabled = !busy && account != null,
-                    onClick = { picker.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain",
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/pdf")) },
+                    onClick = { picker.launch(arrayOf(
+                        "text/csv", "text/comma-separated-values", "text/plain",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/pdf",
+                        "application/x-ofx", "application/ofx", "application/qfx", "application/x-qfx",
+                        "application/qif", "text/qif", "application/xml", "text/xml", "*/*",
+                    )) },
                     modifier = Modifier.padding(vertical = Spacing.md),
                 )
                 val activeTable = table
@@ -724,7 +744,7 @@ private fun ReviewRow.toCandidateOrNull(): ImportCandidate? = runCatching {
     val cents = BigDecimal(amount.trim()).setScale(2).movePointRight(2).longValueExact()
     require(payee.isNotBlank() && cents != 0L)
     ImportCandidate(sourceRow, parsedDate.year * 10_000 + parsedDate.monthValue * 100 + parsedDate.dayOfMonth,
-        payee.trim(), notes.trim(), cents, reference, keepPayeeCase = keepPayeeCase)
+        payee.trim(), notes.trim(), cents, reference, keepPayeeCase = keepPayeeCase, financialId = financialId)
 }.getOrNull()
 
 /** The row as it goes back to the notification queue, keeping its source and account hint. */

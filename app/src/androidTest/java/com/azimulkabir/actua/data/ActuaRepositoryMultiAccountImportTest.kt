@@ -7,6 +7,7 @@ import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.importing.ImportGroup
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.util.UUID
@@ -36,6 +37,18 @@ class ActuaRepositoryMultiAccountImportTest {
             ))
         }
         assertEquals(emptyList<Row>(), rows())
+    }
+
+    @Test
+    fun importingWithFinancialIdPopulatesIdAndPreventsDuplicatesOnSubsequentImports() = withRepository { repository, _ ->
+        val candidate = ImportCandidate(1, 20261012, "Coffee Shop", "", -450L, financialId = "FITID-12345")
+        val imported = repository.importTransactions("card", listOf(candidate))
+        assertEquals(1, imported)
+
+        val matches = repository.importMatches("card", listOf(candidate))
+        assertEquals(1, matches.size)
+        org.junit.Assert.assertNotNull(matches[0])
+        assertEquals(20261012, matches[0]?.date)
     }
 
     private fun candidate(row: Int, cents: Long, payee: String) = ImportCandidate(row, 20261012, payee, "", cents)

@@ -24,6 +24,8 @@ data class ImportCandidate(
      * rows carry the bank's text, as bank sync does; only file imports are title-cased, as in Actual.
      */
     val keepPayeeCase: Boolean = false,
+    /** Actual's `imported_id` (`financial_id`), populated by OFX/QFX FITID and CAMT identifiers (#1149). */
+    val financialId: String? = null,
 )
 
 /** The trimmed imported payee, title-cased as Actual's file import does unless [ImportCandidate.keepPayeeCase]. */
@@ -38,7 +40,7 @@ data class ImportParseResult(
 )
 
 enum class ImportColumnRole { IGNORE, DATE, PAYEE, NOTES, REFERENCE, AMOUNT, DEBIT, CREDIT }
-enum class StatementFormat { CSV, XLSX, PDF, SHARED_TEXT, NOTIFICATION }
+enum class StatementFormat { CSV, XLSX, PDF, OFX, QFX, QIF, CAMT053, SHARED_TEXT, NOTIFICATION }
 enum class ImportConfidence { HIGH, MEDIUM, LOW }
 
 data class ImportColumnMapping(

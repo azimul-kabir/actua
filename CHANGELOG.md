@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Support OFX, QFX, QIF, and CAMT.053 bank statement file imports with stable ID deduplication ([#1159](https://github.com/azimul-kabir/actua/pull/1159))
 - Add UI for creating, renaming, reordering, and assigning custom account groups ([#1158](https://github.com/azimul-kabir/actua/pull/1158))
 - Allow split rule formulas to access parent transaction fields ([#1157](https://github.com/azimul-kabir/actua/pull/1157))
 - Add 'Apply rule now' bulk execution and live matching preview to rules ([#1156](https://github.com/azimul-kabir/actua/pull/1156))
