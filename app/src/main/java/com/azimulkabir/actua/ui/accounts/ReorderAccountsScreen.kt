@@ -357,11 +357,11 @@ fun ReorderAccountsScreen(
         RenameDialog(
             title = "Rename account group",
             currentName = group.name,
-            onConfirm = { newName ->
+            onDismiss = { renamingGroup = null },
+            onSave = { newName ->
                 onRenameGroup?.invoke(group.id, newName)
                 renamingGroup = null
             },
-            onDismiss = { renamingGroup = null },
         )
     }
 
