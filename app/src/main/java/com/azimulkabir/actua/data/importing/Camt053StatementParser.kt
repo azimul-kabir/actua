@@ -1,11 +1,12 @@
 package com.azimulkabir.actua.data.importing
 
-import org.w3c.dom.Element
-import java.io.ByteArrayInputStream
+import java.io.StringReader
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.nio.charset.Charset
 import javax.xml.parsers.DocumentBuilderFactory
+import org.w3c.dom.Element
+import org.xml.sax.InputSource
 
 /**
  * Parses ISO 20022 CAMT.053 XML bank statement files (#1149).
@@ -43,7 +44,11 @@ object Camt053StatementParser {
             }
         }
         val doc = runCatching {
-            factory.newDocumentBuilder().parse(ByteArrayInputStream(xmlString.toByteArray(Charsets.UTF_8)))
+            val normalizedXml = xmlString.replaceFirst(
+                Regex("""encoding\s*=\s*["'][^"']+["']""", RegexOption.IGNORE_CASE),
+                "encoding=\"UTF-8\"",
+            )
+            factory.newDocumentBuilder().parse(InputSource(StringReader(normalizedXml)))
         }.getOrElse {
             return ImportParseResult(emptyList(), listOf(ImportProblem(1, "Failed to parse CAMT XML: ${it.message}")))
         }
