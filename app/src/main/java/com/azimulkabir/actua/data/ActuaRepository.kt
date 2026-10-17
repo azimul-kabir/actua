@@ -1434,7 +1434,12 @@ class ActuaRepository(context: Context) {
                     date = parseDate(transaction.date),
                     cleared = transaction.cleared,
                     splits = transaction.splits.map { line ->
-                        val lineCategory = if (categoriesAllowed) {
+                        val lineTransferTarget = if (line.payee.startsWith("Transfer: ")) line.payee.removePrefix("Transfer: ").trim().takeIf(String::isNotBlank) else null
+                        val lineCategoriesAllowed = if (lineTransferTarget != null) {
+                            val destAccount = accounts.byIdOrName(null, lineTransferTarget, { it.id }, { it.name })
+                            destAccount != null && account.offBudget != destAccount.offBudget
+                        } else categoriesAllowed
+                        val lineCategory = if (lineCategoriesAllowed) {
                             categories.byIdOrName(line.categoryId, line.category, { it.id }, { it.name })
                                 ?: error("Select a category for every split")
                         } else null

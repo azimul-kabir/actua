@@ -200,8 +200,10 @@ fun AddTransactionScreen(
     val staysReconciled = editing?.reconciled == true && account == editingLabels?.account
     val isSplit = splitLines.isNotEmpty()
     val splitTotal = splitLines.sumOf { if (it.isOpposite) -it.amountCents else it.amountCents }
-    val splitIsValid = !isSplit || (splitLines.size >= 2 && splitLines.all {
-        (isOffBudget || it.category.isNotBlank()) && it.amountCents > 0
+    val splitIsValid = !isSplit || (splitLines.size >= 2 && splitLines.all { line ->
+        val lineTarget = transferTargetOf(line.payee)
+        val lineCatNeeded = !isOffBudget && (lineTarget == null || lineTarget in offBudgetAccountOptions)
+        (!lineCatNeeded || line.category.isNotBlank()) && line.amountCents > 0
     } && splitTotal == amountCents)
     val canSave = amountCents >= 0 && account.isNotBlank() && transferTarget != account && splitIsValid
     val categoryApplies = if (isTransfer) transferTakesCategory else !isSplit && !isOffBudget
@@ -438,7 +440,13 @@ fun AddTransactionScreen(
                                 }
                             }
                             ActuaFormCard {
-                                if (!isOffBudget) {
+                                val lineTransferTarget = transferTargetOf(line.payee)
+                                val lineCategoryApplies = when {
+                                    isOffBudget -> false
+                                    lineTransferTarget != null -> lineTransferTarget in offBudgetAccountOptions
+                                    else -> true
+                                }
+                                if (lineCategoryApplies) {
                                     PickerTextField(
                                         label = "Category",
                                         value = line.category,
@@ -500,7 +508,7 @@ fun AddTransactionScreen(
                                 PickerTextField(
                                     label = "Payee",
                                     value = line.payee,
-                                    options = splitLinePayeeOptions(payeeOptions),
+                                    options = splitLinePayeeOptions(payeeOptions, account),
                                     onValueChange = { value -> update(line.copy(payee = value)) },
                                     allowCustom = true,
                                     rowIcon = Icons.Outlined.Storefront,
@@ -672,9 +680,10 @@ internal fun transferTargetOf(payee: String): String? = payee
     ?.removePrefix(TRANSFER_PAYEE_PREFIX)
     ?.takeIf(String::isNotBlank)
 
-/** A split line's payee choices: transfer split lines aren't supported, so no `Transfer:` entries (#748). */
-internal fun splitLinePayeeOptions(payeeOptions: List<String>): List<String> =
-    payeeOptions.filter { transferTargetOf(it) == null }
+/** A split line's payee choices: transfer split lines are offered, excluding the current account. */
+internal fun splitLinePayeeOptions(payeeOptions: List<String>, currentAccount: String? = null): List<String> =
+    if (currentAccount != null) payeeOptions.filterNot { it == TRANSFER_PAYEE_PREFIX + currentAccount }
+    else payeeOptions
 
 internal data class TransactionFormStart(val payee: String, val incoming: Boolean)
 

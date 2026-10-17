@@ -132,35 +132,29 @@ class TransactionParityTest {
     }
 
     @Test
-    fun aTransferLabelOnASplitLineNeverCreatesAPayee() = withDatabase { database ->
+    fun aTransferLabelOnASplitLineCreatesTransferPartner() = withDatabase { database ->
         val service = formService(database, "split-transfer")
-        val payeesBefore = database.fetchPayees()
-        val transactionsBefore = database.fetchTransactions("checking")
         val form = ActualTransactionForm(
             accountId = "checking", type = ActualTransactionType.EXPENSE,
             amount = "10", payeeName = "Store", date = 20260910,
             splits = listOf(
                 ActualSplitLineForm(categoryId = "grocery", amount = "6", payeeName = "Corner Shop"),
-                ActualSplitLineForm(categoryId = "rent", amount = "4", payeeName = "Transfer: Savings"),
+                ActualSplitLineForm(categoryId = null, amount = "4", payeeName = "Transfer: Savings"),
             ),
         )
 
-        assertEquals(
-            ActualTransactionFormException.SplitLineTransfer,
-            runCatching { service.save(form) }.exceptionOrNull(),
-        )
-        // Checked before anything is written: not even the other line's new payee.
-        assertEquals(payeesBefore, database.fetchPayees())
-        assertEquals(transactionsBefore, database.fetchTransactions("checking"))
-        assertTrue(database.fetchPayees().none { it.name.startsWith("Transfer: ") })
-
-        // A converted transaction is checked the same way.
-        val original = requireNotNull(database.fetchTransaction("ordinary"))
-        assertEquals(
-            ActualTransactionFormException.SplitLineTransfer,
-            runCatching { service.save(form, original) }.exceptionOrNull(),
-        )
-        assertEquals(payeesBefore, database.fetchPayees())
+        service.save(form)
+        val parent = database.fetchTransactions("checking").single { it.isParent }
+        val children = database.fetchChildTransactions(parent.id)
+        val transferChild = children.single { it.amountCents == -400L }
+        assertNotNull(transferChild.transferId)
+        val partner = database.fetchTransactionRow(requireNotNull(transferChild.transferId))
+        assertNotNull(partner)
+        assertEquals("savings", partner?.accountId)
+        assertEquals(400L, partner?.amountCents)
+        assertEquals(transferChild.id, partner?.transferId)
+        assertFalse(partner?.isParent == true)
+        assertNull(partner?.parentId)
     }
 
     @Test

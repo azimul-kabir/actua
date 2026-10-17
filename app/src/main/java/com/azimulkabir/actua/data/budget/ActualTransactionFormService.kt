@@ -258,8 +258,7 @@ class ActualTransactionFormService(
         TransferLegRules.apply(source, partner, database.fetchRules(), database.ruleContext())
 
     private fun createSplit(form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
-        rejectTransferLines(plan)
-        val parentPayee = resolvePayee(form.payeeName, null)
+        val parentPayee = resolvePayee(form.payeeName, null, form.accountId)
         val parentId = idFactory()
         val sort = nowMillis().toDouble()
         val parent = baseTransaction(
@@ -267,19 +266,18 @@ class ActualTransactionFormService(
             null, notes, form.cleared, isParent = true, sortOrder = sort,
         )
         val children = plan.lines.mapIndexed { index, line ->
-            val payee = resolveLinePayee(line, parentPayee, null)
+            val payee = resolveLinePayee(line, parentPayee, null, form.accountId)
             baseTransaction(
                 idFactory(), form.accountId, form.date, line.amountCents, payee?.id,
                 line.categoryId, line.notes, form.cleared, parentId = parentId,
                 sortOrder = sort - index - 1,
             )
         }
-        writer.createSplit(parent, children)
+        writer.createSplit(parent, children, runTransfers = true)
     }
 
     private fun updateSplit(original: ActualTransaction, form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
-        rejectTransferLines(plan)
-        val parentPayee = resolvePayee(form.payeeName, original)
+        val parentPayee = resolvePayee(form.payeeName, original, form.accountId)
         val parent = original.copy(
             accountId = form.accountId, date = form.date, amountCents = plan.amountCents,
             payeeId = parentPayee?.id, categoryId = null, notes = notes, cleared = form.cleared,
@@ -289,39 +287,87 @@ class ActualTransactionFormService(
         val retained = mutableSetOf<String>()
         val updates = mutableListOf<Pair<ActualTransaction, ActualTransaction>>()
         val inserts = mutableListOf<ActualTransaction>()
+        val tombstones = mutableListOf<String>()
         var nextSort = existing.mapNotNull(ActualTransaction::sortOrder).minOrNull()
             ?: original.sortOrder ?: nowMillis().toDouble()
         val parentChanged = parentFieldsChanged(original, parent)
+        val syncDate = database.syncTransferDate()
+
         plan.lines.forEach { line ->
             val old = line.childId?.let(byId::get)
-            val payee = if (keepsNoPayee(old, line, parentChanged)) null else resolveLinePayee(line, parentPayee, old)
+            val payee = if (keepsNoPayee(old, line, parentChanged)) null else resolveLinePayee(line, parentPayee, old, form.accountId)
             if (old != null) {
                 retained += old.id
-                updates += old to old.copy(
+                val updatedChild = old.copy(
                     accountId = form.accountId, date = form.date, amountCents = line.amountCents,
                     payeeId = payee?.id, categoryId = line.categoryId, notes = line.notes,
                     cleared = form.cleared, parentId = original.id,
                 )
+                val targetAccount = payee?.transferAccountId
+                if (targetAccount != null && targetAccount != form.accountId) {
+                    val partner = old.transferId?.let(database::fetchTransactionRow)
+                    if (partner != null && partner.accountId == targetAccount) {
+                        val fromPayee = database.transferPayeeId(form.accountId) ?: error("This account has no transfer payee")
+                        val updatedPartner = partner.copy(
+                            amountCents = -line.amountCents,
+                            date = if (syncDate || old.date != form.date) form.date else partner.date,
+                            notes = line.notes,
+                            payeeId = fromPayee,
+                        )
+                        updates += partner to updatedPartner
+                        updates += old to updatedChild
+                    } else {
+                        if (old.transferId != null) {
+                            val detached = writer.detachTransfers(listOf(old))
+                            updates += detached.updates.filterNot { it.first.id == old.id }
+                            tombstones += detached.tombstoneIds
+                        }
+                        val legs = writer.transferLegsFor(updatedChild.copy(transferId = null))
+                        if (legs != null) {
+                            updates += old to legs.first
+                            inserts += legs.second
+                        } else {
+                            updates += old to updatedChild
+                        }
+                    }
+                } else {
+                    if (old.transferId != null) {
+                        val detached = writer.detachTransfers(listOf(old))
+                        updates += detached.updates.filterNot { it.first.id == old.id }
+                        tombstones += detached.tombstoneIds
+                    }
+                    updates += old to updatedChild.copy(transferId = null)
+                }
             } else {
                 nextSort -= 1
-                inserts += baseTransaction(
+                val newChild = baseTransaction(
                     idFactory(), form.accountId, form.date, line.amountCents, payee?.id,
                     line.categoryId, line.notes, form.cleared, parentId = original.id,
                     sortOrder = nextSort,
                 )
+                val legs = writer.transferLegsFor(newChild)
+                if (legs != null) {
+                    inserts += legs.first
+                    inserts += legs.second
+                } else {
+                    inserts += newChild
+                }
             }
         }
         updates += original to parent
         val removed = existing.filterNot { it.id in retained }
         val removedIds = removed.mapTo(mutableSetOf(), ActualTransaction::id)
         val detached = writer.detachTransfers(removed, removedIds)
-        mutate(updates + detached.updates, inserts, removedIds.toList() + detached.tombstoneIds)
+        mutate(
+            updates = updates + detached.updates,
+            inserts = inserts,
+            tombstoneIds = tombstones + removedIds.toList() + detached.tombstoneIds,
+        )
     }
 
     private fun convertToSplit(original: ActualTransaction, form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
         if (original.transferId != null || original.parentId != null) throw ActualTransactionFormException.CannotConvertToSplit
-        rejectTransferLines(plan)
-        val payee = resolvePayee(form.payeeName, original)
+        val payee = resolvePayee(form.payeeName, original, form.accountId)
         val parent = original.copy(
             accountId = form.accountId, date = form.date, amountCents = plan.amountCents,
             payeeId = payee?.id, categoryId = null, notes = notes,
@@ -330,18 +376,29 @@ class ActualTransactionFormService(
         var nextSort = original.sortOrder ?: nowMillis().toDouble()
         val children = plan.lines.map { line ->
             nextSort -= 1
-            val childPayee = resolveLinePayee(line, payee, null)
+            val childPayee = resolveLinePayee(line, payee, null, form.accountId)
             baseTransaction(
                 idFactory(), form.accountId, form.date, line.amountCents, childPayee?.id,
                 line.categoryId, line.notes, form.cleared, parentId = original.id,
                 sortOrder = nextSort,
             )
         }
-        mutate(updates = listOf(original to parent), inserts = children)
+        val finalChildren = mutableListOf<ActualTransaction>()
+        val partners = mutableListOf<ActualTransaction>()
+        for (child in children) {
+            val legs = writer.transferLegsFor(child)
+            if (legs != null) {
+                finalChildren += legs.first
+                partners += legs.second
+            } else {
+                finalChildren += child
+            }
+        }
+        mutate(updates = listOf(original to parent), inserts = finalChildren + partners)
     }
 
     private fun collapseSplit(original: ActualTransaction, form: ActualTransactionForm, amount: Long, notes: String?) {
-        val payee = resolvePayee(form.payeeName, original)
+        val payee = resolvePayee(form.payeeName, original, form.accountId)
         val updated = original.copy(
             accountId = form.accountId, date = form.date, amountCents = amount,
             payeeId = payee?.id, categoryId = form.categoryId, notes = notes,
@@ -356,28 +413,35 @@ class ActualTransactionFormService(
         )
     }
 
-    private fun resolvePayee(name: String, original: ActualTransaction?): ActualPayee? {
+    private fun resolvePayee(name: String, original: ActualTransaction?, currentAccountId: String? = null): ActualPayee? {
         val clean = name.trim()
         if (clean.isEmpty()) return null
         if (clean == original?.payeeName) return original.payeeId?.let { id ->
             database.fetchPayees().firstOrNull { it.id == id }
         }
+        if (isTransferLabel(clean)) {
+            val ordinary = database.findPayeeByName(clean)
+            if (ordinary != null) return ordinary
+            val targetName = clean.removePrefix("Transfer: ").trim()
+            val account = database.fetchAccounts().firstOrNull {
+                it.name.equals(targetName, ignoreCase = true) || it.id == targetName
+            }
+            if (account != null) {
+                if (currentAccountId != null && account.id == currentAccountId) {
+                    throw ActualTransactionFormException.TransferAccountsMatch
+                }
+                val transferPayeeId = database.transferPayeeId(account.id)
+                if (transferPayeeId != null) {
+                    return database.fetchPayees().firstOrNull { it.id == transferPayeeId }
+                        ?: ActualPayee(transferPayeeId, clean, account.id)
+                }
+            }
+        }
         return writer.resolveOrCreatePayee(clean)
     }
 
-    private fun resolveLinePayee(line: ActualSplitPlanLine, parent: ActualPayee?, original: ActualTransaction?): ActualPayee? =
-        line.payeeName?.takeIf { it != parent?.name }?.let { resolvePayee(it, original) } ?: parent
-
-    /**
-     * Split-line transfers aren't supported (#748), so a `Transfer: <account>` picker label must
-     * never become an ordinary payee. Checked before anything is written; a payee that already
-     * has that name still resolves, so rows saved before this check stay editable.
-     */
-    private fun rejectTransferLines(plan: ActualTransactionFormPlan.Split) {
-        if (plan.lines.any { line ->
-                line.payeeName?.let { isTransferLabel(it) && database.findPayeeByName(it.trim()) == null } == true
-            }) throw ActualTransactionFormException.SplitLineTransfer
-    }
+    private fun resolveLinePayee(line: ActualSplitPlanLine, parent: ActualPayee?, original: ActualTransaction?, currentAccountId: String? = null): ActualPayee? =
+        line.payeeName?.takeIf { it != parent?.name }?.let { resolvePayee(it, original, currentAccountId) } ?: parent
 
     private fun transferPayee(accountId: String) = database.fetchPayees().firstOrNull {
         it.transferAccountId == accountId
