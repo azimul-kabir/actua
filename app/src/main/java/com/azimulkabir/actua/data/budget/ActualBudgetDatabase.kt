@@ -1429,6 +1429,16 @@ class ActualBudgetDatabase private constructor(
     ).use { cursor -> if (cursor.moveToFirst()) cursor.toActualTransaction() else null }
 
     @Synchronized
+    fun fetchAllAliveTransactions(): List<ActualTransaction> {
+        val rows = mutableListOf<ActualTransaction>()
+        database.rawQuery(
+            transactionChildSelect + " ORDER BY t.date DESC, t.starting_balance_flag, t.sort_order DESC, t.id",
+            emptyArray(),
+        ).use { cursor -> while (cursor.moveToNext()) rows += cursor.toActualTransaction() }
+        return rows
+    }
+
+    @Synchronized
     fun fetchScheduleTransactions(scheduleId: String): List<ActualTransaction> {
         val rows = mutableListOf<ActualTransaction>()
         database.rawQuery(

@@ -2273,6 +2273,14 @@ fun AppNavigation(
                 },
                 onSave = { rule, onSaved -> mutate("Saving rule", onChanged = onSaved) { repository.saveRule(rule) } },
                 onDelete = { ruleId, onDeleted -> mutate("Deleting rule", onChanged = onDeleted) { repository.deleteRule(ruleId) } },
+                onApplyRule = { rule, onApplied ->
+                    mutate("Applying rule") {
+                        val count = repository.applyRuleNow(rule)
+                        onApplied(count)
+                        count > 0
+                    }
+                },
+                onPreviewRuleMatches = { rule -> repository.matchingTransactions(rule) },
                 modifier = contentModifier,
                 initialRuleId = scheduleRuleId,
                 onInitialRuleClosed = ::returnFromScheduleRule,

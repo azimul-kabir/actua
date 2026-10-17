@@ -268,6 +268,17 @@ class RulesEngineTest {
         assertTrue(RulesEngine.matches(tx, contains("contains", "amazon"), context = context))
     }
 
+    @Test fun matchesExistingTransactionsAgainstConditions() {
+        val conditions = listOf(
+            Rule.Condition("contains", "imported_payee", RuleValue.Text("coffee")),
+            Rule.Condition("is", "amount", RuleValue.Number(450.0), mapOf("outflow" to RuleValue.Flag(true))),
+        )
+        val matchingTx = transaction(amount = -450, imported = "THE COFFEE PLACE")
+        val nonMatchingTx = transaction(amount = -500, imported = "THE COFFEE PLACE")
+        assertTrue(RulesEngine.matches(matchingTx, conditions, Rule.ConditionsOp.AND))
+        assertFalse(RulesEngine.matches(nonMatchingTx, conditions, Rule.ConditionsOp.AND))
+    }
+
     private fun transaction(
         amount: Long = -100, imported: String? = null, payee: String? = null,
         payeeName: String? = null, notes: String? = null, date: Int = 20260503, scheduleId: String? = null,
