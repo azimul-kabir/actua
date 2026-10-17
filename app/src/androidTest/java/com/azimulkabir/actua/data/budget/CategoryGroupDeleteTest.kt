@@ -15,14 +15,14 @@ class CategoryGroupDeleteTest {
     @Test
     fun deletingCategoryGroupMovesCategoriesToTargetGroupAndTombstonesGroup() = withDatabase { database, writer ->
         val groupsBefore = database.fetchCategoryGroups()
-        assertEquals(3, groupsBefore.size)
+        assertEquals(4, groupsBefore.size)
         val bills = groupsBefore.first { it.id == "bills" }
         assertEquals(2, bills.categories.size)
 
         writer.deleteCategoryGroup("bills", targetGroupId = "everyday")
 
         val groupsAfter = database.fetchCategoryGroups()
-        assertEquals(listOf("everyday", "income"), groupsAfter.map { it.id })
+        assertEquals(listOf("everyday", "empty", "income"), groupsAfter.map { it.id })
         assertFalse(groupsAfter.any { it.id == "bills" })
 
         val everyday = groupsAfter.first { it.id == "everyday" }
