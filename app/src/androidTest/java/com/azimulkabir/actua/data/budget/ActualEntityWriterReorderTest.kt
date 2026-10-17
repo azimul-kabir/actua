@@ -3,6 +3,7 @@ package com.azimulkabir.actua.data.budget
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -164,11 +165,33 @@ class ActualEntityWriterReorderTest {
         }
     }
 
+    @Test
+    fun accountGroupCrudAndReordering() = withDatabase { database, _ ->
+        val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
+        val g1 = writer.createAccountGroup("Personal")
+        val g2 = writer.createAccountGroup("Business")
+        assertEquals(listOf("Personal", "Business"), database.fetchAccountGroups().map { it.name })
+
+        writer.renameAccountGroup(g1, "Personal Expenses")
+        assertEquals("Personal Expenses", database.fetchAccountGroups().single { it.id == g1 }.name)
+
+        writer.moveAccountGroup(g2, g1)
+        assertEquals(listOf(g2, g1), database.fetchAccountGroups().map { it.id })
+
+        writer.setAccountGroup("checking", g1)
+        assertEquals(g1, database.fetchAccounts().single { it.id == "checking" }.groupId)
+
+        writer.deleteAccountGroup(g1)
+        assertTrue(database.fetchAccountGroups().none { it.id == g1 })
+        assertNull(database.fetchAccounts().single { it.id == "checking" }.groupId)
+    }
+
     private fun withDatabase(block: (ActualBudgetDatabase, File) -> Unit) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "entity-writer-reorder-${UUID.randomUUID()}.sqlite")
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
-            db.execSQL("CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT, type TEXT, offbudget INTEGER DEFAULT 0, closed INTEGER DEFAULT 0, sort_order REAL, tombstone INTEGER DEFAULT 0)")
+            db.execSQL("CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT, type TEXT, offbudget INTEGER DEFAULT 0, closed INTEGER DEFAULT 0, sort_order REAL, account_group_id TEXT, tombstone INTEGER DEFAULT 0)")
+            db.execSQL("CREATE TABLE account_groups (id TEXT PRIMARY KEY, name TEXT, sort_order REAL, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE categories (id TEXT PRIMARY KEY, name TEXT, cat_group TEXT, is_income INTEGER DEFAULT 0, hidden INTEGER DEFAULT 0, sort_order REAL, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE category_groups (id TEXT PRIMARY KEY, name TEXT, is_income INTEGER DEFAULT 0, hidden INTEGER DEFAULT 0, sort_order REAL, tombstone INTEGER DEFAULT 0)")
             db.execSQL("CREATE TABLE category_mapping (id TEXT PRIMARY KEY, transferId TEXT)")
@@ -183,7 +206,7 @@ class ActualEntityWriterReorderTest {
             // Actual data, so shoving expense sort_order values around it never interleaves it.
             db.execSQL("INSERT INTO category_groups VALUES ('bills','Bills',0,0,1.0,0), ('fun','Fun',0,0,2.0,0), ('income','Income',1,0,1000000.0,0)")
             db.execSQL("INSERT INTO categories VALUES ('rent','Rent','bills',0,0,1.0,0), ('electric','Electric','bills',0,0,2.0,0), ('dining','Dining','fun',0,0,1.0,0), ('salary','Salary','income',1,0,1.0,0)")
-            db.execSQL("INSERT INTO accounts VALUES ('checking','Checking','checking',0,0,1.0,0), ('savings','Savings','savings',0,0,2.0,0), ('cash','Cash','cash',0,0,3.0,0)")
+            db.execSQL("INSERT INTO accounts (id, name, type, offbudget, closed, sort_order, tombstone) VALUES ('checking','Checking','checking',0,0,1.0,0), ('savings','Savings','savings',0,0,2.0,0), ('cash','Cash','cash',0,0,3.0,0)")
         }
         try {
             ActualBudgetDatabase.open(file).use { block(it, file) }

@@ -83,12 +83,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   unlocking, reconciled-row confirmations, `hide-reconciled-<id>` and `last_reconciled`) is
   itemized with upstream links and filed divergences in
   [docs/RECONCILIATION_PARITY.md](docs/RECONCILIATION_PARITY.md)
-- Actual's experimental account grouping: existing `account_groups` data synced from the server is
-  detected and the Accounts screen displays on/off-budget accounts nested under their configured
-  group, ordered by the group's own sort order, with an ungrouped bucket for accounts left outside
-  every group; unchanged flat behavior for budgets that have not enabled the feature. Actua never
-  creates, renames, reorders, or reassigns account groups itself, and the grouping is preserved
-  as-is across syncs, backups, and app reinstalls since it lives in the synced budget data
+- Actual's account grouping: `account_groups` data is detected and the Accounts screen displays
+  on/off-budget accounts nested under their configured group, ordered by the group's own sort order,
+  with an ungrouped bucket for accounts left outside every group. Actua supports creating, renaming,
+  reordering, and deleting account groups, as well as assigning accounts to groups in Add/Edit Account
+  via CRDT messages, matching Actual v26.10.0. Deleting a group unlinks its accounts to ungrouped.
 - Actual-compatible payee-location schema migration, complete-row reads, nearby ranking,
   500-metre deduplication, CRDT create/delete mutations, Android foreground permission,
   automatic picker suggestions, inline Nearby/Save actions, transaction recording, and

@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.ui.theme.Spacing
 
 @Composable
@@ -70,10 +72,15 @@ fun MoveCategoryDialog(
 val AccountTypeOptions = listOf("Checking", "Savings", "Credit", "Investment", "Mortgage", "Debt", "Other")
 
 @Composable
-fun NewAccountDialog(onDismiss: () -> Unit, onSave: (String, Boolean, String, String) -> Unit) {
+fun NewAccountDialog(
+    accountGroups: List<ActualAccountGroup> = emptyList(),
+    onDismiss: () -> Unit,
+    onSave: (String, Boolean, String, String, String?) -> Unit,
+) {
     var name by remember { mutableStateOf("") }; var balance by remember { mutableStateOf("") }
     var offBudget by remember { mutableStateOf(false) }
     var type by remember { mutableStateOf(AccountTypeOptions.first()) }
+    var selectedGroupId by remember { mutableStateOf<String?>(null) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Add account") }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -87,6 +94,16 @@ fun NewAccountDialog(onDismiss: () -> Unit, onSave: (String, Boolean, String, St
                     value = type,
                     choices = AccountTypeOptions.map { it to it },
                 ) { type = it }
+                if (accountGroups.isNotEmpty()) {
+                    ActuaCardDivider()
+                    val groupChoices = listOf("" to "None") + accountGroups.map { it.id to it.name }
+                    ActuaMenuRow(
+                        icon = Icons.Outlined.Folder,
+                        label = "Group",
+                        value = accountGroups.firstOrNull { it.id == selectedGroupId }?.name ?: "None",
+                        choices = groupChoices,
+                    ) { selectedGroupId = it.ifEmpty { null } }
+                }
                 ActuaCardDivider()
                 ActuaFormRow(
                     icon = Icons.Outlined.VisibilityOff,
@@ -98,8 +115,51 @@ fun NewAccountDialog(onDismiss: () -> Unit, onSave: (String, Boolean, String, St
             }
         }
     }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }, confirmButton = {
-        TextButton(enabled = name.trim().isNotEmpty(), onClick = { onSave(name.trim(), offBudget, balance, type) }) { Text("Add") }
+        TextButton(enabled = name.trim().isNotEmpty(), onClick = { onSave(name.trim(), offBudget, balance, type, selectedGroupId) }) { Text("Add") }
     })
+}
+
+@Composable
+fun ChangeAccountGroupDialog(
+    accountName: String,
+    currentGroupId: String?,
+    accountGroups: List<ActualAccountGroup>,
+    onDismiss: () -> Unit,
+    onSave: (String?) -> Unit,
+) {
+    var selected by remember(currentGroupId) { mutableStateOf(currentGroupId) }
+    val options = listOf<Pair<String?, String>>(null to "None (Ungrouped)") + accountGroups.map { it.id to it.name }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Account group for \"$accountName\"") },
+        text = {
+            Column(Modifier.selectableGroup()) {
+                options.forEach { (groupId, groupName) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .selectable(
+                                selected = selected == groupId,
+                                role = Role.RadioButton,
+                                onClick = { selected = groupId },
+                            ),
+                    ) {
+                        RadioButton(selected = selected == groupId, onClick = null)
+                        Text(groupName, modifier = Modifier.padding(start = Spacing.md))
+                    }
+                }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            TextButton(
+                enabled = selected != currentGroupId,
+                onClick = { onSave(selected) },
+            ) { Text("Save") }
+        },
+    )
 }
 
 @Composable

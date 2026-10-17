@@ -2285,45 +2285,29 @@ fun AppNavigation(
                 initialRuleId = scheduleRuleId,
                 onInitialRuleClosed = ::returnFromScheduleRule,
             )
-            DetailDestination.ManageCategories -> ManageCategoriesScreen(
-                groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
+            DetailDestination.ManageCategories -> NavigationManageCategoriesScreen(
+                repository = repository,
+                dataVersion = dataVersion,
+                contentModifier = contentModifier,
                 onBack = { detail = DetailDestination.Main },
                 onReorderGroupsClick = { detail = DetailDestination.ReorderGroups },
-                onCreateGroup = { name -> mutate("Creating group") { repository.createCategoryGroup(name) } },
-                onRenameGroup = { group, name -> mutate("Renaming group") { repository.renameCategoryGroup(group, name) } },
-                onSetGroupHidden = { group, hidden ->
-                    mutate(if (hidden) "Hiding group" else "Showing group") { repository.setCategoryGroupHidden(group, hidden) }
-                },
-                onCreateCategory = { group, name -> mutate("Creating category") { repository.createCategory(group, name) } },
-                onRenameCategory = { group, category, name ->
-                    mutate("Renaming category") { repository.renameCategory(group, category, name) }
-                },
-                onSetCategoryHidden = { group, category, hidden ->
-                    mutate(if (hidden) "Hiding category" else "Showing category") {
-                        repository.setCategoryHidden(group, category, hidden)
-                    }
-                },
-                onDeleteCategory = { group, category, transferToId ->
-                    mutate("Deleting category") { repository.deleteCategory(group, category, transferToId) }
-                },
-                loadCategoryDeletePlan = { group, category ->
-                    withContext(Dispatchers.IO) { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
-                },
-                onMoveCategory = { move -> mutateSync("Reordering category") { repository.moveCategory(move) } },
-                modifier = contentModifier,
+                onMutate = { label, action -> mutate(label, action = action) },
+                onMutateSync = { label, action -> mutateSync(label, action) },
             )
-            DetailDestination.ReorderGroups -> ReorderGroupsScreen(
-                groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
+            DetailDestination.ReorderGroups -> NavigationReorderGroupsScreen(
+                repository = repository,
+                dataVersion = dataVersion,
+                contentModifier = contentModifier,
                 onBack = { detail = DetailDestination.ManageCategories },
-                onMoveGroup = { move -> mutateSync("Reordering category group") { repository.moveCategoryGroup(move) } },
-                modifier = contentModifier,
+                onMutateSync = { label, action -> mutateSync(label, action) },
             )
-            DetailDestination.ReorderAccounts -> ReorderAccountsScreen(
-                accounts = remember(dataVersion) { repository.accountsForReorder() },
-                groups = remember(dataVersion) { repository.accountGroupsForReorder() },
+            DetailDestination.ReorderAccounts -> NavigationReorderAccountsScreen(
+                repository = repository,
+                dataVersion = dataVersion,
+                contentModifier = contentModifier,
                 onBack = { detail = DetailDestination.Main },
-                onMoveAccount = { move -> mutateSync("Reordering account") { repository.moveAccount(move) } },
-                modifier = contentModifier,
+                onMutate = { label, action -> mutate(label, action = action) },
+                onMutateSync = { label, action -> mutateSync(label, action) },
             )
             DetailDestination.CustomizeHome -> CustomizeHomeScreen(
                 layout = homeLayout,
@@ -2920,8 +2904,12 @@ fun AppNavigation(
                     onChangeAccountType = { account, type ->
                         mutate("Changing account type") { repository.setAccountType(account.id, type) }
                     },
-                    onCreateAccount = { name, offBudget, balance, type ->
-                        mutate("Creating account") { repository.createAccount(name, offBudget, balance, type) }
+                    onCreateAccount = { name, offBudget, balance, type, groupId ->
+                        mutate("Creating account") { repository.createAccount(name, offBudget, balance, type, groupId) }
+                    },
+                    accountGroups = remember(dataVersion) { repository.accountGroupsForReorder() },
+                    onSetAccountGroup = { account, groupId ->
+                        mutate("Updating account group") { repository.setAccountGroup(account.id, groupId) }
                     },
                     onReorderAccounts = { detail = DetailDestination.ReorderAccounts },
                     pendingCaptureCount = pendingCaptureCount,
@@ -3363,6 +3351,83 @@ private fun NavigationReportsScreen(
         initialPageId = initialPageId,
         initialPageRequest = initialPageRequest,
         hasFab = hasFab,
+    )
+}
+
+@Composable
+private fun NavigationManageCategoriesScreen(
+    repository: ActuaRepository,
+    dataVersion: Int,
+    contentModifier: Modifier,
+    onBack: () -> Unit,
+    onReorderGroupsClick: () -> Unit,
+    onMutate: (String, () -> Boolean) -> Unit,
+    onMutateSync: (String, () -> Boolean) -> Boolean,
+) {
+    ManageCategoriesScreen(
+        groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
+        onBack = onBack,
+        onReorderGroupsClick = onReorderGroupsClick,
+        onCreateGroup = { name -> onMutate("Creating group") { repository.createCategoryGroup(name) } },
+        onRenameGroup = { group, name -> onMutate("Renaming group") { repository.renameCategoryGroup(group, name) } },
+        onSetGroupHidden = { group, hidden ->
+            onMutate(if (hidden) "Hiding group" else "Showing group") { repository.setCategoryGroupHidden(group, hidden) }
+        },
+        onCreateCategory = { group, name -> onMutate("Creating category") { repository.createCategory(group, name) } },
+        onRenameCategory = { group, category, name ->
+            onMutate("Renaming category") { repository.renameCategory(group, category, name) }
+        },
+        onSetCategoryHidden = { group, category, hidden ->
+            onMutate(if (hidden) "Hiding category" else "Showing category") {
+                repository.setCategoryHidden(group, category, hidden)
+            }
+        },
+        onDeleteCategory = { group, category, transferToId ->
+            onMutate("Deleting category") { repository.deleteCategory(group, category, transferToId) }
+        },
+        loadCategoryDeletePlan = { group, category ->
+            withContext(Dispatchers.IO) { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
+        },
+        onMoveCategory = { move -> onMutateSync("Reordering category") { repository.moveCategory(move) } },
+        modifier = contentModifier,
+    )
+}
+
+@Composable
+private fun NavigationReorderGroupsScreen(
+    repository: ActuaRepository,
+    dataVersion: Int,
+    contentModifier: Modifier,
+    onBack: () -> Unit,
+    onMutateSync: (String, () -> Boolean) -> Boolean,
+) {
+    ReorderGroupsScreen(
+        groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
+        onBack = onBack,
+        onMoveGroup = { move -> onMutateSync("Reordering category group") { repository.moveCategoryGroup(move) } },
+        modifier = contentModifier,
+    )
+}
+
+@Composable
+private fun NavigationReorderAccountsScreen(
+    repository: ActuaRepository,
+    dataVersion: Int,
+    contentModifier: Modifier,
+    onBack: () -> Unit,
+    onMutate: (String, () -> Boolean) -> Unit,
+    onMutateSync: (String, () -> Boolean) -> Boolean,
+) {
+    ReorderAccountsScreen(
+        accounts = remember(dataVersion) { repository.accountsForReorder() },
+        groups = remember(dataVersion) { repository.accountGroupsForReorder() },
+        onBack = onBack,
+        onMoveAccount = { move -> onMutateSync("Reordering account") { repository.moveAccount(move) } },
+        onMoveGroup = { move -> onMutateSync("Reordering account group") { repository.moveAccountGroup(move) } },
+        onCreateGroup = { name -> onMutate("Creating account group") { repository.createAccountGroup(name) } },
+        onRenameGroup = { id, name -> onMutate("Renaming account group") { repository.renameAccountGroup(id, name) } },
+        onDeleteGroup = { id -> onMutate("Deleting account group") { repository.deleteAccountGroup(id) } },
+        modifier = contentModifier,
     )
 }
 

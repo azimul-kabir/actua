@@ -34,6 +34,12 @@ class ActualEntityWriter(
     fun renameAccount(id: String, name: String) = update("accounts", id, mapOf("name" to requiredName(name)))
     fun setAccountClosed(id: String, closed: Boolean) = update("accounts", id, mapOf("closed" to flag(closed)))
     fun setAccountType(id: String, type: String) = update("accounts", id, mapOf("type" to type))
+    fun setAccountGroup(id: String, groupId: String?) {
+        if (groupId != null) {
+            require(database.fetchAccountGroups().any { it.id == groupId }) { "Account group no longer exists" }
+        }
+        update("accounts", id, mapOf("account_group_id" to groupId))
+    }
     /**
      * Stores a sync outcome; with [balanceCurrent] (integer cents) also Actual's
      * `updateAccountBalance`, written after every successful download that reports a balance.
@@ -482,6 +488,52 @@ class ActualEntityWriter(
         persist(messages)
     }
 
+    /** Move an account group before another group, or to the end when beforeId is null. */
+    @Synchronized
+    fun moveAccountGroup(id: String, beforeId: String?) {
+        val groups = database.fetchAccountGroups()
+        require(groups.any { it.id == id }) { "Account group no longer exists" }
+        require(beforeId == null || groups.any { it.id == beforeId }) { "Invalid account group destination" }
+        if (beforeId == id) return
+        val positions = groups.filterNot { it.id == id }
+            .sortedWith(compareBy({ it.sortOrder }, { it.id }))
+            .map { SortOrder.Position(it.id, it.sortOrder) }
+        val placement = SortOrder.shove(positions, beforeId)
+        val messages = mutableListOf<CrdtMessage>()
+        placement.moved.forEach { messages += fields("account_groups", it.id, mapOf("sort_order" to it.sortOrder)) }
+        messages += fields("account_groups", id, mapOf("sort_order" to placement.sortOrder))
+        persist(messages)
+    }
+
+    /** Rejects a name another live account group has. */
+    @Synchronized
+    fun renameAccountGroup(id: String, name: String) {
+        val clean = requiredName(name)
+        val groups = database.fetchAccountGroups()
+        require(groups.any { it.id == id }) { "Account group no longer exists" }
+        require(groups.none { it.id != id && it.name.equals(clean, true) }) {
+            "An account group named \"$clean\" already exists"
+        }
+        update("account_groups", id, mapOf("name" to clean))
+    }
+
+    /**
+     * Actual's `account-group-delete`: unlinks associated accounts by clearing `account_group_id`,
+     * and tombstones the account group in one atomic batch.
+     */
+    @Synchronized
+    fun deleteAccountGroup(id: String) {
+        val groups = database.fetchAccountGroups()
+        require(groups.any { it.id == id }) { "Account group no longer exists" }
+        val accounts = database.fetchAccounts().filter { it.groupId == id }
+        val messages = mutableListOf<CrdtMessage>()
+        accounts.forEach { account ->
+            messages += fields("accounts", account.id, mapOf("account_group_id" to null))
+        }
+        messages += fields("account_groups", id, mapOf("tombstone" to 1))
+        persist(messages)
+    }
+
     fun setPreference(id: String, value: String?) = update("preferences", id, mapOf("value" to value))
     fun setNote(id: String, note: String) = update("notes", id, mapOf("note" to note))
     fun saveRule(rule: Rule) = update("rules", rule.id, ruleFields(rule))
@@ -515,13 +567,28 @@ class ActualEntityWriter(
 
     /** PWA/iOS local-account shape: account + transfer payee + optional opening transaction. */
     @Synchronized
-    fun createAccount(name: String, offBudget: Boolean, startingBalanceCents: Long, type: String = "checking"): String {
+    fun createAccount(
+        name: String,
+        offBudget: Boolean,
+        startingBalanceCents: Long,
+        type: String = "checking",
+        groupId: String? = null,
+    ): String {
         val clean = requiredName(name)
         require(database.fetchAccounts().none { it.name.equals(clean, true) }) { "An account named \"$clean\" already exists" }
+        if (groupId != null) {
+            require(database.fetchAccountGroups().any { it.id == groupId }) { "Account group no longer exists" }
+        }
         val accountId = idFactory(); val transferPayeeId = idFactory()
         val messages = mutableListOf<CrdtMessage>()
-        messages += fields("accounts", accountId, linkedMapOf("name" to clean, "type" to type,
-            "offbudget" to flag(offBudget), "closed" to 0, "tombstone" to 0, "sort_order" to nowMillis()))
+        val accountValues = linkedMapOf<String, Any?>(
+            "name" to clean, "type" to type,
+            "offbudget" to flag(offBudget), "closed" to 0, "tombstone" to 0, "sort_order" to nowMillis(),
+        )
+        if (groupId != null) {
+            accountValues["account_group_id"] = groupId
+        }
+        messages += fields("accounts", accountId, accountValues)
         messages += fields("payees", transferPayeeId, linkedMapOf("name" to "", "transfer_acct" to accountId, "tombstone" to 0))
         messages += fields("payee_mapping", transferPayeeId, linkedMapOf("targetId" to transferPayeeId))
         if (startingBalanceCents != 0L) {
@@ -529,6 +596,17 @@ class ActualEntityWriter(
                 .flatMap { fields(it.dataset, it.row, it.values) }
         }
         persist(messages); return accountId
+    }
+
+    @Synchronized
+    fun createAccountGroup(name: String): String {
+        val clean = requiredName(name)
+        val groups = database.fetchAccountGroups()
+        require(groups.none { it.name.equals(clean, true) }) { "An account group named \"$clean\" already exists" }
+        val id = idFactory()
+        val sort = (groups.maxOfOrNull { it.sortOrder } ?: 0.0) + SortOrder.INCREMENT
+        persist(fields("account_groups", id, linkedMapOf("name" to clean, "sort_order" to sort, "tombstone" to 0)))
+        return id
     }
 
     @Synchronized
@@ -585,8 +663,9 @@ class ActualEntityWriter(
             UUID.nameUUIDFromBytes("actua:default-dashboard:widget:$index".toByteArray()).toString()
 
         internal val allowedFields = mapOf(
-            "accounts" to setOf("name", "type", "closed", "offbudget", "tombstone", "sort_order",
+            "accounts" to setOf("name", "type", "closed", "offbudget", "tombstone", "sort_order", "account_group_id",
                 "bank_sync_status", "last_sync", "account_id", "account_sync_source", "bank", "balance_current"),
+            "account_groups" to setOf("name", "sort_order", "tombstone"),
             "categories" to setOf("name", "hidden", "cat_group", "tombstone", "sort_order", "goal_def", "template_settings", "cleanup_def"),
             "category_groups" to setOf("name", "hidden", "tombstone", "sort_order"),
             "cleanup_groups" to setOf("name", "tombstone"),
