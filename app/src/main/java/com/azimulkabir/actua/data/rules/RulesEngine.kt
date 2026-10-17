@@ -217,6 +217,7 @@ object RulesEngine {
         when (action.op) {
             "set" -> action.field?.let { field ->
                 val template = action.options["template"]?.text
+                    ?: action.value.text?.takeIf { it.contains("{{") && it.contains("}}") }
                 val formula = action.options["formula"]?.text
                 when {
                     formula != null -> bag.setFormula(field, formula)

@@ -296,7 +296,10 @@ class RulesEngineTest {
                     op = "set",
                     field = "notes",
                     value = RuleValue.Text("Child of {{parent_notes}} from {{parent_imported_payee}}"),
-                    options = mapOf("splitIndex" to RuleValue.Number(1.0)),
+                    options = mapOf(
+                        "splitIndex" to RuleValue.Number(1.0),
+                        "template" to RuleValue.Text("Child of {{parent_notes}} from {{parent_imported_payee}}"),
+                    ),
                 ),
             ),
         )
