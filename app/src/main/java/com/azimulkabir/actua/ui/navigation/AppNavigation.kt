@@ -432,6 +432,7 @@ fun AppNavigation(
     }
     val budgetOverview = remember(dataVersion, budgetMonth) { repository.budgetOverview(budgetMonth) }
     val budgetHidesFraction = remember(dataVersion) { repository.budgetHidesFraction() }
+    val budgetType = remember(dataVersion, repository) { repository.budgetType() }
     // Set during composition, before any amount below is formatted or parsed.
     CurrencyDisplay.decimalPlaces = remember(dataVersion, repository) { repository.budgetDecimalPlaces() }
     val accounts = remember(dataVersion) { repository.accounts() }
@@ -3117,6 +3118,12 @@ fun AppNavigation(
                     onHideIncomeGroupInBudgetChange = {
                         displayPreferences.hideIncomeGroupInBudget = it
                         hideIncomeGroupInBudget = it
+                    },
+                    budgetType = budgetType,
+                    onBudgetTypeChange = { newType ->
+                        mutate("Change budget type") {
+                            repository.setBudgetType(newType)
+                        }
                     },
                     currencyCode = currencyCode,
                     onCurrencyCodeChange = {

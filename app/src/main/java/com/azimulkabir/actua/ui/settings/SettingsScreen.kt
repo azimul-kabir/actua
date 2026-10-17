@@ -127,6 +127,8 @@ fun SettingsScreen(
     onShowNotesChange: (Boolean) -> Unit = {},
     hideIncomeGroupInBudget: Boolean = false,
     onHideIncomeGroupInBudgetChange: (Boolean) -> Unit = {},
+    budgetType: String = "envelope",
+    onBudgetTypeChange: (String) -> Unit = {},
     currencyCode: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
     onCurrencyCodeChange: (String) -> Unit = {},
     currencySymbolOnly: Boolean = false,
@@ -619,6 +621,15 @@ fun SettingsScreen(
                 SettingsPage.Budget -> {
                     val categoryStatusColors = LocalCategoryStatusColors.current
                     SettingsGroup {
+                        SettingsChoice(
+                            "Budget type",
+                            if (budgetType == "tracking") "Tracking (report-based)" else "Envelope (zero-based)",
+                            listOf("Envelope (zero-based)", "Tracking (report-based)"),
+                            onChange = { selected ->
+                                onBudgetTypeChange(if (selected.startsWith("Tracking")) "tracking" else "envelope")
+                            },
+                        )
+                        SettingsDivider()
                         SettingsToggle(
                             "Category status dot",
                             "Show a status dot next to category names on Budget and Home",
@@ -644,6 +655,10 @@ fun SettingsScreen(
                             true,
                         ) { page = SettingsPage.CategoryColors }
                     }
+                    SettingsNote(
+                        "Envelope mode calculates To Budget from income and carryover. " +
+                            "Tracking mode shows projected and real savings without rollover.",
+                    )
                 }
                 SettingsPage.CategoryColors -> {
                     CategoryStatusColorSettings(Modifier.padding(top = Spacing.md))

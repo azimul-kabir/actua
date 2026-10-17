@@ -468,6 +468,22 @@ class ActualBudgetDatabase private constructor(
         ).use { it.moveToFirst() && it.stringOrNull(0) == "true" }
     }
 
+    /**
+     * The active budget type: `"envelope"` (zero-based) or `"tracking"` (report-based).
+     *
+     * Reads the synced `preferences.budgetType` value. Returns `"tracking"` when the stored
+     * value is `"tracking"` or the legacy `"report"`; returns `"envelope"` otherwise.
+     * This mirrors the logic in [budgetTable] but surfaces a user-readable label.
+     */
+    @Synchronized
+    fun fetchBudgetType(): String {
+        if (!hasTable("preferences")) return BUDGET_TYPE_ENVELOPE
+        val value = database.rawQuery(
+            "SELECT value FROM preferences WHERE id = 'budgetType'", null,
+        ).use { if (it.moveToFirst()) it.stringOrNull(0) else null }
+        return if (value in setOf("tracking", "report")) BUDGET_TYPE_TRACKING else BUDGET_TYPE_ENVELOPE
+    }
+
     /** Actual's synced `upcomingScheduledTransactionLength` preference: the default schedule upcoming window. */
     @Synchronized
     fun upcomingScheduledTransactionLength(): String? {
@@ -2248,6 +2264,8 @@ class ActualBudgetDatabase private constructor(
     data class ClockRecord(val timestamp: String, val merkle: MerkleNode)
 
     companion object {
+        const val BUDGET_TYPE_ENVELOPE = "envelope"
+        const val BUDGET_TYPE_TRACKING = "tracking"
         const val CREDIT_CARD_PREFERENCE_PREFIX = "actuali:credit_card:"
         const val HIDE_RECONCILED_PREFERENCE_PREFIX = "hide-reconciled-"
         private const val transactionSearchClause = """

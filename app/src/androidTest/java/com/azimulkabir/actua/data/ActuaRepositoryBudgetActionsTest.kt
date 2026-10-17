@@ -3,8 +3,11 @@ package com.azimulkabir.actua.data
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
+import com.azimulkabir.actua.data.budget.ActualBudgetDatabase
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.UUID
 
@@ -176,6 +179,54 @@ class ActuaRepositoryBudgetActionsTest {
         assertEquals(1_000L, repository.budgetGroups("2026-03").flatMap { it.categories }.first { it.id == "rent" }.balanceCents)
     }
 
+    @Test
+    fun budgetTypeDefaultsToEnvelope() = withRepository { repository, _ ->
+        assertEquals(ActualBudgetDatabase.BUDGET_TYPE_ENVELOPE, repository.budgetType())
+    }
+
+    @Test
+    fun switchingBudgetTypeWritesPreferenceAndCrdtMessage() = withRepository { repository, db ->
+        // Default is envelope: To Budget is computed.
+        db.exec("INSERT INTO transactions (id, isParent, isChild, acct, category, amount, date, tombstone) VALUES ('s1', 0, 0, 'checking', 'salary', 300000, 20261001, 0)")
+        assertEquals(ActualBudgetDatabase.BUDGET_TYPE_ENVELOPE, repository.budgetType())
+        val envelopeOverview = repository.budgetOverview("2026-10")
+        assertEquals(300000L, envelopeOverview.toBudgetCents)
+        assertEquals("To budget", envelopeOverview.lead().first)
+
+        // Switch to tracking mode.
+        val switchedToTracking = repository.setBudgetType(ActualBudgetDatabase.BUDGET_TYPE_TRACKING)
+        assertTrue(switchedToTracking)
+        assertEquals(ActualBudgetDatabase.BUDGET_TYPE_TRACKING, repository.budgetType())
+        assertEquals("tracking", db.preference("budgetType"))
+        assertTrue(db.hasCrdtMessage("preferences", "budgetType", "value"))
+
+        // In tracking mode, To Budget header is replaced by savings summary.
+        val trackingOverview = repository.budgetOverview("2026-10")
+        assertNull(trackingOverview.toBudgetCents)
+        assertEquals("Projected savings", trackingOverview.lead().first)
+
+        // Switch back to envelope mode.
+        val switchedToEnvelope = repository.setBudgetType(ActualBudgetDatabase.BUDGET_TYPE_ENVELOPE)
+        assertTrue(switchedToEnvelope)
+        assertEquals(ActualBudgetDatabase.BUDGET_TYPE_ENVELOPE, repository.budgetType())
+        assertEquals("envelope", db.preference("budgetType"))
+
+        val restoredOverview = repository.budgetOverview("2026-10")
+        assertEquals(300000L, restoredOverview.toBudgetCents)
+        assertEquals("To budget", restoredOverview.lead().first)
+    }
+
+    @Test
+    fun legacyReportPreferenceTreatedAsTracking() = withRepository { repository, db ->
+        db.exec("INSERT OR REPLACE INTO preferences (id, value) VALUES ('budgetType', 'report')")
+        assertEquals(ActualBudgetDatabase.BUDGET_TYPE_TRACKING, repository.budgetType())
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun setBudgetTypeRejectsInvalidType() = withRepository { repository, _ ->
+        repository.setBudgetType("invalid")
+    }
+
     internal class Db(private val path: String) {
         fun exec(sql: String) = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE).use { it.execSQL(sql) }
 
@@ -195,6 +246,19 @@ class ActuaRepositoryBudgetActionsTest {
         fun note(id: String): String? =
             SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
                 db.rawQuery("SELECT note FROM notes WHERE id = ?", arrayOf(id)).use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            }
+
+        fun preference(id: String): String? =
+            SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT value FROM preferences WHERE id = ?", arrayOf(id)).use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            }
+
+        fun hasCrdtMessage(dataset: String, row: String, column: String): Boolean =
+            SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery(
+                    "SELECT 1 FROM messages_crdt WHERE dataset = ? AND row = ? AND column = ?",
+                    arrayOf(dataset, row, column),
+                ).use { it.moveToFirst() }
             }
     }
 
