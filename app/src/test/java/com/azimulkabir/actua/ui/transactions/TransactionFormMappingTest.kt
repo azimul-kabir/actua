@@ -82,10 +82,11 @@ class TransactionFormMappingTest {
     }
 
     @Test
-    fun splitLinePayeeOptionsLeaveOutTransfers() {
+    fun splitLinePayeeOptionsOfferTransfersExceptCurrentAccount() {
+        val options = listOf("Store", "Transfer: Savings", "Transfer: ", "Transfer: Checking")
         assertEquals(
-            listOf("Store", "Transfer: "),
-            splitLinePayeeOptions(listOf("Store", "Transfer: Savings", "Transfer: ", "Transfer: Checking")),
+            listOf("Store", "Transfer: Savings", "Transfer: "),
+            splitLinePayeeOptions(options, currentAccount = "Checking"),
         )
     }
 }

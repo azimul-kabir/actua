@@ -100,7 +100,7 @@ class ActualTransactionWriter(
      * rules applied to it; the source keeps its category only for an on-budget → off-budget transfer
      * (`clearCategory`). Null when the payee isn't another account's transfer payee.
      */
-    private fun transferLegsFor(source: ActualTransaction): Pair<ActualTransaction, ActualTransaction>? {
+    internal fun transferLegsFor(source: ActualTransaction): Pair<ActualTransaction, ActualTransaction>? {
         val payeeId = source.payeeId ?: return null
         val transferAccount = database.fetchPayees().firstOrNull { it.id == payeeId }?.transferAccountId
             ?.takeIf { it != source.accountId } ?: return null
@@ -133,7 +133,12 @@ class ActualTransactionWriter(
         saveClock()
     }
 
-    fun createSplit(parent: ActualTransaction, children: List<ActualTransaction>, allowSingleChild: Boolean = false) {
+    fun createSplit(
+        parent: ActualTransaction,
+        children: List<ActualTransaction>,
+        allowSingleChild: Boolean = false,
+        runTransfers: Boolean = true,
+    ) {
         validateBase(parent)
         require(parent.isParent && parent.parentId == null && parent.categoryId == null) { "Invalid split parent" }
         val minimumLines = if (allowSingleChild) 1 else 2
@@ -145,7 +150,21 @@ class ActualTransactionWriter(
         }
         require(children.sumOf(ActualTransaction::amountCents) == parent.amountCents) { "Split amount does not match parent" }
         children.forEach(::validateBase)
-        val rows = listOf(parent) + children
+
+        val finalChildren = mutableListOf<ActualTransaction>()
+        val partners = mutableListOf<ActualTransaction>()
+        for (child in children) {
+            if (runTransfers && child.transferId == null) {
+                val legs = transferLegsFor(child)
+                if (legs != null) {
+                    finalChildren += legs.first
+                    partners += legs.second
+                    continue
+                }
+            }
+            finalChildren += child
+        }
+        val rows = listOf(parent) + finalChildren + partners
         database.insertTransactions(rows, rows.flatMap(::fieldsForInsert))
         saveClock()
     }
