@@ -96,7 +96,7 @@ Upstream: `category-delete`
 ([`DC/budget/mutations.ts#L253-L308`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/budget/mutations.ts#L253-L308),
 [`#L467-L529`](https://github.com/actualbudget/actual/blob/59fe126f637d858c061e1eeedbef5436c8f2225a/packages/desktop-client/src/budget/mutations.ts#L467-L529)).
 Actua: `ActuaRepository.deleteCategory` (`data/ActuaRepository.kt:1429`) →
-`ActualEntityWriter.deleteCategory` (`:142`); `deleteCategoryGroup` (`:302`, not reachable from the UI).
+`ActualEntityWriter.deleteCategory` (`:142`); `deleteCategoryGroup` (`:419`) via Manage Categories.
 
 | Behavior | Actual | Actua | Status |
 | --- | --- | --- | --- |
@@ -104,10 +104,11 @@ Actua: `ActuaRepository.deleteCategory` (`data/ActuaRepository.kt:1429`) →
 | Transfer: expense budget amounts added to the target in every created month; existing `category_mapping` rows pointing at the category, then its own row, forwarded to the target; income ↔ expense rejected | `category-delete` with `transferId` | `ActualEntityWriter.deleteCategory(id, transferId)`: same writes in one batch, over the budget range | Match ([#926](https://github.com/azimul-kabir/actua/issues/926)) |
 | A category with no transactions and no budget amounts: tombstone only | `deleteCategory` without `transferId` | tombstone only | Match |
 | Transactions that still reference a deleted, unmapped category read as having none | `v_transactions` joins live categories | same (`ActualBudgetReadModelTest.deletedPayeesAndCategoriesReadAsNoneLikeActualsTransactionView`) | Match |
-| Delete group: transfer check over its categories, then every category and the group tombstoned in one batch | `useDeleteCategoryGroupMutation`, `deleteCategoryGroup` | not offered in the UI; the unused writer tombstones without a transfer | **N/A** (the writer gap is noted on [#926](https://github.com/azimul-kabir/actua/issues/926)) |
-| Income group can't be deleted | no delete action for it | writer refuses | Match |
+| Delete group: reassign child categories to target expense group, then tombstone the deleted group | `category-group-delete` | `deleteCategoryGroup` moves child categories to target expense group and tombstones group in one atomic batch; Manage Categories prompts for target group | Match ([#1152](https://github.com/azimul-kabir/actua/issues/1152)) |
+| Income group can't be deleted | no delete action for it | writer refuses; UI hides delete action | Match |
 
 Tests: `src/androidTest/.../data/budget/CategoryDeleteTransferTest`,
+`src/androidTest/.../data/budget/CategoryGroupDeleteTest`,
 `ActualBudgetReadModelTest.deletingCategoryUsesTombstoneMutation`, `src/test/.../data/budget/CategoryDeletePlanTest`.
 
 ## 5. Reorder and move

@@ -84,6 +84,7 @@ fun ManageCategoriesScreen(
     onDeleteCategory: (group: String, category: String, transferToId: String?) -> Unit,
     /** What deleting a category needs ([CategoryDeletePlan]); null when it can't be determined. */
     loadCategoryDeletePlan: suspend (group: String, category: String) -> CategoryDeletePlan?,
+    onDeleteGroup: (group: ActualCategoryGroup, targetGroupId: String) -> Unit = { _, _ -> },
     onMoveCategory: (CategoryReorderPlanner.CategoryMove) -> Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -107,6 +108,7 @@ fun ManageCategoriesScreen(
     var addingGroup by remember { mutableStateOf(false) }
     var movingCategory by remember { mutableStateOf<Pair<ActualCategoryGroup, ActualCategory>?>(null) }
     var deletingCategory by remember { mutableStateOf<Pair<ActualCategoryGroup, ActualCategory>?>(null) }
+    var deletingGroup by remember { mutableStateOf<ActualCategoryGroup?>(null) }
 
     val rows = remember(localGroups) { flatten(localGroups) }
 
@@ -179,6 +181,7 @@ fun ManageCategoriesScreen(
                         onRename = { renamingGroup = row.group },
                         onAddCategory = { addingCategoryTo = row.group },
                         onToggleHidden = { onSetGroupHidden(row.group.name, !row.group.hidden) },
+                        onDelete = { deletingGroup = row.group },
                     )
                     is ManageRow.CategoryItem -> {
                         val group = localGroups.first { it.id == row.groupId }
@@ -270,6 +273,17 @@ fun ManageCategoriesScreen(
             },
         )
     }
+    deletingGroup?.let { group ->
+        CategoryGroupDeleteDialog(
+            group = group,
+            targetGroups = localGroups.filterNot { it.isIncome || it.id == group.id },
+            onDismiss = { deletingGroup = null },
+            onDelete = { targetGroupId ->
+                onDeleteGroup(group, targetGroupId)
+                deletingGroup = null
+            },
+        )
+    }
 }
 
 @Composable
@@ -278,6 +292,7 @@ private fun GroupManageRow(
     onRename: () -> Unit,
     onAddCategory: () -> Unit,
     onToggleHidden: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     // A section label above the group's card, the same height as a category row so drag
@@ -311,6 +326,12 @@ private fun GroupManageRow(
                     DropdownMenuItem(
                         text = { Text(if (group.hidden) "Unhide group" else "Hide group") },
                         onClick = { menuExpanded = false; onToggleHidden() },
+                    )
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("Delete group") },
+                        leadingIcon = { Icon(Icons.Outlined.Delete, null) },
+                        onClick = { menuExpanded = false; onDelete() },
                     )
                 }
             }

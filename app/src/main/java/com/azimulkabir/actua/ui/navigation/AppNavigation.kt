@@ -3395,6 +3395,9 @@ private fun NavigationManageCategoriesScreen(
         loadCategoryDeletePlan = { group, category ->
             withContext(Dispatchers.IO) { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
         },
+        onDeleteGroup = { group, targetGroupId ->
+            onMutate("Deleting group") { repository.deleteCategoryGroup(group.id, targetGroupId) }
+        },
         onMoveCategory = { move -> onMutateSync("Reordering category") { repository.moveCategory(move) } },
         modifier = contentModifier,
     )
