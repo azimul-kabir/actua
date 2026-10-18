@@ -1641,6 +1641,33 @@ class ActualBudgetDatabase private constructor(
         ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(0)) } }
     }
 
+    /**
+     * Ids of live dashboard widgets whose configuration references [reportId] (either as
+     * `meta.id` or `meta.customReportId`).
+     */
+    @Synchronized
+    fun findDashboardWidgetsForCustomReport(reportId: String): List<String> {
+        if (!hasTable("dashboard")) return emptyList()
+        val widgets = mutableListOf<String>()
+        database.rawQuery(
+            "SELECT id, meta FROM dashboard WHERE tombstone = 0 OR tombstone IS NULL", null,
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val id = cursor.getString(0)
+                val meta = cursor.getString(1)
+                if (meta != null && meta.contains(reportId)) {
+                    val json = runCatching { JSONObject(meta) }.getOrNull()
+                    val customReportId = json?.optString("customReportId")?.takeIf(String::isNotBlank)
+                        ?: json?.optString("id")?.takeIf(String::isNotBlank)
+                    if (customReportId == reportId) {
+                        widgets += id
+                    }
+                }
+            }
+        }
+        return widgets
+    }
+
     @Synchronized
     fun fetchDashboardWidgets(pageId: String?): List<DashboardWidgetRow> {
         if (!hasTable("dashboard")) return emptyList()

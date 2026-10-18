@@ -693,7 +693,12 @@ class ActualEntityWriter(
 
     @Synchronized
     fun deleteCustomReport(id: String) {
-        persist(fields("custom_reports", id, linkedMapOf("tombstone" to 1)))
+        val messages = mutableListOf<CrdtMessage>()
+        messages += fields("custom_reports", id, linkedMapOf("tombstone" to 1))
+        database.findDashboardWidgetsForCustomReport(id).forEach { widgetId ->
+            messages += fields("dashboard", widgetId, linkedMapOf("tombstone" to 1))
+        }
+        persist(messages)
     }
 
     @Synchronized

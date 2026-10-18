@@ -3,6 +3,7 @@ package com.azimulkabir.actua.data.budget
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.reports.SavedReportRow
+import com.azimulkabir.actua.data.sync.CrdtValue
 import com.azimulkabir.actua.data.sync.HlcTimestamp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -105,12 +106,12 @@ class CustomReportAndDashboardWriterTest {
 
         // Check tombstone message
         val reportMessages = database.getMessagesSince(HlcTimestamp.ZERO.toString())
-            .filter { it.dataset == "custom_reports" && it.row == "rep-to-del" && it.column == "tombstone" }
+            .filter { it.dataset == "custom_reports" && it.row == "rep-to-del" && it.column == "tombstone" && CrdtValue.deserialize(it.value) == CrdtValue.Integer(1) }
         assertEquals(1, reportMessages.size)
 
         // Referencing dashboard widget should also be tombstoned
         val widgetMessages = database.getMessagesSince(HlcTimestamp.ZERO.toString())
-            .filter { it.dataset == "dashboard" && it.row == widgetId && it.column == "tombstone" }
+            .filter { it.dataset == "dashboard" && it.row == widgetId && it.column == "tombstone" && CrdtValue.deserialize(it.value) == CrdtValue.Integer(1) }
         assertEquals(1, widgetMessages.size)
     }
 
@@ -147,7 +148,7 @@ class CustomReportAndDashboardWriterTest {
         writer.deleteDashboardWidget(w2)
 
         val tombstoneMsg = database.getMessagesSince(HlcTimestamp.ZERO.toString())
-            .filter { it.dataset == "dashboard" && it.row == w2 && it.column == "tombstone" }
+            .filter { it.dataset == "dashboard" && it.row == w2 && it.column == "tombstone" && CrdtValue.deserialize(it.value) == CrdtValue.Integer(1) }
         assertEquals(1, tombstoneMsg.size)
     }
 
@@ -175,74 +176,13 @@ class CustomReportAndDashboardWriterTest {
 
         // Check that page widget was also tombstoned
         val widgetTombstone = database.getMessagesSince(HlcTimestamp.ZERO.toString())
-            .filter { it.dataset == "dashboard" && it.row == widgetId && it.column == "tombstone" }
+            .filter { it.dataset == "dashboard" && it.row == widgetId && it.column == "tombstone" && CrdtValue.deserialize(it.value) == CrdtValue.Integer(1) }
         assertEquals(1, widgetTombstone.size)
     }
 
     private fun withDatabase(block: (ActualBudgetDatabase, File) -> Unit) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val file = File(context.cacheDir, "custom-reports-test-${UUID.randomUUID()}.sqlite")
-        SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
-            db.execSQL("CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT, type TEXT, offbudget INTEGER DEFAULT 0, closed INTEGER DEFAULT 0, sort_order REAL, account_group_id TEXT, tombstone INTEGER DEFAULT 0)")
-            db.execSQL("CREATE TABLE account_groups (id TEXT PRIMARY KEY, name TEXT, sort_order REAL, tombstone INTEGER DEFAULT 0)")
-            db.execSQL("CREATE TABLE categories (id TEXT PRIMARY KEY, name TEXT, cat_group TEXT, is_income INTEGER DEFAULT 0, hidden INTEGER DEFAULT 0, sort_order REAL, tombstone INTEGER DEFAULT 0)")
-            db.execSQL("CREATE TABLE category_groups (id TEXT PRIMARY KEY, name TEXT, is_income INTEGER DEFAULT 0, hidden INTEGER DEFAULT 0, sort_order REAL, tombstone INTEGER DEFAULT 0)")
-            db.execSQL("CREATE TABLE category_mapping (id TEXT PRIMARY KEY, transferId TEXT)")
-            db.execSQL("CREATE TABLE payee_mapping (id TEXT PRIMARY KEY)")
-            db.execSQL("CREATE TABLE payees (id TEXT PRIMARY KEY)")
-            db.execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY, acct TEXT, amount INTEGER, date INTEGER, cleared INTEGER DEFAULT 0, reconciled INTEGER DEFAULT 0, isChild INTEGER DEFAULT 0, isParent INTEGER DEFAULT 0, parent_id TEXT, tombstone INTEGER DEFAULT 0)")
-            db.execSQL("CREATE TABLE zero_budgets (id TEXT PRIMARY KEY)")
-            db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
-            db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, column TEXT NOT NULL, value BLOB NOT NULL)")
-
-            db.execSQL(
-                """CREATE TABLE custom_reports (
-                    id TEXT PRIMARY KEY,
-                    name TEXT,
-                    startDate TEXT,
-                    endDate TEXT,
-                    is_static INTEGER DEFAULT 0,
-                    date_range TEXT,
-                    mode TEXT,
-                    groupBy TEXT,
-                    balanceType TEXT,
-                    show_empty INTEGER DEFAULT 0,
-                    show_off_budget INTEGER DEFAULT 0,
-                    show_hidden_categories INTEGER DEFAULT 0,
-                    include_current INTEGER DEFAULT 0,
-                    trim INTEGER DEFAULT 0,
-                    sort_by TEXT,
-                    graph_type TEXT,
-                    conditions TEXT,
-                    conditions_op TEXT,
-                    metadata TEXT,
-                    interval TEXT,
-                    color_scheme TEXT,
-                    tombstone INTEGER DEFAULT 0
-                )"""
-            )
-            db.execSQL(
-                """CREATE TABLE dashboard_pages (
-                    id TEXT PRIMARY KEY,
-                    name TEXT,
-                    sort_order REAL,
-                    tombstone INTEGER DEFAULT 0
-                )"""
-            )
-            db.execSQL(
-                """CREATE TABLE dashboard (
-                    id TEXT PRIMARY KEY,
-                    type TEXT,
-                    width INTEGER DEFAULT 6,
-                    height INTEGER DEFAULT 2,
-                    x INTEGER DEFAULT 0,
-                    y INTEGER DEFAULT 0,
-                    meta TEXT,
-                    page_id TEXT,
-                    tombstone INTEGER DEFAULT 0
-                )"""
-            )
-        }
+        val file = File(context.cacheDir, "custom-reports-test-${UUID.randomUUID()}.sqlite").also(BlankBudgetFactory::create)
         try {
             ActualBudgetDatabase.open(file).use { block(it, file) }
         } finally {
