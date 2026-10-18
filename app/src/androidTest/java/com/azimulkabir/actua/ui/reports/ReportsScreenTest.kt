@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -70,5 +71,20 @@ class ReportsScreenTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Spending").assertExists()
+    }
+
+    @Test fun reportsScreenRendersBottomSpacer() {
+        val snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(netWorth, spending))
+
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = snapshot,
+                    hideDecimalPlaces = false,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("reportsBottomSpacer").assertExists()
     }
 }
