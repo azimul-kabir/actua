@@ -54,6 +54,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material.icons.outlined.SpaceDashboard
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.DashboardCustomize
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -260,6 +261,17 @@ fun ReportsScreen(
                 IconButton(onClick = onSearch) {
                     Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
                 }
+                if (selected != null && selected.widgets.any { it.kind != ReportWidgetKind.UNSUPPORTED }) {
+                    IconButton(
+                        onClick = { showReorderSheet = true },
+                        modifier = Modifier.testTag("dashboardReorderCardsButton"),
+                    ) {
+                        Icon(
+                            Icons.Outlined.DashboardCustomize,
+                            contentDescription = if (selected.id == SAVED_PAGE_ID) "Manage reports" else "Manage cards",
+                        )
+                    }
+                }
                 IconButton(
                     onClick = {
                         if (selected?.id == SAVED_PAGE_ID) isCreatingReport = true
@@ -306,30 +318,6 @@ fun ReportsScreen(
                     onDeletePage = { showDeletePageDialog = true },
                 )
             }
-            if (selected.id != SAVED_PAGE_ID) item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    FilterChip(
-                        selected = false,
-                        onClick = { showAddWidgetSheet = true },
-                        label = { Text("Add card") },
-                        leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                        modifier = Modifier.testTag("dashboardAddCardChip"),
-                    )
-                    if (selected.widgets.count { it.kind != ReportWidgetKind.UNSUPPORTED } > 1) {
-                        FilterChip(
-                            selected = false,
-                            onClick = { showReorderSheet = true },
-                            label = { Text("Reorder") },
-                            leadingIcon = { Icon(Icons.Outlined.SwapVert, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                            modifier = Modifier.testTag("dashboardReorderCardsChip"),
-                        )
-                    }
-                }
-            }
             val unsupported = selected.widgets.filter { it.kind == ReportWidgetKind.UNSUPPORTED }
             if (unsupported.isNotEmpty()) item {
                 ActuaFormCard {
@@ -343,19 +331,6 @@ fun ReportsScreen(
             }
             if (selected.id == SAVED_PAGE_ID) item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        FilterChip(
-                            selected = false,
-                            onClick = { isCreatingReport = true },
-                            label = { Text("New custom report") },
-                            leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                            modifier = Modifier.testTag("overviewNewReportChip"),
-                        )
-                    }
                     ViewFilterBar(view, snapshot.accountOptions, snapshot.groupOptions,
                         onPreset = { datePreset = it }, onAccounts = { accountIds = it.toList() },
                         onGroups = { groupIds = it.toList() }, onOffBudget = { includeOffBudget = it })
@@ -375,8 +350,6 @@ fun ReportsScreen(
             }
             items(visible, key = { it.id }) { widget ->
                 if (widget.id == expandedWidgetId) expandedWidget = widget
-                val isOverview = selected.id == SAVED_PAGE_ID
-                val widgetIndex = visible.indexOf(widget)
                 WidgetCard(
                     widget = widget,
                     hideDecimals = hideDecimalPlaces,
@@ -384,32 +357,6 @@ fun ReportsScreen(
                     onShowSummaryChange = onShowReportSummaryChange,
                     onDrillDown = { updateDrill(it to widget.name) },
                     onExpand = if (canExpand(widget.kind)) ({ expandedWidgetId = widget.id; expandedRange = null; expandedTab = 0 }) else null,
-                    onEditCustomReport = widget.customReportId?.let { id ->
-                        savedReports.firstOrNull { it.id == id }?.let { report -> { editingReport = report } }
-                    },
-                    onDeleteCustomReport = if (isOverview && widget.customReportId != null) ({
-                        reportToDelete = widget.customReportId
-                    }) else null,
-                    onAddToDashboard = if (isOverview && widget.customReportId != null) ({
-                        savedReports.firstOrNull { it.id == widget.customReportId }?.let { reportToAddToDashboard = it }
-                    }) else null,
-                    onRemoveFromDashboard = if (!isOverview) ({
-                        onDeleteWidgetFromDashboard(widget.id)
-                    }) else null,
-                    onMoveUp = if (!isOverview && widgetIndex > 0) ({
-                        val mutable = visible.map { it.id }.toMutableList()
-                        val temp = mutable[widgetIndex]
-                        mutable[widgetIndex] = mutable[widgetIndex - 1]
-                        mutable[widgetIndex - 1] = temp
-                        onReorderDashboardWidgets(selected.id, mutable)
-                    }) else null,
-                    onMoveDown = if (!isOverview && widgetIndex < visible.size - 1) ({
-                        val mutable = visible.map { it.id }.toMutableList()
-                        val temp = mutable[widgetIndex]
-                        mutable[widgetIndex] = mutable[widgetIndex + 1]
-                        mutable[widgetIndex + 1] = temp
-                        onReorderDashboardWidgets(selected.id, mutable)
-                    }) else null,
                 )
             }
         }
@@ -523,9 +470,22 @@ fun ReportsScreen(
     if (showReorderSheet && selected != null) {
         ReorderWidgetsSheet(
             page = selected,
+            savedReports = savedReports,
             onDismiss = { showReorderSheet = false },
             onReorder = { newOrder ->
                 onReorderDashboardWidgets(selected.id, newOrder)
+            },
+            onRemoveFromDashboard = { widgetId ->
+                onDeleteWidgetFromDashboard(widgetId)
+            },
+            onEditCustomReport = { report ->
+                editingReport = report
+            },
+            onDeleteCustomReport = { reportId ->
+                reportToDelete = reportId
+            },
+            onAddToDashboard = { report ->
+                reportToAddToDashboard = report
             },
         )
     }
@@ -1150,114 +1110,14 @@ private fun WidgetCard(
     onShowSummaryChange: (Boolean) -> Unit,
     onDrillDown: (ReportCategory) -> Unit,
     onExpand: (() -> Unit)? = null,
-    onEditCustomReport: (() -> Unit)? = null,
-    onDeleteCustomReport: (() -> Unit)? = null,
-    onAddToDashboard: (() -> Unit)? = null,
-    onRemoveFromDashboard: (() -> Unit)? = null,
-    onMoveUp: (() -> Unit)? = null,
-    onMoveDown: (() -> Unit)? = null,
 ) {
     val header = calculateWidgetHeader(widget, hideDecimals)
-    val hasMenu = onEditCustomReport != null || onDeleteCustomReport != null ||
-        onAddToDashboard != null || onRemoveFromDashboard != null ||
-        onMoveUp != null || onMoveDown != null
-
-    val menuContent: (@Composable () -> Unit)? = if (hasMenu) {
-        {
-            var expanded by remember { mutableStateOf(false) }
-            Box {
-                IconButton(
-                    onClick = { expanded = true },
-                    modifier = Modifier.testTag("widgetMenuButton_${widget.id}"),
-                ) {
-                    Icon(
-                        Icons.Outlined.MoreVert,
-                        contentDescription = "Widget options for ${widget.name}",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                ) {
-                    if (onEditCustomReport != null) {
-                        DropdownMenuItem(
-                            text = { Text("Edit report") },
-                            leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                            onClick = {
-                                expanded = false
-                                onEditCustomReport()
-                            },
-                            modifier = Modifier.testTag("menuEditCustomReport"),
-                        )
-                    }
-                    if (onAddToDashboard != null) {
-                        DropdownMenuItem(
-                            text = { Text("Add to dashboard…") },
-                            leadingIcon = { Icon(Icons.Outlined.AddToPhotos, contentDescription = null) },
-                            onClick = {
-                                expanded = false
-                                onAddToDashboard()
-                            },
-                            modifier = Modifier.testTag("menuAddToDashboard"),
-                        )
-                    }
-                    if (onMoveUp != null) {
-                        DropdownMenuItem(
-                            text = { Text("Move up") },
-                            leadingIcon = { Icon(Icons.Outlined.ArrowUpward, contentDescription = null) },
-                            onClick = {
-                                expanded = false
-                                onMoveUp()
-                            },
-                            modifier = Modifier.testTag("menuMoveUp"),
-                        )
-                    }
-                    if (onMoveDown != null) {
-                        DropdownMenuItem(
-                            text = { Text("Move down") },
-                            leadingIcon = { Icon(Icons.Outlined.ArrowDownward, contentDescription = null) },
-                            onClick = {
-                                expanded = false
-                                onMoveDown()
-                            },
-                            modifier = Modifier.testTag("menuMoveDown"),
-                        )
-                    }
-                    if (onRemoveFromDashboard != null) {
-                        DropdownMenuItem(
-                            text = { Text("Remove from dashboard") },
-                            leadingIcon = { Icon(Icons.Outlined.Close, contentDescription = null) },
-                            onClick = {
-                                expanded = false
-                                onRemoveFromDashboard()
-                            },
-                            modifier = Modifier.testTag("menuRemoveFromDashboard"),
-                        )
-                    }
-                    if (onDeleteCustomReport != null) {
-                        DropdownMenuItem(
-                            text = { Text("Delete report", color = MaterialTheme.colorScheme.error) },
-                            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                            onClick = {
-                                expanded = false
-                                onDeleteCustomReport()
-                            },
-                            modifier = Modifier.testTag("menuDeleteCustomReport"),
-                        )
-                    }
-                }
-            }
-        }
-    } else null
-
     ChartCard(
         title = widget.name,
         headlineValue = header.headlineValue,
         caption = header.caption,
         trend = header.trend,
         onExpand = onExpand,
-        menuContent = menuContent,
     ) {
         WidgetBody(widget, hideDecimals, showSummary, onShowSummaryChange, onDrillDown)
     }
@@ -2211,9 +2071,15 @@ private fun AddWidgetSheet(
 @Composable
 private fun ReorderWidgetsSheet(
     page: ReportDashboardPage,
+    savedReports: List<SavedReportRow>,
     onDismiss: () -> Unit,
     onReorder: (List<String>) -> Unit,
+    onRemoveFromDashboard: ((String) -> Unit)? = null,
+    onEditCustomReport: ((SavedReportRow) -> Unit)? = null,
+    onDeleteCustomReport: ((String) -> Unit)? = null,
+    onAddToDashboard: ((SavedReportRow) -> Unit)? = null,
 ) {
+    val isSavedPage = page.id == SAVED_PAGE_ID
     val nonUnsupported = remember(page.widgets) {
         page.widgets.filterNot { it.kind == ReportWidgetKind.UNSUPPORTED }
     }
@@ -2237,7 +2103,7 @@ private fun ReorderWidgetsSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Reorder Cards",
+                    if (isSavedPage) "Manage Reports" else "Manage Cards",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -2251,6 +2117,9 @@ private fun ReorderWidgetsSheet(
 
             ActuaFormCard {
                 items.forEachIndexed { index, widget ->
+                    val customReport = (widget.customReportId ?: widget.id).let { id ->
+                        savedReports.firstOrNull { it.id == id }
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2262,37 +2131,117 @@ private fun ReorderWidgetsSheet(
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f),
                         )
-                        IconButton(
-                            onClick = {
-                                if (index > 0) {
-                                    val mutable = items.toMutableList()
-                                    val temp = mutable[index]
-                                    mutable[index] = mutable[index - 1]
-                                    mutable[index - 1] = temp
-                                    items = mutable
-                                    onReorder(mutable.map { it.id })
+                        if (isSavedPage) {
+                            if (customReport != null && onAddToDashboard != null) {
+                                IconButton(
+                                    onClick = {
+                                        onDismiss()
+                                        onAddToDashboard(customReport)
+                                    },
+                                    modifier = Modifier.testTag("addWidgetToDashboard_${widget.id}"),
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.AddToPhotos,
+                                        contentDescription = "Add ${widget.name} to dashboard",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
-                            },
-                            enabled = index > 0,
-                            modifier = Modifier.testTag("moveUpWidget_${widget.id}"),
-                        ) {
-                            Icon(Icons.Outlined.ArrowUpward, contentDescription = "Move ${widget.name} up")
-                        }
-                        IconButton(
-                            onClick = {
-                                if (index < items.size - 1) {
-                                    val mutable = items.toMutableList()
-                                    val temp = mutable[index]
-                                    mutable[index] = mutable[index + 1]
-                                    mutable[index + 1] = temp
-                                    items = mutable
-                                    onReorder(mutable.map { it.id })
+                            }
+                            if (customReport != null && onEditCustomReport != null) {
+                                IconButton(
+                                    onClick = {
+                                        onDismiss()
+                                        onEditCustomReport(customReport)
+                                    },
+                                    modifier = Modifier.testTag("editWidget_${widget.id}"),
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Edit,
+                                        contentDescription = "Edit ${widget.name}",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
-                            },
-                            enabled = index < items.size - 1,
-                            modifier = Modifier.testTag("moveDownWidget_${widget.id}"),
-                        ) {
-                            Icon(Icons.Outlined.ArrowDownward, contentDescription = "Move ${widget.name} down")
+                            }
+                            if (customReport != null && onDeleteCustomReport != null) {
+                                IconButton(
+                                    onClick = {
+                                        onDismiss()
+                                        onDeleteCustomReport(customReport.id)
+                                    },
+                                    modifier = Modifier.testTag("deleteWidget_${widget.id}"),
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Delete,
+                                        contentDescription = "Delete ${widget.name}",
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            }
+                        } else {
+                            if (customReport != null && onEditCustomReport != null) {
+                                IconButton(
+                                    onClick = {
+                                        onDismiss()
+                                        onEditCustomReport(customReport)
+                                    },
+                                    modifier = Modifier.testTag("editWidget_${widget.id}"),
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Edit,
+                                        contentDescription = "Edit ${widget.name}",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = {
+                                    if (index > 0) {
+                                        val mutable = items.toMutableList()
+                                        val temp = mutable[index]
+                                        mutable[index] = mutable[index - 1]
+                                        mutable[index - 1] = temp
+                                        items = mutable
+                                        onReorder(mutable.map { it.id })
+                                    }
+                                },
+                                enabled = index > 0,
+                                modifier = Modifier.testTag("moveUpWidget_${widget.id}"),
+                            ) {
+                                Icon(Icons.Outlined.ArrowUpward, contentDescription = "Move ${widget.name} up")
+                            }
+                            IconButton(
+                                onClick = {
+                                    if (index < items.size - 1) {
+                                        val mutable = items.toMutableList()
+                                        val temp = mutable[index]
+                                        mutable[index] = mutable[index + 1]
+                                        mutable[index + 1] = temp
+                                        items = mutable
+                                        onReorder(mutable.map { it.id })
+                                    }
+                                },
+                                enabled = index < items.size - 1,
+                                modifier = Modifier.testTag("moveDownWidget_${widget.id}"),
+                            ) {
+                                Icon(Icons.Outlined.ArrowDownward, contentDescription = "Move ${widget.name} down")
+                            }
+                            if (onRemoveFromDashboard != null) {
+                                IconButton(
+                                    onClick = {
+                                        val mutable = items.toMutableList()
+                                        mutable.removeAt(index)
+                                        items = mutable
+                                        onRemoveFromDashboard(widget.id)
+                                    },
+                                    modifier = Modifier.testTag("removeWidget_${widget.id}"),
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Delete,
+                                        contentDescription = "Remove ${widget.name} from dashboard",
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            }
                         }
                     }
                     if (index < items.size - 1) ActuaCardDivider()
