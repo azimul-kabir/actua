@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
-import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -75,67 +77,76 @@ fun ChartCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .semantics { heading() },
-                )
-                if (headlineValue != null || trend != null || !caption.isNullOrBlank() || onExpand != null || menuContent != null) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
+                if (onExpand != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
                         modifier = Modifier
-                            .padding(start = Spacing.sm)
-                            .widthIn(max = 200.dp),
+                            .weight(1f, fill = false)
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable(
+                                role = Role.Button,
+                                onClick = onExpand,
+                            )
+                            .semantics { heading() },
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            if (headlineValue != null) {
-                                Text(
-                                    text = headlineValue,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.End,
-                                )
-                            }
-                            if (trend != null) {
-                                ChartTrendBadge(trend)
-                            }
-                            if (onExpand != null) {
-                                IconButton(
-                                    onClick = onExpand,
-                                    modifier = Modifier.size(32.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.OpenInFull,
-                                        contentDescription = "Expand chart",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                }
-                            }
-                            if (menuContent != null) {
-                                menuContent()
-                            }
-                        }
-                        if (!caption.isNullOrBlank()) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                            contentDescription = "Expand chart",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                } else {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .semantics { heading() },
+                    )
+                }
+                if (headlineValue != null || trend != null || menuContent != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        if (headlineValue != null) {
                             Text(
-                                text = caption,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = headlineValue,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.End,
                             )
                         }
+                        if (trend != null) {
+                            ChartTrendBadge(trend)
+                        }
+                        if (menuContent != null) {
+                            menuContent()
+                        }
                     }
                 }
+            }
+            if (!caption.isNullOrBlank()) {
+                Text(
+                    text = caption,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             Column(
