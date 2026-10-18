@@ -8,7 +8,13 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 /** Credential stores must stay out of cloud backup and device-to-device transfer. */
 class BackupRulesTest {
-    private val credentialStores = setOf("connection.xml", "budget_encryption.xml", "trusted_server_certificates.xml")
+    private val credentialStores = setOf(
+        "connection.xml",
+        "budget_encryption.xml",
+        "trusted_server_certificates.xml",
+        "actua_gdrive_auth.xml",
+        "gdrive_backup_encryption.xml",
+    )
 
     @Test
     fun `credential stores are excluded from cloud backup and device transfer`() {
