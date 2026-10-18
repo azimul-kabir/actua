@@ -1,8 +1,10 @@
 package com.azimulkabir.actua.ui.accounts
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -61,6 +63,7 @@ class ReorderAccountsScreenTest {
 
         // Verify the manage account groups sheet is displayed without layout measurement crashing
         compose.onNodeWithText("Manage account groups").assertIsDisplayed()
-        compose.onNodeWithText("Daily Spending").assertIsDisplayed()
+        compose.onNodeWithContentDescription("New account group").assertIsDisplayed()
+        compose.onAllNodesWithText("Daily Spending").assertCountEquals(2)
     }
 }
