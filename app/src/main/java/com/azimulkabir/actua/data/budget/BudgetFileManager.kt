@@ -149,6 +149,55 @@ class BudgetFileManager(context: Context) {
         }
     }
 
+    /**
+     * Imports an archive as a standalone on-device budget. Strips server fields,
+     * validates database and metadata, and generates a new ID if a collision occurs.
+     */
+    fun importLocalBudget(
+        archive: InputStream,
+        nameOverride: String? = null,
+    ): BudgetMetadata {
+        val staging = File(root, ".import-local-${UUID.randomUUID()}")
+        check(staging.mkdirs()) { "Unable to create import staging directory" }
+        try {
+            val extracted = extractArchive(archive, staging)
+            ActualBudgetDatabase.validate(extracted.database)
+            BudgetOpenProbe.validate(extracted.database)
+
+            val json = JSONObject(extracted.metadata.readText())
+            val original = BudgetMetadata.fromJson(json)
+
+            var targetId = original.id
+            if (budgetDirectory(targetId).exists()) {
+                val base = "${original.id}-${UUID.randomUUID().toString().take(7)}"
+                var candidate = base
+                var suffix = 0
+                while (budgetDirectory(candidate).exists()) candidate = "$base${++suffix}"
+                targetId = candidate
+            }
+
+            json.put("id", targetId)
+            json.put("resetClock", true)
+            json.remove("cloudFileId")
+            json.remove("groupId")
+            json.remove("lastUploaded")
+            json.remove("encryptKeyId")
+            json.remove("demo")
+            if (!nameOverride.isNullOrBlank()) {
+                json.put("budgetName", nameOverride)
+            } else if (json.optString("budgetName").isNullOrBlank()) {
+                json.put("budgetName", "Imported Budget")
+            }
+            extracted.metadata.writeText(json.toString())
+            val imported = BudgetMetadata.fromJson(json)
+
+            installLiveFiles(targetId, extracted)
+            return imported
+        } finally {
+            if (staging.exists()) staging.deleteRecursively()
+        }
+    }
+
     fun writeArchive(budgetId: String, output: OutputStream) {
         val database = databaseFile(budgetId)
         val metadata = metadataFile(budgetId)

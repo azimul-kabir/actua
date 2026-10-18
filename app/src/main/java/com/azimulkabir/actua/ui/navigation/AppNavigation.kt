@@ -2600,10 +2600,14 @@ fun AppNavigation(
                 )
             } ?: run { detail = DetailDestination.Schedules }
             DetailDestination.Main -> if (!repository.isUsingActualBudget && destination != MainDestination.Manage) {
-                NoBudgetScreen(contentModifier) {
-                    destination = MainDestination.Manage
-                    detail = DetailDestination.Connection
-                }
+                NoBudgetScreen(
+                    onConnect = {
+                        destination = MainDestination.Manage
+                        detail = DetailDestination.Connection
+                    },
+                    onBudgetInstalled = { repositoryVersion += 1 },
+                    modifier = contentModifier,
+                )
             } else when (shownDestination) {
                 MainDestination.Home -> HomeScreen(
                     modifier = contentModifier,
@@ -3302,22 +3306,6 @@ fun AppNavigation(
         onDismiss = { transactionImpactCues = emptyList() },
         modifier = Modifier.fillMaxSize(),
     )
-    }
-}
-
-@Composable
-private fun NoBudgetScreen(modifier: Modifier, onConnect: () -> Unit) {
-    Column(
-        modifier = modifier.fillMaxSize().padding(32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text("No budget open", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-        Text(
-            "Connect to your Actual server and download a budget to begin.",
-            modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
-        )
-        Button(onClick = onConnect) { Text("Connect to Actual") }
     }
 }
 

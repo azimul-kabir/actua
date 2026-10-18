@@ -21,7 +21,7 @@ audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-ka
 | Subsystem | Components & Files | Server-Dependent Assumptions | Standalone Status | Compatibility Finding / Action |
 | --- | --- | --- | --- | --- |
 | **Budget Metadata & Classification** | `BudgetMetadata.kt` | Previously checked `DemoBudgetManager.isDemoBudget(id)` exclusively. Non-demo was assumed server-backed. | **Compatible** (Fixed in #1166) | `isDemo`, `isServerBacked`, and `isUserLocalOnly` properties centralized. Demo flags in `metadata.json` supported. |
-| **Budget Loading & Repository Initialization** | `ActuaRepository.kt`, `ActiveBudgetStore.kt` | 1. Automatically opens candidates from `listLocalBudgets()`.<br>2. `discardUnreadableBudget` silently deletes corrupt budgets. | **Gap Identified** (GAP-1) | 1. Works offline with any local budget.<br>2. **Risk:** Silently deleting unreadable standalone budgets causes permanent data loss. Must quarantine rather than delete. |
+| **Budget Loading & Repository Initialization** | `ActuaRepository.kt`, `ActiveBudgetStore.kt` | 1. Automatically opens candidates from `listLocalBudgets()`.<br>2. `discardUnreadableBudget` silently deletes corrupt budgets. | **Compatible** (GAP-1 resolved in #1178) | 1. Works offline with any local budget.<br>2. Quarantines unreadable standalone budgets to avoid data loss. |
 | **Transaction CRUD & Balances** | `ActualTransactionWriter.kt`, `ActualBudgetDatabase.kt` | None. Generates HLC timestamps and writes local `messages_crdt` rows into SQLite directly. | **Compatible** | Full offline CRUD, split transactions, and account balances work without network or server config. |
 | **Transfers & Payees** | `TransferLegRules.kt`, `ActualPayeeWriter.kt`, `PayeeMapping` | None. Transfers create paired local transaction rows and update mapping tables within local transactions. | **Compatible** | Two-leg transfers, transfer payees, and category mappings operate entirely on SQLite. |
 | **Allocations & Budgets** | `ActualBudgetWriter.kt`, `ActualBudgetDatabase.kt` | None. Writes to `zero_budgets` or `reflect_budgets` and records CRDT messages locally. | **Compatible** | Envelope and Tracking budgeting, carryover, monthly targets, and template calculations work offline. |
@@ -32,10 +32,10 @@ audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-ka
 | **Notification Imports** | `CapturedTransactionNotifications.kt`, `NotificationImportPreferences.kt` | None. Taps resolve active budget via `ActiveBudgetStore` and write via `ActuaRepository`. | **Compatible** | Captured transaction notifications and Tasker receiver work with standalone budgets. |
 | **Reports & Dashboards** | `ReportsScreen.kt`, `CoreReportEngine.kt`, `SavedReportEngine.kt` | None. Computes all chart series, tables, Monte Carlo, and custom report queries locally from SQLite. | **Compatible** | All dashboard widgets and reports work offline with no external network calls. |
 | **Widgets** | `ActuaWidgets.kt`, `WidgetConfigurationActivity.kt` | None. Queries active budget database directly via `BudgetFileManager` and `ActuaRepository`. | **Compatible** | Home screen widgets and quick-entry shortcuts function for standalone budgets. |
-| **Local Backups & Retention** | `BackupService.kt`, `LocalBackupWorker.kt` | `BackupService.importArchive` requires `metadata.id == budgetId` and an already open budget. | **Gap Identified** (GAP-3) | Backup creation and retention work locally. New standalone budget creation from archive requires dedicated import API. |
+| **Local Backups & Retention** | `BackupService.kt`, `LocalBackupWorker.kt` | `BackupService.importArchive` requires `metadata.id == budgetId` and an already open budget. | **Compatible** (GAP-3 resolved in #1167) | Backup creation and retention work locally. New standalone budget creation and archive import supported via `importLocalBudget`. |
 | **Server Disconnect & Reset** | `DisconnectResetActivity.kt`, `DisconnectResetManager.kt` | Reset previously removed all non-demo budgets and cleared active selection. | **Compatible** (Fixed in #1166) | Preserves standalone budgets, their local backups, and active budget selection on server disconnect/reset. |
 | **Sync Scheduling & WorkManager** | `ActualSyncWorker.kt`, `ActualSyncScheduler.kt` | `ActualSyncScheduler.scheduleMutation` has a `CONNECTED` network constraint. | **Acceptable** | Local mutations update SQLite immediately. Schedule auto-posting is handled on app open/foreground and periodic background. |
-| **UI Banners & Status Messaging** | `AppNavigation.kt`, `ConnectionScreen.kt` | `SessionExpiredBanner` previously showed server expiration on standalone budgets. | **Compatible** (GAP-2 fixed in #1179) | `SessionExpiredBanner` respects `repository.isServerBacked` (GAP-5 remaining for sync buttons). |
+| **UI Banners & Status Messaging** | `AppNavigation.kt`, `ConnectionScreen.kt` | `SessionExpiredBanner` previously showed server expiration on standalone budgets. | **Compatible** (GAP-2 fixed in #1179, GAP-5 fixed in #1167) | `SessionExpiredBanner` respects `repository.isServerBacked`; manual sync button and status display standalone schedule processing labels. |
 
 ---
 
@@ -64,6 +64,7 @@ audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-ka
 - **Severity:** High (Data Loss Risk).
 - **Remediation:** Inspect `metadata.isUserLocalOnly`. If the unreadable budget is standalone, quarantine it (e.g. rename or move aside) and present a recovery prompt to restore from a local backup, rather than calling `deleteBudget()`.
 - **Tracking:** Linked to [Issue #1167](https://github.com/azimul-kabir/actua/issues/1167).
+- **Status:** Resolved in [#1178](https://github.com/azimul-kabir/actua/issues/1178) (`discardUnreadableBudget` quarantines unreadable local standalone budgets to `.quarantine-<budgetId>-<timestamp>`).
 
 ### GAP-2: Session Expired Banner False Positive
 - **Location:** `AppNavigation.kt:1401`
@@ -92,6 +93,7 @@ audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-ka
   3. Strips server fields (`cloudFileId`, `groupId`, `lastUploaded`, `encryptKeyId`).
   4. Installs the budget cleanly in `budgets/<id>/`.
 - **Tracking:** Linked to [Issue #1167](https://github.com/azimul-kabir/actua/issues/1167).
+- **Status:** Resolved in [#1167](https://github.com/azimul-kabir/actua/issues/1167) (`BudgetFileManager.importLocalBudget` validates archives, strips cloud fields, resets clocks, and resolves collisions).
 
 ### GAP-4: Missing Standalone Budget Creation & Management UI
 - **Location:** `AppNavigation.kt` (`NoBudgetScreen`), `ConnectionScreen.kt`
@@ -101,6 +103,7 @@ audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-ka
 - **Severity:** Medium (Feature UI).
 - **Remediation:** Implement UI entry points as specified in Issue #1167.
 - **Tracking:** Core scope of [Issue #1167](https://github.com/azimul-kabir/actua/issues/1167).
+- **Status:** Resolved in [#1167](https://github.com/azimul-kabir/actua/issues/1167) (`NoBudgetScreen` standalone entry points and `ConnectionScreen` "On this device" section).
 
 ### GAP-5: Standalone Status & Manual Sync Messaging
 - **Location:** `ConnectionScreen.kt:199,1008`
@@ -108,6 +111,7 @@ audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-ka
 - **Severity:** Low (Polish / Usability).
 - **Remediation:** Add explicit messaging for standalone budgets (e.g. "Process schedules & backup" or "Local only").
 - **Tracking:** Linked to [Issue #1167](https://github.com/azimul-kabir/actua/issues/1167).
+- **Status:** Resolved in [#1167](https://github.com/azimul-kabir/actua/issues/1167) (`ManualSyncButtonContent` shows "Process schedules & backup" on standalone budgets).
 
 ### GAP-6: Standalone Server Upload / Promotion Safety
 - **Location:** `ConnectionScreen.kt`, `BudgetFileManager.kt`
@@ -115,6 +119,7 @@ audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-ka
 - **Severity:** Medium (Data Safety).
 - **Remediation:** Add an explicit, confirmed upload action that validates server connectivity and credentials, uploads `db.sqlite` and `metadata.json`, records `cloudFileId` and `groupId` only upon server success, and preserves local files if network or server errors occur.
 - **Tracking:** Core scope of [Issue #1167](https://github.com/azimul-kabir/actua/issues/1167).
+- **Status:** Resolved in [#1167](https://github.com/azimul-kabir/actua/issues/1167) (explicit upload confirmation in `ConnectionScreen` preserves local budget on failure).
 
 ---
 
@@ -161,9 +166,9 @@ When an archive is imported into standalone mode:
 | **Sync Coalescing** | Instrumented | `StandaloneSchedulePostingTest.kt` | Standalone budget repeat execution within coalescing window reuses previous success without error. | **Automated** (Covered) |
 | **Demo Sync Rejection** | Instrumented | `StandaloneSchedulePostingTest.kt` | Demo budget returns `NotConfigured` and executes zero remote network requests. | **Automated** (Covered) |
 | **Standalone Budget Creation** | Instrumented | `BudgetCreationTest.kt` | Creating a local budget initializes clean schema, starter categories, and dashboard with no cloud fields. | **Automated** (Covered) |
-| **Standalone Archive Import API** | Instrumented | New `StandaloneBudgetImportTest.kt` (Issue #1167) | Imports root-level and folder-nested archives, strips cloud fields, resolves ID collisions safely. | **Planned** (Issue #1167) |
-| **Unreadable Budget Quarantine** | Instrumented | New `ActuaRepositoryRecoveryTest.kt` (Issue #1167) | Unreadable standalone budget is never silently deleted by repository initialization. | **Planned** (Issue #1167) |
-| **Session Expired Banner Suppression** | Instrumented | New `AppNavigationStandaloneTest.kt` (Issue #1167) | Standalone budget never displays `SessionExpiredBanner` even when server token has expired. | **Planned** (Issue #1167) |
-| **Server Promotion (Upload)** | Instrumented | New `StandaloneBudgetPromotionTest.kt` (Issue #1167) | Uploads standalone budget to server; failures preserve local budget and backups intact. | **Planned** (Issue #1167) |
+| **Standalone Archive Import API** | Instrumented | `StandaloneBudgetImportTest.kt` | Imports root-level and folder-nested archives, strips cloud fields, resolves ID collisions safely. | **Automated** (Covered) |
+| **Unreadable Budget Quarantine** | Instrumented | `ActuaRepositoryRecoveryTest.kt` | Unreadable standalone budget is never silently deleted by repository initialization. | **Automated** (Covered in #1178) |
+| **Session Expired Banner Suppression** | Instrumented | `AppNavigationSessionExpiredTest.kt` | Standalone budget never displays `SessionExpiredBanner` even when server token has expired. | **Automated** (Covered in #1179) |
+| **Server Promotion (Upload)** | Instrumented | `StandaloneBudgetImportTest.kt` | Uploads standalone budget to server; failures preserve local budget and backups intact. | **Automated** (Covered) |
 | **Server-Connected Regression** | Instrumented | `ActualSyncClientTest.kt`, `BudgetDownloadServiceTest.kt` | Existing server-connected sync, download, encryption, and deletion continue to pass unchanged. | **Automated** (Covered) |
 | **Offline App Navigation & Editing** | Manual | Real Device / Emulator | Open standalone budget in Airplane mode; verify accounts, categories, rules, reports, widgets, and app restart. | **Manual** |
