@@ -169,11 +169,7 @@ class BudgetFileManager(context: Context) {
 
             var targetId = original.id
             if (budgetDirectory(targetId).exists()) {
-                val candidateName = nameOverride?.ifBlank { null }
-                    ?: original.budgetName?.ifBlank { null }
-                    ?: original.id.take(8)
-                val sanitized = candidateName.map { if (it.isLetterOrDigit() && it.code < 128) it else '-' }.joinToString("")
-                val base = "$sanitized-${UUID.randomUUID().toString().take(7)}"
+                val base = "${original.id}-${UUID.randomUUID().toString().take(7)}"
                 var candidate = base
                 var suffix = 0
                 while (budgetDirectory(candidate).exists()) candidate = "$base${++suffix}"

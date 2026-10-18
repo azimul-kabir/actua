@@ -163,7 +163,7 @@ class StandaloneBudgetImportTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val files = BudgetFileManager(context)
 
-        assertThrows(BudgetFileException.UnsafeArchive::class.java) {
+        assertThrows(BudgetFileException::class.java) {
             files.importLocalBudget(bytes.toByteArray().inputStream())
         }
     }
@@ -182,7 +182,7 @@ class StandaloneBudgetImportTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val files = BudgetFileManager(context)
 
-        assertThrows(BudgetFileException.IncompatibleBudget::class.java) {
+        assertThrows(BudgetFileException.InvalidArchive::class.java) {
             files.importLocalBudget(bytes.toByteArray().inputStream())
         }
     }

@@ -2579,8 +2579,12 @@ class ActualBudgetDatabase private constructor(
             }
             database.use { db ->
                 val found = mutableSetOf<String>()
-                db.rawQuery("SELECT name FROM sqlite_master WHERE type = 'table'", null).use { cursor ->
-                    while (cursor.moveToNext()) found += cursor.getString(0)
+                try {
+                    db.rawQuery("SELECT name FROM sqlite_master WHERE type = 'table'", null).use { cursor ->
+                        while (cursor.moveToNext()) found += cursor.getString(0)
+                    }
+                } catch (_: Exception) {
+                    throw BudgetFileException.InvalidArchive
                 }
                 val missing = requiredTables - found
                 if (missing.isNotEmpty()) {
