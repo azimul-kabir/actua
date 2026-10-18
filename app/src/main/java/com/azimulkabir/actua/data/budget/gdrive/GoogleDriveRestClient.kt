@@ -20,6 +20,11 @@ data class GoogleDriveFileMetadata(
     val appProperties: Map<String, String>,
 )
 
+data class GoogleDriveUserInfo(
+    val displayName: String?,
+    val emailAddress: String?,
+)
+
 sealed class GoogleDriveException(message: String, cause: Throwable? = null) : Exception(message, cause) {
     data object Unauthorized : GoogleDriveException("Google Drive authentication token expired or invalid")
     data object QuotaExceeded : GoogleDriveException("Google Drive storage or API quota exceeded")
@@ -216,6 +221,25 @@ class GoogleDriveRestClient(
 
         val created = JSONObject(createConn.inputStream.bufferedReader().use { it.readText() })
         return created.getString("id")
+    }
+
+    fun getUserInfo(): GoogleDriveUserInfo? {
+        val url = URL("$apiBaseUrl/drive/v3/about?fields=user(displayName,emailAddress)")
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            setRequestProperty("Authorization", "Bearer ${requireToken()}")
+            setRequestProperty("Accept", "application/json")
+            connectTimeout = 15_000
+            readTimeout = 15_000
+        }
+        if (connection.responseCode == 401) throw GoogleDriveException.Unauthorized
+        if (connection.responseCode !in 200..299) return null
+        val json = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+        val userJson = json.optJSONObject("user") ?: return null
+        return GoogleDriveUserInfo(
+            displayName = userJson.optString("displayName").takeIf(String::isNotBlank),
+            emailAddress = userJson.optString("emailAddress").takeIf(String::isNotBlank),
+        )
     }
 
     private fun requireToken(): String {

@@ -98,10 +98,25 @@ Entries older than seven days are deleted, and you can clear the log at any
 time. The log never leaves your device unless you copy, save or email the
 report yourself.
 
-## Backups
+## Backups and Google Drive
 
-Automatic local backups are stored on your device's storage and are not
-uploaded anywhere by Actua.
+Automatic local backups stay in private app storage on your device and are not
+uploaded anywhere unless you configure an optional destination.
+
+If you choose to enable Google Drive backup:
+- Actua connects directly to the Google Drive API to upload encrypted backup
+  archives to your personal Google Drive account.
+- Actua requests least-privilege access strictly to files it creates
+  (`https://www.googleapis.com/auth/drive.file`). It cannot access your other
+  Google Drive files or folders.
+- Backup archives are encrypted on-device before transmission using client-side
+  authenticated AES-256-GCM encryption with a key derived from your backup
+  password. Google cannot decrypt or view your budget contents.
+- OAuth tokens and encryption keys are stored using the Android Keystore in
+  private app storage and are explicitly excluded from Android cloud backups
+  and device-to-device transfers.
+- You can disconnect Google Drive and revoke access at any time from Settings →
+  Backups.
 
 ## Other on-device data
 

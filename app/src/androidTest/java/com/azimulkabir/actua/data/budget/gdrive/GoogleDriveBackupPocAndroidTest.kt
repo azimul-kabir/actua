@@ -81,4 +81,49 @@ class GoogleDriveBackupPocAndroidTest {
             tempDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun restoreAsStandaloneBudgetGeneratesValidBudget() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val budget = files.createBudget("Drive Standalone PoC ${UUID.randomUUID()}")
+        val passphrase = "poc-test-passphrase-2026".toCharArray()
+
+        val tempDir = File(context.cacheDir, "gdrive-standalone-${UUID.randomUUID()}").also { it.mkdirs() }
+        val rawArchiveFile = File(tempDir, "raw-backup.zip")
+        val encryptedArchiveFile = File(tempDir, "backup.actuabkp")
+        val decryptedArchiveFile = File(tempDir, "decrypted.zip")
+
+        var importedBudgetId: String? = null
+        try {
+            FileOutputStream(rawArchiveFile).use { out ->
+                files.writeArchive(budget.id, out)
+            }
+
+            rawArchiveFile.inputStream().use { input ->
+                FileOutputStream(encryptedArchiveFile).use { output ->
+                    EncryptedBackupArchive.encrypt(input, output, passphrase)
+                }
+            }
+
+            encryptedArchiveFile.inputStream().use { input ->
+                FileOutputStream(decryptedArchiveFile).use { output ->
+                    EncryptedBackupArchive.decrypt(input, output, passphrase)
+                }
+            }
+
+            val imported = decryptedArchiveFile.inputStream().use { stream ->
+                files.importLocalBudget(stream)
+            }
+            importedBudgetId = imported.id
+            assertTrue(imported.isUserLocalOnly)
+            assertTrue(files.databaseFile(imported.id).isFile)
+            ActualBudgetDatabase.validate(files.databaseFile(imported.id))
+            BudgetOpenProbe.validate(files.databaseFile(imported.id))
+        } finally {
+            importedBudgetId?.let { runCatching { files.deleteBudget(it) } }
+            runCatching { files.deleteBudget(budget.id) }
+            tempDir.deleteRecursively()
+        }
+    }
 }
