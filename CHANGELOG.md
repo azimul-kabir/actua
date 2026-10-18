@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- In-place edit mode for account reordering and group management in the Accounts tab ([#1191](https://github.com/azimul-kabir/actua/pull/1191))
 - Optional Google Drive backup and restore with client-side authenticated encryption ([#1183](https://github.com/azimul-kabir/actua/pull/1183))
 - Support creating, importing, managing, and uploading standalone on-device budgets without a server ([#1182](https://github.com/azimul-kabir/actua/pull/1182))
 - Preserve standalone budgets on server disconnect and process schedules locally ([#1176](https://github.com/azimul-kabir/actua/pull/1176))

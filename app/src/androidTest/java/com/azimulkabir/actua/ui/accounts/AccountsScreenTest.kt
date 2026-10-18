@@ -112,4 +112,71 @@ class AccountsScreenTest {
 
         compose.onNodeWithTag("accountSummaryPeriod").assertExists()
     }
+
+    /** Regression coverage for #1190: In-place edit mode for account reordering, Done button, and Back button. */
+    @Test fun reorderMenuItemEntersInPlaceEditModeAndExitsWithDoneOrBack() {
+        val checking = Account("Checking", 10_000, "checking", id = "checking")
+
+        compose.setContent {
+            MaterialTheme {
+                AccountsScreen(
+                    accounts = listOf(checking),
+                    showMonthlySummary = false,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Accounts").assertExists()
+        compose.onNodeWithText("Done").assertDoesNotExist()
+
+        // Enter edit mode from menu
+        compose.onNodeWithContentDescription("Account display options").performClick()
+        compose.onNodeWithText("Reorder accounts").performClick()
+
+        // Verify edit mode top bar and drag hint
+        compose.onNodeWithText("Reorder accounts").assertExists()
+        compose.onNodeWithText("Done").assertExists()
+        compose.onNodeWithText("Drag a handle to reorder, or use the up/down arrows.").assertExists()
+
+        // Tap Done to exit edit mode
+        compose.onNodeWithText("Done").performClick()
+        compose.onNodeWithText("Accounts").assertExists()
+        compose.onNodeWithText("Done").assertDoesNotExist()
+
+        // Enter edit mode again and exit with Back button
+        compose.onNodeWithContentDescription("Account display options").performClick()
+        compose.onNodeWithText("Reorder accounts").performClick()
+        compose.onNodeWithText("Done").assertExists()
+
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithText("Accounts").assertExists()
+        compose.onNodeWithText("Done").assertDoesNotExist()
+    }
+
+    /** Regression coverage for #1190: In-place edit mode exposes Manage account groups button in top bar. */
+    @Test fun editModeExposesManageAccountGroupsButtonAndOpensSheet() {
+        val checking = Account("Checking", 10_000, "checking", id = "checking", groupId = "grp-1")
+        val group = com.azimulkabir.actua.data.budget.model.ActualAccountGroup("grp-1", "Daily Spending", 1.0)
+
+        compose.setContent {
+            MaterialTheme {
+                AccountsScreen(
+                    accounts = listOf(checking),
+                    accountGroups = listOf(group),
+                    onCreateGroup = {},
+                    onRenameGroup = { _, _ -> },
+                    onDeleteGroup = {},
+                    onMoveGroup = { true },
+                    initialEditMode = true,
+                    showMonthlySummary = false,
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Manage account groups").assertExists().performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Manage account groups").assertExists()
+        compose.onNodeWithContentDescription("New account group").assertExists()
+    }
 }

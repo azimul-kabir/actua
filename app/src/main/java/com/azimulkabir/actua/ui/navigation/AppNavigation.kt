@@ -136,6 +136,7 @@ import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.ui.home.HomeScreen
 import com.azimulkabir.actua.ui.home.HomeDashboardProjection
 import com.azimulkabir.actua.model.Account
+import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.model.PickerChoices
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.TransactionStatusFilter
@@ -2871,8 +2872,10 @@ fun AppNavigation(
                     hideIncomeGroup = hideIncomeGroupInBudget,
                     hasFab = hasFab,
                 )
-                MainDestination.Accounts -> AccountsScreen(
-                    modifier = contentModifier,
+                MainDestination.Accounts -> NavigationAccountsScreen(
+                    repository = repository,
+                    dataVersion = dataVersion,
+                    contentModifier = contentModifier,
                     accounts = accounts,
                     transactions = transactions,
                     hideDecimalPlaces = hideDecimalPlaces,
@@ -2894,38 +2897,8 @@ fun AppNavigation(
                         transactionSearch = ""
                         detail = DetailDestination.Transactions
                     },
-                    loadCloseOptions = { account ->
-                        withContext(Dispatchers.IO) {
-                            CloseAccountOptions(
-                                hasTransactions = repository.accountHasTransactions(account.id),
-                                categoryGroups = repository.categoryGroupsForReorder().map { group ->
-                                    CloseCategoryGroup(group.name, group.categories.map { it.id to it.name })
-                                },
-                            )
-                        }
-                    },
-                    onCloseAccount = { account, transferAccountId, categoryId, forced ->
-                        mutate(if (forced) "Force closing account" else "Closing account") {
-                            repository.closeAccount(account.id, transferAccountId, categoryId, forced)
-                        }
-                    },
-                    onReopenAccount = { account ->
-                        mutate("Reopening account") { repository.reopenAccount(account.id) }
-                    },
-                    onRenameAccount = { account, name ->
-                        mutate("Renaming account") { repository.renameAccount(account.id, name) }
-                    },
-                    onChangeAccountType = { account, type ->
-                        mutate("Changing account type") { repository.setAccountType(account.id, type) }
-                    },
-                    onCreateAccount = { name, offBudget, balance, type, groupId ->
-                        mutate("Creating account") { repository.createAccount(name, offBudget, balance, type, groupId) }
-                    },
-                    accountGroups = remember(dataVersion) { repository.accountGroupsForReorder() },
-                    onSetAccountGroup = { account, groupId ->
-                        mutate("Updating account group") { repository.setAccountGroup(account.id, groupId) }
-                    },
-                    onReorderAccounts = { detail = DetailDestination.ReorderAccounts },
+                    onMutate = { label, action -> mutate(label, action = action) },
+                    onMutateSync = { label, action -> mutateSync(label, action) },
                     pendingCaptureCount = pendingCaptureCount,
                     onReviewCaptures = { openCapturedReview() },
                     newTransactionCounts = newBankTransactionCounts,
@@ -3488,4 +3461,95 @@ private fun NavigationReorderAccountsScreen(
         modifier = contentModifier,
     )
 }
+
+@Composable
+private fun NavigationAccountsScreen(
+    repository: ActuaRepository,
+    dataVersion: Int,
+    contentModifier: Modifier,
+    accounts: List<Account>,
+    transactions: List<Transaction>,
+    hideDecimalPlaces: Boolean,
+    showMonthlySummary: Boolean,
+    onShowMonthlySummaryChange: (Boolean) -> Unit,
+    creditCards: List<CreditCardStatus>,
+    onAccountClick: (String) -> Unit,
+    onAllAccountsClick: () -> Unit,
+    onMutate: (String, () -> Boolean) -> Unit,
+    onMutateSync: (String, () -> Boolean) -> Boolean,
+    pendingCaptureCount: Int,
+    onReviewCaptures: () -> Unit,
+    newTransactionCounts: Map<String, Int>,
+    onSearch: () -> Unit,
+    onSetUpBankSync: () -> Unit,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    favoriteAccountIds: Set<String>,
+    onFavoriteAccountChange: (String, Boolean) -> Unit,
+    scrollToTopRequest: Int,
+    hasFab: Boolean,
+    summaryStartDay: Int,
+) {
+    AccountsScreen(
+        modifier = contentModifier,
+        accounts = accounts,
+        transactions = transactions,
+        hideDecimalPlaces = hideDecimalPlaces,
+        showMonthlySummary = showMonthlySummary,
+        onShowMonthlySummaryChange = onShowMonthlySummaryChange,
+        creditCards = creditCards,
+        onAccountClick = onAccountClick,
+        onAllAccountsClick = onAllAccountsClick,
+        loadCloseOptions = { account ->
+            withContext(Dispatchers.IO) {
+                CloseAccountOptions(
+                    hasTransactions = repository.accountHasTransactions(account.id),
+                    categoryGroups = repository.categoryGroupsForReorder().map { group ->
+                        CloseCategoryGroup(group.name, group.categories.map { it.id to it.name })
+                    },
+                )
+            }
+        },
+        onCloseAccount = { account, transferAccountId, categoryId, forced ->
+            onMutate(if (forced) "Force closing account" else "Closing account") {
+                repository.closeAccount(account.id, transferAccountId, categoryId, forced)
+            }
+        },
+        onReopenAccount = { account ->
+            onMutate("Reopening account") { repository.reopenAccount(account.id) }
+        },
+        onRenameAccount = { account, name ->
+            onMutate("Renaming account") { repository.renameAccount(account.id, name) }
+        },
+        onChangeAccountType = { account, type ->
+            onMutate("Changing account type") { repository.setAccountType(account.id, type) }
+        },
+        onCreateAccount = { name, offBudget, balance, type, groupId ->
+            onMutate("Creating account") { repository.createAccount(name, offBudget, balance, type, groupId) }
+        },
+        accountGroups = remember(dataVersion) { repository.accountGroupsForReorder() },
+        onSetAccountGroup = { account, groupId ->
+            onMutate("Updating account group") { repository.setAccountGroup(account.id, groupId) }
+        },
+        accountsForReorder = remember(dataVersion) { repository.accountsForReorder() },
+        onMoveAccount = { move -> onMutateSync("Reordering account") { repository.moveAccount(move) } },
+        onMoveGroup = { move -> onMutateSync("Reordering account group") { repository.moveAccountGroup(move) } },
+        onCreateGroup = { name -> onMutate("Creating account group") { repository.createAccountGroup(name) } },
+        onRenameGroup = { id, name -> onMutate("Renaming account group") { repository.renameAccountGroup(id, name) } },
+        onDeleteGroup = { id -> onMutate("Deleting account group") { repository.deleteAccountGroup(id) } },
+        pendingCaptureCount = pendingCaptureCount,
+        onReviewCaptures = onReviewCaptures,
+        newTransactionCounts = newTransactionCounts,
+        onSearch = onSearch,
+        onSetUpBankSync = onSetUpBankSync,
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        favoriteAccountIds = favoriteAccountIds,
+        onFavoriteAccountChange = onFavoriteAccountChange,
+        scrollToTopRequest = scrollToTopRequest,
+        hasFab = hasFab,
+        summaryStartDay = summaryStartDay,
+    )
+}
+
 

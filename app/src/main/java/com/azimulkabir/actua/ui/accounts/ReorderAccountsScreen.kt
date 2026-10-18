@@ -128,7 +128,6 @@ internal fun serialsBySection(chunks: List<ReorderChunk>): Map<String, Int> {
 }
 
 /** Dedicated drag-to-reorder screen for the accounts list (issue #597, grouping/collapsing in #617). */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ReorderAccountsScreen(
     accounts: List<ActualAccount>,
@@ -141,6 +140,47 @@ fun ReorderAccountsScreen(
     onRenameGroup: ((String, String) -> Unit)? = null,
     onDeleteGroup: ((String) -> Unit)? = null,
 ) {
+    var showManageGroupsSheet by remember { mutableStateOf(false) }
+
+    Column(modifier.fillMaxSize()) {
+        ActuaScreenHeader(title = "Reorder Accounts", onBack = onBack) {
+            if (onCreateGroup != null || onMoveGroup != null) {
+                IconButton(onClick = { showManageGroupsSheet = true }) {
+                    Icon(Icons.Outlined.Folder, contentDescription = "Manage account groups")
+                }
+            }
+        }
+        ReorderAccountsContent(
+            accounts = accounts,
+            onMoveAccount = onMoveAccount,
+            modifier = Modifier.weight(1f),
+            groups = groups,
+            onMoveGroup = onMoveGroup,
+            onCreateGroup = onCreateGroup,
+            onRenameGroup = onRenameGroup,
+            onDeleteGroup = onDeleteGroup,
+            showManageGroupsSheet = showManageGroupsSheet,
+            onDismissManageGroupsSheet = { showManageGroupsSheet = false },
+        )
+    }
+}
+
+/** In-place accounts reorder list content with drag-and-drop and up/down movement. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun ReorderAccountsContent(
+    accounts: List<ActualAccount>,
+    onMoveAccount: (AccountReorderPlanner.AccountMove) -> Boolean,
+    modifier: Modifier = Modifier,
+    groups: List<ActualAccountGroup> = emptyList(),
+    onMoveGroup: ((AccountGroupReorderPlanner.GroupMove) -> Boolean)? = null,
+    onCreateGroup: ((String) -> Unit)? = null,
+    onRenameGroup: ((String, String) -> Unit)? = null,
+    onDeleteGroup: ((String) -> Unit)? = null,
+    showManageGroupsSheet: Boolean = false,
+    onDismissManageGroupsSheet: () -> Unit = {},
+    contentPadding: PaddingValues = PaddingValues(bottom = Spacing.xl),
+) {
     val orderKey = remember(accounts, groups) {
         accounts.joinToString("|") { it.id } + "::" + groups.joinToString("|") { "${it.id}:${it.sortOrder}" }
     }
@@ -151,7 +191,6 @@ fun ReorderAccountsScreen(
     var dragOffsetPx by remember { mutableStateOf(0f) }
     var collapsedSections by remember { mutableStateOf(setOf(CLOSED_SECTION_TITLE)) }
     var collapsedGroups by remember { mutableStateOf(emptySet<String>()) }
-    var showManageGroupsSheet by remember { mutableStateOf(false) }
     var renamingGroup by remember { mutableStateOf<ActualAccountGroup?>(null) }
     var deletingGroup by remember { mutableStateOf<ActualAccountGroup?>(null) }
     LaunchedEffect(orderKey) {
@@ -235,13 +274,6 @@ fun ReorderAccountsScreen(
     }
 
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Reorder Accounts", onBack = onBack) {
-            if (onCreateGroup != null || onMoveGroup != null) {
-                IconButton(onClick = { showManageGroupsSheet = true }) {
-                    Icon(Icons.Outlined.Folder, contentDescription = "Manage account groups")
-                }
-            }
-        }
         Text(
             "Drag a handle to reorder, or use the up/down arrows.",
             style = MaterialTheme.typography.bodySmall,
@@ -251,7 +283,7 @@ fun ReorderAccountsScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = Spacing.xl),
+            contentPadding = contentPadding,
         ) {
             val sectionTitles = localChunks.map { it.sectionTitle }.distinct()
             sectionTitles.forEach { sectionTitle ->
@@ -286,7 +318,7 @@ fun ReorderAccountsScreen(
                                     onMoveUp = if (canMoveGroupUp) {
                                         {
                                             AccountGroupReorderPlanner.moveGroupUp(localGroups, currentGroup!!.id)?.let { (stepped, move) ->
-                                                if (onMoveGroup!!(move)) {
+                                                if (onMoveGroup(move)) {
                                                     localGroups = stepped
                                                     localChunks = buildReorderChunks(accounts, stepped)
                                                 }
@@ -296,7 +328,7 @@ fun ReorderAccountsScreen(
                                     onMoveDown = if (canMoveGroupDown) {
                                         {
                                             AccountGroupReorderPlanner.moveGroupDown(localGroups, currentGroup!!.id)?.let { (stepped, move) ->
-                                                if (onMoveGroup!!(move)) {
+                                                if (onMoveGroup(move)) {
                                                     localGroups = stepped
                                                     localChunks = buildReorderChunks(accounts, stepped)
                                                 }
@@ -354,7 +386,7 @@ fun ReorderAccountsScreen(
     if (showManageGroupsSheet && onCreateGroup != null && onRenameGroup != null && onDeleteGroup != null && onMoveGroup != null) {
         ManageAccountGroupsSheet(
             groups = localGroups,
-            onDismiss = { showManageGroupsSheet = false },
+            onDismiss = onDismissManageGroupsSheet,
             onCreateGroup = onCreateGroup,
             onRenameGroup = onRenameGroup,
             onDeleteGroup = onDeleteGroup,
