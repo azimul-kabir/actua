@@ -31,8 +31,8 @@ class AccountGroupChunkingTest {
         val chunks = accounts.chunkedByGroup()
         assertEquals(
             listOf(
-                AccountGroupChunk("Personal", listOf(accounts[1])),
-                AccountGroupChunk("Business", listOf(accounts[0], accounts[2])),
+                AccountGroupChunk("Personal", listOf(accounts[1]), groupId = "personal"),
+                AccountGroupChunk("Business", listOf(accounts[0], accounts[2]), groupId = "biz"),
             ),
             chunks,
         )
@@ -46,8 +46,8 @@ class AccountGroupChunkingTest {
         val chunks = accounts.chunkedByGroup()
         assertEquals(
             listOf(
-                AccountGroupChunk("Personal", listOf(accounts[0])),
-                AccountGroupChunk(null, listOf(accounts[1])),
+                AccountGroupChunk("Personal", listOf(accounts[0]), groupId = "personal"),
+                AccountGroupChunk(null, listOf(accounts[1]), groupId = null),
             ),
             chunks,
         )

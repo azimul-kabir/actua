@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -115,7 +116,11 @@ import com.azimulkabir.actua.ui.theme.Spacing
 private data class AccountSection(val title: String, val accounts: List<Account>)
 
 /** One named sub-bucket of an [AccountSection], derived from Actual's experimental account groups. `groupName` is null for the ungrouped bucket. */
-internal data class AccountGroupChunk(val groupName: String?, val accounts: List<Account>) {
+internal data class AccountGroupChunk(
+    val groupName: String?,
+    val accounts: List<Account>,
+    val groupId: String? = null,
+) {
     /** The group's balance as Actual's sidebar shows it, over the accounts listed in this chunk. */
     val totalCents: Long get() = accounts.sumOf { it.balanceCents }
 }
@@ -132,10 +137,10 @@ internal fun List<Account>.chunkedByGroup(): List<AccountGroupChunk> {
         .sortedWith(compareBy({ grouped[it]!!.first().groupSortOrder }, { it }))
     val chunks = orderedGroupIds.map { groupId ->
         val accountsInGroup = grouped.getValue(groupId)
-        AccountGroupChunk(accountsInGroup.first().groupName, accountsInGroup)
+        AccountGroupChunk(accountsInGroup.first().groupName, accountsInGroup, groupId = groupId)
     }
     val ungrouped = grouped[null].orEmpty()
-    return if (ungrouped.isEmpty()) chunks else chunks + AccountGroupChunk(null, ungrouped)
+    return if (ungrouped.isEmpty()) chunks else chunks + AccountGroupChunk(null, ungrouped, groupId = null)
 }
 
 private val sampleAccountSections = listOf(
@@ -215,6 +220,16 @@ fun AccountsScreen(
         collapsedSections = value
         accountsUiPreferences.edit().putStringSet(collapsedSectionsKey, value).apply()
     }
+    val collapsedGroupsKey = "collapsed_account_groups_$activeBudgetId"
+    var collapsedGroups by remember(activeBudgetId) {
+        mutableStateOf(
+            accountsUiPreferences.getStringSet(collapsedGroupsKey, emptySet()).orEmpty().toSet(),
+        )
+    }
+    fun saveCollapsedGroups(value: Set<String>) {
+        collapsedGroups = value
+        accountsUiPreferences.edit().putStringSet(collapsedGroupsKey, value).apply()
+    }
     var selectedAccount by remember { mutableStateOf<Account?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
     var showNewAccountDialog by remember { mutableStateOf(false) }
@@ -262,7 +277,14 @@ fun AccountsScreen(
         ).filter { it.accounts.isNotEmpty() }
     }
     val sectionGroupChunks = remember(accountSections) {
-        accountSections.associate { it.title to it.accounts.chunkedByGroup() }
+        accountSections.associate { section ->
+            val chunks = if (section.title == "Favorites") {
+                listOf(AccountGroupChunk(null, section.accounts))
+            } else {
+                section.accounts.chunkedByGroup()
+            }
+            section.title to chunks
+        }
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -389,6 +411,8 @@ fun AccountsScreen(
                         }
                         val groupChunks = sectionGroupChunks[section.title].orEmpty()
                         groupChunks.forEachIndexed { chunkIndex, chunk ->
+                            val groupKey = "${section.title}-${chunk.groupId ?: chunk.groupName.orEmpty()}"
+                            val isGroupCollapsed = groupKey in collapsedGroups
                             if (chunk.groupName != null) {
                                 item(key = "account-group-${section.title}-${chunk.groupName}") {
                                     androidx.compose.animation.AnimatedVisibility(
@@ -399,8 +423,15 @@ fun AccountsScreen(
                                         AccountGroupHeader(
                                             groupName = chunk.groupName,
                                             totalCents = chunk.totalCents,
+                                            collapsed = isGroupCollapsed,
                                             hideDecimalPlaces = hideDecimalPlaces,
                                             isFirstGroup = chunkIndex == 0,
+                                            onClick = {
+                                                saveCollapsedGroups(
+                                                    if (isGroupCollapsed) collapsedGroups - groupKey
+                                                    else collapsedGroups + groupKey,
+                                                )
+                                            },
                                         )
                                     }
                                 }
@@ -417,7 +448,7 @@ fun AccountsScreen(
                             }
                             itemsIndexed(chunk.accounts, key = { _, account -> "${section.title}-${account.id}" }) { index, account ->
                                 androidx.compose.animation.AnimatedVisibility(
-                                    visible = !collapsed,
+                                    visible = !collapsed && (chunk.groupName == null || !isGroupCollapsed),
                                     enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
                                     exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
                                 ) {
@@ -607,24 +638,28 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
 }
 
 /**
- * A lightweight, non-collapsible label and total for an Actual account group nested inside an on/off-budget section.
- * The end padding matches the chevron width (24.dp) and row insets of [AccountSectionHeader] and [AccountRow] so
- * their monetary amounts align into a single column.
+ * Collapsible label, total, and chevron for an Actual account group nested inside an on/off-budget section.
  */
 @Composable
 private fun AccountGroupHeader(
     groupName: String,
     totalCents: Long,
+    collapsed: Boolean,
     hideDecimalPlaces: Boolean,
     isFirstGroup: Boolean = false,
+    onClick: () -> Unit,
 ) {
+    val rotation by animateFloatAsState(if (collapsed) -90f else 0f, tween(220), label = "account group")
     Row(
-        modifier = Modifier.fillMaxWidth().padding(
-            start = Spacing.screenHorizontal + Spacing.xs,
-            end = Spacing.screenHorizontal + 24.dp + Spacing.xs,
-            top = if (isFirstGroup) Spacing.xs else Spacing.md,
-            bottom = Spacing.sm,
-        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(
+                start = Spacing.screenHorizontal + Spacing.xs,
+                end = Spacing.screenHorizontal,
+                top = if (isFirstGroup) Spacing.xs else Spacing.md,
+                bottom = Spacing.sm,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -640,6 +675,12 @@ private fun AccountGroupHeader(
             hideDecimalPlaces,
             modifier = Modifier.padding(start = Spacing.sm),
             style = MaterialTheme.typography.labelMedium,
+        )
+        Icon(
+            Icons.Outlined.KeyboardArrowDown,
+            contentDescription = if (collapsed) "Expand $groupName" else "Collapse $groupName",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = Spacing.xs).rotate(rotation),
         )
     }
 }

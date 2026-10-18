@@ -55,4 +55,49 @@ class AccountReorderPlannerTest {
     @Test fun moveAccountDownIsNullForTheLastAccount() {
         assertNull(AccountReorderPlanner.moveAccountDown(accounts(), "cash"))
     }
+
+    @Test fun moveAccountDownInSectionMovesBetweenGroupsWithinSection() {
+        val acc1 = account("acc1", 1.0).copy(groupId = "grp-a")
+        val acc2 = account("acc2", 2.0).copy(groupId = "grp-a")
+        val acc3 = account("acc3", 3.0).copy(groupId = "grp-b")
+        val off1 = account("off1", 4.0).copy(offBudget = true)
+        val chunks = listOf(
+            ReorderChunk("On budget", "Household", listOf(acc1, acc2), groupId = "grp-a"),
+            ReorderChunk("On budget", "Savings", listOf(acc3), groupId = "grp-b"),
+            ReorderChunk("Off budget", null, listOf(off1), groupId = null),
+        )
+
+        // acc2 is at bottom of Household group -> moving down should enter Savings group
+        val (stepped, move) = AccountReorderPlanner.moveAccountDownInSection(chunks, "acc2")!!
+        assertEquals(AccountReorderPlanner.AccountMove("acc2", "acc3", targetGroupId = "grp-b", updateGroupId = true), move)
+        val onBudgetGroupB = stepped.first { it.groupId == "grp-b" }
+        assertEquals(listOf("acc2", "acc3"), onBudgetGroupB.accounts.map { it.id })
+        assertEquals("grp-b", onBudgetGroupB.accounts.first { it.id == "acc2" }.groupId)
+
+        // acc3 is now at bottom of On budget section -> moving down must NOT cross into Off budget
+        val cannotCross = AccountReorderPlanner.moveAccountDownInSection(stepped, "acc3")
+        assertNull(cannotCross)
+    }
+
+    @Test fun moveAccountUpInSectionMovesBetweenGroupsWithinSection() {
+        val acc1 = account("acc1", 1.0).copy(groupId = "grp-a")
+        val acc2 = account("acc2", 2.0).copy(groupId = "grp-b")
+        val off1 = account("off1", 3.0).copy(offBudget = true)
+        val chunks = listOf(
+            ReorderChunk("On budget", "Household", listOf(acc1), groupId = "grp-a"),
+            ReorderChunk("On budget", "Savings", listOf(acc2), groupId = "grp-b"),
+            ReorderChunk("Off budget", null, listOf(off1), groupId = null),
+        )
+
+        // acc2 is at top of Savings group -> moving up should enter Household group at the end
+        val (stepped, move) = AccountReorderPlanner.moveAccountUpInSection(chunks, "acc2")!!
+        assertEquals(AccountReorderPlanner.AccountMove("acc2", "off1", targetGroupId = "grp-a", updateGroupId = true), move)
+        val onBudgetGroupA = stepped.first { it.groupId == "grp-a" }
+        assertEquals(listOf("acc1", "acc2"), onBudgetGroupA.accounts.map { it.id })
+        assertEquals("grp-a", onBudgetGroupA.accounts.first { it.id == "acc2" }.groupId)
+
+        // off1 is at top of Off budget section -> moving up must NOT cross into On budget
+        val cannotCross = AccountReorderPlanner.moveAccountUpInSection(chunks, "off1")
+        assertNull(cannotCross)
+    }
 }

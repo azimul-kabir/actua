@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.data.budget.AccountDragReorder
 import com.azimulkabir.actua.data.budget.AccountReorderPlanner
 import com.azimulkabir.actua.data.budget.AccountGroupReorderPlanner
+import com.azimulkabir.actua.data.budget.ReorderChunk
 import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
@@ -76,22 +77,6 @@ private const val EDGE_SCROLL_ZONE_PX = 100f
 private const val EDGE_SCROLL_SPEED_PX = 14f
 private const val CLOSED_SECTION_TITLE = "Closed accounts"
 
-/**
- * One reorderable bucket of accounts on the Reorder Accounts screen: a section
- * (On budget / Off budget / Closed accounts) optionally split further into one of
- * Actual's experimental account groups. Dragging or stepping an account only ever
- * reorders it within its own chunk — it never crosses a section or group boundary,
- * since [ActualAccount.sortOrder] is a single shared field and a stray move here
- * would silently reshuffle accounts the user never touched.
- */
-internal data class ReorderChunk(
-    val sectionTitle: String,
-    val groupName: String?,
-    val accounts: List<ActualAccount>,
-) {
-    val key: String get() = "$sectionTitle|${groupName ?: ""}"
-}
-
 /** Splits accounts into section chunks, then splits each section by account group, mirroring AccountsScreen. */
 internal fun buildReorderChunks(accounts: List<ActualAccount>, groups: List<ActualAccountGroup>): List<ReorderChunk> {
     val groupsById = groups.associateBy { it.id }
@@ -103,16 +88,16 @@ internal fun buildReorderChunks(accounts: List<ActualAccount>, groups: List<Actu
 
     return sections.flatMap { (title, sectionAccounts) ->
         if (sectionAccounts.none { it.groupId != null }) {
-            listOf(ReorderChunk(title, null, sectionAccounts))
+            listOf(ReorderChunk(title, null, sectionAccounts, groupId = null))
         } else {
             val grouped = sectionAccounts.groupBy { it.groupId }
             val orderedGroupIds = grouped.keys.filterNotNull()
                 .sortedWith(compareBy({ groupsById[it]?.sortOrder ?: 0.0 }, { it }))
             val groupChunks = orderedGroupIds.map { groupId ->
-                ReorderChunk(title, groupsById[groupId]?.name ?: "Group", grouped.getValue(groupId))
+                ReorderChunk(title, groupsById[groupId]?.name ?: "Group", grouped.getValue(groupId), groupId = groupId)
             }
             val ungrouped = grouped[null].orEmpty()
-            if (ungrouped.isEmpty()) groupChunks else groupChunks + ReorderChunk(title, null, ungrouped)
+            if (ungrouped.isEmpty()) groupChunks else groupChunks + ReorderChunk(title, null, ungrouped, groupId = null)
         }
     }
 }
@@ -230,20 +215,16 @@ fun ReorderAccountsContent(
     fun onDrag(accountId: String, deltaY: Float) {
         dragOffsetPx += deltaY
         while (dragOffsetPx > rowHeightPx / 2) {
-            val chunkIndex = chunkIndexOf(accountId)
-            val chunk = localChunks.getOrNull(chunkIndex)
-            val stepped = chunk?.let { AccountReorderPlanner.moveAccountDown(it.accounts, accountId)?.first }
-            if (chunk != null && stepped != null) {
-                localChunks = localChunks.toMutableList().apply { this[chunkIndex] = chunk.copy(accounts = stepped) }
+            val result = AccountReorderPlanner.moveAccountDownInSection(localChunks, accountId)
+            if (result != null) {
+                localChunks = result.first
                 dragOffsetPx -= rowHeightPx
             } else { dragOffsetPx = rowHeightPx / 2; break }
         }
         while (dragOffsetPx < -rowHeightPx / 2) {
-            val chunkIndex = chunkIndexOf(accountId)
-            val chunk = localChunks.getOrNull(chunkIndex)
-            val stepped = chunk?.let { AccountReorderPlanner.moveAccountUp(it.accounts, accountId)?.first }
-            if (chunk != null && stepped != null) {
-                localChunks = localChunks.toMutableList().apply { this[chunkIndex] = chunk.copy(accounts = stepped) }
+            val result = AccountReorderPlanner.moveAccountUpInSection(localChunks, accountId)
+            if (result != null) {
+                localChunks = result.first
                 dragOffsetPx += rowHeightPx
             } else { dragOffsetPx = -rowHeightPx / 2; break }
         }
@@ -252,11 +233,9 @@ fun ReorderAccountsContent(
     }
 
     fun onDragEnd(accountId: String) {
-        val chunkIndex = chunkIndexOf(accountId)
-        val originalAccounts = dragStartChunks.getOrNull(chunkIndex)?.accounts
-        val currentAccounts = localChunks.getOrNull(chunkIndex)?.accounts
-        if (originalAccounts != null && currentAccounts != null && AccountDragReorder.hasMoved(originalAccounts, currentAccounts, accountId)) {
-            val move = AccountDragReorder.finalMove(currentAccounts, accountId)
+        val originalAccount = dragStartChunks.flatMap { it.accounts }.firstOrNull { it.id == accountId }
+        if (originalAccount != null && AccountDragReorder.hasMoved(dragStartChunks, localChunks, accountId)) {
+            val move = AccountDragReorder.finalMove(localChunks, accountId, originalAccount.groupId)
             if (move != null && !onMoveAccount(move)) localChunks = dragStartChunks
         }
         draggingAccountId = null
@@ -264,13 +243,13 @@ fun ReorderAccountsContent(
     }
 
     fun stepByButton(accountId: String, direction: Int) {
-        val chunkIndex = chunkIndexOf(accountId)
-        val chunk = localChunks.getOrNull(chunkIndex) ?: return
-        val stepped = if (direction < 0) AccountReorderPlanner.moveAccountUp(chunk.accounts, accountId)?.first
-            else AccountReorderPlanner.moveAccountDown(chunk.accounts, accountId)?.first
-        if (stepped == null) return
-        val move = AccountDragReorder.finalMove(stepped, accountId) ?: return
-        if (onMoveAccount(move)) localChunks = localChunks.toMutableList().apply { this[chunkIndex] = chunk.copy(accounts = stepped) }
+        val result = if (direction < 0) {
+            AccountReorderPlanner.moveAccountUpInSection(localChunks, accountId)
+        } else {
+            AccountReorderPlanner.moveAccountDownInSection(localChunks, accountId)
+        } ?: return
+        val (stepped, move) = result
+        if (onMoveAccount(move)) localChunks = stepped
     }
 
     Column(modifier.fillMaxSize()) {
@@ -371,8 +350,16 @@ fun ReorderAccountsContent(
                                         onDragEnd = { onDragEnd(account.id) },
                                         onMoveUp = { stepByButton(account.id, -1) },
                                         onMoveDown = { stepByButton(account.id, +1) },
-                                        canMoveUp = index > 0,
-                                        canMoveDown = index < chunk.accounts.size - 1,
+                                        canMoveUp = run {
+                                            val secAccs = sectionChunks.flatMap { it.accounts }
+                                            val secIdx = secAccs.indexOfFirst { it.id == account.id }
+                                            secIdx > 0
+                                        },
+                                        canMoveDown = run {
+                                            val secAccs = sectionChunks.flatMap { it.accounts }
+                                            val secIdx = secAccs.indexOfFirst { it.id == account.id }
+                                            secIdx >= 0 && secIdx < secAccs.size - 1
+                                        },
                                     )
                                 }
                             }
