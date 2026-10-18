@@ -69,7 +69,8 @@ class IncomeExpenseCashFlowBarTapTest {
         // Sheet opened with transactions and total matching the bar
         assertTrue("Transactions should have been loaded", requestedIds != null)
         compose.onNodeWithText("Acme Corp").assertIsDisplayed()
-        compose.onNodeWithText(formatMoneyCents(350_00L, false), substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Income vs expenses · 1 transaction · ${formatMoneyCents(350_00L, false)}").assertIsDisplayed()
+        compose.onNodeWithText(formatMoneyCents(350_00L, false, showPositiveSign = true)).assertIsDisplayed()
     }
 
     @Test
@@ -110,7 +111,8 @@ class IncomeExpenseCashFlowBarTapTest {
 
         assertTrue("Transactions should have been loaded", requestedIds != null)
         compose.onNodeWithText("Grocery Mart").assertIsDisplayed()
-        compose.onNodeWithText(formatMoneyCents(120_00L, false), substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Income vs expenses · 1 transaction · ${formatMoneyCents(-120_00L, false)}").assertIsDisplayed()
+        compose.onNodeWithText(formatMoneyCents(-120_00L, false)).assertIsDisplayed()
     }
 
     @Test

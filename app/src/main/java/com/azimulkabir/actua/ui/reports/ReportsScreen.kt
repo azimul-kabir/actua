@@ -75,7 +75,6 @@ import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaGroupLabel
 import com.azimulkabir.actua.ui.components.ActuaSecondaryButton
 import org.json.JSONObject
-import com.azimulkabir.actua.model.DrillDownDirection
 import com.azimulkabir.actua.model.DrillDownQuery
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -735,15 +734,8 @@ private fun DrillDownSheet(
         }
     }
 
-    val totalAmountCents = remember(rows, segment) {
-        if (segment.incomeCents != null && segment.expenseCents != null) {
-            segment.spentCents
-        } else if (segment.spentCents != 0L) {
-            segment.spentCents
-        } else {
-            val sum = rows?.sumOf { it.amountCents } ?: 0L
-            if (segment.drillDownQuery?.direction == DrillDownDirection.EXPENSE) sum.absoluteValue else sum
-        }
+    val totalAmountCents = remember(rows) {
+        rows?.sumOf { it.amountCents } ?: segment.spentCents
     }
 
     val title = segment.drillDownQuery?.categoryName ?: segment.name
