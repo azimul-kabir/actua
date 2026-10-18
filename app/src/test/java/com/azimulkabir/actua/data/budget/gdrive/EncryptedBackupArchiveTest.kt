@@ -117,7 +117,7 @@ class EncryptedBackupArchiveTest {
 
         val tamperedBytes = encryptedOut.toByteArray()
         // Tamper with a byte in the payload area (towards the end)
-        tamperedBytes[tamperedBytes.size - 5] = (tamperedBytes[tamperedBytes.size - 5] xor 0xFF.toByte())
+        tamperedBytes[tamperedBytes.size - 5] = (tamperedBytes[tamperedBytes.size - 5].toInt() xor 0xFF).toByte()
 
         val decryptedOut = ByteArrayOutputStream()
         assertThrows(BackupEncryptionException.AuthenticationFailed::class.java) {
