@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Preserve standalone budgets on server disconnect and process schedules locally ([#1166](https://github.com/azimul-kabir/actua/issues/1166))
 - Enable custom pay cycle period on the Accounts monthly summary ([#1175](https://github.com/azimul-kabir/actua/pull/1175))
 - Add custom report builder and dashboard card authoring with page management ([#1163](https://github.com/azimul-kabir/actua/pull/1163))
 - Support category group deletion with target reassignment in Manage Categories ([#1162](https://github.com/azimul-kabir/actua/pull/1162))
