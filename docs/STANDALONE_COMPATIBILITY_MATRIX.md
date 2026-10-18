@@ -35,7 +35,7 @@ audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-ka
 | **Local Backups & Retention** | `BackupService.kt`, `LocalBackupWorker.kt` | `BackupService.importArchive` requires `metadata.id == budgetId` and an already open budget. | **Gap Identified** (GAP-3) | Backup creation and retention work locally. New standalone budget creation from archive requires dedicated import API. |
 | **Server Disconnect & Reset** | `DisconnectResetActivity.kt`, `DisconnectResetManager.kt` | Reset previously removed all non-demo budgets and cleared active selection. | **Compatible** (Fixed in #1166) | Preserves standalone budgets, their local backups, and active budget selection on server disconnect/reset. |
 | **Sync Scheduling & WorkManager** | `ActualSyncWorker.kt`, `ActualSyncScheduler.kt` | `ActualSyncScheduler.scheduleMutation` has a `CONNECTED` network constraint. | **Acceptable** | Local mutations update SQLite immediately. Schedule auto-posting is handled on app open/foreground and periodic background. |
-| **UI Banners & Status Messaging** | `AppNavigation.kt`, `ConnectionScreen.kt` | `SessionExpiredBanner` checks `!DemoBudgetManager.isDemoBudget`, showing server expiration on standalone budgets. | **Gap Identified** (GAP-2, GAP-5) | Banners and sync buttons must respect `isServerBacked` vs `isUserLocalOnly`. |
+| **UI Banners & Status Messaging** | `AppNavigation.kt`, `ConnectionScreen.kt` | `SessionExpiredBanner` previously showed server expiration on standalone budgets. | **Compatible** (GAP-2 fixed in #1179) | `SessionExpiredBanner` respects `repository.isServerBacked` (GAP-5 remaining for sync buttons). |
 
 ---
 
@@ -77,8 +77,8 @@ audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-ka
   ```
   If a user has previously signed into a server whose session expired, and then switches to or works in a standalone budget, the app displays a prominent error banner saying they are signed out of their Actual server and changes will not sync.
 - **Severity:** Medium (Confusing / Erroneous UI).
-- **Remediation:** Update condition to verify the active budget is server-backed (`metadata?.isServerBacked == true`).
 - **Tracking:** Linked to [Issue #1167](https://github.com/azimul-kabir/actua/issues/1167).
+- **Status:** Resolved in [#1179](https://github.com/azimul-kabir/actua/issues/1179) (`SessionExpiredBanner` checks `shouldShowSessionExpiredBanner(sessionExpired, repository.isServerBacked, detail)`).
 
 ### GAP-3: Fresh-Install Archive Import Without Active Budget
 - **Location:** `BackupService.kt:85`, `BudgetFileManager.kt:118`
