@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -94,5 +95,21 @@ class AccountsScreenTest {
         compose.runOnIdle { showScreen = true }
 
         compose.onNodeWithContentDescription("Expand On budget").assertExists()
+    }
+
+    @Test fun monthlySummaryDisplaysCustomPeriodWhenStartDayIsNotOne() {
+        val checking = Account("Checking", 10_000, "checking", id = "checking")
+
+        compose.setContent {
+            MaterialTheme {
+                AccountsScreen(
+                    accounts = listOf(checking),
+                    showMonthlySummary = true,
+                    summaryStartDay = 25,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("accountSummaryPeriod").assertExists()
     }
 }
