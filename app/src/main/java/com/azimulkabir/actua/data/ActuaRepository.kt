@@ -42,6 +42,7 @@ import com.azimulkabir.actua.data.budget.model.ActualManagedPayee
 import com.azimulkabir.actua.data.rules.CategoryLearning
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
 import com.azimulkabir.actua.data.budget.BudgetFileManager
+import com.azimulkabir.actua.data.budget.BudgetMetadata
 import com.azimulkabir.actua.data.budget.BudgetOpenProbe
 import com.azimulkabir.actua.data.importing.ImportCandidate
 import com.azimulkabir.actua.data.importing.ImportGroup
@@ -136,7 +137,7 @@ class ActuaRepository(context: Context) {
             compareBy({ if (it.id == selectedId) 0 else 1 }, { it.budgetName?.lowercase() ?: it.id }, { it.id }),
         )
         val opened = candidates.firstNotNullOfOrNull { metadata ->
-            openBudget(files, metadata.id)?.also {
+            openBudget(files, metadata)?.also {
                 if (metadata.id != selectedId) activeBudgetStore.budgetId = metadata.id
             }
         }
@@ -160,12 +161,13 @@ class ActuaRepository(context: Context) {
         actualDatabase?.close()
     }
 
-    private fun openBudget(files: BudgetFileManager, budgetId: String): ActualBudgetDatabase? {
+    private fun openBudget(files: BudgetFileManager, metadata: BudgetMetadata): ActualBudgetDatabase? {
+        val budgetId = metadata.id
         val database = runCatching { ActualBudgetDatabase.open(files.databaseFile(budgetId)) }
             .onFailure {
                 Log.e("ActuaRepository", "Could not open a local budget (${it.javaClass.simpleName})")
                 DiagnosticsLog.actionFailed("Opening the local budget", it)
-                discardUnreadableBudget(files, budgetId)
+                discardUnreadableBudget(files, metadata)
             }
             .getOrNull()
             ?: return null
@@ -179,13 +181,17 @@ class ActuaRepository(context: Context) {
             Log.e("ActuaRepository", "Skipping an unusable local budget (${error.javaClass.simpleName})")
             DiagnosticsLog.actionFailed("Checking the local budget", error)
             database.close()
-            discardUnreadableBudget(files, budgetId)
+            discardUnreadableBudget(files, metadata)
             null
         }
     }
 
-    private fun discardUnreadableBudget(files: BudgetFileManager, budgetId: String) {
-        runCatching { files.deleteBudget(budgetId) }
+    private fun discardUnreadableBudget(files: BudgetFileManager, metadata: BudgetMetadata) {
+        if (metadata.isUserLocalOnly) {
+            Log.w("ActuaRepository", "Preserving unreadable standalone budget (${metadata.id}) to prevent data loss")
+            return
+        }
+        runCatching { files.deleteBudget(metadata.id) }
             .onFailure { Log.e("ActuaRepository", "Could not discard an unreadable local budget (${it.javaClass.simpleName})") }
     }
 
