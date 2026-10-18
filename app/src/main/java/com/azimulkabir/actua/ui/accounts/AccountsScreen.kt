@@ -309,7 +309,7 @@ fun AccountsScreen(
                         )
                     }
                     val groupChunks = sectionGroupChunks[section.title].orEmpty()
-                    groupChunks.forEach { chunk ->
+                    groupChunks.forEachIndexed { chunkIndex, chunk ->
                         if (chunk.groupName != null) {
                             item(key = "account-group-${section.title}-${chunk.groupName}") {
                                 androidx.compose.animation.AnimatedVisibility(
@@ -317,7 +317,22 @@ fun AccountsScreen(
                                     enter = fadeIn(tween(180)),
                                     exit = fadeOut(tween(120)),
                                 ) {
-                                    AccountGroupHeader(chunk.groupName, chunk.totalCents, hideDecimalPlaces)
+                                    AccountGroupHeader(
+                                        groupName = chunk.groupName,
+                                        totalCents = chunk.totalCents,
+                                        hideDecimalPlaces = hideDecimalPlaces,
+                                        isFirstGroup = chunkIndex == 0,
+                                    )
+                                }
+                            }
+                        } else if (chunkIndex > 0) {
+                            item(key = "account-ungrouped-spacer-${section.title}") {
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = !collapsed,
+                                    enter = fadeIn(tween(180)),
+                                    exit = fadeOut(tween(120)),
+                                ) {
+                                    Spacer(Modifier.height(Spacing.md))
                                 }
                             }
                         }
@@ -505,15 +520,24 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
     }
 }
 
-/** A lightweight, non-collapsible label and total for an Actual account group nested inside an on/off-budget section. */
+/**
+ * A lightweight, non-collapsible label and total for an Actual account group nested inside an on/off-budget section.
+ * The end padding matches the chevron width (24.dp) and row insets of [AccountSectionHeader] and [AccountRow] so
+ * their monetary amounts align into a single column.
+ */
 @Composable
-private fun AccountGroupHeader(groupName: String, totalCents: Long, hideDecimalPlaces: Boolean) {
+private fun AccountGroupHeader(
+    groupName: String,
+    totalCents: Long,
+    hideDecimalPlaces: Boolean,
+    isFirstGroup: Boolean = false,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(
             start = Spacing.screenHorizontal + Spacing.xs,
-            end = Spacing.screenHorizontal,
-            top = Spacing.md,
-            bottom = Spacing.xs,
+            end = Spacing.screenHorizontal + 24.dp + Spacing.xs,
+            top = if (isFirstGroup) Spacing.xs else Spacing.md,
+            bottom = Spacing.sm,
         ),
         verticalAlignment = Alignment.CenterVertically,
     ) {

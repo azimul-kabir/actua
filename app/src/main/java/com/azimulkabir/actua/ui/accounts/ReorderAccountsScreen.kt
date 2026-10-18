@@ -265,7 +265,8 @@ fun ReorderAccountsScreen(
                         },
                     )
                 }
-                localChunks.filter { it.sectionTitle == sectionTitle }.forEach { chunk ->
+                val sectionChunks = localChunks.filter { it.sectionTitle == sectionTitle }
+                sectionChunks.forEachIndexed { chunkIndex, chunk ->
                     val groupCollapsed = chunk.groupName != null && chunk.key in collapsedGroups
                     if (chunk.groupName != null) {
                         val currentGroup = localGroups.firstOrNull { it.name == chunk.groupName }
@@ -307,7 +308,14 @@ fun ReorderAccountsScreen(
                                     onDelete = if (onDeleteGroup != null && currentGroup != null) {
                                         { deletingGroup = currentGroup }
                                     } else null,
+                                    isFirstGroup = chunkIndex == 0,
                                 )
+                            }
+                        }
+                    } else if (chunkIndex > 0) {
+                        item(key = "ungrouped-spacer:$sectionTitle") {
+                            AnimatedVisibility(visible = !sectionCollapsed) {
+                                Spacer(Modifier.height(Spacing.md))
                             }
                         }
                     }
@@ -426,6 +434,7 @@ private fun ReorderGroupHeader(
     onMoveDown: (() -> Unit)? = null,
     onRename: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    isFirstGroup: Boolean = false,
 ) {
     val rotation by animateFloatAsState(if (collapsed) -90f else 0f, tween(220), label = "reorder group")
     var menuExpanded by remember { mutableStateOf(false) }
@@ -433,7 +442,12 @@ private fun ReorderGroupHeader(
         Row(
             modifier = Modifier.fillMaxWidth()
                 .clickable(role = Role.Button, onClick = onClick)
-                .padding(start = Spacing.screenHorizontal + Spacing.xs, end = Spacing.screenHorizontal, top = Spacing.md, bottom = Spacing.xs),
+                .padding(
+                    start = Spacing.screenHorizontal + Spacing.xs,
+                    end = Spacing.screenHorizontal,
+                    top = if (isFirstGroup) Spacing.xs else Spacing.md,
+                    bottom = Spacing.sm,
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
