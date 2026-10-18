@@ -18,7 +18,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
-- Fixed group header padding and spacing between grouped and ungrouped accounts ([#1169](https://github.com/azimul-kabir/actua/issues/1169))
+- Fixed group header padding and spacing between grouped and ungrouped accounts ([#1172](https://github.com/azimul-kabir/actua/pull/1172))
 - Fixed a crash when opening the manage account groups sheet from Reorder Accounts ([#1165](https://github.com/azimul-kabir/actua/pull/1165))
 
 ## [1.9.0] - 2026-10-17
