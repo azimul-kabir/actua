@@ -53,7 +53,7 @@ class IncomeExpenseCashFlowBarTapTest {
                     hideDecimalPlaces = false,
                     loadTransactions = { ids ->
                         requestedIds = ids
-                        listOf(Transaction("tx-inc-1", "2026-05-10", "Acme Corp", "Salary", "Checking", 350_00L, cleared = true))
+                        listOf(Transaction("tx-inc-1", "2026-05-10", "Acme Corp", "Salary", "Checking", 350, cleared = true))
                     },
                 )
             }
@@ -95,7 +95,7 @@ class IncomeExpenseCashFlowBarTapTest {
                     hideDecimalPlaces = false,
                     loadTransactions = { ids ->
                         requestedIds = ids
-                        listOf(Transaction("tx-exp-1", "2026-05-12", "Grocery Mart", "Food", "Checking", -120_00L, cleared = true))
+                        listOf(Transaction("tx-exp-1", "2026-05-12", "Grocery Mart", "Food", "Checking", -120, cleared = true))
                     },
                 )
             }
@@ -133,7 +133,7 @@ class IncomeExpenseCashFlowBarTapTest {
                     hideDecimalPlaces = false,
                     loadTransactions = { ids ->
                         requestedIds = ids
-                        listOf(Transaction("tx-cf-1", "2026-07-01", "Client", "Consulting", "Checking", 400_00L, cleared = true))
+                        listOf(Transaction("tx-cf-1", "2026-07-01", "Client", "Consulting", "Checking", 400, cleared = true))
                     },
                 )
             }
