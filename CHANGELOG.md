@@ -16,6 +16,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Support transfer lines in split transactions ([#1155](https://github.com/azimul-kabir/actua/pull/1155))
 - Added an optional one-time "Support Actua" purchase in the Play Store build ([#599](https://github.com/azimul-kabir/actua/pull/599))
 
+### Fixed
+
+- Fixed a crash when opening the manage account groups sheet from Reorder Accounts ([#1165](https://github.com/azimul-kabir/actua/pull/1165))
+
 ## [1.9.0] - 2026-10-17
 
 ### Added

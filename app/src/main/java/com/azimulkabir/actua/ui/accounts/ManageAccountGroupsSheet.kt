@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
@@ -60,7 +58,7 @@ fun ManageAccountGroupsSheet(
     var deletingGroup by remember { mutableStateOf<ActualAccountGroup?>(null) }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        ActuaSheetContent(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        ActuaSheetContent {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
