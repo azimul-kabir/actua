@@ -273,34 +273,6 @@ fun ConnectionScreen(
     val demoActive = activeMetadata?.isDemo == true || DemoBudgetManager.isDemoBudget(activeBudget.budgetId)
     val standaloneActive = activeMetadata?.isUserLocalOnly == true
 
-    val importLocalBudgetLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            loading = true
-            message = null
-            scope.launch {
-                runCatching {
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri)?.use { stream ->
-                            files.importLocalBudget(stream)
-                        } ?: error("Could not open the selected archive")
-                    }
-                }.onSuccess { imported ->
-                    onBeforeBudgetReplacement()
-                    activeBudget.budgetId = imported.id
-                    message = "“${imported.budgetName ?: imported.id}” imported and opened."
-                    localBudgetsGeneration++
-                    refreshBackups()
-                    onBudgetInstalled()
-                }.onFailure { error ->
-                    message = error.message ?: "Could not import the budget archive."
-                }
-                loading = false
-            }
-        }
-    }
-
     fun refreshBackups() {
         val budgetId = activeBudget.budgetId
         backups = if (budgetId == null) emptyList() else runCatching {
@@ -548,6 +520,33 @@ fun ConnectionScreen(
     ) { granted ->
         if (granted) connectWithOpenId()
         else message = "Local network access is required because this server resolves to a private network address."
+    }
+    val importLocalBudgetLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            loading = true
+            message = null
+            scope.launch {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { stream ->
+                            files.importLocalBudget(stream)
+                        } ?: error("Could not open the selected archive")
+                    }
+                }.onSuccess { imported ->
+                    onBeforeBudgetReplacement()
+                    activeBudget.budgetId = imported.id
+                    message = "“${imported.budgetName ?: imported.id}” imported and opened."
+                    localBudgetsGeneration++
+                    refreshBackups()
+                    onBudgetInstalled()
+                }.onFailure { error ->
+                    message = error.message ?: "Could not import the budget archive."
+                }
+                loading = false
+            }
+        }
     }
 
     // Android 17+ shows ACCESS_LOCAL_NETWORK as "Nearby devices"; only ask for it when the
