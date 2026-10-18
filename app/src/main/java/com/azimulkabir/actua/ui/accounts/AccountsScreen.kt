@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -45,6 +46,13 @@ import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.azimulkabir.actua.data.budget.AccountGroupReorderPlanner
+import com.azimulkabir.actua.data.budget.AccountReorderPlanner
+import com.azimulkabir.actua.data.budget.model.ActualAccount
+import com.azimulkabir.actua.data.budget.model.ActualAccountType
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -180,6 +188,13 @@ fun AccountsScreen(
     /** How many transactions bank sync added that haven't been looked at, by account id (#1066). */
     newTransactionCounts: Map<String, Int> = emptyMap(),
     summaryStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
+    accountsForReorder: List<ActualAccount> = emptyList(),
+    onMoveAccount: (AccountReorderPlanner.AccountMove) -> Boolean = { false },
+    onMoveGroup: ((AccountGroupReorderPlanner.GroupMove) -> Boolean)? = null,
+    onCreateGroup: ((String) -> Unit)? = null,
+    onRenameGroup: ((String, String) -> Unit)? = null,
+    onDeleteGroup: ((String) -> Unit)? = null,
+    initialEditMode: Boolean = false,
 ) {
     val listState = rememberLazyListState()
     LaunchedEffect(scrollToTopRequest) {
@@ -204,10 +219,38 @@ fun AccountsScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     var showNewAccountDialog by remember { mutableStateOf(false) }
     var accountMenuExpanded by remember { mutableStateOf(false) }
+    var isEditMode by rememberSaveable { mutableStateOf(initialEditMode) }
+    var showManageGroupsSheet by remember { mutableStateOf(false) }
     var renamingAccount by remember { mutableStateOf<Account?>(null) }
     var closingAccount by remember { mutableStateOf<Account?>(null) }
     var changingTypeAccount by remember { mutableStateOf<Account?>(null) }
     var changingGroupAccount by remember { mutableStateOf<Account?>(null) }
+
+    BackHandler(enabled = isEditMode) {
+        isEditMode = false
+    }
+
+    val reorderAccounts = remember(accountsForReorder, accounts) {
+        if (accountsForReorder.isNotEmpty()) {
+            accountsForReorder
+        } else {
+            accounts.mapIndexed { index, account ->
+                ActualAccount(
+                    id = account.id,
+                    name = account.name,
+                    type = ActualAccountType.fromDatabase(account.type),
+                    offBudget = account.offBudget,
+                    closed = account.closed,
+                    sortOrder = (index + 1).toDouble(),
+                    balanceCents = account.balanceCents,
+                    clearedCents = account.clearedCents,
+                    unclearedCents = account.unclearedCents,
+                    reconciledCents = account.reconciledCents,
+                    groupId = account.groupId,
+                )
+            }
+        }
+    }
     // Otherwise this re-filters the whole account list on every recomposition of this screen
     // (e.g. opening the overflow menu or selecting an account), not just when `accounts` changes.
     val accountSections = remember(accounts, favoriteAccountIds) {
@@ -223,143 +266,176 @@ fun AccountsScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Accounts") {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 2.dp,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (pendingCaptureCount > 0) PendingCapturesButton(pendingCaptureCount, onReviewCaptures)
-                    IconButton(onClick = onSearch) {
-                        Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
+        ActuaScreenHeader(
+            title = if (isEditMode) "Reorder accounts" else "Accounts",
+            onBack = if (isEditMode) { { isEditMode = false } } else null,
+        ) {
+            if (isEditMode) {
+                if (onCreateGroup != null || onMoveGroup != null) {
+                    IconButton(onClick = { showManageGroupsSheet = true }) {
+                        Icon(Icons.Outlined.Folder, contentDescription = "Manage account groups")
                     }
-                    IconButton(onClick = { showAddSheet = true }) {
-                        Icon(Icons.Outlined.Add, contentDescription = "Add account")
-                    }
-                    Box {
-                        IconButton(onClick = { accountMenuExpanded = true }) {
-                            Icon(Icons.Outlined.MoreVert, contentDescription = "Account display options")
+                }
+                TextButton(onClick = { isEditMode = false }) {
+                    Text("Done")
+                }
+            } else {
+                Surface(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 2.dp,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (pendingCaptureCount > 0) PendingCapturesButton(pendingCaptureCount, onReviewCaptures)
+                        IconButton(onClick = onSearch) {
+                            Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
                         }
-                        DropdownMenu(
-                            expanded = accountMenuExpanded,
-                            onDismissRequest = { accountMenuExpanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Monthly summary") },
-                                trailingIcon = {
-                                    Switch(
-                                        checked = showMonthlySummary,
-                                        onCheckedChange = null,
-                                    )
-                                },
-                                onClick = {
-                                    onShowMonthlySummaryChange(!showMonthlySummary)
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Reorder accounts") },
-                                leadingIcon = { Icon(Icons.Outlined.SwapVert, contentDescription = null) },
-                                onClick = {
-                                    accountMenuExpanded = false
-                                    onReorderAccounts()
-                                },
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("Expand all") },
-                                onClick = {
-                                    saveCollapsedSections(emptySet())
-                                    accountMenuExpanded = false
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Collapse all") },
-                                onClick = {
-                                    saveCollapsedSections(accountSections.mapTo(mutableSetOf()) { it.title })
-                                    accountMenuExpanded = false
-                                },
-                            )
+                        IconButton(onClick = { showAddSheet = true }) {
+                            Icon(Icons.Outlined.Add, contentDescription = "Add account")
+                        }
+                        Box {
+                            IconButton(onClick = { accountMenuExpanded = true }) {
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "Account display options")
+                            }
+                            DropdownMenu(
+                                expanded = accountMenuExpanded,
+                                onDismissRequest = { accountMenuExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Monthly summary") },
+                                    trailingIcon = {
+                                        Switch(
+                                            checked = showMonthlySummary,
+                                            onCheckedChange = null,
+                                        )
+                                    },
+                                    onClick = {
+                                        onShowMonthlySummaryChange(!showMonthlySummary)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Reorder accounts") },
+                                    leadingIcon = { Icon(Icons.Outlined.SwapVert, contentDescription = null) },
+                                    onClick = {
+                                        accountMenuExpanded = false
+                                        isEditMode = true
+                                        onReorderAccounts()
+                                    },
+                                )
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("Expand all") },
+                                    onClick = {
+                                        saveCollapsedSections(emptySet())
+                                        accountMenuExpanded = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Collapse all") },
+                                    onClick = {
+                                        saveCollapsedSections(accountSections.mapTo(mutableSetOf()) { it.title })
+                                        accountMenuExpanded = false
+                                    },
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Otherwise this is a linear scan repeated per visible row, per recomposition
-        // (O(accounts x creditCards) overall), instead of a single O(creditCards) pass.
-        val creditCardByAccountId = remember(creditCards) { creditCards.associateBy { it.accountId } }
+        if (isEditMode) {
+            ReorderAccountsContent(
+                accounts = reorderAccounts,
+                onMoveAccount = onMoveAccount,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                groups = accountGroups,
+                onMoveGroup = onMoveGroup,
+                onCreateGroup = onCreateGroup,
+                onRenameGroup = onRenameGroup,
+                onDeleteGroup = onDeleteGroup,
+                showManageGroupsSheet = showManageGroupsSheet,
+                onDismissManageGroupsSheet = { showManageGroupsSheet = false },
+                contentPadding = PaddingValues(bottom = if (hasFab) 96.dp else Spacing.xl),
+            )
+        } else {
+            // Otherwise this is a linear scan repeated per visible row, per recomposition
+            // (O(accounts x creditCards) overall), instead of a single O(creditCards) pass.
+            val creditCardByAccountId = remember(creditCards) { creditCards.associateBy { it.accountId } }
 
-        PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
-            ) {
-                item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary, summaryStartDay) }
-                accountSections.forEach { section ->
-                    val collapsed = section.title in collapsedSections
-                    stickyHeader(key = "account-header-${section.title}") {
-                        AccountSectionHeader(
-                            section = section,
-                            collapsed = collapsed,
-                            hideDecimalPlaces = hideDecimalPlaces,
-                            onClick = {
-                                saveCollapsedSections(
-                                    if (collapsed) collapsedSections - section.title
-                                    else collapsedSections + section.title,
-                                )
-                            },
-                        )
-                    }
-                    val groupChunks = sectionGroupChunks[section.title].orEmpty()
-                    groupChunks.forEachIndexed { chunkIndex, chunk ->
-                        if (chunk.groupName != null) {
-                            item(key = "account-group-${section.title}-${chunk.groupName}") {
+            PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
+                ) {
+                    item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary, summaryStartDay) }
+                    accountSections.forEach { section ->
+                        val collapsed = section.title in collapsedSections
+                        stickyHeader(key = "account-header-${section.title}") {
+                            AccountSectionHeader(
+                                section = section,
+                                collapsed = collapsed,
+                                hideDecimalPlaces = hideDecimalPlaces,
+                                onClick = {
+                                    saveCollapsedSections(
+                                        if (collapsed) collapsedSections - section.title
+                                        else collapsedSections + section.title,
+                                    )
+                                },
+                            )
+                        }
+                        val groupChunks = sectionGroupChunks[section.title].orEmpty()
+                        groupChunks.forEachIndexed { chunkIndex, chunk ->
+                            if (chunk.groupName != null) {
+                                item(key = "account-group-${section.title}-${chunk.groupName}") {
+                                    androidx.compose.animation.AnimatedVisibility(
+                                        visible = !collapsed,
+                                        enter = fadeIn(tween(180)),
+                                        exit = fadeOut(tween(120)),
+                                    ) {
+                                        AccountGroupHeader(
+                                            groupName = chunk.groupName,
+                                            totalCents = chunk.totalCents,
+                                            hideDecimalPlaces = hideDecimalPlaces,
+                                            isFirstGroup = chunkIndex == 0,
+                                        )
+                                    }
+                                }
+                            } else if (chunkIndex > 0) {
+                                item(key = "account-ungrouped-spacer-${section.title}") {
+                                    androidx.compose.animation.AnimatedVisibility(
+                                        visible = !collapsed,
+                                        enter = fadeIn(tween(180)),
+                                        exit = fadeOut(tween(120)),
+                                    ) {
+                                        Spacer(Modifier.height(Spacing.md))
+                                    }
+                                }
+                            }
+                            itemsIndexed(chunk.accounts, key = { _, account -> "${section.title}-${account.id}" }) { index, account ->
                                 androidx.compose.animation.AnimatedVisibility(
                                     visible = !collapsed,
-                                    enter = fadeIn(tween(180)),
-                                    exit = fadeOut(tween(120)),
+                                    enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
+                                    exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
                                 ) {
-                                    AccountGroupHeader(
-                                        groupName = chunk.groupName,
-                                        totalCents = chunk.totalCents,
+                                    AccountRow(
+                                        account = account,
+                                        creditCard = creditCardByAccountId[account.id],
+                                        position = GroupPosition.of(index, chunk.accounts.size),
+                                        onClick = { onAccountClick(account.name) },
+                                        onLongClick = { selectedAccount = account },
                                         hideDecimalPlaces = hideDecimalPlaces,
-                                        isFirstGroup = chunkIndex == 0,
+                                        newTransactions = newTransactionCounts[account.id] ?: 0,
                                     )
                                 }
                             }
-                        } else if (chunkIndex > 0) {
-                            item(key = "account-ungrouped-spacer-${section.title}") {
-                                androidx.compose.animation.AnimatedVisibility(
-                                    visible = !collapsed,
-                                    enter = fadeIn(tween(180)),
-                                    exit = fadeOut(tween(120)),
-                                ) {
-                                    Spacer(Modifier.height(Spacing.md))
-                                }
-                            }
-                        }
-                        itemsIndexed(chunk.accounts, key = { _, account -> "${section.title}-${account.id}" }) { index, account ->
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = !collapsed,
-                                enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
-                                exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
-                            ) {
-                                AccountRow(
-                                    account = account,
-                                    creditCard = creditCardByAccountId[account.id],
-                                    position = GroupPosition.of(index, chunk.accounts.size),
-                                    onClick = { onAccountClick(account.name) },
-                                onLongClick = { selectedAccount = account },
-                                    hideDecimalPlaces = hideDecimalPlaces,
-                                    newTransactions = newTransactionCounts[account.id] ?: 0,
-                                )
-                            }
                         }
                     }
+                    item { Spacer(Modifier.height(20.dp)) }
                 }
-                item { Spacer(Modifier.height(20.dp)) }
             }
         }
     }
