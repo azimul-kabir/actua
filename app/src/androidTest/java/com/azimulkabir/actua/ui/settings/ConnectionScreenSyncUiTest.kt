@@ -59,4 +59,20 @@ class ConnectionScreenSyncUiTest {
         compose.onNodeWithText("Demo is local only").assertExists()
         compose.onNodeWithTag("manualSyncButtonIndicator").assertDoesNotExist()
     }
+
+    @Test
+    fun manualSyncButtonShowsStandaloneLabelWithoutSpinner() {
+        compose.setContent {
+            MaterialTheme {
+                ManualSyncButtonContent(
+                    syncing = false,
+                    demoActive = false,
+                    standaloneActive = true,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Process schedules & backup").assertExists()
+        compose.onNodeWithTag("manualSyncButtonIndicator").assertDoesNotExist()
+    }
 }

@@ -49,6 +49,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -88,6 +89,7 @@ import com.azimulkabir.actua.data.budget.BudgetDownloadService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BackupItem
 import com.azimulkabir.actua.data.budget.BackupService
+import com.azimulkabir.actua.data.budget.BudgetMetadata
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
 import com.azimulkabir.actua.data.security.BudgetEncryptionKeyStore
 import com.azimulkabir.actua.data.security.CredentialStore
@@ -176,6 +178,7 @@ internal fun connectionErrorMessage(error: Throwable, fallback: String): String 
 internal fun ManualSyncButtonContent(
     syncing: Boolean,
     demoActive: Boolean,
+    standaloneActive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -196,7 +199,14 @@ internal fun ManualSyncButtonContent(
                     strokeWidth = 2.dp,
                 )
             }
-            Text(if (demoActive) "Demo is local only" else if (syncing) "Syncing…" else "Sync now")
+            Text(
+                when {
+                    demoActive -> "Demo is local only"
+                    syncing -> "Syncing…"
+                    standaloneActive -> "Process schedules & backup"
+                    else -> "Sync now"
+                }
+            )
         }
     }
 }
@@ -252,8 +262,44 @@ fun ConnectionScreen(
     var deleteConfirmation by remember { mutableStateOf("") }
     var confirmQuickBackup by remember { mutableStateOf(false) }
     var pendingCertificateTrust by remember { mutableStateOf<PendingCertificateTrust?>(null) }
-    var pendingOpenIdCallback by remember { mutableStateOf<OidcCallbackServer?>(null) }
-    val demoActive = DemoBudgetManager.isDemoBudget(activeBudget.budgetId)
+    var localBudgetsGeneration by remember { mutableStateOf(0) }
+    var showCreateLocalBudget by remember { mutableStateOf(false) }
+    var newLocalBudgetName by remember { mutableStateOf("") }
+    var pendingDeleteLocal by remember { mutableStateOf<BudgetMetadata?>(null) }
+    var pendingUploadBudget by remember { mutableStateOf<BudgetMetadata?>(null) }
+    val activeMetadata = remember(activeBudget.budgetId, localBudgetsGeneration) {
+        activeBudget.budgetId?.let(files::metadata)
+    }
+    val demoActive = activeMetadata?.isDemo == true || DemoBudgetManager.isDemoBudget(activeBudget.budgetId)
+    val standaloneActive = activeMetadata?.isUserLocalOnly == true
+
+    val importLocalBudgetLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            loading = true
+            message = null
+            scope.launch {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { stream ->
+                            files.importLocalBudget(stream)
+                        } ?: error("Could not open the selected archive")
+                    }
+                }.onSuccess { imported ->
+                    onBeforeBudgetReplacement()
+                    activeBudget.budgetId = imported.id
+                    message = "“${imported.budgetName ?: imported.id}” imported and opened."
+                    localBudgetsGeneration++
+                    refreshBackups()
+                    onBudgetInstalled()
+                }.onFailure { error ->
+                    message = error.message ?: "Could not import the budget archive."
+                }
+                loading = false
+            }
+        }
+    }
 
     fun refreshBackups() {
         val budgetId = activeBudget.budgetId
@@ -705,7 +751,7 @@ fun ConnectionScreen(
                                 activeBudget.budgetId = remaining.firstOrNull()?.id
                             }
                             pendingDelete = null; deleteConfirmation = ""
-                            message = "${remote.name} deleted."; loadBudgets(); refreshBackups(); onBudgetInstalled()
+                            message = "${remote.name} deleted."; localBudgetsGeneration++; loadBudgets(); refreshBackups(); onBudgetInstalled()
                         }.onFailure { error ->
                             if (error is ActualServerException.FileAccessDenied) {
                                 message = "Only this budget's owner or a server admin can delete it from the server. Nothing was removed."
@@ -739,6 +785,167 @@ fun ConnectionScreen(
         dismissButton = { TextButton(onClick = { confirmQuickBackup = false }) { Text("Cancel") } },
     )
 
+    if (showCreateLocalBudget) AlertDialog(
+        onDismissRequest = { if (!loading) showCreateLocalBudget = false },
+        title = { Text("Create local budget") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("This budget stays on this device and works offline without a server.")
+                OutlinedTextField(
+                    value = newLocalBudgetName,
+                    onValueChange = { newLocalBudgetName = it },
+                    label = { Text("Budget name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !loading && newLocalBudgetName.isNotBlank(),
+                onClick = {
+                    val name = newLocalBudgetName.trim()
+                    val existing = files.listLocalBudgets().mapNotNull { it.budgetName?.lowercase() }
+                    if (name.lowercase() in existing) {
+                        message = "“$name” already exists."
+                        return@TextButton
+                    }
+                    loading = true
+                    message = null
+                    scope.launch {
+                        runCatching {
+                            withContext(Dispatchers.IO) {
+                                files.createBudget(name)
+                            }
+                        }.onSuccess { created ->
+                            onBeforeBudgetReplacement()
+                            activeBudget.budgetId = created.id
+                            showCreateLocalBudget = false
+                            newLocalBudgetName = ""
+                            message = "“$name” created and opened."
+                            localBudgetsGeneration++
+                            refreshBackups()
+                            onBudgetInstalled()
+                        }.onFailure { error ->
+                            message = error.message ?: "Could not create local budget."
+                        }
+                        loading = false
+                    }
+                },
+            ) { Text("Create") }
+        },
+        dismissButton = {
+            TextButton(enabled = !loading, onClick = { showCreateLocalBudget = false }) { Text("Cancel") }
+        },
+    )
+
+    pendingDeleteLocal?.let { local ->
+        val budgetName = local.budgetName ?: local.id
+        AlertDialog(
+            onDismissRequest = { if (!loading) pendingDeleteLocal = null },
+            title = { Text("Delete $budgetName?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("This permanently deletes this budget and all its local backups from this device.")
+                    OutlinedTextField(
+                        value = deleteConfirmation,
+                        onValueChange = { deleteConfirmation = it },
+                        label = { Text("Type $budgetName to confirm") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !loading && deleteConfirmation == budgetName,
+                    onClick = {
+                        loading = true
+                        message = null
+                        onBeforeBudgetReplacement()
+                        scope.launch {
+                            runCatching {
+                                withContext(Dispatchers.IO) {
+                                    local.cloudFileId?.let { BudgetEncryptionKeyStore(context).remove(it) }
+                                    files.deleteBudget(local.id)
+                                }
+                            }.onSuccess {
+                                val remaining = files.listLocalBudgets()
+                                if (remaining.none { it.id == activeBudget.budgetId }) {
+                                    activeBudget.budgetId = remaining.firstOrNull()?.id
+                                }
+                                pendingDeleteLocal = null
+                                deleteConfirmation = ""
+                                message = "“$budgetName” deleted."
+                                localBudgetsGeneration++
+                                refreshBackups()
+                                onBudgetInstalled()
+                            }.onFailure { error ->
+                                message = error.message ?: "Could not delete budget."
+                                onBudgetInstalled()
+                            }
+                            loading = false
+                        }
+                    },
+                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(enabled = !loading, onClick = { pendingDeleteLocal = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    pendingUploadBudget?.let { local ->
+        val budgetName = local.budgetName ?: local.id
+        AlertDialog(
+            onDismissRequest = { if (!loading) pendingUploadBudget = null },
+            title = { Text("Upload $budgetName to server?") },
+            text = {
+                Text("This uploads your standalone budget to $activeServerUrl and enables sync. It will become a server-backed budget.")
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !loading,
+                    onClick = {
+                        loading = true
+                        message = null
+                        scope.launch {
+                            runCatching {
+                                withContext(Dispatchers.IO) {
+                                    val token = credentials.token() ?: throw ActualServerException.Unauthorized
+                                    val cloudFileId = UUID.randomUUID().toString().lowercase()
+                                    val archive = files.uploadArchive(local.id)
+                                    val groupId = runCatching {
+                                        client.uploadFile(activeServerUrl, token, cloudFileId, budgetName, archive)
+                                    }.getOrElse { uploadError ->
+                                        val remote = runCatching { client.listFiles(activeServerUrl, token) }.getOrNull()
+                                            ?.firstOrNull { it.fileId == cloudFileId }
+                                        remote?.groupId ?: throw uploadError
+                                    }
+                                    files.saveCloudRegistration(local.id, cloudFileId, groupId)
+                                    local.id
+                                }
+                            }.onSuccess {
+                                pendingUploadBudget = null
+                                message = "“$budgetName” uploaded to server."
+                                localBudgetsGeneration++
+                                loadBudgets()
+                                onBudgetInstalled()
+                            }.onFailure { error ->
+                                pendingUploadBudget = null
+                                showServerError(error, "Could not upload budget to server.")
+                            }
+                            loading = false
+                        }
+                    },
+                ) { Text("Upload") }
+            },
+            dismissButton = {
+                TextButton(enabled = !loading, onClick = { pendingUploadBudget = null }) { Text("Cancel") }
+            },
+        )
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         ActuaScreenHeader(title = "Connection & data", onBack = onBack)
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -765,6 +972,99 @@ fun ConnectionScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            ActuaGroupLabel("On this device")
+            Text(
+                "Local budgets stay on this device and work offline without a server. You can also upload a local budget to an Actual server at any time.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                FilledTonalButton(
+                    onClick = { showCreateLocalBudget = true; newLocalBudgetName = "" },
+                    enabled = !loading && downloadingId == null && !syncing,
+                    modifier = Modifier.weight(1f).height(Sizes.secondaryButtonHeight),
+                    shape = MaterialTheme.shapes.large,
+                ) {
+                    Text("Create local")
+                }
+                OutlinedButton(
+                    onClick = {
+                        importLocalBudgetLauncher.launch(
+                            arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")
+                        )
+                    },
+                    enabled = !loading && downloadingId == null && !syncing,
+                    modifier = Modifier.weight(1f).height(Sizes.secondaryButtonHeight),
+                    shape = MaterialTheme.shapes.large,
+                ) {
+                    Text("Import .zip")
+                }
+            }
+            val localBudgets = remember(localBudgetsGeneration, activeBudget.budgetId) {
+                files.listLocalBudgets().filterNot { it.isDemo }
+            }
+            if (localBudgets.isNotEmpty()) {
+                ActuaFormCard {
+                    localBudgets.forEachIndexed { index, local ->
+                        val isActive = activeBudget.budgetId == local.id
+                        val budgetName = local.budgetName ?: local.id
+                        if (index > 0) ActuaCardDivider(inset = Spacing.lg)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(budgetName, fontWeight = FontWeight.Medium)
+                                Text(
+                                    when {
+                                        isActive && local.isServerBacked -> "Active · Server-backed"
+                                        isActive -> "Active · On device"
+                                        local.isServerBacked -> "Server-backed"
+                                        else -> "On device"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (!isActive) {
+                                FilledTonalButton(
+                                    enabled = !loading && downloadingId == null && !syncing,
+                                    shape = MaterialTheme.shapes.large,
+                                    onClick = {
+                                        onBeforeBudgetReplacement()
+                                        activeBudget.budgetId = local.id
+                                        message = "“$budgetName” is active."
+                                        refreshBackups()
+                                        onBudgetInstalled()
+                                        if (local.isServerBacked && connected) {
+                                            ActualSyncScheduler.scheduleMutation(context)
+                                        }
+                                    },
+                                ) {
+                                    Text("Open")
+                                }
+                            }
+                            if (local.isUserLocalOnly && connected) {
+                                TextButton(
+                                    enabled = !loading && downloadingId == null && !syncing,
+                                    onClick = { pendingUploadBudget = local },
+                                ) {
+                                    Text("Upload")
+                                }
+                            }
+                            TextButton(
+                                enabled = !loading && downloadingId == null && !syncing,
+                                onClick = { pendingDeleteLocal = local; deleteConfirmation = "" },
+                            ) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+            }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Connection", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
@@ -949,6 +1249,12 @@ fun ConnectionScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                } else if (standaloneActive) {
+                    Text(
+                        "Active budget is local only and does not sync to the server. You can process due schedules and create a backup, or upload it to the server in “On this device” above.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 ActuaFormCard {
                     ActuaFormRow(
@@ -1006,7 +1312,11 @@ fun ConnectionScreen(
                             } }.onSuccess { result ->
                                 when (result) {
                                     is SyncRunResult.Success -> {
-                                        message = "Synced ${result.outcome.sentMessages} up, ${result.outcome.receivedMessages} down"
+                                        message = if (standaloneActive) {
+                                            "Processed schedules and saved local backup."
+                                        } else {
+                                            "Synced ${result.outcome.sentMessages} up, ${result.outcome.receivedMessages} down"
+                                        }
                                         onBudgetInstalled()
                                     }
                                     SyncRunResult.NotConfigured -> {
@@ -1020,7 +1330,11 @@ fun ConnectionScreen(
                             syncStatus = syncStatusStore.read(); syncing = false
                         }
                     }) {
-                    ManualSyncButtonContent(syncing = syncing, demoActive = demoActive)
+                    ManualSyncButtonContent(
+                        syncing = syncing,
+                        demoActive = demoActive,
+                        standaloneActive = standaloneActive,
+                    )
                 }
                 val budgetsChevronRotation by animateFloatAsState(
                     if (budgetsExpanded) 0f else -90f, tween(220), label = "budgets section",
@@ -1103,6 +1417,7 @@ fun ConnectionScreen(
                                                 }.onSuccess { metadata ->
                                                     activeBudget.budgetId = metadata.id
                                                     message = if (local == null) "${remote.name} is downloaded and active." else "${remote.name} is active."
+                                                    localBudgetsGeneration++
                                                     onBudgetInstalled()
                                                     // Catch up with the server and send any edits made before switching away.
                                                     ActualSyncScheduler.scheduleMutation(context)
@@ -1133,6 +1448,44 @@ fun ConnectionScreen(
                         ConnectionAction(text = "Refresh budget list", onClick = { loadBudgets() },
                             enabled = !loading && downloadingId == null)
                     }
+                }
+            }
+
+            if (!connected && standaloneActive) {
+                ActuaGroupLabel("Schedules & backup")
+                Text(
+                    "This budget is local only. You can manually process due scheduled transactions and create a local backup.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FilledTonalButton(
+                    enabled = !syncing && !loading && downloadingId == null,
+                    modifier = Modifier.fillMaxWidth().height(Sizes.secondaryButtonHeight),
+                    shape = MaterialTheme.shapes.large,
+                    onClick = {
+                        syncing = true
+                        message = null
+                        scope.launch {
+                            runCatching {
+                                withContext(Dispatchers.IO) {
+                                    ActualSyncRunner.run(context, trigger = "Manual")
+                                }
+                            }.onSuccess {
+                                message = "Processed schedules and saved local backup."
+                                onBudgetInstalled()
+                                refreshBackups()
+                            }.onFailure { error ->
+                                message = error.message ?: "Could not process schedules."
+                            }
+                            syncing = false
+                        }
+                    },
+                ) {
+                    ManualSyncButtonContent(
+                        syncing = syncing,
+                        demoActive = false,
+                        standaloneActive = true,
+                    )
                 }
             }
 

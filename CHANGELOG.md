@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Support creating, importing, managing, and uploading standalone on-device budgets without a server ([#1182](https://github.com/azimul-kabir/actua/pull/1182))
 - Preserve standalone budgets on server disconnect and process schedules locally ([#1176](https://github.com/azimul-kabir/actua/pull/1176))
 - Enable custom pay cycle period on the Accounts monthly summary ([#1175](https://github.com/azimul-kabir/actua/pull/1175))
 - Add custom report builder and dashboard card authoring with page management ([#1163](https://github.com/azimul-kabir/actua/pull/1163))
