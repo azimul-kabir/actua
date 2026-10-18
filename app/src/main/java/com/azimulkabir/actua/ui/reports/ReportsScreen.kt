@@ -413,6 +413,7 @@ fun ReportsScreen(
                 )
             }
         }
+        item { Spacer(Modifier.height(20.dp).testTag("reportsBottomSpacer")) }
     }
     expandedWidgetId?.let { id ->
         val base = expandedWidget?.takeIf { it.id == id }
