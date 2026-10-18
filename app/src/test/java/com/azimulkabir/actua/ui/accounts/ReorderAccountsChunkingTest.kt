@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.accounts
 
+import com.azimulkabir.actua.data.budget.ReorderChunk
 import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualAccountGroup
 import com.azimulkabir.actua.data.budget.model.ActualAccountType
@@ -51,9 +52,9 @@ class ReorderAccountsChunkingTest {
 
         assertEquals(
             listOf(
-                ReorderChunk("On budget", "Personal", listOf(personal)),
-                ReorderChunk("On budget", "Business", listOf(business)),
-                ReorderChunk("On budget", null, listOf(ungrouped)),
+                ReorderChunk("On budget", "Personal", listOf(personal), groupId = "personal"),
+                ReorderChunk("On budget", "Business", listOf(business), groupId = "biz"),
+                ReorderChunk("On budget", null, listOf(ungrouped), groupId = null),
             ),
             chunks,
         )

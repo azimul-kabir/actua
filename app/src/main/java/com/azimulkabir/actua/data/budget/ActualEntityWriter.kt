@@ -494,20 +494,35 @@ class ActualEntityWriter(
         persist(messages)
     }
 
-    /** Move an account before another account, or to the end when beforeId is null. */
+    /** Move an account before another account, or to the end when beforeId is null, optionally updating its account group. */
     @Synchronized
-    fun moveAccount(id: String, beforeId: String?) {
+    fun moveAccount(id: String, beforeId: String?, newGroupId: String? = null, updateGroupId: Boolean = false) {
         val accounts = database.fetchAccounts()
         require(accounts.any { it.id == id }) { "Account no longer exists" }
         require(beforeId == null || accounts.any { it.id == beforeId }) { "Invalid account destination" }
-        if (beforeId == id) return
+        if (updateGroupId && newGroupId != null) {
+            require(database.fetchAccountGroups().any { it.id == newGroupId }) { "Account group no longer exists" }
+        }
+        val targetAccount = accounts.first { it.id == id }
+        val groupNeedsUpdate = updateGroupId && targetAccount.groupId != newGroupId
+
+        if (beforeId == id) {
+            if (groupNeedsUpdate) {
+                setAccountGroup(id, newGroupId)
+            }
+            return
+        }
         val positions = accounts.filterNot { it.id == id }
             .sortedWith(compareBy({ it.sortOrder }, { it.id }))
             .map { SortOrder.Position(it.id, it.sortOrder) }
         val placement = SortOrder.shove(positions, beforeId)
         val messages = mutableListOf<CrdtMessage>()
         placement.moved.forEach { messages += fields("accounts", it.id, mapOf("sort_order" to it.sortOrder)) }
-        messages += fields("accounts", id, mapOf("sort_order" to placement.sortOrder))
+        val accountFields = mutableMapOf<String, Any?>("sort_order" to placement.sortOrder)
+        if (groupNeedsUpdate) {
+            accountFields["account_group_id"] = newGroupId
+        }
+        messages += fields("accounts", id, accountFields)
         persist(messages)
     }
 

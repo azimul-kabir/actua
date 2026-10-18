@@ -1943,7 +1943,7 @@ class ActuaRepository(context: Context) {
     fun accountGroupsForReorder(): List<ActualAccountGroup> = actualDatabase?.fetchAccountGroups().orEmpty()
 
     fun moveAccount(move: AccountReorderPlanner.AccountMove): Boolean {
-        actualEntities?.moveAccount(move.accountId, move.beforeAccountId) ?: return false
+        actualEntities?.moveAccount(move.accountId, move.beforeAccountId, move.targetGroupId, move.updateGroupId) ?: return false
         return true
     }
 

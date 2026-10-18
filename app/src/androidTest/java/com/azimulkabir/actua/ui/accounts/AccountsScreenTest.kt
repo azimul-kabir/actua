@@ -179,4 +179,65 @@ class AccountsScreenTest {
         compose.onNodeWithText("Manage account groups").assertExists()
         compose.onNodeWithContentDescription("New account group").assertExists()
     }
+
+    /** Regression coverage for #1192: Favorites section renders as flat account list without group headers. */
+    @Test fun favoritesSectionRendersAsFlatListWithoutGroupHeaders() {
+        val acc1 = Account("Checking", 10_000, "checking", id = "checking", groupId = "grp-1", groupName = "Daily Spending")
+        val acc2 = Account("Savings", 20_000, "savings", id = "savings", groupId = "grp-2", groupName = "Long Term")
+        val group1 = com.azimulkabir.actua.data.budget.model.ActualAccountGroup("grp-1", "Daily Spending", 1.0)
+        val group2 = com.azimulkabir.actua.data.budget.model.ActualAccountGroup("grp-2", "Long Term", 2.0)
+
+        compose.setContent {
+            MaterialTheme {
+                AccountsScreen(
+                    accounts = listOf(acc1, acc2),
+                    accountGroups = listOf(group1, group2),
+                    favoriteAccountIds = setOf("checking", "savings"),
+                    showMonthlySummary = false,
+                )
+            }
+        }
+
+        compose.onNodeWithText("Favorites").assertExists()
+        // Daily Spending and Long Term group headers only exist in On budget section, NOT in Favorites
+        compose.onAllNodesWithText("Daily Spending").assertCountEquals(1)
+        compose.onAllNodesWithText("Long Term").assertCountEquals(1)
+    }
+
+    /** Regression coverage for #1192: Account groups can be collapsed and remember state in preferences. */
+    @Test fun accountGroupCanBeCollapsedAndRemembersStateInPreferences() {
+        val acc1 = Account("Checking", 10_000, "checking", id = "checking", groupId = "grp-1", groupName = "Daily Spending")
+        val acc2 = Account("Cash", 5_000, "cash", id = "cash", groupId = "grp-1", groupName = "Daily Spending")
+        val group1 = com.azimulkabir.actua.data.budget.model.ActualAccountGroup("grp-1", "Daily Spending", 1.0)
+
+        compose.setContent {
+            MaterialTheme {
+                AccountsScreen(
+                    accounts = listOf(acc1, acc2),
+                    accountGroups = listOf(group1),
+                    showMonthlySummary = false,
+                )
+            }
+        }
+
+        // Initially both accounts in group are visible
+        compose.onNodeWithText("Checking").assertExists()
+        compose.onNodeWithText("Cash").assertExists()
+        compose.onNodeWithContentDescription("Collapse Daily Spending").assertExists()
+
+        // Tap the group header to collapse it
+        compose.onNodeWithText("Daily Spending").performClick()
+        compose.waitForIdle()
+
+        // Accounts in that group are now collapsed/hidden
+        compose.onNodeWithText("Checking").assertDoesNotExist()
+        compose.onNodeWithText("Cash").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Expand Daily Spending").assertExists()
+
+        // Verify state is stored in SharedPreferences
+        val prefs = context.getSharedPreferences("budget_ui_preferences", Context.MODE_PRIVATE)
+        val activeBudgetId = com.azimulkabir.actua.data.budget.ActiveBudgetStore(context).budgetId ?: "no-budget"
+        val saved = prefs.getStringSet("collapsed_account_groups_$activeBudgetId", emptySet())
+        org.junit.Assert.assertTrue(saved?.contains("On budget-grp-1") == true)
+    }
 }
