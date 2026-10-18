@@ -415,13 +415,35 @@ class ActualEntityWriter(
             fields("transactions", targetId, leg(target.id, sourcePayee, balance, null, cleared = false, transfer = sourceId))
     }
 
-    /** Delete every category in the group, then the group itself, as one CRDT batch. */
+    /**
+     * Deletes a category group by moving all its child categories to [targetGroupId],
+     * then tombstoning the group itself, as one atomic CRDT batch.
+     */
     @Synchronized
-    fun deleteCategoryGroup(id: String) {
-        val group = database.fetchCategoryGroups().firstOrNull { it.id == id } ?: error("Category group no longer exists")
-        require(!group.isIncome) { "The income category group cannot be deleted" }
+    fun deleteCategoryGroup(id: String, targetGroupId: String) {
+        require(id != targetGroupId) { "Source and target category groups must be different" }
+        val groups = database.fetchCategoryGroups()
+        val source = groups.firstOrNull { it.id == id } ?: error("Category group no longer exists")
+        val target = groups.firstOrNull { it.id == targetGroupId } ?: error("Target category group no longer exists")
+        require(!source.isIncome) { "The income category group cannot be deleted" }
+        require(!target.isIncome) { "Cannot move categories to the income category group" }
+
+        val existingTargetNames = target.categories.map { it.name.trim().lowercase() }.toMutableSet()
+        val movingCategories = source.categories.sortedWith(compareBy({ it.sortOrder }, { it.id }))
+        movingCategories.forEach { category ->
+            val normalized = category.name.trim().lowercase()
+            require(normalized !in existingTargetNames) {
+                duplicateCategoryMessage(category.name)
+            }
+            existingTargetNames += normalized
+        }
+
+        var currentOrder = target.categories.maxOfOrNull { it.sortOrder } ?: 0.0
         val messages = mutableListOf<CrdtMessage>()
-        group.categories.forEach { messages += fields("categories", it.id, mapOf("tombstone" to 1)) }
+        movingCategories.forEach { category ->
+            currentOrder += SortOrder.INCREMENT
+            messages += fields("categories", category.id, mapOf("cat_group" to targetGroupId, "sort_order" to currentOrder))
+        }
         messages += fields("category_groups", id, mapOf("tombstone" to 1))
         persist(messages)
     }

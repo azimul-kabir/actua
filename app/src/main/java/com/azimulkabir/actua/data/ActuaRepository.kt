@@ -1891,6 +1891,23 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    /**
+     * Deletes the category group identified by [groupIdOrName] by moving its child categories
+     * to [targetGroupIdOrName] and tombstoning the source group in one atomic CRDT batch.
+     * The income category group cannot be deleted or used as a destination.
+     */
+    fun deleteCategoryGroup(groupIdOrName: String, targetGroupIdOrName: String): Boolean {
+        val db = actualDatabase ?: return false
+        val groups = db.fetchCategoryGroups()
+        val source = groups.firstOrNull { it.id == groupIdOrName || it.name == groupIdOrName } ?: return false
+        val target = groups.firstOrNull { it.id == targetGroupIdOrName || it.name == targetGroupIdOrName } ?: return false
+        require(!source.isIncome) { "The income category group cannot be deleted" }
+        require(!target.isIncome) { "Cannot move categories to the income category group" }
+        require(source.id != target.id) { "Source and target category groups must be different" }
+        actualEntities?.deleteCategoryGroup(source.id, target.id) ?: return false
+        return true
+    }
+
     /** Category groups and categories sorted for the drag-to-reorder management screen. */
     fun categoryGroupsForReorder(): List<ActualCategoryGroup> =
         actualDatabase?.fetchCategoryGroups()

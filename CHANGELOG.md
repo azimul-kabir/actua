@@ -7,6 +7,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Added
 
 - Add custom report builder and dashboard card authoring with page management ([#1163](https://github.com/azimul-kabir/actua/pull/1163))
+- Support category group deletion with target reassignment in Manage Categories ([#1162](https://github.com/azimul-kabir/actua/pull/1162))
 - Allow switching budget type between Envelope and Tracking under Budget Settings ([#1161](https://github.com/azimul-kabir/actua/pull/1161))
 - Support OFX, QFX, QIF, and CAMT.053 bank statement file imports with stable ID deduplication ([#1159](https://github.com/azimul-kabir/actua/pull/1159))
 - Add UI for creating, renaming, reordering, and assigning custom account groups ([#1158](https://github.com/azimul-kabir/actua/pull/1158))
