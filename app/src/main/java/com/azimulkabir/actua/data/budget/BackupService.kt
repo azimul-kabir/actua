@@ -19,7 +19,10 @@ sealed class BackupItem {
 }
 
 /** Android port of iOS BackupService, including retention and one-shot revert. */
-class BackupService(context: Context, private val files: BudgetFileManager = BudgetFileManager(context)) {
+class BackupService(
+    private val context: Context,
+    private val files: BudgetFileManager = BudgetFileManager(context),
+) {
     private val destinations = BackupDestinationManager(context)
 
     @Synchronized
@@ -36,6 +39,9 @@ class BackupService(context: Context, private val files: BudgetFileManager = Bud
             files.latestMetadataFile(budgetId).delete()
             prune(budgetId, now)
             runCatching { destinations.mirror(budgetId, archive) }
+            runCatching {
+                com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupScheduler.scheduleUpload(context, budgetId)
+            }
             return archive
         } finally {
             snapshot.delete()
@@ -88,6 +94,9 @@ class BackupService(context: Context, private val files: BudgetFileManager = Bud
             check(temporary.renameTo(destination)) { "Unable to add the imported backup" }
             prune(budgetId, now)
             runCatching { destinations.mirror(budgetId, destination) }
+            runCatching {
+                com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupScheduler.scheduleUpload(context, budgetId)
+            }
             return destination
         } finally {
             temporary.delete()

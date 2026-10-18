@@ -91,6 +91,11 @@ import com.azimulkabir.actua.data.budget.BackupItem
 import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetMetadata
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
+import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveAuthManager
+import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupItem
+import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupManager
+import com.azimulkabir.actua.data.budget.gdrive.InvalidPassphraseException
+import com.azimulkabir.actua.data.budget.gdrive.PassphraseRequiredException
 import com.azimulkabir.actua.data.security.BudgetEncryptionKeyStore
 import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
@@ -268,6 +273,15 @@ fun ConnectionScreen(
     var newLocalBudgetName by remember { mutableStateOf("") }
     var pendingDeleteLocal by remember { mutableStateOf<BudgetMetadata?>(null) }
     var pendingUploadBudget by remember { mutableStateOf<BudgetMetadata?>(null) }
+    var showConnectDriveDialog by remember { mutableStateOf(false) }
+    var showBrowseDriveBackupsDialog by remember { mutableStateOf(false) }
+    var driveBackups by remember { mutableStateOf<List<GoogleDriveBackupItem>>(emptyList()) }
+    var selectedDriveBackup by remember { mutableStateOf<GoogleDriveBackupItem?>(null) }
+    var driveLoading by remember { mutableStateOf(false) }
+    var showDrivePassphraseDialog by remember { mutableStateOf(false) }
+    var drivePassphraseInput by remember { mutableStateOf("") }
+    var drivePassphraseVisible by remember { mutableStateOf(false) }
+    var drivePassphraseError by remember { mutableStateOf<String?>(null) }
     val activeMetadata = remember(activeBudget.budgetId, localBudgetsGeneration) {
         activeBudget.budgetId?.let(files::metadata)
     }
@@ -946,6 +960,170 @@ fun ConnectionScreen(
         )
     }
 
+    fun restoreDriveStandalone(item: GoogleDriveBackupItem, passphrase: String?) {
+        driveLoading = true
+        scope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    val driveManager = GoogleDriveBackupManager(context)
+                    driveManager.restoreRemoteBackup(
+                        remoteFileId = item.id,
+                        passphrase = passphrase?.toCharArray(),
+                        targetBudgetId = null,
+                    )
+                }
+            }.onSuccess { imported ->
+                onBeforeBudgetReplacement()
+                activeBudget.budgetId = imported.id
+                message = "“${imported.budgetName ?: imported.id}” restored and opened."
+                localBudgetsGeneration++
+                refreshBackups()
+                showBrowseDriveBackupsDialog = false
+                showDrivePassphraseDialog = false
+                selectedDriveBackup = null
+                drivePassphraseInput = ""
+                driveLoading = false
+                onBudgetInstalled()
+            }.onFailure { error ->
+                driveLoading = false
+                if (error is InvalidPassphraseException || error is PassphraseRequiredException) {
+                    drivePassphraseError = "Incorrect password or recovery key."
+                    showDrivePassphraseDialog = true
+                } else {
+                    message = error.message ?: "Could not restore backup from Google Drive."
+                    showBrowseDriveBackupsDialog = false
+                    showDrivePassphraseDialog = false
+                    selectedDriveBackup = null
+                }
+            }
+        }
+    }
+
+    if (showConnectDriveDialog) AlertDialog(
+        onDismissRequest = { showConnectDriveDialog = false },
+        title = { Text("Connect to Google Drive") },
+        text = {
+            Text("Connect your Google Drive account to view and restore your backed-up budgets onto this device.")
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    showConnectDriveDialog = false
+                    GoogleDriveAuthManager.startAuthorization(context)
+                },
+            ) { Text("Connect") }
+        },
+        dismissButton = {
+            TextButton(onClick = { showConnectDriveDialog = false }) { Text("Cancel") }
+        },
+    )
+
+    if (showBrowseDriveBackupsDialog) AlertDialog(
+        onDismissRequest = { if (!driveLoading) showBrowseDriveBackupsDialog = false },
+        title = { Text("Restore from Google Drive") },
+        text = {
+            if (driveLoading) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.padding(end = 12.dp))
+                    Text("Loading backups…")
+                }
+            } else if (driveBackups.isEmpty()) {
+                Text("No Actua backups were found in your Google Drive.")
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val driveManager = remember { GoogleDriveBackupManager(context) }
+                    driveBackups.forEach { backup ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(enabled = !driveLoading) {
+                                    selectedDriveBackup = backup
+                                    if (backup.isEncrypted && !driveManager.hasEncryptionPassphrase()) {
+                                        drivePassphraseInput = ""
+                                        drivePassphraseError = null
+                                        showDrivePassphraseDialog = true
+                                    } else {
+                                        restoreDriveStandalone(backup, null)
+                                    }
+                                }
+                                .padding(vertical = 8.dp),
+                        ) {
+                            Text(backup.budgetName ?: backup.name, fontWeight = FontWeight.Medium)
+                            Text(
+                                "${backup.name} • ${backup.sizeBytes / 1024} KB${if (backup.isEncrypted) " • Encrypted" else ""}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(
+                enabled = !driveLoading,
+                onClick = { showBrowseDriveBackupsDialog = false },
+            ) { Text("Cancel") }
+        },
+    )
+
+    if (showDrivePassphraseDialog && selectedDriveBackup != null) AlertDialog(
+        onDismissRequest = { if (!driveLoading) { showDrivePassphraseDialog = false; selectedDriveBackup = null } },
+        title = { Text("Enter backup password") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "This backup is protected with client-side AES-256-GCM. Enter your backup password or recovery key to restore it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = drivePassphraseInput,
+                    onValueChange = { drivePassphraseInput = it; drivePassphraseError = null },
+                    label = { Text("Password or recovery key") },
+                    singleLine = true,
+                    isError = drivePassphraseError != null,
+                    supportingText = drivePassphraseError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = if (drivePassphraseVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { drivePassphraseVisible = !drivePassphraseVisible }) {
+                            Icon(
+                                imageVector = if (drivePassphraseVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                contentDescription = if (drivePassphraseVisible) "Hide password" else "Show password",
+                            )
+                        }
+                    },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !driveLoading && drivePassphraseInput.isNotBlank(),
+                onClick = {
+                    restoreDriveStandalone(selectedDriveBackup!!, drivePassphraseInput.trim())
+                },
+            ) {
+                if (driveLoading) CircularProgressIndicator(Modifier.padding(end = 8.dp))
+                Text("Restore")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                enabled = !driveLoading,
+                onClick = { showDrivePassphraseDialog = false; selectedDriveBackup = null },
+            ) { Text("Cancel") }
+        },
+    )
+
     Column(modifier = modifier.fillMaxSize()) {
         ActuaScreenHeader(title = "Connection & data", onBack = onBack)
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -1000,6 +1178,29 @@ fun ConnectionScreen(
                 ) {
                     Text("Import .zip")
                 }
+            }
+            OutlinedButton(
+                onClick = {
+                    val driveManager = GoogleDriveBackupManager(context)
+                    if (!driveManager.isConnected()) {
+                        showConnectDriveDialog = true
+                    } else {
+                        showBrowseDriveBackupsDialog = true
+                        driveLoading = true
+                        scope.launch {
+                            val list = runCatching {
+                                withContext(Dispatchers.IO) { driveManager.listRemoteBackups(null) }
+                            }.getOrDefault(emptyList())
+                            driveBackups = list
+                            driveLoading = false
+                        }
+                    }
+                },
+                enabled = !loading && downloadingId == null && !syncing,
+                modifier = Modifier.fillMaxWidth().height(Sizes.secondaryButtonHeight),
+                shape = MaterialTheme.shapes.large,
+            ) {
+                Text("Restore from Google Drive")
             }
             val localBudgets = remember(localBudgetsGeneration, activeBudget.budgetId) {
                 files.listLocalBudgets().filterNot { it.isDemo }
