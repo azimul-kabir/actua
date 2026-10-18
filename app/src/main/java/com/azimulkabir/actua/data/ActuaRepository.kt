@@ -80,6 +80,7 @@ import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.paymentDue
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.model.sortedForPaymentPriority
+import com.azimulkabir.actua.data.reports.SavedReportRow
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.sync.CrdtMessage
 import com.azimulkabir.actua.data.sync.CrdtValue
@@ -1506,6 +1507,87 @@ class ActuaRepository(context: Context) {
             accounts.filterNot { it.closed }.map { com.azimulkabir.actua.model.ReportAccountOption(it.id, it.name) },
             groups.filterNot { it.hidden }.map { com.azimulkabir.actua.model.ReportAccountOption(it.id, it.name) },
         )
+    }
+
+    fun savedReports(): List<SavedReportRow> {
+        val db = actualDatabase ?: return emptyList()
+        return db.fetchSavedReports()
+    }
+
+    fun savedReport(id: String): SavedReportRow? {
+        val db = actualDatabase ?: return null
+        return db.fetchSavedReport(id)
+    }
+
+    fun saveCustomReport(report: SavedReportRow): String {
+        val entities = actualEntities ?: error("No active budget")
+        return entities.saveCustomReport(report)
+    }
+
+    fun deleteCustomReport(id: String): Boolean {
+        val entities = actualEntities ?: return false
+        entities.deleteCustomReport(id)
+        return true
+    }
+
+    fun addDashboardWidget(pageId: String?, type: String, metaJson: String?): String {
+        val entities = actualEntities ?: error("No active budget")
+        return entities.addDashboardWidget(pageId, type, metaJson)
+    }
+
+    fun deleteDashboardWidget(widgetId: String): Boolean {
+        val entities = actualEntities ?: return false
+        entities.deleteDashboardWidget(widgetId)
+        return true
+    }
+
+    fun reorderDashboardWidgets(pageId: String?, widgetIds: List<String>): Boolean {
+        val entities = actualEntities ?: return false
+        entities.reorderDashboardWidgets(pageId, widgetIds)
+        return true
+    }
+
+    fun createDashboardPage(name: String): String {
+        val entities = actualEntities ?: error("No active budget")
+        return entities.createDashboardPage(name)
+    }
+
+    fun renameDashboardPage(pageId: String, name: String): Boolean {
+        val entities = actualEntities ?: return false
+        entities.renameDashboardPage(pageId, name)
+        return true
+    }
+
+    fun deleteDashboardPage(pageId: String): Boolean {
+        val entities = actualEntities ?: return false
+        entities.deleteDashboardPage(pageId)
+        return true
+    }
+
+    fun computeCustomReportPreview(report: SavedReportRow): com.azimulkabir.actua.model.ReportWidget? {
+        val db = actualDatabase ?: return null
+        val inputs = reportInputs(db, -1)
+        val payees = db.fetchPayees()
+        val firstDayOfWeek = db.firstDayOfWeekPreference()
+        val shared = com.azimulkabir.actua.data.reports.SavedReportEngine.Shared(
+            transactions = inputs.rows,
+            accounts = inputs.accounts,
+            groups = inputs.groups,
+            payees = payees,
+            firstDayOfWeek = firstDayOfWeek,
+        )
+        return runCatching {
+            com.azimulkabir.actua.data.reports.SavedReportEngine.compute(
+                row = report,
+                transactions = inputs.rows,
+                accounts = inputs.accounts,
+                groups = inputs.groups,
+                today = java.time.LocalDate.now(),
+                view = com.azimulkabir.actua.model.ReportViewFilter(),
+                shared = shared,
+                budgetMonth = { month -> runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() },
+            )
+        }.getOrNull()
     }
 
     fun saveTransaction(transaction: Transaction) {

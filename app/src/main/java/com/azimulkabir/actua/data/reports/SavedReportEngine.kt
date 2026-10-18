@@ -139,6 +139,7 @@ object SavedReportEngine {
                 row, total, included.filter { it.amountCents < 0 }.sumOf { it.amountCents },
                 included.filter { it.amountCents > 0 }.sumOf { it.amountCents }, summaryStart, end, weekStart,
             ),
+            customReportId = row.id,
         )
     }
 
@@ -253,6 +254,7 @@ object SavedReportEngine {
             id = "saved:${row.id}", kind = ReportWidgetKind.CUSTOM_REPORT, name = row.name.ifBlank { "Untitled report" },
             valueCents = all.sumOf { it.budgetedCents }, categories = segments, points = points, timeMode = timeMode,
             graphType = row.graphType, subtitle = "$start – $end · ${row.groupBy}",
+            customReportId = row.id,
         )
     }
 
@@ -484,7 +486,7 @@ object SavedReportEngine {
         return (parse(row.startDate, false) ?: month.atDay(1)) to (parse(row.endDate, true) ?: month.atEndOfMonth())
     }
 
-    private fun parseConditions(row: SavedReportRow): Pair<List<Rule.Condition>, Rule.ConditionsOp> {
+    internal fun parseConditions(row: SavedReportRow): Pair<List<Rule.Condition>, Rule.ConditionsOp> {
         val raw = row.conditions?.takeIf(String::isNotBlank) ?: return emptyList<Rule.Condition>() to Rule.ConditionsOp.AND
         return runCatching {
             val array = JSONArray(raw)

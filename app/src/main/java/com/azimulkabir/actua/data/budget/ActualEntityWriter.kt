@@ -9,6 +9,7 @@ import com.azimulkabir.actua.data.sync.CrdtMessage
 import com.azimulkabir.actua.data.sync.CrdtValue
 import com.azimulkabir.actua.data.sync.HlcTimestamp
 import com.azimulkabir.actua.data.sync.HybridLogicalClock
+import com.azimulkabir.actua.data.reports.SavedReportRow
 import java.util.UUID
 
 /** CRDT mutation path shared by account/category/group/payee menu actions. */
@@ -659,6 +660,103 @@ class ActualEntityWriter(
         persist(messages); return id
     }
 
+    @Synchronized
+    fun saveCustomReport(report: SavedReportRow): String {
+        val cleanName = report.name.trim().ifEmpty { "Untitled report" }
+        val id = report.id.ifBlank { idFactory() }
+        val values = linkedMapOf<String, Any?>(
+            "name" to cleanName,
+            "start_date" to report.startDate,
+            "end_date" to report.endDate,
+            "date_static" to flag(report.dateStatic),
+            "date_range" to report.dateRange,
+            "mode" to report.mode,
+            "group_by" to report.groupBy,
+            "balance_type" to report.balanceType,
+            "show_empty" to flag(report.showEmpty),
+            "show_offbudget" to flag(report.showOffBudget),
+            "show_hidden" to flag(report.showHidden),
+            "show_uncategorized" to flag(report.showUncategorized),
+            "selected_categories" to report.selectedCategories,
+            "graph_type" to report.graphType,
+            "conditions" to (report.conditions ?: "[]"),
+            "conditions_op" to (report.conditionsOp ?: "and"),
+            "interval" to report.interval,
+            "tombstone" to 0,
+            "include_current" to flag(report.includeCurrent),
+            "sort_by" to report.sortBy,
+            "trim_intervals" to flag(report.trimIntervals),
+        )
+        persist(fields("custom_reports", id, values))
+        return id
+    }
+
+    @Synchronized
+    fun deleteCustomReport(id: String) {
+        val messages = mutableListOf<CrdtMessage>()
+        messages += fields("custom_reports", id, linkedMapOf("tombstone" to 1))
+        database.findDashboardWidgetsForCustomReport(id).forEach { widgetId ->
+            messages += fields("dashboard", widgetId, linkedMapOf("tombstone" to 1))
+        }
+        persist(messages)
+    }
+
+    @Synchronized
+    fun addDashboardWidget(pageId: String?, type: String, metaJson: String?, width: Int = 12, height: Int = 2): String {
+        val id = idFactory()
+        val nextY = database.nextDashboardWidgetY(pageId)
+        val values = linkedMapOf<String, Any?>(
+            "type" to type,
+            "width" to width,
+            "height" to height,
+            "x" to 0,
+            "y" to nextY,
+            "meta" to metaJson,
+            "tombstone" to 0,
+            "dashboard_page_id" to pageId,
+        )
+        persist(fields("dashboard", id, values))
+        return id
+    }
+
+    @Synchronized
+    fun deleteDashboardWidget(id: String) {
+        persist(fields("dashboard", id, linkedMapOf("tombstone" to 1)))
+    }
+
+    @Synchronized
+    fun reorderDashboardWidgets(pageId: String?, widgetIds: List<String>) {
+        val messages = mutableListOf<CrdtMessage>()
+        widgetIds.forEachIndexed { index, widgetId ->
+            messages += fields("dashboard", widgetId, linkedMapOf("y" to index * 2, "x" to 0))
+        }
+        persist(messages)
+    }
+
+    @Synchronized
+    fun createDashboardPage(name: String): String {
+        val clean = requiredName(name)
+        val id = idFactory()
+        persist(fields("dashboard_pages", id, linkedMapOf("name" to clean, "tombstone" to 0)))
+        return id
+    }
+
+    @Synchronized
+    fun renameDashboardPage(id: String, name: String) {
+        val clean = requiredName(name)
+        update("dashboard_pages", id, mapOf("name" to clean))
+    }
+
+    @Synchronized
+    fun deleteDashboardPage(id: String) {
+        val messages = mutableListOf<CrdtMessage>()
+        messages += fields("dashboard_pages", id, linkedMapOf("tombstone" to 1))
+        database.fetchDashboardWidgets(id).forEach {
+            messages += fields("dashboard", it.id, linkedMapOf("tombstone" to 1))
+        }
+        persist(messages)
+    }
+
     private fun fields(dataset: String, row: String, values: Map<String, Any?>) = values.map { (column, value) ->
         CrdtMessage(clock.send(), dataset, row, column, CrdtValue.serialize(value))
     }
@@ -694,6 +792,15 @@ class ActualEntityWriter(
             "payees" to setOf("name", "tombstone", "favorite", "learn_categories"),
             "preferences" to setOf("value"), "notes" to setOf("note"),
             "rules" to setOf("stage", "conditions_op", "conditions", "actions", "tombstone"),
+            "custom_reports" to setOf(
+                "name", "start_date", "end_date", "date_static", "date_range", "mode", "group_by",
+                "balance_type", "show_empty", "show_offbudget", "show_hidden", "show_uncategorized",
+                "selected_categories", "graph_type", "conditions", "conditions_op", "metadata",
+                "interval", "color_scheme", "tombstone", "include_current", "sort_by", "trim_intervals",
+                "show_trend_lines",
+            ),
+            "dashboard" to setOf("type", "width", "height", "x", "y", "meta", "tombstone", "dashboard_page_id"),
+            "dashboard_pages" to setOf("name", "tombstone"),
         )
     }
 }

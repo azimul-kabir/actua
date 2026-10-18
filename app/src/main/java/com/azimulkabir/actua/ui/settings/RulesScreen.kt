@@ -374,7 +374,7 @@ private fun RuleEditor(
 
 /** Title row of a condition or action card, with its remove button. */
 @Composable
-private fun RulePartHeader(title: String, removeDescription: String, onRemove: () -> Unit) {
+internal fun RulePartHeader(title: String, removeDescription: String, onRemove: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -386,7 +386,7 @@ private fun RulePartHeader(title: String, removeDescription: String, onRemove: (
 }
 
 @Composable
-private fun ConditionEditor(index: Int, condition: Rule.Condition, data: RuleEditorData,
+internal fun ConditionEditor(index: Int, condition: Rule.Condition, data: RuleEditorData,
     onChange: (Rule.Condition) -> Unit, onRemove: () -> Unit) {
     ActuaFormCard {
         RulePartHeader("Condition ${index + 1}", "Remove condition", onRemove)
@@ -532,7 +532,7 @@ private fun SplitAmountEditor(action: Rule.Action, onChange: (Rule.Action) -> Un
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RuleValueEditor(field: String, op: String, value: RuleValue, options: Map<String, RuleValue>,
+internal fun RuleValueEditor(field: String, op: String, value: RuleValue, options: Map<String, RuleValue>,
     data: RuleEditorData, onChange: (RuleValue, Map<String, RuleValue>) -> Unit) {
     val choices = when (field) { "account" -> data.accounts; "payee" -> data.payees; "category" -> data.categories;
         "category_group" -> data.categoryGroups; else -> emptyList() }
@@ -595,7 +595,7 @@ private fun RuleValueEditor(field: String, op: String, value: RuleValue, options
 }
 
 @Composable
-private fun NumberInput(label: String, cents: Double?, onChange: (Double) -> Unit) {
+internal fun NumberInput(label: String, cents: Double?, onChange: (Double) -> Unit) {
     ActuaFormTextField(
         icon = Icons.Outlined.Calculate,
         label = label,
@@ -607,7 +607,7 @@ private fun NumberInput(label: String, cents: Double?, onChange: (Double) -> Uni
 
 /** A form row listing how many [choices] are selected; its menu toggles each one. */
 @Composable
-private fun MultiChoice(selected: List<RuleValue>, choices: List<RuleChoice>, onChange: (List<RuleValue>) -> Unit) {
+internal fun MultiChoice(selected: List<RuleValue>, choices: List<RuleChoice>, onChange: (List<RuleValue>) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val ids = selected.mapNotNull { it.text }.toSet()
     Box {
@@ -627,7 +627,7 @@ private fun MultiChoice(selected: List<RuleValue>, choices: List<RuleChoice>, on
     }
 }
 
-private fun defaultValue(field: String, op: String): RuleValue = when {
+internal fun defaultValue(field: String, op: String): RuleValue = when {
     op in setOf("oneOf", "notOneOf") -> RuleValue.ListValue(emptyList())
     op == "isbetween" -> RuleValue.ObjectValue(mapOf("num1" to RuleValue.Number(0.0), "num2" to RuleValue.Number(0.0)))
     RuleSchema.type(field) == RuleFieldType.NUMBER -> RuleValue.Number(0.0)

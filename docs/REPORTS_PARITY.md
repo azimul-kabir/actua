@@ -21,8 +21,10 @@ Widget-by-widget audit of the Actual Budget reports that Actua shows. Tracked in
   an Android-only difference that changes no synced data; **Divergence** = filed as an issue;
   **Not ported** = upstream behavior Actua doesn't offer, documented in Known gaps.
 
-Actua only *reads* reports: it never creates, edits, moves or deletes dashboard pages, widgets
-or saved reports, so none of the rows below write CRDT messages.
+Actua reads, creates, and edits reports: users can author and customize saved reports
+(choosing graph types, balance types, groupings, intervals, date ranges, and filter conditions),
+manage dashboard pages, and add, remove, or reorder dashboard widget cards. All mutations are
+persisted via CRDT (`applyLocalMessages`) to `custom_reports`, `dashboard`, and `dashboard_pages`.
 
 ## 1. Dashboard pages and widgets
 

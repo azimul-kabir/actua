@@ -88,6 +88,8 @@ data class ReportWidget(
     val weekStart: Int = 0,
     /** Markdown widget's `text_align`: `left`, `center` or `right`. */
     val textAlign: String? = null,
+    /** Id of the underlying saved custom report, if this widget represents one. */
+    val customReportId: String? = null,
 )
 
 /** What a custom report's Summary totals, mirroring the labels in upstream `ReportSummary.tsx`. */

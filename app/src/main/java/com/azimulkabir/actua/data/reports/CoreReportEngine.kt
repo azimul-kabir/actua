@@ -87,7 +87,7 @@ object CoreReportEngine {
                             view = range?.let { com.azimulkabir.actua.model.ReportViewFilter(datePreset = it.preset) }
                                 ?: com.azimulkabir.actua.model.ReportViewFilter(),
                             shared = savedShared, budgetMonth = budgetMonth)
-                            .copy(id = row.id)
+                            .copy(id = row.id, customReportId = savedReport.id)
                     } else {
                         compute(
                             row, transactions, context, incomeCategories, budgetedByCategory, today,
