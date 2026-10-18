@@ -262,6 +262,7 @@ fun ConnectionScreen(
     var deleteConfirmation by remember { mutableStateOf("") }
     var confirmQuickBackup by remember { mutableStateOf(false) }
     var pendingCertificateTrust by remember { mutableStateOf<PendingCertificateTrust?>(null) }
+    var pendingOpenIdCallback by remember { mutableStateOf<OidcCallbackServer?>(null) }
     var localBudgetsGeneration by remember { mutableStateOf(0) }
     var showCreateLocalBudget by remember { mutableStateOf(false) }
     var newLocalBudgetName by remember { mutableStateOf("") }
