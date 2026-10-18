@@ -96,7 +96,7 @@ fun NewAccountDialog(
                 ) { type = it }
                 if (accountGroups.isNotEmpty()) {
                     ActuaCardDivider()
-                    val groupChoices = listOf("" to "None") + accountGroups.map { it.id to it.name }
+                    val groupChoices = listOf("None" to "") + accountGroups.map { it.name to it.id }
                     ActuaMenuRow(
                         icon = Icons.Outlined.Folder,
                         label = "Group",

@@ -26,6 +26,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed group dropdown in Add account dialog displaying group ID instead of group name ([#1189](https://github.com/azimul-kabir/actua/pull/1189))
 - Suppress server session expired banner when viewing standalone local budgets ([#1181](https://github.com/azimul-kabir/actua/pull/1181))
 - Prevent silent deletion of unreadable standalone budgets during repository recovery ([#1180](https://github.com/azimul-kabir/actua/pull/1180))
 - Fixed missing bottom padding at the end of the Reports tab ([#1174](https://github.com/azimul-kabir/actua/pull/1174))
