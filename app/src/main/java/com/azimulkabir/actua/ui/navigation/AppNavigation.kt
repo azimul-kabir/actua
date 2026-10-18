@@ -60,11 +60,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -662,29 +657,6 @@ fun AppNavigation(
     val snackbarHostState = remember { SnackbarHostState() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var transactionImpactCues by remember { mutableStateOf<List<TransactionImpactCue>>(emptyList()) }
-    var showCreateLocalBudgetDialog by remember { mutableStateOf(false) }
-    var newLocalBudgetName by remember { mutableStateOf("") }
-    val importLocalBudgetLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            coroutineScope.launch {
-                runCatching {
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri)?.use { stream ->
-                            BudgetFileManager(context).importLocalBudget(stream)
-                        } ?: error("Could not open selected archive")
-                    }
-                }.onSuccess { imported ->
-                    ActiveBudgetStore(context).budgetId = imported.id
-                    repositoryVersion += 1
-                    snackbarHostState.showSnackbar("“${imported.budgetName ?: imported.id}” imported successfully.")
-                }.onFailure { error ->
-                    snackbarHostState.showSnackbar(error.message ?: "Could not import budget archive.")
-                }
-            }
-        }
-    }
 
     fun budgetCategoriesOf(transaction: Transaction): Set<String> {
         if (transaction.type == com.azimulkabir.actua.model.Type.TRANSFER) return emptySet()
@@ -2629,18 +2601,12 @@ fun AppNavigation(
             } ?: run { detail = DetailDestination.Schedules }
             DetailDestination.Main -> if (!repository.isUsingActualBudget && destination != MainDestination.Manage) {
                 NoBudgetScreen(
-                    modifier = contentModifier,
                     onConnect = {
                         destination = MainDestination.Manage
                         detail = DetailDestination.Connection
                     },
-                    onCreateLocal = {
-                        newLocalBudgetName = ""
-                        showCreateLocalBudgetDialog = true
-                    },
-                    onImportLocal = {
-                        importLocalBudgetLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
-                    },
+                    onBudgetInstalled = { repositoryVersion += 1 },
+                    modifier = contentModifier,
                 )
             } else when (shownDestination) {
                 MainDestination.Home -> HomeScreen(
@@ -3333,56 +3299,6 @@ fun AppNavigation(
         }
         }
     }
-    if (showCreateLocalBudgetDialog) {
-        AlertDialog(
-            onDismissRequest = { showCreateLocalBudgetDialog = false },
-            title = { Text("Create local budget") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("This budget stays on this device and works offline without a server.")
-                    OutlinedTextField(
-                        value = newLocalBudgetName,
-                        onValueChange = { newLocalBudgetName = it },
-                        label = { Text("Budget name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = newLocalBudgetName.isNotBlank(),
-                    onClick = {
-                        val name = newLocalBudgetName.trim()
-                        val files = BudgetFileManager(context)
-                        val existing = files.listLocalBudgets().mapNotNull { it.budgetName?.lowercase() }
-                        if (name.lowercase() in existing) {
-                            coroutineScope.launch { snackbarHostState.showSnackbar("“$name” already exists.") }
-                            return@TextButton
-                        }
-                        coroutineScope.launch {
-                            runCatching {
-                                withContext(Dispatchers.IO) {
-                                    files.createBudget(name)
-                                }
-                            }.onSuccess { created ->
-                                showCreateLocalBudgetDialog = false
-                                newLocalBudgetName = ""
-                                ActiveBudgetStore(context).budgetId = created.id
-                                repositoryVersion += 1
-                                snackbarHostState.showSnackbar("“$name” created and opened.")
-                            }.onFailure { error ->
-                                snackbarHostState.showSnackbar(error.message ?: "Could not create local budget.")
-                            }
-                        }
-                    },
-                ) { Text("Create") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCreateLocalBudgetDialog = false }) { Text("Cancel") }
-            },
-        )
-    }
     if (budgetReplacementInProgress) BudgetSwitchOverlay()
     TransactionImpactPopup(
         cues = transactionImpactCues,
@@ -3390,40 +3306,6 @@ fun AppNavigation(
         onDismiss = { transactionImpactCues = emptyList() },
         modifier = Modifier.fillMaxSize(),
     )
-    }
-}
-
-@Composable
-private fun NoBudgetScreen(
-    modifier: Modifier,
-    onConnect: () -> Unit,
-    onCreateLocal: () -> Unit,
-    onImportLocal: () -> Unit,
-) {
-    Column(
-        modifier = modifier.fillMaxSize().padding(32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text("No budget open", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Connect to your Actual server, or create a standalone budget on this device.",
-            modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Button(
-            onClick = onConnect,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-        ) { Text("Connect to Actual") }
-        FilledTonalButton(
-            onClick = onCreateLocal,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-        ) { Text("Create local budget") }
-        OutlinedButton(
-            onClick = onImportLocal,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Import budget archive (.zip)") }
     }
 }
 
