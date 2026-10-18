@@ -734,8 +734,15 @@ private fun DrillDownSheet(
         }
     }
 
-    val totalAmountCents = remember(rows) {
-        rows?.sumOf { it.amountCents } ?: segment.spentCents
+    val totalAmountCents = remember(rows, segment) {
+        if (segment.incomeCents != null && segment.expenseCents != null) {
+            segment.spentCents
+        } else if (segment.spentCents != 0L) {
+            segment.spentCents
+        } else {
+            val sum = rows?.sumOf { it.amountCents } ?: 0L
+            if (segment.drillDownQuery?.direction == DrillDownDirection.EXPENSE) sum.absoluteValue else sum
+        }
     }
 
     val title = segment.drillDownQuery?.categoryName ?: segment.name
