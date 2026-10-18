@@ -42,6 +42,10 @@ class BudgetFileManager(context: Context) {
     fun budgetDirectory(budgetId: String): File = File(root, safeBudgetId(budgetId))
     fun databaseFile(budgetId: String): File = File(budgetDirectory(budgetId), DATABASE_NAME)
     fun metadataFile(budgetId: String): File = File(budgetDirectory(budgetId), METADATA_NAME)
+    fun metadata(budgetId: String): BudgetMetadata? = runCatching {
+        val file = metadataFile(budgetId)
+        if (file.isFile) BudgetMetadata.fromJson(JSONObject(file.readText())) else null
+    }.getOrNull()
     fun backupsDirectory(budgetId: String): File = File(budgetDirectory(budgetId), "backups").also {
         check(it.mkdirs() || it.isDirectory) { "Unable to create the backups directory" }
     }

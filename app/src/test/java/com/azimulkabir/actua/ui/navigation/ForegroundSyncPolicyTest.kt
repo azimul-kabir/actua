@@ -26,6 +26,54 @@ class ForegroundSyncPolicyTest {
         assertFalse(shouldShowSyncBanner(runningStatus(activeTrigger = "App open", running = false)))
     }
 
+    @Test
+    fun sessionExpiredBannerIsShownOnlyForServerBackedBudgetsWhenSessionExpired() {
+        // Shown for server-backed budgets when session expired and not on connection screen
+        assertTrue(
+            shouldShowSessionExpiredBanner(
+                sessionExpired = true,
+                isServerBackedBudget = true,
+                detail = DetailDestination.Main,
+            ),
+        )
+
+        // Suppressed for standalone / local-only budgets even if session expired
+        assertFalse(
+            shouldShowSessionExpiredBanner(
+                sessionExpired = true,
+                isServerBackedBudget = false,
+                detail = DetailDestination.Main,
+            ),
+        )
+
+        // Suppressed when session is valid
+        assertFalse(
+            shouldShowSessionExpiredBanner(
+                sessionExpired = false,
+                isServerBackedBudget = true,
+                detail = DetailDestination.Main,
+            ),
+        )
+
+        // Suppressed when user is already on the Connection screen
+        assertFalse(
+            shouldShowSessionExpiredBanner(
+                sessionExpired = true,
+                isServerBackedBudget = true,
+                detail = DetailDestination.Connection,
+            ),
+        )
+
+        // Suppressed when session is valid and budget is standalone
+        assertFalse(
+            shouldShowSessionExpiredBanner(
+                sessionExpired = false,
+                isServerBackedBudget = false,
+                detail = DetailDestination.Main,
+            ),
+        )
+    }
+
     private fun runningStatus(activeTrigger: String?, running: Boolean = true) = SyncStatus(
         running = running,
         lastAttemptMillis = 0,

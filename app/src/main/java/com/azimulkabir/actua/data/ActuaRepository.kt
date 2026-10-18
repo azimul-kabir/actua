@@ -130,20 +130,23 @@ class ActuaRepository(context: Context) {
         ActualSyncScheduler.scheduleMutation(appContext)
         WidgetUpdater.requestAll(appContext)
     }
-    private val actualDatabase: ActualBudgetDatabase? = BudgetFileManager(context).let { files ->
+    private val openedBudget: Pair<ActualBudgetDatabase, BudgetMetadata>? = BudgetFileManager(context).let { files ->
         val activeBudgetStore = ActiveBudgetStore(context)
         val selectedId = activeBudgetStore.budgetId
         val candidates = files.listLocalBudgets().sortedWith(
             compareBy({ if (it.id == selectedId) 0 else 1 }, { it.budgetName?.lowercase() ?: it.id }, { it.id }),
         )
         val opened = candidates.firstNotNullOfOrNull { metadata ->
-            openBudget(files, metadata)?.also {
+            openBudget(files, metadata)?.let { db ->
                 if (metadata.id != selectedId) activeBudgetStore.budgetId = metadata.id
+                db to metadata
             }
         }
         if (opened == null && selectedId != null) activeBudgetStore.budgetId = null
         opened
     }
+    private val actualDatabase: ActualBudgetDatabase? = openedBudget?.first
+    val activeMetadata: BudgetMetadata? = openedBudget?.second
     private val actualWriter = actualDatabase?.let { ActualTransactionWriter(it, onWrite = scheduleSync) }
     private val actualEntities = actualDatabase?.let { ActualEntityWriter(it, onWrite = scheduleSync) }
     private val actualBudgets = actualDatabase?.let { ActualBudgetWriter(it, onWrite = scheduleSync) }
@@ -156,6 +159,7 @@ class ActuaRepository(context: Context) {
     }
 
     val isUsingActualBudget: Boolean get() = actualDatabase != null
+    val isServerBacked: Boolean get() = activeMetadata?.isServerBacked == true
 
     fun close() {
         actualDatabase?.close()

@@ -190,7 +190,6 @@ import com.azimulkabir.actua.widget.WidgetUpdater
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import com.azimulkabir.actua.data.security.CredentialStore
-import com.azimulkabir.actua.data.budget.DemoBudgetManager
 
 /** A tab's spoken label with how many captured transactions wait on it, e.g. "Accounts, 3 captured transactions waiting". */
 internal fun tabLabelWithCaptures(label: String, count: Int): String =
@@ -223,7 +222,7 @@ private fun TabItem.toMainDestination(): MainDestination? = when (this) {
     TabItem.ADD -> null
 }
 
-private enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, ReviewCaptured, PayeeLocations, ManagePayees, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
+internal enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, ReviewCaptured, PayeeLocations, ManagePayees, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -244,6 +243,16 @@ internal fun shouldRequestForegroundSync(foregroundGeneration: Int): Boolean =
  */
 internal fun shouldShowSyncBanner(status: SyncStatus): Boolean =
     status.running && status.activeTrigger != SYNC_TRIGGER_AFTER_CHANGE
+
+/**
+ * Shown only when the server rejected the saved session and the open budget is server-backed.
+ * Standalone budgets and the demo budget do not sync with a server and should never show this banner.
+ */
+internal fun shouldShowSessionExpiredBanner(
+    sessionExpired: Boolean,
+    isServerBackedBudget: Boolean,
+    detail: DetailDestination,
+): Boolean = sessionExpired && isServerBackedBudget && detail != DetailDestination.Connection
 
 /** Shown when the server rejected the saved session, so nothing syncs until the user signs in again. */
 @Composable
@@ -1398,9 +1407,7 @@ fun AppNavigation(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { ActuaSnackbarHost(snackbarHostState) },
         topBar = {
-            if (sessionExpired && repository.isUsingActualBudget && !DemoBudgetManager.isDemoBudget(favoriteBudgetId) &&
-                detail != DetailDestination.Connection
-            ) {
+            if (shouldShowSessionExpiredBanner(sessionExpired, repository.isServerBacked, detail)) {
                 SessionExpiredBanner(onSignIn = { detail = DetailDestination.Connection })
             } else if (shouldShowSyncBanner(syncStatus) && repository.isUsingActualBudget) {
                 SyncStatusBanner()

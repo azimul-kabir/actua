@@ -41,6 +41,8 @@ class ActuaRepositoryRecoveryTest {
             try {
                 assertTrue(repository.isUsingActualBudget)
                 assertEquals(valid.id, ActiveBudgetStore(context).budgetId)
+                assertFalse(repository.isServerBacked)
+                assertEquals(valid.id, repository.activeMetadata?.id)
                 assertFalse(files.budgetDirectory(invalid.id).exists())
             } finally {
                 repository.close()
@@ -82,6 +84,8 @@ class ActuaRepositoryRecoveryTest {
             try {
                 assertTrue(repository.isUsingActualBudget)
                 assertEquals(valid.id, ActiveBudgetStore(context).budgetId)
+                assertFalse(repository.isServerBacked)
+                assertEquals(valid.id, repository.activeMetadata?.id)
                 assertTrue("Unreadable standalone budget must be preserved to prevent data loss", files.budgetDirectory(invalidStandalone.id).exists())
             } finally {
                 repository.close()
@@ -90,6 +94,43 @@ class ActuaRepositoryRecoveryTest {
             ActiveBudgetStore(context).budgetId = null
             runCatching { files.deleteBudget(valid.id) }
             runCatching { files.deleteBudget(invalidStandalone.id) }
+        }
+    }
+
+    @Test
+    fun repositoryDistinguishesServerBackedFromStandaloneBudgets() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val standalone = files.createBudget("Standalone ${UUID.randomUUID()}")
+        val serverBacked = files.createBudget("Server ${UUID.randomUUID()}")
+        try {
+            files.saveCloudRegistration(serverBacked.id, "cloud-${UUID.randomUUID()}", "group-1")
+
+            ActiveBudgetStore(context).budgetId = standalone.id
+            val repoStandalone = ActuaRepository(context)
+            try {
+                assertTrue(repoStandalone.isUsingActualBudget)
+                assertFalse(repoStandalone.isServerBacked)
+                assertEquals(standalone.id, repoStandalone.activeMetadata?.id)
+                assertTrue(repoStandalone.activeMetadata?.isUserLocalOnly == true)
+            } finally {
+                repoStandalone.close()
+            }
+
+            ActiveBudgetStore(context).budgetId = serverBacked.id
+            val repoServer = ActuaRepository(context)
+            try {
+                assertTrue(repoServer.isUsingActualBudget)
+                assertTrue(repoServer.isServerBacked)
+                assertEquals(serverBacked.id, repoServer.activeMetadata?.id)
+                assertTrue(repoServer.activeMetadata?.isServerBacked == true)
+            } finally {
+                repoServer.close()
+            }
+        } finally {
+            ActiveBudgetStore(context).budgetId = null
+            runCatching { files.deleteBudget(standalone.id) }
+            runCatching { files.deleteBudget(serverBacked.id) }
         }
     }
 }

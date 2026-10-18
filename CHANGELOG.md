@@ -20,6 +20,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Suppress server session expired banner when viewing standalone local budgets ([#1179](https://github.com/azimul-kabir/actua/issues/1179))
 - Prevent silent deletion of unreadable standalone budgets during repository recovery ([#1180](https://github.com/azimul-kabir/actua/pull/1180))
 - Fixed missing bottom padding at the end of the Reports tab ([#1174](https://github.com/azimul-kabir/actua/pull/1174))
 - Fixed group header padding and spacing between grouped and ungrouped accounts ([#1172](https://github.com/azimul-kabir/actua/pull/1172))
