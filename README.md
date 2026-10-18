@@ -32,7 +32,7 @@
 
 Actua brings Actual Budget to Android with a native Material You interface.
 
-It connects directly to your self-hosted Actual Budget server, keeps a local copy of your budget for offline use, and synchronizes changes with Actual.
+It connects directly to your self-hosted Actual Budget server, keeps a local copy of your budget for offline use, and synchronizes changes with Actual. You can also use Actua completely offline with standalone on-device budgets—no server required.
 
 Actua is an independent community project and is not affiliated with or endorsed by Actual Budget.
 
@@ -43,6 +43,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Customizable bottom tab bar: show/hide and reorder tabs (Reports can be added as its own tab), plus an optional "Add" quick-add tab
 - App-wide favorites for categories, accounts and reports, shared by Home, the Budget favorites filter and the home-screen widget
 - Password and OpenID/OIDC login
+- Standalone on-device budgets: full envelope budgeting without needing a server, with automated schedule posting, local backups, and export/import compatibility with Actual Budget archives (see [docs/STANDALONE_BUDGETS.md](docs/STANDALONE_BUDGETS.md))
 - Offline budgets with encrypted Actual sync
 - Budgeting, categories and money movement, including one-tap cover for overspent categories and Actual's budget actions (3/6/12-month averages, copy last month or to year end, hold income)
 - Transactions, splits, transfers, Make transfer for two existing transactions, merging duplicates and reconciliation, including "Use last synced total" for bank-synced accounts

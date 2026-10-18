@@ -47,9 +47,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   test evidence and filed divergences in [docs/SERVER_FILE_PARITY.md](docs/SERVER_FILE_PARITY.md)
 - Local-only demo-budget lifecycle with fixed `demo` identity, current-schema recreation,
   no cloud registration, explicit sync rejection, and Connection & Data launch/reset flow
-- Standalone (on-device, local-only) budgets without server connection; compatibility audit,
-  subsystem trace, and regression test matrix are itemized in
-  [docs/STANDALONE_COMPATIBILITY_MATRIX.md](docs/STANDALONE_COMPATIBILITY_MATRIX.md)
+- Standalone (on-device, local-only) budgets without server connection; user guide and architecture
+  in [docs/STANDALONE_BUDGETS.md](docs/STANDALONE_BUDGETS.md), with compatibility audit, subsystem trace,
+  and regression test matrix in [docs/STANDALONE_COMPATIBILITY_MATRIX.md](docs/STANDALONE_COMPATIBILITY_MATRIX.md)
 - Demo seed coverage for checking, savings, credit-card and off-budget investment accounts;
   six months of transactions; paired card-payment transfers; cleared/uncleared/reconciled
   states; category targets; rules; scheduled transactions; notes; and dashboard report data

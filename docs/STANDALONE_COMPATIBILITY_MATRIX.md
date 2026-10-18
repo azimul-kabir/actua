@@ -5,6 +5,8 @@ defining the regression test matrix and tracking architectural gaps. It supports
 [Issue #1167](https://github.com/azimul-kabir/actua/issues/1167) and satisfies the
 audit and test-matrix requirements of [Issue #1170](https://github.com/azimul-kabir/actua/issues/1170).
 
+- **User & Architecture Guide:** See [STANDALONE_BUDGETS.md](STANDALONE_BUDGETS.md) for
+  user onboarding, archive import/export, automated schedules, local backups, and promotion workflows.
 - **Implementation Foundation:** [Issue #1166](https://github.com/azimul-kabir/actua/issues/1166)
   ([PR #1176](https://github.com/azimul-kabir/actua/pull/1176)) established the baseline:
   budget classification (`isDemo`, `isServerBacked`, `isUserLocalOnly`), preservation of
