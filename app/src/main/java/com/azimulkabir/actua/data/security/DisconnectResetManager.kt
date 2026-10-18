@@ -5,8 +5,6 @@ import android.content.Intent
 import androidx.work.WorkManager
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
-import com.azimulkabir.actua.data.budget.DemoBudgetManager
-
 /**
  * Applies Actua's local reset policy after a deliberate server disconnect.
  *
@@ -14,12 +12,12 @@ import com.azimulkabir.actua.data.budget.DemoBudgetManager
  * - display/appearance/start-page preferences
  * - backup destination permission/selection
  * - credit-card notification opt-in
- * - local-only demo budget files
+ * - local-only demo and standalone user budgets and their backups
  *
  * Cleared budget/session state:
  * - downloaded server budget directories and their retained local backups
- * - server credentials and active-budget selection
- * - per-budget encryption keys
+ * - server credentials and active-budget selection (unless a standalone budget is active)
+ * - per-budget encryption keys for removed server budgets
  * - sync status, automatic-schedule run gates and account/category UI expansion state
  * - scheduled credit-card reminder jobs derived from removed budgets
  *
@@ -33,15 +31,22 @@ class DisconnectResetManager(context: Context) {
     fun resetLocalServerData() {
         val files = BudgetFileManager(app)
         val encryptionKeys = BudgetEncryptionKeyStore(app)
+        val activeStore = ActiveBudgetStore(app)
+        val activeBudgetId = activeStore.budgetId
+        val activeBudget = activeBudgetId?.let { id ->
+            files.listLocalBudgets().firstOrNull { it.id == id }
+        }
 
         files.listLocalBudgets()
-            .filter { it.id != DemoBudgetManager.BUDGET_ID }
+            .filter { it.isServerBacked }
             .forEach { budget ->
                 budget.cloudFileId?.let(encryptionKeys::remove)
                 files.deleteBudget(budget.id)
             }
 
-        ActiveBudgetStore(app).budgetId = null
+        if (activeBudget?.isUserLocalOnly != true) {
+            activeStore.budgetId = null
+        }
 
         app.getSharedPreferences("actua-sync-status", Context.MODE_PRIVATE).edit().clear().commit()
         app.getSharedPreferences("actua-schedule-poster", Context.MODE_PRIVATE).edit().clear().commit()

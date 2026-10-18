@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
-import com.azimulkabir.actua.data.budget.DemoBudgetManager
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.security.CredentialStore
 import com.azimulkabir.actua.data.security.DisconnectResetManager
@@ -122,7 +121,7 @@ class DisconnectResetActivity : ComponentActivity() {
         val files = BudgetFileManager(this)
         val activeStore = ActiveBudgetStore(this)
         val originalActive = activeStore.budgetId
-        val budgets = files.listLocalBudgets().filter { it.id != DemoBudgetManager.BUDGET_ID }
+        val budgets = files.listLocalBudgets().filter { it.isServerBacked }
 
         try {
             budgets.forEach { budget ->

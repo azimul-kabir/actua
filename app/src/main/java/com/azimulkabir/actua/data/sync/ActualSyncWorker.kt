@@ -46,6 +46,12 @@ object ActualSyncRunner {
     private var lastSuccessElapsedMillis: Long = Long.MIN_VALUE
     private var lastSuccess: SyncRunResult.Success? = null
 
+    internal fun resetForTesting() {
+        lastSuccessBudgetId = null
+        lastSuccessElapsedMillis = Long.MIN_VALUE
+        lastSuccess = null
+    }
+
     @Synchronized
     fun run(
         context: Context,
@@ -59,17 +65,64 @@ object ActualSyncRunner {
         val budgetId = ActiveBudgetStore(app).budgetId ?: return SyncRunResult.NotConfigured.also {
             status.stoppedWithoutSync()
         }
+        val files = BudgetFileManager(app)
+        val metadata = files.listLocalBudgets().firstOrNull { it.id == budgetId }
+            ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
+        if (metadata.isDemo) return SyncRunResult.NotConfigured.also {
+            status.stoppedWithoutSync()
+        }
+
+        if (metadata.isUserLocalOnly) {
+            val nowElapsed = SystemClock.elapsedRealtime()
+            if (SyncCoalescingPolicy.shouldReuse(
+                    allowRecentSuccess = allowRecentSuccess,
+                    requestedBudgetId = budgetId,
+                    completedBudgetId = lastSuccessBudgetId,
+                    completedElapsedMillis = lastSuccessElapsedMillis,
+                    nowElapsedMillis = nowElapsed,
+                )
+            ) {
+                if (makeBackup) runCatching { BackupService(app, files).makeBackup(budgetId) }
+                if (trigger == "App open") status.foregroundRefreshFinished()
+                return requireNotNull(lastSuccess)
+            }
+            status.stoppedWithoutSync()
+            if (trigger == "App open") status.foregroundRefreshFinished()
+            val databaseFile = files.databaseFile(budgetId)
+            if (!databaseFile.isFile) return SyncRunResult.NotConfigured
+            return try {
+                val posted = ActualBudgetDatabase.open(databaseFile).use { database ->
+                    val poster = SchedulePoster(app, database, ActualTransactionWriter(database), ActualScheduleWriter(database))
+                    poster.runIfNeeded(budgetId)
+                }
+                if (posted > 0) {
+                    SyncSignals.dataChanged()
+                }
+                if (makeBackup) {
+                    runCatching { BackupService(app, files).makeBackup(budgetId) }
+                }
+                val outcome = SyncOutcome(
+                    sentMessages = 0,
+                    receivedMessages = 0,
+                    attempts = 0,
+                    timestamp = java.time.Instant.now().toString(),
+                )
+                val result = SyncRunResult.Success(outcome, posted)
+                lastSuccessBudgetId = budgetId
+                lastSuccessElapsedMillis = SystemClock.elapsedRealtime()
+                lastSuccess = result
+                result
+            } catch (error: Exception) {
+                status.failed(error)
+                throw error
+            }
+        }
+
         val credentials = CredentialStore(app)
         val token = credentials.token() ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
         val serverUrl = credentials.serverUrl.takeIf(String::isNotBlank)
             ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
         val fallbackUrl = credentials.fallbackServerUrl.takeIf { it.isNotBlank() && it != serverUrl }
-        val files = BudgetFileManager(app)
-        if (DemoBudgetManager.isDemoBudget(budgetId)) return SyncRunResult.NotConfigured.also {
-            status.stoppedWithoutSync()
-        }
-        val metadata = files.listLocalBudgets().firstOrNull { it.id == budgetId }
-            ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
         val fileId = metadata.cloudFileId ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
         val groupId = metadata.groupId ?: return SyncRunResult.NotConfigured.also { status.stoppedWithoutSync() }
         val loadedKey = metadata.encryptKeyId?.let {
