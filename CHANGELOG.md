@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Enable custom pay cycle period on the Accounts monthly summary ([#1175](https://github.com/azimul-kabir/actua/pull/1175))
 - Add custom report builder and dashboard card authoring with page management ([#1163](https://github.com/azimul-kabir/actua/pull/1163))
 - Support category group deletion with target reassignment in Manage Categories ([#1162](https://github.com/azimul-kabir/actua/pull/1162))
 - Allow switching budget type between Envelope and Tracking under Budget Settings ([#1161](https://github.com/azimul-kabir/actua/pull/1161))

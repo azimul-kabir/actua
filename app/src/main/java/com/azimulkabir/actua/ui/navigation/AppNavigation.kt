@@ -2929,6 +2929,7 @@ fun AppNavigation(
                     },
                     scrollToTopRequest = rootRequests[MainDestination.Accounts] ?: 0,
                     hasFab = hasFab,
+                    summaryStartDay = homeSummaryStartDay,
                 )
                 MainDestination.Transactions -> TransactionsScreen(
                     accountName = null,

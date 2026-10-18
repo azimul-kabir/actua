@@ -1,13 +1,34 @@
 package com.azimulkabir.actua.ui.accounts
 
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
+import java.time.LocalDate
 
 internal data class AccountMonthlySummary(
     val incomeCents: Long,
     val expenseCents: Long,
 ) {
     val netCents: Long get() = incomeCents - expenseCents
+}
+
+internal fun filterTransactionsForSummary(
+    transactions: List<Transaction>,
+    summaryStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
+    today: LocalDate = LocalDate.now(),
+): Pair<List<Transaction>, HomeSummaryPeriod?> {
+    val period = summaryStartDay.takeIf { it != HomeSummaryPeriod.CALENDAR_MONTH_START_DAY }
+        ?.let { HomeSummaryPeriod.containing(today, it) }
+    val monthTransactions = transactions.filter {
+        val digits = it.date.filter(Char::isDigit)
+        if (period == null) {
+            val monthKey = "%04d%02d".format(today.year, today.monthValue)
+            digits.startsWith(monthKey)
+        } else {
+            digits.length == 8 && digits.toInt() in period
+        }
+    }
+    return monthTransactions to period
 }
 
 internal object AccountMonthlySummaryCalculator {

@@ -72,6 +72,9 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
+import com.azimulkabir.actua.ui.components.formatDate
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -176,6 +179,7 @@ fun AccountsScreen(
     onReviewCaptures: () -> Unit = {},
     /** How many transactions bank sync added that haven't been looked at, by account id (#1066). */
     newTransactionCounts: Map<String, Int> = emptyMap(),
+    summaryStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
 ) {
     val listState = rememberLazyListState()
     LaunchedEffect(scrollToTopRequest) {
@@ -292,7 +296,7 @@ fun AccountsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
             ) {
-                item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary) }
+                item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary, summaryStartDay) }
                 accountSections.forEach { section ->
                     val collapsed = section.title in collapsedSections
                     stickyHeader(key = "account-header-${section.title}") {
@@ -426,6 +430,7 @@ private fun AccountsSummary(
     onClick: () -> Unit,
     hideDecimalPlaces: Boolean,
     showMonthlySummary: Boolean,
+    summaryStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val total = accounts.sumOf { it.balanceCents }
@@ -433,11 +438,10 @@ private fun AccountsSummary(
     // and otherwise only recompute it when `transactions` actually changes, not on every
     // recomposition of this row (e.g. opening the overflow menu elsewhere on the screen).
     val summary = if (showMonthlySummary) {
-        remember(transactions, accounts) {
-            val monthKey = java.text.SimpleDateFormat("yyyyMM", java.util.Locale.US).format(java.util.Date())
-            val monthTransactions = transactions.filter { it.date.filter(Char::isDigit).startsWith(monthKey) }
+        remember(transactions, accounts, summaryStartDay) {
+            val (monthTransactions, period) = filterTransactionsForSummary(transactions, summaryStartDay)
             val offBudgetAccountNames = accounts.filter { it.offBudget }.map { it.name }.toSet()
-            AccountMonthlySummaryCalculator.calculate(monthTransactions, offBudgetAccountNames)
+            AccountMonthlySummaryCalculator.calculate(monthTransactions, offBudgetAccountNames) to period
         }
     } else null
     val totalText = formatMoneyCents(total, hideDecimalPlaces)
@@ -453,20 +457,26 @@ private fun AccountsSummary(
             onClick = onClick,
         )
         if (summary != null) {
+            val (stats, period) = summary
             ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
                 Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
                     Text(
-                        java.text.SimpleDateFormat("MMMM yyyy", locale).format(java.util.Date()),
+                        if (period != null) {
+                            "${formatDate(period.start)} – ${formatDate(period.endInclusive)}"
+                        } else {
+                            java.text.SimpleDateFormat("MMMM yyyy", locale).format(java.util.Date())
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("accountSummaryPeriod"),
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        SummaryStat("Income", summary.incomeCents, hideDecimalPlaces = hideDecimalPlaces)
-                        SummaryStat("Expenses", summary.expenseCents, Alignment.CenterHorizontally, hideDecimalPlaces)
-                        SummaryStat("Net", summary.netCents, Alignment.End, hideDecimalPlaces)
+                        SummaryStat("Income", stats.incomeCents, hideDecimalPlaces = hideDecimalPlaces)
+                        SummaryStat("Expenses", stats.expenseCents, Alignment.CenterHorizontally, hideDecimalPlaces)
+                        SummaryStat("Net", stats.netCents, Alignment.End, hideDecimalPlaces)
                     }
                 }
             }
