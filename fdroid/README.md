@@ -10,7 +10,7 @@ The release build type's signing config (`app/build.gradle.kts`) only applies th
 
 ## Submission status
 
-Actua has been accepted into `fdroiddata`. This template is kept in sync with what's merged there; `com.azimulkabir.actua.yml` in this directory reflects the `1.0.0-beta.25` (`versionCode 42`) build recipe as accepted.
+Actua has been submitted to `fdroiddata` as [merge request !48464](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/48464) and is under review; it has not been merged yet, so Actua is not on F-Droid yet. `com.azimulkabir.actua.yml` in this directory is the recipe to submit or update there, and `android-release.yml` keeps its version fields current on each release.
 
 ## Updating the fdroiddata submission for a new release
 
