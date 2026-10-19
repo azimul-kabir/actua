@@ -831,9 +831,8 @@ fun BudgetScreen(
     categoryDetails?.let { (group, category) ->
         // Otherwise this filters and sorts the whole transaction list on every recomposition
         // of BudgetScreen while the details sheet is open, to keep only the top 3.
-        val recentCategoryTransactions = remember(transactions, category.name) {
-            transactions.filter { it.category == category.name }
-                .sortedByDescending { it.date }.take(3)
+        val recentCategoryTransactions = remember(allTransactions, category.name) {
+            recentTransactionsForCategory(allTransactions, category.name)
         }
         CategoryDetailsScreen(
             modifier = modifier,
@@ -1162,6 +1161,14 @@ private fun BudgetMonthPicker(
 
 private fun formatMonth(month: String): String = java.time.YearMonth.parse(month)
     .format(java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.getDefault()))
+
+/** Newest [limit] transactions in [categoryName]; callers pass the unfiltered list (#1207). */
+internal fun recentTransactionsForCategory(
+    transactions: List<Transaction>,
+    categoryName: String,
+    limit: Int = 3,
+): List<Transaction> =
+    transactions.filter { it.category == categoryName }.sortedByDescending { it.date }.take(limit)
 
 /**
  * On-budget transactions with no category in [month] ("yyyy-MM"). Actua's category fallback
