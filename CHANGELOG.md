@@ -31,6 +31,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed the account transactions overflow menu showing checkboxes instead of switches ([#1216](https://github.com/azimul-kabir/actua/pull/1216))
 - Fixed category details showing no recent transactions after filtering the Transactions tab ([#1211](https://github.com/azimul-kabir/actua/pull/1211))
 - Fixed UI freezes and ANRs during remote budget download and open by deferring modal blocking and removing main-thread report computations ([#1206](https://github.com/azimul-kabir/actua/pull/1206))
 - Fixed Google Drive authorization failure by configuring registered OAuth client ID and custom client ID preference ([#1195](https://github.com/azimul-kabir/actua/pull/1195))
