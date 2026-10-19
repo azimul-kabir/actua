@@ -25,6 +25,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Changed
 
 - Reports header buttons now sit in the same tonal pill as Budget and Accounts ([#1214](https://github.com/azimul-kabir/actua/pull/1214))
+- Reports header buttons now use the same tonal pill as Budget and Accounts ([#1214](https://github.com/azimul-kabir/actua/pull/1214))
 - Budget display options now use the same switches as the Accounts menu ([#1212](https://github.com/azimul-kabir/actua/pull/1212))
 - Budget table amount columns now fit their content with one shared amount size, so names have more room ([#1209](https://github.com/azimul-kabir/actua/pull/1209))
 - Relicensed Actua to GNU General Public License v3.0 ([#1202](https://github.com/azimul-kabir/actua/pull/1202))
