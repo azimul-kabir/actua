@@ -8,6 +8,10 @@ continues to serve as an important behavioral and implementation reference.
 
 The original project provided the behavioral reference for the budget, account, transaction, synchronization, backup, rules, schedules, reports, settings, and credit-card workflows implemented here. Its source is licensed under the MIT License, copyright 2025–2026 Matt Farrell.
 
+Actua itself is licensed under the [GNU General Public License v3.0](LICENSE).
+The MIT-licensed upstream code, migrations and artwork credited in this notice
+keep their original copyright notices.
+
 Actua is maintained independently. It is not an official release of, or
 endorsed or supported by, the original Actuali iOS project.
 
