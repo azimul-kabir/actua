@@ -46,7 +46,10 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -471,4 +474,28 @@ fun ActuaSheetAction(
         }
         Text(label, style = MaterialTheme.typography.bodyLarge, color = color)
     }
+}
+
+/**
+ * An on/off option inside a [DropdownMenu], shown with a trailing [Switch]. Shared by the
+ * overflow menus so they all present toggles the same way. The item is exposed to
+ * accessibility as a single switch whose state follows [checked]; [onCheckedChange] receives
+ * the new value when the item is tapped.
+ */
+@Composable
+fun ActuaSwitchMenuItem(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        trailingIcon = { Switch(checked = checked, onCheckedChange = null) },
+        onClick = { onCheckedChange(!checked) },
+        modifier = modifier.semantics(mergeDescendants = true) {
+            role = Role.Switch
+            toggleableState = ToggleableState(checked)
+        },
+    )
 }

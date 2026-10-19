@@ -66,7 +66,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -103,6 +102,7 @@ import com.azimulkabir.actua.ui.components.ActuaSheetAction
 import com.azimulkabir.actua.ui.components.ActuaSheetCard
 import com.azimulkabir.actua.ui.components.ActuaSheetContent
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
+import com.azimulkabir.actua.ui.components.ActuaSwitchMenuItem
 import com.azimulkabir.actua.ui.components.ChangeAccountGroupDialog
 import com.azimulkabir.actua.ui.components.ChangeAccountTypeDialog
 import com.azimulkabir.actua.ui.components.GroupPosition
@@ -323,17 +323,10 @@ fun AccountsScreen(
                                 expanded = accountMenuExpanded,
                                 onDismissRequest = { accountMenuExpanded = false },
                             ) {
-                                DropdownMenuItem(
-                                    text = { Text("Monthly summary") },
-                                    trailingIcon = {
-                                        Switch(
-                                            checked = showMonthlySummary,
-                                            onCheckedChange = null,
-                                        )
-                                    },
-                                    onClick = {
-                                        onShowMonthlySummaryChange(!showMonthlySummary)
-                                    },
+                                ActuaSwitchMenuItem(
+                                    label = "Monthly summary",
+                                    checked = showMonthlySummary,
+                                    onCheckedChange = onShowMonthlySummaryChange,
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Reorder accounts") },
