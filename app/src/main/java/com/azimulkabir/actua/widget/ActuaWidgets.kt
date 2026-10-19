@@ -16,6 +16,7 @@ import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
+import com.azimulkabir.actua.data.preferences.withAppLanguage
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
 import com.azimulkabir.actua.data.schedules.DayDate
@@ -111,7 +112,10 @@ abstract class ActuaWidgetProvider : AppWidgetProvider() {
         val pending = goAsync()
         EXECUTOR.execute {
             try {
-                widgetIds.forEach { WidgetUpdater.update(context, manager, it, this) }
+                // Widget providers get no AppCompat locale handling, so resolve strings through
+                // a configuration context for the app locale chosen in Settings.
+                val localizedContext = context.withAppLanguage()
+                widgetIds.forEach { WidgetUpdater.update(localizedContext, manager, it, this) }
             } finally {
                 pending.finish()
             }

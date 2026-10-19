@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.snap
@@ -90,6 +91,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.core.content.ContextCompat
+import androidx.core.os.LocaleListCompat
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -351,6 +353,8 @@ fun AppNavigation(
     val coroutineScope = rememberCoroutineScope()
     val locationPreferences = remember { LocationPreferences(context) }
     val displayPreferences = remember { DisplayPreferences(context) }
+    // The full tag (not just the language) so pt-BR keeps its region; empty means "follow system".
+    val languageTag = AppCompatDelegate.getApplicationLocales().get(0)?.toLanguageTag().orEmpty()
     val favoritePreferences = remember { FavoritePreferences(context) }
     val homePreferences = remember { HomePreferences(context) }
     var homeLayout by remember { mutableStateOf(homePreferences.layout()) }
@@ -3131,6 +3135,17 @@ fun AppNavigation(
                         displayPreferences.currencySymbolSpacing = it
                         currencySymbolSpacing = it
                         WidgetUpdater.requestAll(context)
+                    },
+                    languageTag = languageTag,
+                    onLanguageChange = { tag ->
+                        val locales = if (tag.isBlank()) {
+                            LocaleListCompat.getEmptyLocaleList()
+                        } else {
+                            LocaleListCompat.forLanguageTags(tag)
+                        }
+                        AppCompatDelegate.setApplicationLocales(locales)
+                        WidgetUpdater.requestAll(context)
+                        CreditCardDueNotificationScheduler.refreshAsync(context)
                     },
                     dateFormat = dateFormat,
                     onDateFormatChange = {
