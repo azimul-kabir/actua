@@ -18,7 +18,6 @@
   <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/azimul-kabir/actua"><img src="https://img.shields.io/badge/Get_it_on-Obtainium-6750A4?style=for-the-badge&logo=android&logoColor=white" alt="Get it on Obtainium"></a>
   <a href="https://actua.azimulkabir.com"><img src="https://img.shields.io/badge/Website-actua.azimulkabir.com-4B18D1?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Website"></a>
   <a href="https://discord.gg/FhedEyP97f"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord"></a>
-  <a href="https://github.com/azimul-kabir/actua/issues/new/choose"><img src="https://img.shields.io/badge/Report-an_issue-48506A?style=for-the-badge&logo=github&logoColor=white" alt="Report an issue"></a>
 </p>
 
 <p align="center">
