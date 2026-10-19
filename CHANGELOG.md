@@ -24,6 +24,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Budget display options now use the same switches as the Accounts menu ([#1211](https://github.com/azimul-kabir/actua/pull/1211))
 - Relicensed Actua to GNU General Public License v3.0 ([#1202](https://github.com/azimul-kabir/actua/pull/1202))
 - Simplified report card headers with title-tap expansion and consolidated card management ([#1185](https://github.com/azimul-kabir/actua/pull/1185))
 

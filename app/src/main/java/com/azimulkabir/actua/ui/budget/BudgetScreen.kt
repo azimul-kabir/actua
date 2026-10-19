@@ -78,7 +78,6 @@ import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -150,6 +149,7 @@ import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
+import com.azimulkabir.actua.ui.components.ActuaSwitchMenuItem
 import com.azimulkabir.actua.ui.components.CategoryStatusDot
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
@@ -1019,25 +1019,25 @@ private fun BudgetToolbar(
                 expanded = optionsExpanded,
                 onDismissRequest = { onOptionsChange(false) },
             ) {
-                ToggleMenuItem("Plan view", budgetView == "Plan") {
+                ActuaSwitchMenuItem("Plan view", budgetView == "Plan", onCheckedChange = {
                     onBudgetViewChange(if (it) "Plan" else "Table")
                     onOptionsChange(false)
-                }
+                })
                 HorizontalDivider()
-                ToggleMenuItem("Show overview", showOverview, onShowOverviewChange)
-                ToggleMenuItem("Show warnings", showBudgetStatusBanners, onShowBudgetStatusBannersChange)
-                ToggleMenuItem(
+                ActuaSwitchMenuItem("Show overview", showOverview, onShowOverviewChange)
+                ActuaSwitchMenuItem("Show warnings", showBudgetStatusBanners, onShowBudgetStatusBannersChange)
+                ActuaSwitchMenuItem(
                     if (budgetView == "Plan") "Show spending details" else "Show spent column",
                     showSpent,
                     onShowSpentChange,
                 )
-                ToggleMenuItem("Show progress bars", showProgressBars, onShowProgressBarsChange)
-                ToggleMenuItem("Show group totals", showGroupTotals, onShowGroupTotalsChange)
-                ToggleMenuItem("Show balance pills", showBalancePills, onShowBalancePillsChange)
+                ActuaSwitchMenuItem("Show progress bars", showProgressBars, onShowProgressBarsChange)
+                ActuaSwitchMenuItem("Show group totals", showGroupTotals, onShowGroupTotalsChange)
+                ActuaSwitchMenuItem("Show balance pills", showBalancePills, onShowBalancePillsChange)
                 HorizontalDivider()
-                ToggleMenuItem("Hide fully spent", hideFullySpent, onHideFullySpentChange)
-                ToggleMenuItem("Show hidden categories and groups", showHidden, onShowHiddenChange)
-                ToggleMenuItem("Show category filters", showCategoryFilters, onShowCategoryFiltersChange)
+                ActuaSwitchMenuItem("Hide fully spent", hideFullySpent, onHideFullySpentChange)
+                ActuaSwitchMenuItem("Show hidden categories and groups", showHidden, onShowHiddenChange)
+                ActuaSwitchMenuItem("Show category filters", showCategoryFilters, onShowCategoryFiltersChange)
                 HorizontalDivider()
                 DropdownMenuItem(text = { Text("Expand all groups") }, onClick = onExpandAll)
                 DropdownMenuItem(text = { Text("Collapse all groups") }, onClick = onCollapseAll)
@@ -1172,15 +1172,6 @@ private fun formatMonth(month: String): String = java.time.YearMonth.parse(month
 internal fun uncategorizedTransactionsForBudgetMonth(transactions: List<Transaction>, month: String): List<Transaction> {
     val monthDigits = month.replace("-", "")
     return transactions.filter { it.category == "Uncategorized" && it.date.filter(Char::isDigit).startsWith(monthDigits) }
-}
-
-@Composable
-private fun ToggleMenuItem(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    DropdownMenuItem(
-        text = { Text(label) },
-        trailingIcon = { Checkbox(checked = checked, onCheckedChange = null) },
-        onClick = { onChange(!checked) },
-    )
 }
 
 /** Ready to Budget as the shared medium hero, inside the primary (or error, when negative) container. */
