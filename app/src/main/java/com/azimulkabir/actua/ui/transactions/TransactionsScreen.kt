@@ -101,6 +101,7 @@ import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardStatus
+import com.azimulkabir.actua.ui.components.ActuaSwitchMenuItem
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.formatStoredDate
@@ -376,8 +377,8 @@ fun TransactionsScreen(
                             Icon(Icons.Outlined.MoreVert, contentDescription = "Transaction options")
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            ToggleItem("Group by date", groupTransactionsByDate, onGroupTransactionsByDateChange)
-                            ToggleItem("Show upcoming transactions", showUpcomingTransactions, onShowUpcomingTransactionsChange)
+                            ActuaSwitchMenuItem("Group by date", groupTransactionsByDate, onGroupTransactionsByDateChange)
+                            ActuaSwitchMenuItem("Show upcoming transactions", showUpcomingTransactions, onShowUpcomingTransactionsChange)
                             account?.let { selectedAccount ->
                                 if (!selectedAccount.closed) {
                                     DropdownMenuItem(
@@ -387,34 +388,34 @@ fun TransactionsScreen(
                                     )
                                     HorizontalDivider()
                                 }
-                                ToggleItem(
+                                ActuaSwitchMenuItem(
                                     "Hide reconciled transactions",
                                     hideReconciledTransactions,
                                     onHideReconciledTransactionsChange,
                                 )
-                                ToggleItem(
+                                ActuaSwitchMenuItem(
                                     "Show current balance summary",
                                     showCurrentBalanceSummary,
                                     onShowCurrentBalanceSummaryChange,
                                 )
-                                ToggleItem(
+                                ActuaSwitchMenuItem(
                                     "Running balance",
                                     showRunningBalance,
                                     onShowRunningBalanceChange,
                                 )
                                 if (showNotes) {
-                                    ToggleItem("Show notes", showAccountNotes) { show ->
+                                    ActuaSwitchMenuItem("Show notes", showAccountNotes, onCheckedChange = { show ->
                                         showAccountNotes = show
                                         accountDetailPreferences.edit()
                                             .putBoolean("show_notes_${selectedAccount.id}", show).apply()
-                                    }
+                                    })
                                 }
                                 if (creditCard != null) {
-                                    ToggleItem("Show credit card section", showCreditCardSection) { show ->
+                                    ActuaSwitchMenuItem("Show credit card section", showCreditCardSection, onCheckedChange = { show ->
                                         showCreditCardSection = show
                                         accountDetailPreferences.edit()
                                             .putBoolean("show_credit_card_section_${selectedAccount.id}", show).apply()
-                                    }
+                                    })
                                 }
                             }
                         }
@@ -1321,13 +1322,6 @@ internal fun hiddenAsReconciled(
     statusFilter: TransactionStatusFilter,
     hideReconciled: Boolean,
 ): Boolean = hideReconciled && statusFilter == TransactionStatusFilter.ALL && transaction.reconciled
-
-@Composable
-private fun ToggleItem(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    DropdownMenuItem(text = { Text(label) }, trailingIcon = {
-        Checkbox(checked = checked, onCheckedChange = null)
-    }, onClick = { onChange(!checked) })
-}
 
 /** Card divider inset lining up with a transaction row's text, after its cleared indicator. */
 private val TRANSACTION_DIVIDER_INSET = Spacing.screenHorizontal + 18.dp + 10.dp
