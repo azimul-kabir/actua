@@ -207,6 +207,12 @@ object WidgetUpdater {
             R.layout.widget_budget_snapshot
         }
         val views = RemoteViews(context.packageName, layout)
+        // RemoteViews inflate in the launcher's locale, so rebind every catalog label through
+        // the app-language context (needed on API 28-32; API 33+ handles it in the framework).
+        views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_budget_snapshot))
+        views.setTextViewText(R.id.widget_ready_label, context.getString(R.string.widget_ready))
+        views.setTextViewText(R.id.widget_budgeted_label, context.getString(R.string.widget_budgeted))
+        views.setTextViewText(R.id.widget_balance_label, context.getString(R.string.widget_balance))
         val repository = ActuaRepository(context)
         try {
             loadBudgetFormats(repository)
@@ -235,6 +241,8 @@ object WidgetUpdater {
 
     private fun updateCategories(context: Context, manager: AppWidgetManager, widgetId: Int) {
         val views = RemoteViews(context.packageName, R.layout.widget_favourite_categories)
+        views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_favourite_categories))
+        views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_categories))
         val repository = ActuaRepository(context)
         try {
             loadBudgetFormats(repository)
@@ -268,6 +276,9 @@ object WidgetUpdater {
             R.layout.widget_quick_transaction
         }
         val views = RemoteViews(context.packageName, layout)
+        views.setTextViewText(R.id.widget_expense, context.getString(R.string.widget_expense))
+        views.setTextViewText(R.id.widget_income, context.getString(R.string.widget_income))
+        views.setTextViewText(R.id.widget_transfer, context.getString(R.string.widget_transfer))
         views.setOnClickPendingIntent(R.id.widget_expense, open(context, WidgetActions.ADD_EXPENSE, widgetId))
         views.setOnClickPendingIntent(R.id.widget_income, open(context, WidgetActions.ADD_INCOME, widgetId))
         views.setOnClickPendingIntent(R.id.widget_transfer, open(context, WidgetActions.ADD_TRANSFER, widgetId))
@@ -276,6 +287,8 @@ object WidgetUpdater {
 
     private fun updateAccounts(context: Context, manager: AppWidgetManager, widgetId: Int) {
         val views = RemoteViews(context.packageName, R.layout.widget_account_balances)
+        views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_account_balances))
+        views.setTextViewText(R.id.widget_empty, context.getString(R.string.widget_no_accounts))
         val repository = ActuaRepository(context)
         try {
             loadBudgetFormats(repository)
@@ -303,6 +316,7 @@ object WidgetUpdater {
             R.layout.widget_scheduled_transactions
         }
         val views = RemoteViews(context.packageName, layout)
+        views.setTextViewText(R.id.widget_title, context.getString(R.string.widget_upcoming_schedules))
         val repository = ActuaRepository(context)
         val usingBudget = try { repository.isUsingActualBudget } finally { repository.close() }
         views.setTextViewText(
