@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Brazilian Portuguese (pt-BR) translation with in-app language selection for navigation, Home, Budget, widgets and shortcuts ([#1227](https://github.com/azimul-kabir/actua/pull/1227))
 - Collapsible account groups in Accounts tab, flat favorites list, and section-scoped account reordering across groups ([#1193](https://github.com/azimul-kabir/actua/pull/1193))
 - In-place edit mode for account reordering and group management in the Accounts tab ([#1191](https://github.com/azimul-kabir/actua/pull/1191))
 - Optional Google Drive backup and restore with client-side authenticated encryption ([#1183](https://github.com/azimul-kabir/actua/pull/1183))
