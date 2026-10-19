@@ -4,14 +4,15 @@ WHAT YOU CAN DO
 • View budgets and track category progress
 • Add, edit, search, and filter transactions
 • Split transactions, make transfers, and reconcile accounts
-• Manage accounts, categories, targets, and budget templates
+• Group and reorder accounts, and manage categories, targets, and budget templates
 • View scheduled transactions and a bills calendar, with optional reminders before they are due
 • Review dashboards and reports, tap any chart to see its transactions, or open a report full screen with a data table
 • Sync with your Actual Budget server and use supported bank-sync providers through that server
-• Import transactions from CSV, XLSX, PDF, SMS, and supported bank notifications, and review captured transactions before they are saved
+• Import transactions from CSV, OFX, QFX, QIF, CAMT.053, XLSX, PDF, SMS, and supported bank notifications, and review captured transactions before they are saved
 • Queue transactions from Tasker and other automation apps
 • Use automatic categorization and Actual Budget rules
-• Create local backups and restore your budget data
+• Create local backups and restore your budget data, or back up to your own Google Drive with encryption
+• Budget on your device without a server, or import an Actual Budget archive
 • Use home-screen widgets and launcher shortcuts
 
 MADE FOR ANDROID
@@ -20,7 +21,7 @@ Actua is built as a native Android app, not a website wrapped in an app. Its Mat
 YOUR DATA, YOUR SERVER
 Actua connects directly to your own Actual Budget server and keeps a local copy of your budget for offline use. It does not require a separate Actua account. You remain in control of your budget through Actual Budget and its supported synchronization methods.
 
-New to Actua? You can explore the built-in local demo budget without connecting a server.
+New to Actua? You can explore the built-in local demo budget or create a budget on your device without connecting a server.
 
 FREE AND OPEN SOURCE
 Actua is free and open source. You can review the source code, report bugs, suggest improvements, or contribute to the project:

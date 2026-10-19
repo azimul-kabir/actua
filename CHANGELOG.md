@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.0.0] - 2026-10-19
+
 ### Added
 
 - Collapsible account groups in Accounts tab, flat favorites list, and section-scoped account reordering across groups ([#1193](https://github.com/azimul-kabir/actua/pull/1193))
