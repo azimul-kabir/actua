@@ -1176,8 +1176,12 @@ private fun BudgetMonthPicker(
     )
 }
 
-private fun formatMonth(month: String): String = java.time.YearMonth.parse(month)
-    .format(java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.getDefault()))
+@Composable
+private fun formatMonth(month: String): String {
+    val locale = LocalConfiguration.current.locales[0]
+    return java.time.YearMonth.parse(month)
+        .format(java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", locale))
+}
 
 /** Newest [limit] transactions in [categoryName]; callers pass the unfiltered list (#1207). */
 internal fun recentTransactionsForCategory(

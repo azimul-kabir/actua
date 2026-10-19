@@ -116,9 +116,9 @@
     <string name="budget_view_all">Ver tudo</string>
     <string name="budget_no_recent_transactions">Nenhuma transação recente</string>
     <string name="budget_unknown_payee">Beneficiário desconhecido</string>
-    <string name="budget_stop_holding_automatically">Desativar retenção automática</string>
-    <string name="budget_hold_automatically_next_month">Habilitar retenção automática para o próximo mês</string>
-    <string name="budget_stop_all_automatic_holds">Desativar todas as retenções automáticas deste mês</string>
+    <string name="budget_stop_holding_automatically">Parar de guardar automaticamente</string>
+    <string name="budget_hold_automatically_next_month">Guardar automaticamente para o próximo mês</string>
+    <string name="budget_stop_all_automatic_holds">Desfazer todos os valores guardados automaticamente neste mês</string>
     <string name="budget_action_average_3">Redefinir com a média de 3 meses</string>
     <string name="budget_action_average_6">Redefinir com a média de 6 meses</string>
     <string name="budget_action_yearly_average">Média anual</string>
@@ -286,7 +286,7 @@
     <string name="home_view_all_reports">Ver todos os relatórios</string>
     <string name="home_income">Receita</string>
     <string name="home_spent">Gasto</string>
-    <string name="home_net">Saldo</string>
+    <string name="home_net">Líquido</string>
     <string name="home_spending">Gastos</string>
     <string name="home_activity">Atividade</string>
     <string name="home_no_recent_activity">Nenhuma atividade recente</string>

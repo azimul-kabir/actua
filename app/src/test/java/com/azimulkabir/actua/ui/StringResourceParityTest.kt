@@ -47,6 +47,15 @@ class StringResourceParityTest {
         assertTrue("values-pt-rBR/strings*.xml has plural(s) with no English counterpart: $extra", extra.isEmpty())
     }
 
+    /** Regression guard: Android's tag is `<plurals>`; an earlier `"plural"` match made every plurals map empty. */
+    @Test
+    fun parseLocaleParsesPlurals() {
+        assertTrue(
+            "parseLocale parsed no plurals from src/main/res/values — plural assertions would pass vacuously",
+            parseLocale(File("src/main/res/values")).second.isNotEmpty(),
+        )
+    }
+
     @Test
     fun apostrophesAreEscaped() {
         localeDirs.forEach { dir ->
@@ -158,7 +167,7 @@ class StringResourceParityTest {
                         rememberName(name, file, definedIn)
                         strings[name] = node.textContent
                     }
-                    "plural" -> {
+                    "plurals" -> {
                         val name = node.getAttribute("name")
                         rememberName(name, file, definedIn)
                         plurals[name] = childElements(node)

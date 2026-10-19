@@ -18,7 +18,7 @@
     <string name="navigation_reports_load_failed_with_reason">Falha ao carregar relatórios: %1$s</string>
     <string name="navigation_unlock_before_syncing">Desbloqueie este orçamento criptografado antes de sincronizar</string>
     <string name="navigation_unlock_budget_before_sync">Desbloqueie este orçamento criptografado antes de sincronizar.</string>
-    <string name="navigation_transfer_payee">Transferir: %1$s</string>
+    <string name="navigation_transfer_payee">Transferência: %1$s</string>
     <string name="navigation_saving_transaction_failed">Falha ao salvar a transação.</string>
     <string name="navigation_view">Ver</string>
 
@@ -86,7 +86,7 @@
     <string name="navigation_applying_budget_template">Aplicando modelo de orçamento</string>
     <string name="navigation_applying_month_end_cleanup">Aplicando a limpeza de fim de mês</string>
     <string name="navigation_reading_template_notes">Lendo notas de modelos</string>
-    <string name="navigation_updating_automatic_holds">Atualizando as reservas automáticas</string>
+    <string name="navigation_updating_automatic_holds">Atualizando os valores guardados automaticamente</string>
     <string name="navigation_change_budget_type">Alterar tipo de orçamento</string>
     <string name="navigation_reopening_account">Reabrindo conta</string>
     <string name="navigation_closing_account">Encerrando conta</string>

@@ -223,7 +223,8 @@ object WidgetUpdater {
                 views.setTextViewText(R.id.widget_balance_value, "—")
             } else {
                 val overview = repository.budgetOverview()
-                val month = YearMonth.now().format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+                val month = YearMonth.now()
+                    .format(DateTimeFormatter.ofPattern("MMMM yyyy", context.resources.configuration.locales[0]))
                 views.setTextViewText(R.id.widget_month, month)
                 views.setTextViewText(
                     R.id.widget_ready_value,
