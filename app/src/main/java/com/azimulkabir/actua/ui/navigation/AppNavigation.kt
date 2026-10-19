@@ -108,7 +108,9 @@ import com.azimulkabir.actua.ui.accounts.CloseCategoryGroup
 import com.azimulkabir.actua.ui.automation.BudgetAutomationScreen
 import com.azimulkabir.actua.ui.budget.BudgetScreen
 import com.azimulkabir.actua.ui.budget.CategoryBudgetAction
-import com.azimulkabir.actua.ui.settings.BudgetSwitcherOption
+import com.azimulkabir.actua.ui.settings.BudgetSelectionItem
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.ui.settings.SettingsScreen
 import com.azimulkabir.actua.ui.settings.ConnectionScreen
 import com.azimulkabir.actua.ui.settings.CreditCardsScreen
@@ -310,24 +312,18 @@ internal fun SyncStatusBanner(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun BudgetSwitchOverlay() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.45f))
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        awaitPointerEvent().changes.forEach { it.consume() }
-                    }
-                }
-            }
-            .clearAndSetSemantics { contentDescription = "Loading budget" },
-        contentAlignment = Alignment.Center,
+private fun BudgetSwitchDialog() {
+    Dialog(
+        onDismissRequest = {},
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+        ),
     ) {
         Surface(
             shape = MaterialTheme.shapes.large,
             tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 32.dp, vertical = 24.dp),
@@ -392,9 +388,9 @@ fun AppNavigation(
     val activeBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId }
     val favoriteBudgetId = activeBudgetId ?: "no-budget"
     var homeSummaryStartDay by remember(favoriteBudgetId) { mutableStateOf(homePreferences.summaryStartDay(favoriteBudgetId)) }
-    val budgetSwitcherOptions = remember(repositoryVersion) {
+    val availableBudgetOptions = remember(repositoryVersion) {
         BudgetFileManager(context).listLocalBudgets().map { budget ->
-            BudgetSwitcherOption(
+            BudgetSelectionItem(
                 id = budget.id,
                 name = budget.budgetName ?: budget.id,
             )
@@ -1385,7 +1381,6 @@ fun AppNavigation(
         }
     }
 
-    BackHandler(enabled = budgetReplacementInProgress) { }
 
     val onMainTab = detail == DetailDestination.Main && destination in setOf(
         MainDestination.Home,
@@ -2140,7 +2135,6 @@ fun AppNavigation(
             )
             DetailDestination.Connection -> ConnectionScreen(
                 onBack = { detail = DetailDestination.Main },
-                foregroundGeneration = foregroundGeneration,
                 onBeforeBudgetReplacement = {
                     if (!budgetReplacementInProgress) {
                         budgetReplacementInProgress = true
@@ -3240,11 +3234,11 @@ fun AppNavigation(
                         displayPreferences.showCurrentBalanceSummary = it
                         showCurrentBalanceSummary = it
                     },
-                    budgetOptions = budgetSwitcherOptions,
+                    budgetOptions = availableBudgetOptions,
                     activeBudgetId = activeBudgetId,
                     onBudgetChange = { budgetId ->
                         if (budgetId != activeBudgetId &&
-                            budgetSwitcherOptions.any { it.id == budgetId } &&
+                            availableBudgetOptions.any { it.id == budgetId } &&
                             !budgetReplacementInProgress
                         ) {
                             budgetReplacementInProgress = true
@@ -3272,7 +3266,7 @@ fun AppNavigation(
         }
         }
     }
-    if (budgetReplacementInProgress) BudgetSwitchOverlay()
+    if (budgetReplacementInProgress) BudgetSwitchDialog()
     TransactionImpactPopup(
         cues = transactionImpactCues,
         hideDecimalPlaces = hideDecimalPlaces,

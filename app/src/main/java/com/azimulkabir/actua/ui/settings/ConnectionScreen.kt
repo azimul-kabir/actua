@@ -220,7 +220,6 @@ internal fun ManualSyncButtonContent(
 fun ConnectionScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    foregroundGeneration: Int = 0,
     onBeforeBudgetReplacement: () -> Unit = {},
     onBudgetInstalled: () -> Unit = {},
 ) {
@@ -267,7 +266,7 @@ fun ConnectionScreen(
     var deleteConfirmation by remember { mutableStateOf("") }
     var confirmQuickBackup by remember { mutableStateOf(false) }
     var pendingCertificateTrust by remember { mutableStateOf<PendingCertificateTrust?>(null) }
-    var pendingOpenIdCallback by remember { mutableStateOf<OidcCallbackServer?>(null) }
+    var activeOidcServer by remember { mutableStateOf<OidcCallbackServer?>(null) }
     var localBudgetsGeneration by remember { mutableStateOf(0) }
     var showCreateLocalBudget by remember { mutableStateOf(false) }
     var newLocalBudgetName by remember { mutableStateOf("") }
@@ -440,18 +439,17 @@ fun ConnectionScreen(
                         ?: IllegalStateException("Could not find an OpenID-enabled Actual server."))
                     attemptedUrl = selectedUrl
                     val callback = OidcCallbackServer()
-                    callbackServer = callback
+                    activeOidcServer = callback
                     try {
                         val authorizationUrl = client.startOpenIdLogin(selectedUrl, callback.returnUrl, password)
                         PendingOpenIdLogin(primary, fallback, selectedUrl, authorizationUrl, callback)
                     } catch (error: Throwable) {
                         callback.close()
+                        activeOidcServer = null
                         throw error
                     }
                 }
 
-                pendingOpenIdCallback = pending.callbackServer
-                callbackServer = null
                 val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(pending.authorizationUrl))
                 context.startActivity(browserIntent)
                 message = "Complete sign-in in your browser, then return to Actua."
@@ -489,9 +487,8 @@ fun ConnectionScreen(
                     }
                 }
             }
-            callbackServer?.close()
-            pendingOpenIdCallback?.close()
-            pendingOpenIdCallback = null
+            activeOidcServer?.close()
+            activeOidcServer = null
             loading = false
         }
     }
@@ -586,12 +583,8 @@ fun ConnectionScreen(
     }
 
     LaunchedEffect(headerEntries) { client.customHeaders = headerEntries.toMap() }
-    LaunchedEffect(foregroundGeneration) {
-        pendingOpenIdCallback?.close()
-    }
-    DisposableEffect(pendingOpenIdCallback) {
-        val callback = pendingOpenIdCallback
-        onDispose { callback?.close() }
+    DisposableEffect(activeOidcServer) {
+        onDispose { activeOidcServer?.close() }
     }
     LaunchedEffect(connected) {
         if (connected && remoteBudgets.isEmpty()) loadBudgets()

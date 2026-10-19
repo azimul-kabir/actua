@@ -112,7 +112,7 @@ internal enum class SettingsPage(val title: String, val depth: Int) {
 internal fun isForwardSettingsNavigation(from: SettingsPage, to: SettingsPage): Boolean =
     to.depth > from.depth
 
-data class BudgetSwitcherOption(
+data class BudgetSelectionItem(
     val id: String,
     val name: String,
 )
@@ -183,7 +183,7 @@ fun SettingsScreen(
     onShowBottomNavigationLabelsChange: (Boolean) -> Unit = {},
     showCurrentBalanceSummary: Boolean = true,
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
-    budgetOptions: List<BudgetSwitcherOption> = emptyList(),
+    budgetOptions: List<BudgetSelectionItem> = emptyList(),
     activeBudgetId: String? = null,
     onBudgetChange: (String) -> Unit = {},
     returnToRootRequest: Int = 0,
@@ -319,7 +319,7 @@ fun SettingsScreen(
             when (shownPage) {
                 SettingsPage.Manage -> {
                     if (budgetOptions.isNotEmpty()) SettingsGroup {
-                        BudgetSwitcher(
+                        ActiveBudgetSelector(
                             options = budgetOptions,
                             activeBudgetId = activeBudgetId,
                             onBudgetChange = onBudgetChange,
@@ -792,8 +792,8 @@ fun SettingsScreen(
  * styled like the Reports dashboard picker; with one it simply names the budget in use.
  */
 @Composable
-private fun BudgetSwitcher(
-    options: List<BudgetSwitcherOption>,
+private fun ActiveBudgetSelector(
+    options: List<BudgetSelectionItem>,
     activeBudgetId: String?,
     onBudgetChange: (String) -> Unit,
 ) {
