@@ -258,31 +258,39 @@ fun ReportsScreen(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Reports", style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f))
-                IconButton(onClick = onSearch) {
-                    Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
-                }
-                if (selected != null && selected.widgets.any { it.kind != ReportWidgetKind.UNSUPPORTED }) {
-                    IconButton(
-                        onClick = { showReorderSheet = true },
-                        modifier = Modifier.testTag("dashboardReorderCardsButton"),
-                    ) {
-                        Icon(
-                            Icons.Outlined.DashboardCustomize,
-                            contentDescription = if (selected.id == SAVED_PAGE_ID) "Manage reports" else "Manage cards",
-                        )
-                    }
-                }
-                IconButton(
-                    onClick = {
-                        if (selected?.id == SAVED_PAGE_ID) isCreatingReport = true
-                        else showAddWidgetSheet = true
-                    },
-                    modifier = Modifier.testTag("reportsAddButton"),
+                Surface(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 2.dp,
                 ) {
-                    Icon(
-                        Icons.Outlined.Add,
-                        contentDescription = if (selected?.id == SAVED_PAGE_ID) "Create custom report" else "Add card to dashboard",
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onSearch) {
+                            Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
+                        }
+                        if (selected != null && selected.widgets.any { it.kind != ReportWidgetKind.UNSUPPORTED }) {
+                            IconButton(
+                                onClick = { showReorderSheet = true },
+                                modifier = Modifier.testTag("dashboardReorderCardsButton"),
+                            ) {
+                                Icon(
+                                    Icons.Outlined.DashboardCustomize,
+                                    contentDescription = if (selected.id == SAVED_PAGE_ID) "Manage reports" else "Manage cards",
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = {
+                                if (selected?.id == SAVED_PAGE_ID) isCreatingReport = true
+                                else showAddWidgetSheet = true
+                            },
+                            modifier = Modifier.testTag("reportsAddButton"),
+                        ) {
+                            Icon(
+                                Icons.Outlined.Add,
+                                contentDescription = if (selected?.id == SAVED_PAGE_ID) "Create custom report" else "Add card to dashboard",
+                            )
+                        }
+                    }
                 }
             }
         }
