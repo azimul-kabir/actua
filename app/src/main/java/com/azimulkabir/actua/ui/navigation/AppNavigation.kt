@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.annotation.SuppressLint
 import android.os.Build
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.annotation.StringRes
@@ -716,9 +717,16 @@ fun AppNavigation(
             else TransactionImpactCue(name, balanceBeforeCents = balanceBefore, balanceAfterCents = balanceAfter)
         }
 
+    // All strings used by the mutation/refresh helpers below, resolved once at composition
+    // (configuration-aware) and bundled into a single holder so the content switch below
+    // captures one object instead of one parameter per string.
+    val navStrings = navigationStrings()
+
     // The (disk I/O) mutation runs off the main thread; [onChanged] fires afterwards on the
     // main thread once the local write has durably completed, so callers that need to react to
     // success (closing a dialog, navigating away) do so there instead of on a return value.
+    // labelRes is a runtime @StringRes parameter, so only Context.getString can resolve it here.
+    @SuppressLint("LocalContextGetResourceValueCall")
     fun mutate(@StringRes labelRes: Int, onChanged: () -> Unit = {}, action: () -> Boolean) {
         val label = context.getString(labelRes)
         coroutineScope.launch {
@@ -730,13 +738,13 @@ fun AppNavigation(
                         onChanged()
                     } else {
                         DiagnosticsLog.actionRejected(label)
-                        errorMessage = context.getString(R.string.navigation_mutation_incomplete, label)
+                        errorMessage = navStrings.mutationIncompleteFormat.format(label)
                     }
                 },
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed(label, error)
                     errorMessage = error.message?.takeIf(String::isNotBlank)
-                        ?: context.getString(R.string.navigation_mutation_failed, label)
+                        ?: navStrings.mutationFailedFormat.format(label)
                 },
             )
         }
@@ -746,21 +754,22 @@ fun AppNavigation(
     // whether to keep the just-dropped optimistic order or snap back to the last confirmed one.
     // Reorder writes are single-row updates (not the batched writes this main-thread-blocking fix
     // targets), so this stays synchronous rather than gaining the same async/onChanged shape as
-    // [mutate].
+    // [mutate]. labelRes is a runtime @StringRes parameter (see [mutate]).
+    @SuppressLint("LocalContextGetResourceValueCall")
     fun mutateSync(@StringRes labelRes: Int, action: () -> Boolean): Boolean {
         val label = context.getString(labelRes)
         return runCatching(action).fold(
             onSuccess = { changed ->
                 if (changed) dataVersion += 1 else {
                     DiagnosticsLog.actionRejected(label)
-                    errorMessage = context.getString(R.string.navigation_mutation_incomplete, label)
+                    errorMessage = navStrings.mutationIncompleteFormat.format(label)
                 }
                 changed
             },
             onFailure = { error ->
                 DiagnosticsLog.actionFailed(label, error)
                 errorMessage = error.message?.takeIf(String::isNotBlank)
-                    ?: context.getString(R.string.navigation_mutation_failed, label)
+                    ?: navStrings.mutationFailedFormat.format(label)
                 false
             },
         )
@@ -781,6 +790,8 @@ fun AppNavigation(
         }
     }
 
+    // labelRes is a runtime @StringRes parameter (see [mutate]).
+    @SuppressLint("LocalContextGetResourceValueCall")
     fun mutateWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, onChanged: () -> Unit = {}, action: () -> Boolean) {
         val label = context.getString(labelRes)
         coroutineScope.launch {
@@ -795,13 +806,13 @@ fun AppNavigation(
                         onChanged()
                     } else {
                         DiagnosticsLog.actionRejected(label)
-                        errorMessage = context.getString(R.string.navigation_mutation_incomplete, label)
+                        errorMessage = navStrings.mutationIncompleteFormat.format(label)
                     }
                 },
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed(label, error)
                     errorMessage = error.message?.takeIf(String::isNotBlank)
-                        ?: context.getString(R.string.navigation_mutation_failed, label)
+                        ?: navStrings.mutationFailedFormat.format(label)
                 },
             )
         }
@@ -825,7 +836,7 @@ fun AppNavigation(
                     is SyncRunResult.Success -> Unit
                     SyncRunResult.NotConfigured -> dataVersion += 1
                     SyncRunResult.EncryptionKeyUnavailable -> {
-                        errorMessage = context.getString(R.string.navigation_unlock_budget_before_sync)
+                        errorMessage = navStrings.unlockBudgetBeforeSync
                     }
                 }
             } catch (cancelled: CancellationException) {
@@ -833,7 +844,7 @@ fun AppNavigation(
             } catch (error: Exception) {
                 DiagnosticsLog.actionFailed("Pull to refresh", error)
                 errorMessage = error.message?.takeIf(String::isNotBlank)
-                    ?: context.getString(R.string.navigation_sync_failed)
+                    ?: navStrings.syncFailed
             } finally {
                 transactionsRefreshing = false
             }
@@ -852,7 +863,7 @@ fun AppNavigation(
                     launch {
                         val action = snackbarHostState.showSnackbar(
                             bankResult.summary,
-                            actionLabel = viewAccount?.let { context.getString(R.string.navigation_view) },
+                            actionLabel = viewAccount?.let { navStrings.view },
                             duration = if (viewAccount != null) SnackbarDuration.Long else SnackbarDuration.Short,
                         )
                         if (action == SnackbarResult.ActionPerformed && viewAccount != null) {
@@ -868,7 +879,7 @@ fun AppNavigation(
                     is SyncRunResult.Success -> Unit
                     SyncRunResult.NotConfigured -> dataVersion += 1
                     SyncRunResult.EncryptionKeyUnavailable -> {
-                        errorMessage = context.getString(R.string.navigation_unlock_budget_before_sync)
+                        errorMessage = navStrings.unlockBudgetBeforeSync
                     }
                 }
             } catch (cancelled: CancellationException) {
@@ -876,7 +887,7 @@ fun AppNavigation(
             } catch (error: Exception) {
                 DiagnosticsLog.actionFailed("Pull to refresh", error)
                 errorMessage = error.message?.takeIf(String::isNotBlank)
-                    ?: context.getString(R.string.navigation_sync_failed)
+                    ?: navStrings.syncFailed
             } finally {
                 accountsRefreshing = false
             }
@@ -915,11 +926,11 @@ fun AppNavigation(
             runCatching { withContext(Dispatchers.IO) { repository.setEnableBankingCredentials(applicationId, secretKey) } }
                 .onSuccess {
                     loadBankSyncProviderStatus()
-                    snackbarHostState.showSnackbar(context.getString(R.string.navigation_enable_banking_credentials_saved))
+                    snackbarHostState.showSnackbar(navStrings.enableBankingSaved)
                 }
                 .onFailure {
                     errorMessage = it.message?.takeIf(String::isNotBlank)
-                        ?: context.getString(R.string.navigation_enable_banking_credentials_save_failed)
+                        ?: navStrings.enableBankingSaveFailed
                 }
         }
     }
@@ -929,11 +940,11 @@ fun AppNavigation(
             runCatching { withContext(Dispatchers.IO) { repository.setSimpleFinToken(token) } }
                 .onSuccess {
                     loadBankSyncProviderStatus()
-                    snackbarHostState.showSnackbar(context.getString(R.string.navigation_simplefin_token_saved))
+                    snackbarHostState.showSnackbar(navStrings.simplefinSaved)
                 }
                 .onFailure {
                     errorMessage = it.message?.takeIf(String::isNotBlank)
-                        ?: context.getString(R.string.navigation_simplefin_token_save_failed)
+                        ?: navStrings.simplefinSaveFailed
                 }
         }
     }
@@ -943,11 +954,11 @@ fun AppNavigation(
             runCatching { withContext(Dispatchers.IO) { repository.setGoCardlessCredentials(secretId, secretKey) } }
                 .onSuccess {
                     loadBankSyncProviderStatus()
-                    snackbarHostState.showSnackbar(context.getString(R.string.navigation_gocardless_credentials_saved))
+                    snackbarHostState.showSnackbar(navStrings.gocardlessSaved)
                 }
                 .onFailure {
                     errorMessage = it.message?.takeIf(String::isNotBlank)
-                        ?: context.getString(R.string.navigation_gocardless_credentials_save_failed)
+                        ?: navStrings.gocardlessSaveFailed
                 }
         }
     }
@@ -972,7 +983,7 @@ fun AppNavigation(
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed("Loading SimpleFIN accounts", error)
                     com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(
-                        error.message ?: context.getString(R.string.navigation_simplefin_accounts_load_failed),
+                        error.message ?: navStrings.simplefinAccountsLoadFailed,
                     )
                 },
             )
@@ -985,7 +996,7 @@ fun AppNavigation(
             goCardlessInstitutions = runCatching { withContext(Dispatchers.IO) { repository.discoverGoCardlessInstitutions(country) } }
                 .getOrElse { error ->
                     errorMessage = error.message?.takeIf(String::isNotBlank)
-                        ?: context.getString(R.string.navigation_banks_load_failed, country)
+                        ?: navStrings.banksLoadFailedFormat.format(country)
                     emptyList()
                 }.map { com.azimulkabir.actua.ui.banksync.GoCardlessInstitutionUi(it.id, it.name) }
             goCardlessInstitutionsLoading = false
@@ -1001,7 +1012,7 @@ fun AppNavigation(
                 }
                 .onFailure {
                     errorMessage = it.message?.takeIf(String::isNotBlank)
-                        ?: context.getString(R.string.navigation_gocardless_authorization_start_failed)
+                        ?: navStrings.gocardlessAuthorizationStartFailed
                 }
         }
     }
@@ -1010,7 +1021,7 @@ fun AppNavigation(
         val requisitionId = goCardlessRequisitionId
         if (requisitionId == null) {
             goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(
-                context.getString(R.string.navigation_choose_bank_first),
+                navStrings.chooseBankFirst,
             )
             return
         }
@@ -1029,7 +1040,7 @@ fun AppNavigation(
                         )
                         is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Pending ->
                             com.azimulkabir.actua.ui.banksync.DiscoveryState.Pending(
-                                context.getString(R.string.navigation_gocardless_authorization_pending, result.status),
+                                navStrings.gocardlessAuthorizationPendingFormat.format(result.status),
                             )
                         is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Error ->
                             com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(result.reason)
@@ -1038,7 +1049,7 @@ fun AppNavigation(
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed("Checking GoCardless accounts", error)
                     com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(
-                        error.message ?: context.getString(R.string.navigation_gocardless_accounts_check_failed),
+                        error.message ?: navStrings.gocardlessAccountsCheckFailed,
                     )
                 },
             )
@@ -1098,7 +1109,9 @@ fun AppNavigation(
     // Same contract as [mutate], but the (disk I/O) mutation runs off the main thread and
     // [onChanged] fires afterwards on the main thread once the local write has durably
     // completed. Use this for mutations on interaction-critical paths (e.g. dismissing an
-    // editor) so local DB work never blocks the UI thread.
+    // editor) so local DB work never blocks the UI thread. labelRes is a runtime @StringRes
+    // parameter (see [mutate]).
+    @SuppressLint("LocalContextGetResourceValueCall")
     fun mutateAsync(@StringRes labelRes: Int, action: () -> Boolean, onChanged: () -> Unit) {
         val label = context.getString(labelRes)
         coroutineScope.launch {
@@ -1110,19 +1123,21 @@ fun AppNavigation(
                         onChanged()
                     } else {
                         DiagnosticsLog.actionRejected(label)
-                        errorMessage = context.getString(R.string.navigation_mutation_incomplete, label)
+                        errorMessage = navStrings.mutationIncompleteFormat.format(label)
                     }
                 },
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed(label, error)
                     errorMessage = error.message?.takeIf(String::isNotBlank)
-                        ?: context.getString(R.string.navigation_mutation_failed, label)
+                        ?: navStrings.mutationFailedFormat.format(label)
                 },
             )
         }
     }
 
     /** Like [mutateAsync], but also shows [transactionImpactCues] for every budget category [categories] touches. */
+    // labelRes is a runtime @StringRes parameter (see [mutate]).
+    @SuppressLint("LocalContextGetResourceValueCall")
     fun mutateAsyncWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, action: () -> Boolean, onChanged: () -> Unit) {
         val label = context.getString(labelRes)
         coroutineScope.launch {
@@ -1137,13 +1152,13 @@ fun AppNavigation(
                         onChanged()
                     } else {
                         DiagnosticsLog.actionRejected(label)
-                        errorMessage = context.getString(R.string.navigation_mutation_incomplete, label)
+                        errorMessage = navStrings.mutationIncompleteFormat.format(label)
                     }
                 },
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed(label, error)
                     errorMessage = error.message?.takeIf(String::isNotBlank)
-                        ?: context.getString(R.string.navigation_mutation_failed, label)
+                        ?: navStrings.mutationFailedFormat.format(label)
                 },
             )
         }
@@ -1256,7 +1271,7 @@ fun AppNavigation(
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 DiagnosticsLog.actionFailed("Loading reports", e)
-                errorMessage = context.getString(R.string.navigation_reports_load_failed_with_reason, e.localizedMessage)
+                errorMessage = navStrings.reportsLoadFailedFormat.format(e.localizedMessage)
             }
         }
     }
@@ -1289,7 +1304,7 @@ fun AppNavigation(
             }
             SyncRunResult.NotConfigured -> Unit
             SyncRunResult.EncryptionKeyUnavailable -> {
-                errorMessage = context.getString(R.string.navigation_unlock_before_syncing)
+                errorMessage = navStrings.unlockBeforeSyncing
             }
             null -> Unit
         }
@@ -1931,8 +1946,11 @@ fun AppNavigation(
                     .flatMap { it.categories.asSequence() }
                     .associate { categoryChoices.labelOf(it.id, it.name) to formatMoneyCents(it.balanceCents, hideDecimalPlaces) }
             }
+            // Localization for the editor's non-composable callbacks below, resolved at composition
+            // by a single helper call so this branch stays lean inside the content switch.
+            val editorStrings = transactionEditorStrings()
             val payeeOptions = remember(payeeNames, accountOptions) {
-                (payeeNames + accountOptions.map { context.getString(R.string.navigation_transfer_payee, it) }).distinct()
+                (payeeNames + accountOptions.map { editorStrings.transferPayeeFormat.format(it) }).distinct()
             }
             AddTransactionScreen(
                 editing = editingTransaction,
@@ -1973,7 +1991,7 @@ fun AppNavigation(
                         }
                         result.onFailure { error ->
                             errorMessage = error.message?.takeIf(String::isNotBlank)
-                            ?: context.getString(R.string.navigation_saving_transaction_failed)
+                            ?: editorStrings.savingTransactionFailed
                         }
                         if (result.isSuccess) {
                             dataVersion += 1
@@ -2089,26 +2107,26 @@ fun AppNavigation(
                                         )
                                     },
                                     message = if (nearby.isEmpty()) {
-                                        context.getString(R.string.navigation_no_nearby_payee_locations)
+                                        editorStrings.noNearbyPayeeLocations
                                     } else {
                                         null
                                     },
                                 )
                             }
                             CurrentLocationResult.PermissionDenied -> NearbyPayeeSearchResult(
-                                message = context.getString(R.string.navigation_location_permission_search),
+                                message = editorStrings.locationPermissionSearch,
                             )
                             CurrentLocationResult.ServicesDisabled -> NearbyPayeeSearchResult(
-                                message = context.getString(R.string.navigation_location_disabled_search),
+                                message = editorStrings.locationDisabledSearch,
                             )
                             CurrentLocationResult.Timeout -> NearbyPayeeSearchResult(
-                                message = context.getString(R.string.navigation_location_timeout_search),
+                                message = editorStrings.locationTimeoutSearch,
                             )
                             CurrentLocationResult.Unavailable -> NearbyPayeeSearchResult(
-                                message = context.getString(R.string.navigation_location_unavailable_search),
+                                message = editorStrings.locationUnavailableSearch,
                             )
                             is CurrentLocationResult.Inaccurate -> NearbyPayeeSearchResult(
-                                message = context.getString(R.string.navigation_location_inaccurate_search),
+                                message = editorStrings.locationInaccurateSearch,
                             )
                         }
                     },
@@ -2123,26 +2141,26 @@ fun AppNavigation(
                                     PayeeLocationSaveResult(
                                         nowNearby = true,
                                         message = if (recorded) {
-                                            context.getString(R.string.navigation_location_saved, payeeName)
+                                            editorStrings.locationSavedFormat.format(payeeName)
                                         } else {
-                                            context.getString(R.string.navigation_location_already_saved, payeeName)
+                                            editorStrings.locationAlreadySavedFormat.format(payeeName)
                                         },
                                     )
                                 }
                                 CurrentLocationResult.PermissionDenied -> PayeeLocationSaveResult(
-                                    false, context.getString(R.string.navigation_location_permission_save),
+                                    false, editorStrings.locationPermissionSave,
                                 )
                                 CurrentLocationResult.ServicesDisabled -> PayeeLocationSaveResult(
-                                    false, context.getString(R.string.navigation_location_disabled_save),
+                                    false, editorStrings.locationDisabledSave,
                                 )
                                 CurrentLocationResult.Timeout -> PayeeLocationSaveResult(
-                                    false, context.getString(R.string.navigation_location_timeout_save),
+                                    false, editorStrings.locationTimeoutSave,
                                 )
                                 CurrentLocationResult.Unavailable -> PayeeLocationSaveResult(
-                                    false, context.getString(R.string.navigation_location_unavailable_save),
+                                    false, editorStrings.locationUnavailableSave,
                                 )
                                 is CurrentLocationResult.Inaccurate -> PayeeLocationSaveResult(
-                                    false, context.getString(R.string.navigation_location_inaccurate_save),
+                                    false, editorStrings.locationInaccurateSave,
                                 )
                             }
                         }
@@ -3280,6 +3298,98 @@ private fun NavigationReportsScreen(
         },
     )
 }
+
+/**
+ * Strings used by [AppNavigation]'s mutation/refresh helper functions and launch effects,
+ * resolved once at composition. Bundled in one class so the (size-critical) AnimatedContent
+ * content lambda captures a single object rather than one parameter per string.
+ */
+private data class NavigationStrings(
+    val mutationIncompleteFormat: String,
+    val mutationFailedFormat: String,
+    val unlockBudgetBeforeSync: String,
+    val syncFailed: String,
+    val view: String,
+    val enableBankingSaved: String,
+    val enableBankingSaveFailed: String,
+    val simplefinSaved: String,
+    val simplefinSaveFailed: String,
+    val gocardlessSaved: String,
+    val gocardlessSaveFailed: String,
+    val simplefinAccountsLoadFailed: String,
+    val banksLoadFailedFormat: String,
+    val gocardlessAuthorizationStartFailed: String,
+    val chooseBankFirst: String,
+    val gocardlessAuthorizationPendingFormat: String,
+    val gocardlessAccountsCheckFailed: String,
+    val reportsLoadFailedFormat: String,
+    val unlockBeforeSyncing: String,
+)
+
+@Composable
+private fun navigationStrings(): NavigationStrings = NavigationStrings(
+    mutationIncompleteFormat = stringResource(R.string.navigation_mutation_incomplete),
+    mutationFailedFormat = stringResource(R.string.navigation_mutation_failed),
+    unlockBudgetBeforeSync = stringResource(R.string.navigation_unlock_budget_before_sync),
+    syncFailed = stringResource(R.string.navigation_sync_failed),
+    view = stringResource(R.string.navigation_view),
+    enableBankingSaved = stringResource(R.string.navigation_enable_banking_credentials_saved),
+    enableBankingSaveFailed = stringResource(R.string.navigation_enable_banking_credentials_save_failed),
+    simplefinSaved = stringResource(R.string.navigation_simplefin_token_saved),
+    simplefinSaveFailed = stringResource(R.string.navigation_simplefin_token_save_failed),
+    gocardlessSaved = stringResource(R.string.navigation_gocardless_credentials_saved),
+    gocardlessSaveFailed = stringResource(R.string.navigation_gocardless_credentials_save_failed),
+    simplefinAccountsLoadFailed = stringResource(R.string.navigation_simplefin_accounts_load_failed),
+    banksLoadFailedFormat = stringResource(R.string.navigation_banks_load_failed),
+    gocardlessAuthorizationStartFailed = stringResource(R.string.navigation_gocardless_authorization_start_failed),
+    chooseBankFirst = stringResource(R.string.navigation_choose_bank_first),
+    gocardlessAuthorizationPendingFormat = stringResource(R.string.navigation_gocardless_authorization_pending),
+    gocardlessAccountsCheckFailed = stringResource(R.string.navigation_gocardless_accounts_check_failed),
+    reportsLoadFailedFormat = stringResource(R.string.navigation_reports_load_failed_with_reason),
+    unlockBeforeSyncing = stringResource(R.string.navigation_unlock_before_syncing),
+)
+
+/**
+ * Callback strings for the transaction editor, resolved once at composition so the
+ * non-composable [AddTransactionScreen] callbacks stay configuration-aware without
+ * bloating [AppNavigation]'s content switch (a single composable call instead of fifteen).
+ */
+private data class TransactionEditorStrings(
+    val transferPayeeFormat: String,
+    val savingTransactionFailed: String,
+    val noNearbyPayeeLocations: String,
+    val locationPermissionSearch: String,
+    val locationDisabledSearch: String,
+    val locationTimeoutSearch: String,
+    val locationUnavailableSearch: String,
+    val locationInaccurateSearch: String,
+    val locationSavedFormat: String,
+    val locationAlreadySavedFormat: String,
+    val locationPermissionSave: String,
+    val locationDisabledSave: String,
+    val locationTimeoutSave: String,
+    val locationUnavailableSave: String,
+    val locationInaccurateSave: String,
+)
+
+@Composable
+private fun transactionEditorStrings(): TransactionEditorStrings = TransactionEditorStrings(
+    transferPayeeFormat = stringResource(R.string.navigation_transfer_payee),
+    savingTransactionFailed = stringResource(R.string.navigation_saving_transaction_failed),
+    noNearbyPayeeLocations = stringResource(R.string.navigation_no_nearby_payee_locations),
+    locationPermissionSearch = stringResource(R.string.navigation_location_permission_search),
+    locationDisabledSearch = stringResource(R.string.navigation_location_disabled_search),
+    locationTimeoutSearch = stringResource(R.string.navigation_location_timeout_search),
+    locationUnavailableSearch = stringResource(R.string.navigation_location_unavailable_search),
+    locationInaccurateSearch = stringResource(R.string.navigation_location_inaccurate_search),
+    locationSavedFormat = stringResource(R.string.navigation_location_saved),
+    locationAlreadySavedFormat = stringResource(R.string.navigation_location_already_saved),
+    locationPermissionSave = stringResource(R.string.navigation_location_permission_save),
+    locationDisabledSave = stringResource(R.string.navigation_location_disabled_save),
+    locationTimeoutSave = stringResource(R.string.navigation_location_timeout_save),
+    locationUnavailableSave = stringResource(R.string.navigation_location_unavailable_save),
+    locationInaccurateSave = stringResource(R.string.navigation_location_inaccurate_save),
+)
 
 /**
  * The schedule/payee/import cluster of detail screens. Extracted from [AppNavigation]'s

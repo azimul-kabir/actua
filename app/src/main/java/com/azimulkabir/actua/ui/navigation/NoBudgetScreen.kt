@@ -82,6 +82,12 @@ internal fun NoBudgetScreen(
     var passphraseVisible by remember { mutableStateOf(false) }
     var passphraseError by remember { mutableStateOf<String?>(null) }
 
+    // Localization for the restore/import callbacks below, resolved at composition.
+    val incorrectPasswordMessage = stringResource(R.string.navigation_incorrect_password_or_recovery_key)
+    val gdriveRestoreFailedMessage = stringResource(R.string.navigation_gdrive_restore_failed)
+    val couldNotOpenArchiveMessage = stringResource(R.string.navigation_could_not_open_archive)
+    val importArchiveFailedMessage = stringResource(R.string.navigation_import_archive_failed)
+
     fun restoreSelectedBackup(item: GoogleDriveBackupItem, passphrase: String?) {
         driveLoading = true
         scope.launch {
@@ -104,10 +110,10 @@ internal fun NoBudgetScreen(
             }.onFailure { error ->
                 driveLoading = false
                 if (error is InvalidPassphraseException || error is PassphraseRequiredException) {
-                    passphraseError = context.getString(R.string.navigation_incorrect_password_or_recovery_key)
+                    passphraseError = incorrectPasswordMessage
                     showPassphraseDialog = true
                 } else {
-                    errorMessage = error.message ?: context.getString(R.string.navigation_gdrive_restore_failed)
+                    errorMessage = error.message ?: gdriveRestoreFailedMessage
                     showBrowseDriveBackupsDialog = false
                     showPassphraseDialog = false
                     selectedRemoteBackup = null
@@ -126,13 +132,13 @@ internal fun NoBudgetScreen(
                     withContext(Dispatchers.IO) {
                         context.contentResolver.openInputStream(uri)?.use { stream ->
                             BudgetFileManager(context).importLocalBudget(stream)
-                        } ?: error(context.getString(R.string.navigation_could_not_open_archive))
+                        } ?: error(couldNotOpenArchiveMessage)
                     }
                 }.onSuccess { imported ->
                     ActiveBudgetStore(context).budgetId = imported.id
                     onBudgetInstalled()
                 }.onFailure { error ->
-                    errorMessage = error.message ?: context.getString(R.string.navigation_import_archive_failed)
+                    errorMessage = error.message ?: importArchiveFailedMessage
                 }
             }
         }
@@ -278,6 +284,8 @@ internal fun NoBudgetScreen(
     }
 
     if (showCreateDialog) {
+        val budgetNameExistsFormat = stringResource(R.string.navigation_budget_name_exists)
+        val createLocalBudgetFailedMessage = stringResource(R.string.navigation_create_local_budget_failed)
         AlertDialog(
             onDismissRequest = { showCreateDialog = false },
             title = { Text(stringResource(R.string.navigation_create_local_budget)) },
@@ -301,7 +309,7 @@ internal fun NoBudgetScreen(
                         val files = BudgetFileManager(context)
                         val existing = files.listLocalBudgets().mapNotNull { it.budgetName?.lowercase() }
                         if (name.lowercase() in existing) {
-                            errorMessage = context.getString(R.string.navigation_budget_name_exists, name)
+                            errorMessage = budgetNameExistsFormat.format(name)
                             return@TextButton
                         }
                         scope.launch {
@@ -315,7 +323,7 @@ internal fun NoBudgetScreen(
                                 ActiveBudgetStore(context).budgetId = created.id
                                 onBudgetInstalled()
                             }.onFailure { error ->
-                                errorMessage = error.message ?: context.getString(R.string.navigation_create_local_budget_failed)
+                                errorMessage = error.message ?: createLocalBudgetFailedMessage
                             }
                         }
                     },
