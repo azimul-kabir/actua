@@ -775,7 +775,7 @@ fun SettingsScreen(
                     }
                     SettingsGroup("License") {
                         AboutRow(
-                            "MIT License",
+                            "GNU General Public License v3.0",
                             "Open-source notices and complete attribution are available in the repository’s LICENSE and NOTICE files.",
                         )
                     }

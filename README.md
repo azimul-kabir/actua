@@ -23,7 +23,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white" alt="Android 9+">
   <img src="https://img.shields.io/badge/Kotlin-Jetpack_Compose-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin and Jetpack Compose">
-  <img src="https://img.shields.io/badge/License-MIT-48506A" alt="MIT license">
+  <img src="https://img.shields.io/badge/License-GPL_v3-48506A" alt="GPLv3 license">
   <a href="https://www.azimulkabir.com"><img src="https://img.shields.io/badge/Developer-azimulkabir.com-48506A" alt="Developer website"></a>
 </p>
 
@@ -192,4 +192,4 @@ Want to discuss Actua, test beta builds, or help with development? [Join the Dis
 
 ## License
 
-Actua is available under the [MIT License](LICENSE).
+Actua is free software licensed under the [GNU General Public License v3.0](LICENSE).
