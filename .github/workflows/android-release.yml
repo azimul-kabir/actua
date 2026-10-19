@@ -140,7 +140,7 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.azimulkabir.actua
-          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          releaseFiles: app/build/outputs/bundle/playstoreRelease/app-playstore-release.aab
           releaseName: ${{ steps.version.outputs.code }} (${{ steps.version.outputs.name }})
           track: production
           status: completed
