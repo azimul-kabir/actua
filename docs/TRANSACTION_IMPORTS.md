@@ -62,6 +62,16 @@ present. Scanned/image-only PDFs and layouts whose text cannot be separated reli
 with a CSV/XLSX recommendation. Actua does not use OCR or guess transaction boundaries. Files are
 limited to 25 MB, and expanded XLSX worksheet parts are bounded to reduce malformed-archive risk.
 
+## OFX, QFX, QIF, and CAMT.053 XML statements
+
+Actua supports standard financial statement exchange formats matching Actual Budget:
+
+- **OFX and QFX:** Open Financial Exchange (OFX) and Quicken (QFX) SGML/XML statement files. Actua extracts transaction dates, amounts, payees, notes, and the unique `FITID` (Financial Institution Transaction ID) stored as `financial_id`.
+- **QIF:** Quicken Interchange Format (QIF) files. Actua parses standard bank, credit card, and cash transactions with standard date formats, amount fields, payees, and memo fields.
+- **CAMT.053:** ISO 20022 XML bank-to-customer statement files. Actua processes debit/credit entries, booking dates, remittance information, counterparty names, and entry references.
+
+All statement files are parsed entirely on-device. For formats with stable transaction IDs (`FITID` in OFX/QFX and entry references in CAMT.053), Actua enforces exact-ID deduplication against previously imported rows so duplicate statements do not re-import existing transactions.
+
 ## SMS, email, and app notifications
 
 SMS or email transaction alerts can be pasted into the import screen or shared to Actua through

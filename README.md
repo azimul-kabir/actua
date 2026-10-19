@@ -45,19 +45,19 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Password and OpenID/OIDC login
 - Standalone on-device budgets: full envelope budgeting without needing a server, with automated schedule posting, local backups, and export/import compatibility with Actual Budget archives (see [docs/STANDALONE_BUDGETS.md](docs/STANDALONE_BUDGETS.md))
 - Offline budgets with encrypted Actual sync
-- Budgeting, categories and money movement, including one-tap cover for overspent categories and Actual's budget actions (3/6/12-month averages, copy last month or to year end, hold income)
-- Transactions, splits, transfers, Make transfer for two existing transactions, merging duplicates and reconciliation, including "Use last synced total" for bank-synced accounts
+- Budgeting, categories and money movement, including one-tap cover for overspent categories, switching budget type between Envelope and Tracking, category group deletion with target reassignment, and Actual's budget actions (3/6/12-month averages, copy last month or to year end, hold income)
+- Transactions, splits (including transfer lines in split transactions), transfers, Make transfer for two existing transactions, merging duplicates and reconciliation, including "Use last synced total" for bank-synced accounts
 - Amount keypad with + − × ÷ arithmetic
 - Bank sync through your Actual server (SimpleFIN and GoCardless), plus experimental Enable Banking for European banks; newly synced transactions are marked until you view the account
 - Category targets and budget automations, including `#template` notes, checked against Actual's own template engine
 - Scheduled transactions and Bills calendar, with optional reminders before they are due
-- Accounts with group totals, credit cards and payment reminders
-- Actual dashboard and saved custom reports (read-only), with smooth line, bar, donut, Sankey, calendar, Budget Analysis and Monte Carlo charts, tap-to-open transactions with search and sorting, a full-screen view with a view-only time range and a data table, optional total and average per period, and date/account filtering
-- Rules and automatic categorization, run on manual entry, transfers, imports and bank sync as in Actual, including template, formula and split actions created in Actual
-- CSV, XLSX, PDF, SMS and notification imports, plus a [Tasker plugin and intents](docs/TRANSACTION_IMPORTS.md#tasker-and-other-automation-apps); captured transactions wait in a review queue with per-row, remembered and default accounts, optional review notifications, a launcher shortcut and an Accounts tab badge
+- Accounts with collapsible groups, custom group creation/management, in-place reordering, group totals, flat favorites, credit cards, payment reminders, and custom pay cycle period on monthly summary
+- Actual dashboard and custom reports with a report builder, authoring and card/page management, with smooth line, bar, donut, Sankey, calendar, Budget Analysis and Monte Carlo charts, tap-to-open transactions with search and sorting, a full-screen view with a view-only time range and a data table, optional total and average per period, and date/account filtering
+- Rules and automatic categorization, run on manual entry, transfers, imports and bank sync as in Actual, including template, formula and split actions, split rule authoring, live matching preview, and 'Apply rule now' bulk execution
+- CSV, OFX, QFX, QIF, CAMT.053, XLSX, PDF, SMS and notification imports, plus a [Tasker plugin and intents](docs/TRANSACTION_IMPORTS.md#tasker-and-other-automation-apps); captured transactions wait in a review queue with per-row, remembered and default accounts, optional review notifications, a launcher shortcut and an Accounts tab badge
 - Payee management (rename, merge, delete, favorite, category learning), with suggested and location-aware payees
 - Global search, and transaction search that also matches amounts and dates
-- Automatic local backups and restore
+- Automatic local backups and restore, plus optional Google Drive backup and restore with client-side authenticated AES-256-GCM encryption
 - Home-screen widgets and launcher shortcuts
 - Currency (including the symbol before or after the amount), date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
 - Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering
