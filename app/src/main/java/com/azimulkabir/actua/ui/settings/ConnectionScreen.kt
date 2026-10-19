@@ -1567,7 +1567,7 @@ fun ConnectionScreen(
                         }
                         if (remoteBudgets.isNotEmpty()) ActuaFormCard {
                             remoteBudgets.forEachIndexed { index, remote ->
-                                val local = downloader.localCopy(remote)
+                                val local = downloader.localCopy(remote, localBudgets)
                                 val isActive = local != null && activeBudget.budgetId == local.id
                                 if (index > 0) ActuaCardDivider(inset = Spacing.lg)
                                 Row(
@@ -1595,7 +1595,6 @@ fun ConnectionScreen(
                                         shape = MaterialTheme.shapes.large,
                                         onClick = {
                                             val token = credentials.token() ?: return@FilledTonalButton
-                                            onBeforeBudgetReplacement()
                                             downloadingId = remote.fileId
                                             message = null
                                             scope.launch {
@@ -1609,6 +1608,7 @@ fun ConnectionScreen(
                                                         downloader.openOrDownload(activeServerUrl, token, remote)
                                                     }
                                                 }.onSuccess { metadata ->
+                                                    onBeforeBudgetReplacement()
                                                     activeBudget.budgetId = metadata.id
                                                     message = if (local == null) "${remote.name} is downloaded and active." else "${remote.name} is active."
                                                     localBudgetsGeneration++
@@ -1621,7 +1621,6 @@ fun ConnectionScreen(
                                                         else -> connectionErrorMessage(error, "Could not download the budget.")
                                                     }
                                                     if (error is ActualServerException.SessionExpired) showServerError(error, "")
-                                                    onBudgetInstalled()
                                                 }
                                                 downloadingId = null
                                             }

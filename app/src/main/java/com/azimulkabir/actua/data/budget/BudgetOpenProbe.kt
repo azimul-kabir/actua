@@ -1,6 +1,5 @@
 package com.azimulkabir.actua.data.budget
 
-import com.azimulkabir.actua.data.reports.CoreReportEngine
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -21,28 +20,12 @@ internal object BudgetOpenProbe {
                 schedule.nextDate?.let { requireValidDate(it.yyyymmdd, "schedule ${schedule.id}") }
             }
             database.fetchPaidScheduleIds(schedules)
-            val dashboardPages = database.fetchDashboardPages()
-            val reportBudgets = mutableMapOf<YearMonth, Map<String, Long>>()
+            database.fetchDashboardPages()
+            database.fetchSavedReports()
             val reportTransactions = database.fetchTransactionsForReports()
             reportTransactions.forEach { transaction ->
                 requireValidDate(transaction.date, "transaction ${transaction.id}")
             }
-            CoreReportEngine.dashboards(
-                pages = dashboardPages,
-                widgets = database::fetchDashboardWidgets,
-                transactions = reportTransactions,
-                accounts = accounts,
-                groups = groups,
-                savedReports = database.fetchSavedReports(),
-                schedules = schedules,
-                budgetedByCategory = { month ->
-                    reportBudgets.getOrPut(month) {
-                        database.fetchBudgetMonth(month.toString())
-                            .let { it.categories + it.hiddenCategories }
-                            .associate { it.categoryId to it.budgetedCents }
-                    }
-                },
-            )
             database.fetchBudgetMonth(YearMonth.now().toString())
         } catch (error: BudgetFileException) {
             throw error

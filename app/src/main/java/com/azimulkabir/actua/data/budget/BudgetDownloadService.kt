@@ -29,8 +29,11 @@ class BudgetDownloadService(
     }
 
     /** The installed copy of [remote], if this device has one with a database to open. */
-    fun localCopy(remote: RemoteBudgetFile): BudgetMetadata? = files.listLocalBudgets()
-        .firstOrNull { it.cloudFileId == remote.fileId && files.databaseFile(it.id).isFile }
+    fun localCopy(remote: RemoteBudgetFile): BudgetMetadata? =
+        localCopy(remote, files.listLocalBudgets())
+
+    fun localCopy(remote: RemoteBudgetFile, candidates: List<BudgetMetadata>): BudgetMetadata? =
+        candidates.firstOrNull { it.cloudFileId == remote.fileId && files.databaseFile(it.id).isFile }
 
     /**
      * Opens the installed copy of [remote] when there is one, like Actual's `load-budget`, and

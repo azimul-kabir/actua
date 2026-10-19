@@ -17,6 +17,9 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.azimulkabir.actua.MainActivity
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
@@ -146,6 +149,12 @@ object CreditCardDueNotificationScheduler {
             manager.enqueueUniqueWork(reminder.workName, ExistingWorkPolicy.REPLACE, request)
         }
         settings.scheduledWorkNames = newNames
+    }
+
+    fun refreshAsync(context: Context, now: ZonedDateTime = ZonedDateTime.now()) {
+        CoroutineScope(Dispatchers.IO).launch {
+            refresh(context, now)
+        }
     }
 
     private fun CreditCardReminder.toData() = Data.Builder()

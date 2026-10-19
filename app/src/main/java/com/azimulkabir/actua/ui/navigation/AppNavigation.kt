@@ -371,7 +371,7 @@ fun AppNavigation(
     ) { granted ->
         creditCardNotificationSettings.isEnabled = granted
         creditCardNotificationsEnabled = granted
-        CreditCardDueNotificationScheduler.refresh(context)
+        CreditCardDueNotificationScheduler.refreshAsync(context)
     }
     val scheduleReminderSettings = remember { ScheduleReminderSettings(context) }
     var scheduleRemindersEnabled by remember { mutableStateOf(scheduleReminderSettings.isEnabled) }
@@ -2146,7 +2146,7 @@ fun AppNavigation(
                     repositoryVersion += 1
                     dataVersion += 1
                     if (budgetReplacementInProgress) budgetReplacementCompleted = true
-                    CreditCardDueNotificationScheduler.refresh(context)
+                    CreditCardDueNotificationScheduler.refreshAsync(context)
                 },
                 modifier = contentModifier,
             )
@@ -2161,13 +2161,13 @@ fun AppNavigation(
                 onSave = { accountId, day, paymentDue, limit ->
                     mutate(
                         "Saving credit card",
-                        onChanged = { CreditCardDueNotificationScheduler.refresh(context) },
+                        onChanged = { CreditCardDueNotificationScheduler.refreshAsync(context) },
                     ) { repository.setCreditCard(accountId, day, paymentDue, limit) }
                 },
                 onRemove = { accountId ->
                     mutate(
                         "Removing credit card",
-                        onChanged = { CreditCardDueNotificationScheduler.refresh(context) },
+                        onChanged = { CreditCardDueNotificationScheduler.refreshAsync(context) },
                     ) { repository.setCreditCard(accountId, null) }
                 },
                 notificationsEnabled = creditCardNotificationsEnabled,
@@ -2178,7 +2178,7 @@ fun AppNavigation(
                     } else {
                         creditCardNotificationSettings.isEnabled = enabled
                         creditCardNotificationsEnabled = enabled
-                        CreditCardDueNotificationScheduler.refresh(context)
+                        CreditCardDueNotificationScheduler.refreshAsync(context)
                     }
                 },
                 onViewStatements = { card ->
@@ -3253,7 +3253,7 @@ fun AppNavigation(
                             repositoryVersion += 1
                             dataVersion += 1
                             budgetReplacementCompleted = true
-                            CreditCardDueNotificationScheduler.refresh(context)
+                            CreditCardDueNotificationScheduler.refreshAsync(context)
                             WidgetUpdater.requestAll(context)
                             // Catch up with the server and send any edits made before switching away.
                             ActualSyncScheduler.scheduleMutation(context)
