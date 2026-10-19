@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.model
 
+import androidx.annotation.StringRes
+import com.azimulkabir.actua.R
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
@@ -73,17 +75,23 @@ data class BudgetTarget(
     val limitStartDate: String? = null,
     val limitHold: Boolean = false,
 ) {
-    enum class Type(val label: String, val explanation: String) {
-        FIXED("Fixed amount", "Add a set amount every month, week, day, or year."),
-        SCHEDULE("Cover schedule", "Save up for a scheduled transaction."),
-        BY_DATE("Save by date", "Spread a target amount across the months until a deadline."),
-        PERCENTAGE("% of income", "A share of this month's or last month's income."),
-        HISTORICAL("From history", "Use past months: average, a specific month, or a copy."),
-        REFILL("Refill to cap", "Top the category back up to the balance cap each month."),
-        REMAINDER("Whatever is left", "Split any remaining To Budget across these categories."),
-        LIMIT("Balance cap", "Stop budgeting to this category once the balance reaches a cap."),
+    /**
+     * A target's type. [label] keeps the English default for callers that have not localized
+     * yet; composables resolve [labelRes] instead. [explanation] stays English until the
+     * automation editor screen localizes (it owns those longer sentences).
+     */
+    enum class Type(val label: String, @StringRes val labelRes: Int, val explanation: String) {
+        FIXED("Fixed amount", R.string.target_fixed_label, "Add a set amount every month, week, day, or year."),
+        SCHEDULE("Cover schedule", R.string.target_schedule_label, "Save up for a scheduled transaction."),
+        BY_DATE("Save by date", R.string.target_by_date_label, "Spread a target amount across the months until a deadline."),
+        PERCENTAGE("% of income", R.string.target_percentage_label, "A share of this month's or last month's income."),
+        HISTORICAL("From history", R.string.target_history_label, "Use past months: average, a specific month, or a copy."),
+        REFILL("Refill to cap", R.string.target_refill_label, "Top the category back up to the balance cap each month."),
+        REMAINDER("Whatever is left", R.string.target_remainder_label, "Split any remaining To Budget across these categories."),
+        LIMIT("Balance cap", R.string.target_limit_label, "Stop budgeting to this category once the balance reaches a cap."),
         GOAL(
             "Long-term goal",
+            R.string.target_goal_label,
             "Set a long-term savings target. This changes the coloring of the balance on the " +
                 "budget page to be based on progress towards the target rather than the current " +
                 "month funding progress.",

@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeLayoutPlanner
 import com.azimulkabir.actua.data.home.HomeSection
@@ -20,6 +22,13 @@ import org.junit.runner.RunWith
 class CustomizeHomeScreenTest {
     @get:Rule val compose = createComposeRule()
 
+    /** Row labels and content descriptions come from resources, following the app language. */
+    private fun label(resId: Int, vararg args: Any) =
+        InstrumentationRegistry.getInstrumentation().targetContext.getString(resId, *args)
+
+    private fun sectionTitle(section: HomeSection) =
+        InstrumentationRegistry.getInstrumentation().targetContext.getString(section.titleRes)
+
     @Test fun toggling_a_switch_hides_the_section_and_reports_the_change() {
         var latest: HomeLayout? = null
         compose.setContent {
@@ -28,10 +37,10 @@ class CustomizeHomeScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Show ${HomeSection.REPORTS.title} on Home").performClick()
+        compose.onNodeWithContentDescription(label(R.string.home_show_section, sectionTitle(HomeSection.REPORTS))).performClick()
 
         assertTrue(HomeSection.REPORTS in requireNotNull(latest).hidden)
-        compose.onNodeWithContentDescription("Show ${HomeSection.REPORTS.title} on Home").assertExists()
+        compose.onNodeWithContentDescription(label(R.string.home_show_section, sectionTitle(HomeSection.REPORTS))).assertExists()
     }
 
     @Test fun ready_to_budget_has_no_switch_and_is_labeled_required() {
@@ -41,8 +50,10 @@ class CustomizeHomeScreenTest {
             }
         }
 
-        compose.onNodeWithText("Required").assertExists()
-        compose.onNodeWithContentDescription("Show ${HomeSection.READY_TO_BUDGET.title} on Home").assertDoesNotExist()
+        compose.onNodeWithText(label(R.string.home_required)).assertExists()
+        compose.onNodeWithContentDescription(
+            label(R.string.home_show_section, sectionTitle(HomeSection.READY_TO_BUDGET)),
+        ).assertDoesNotExist()
     }
 
     @Test fun move_down_arrow_reorders_and_reports_the_new_order() {
@@ -53,7 +64,9 @@ class CustomizeHomeScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Move ${HomeSection.FAVORITE_CATEGORIES.title} down").performClick()
+        compose.onNodeWithContentDescription(
+            label(R.string.home_move_down, sectionTitle(HomeSection.FAVORITE_CATEGORIES)),
+        ).performClick()
 
         val expected = HomeLayoutPlanner.moveSectionDown(HomeSection.entries.toList(), HomeSection.FAVORITE_CATEGORIES)
         assertEquals(expected, requireNotNull(latest).order)
@@ -68,7 +81,7 @@ class CustomizeHomeScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Restore default layout").performClick()
+        compose.onNodeWithContentDescription(label(R.string.home_restore_layout)).performClick()
 
         assertEquals(HomeLayout.default(), latest)
         assertFalse(HomeSection.REPORTS in requireNotNull(latest).hidden)

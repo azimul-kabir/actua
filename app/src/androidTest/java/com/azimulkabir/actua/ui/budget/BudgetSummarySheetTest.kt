@@ -9,6 +9,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
@@ -26,6 +28,9 @@ import org.junit.runner.RunWith
 class BudgetSummarySheetTest {
     @get:Rule
     val compose = createComposeRule()
+
+    /** Sheet labels come from resources, so assertions follow the app language. */
+    private fun label(resId: Int) = InstrumentationRegistry.getInstrumentation().targetContext.getString(resId)
 
     private fun overview(toBudgetCents: Long, bufferedCents: Long = 0L) = BudgetOverview(
         toBudgetCents = toBudgetCents,
@@ -48,7 +53,7 @@ class BudgetSummarySheetTest {
             MaterialTheme { BudgetScreen(groups = emptyList(), overview = overview(toBudgetCents = 1_200L)) }
         }
 
-        compose.onNodeWithText("Ready to Budget").assertExists()
+        compose.onNodeWithText(label(R.string.budget_ready_to_budget)).assertExists()
     }
 
     @Test
@@ -58,11 +63,11 @@ class BudgetSummarySheetTest {
         }
 
         // A single tap on the summary itself is the only step needed to reach both actions.
-        compose.onNodeWithText("Ready to Budget").performClick()
+        compose.onNodeWithText(label(R.string.budget_ready_to_budget)).performClick()
 
-        compose.onNodeWithText("Budget Summary").assertExists()
-        compose.onNodeWithText("Move to Category").assertExists()
-        compose.onNodeWithText("Hold for Next Month").assertExists()
+        compose.onNodeWithText(label(R.string.budget_summary)).assertExists()
+        compose.onNodeWithText(label(R.string.budget_move_to_category)).assertExists()
+        compose.onNodeWithText(label(R.string.budget_hold_for_next_month)).assertExists()
     }
 
     @Test
@@ -74,11 +79,11 @@ class BudgetSummarySheetTest {
         // A single tap on Ready to Budget should land straight in the expanded Move to
         // Category editor: category selector, amount, and calculator all visible already,
         // with no need to tap "Move to Category" a second time.
-        compose.onNodeWithText("Ready to Budget").performClick()
+        compose.onNodeWithText(label(R.string.budget_ready_to_budget)).performClick()
 
         compose.onNodeWithText("Bills · Rent").assertExists()
-        compose.onNodeWithText("Choose a category to fund from To Budget").assertExists()
-        compose.onNodeWithText("Amount").assertExists()
+        compose.onNodeWithText(label(R.string.budget_choose_category_fund)).assertExists()
+        compose.onNodeWithText(label(R.string.budget_amount)).assertExists()
     }
 
     @Test
@@ -103,14 +108,14 @@ class BudgetSummarySheetTest {
         compose.onNodeWithText("Groceries").performTouchInput {
             down(center); advanceEventTime(1_000); up()
         }
-        compose.onNodeWithText("Add to favorites").performClick()
+        compose.onNodeWithText(label(R.string.budget_add_favorite)).performClick()
 
         org.junit.Assert.assertEquals("groceries" to true, change)
 
         compose.onNodeWithText("Groceries").performTouchInput {
             down(center); advanceEventTime(1_000); up()
         }
-        compose.onNodeWithText("Remove from favorites").performClick()
+        compose.onNodeWithText(label(R.string.budget_remove_favorite)).performClick()
 
         org.junit.Assert.assertEquals("groceries" to false, change)
     }

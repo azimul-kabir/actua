@@ -18,6 +18,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
 import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
@@ -39,6 +41,9 @@ import org.junit.runner.RunWith
 class HomeScreenTest {
     @get:Rule val compose = createComposeRule()
 
+    /** Labels come from the app's resources, so assertions follow the app language. */
+    private fun label(resId: Int) = InstrumentationRegistry.getInstrumentation().targetContext.getString(resId)
+
     @After fun resetBalanceVisibility() {
         BalanceVisibility.hidden = false
     }
@@ -50,7 +55,7 @@ class HomeScreenTest {
             }
         }
 
-        compose.onNodeWithText("Home").assertExists()
+        compose.onNodeWithText(label(R.string.home_title)).assertExists()
     }
 
     @Test fun hiddenSectionsAreOmittedFromTheRenderedLayout() {
@@ -60,9 +65,9 @@ class HomeScreenTest {
             }
         }
 
-        compose.onAllNodesWithText(HomeSection.READY_TO_BUDGET.title).assertCountEquals(1)
-        compose.onNodeWithText(HomeSection.RECENT_ACTIVITY.title).assertExists()
-        compose.onNodeWithText(HomeSection.REPORTS.title).assertDoesNotExist()
+        compose.onAllNodesWithText(label(HomeSection.READY_TO_BUDGET.titleRes)).assertCountEquals(1)
+        compose.onNodeWithText(label(HomeSection.RECENT_ACTIVITY.titleRes)).assertExists()
+        compose.onNodeWithText(label(HomeSection.REPORTS.titleRes)).assertDoesNotExist()
     }
 
     @Test fun customizeButtonInvokesItsCallback() {
@@ -89,7 +94,7 @@ class HomeScreenTest {
             }
         }
 
-        compose.onNodeWithText("Dashboards and financial insights").performClick()
+        compose.onNodeWithText(label(R.string.home_dashboards)).performClick()
 
         assertTrue(
             "Home's Reports shortcut must route into the same Reports destination used " +
@@ -228,7 +233,7 @@ class HomeScreenTest {
             }
         }
 
-        compose.onNodeWithText("Activity").performClick()
+        compose.onNodeWithText(label(R.string.home_activity)).performClick()
 
         assertTrue(transactionsClicked)
     }

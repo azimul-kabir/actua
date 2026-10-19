@@ -48,9 +48,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.data.home.HomeSummaryPeriod
 import com.azimulkabir.actua.data.schedules.DayDate
@@ -114,9 +117,9 @@ fun HomeScreen(
         contentPadding = PaddingValues(bottom = if (hasFab) 160.dp else 0.dp),
     ) {
         item(key = "home-header") {
-            ActuaScreenHeader(title = "Home") {
+            ActuaScreenHeader(title = stringResource(R.string.home_title)) {
                 IconButton(onClick = onCustomizeClick) {
-                    Icon(Icons.Outlined.Tune, contentDescription = "Customize Home")
+                    Icon(Icons.Outlined.Tune, contentDescription = stringResource(R.string.home_customize))
                 }
             }
         }
@@ -147,10 +150,10 @@ fun HomeScreen(
 @Composable
 private fun ReadyToBudgetHero(overview: BudgetOverview, hideDecimals: Boolean, onClick: () -> Unit) {
     Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
-        ActuaGroupLabel(HomeSection.READY_TO_BUDGET.title)
+        ActuaGroupLabel(stringResource(HomeSection.READY_TO_BUDGET.titleRes))
         Surface(
             modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge)
-                .clickable(onClickLabel = "Open budget", onClick = onClick).testTag("readyToBudgetHero"),
+                .clickable(onClickLabel = stringResource(R.string.home_open_budget), onClick = onClick).testTag("readyToBudgetHero"),
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -158,13 +161,14 @@ private fun ReadyToBudgetHero(overview: BudgetOverview, hideDecimals: Boolean, o
             ActuaHeroAmount(
                 amount = formatMoneyCents(overview.toBudgetCents ?: 0L, hideDecimals),
                 modifier = Modifier.padding(vertical = Spacing.md),
-                caption = "Available to assign",
+                caption = stringResource(R.string.home_available_to_assign),
                 amountColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 captionColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
                 size = ActuaHeroSize.Medium,
                 action = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(if (overview.toBudgetCents == null) "No budget month selected" else "Open current budget",
+                        Text(if (overview.toBudgetCents == null) stringResource(R.string.home_no_budget_month)
+                        else stringResource(R.string.home_open_current_budget),
                             style = MaterialTheme.typography.labelLarge)
                         Spacer(Modifier.width(Spacing.xs))
                         Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(18.dp))
@@ -178,9 +182,10 @@ private fun ReadyToBudgetHero(overview: BudgetOverview, hideDecimals: Boolean, o
 @Composable
 private fun FavoriteCategoriesSection(categories: List<BudgetCategory>, hideDecimals: Boolean,
     onViewBudgetClick: () -> Unit, onCategoryClick: (String) -> Unit) {
-    DashboardSectionHeader(HomeSection.FAVORITE_CATEGORIES.title, "View budget", onViewBudgetClick)
+    DashboardSectionHeader(stringResource(HomeSection.FAVORITE_CATEGORIES.titleRes),
+        stringResource(R.string.home_view_budget), onViewBudgetClick)
     if (categories.isEmpty()) {
-        DashboardEmptyCard("No favorite categories yet", onViewBudgetClick)
+        DashboardEmptyCard(stringResource(R.string.home_no_favorite_categories), onViewBudgetClick)
         return
     }
     LazyRow(contentPadding = PaddingValues(horizontal = Spacing.screenHorizontal),
@@ -196,6 +201,8 @@ private fun CategoryProgressCard(category: BudgetCategory, hideDecimals: Boolean
     val fraction = category.progressFraction()
     val progressColor = categoryProgressColor(category)
     val percent = round(fraction * 100).toInt()
+    // Resolved once: shown as text and reused as the progress bar's state description.
+    val progressLabel = categoryProgressLabel(category, percent)
     val largeText = LocalDensity.current.fontScale >= 1.3f
     Surface(
         modifier = Modifier.width(if (largeText) 208.dp else 176.dp).clip(MaterialTheme.shapes.large)
@@ -212,21 +219,21 @@ private fun CategoryProgressCard(category: BudgetCategory, hideDecimals: Boolean
                         fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.height(Spacing.xs))
-                Text("${formatMoneyCents(category.balanceCents, hideDecimals)} available",
+                Text(stringResource(R.string.home_amount_available, formatMoneyCents(category.balanceCents, hideDecimals)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (category.balanceCents < 0) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Column {
-                Text(categoryProgressLabel(category, percent), style = MaterialTheme.typography.labelSmall,
+                Text(progressLabel, style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(Spacing.sm))
                 LinearProgressIndicator(
                     progress = { fraction },
                     modifier = Modifier.fillMaxWidth().height(7.dp).clip(PillShape)
-                        .semantics { stateDescription = categoryProgressLabel(category, percent) },
+                        .semantics { stateDescription = progressLabel },
                     color = progressColor,
                     trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                     gapSize = 0.dp,
@@ -240,9 +247,10 @@ private fun CategoryProgressCard(category: BudgetCategory, hideDecimals: Boolean
 @Composable
 private fun FavoriteAccountsSection(accounts: List<Account>, hideDecimals: Boolean, onViewAccountsClick: () -> Unit,
     onAccountClick: (String) -> Unit) {
-    DashboardSectionHeader(HomeSection.FAVORITE_ACCOUNTS.title, "View accounts", onViewAccountsClick)
+    DashboardSectionHeader(stringResource(HomeSection.FAVORITE_ACCOUNTS.titleRes),
+        stringResource(R.string.home_view_accounts), onViewAccountsClick)
     if (accounts.isEmpty()) {
-        DashboardEmptyCard("No favorite accounts yet", onViewAccountsClick)
+        DashboardEmptyCard(stringResource(R.string.home_no_favorite_accounts), onViewAccountsClick)
         return
     }
     val singleColumn = LocalConfiguration.current.screenWidthDp < 360 || LocalDensity.current.fontScale >= 1.3f
@@ -273,7 +281,7 @@ private fun AccountCard(account: Account, hideDecimals: Boolean, onClick: () -> 
             Spacer(Modifier.height(Spacing.md))
             Text(account.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(account.type.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium,
+            Text(accountTypeLabel(account.type), style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(Spacing.sm))
             Text(formatMoneyCents(account.balanceCents, hideDecimals),
@@ -286,9 +294,9 @@ private fun AccountCard(account: Account, hideDecimals: Boolean, onClick: () -> 
 @Composable
 private fun UpcomingSection(schedules: List<ScheduleListItem>, hideDecimals: Boolean, onClick: () -> Unit) {
     val visible = schedules.filter { it.status !in setOf(ScheduleStatus.COMPLETED, ScheduleStatus.PAID) }.take(5)
-    DashboardSectionHeader(HomeSection.UPCOMING.title, "View calendar", onClick)
+    DashboardSectionHeader(stringResource(HomeSection.UPCOMING.titleRes), stringResource(R.string.home_view_calendar), onClick)
     if (visible.isEmpty()) {
-        DashboardEmptyCard("No upcoming bills or schedules", onClick)
+        DashboardEmptyCard(stringResource(R.string.home_no_upcoming), onClick)
         return
     }
     DashboardSurface {
@@ -296,7 +304,7 @@ private fun UpcomingSection(schedules: List<ScheduleListItem>, hideDecimals: Boo
             UpcomingRow(item, hideDecimals, onClick)
             if (index != visible.lastIndex) DashboardDivider()
         }
-        DashboardFooter("View calendar", Icons.Outlined.CalendarMonth, onClick)
+        DashboardFooter(stringResource(R.string.home_view_calendar), Icons.Outlined.CalendarMonth, onClick)
     }
 }
 
@@ -327,7 +335,7 @@ private fun ThisMonthSection(transactions: List<Transaction>, hideDecimals: Bool
     val spending = summary.expenseCents
     val net = income - spending
     val scale = maxOf(income, spending, 1L).toFloat()
-    DashboardSectionHeader(HomeSection.THIS_MONTH.title, "View activity", onClick)
+    DashboardSectionHeader(stringResource(HomeSection.THIS_MONTH.titleRes), stringResource(R.string.home_view_activity), onClick)
     Surface(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal).fillMaxWidth()
         .clip(MaterialTheme.shapes.large).clickable(onClick = onClick), shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer) {
@@ -339,23 +347,26 @@ private fun ThisMonthSection(transactions: List<Transaction>, hideDecimals: Bool
                     modifier = Modifier.padding(bottom = Spacing.sm).testTag("homeSummaryPeriod"))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                MonthMetric("Income", income, hideDecimals, MaterialTheme.colorScheme.success, Modifier.weight(1f))
-                MonthMetric("Spent", spending, hideDecimals, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                MonthMetric("Net", net, hideDecimals,
+                MonthMetric(stringResource(R.string.home_income), income, hideDecimals, MaterialTheme.colorScheme.success, Modifier.weight(1f))
+                MonthMetric(stringResource(R.string.home_spent), spending, hideDecimals, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                MonthMetric(stringResource(R.string.home_net), net, hideDecimals,
                     if (net < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
                     Modifier.weight(1f))
             }
             Spacer(Modifier.height(Spacing.lg))
-            MonthBar("Income", income / scale, MaterialTheme.colorScheme.success)
+            MonthBar(stringResource(R.string.home_income), income / scale, MaterialTheme.colorScheme.success)
             Spacer(Modifier.height(Spacing.sm))
-            MonthBar("Spending", spending / scale, MaterialTheme.colorScheme.primary)
+            MonthBar(stringResource(R.string.home_spending), spending / scale, MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(Spacing.lg))
             Surface(shape = PillShape, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
                 Row(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
-                    Text("Activity", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.home_activity), style = MaterialTheme.typography.labelLarge)
                     Spacer(Modifier.width(Spacing.xs))
-                    Text("· ${transactions.size} transactions", style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "· " + pluralStringResource(R.plurals.home_transactions_count, transactions.size, transactions.size),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -391,16 +402,16 @@ private fun MonthBar(label: String, fraction: Float, color: Color) {
 @Composable
 private fun ReportsSection(reports: List<ReportDashboardPage>, onReportClick: (String) -> Unit,
     onViewAllClick: () -> Unit) {
-    DashboardSectionHeader(HomeSection.REPORTS.title, "View all", onViewAllClick)
+    DashboardSectionHeader(stringResource(HomeSection.REPORTS.titleRes), stringResource(R.string.home_view_all), onViewAllClick)
     DashboardSurface {
         if (reports.isEmpty()) {
-            InsightRow("Dashboards and financial insights", "Explore trends across your budget", onViewAllClick)
+            InsightRow(stringResource(R.string.home_dashboards), stringResource(R.string.home_explore_trends), onViewAllClick)
         } else {
             reports.take(5).forEachIndexed { index, report ->
-                InsightRow(report.name, "Open dashboard") { onReportClick(report.id) }
+                InsightRow(report.name, stringResource(R.string.home_open_dashboard)) { onReportClick(report.id) }
                 if (index != reports.take(5).lastIndex) DashboardDivider()
             }
-            DashboardFooter("View all reports", Icons.Outlined.BarChart, onViewAllClick)
+            DashboardFooter(stringResource(R.string.home_view_all_reports), Icons.Outlined.BarChart, onViewAllClick)
         }
     }
 }
@@ -413,9 +424,9 @@ private fun InsightRow(title: String, subtitle: String, onClick: () -> Unit) {
 @Composable
 private fun RecentActivitySection(transactions: List<Transaction>, hideDecimals: Boolean,
     onClick: () -> Unit) {
-    DashboardSectionHeader(HomeSection.RECENT_ACTIVITY.title, "View all", onClick)
+    DashboardSectionHeader(stringResource(HomeSection.RECENT_ACTIVITY.titleRes), stringResource(R.string.home_view_all), onClick)
     if (transactions.isEmpty()) {
-        DashboardEmptyCard("No recent activity", onClick)
+        DashboardEmptyCard(stringResource(R.string.home_no_recent_activity), onClick)
         return
     }
     DashboardSurface {
@@ -423,7 +434,7 @@ private fun RecentActivitySection(transactions: List<Transaction>, hideDecimals:
             ActivityRow(transaction, hideDecimals, onClick)
             if (index != transactions.take(5).lastIndex) DashboardDivider()
         }
-        DashboardFooter("View all activity", Icons.AutoMirrored.Outlined.ReceiptLong, onClick)
+        DashboardFooter(stringResource(R.string.home_view_all_activity), Icons.AutoMirrored.Outlined.ReceiptLong, onClick)
     }
 }
 
@@ -437,7 +448,7 @@ private fun ActivityRow(transaction: Transaction, hideDecimals: Boolean, onClick
         }
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
-            Text(transaction.payee.ifBlank { "Transaction" }, style = MaterialTheme.typography.bodyLarge,
+            Text(transaction.payee.ifBlank { stringResource(R.string.home_transaction) }, style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(transaction.category.ifBlank { transaction.account }, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
@@ -506,9 +517,22 @@ private fun DashboardDivider() {
 private fun categoryProgressColor(category: BudgetCategory): Color =
     categoryStatusColor(category.progressBarState())
 
+@Composable
 private fun categoryProgressLabel(category: BudgetCategory, percent: Int): String =
-    if (category.usesGoalProgress) "$percent% funded toward goal"
-    else "${category.progressState.label} · $percent% spent"
+    if (category.usesGoalProgress) stringResource(R.string.home_goal_progress, percent)
+    else stringResource(R.string.home_spending_progress, stringResource(category.progressState.labelRes), percent)
+
+/** An account type's display name; unknown tokens fall back to the capitalized token itself. */
+@Composable
+private fun accountTypeLabel(type: String): String = when (type) {
+    "checking" -> stringResource(R.string.home_account_checking)
+    "savings" -> stringResource(R.string.home_account_savings)
+    "credit" -> stringResource(R.string.home_account_credit)
+    "investment" -> stringResource(R.string.home_account_investment)
+    "mortgage" -> stringResource(R.string.home_account_mortgage)
+    "debt" -> stringResource(R.string.home_account_debt)
+    else -> type.replaceFirstChar { it.uppercase() }
+}
 
 @Composable
 private fun scheduleStatusColor(status: ScheduleStatus): Color = when (status) {
@@ -519,14 +543,15 @@ private fun scheduleStatusColor(status: ScheduleStatus): Color = when (status) {
     ScheduleStatus.SCHEDULED -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
+@Composable
 private fun scheduleLabel(item: ScheduleListItem): String {
     val due = item.schedule.nextDate?.let { date ->
         when (DayDate.today().daysUntil(date)) {
-            in Int.MIN_VALUE..-1 -> "Overdue"
-            0 -> "Due today"
-            1 -> "Due tomorrow"
-            else -> "Due ${date.iso}"
+            in Int.MIN_VALUE..-1 -> stringResource(R.string.home_overdue)
+            0 -> stringResource(R.string.home_due_today)
+            1 -> stringResource(R.string.home_due_tomorrow)
+            else -> stringResource(R.string.home_due_date, date.iso)
         }
-    } ?: "Scheduled"
+    } ?: stringResource(R.string.home_scheduled)
     return listOfNotNull(due, item.accountName?.takeIf { it.isNotBlank() }).joinToString(" · ")
 }
