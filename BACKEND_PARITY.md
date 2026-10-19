@@ -161,7 +161,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Single-page Add/Edit transaction form where the amount's sign selects expense or income and
   choosing an account as the payee makes a transfer, backed by transaction form planning and
   atomic transaction mutations, including split
-  creation, child-preserving edits, opposite-direction lines, and collapse to a
+  creation, child-preserving edits, opposite-direction lines, transfer lines in split transactions (creating reciprocal partner transactions in the destination account), and collapse to a
   standard transaction; transfer drafts can reverse their source/destination
   accounts before save, and post-save feedback is an animated balance-impact card showing the
   saved category's account balance before → after the save. Transaction, transfer and split
@@ -196,7 +196,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   ports Actual's `shouldApplyRuleChange` precedence so an explicit user-picked category survives
   a matching rule while an empty/inferred category is still filled in
 - Rule list/search/editor UI and Actual-compatible CRDT create, update, and
-  delete mutations for supported condition and action schemas, with protection
+  delete mutations for supported condition and action schemas, split action authoring and formula parent-field access, live matching transaction count and preview, and "Apply rule now" bulk re-application across existing transactions, with protection
   for schedule-owned rules; see [docs/RULES_PARITY.md](docs/RULES_PARITY.md) for the audited
   condition/action/ranking behavior and its implementation boundary
 - Actual-compatible canonical tag data model, colored `#tag` rendering consistent across
@@ -247,7 +247,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   opens Add Transaction from the bar (suppressing the floating Add Transaction button on tab roots
   and a drilled-into account or budget category while it's enabled), and Restore Defaults; stored as
   a versioned, migration-safe local UI preference
-- Saved Actual custom reports shown read-only through a shared Actual-compatible aggregator (donut and per-interval charts, device-local total/average-per-period summary, viewer-side date/account filter, drill-down to transactions); see `docs/REPORTS_PARITY.md`
+- Saved Actual custom reports and custom report builder through a shared Actual-compatible aggregator (donut and per-interval charts, device-local total/average-per-period summary, viewer-side date/account filter, drill-down to transactions); custom report creation and editing, and dashboard widget/page authoring via CRDT mutations; see `docs/REPORTS_PARITY.md`
 - Synced report dashboard charts (Net Worth, Balance Forecast, Age of Money, Crossover, Budget
   Analysis, Monte Carlo, Cash Flow, Income/Expense, Calendar, Sankey, donut and bar graphs) are drawn
   with a shared Compose chart toolkit: smooth lines with axes, tap-or-drag tooltips, tappable bars,
@@ -323,6 +323,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   last-app-open-refresh, and last-background-refresh status in Connection & Data
 - Dedicated backup manager with private archives, independent app-background creation,
   retention, archive export, optional Storage Access Framework folder mirroring,
+  optional Google Drive backup and restore with client-side authenticated AES-256-GCM encryption
+  and zero-proprietary-SDK PKCE OAuth (RFC 8252; see [docs/GOOGLE_DRIVE_BACKUP_FEASIBILITY.md](docs/GOOGLE_DRIVE_BACKUP_FEASIBILITY.md)),
   restore, and one-shot pre-restore revert
 - Foreground sync refresh and visible mutation failure reporting through Android snackbars
 - Explicit pull-to-refresh for the Transactions view, plus a loading state while switching
@@ -486,11 +488,6 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 
 ## Post-v1 portable features
 
-- Transfer split lines (a split child whose payee is another account, with its own other leg, as
-  in loot-core `transfer.ts`); the split editor does not offer `Transfer:` payees and saving
-  one is refused
-- "Apply rule now" bulk re-application of a rule to existing transactions and a live
-  matching-transaction preview in the rule editor (see [docs/RULES_PARITY.md](docs/RULES_PARITY.md))
 - Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
   cleanup source/sink groups already shipped
 - Pluggy.ai and Akahu account discovery, linking, and transaction download (Enable Banking is

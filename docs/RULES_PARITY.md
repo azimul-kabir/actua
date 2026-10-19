@@ -262,26 +262,28 @@ upstream's class-based `Condition`/`Action`/`Rule`.
   `extractScheduleConds`/`updateConditions`, preserving any other conditions/actions on the rule
   verbatim, and keeping a plain `set amount` action in sync with the amount condition.
 - **UI** (`RulesScreen.kt`): list/search, stage selection, condition/action builders (including
-  multi-select for `oneOf`/`notOneOf`, the AND/OR match-mode toggle, and disclosure of schedule-owned
-  rules), and Actual-compatible CRDT create/update/delete are implemented for the supported
+  multi-select for `oneOf`/`notOneOf`, the AND/OR match-mode toggle, disclosure of schedule-owned
+  rules, and split action authoring with parent-field formula access), live matching-transaction
+  count and expandable preview list in the editor, "Apply rule now" bulk execution across
+  existing transactions, and Actual-compatible CRDT create/update/delete are implemented for the supported
   condition/action schema described above.
 
 ## Deliberate deviations and known gaps
 
-- **No "apply rule now" bulk re-application to existing transactions**, and **no live
-  matching-transaction count/list in the rule editor** (upstream's `conditionsToAQL`-backed preview).
-  Actua's rule editor edits and previews a rule's effect only on a single in-progress transaction
-  draft (`ActuaRepository.previewRules`/`TransactionRulePreview.kt`); it has no equivalent to
-  re-scanning the transaction table for a rule change. This is a genuinely unsupported UX surface
-  today, not a deliberate simplification of an implemented behavior.
+- **"Apply rule now" bulk re-application and live matching preview**: Supported in Actua
+  ([#1146](https://github.com/azimul-kabir/actua/issues/1146), [#1156](https://github.com/azimul-kabir/actua/pull/1156)).
+  The rule editor evaluates conditions against existing live transactions in real time, displaying the
+  matching count and an expandable candidate list. Users can trigger "Apply rule now" to re-run the
+  rule across existing transactions in an atomic CRDT batch.
 - **Bank sync and file import** run rules in the same order as Actual
   ([#851](https://github.com/azimul-kabir/actua/issues/851), [#850](https://github.com/azimul-kabir/actua/issues/850)). See "Where rules run" above.
 - **Template and formula actions are applied but not authored; split actions are both.** Rules
   created in Actual with these actions run in Actua ([#888](https://github.com/azimul-kabir/actua/pull/888)).
   Actua's rule editor creates and edits split actions ("Set split amount" with fixed-amount,
   fixed-percent or remainder, and a "Applies to" split line on `set` actions, up to 10 lines;
-  [#1119](https://github.com/azimul-kabir/actua/issues/1119)). It does not create template or formula
-  actions and keeps their stored JSON unchanged.
+  [#1119](https://github.com/azimul-kabir/actua/issues/1119); split rule formulas can access parent
+  fields, [#1147](https://github.com/azimul-kabir/actua/issues/1147), [#1157](https://github.com/azimul-kabir/actua/pull/1157)).
+  It does not create general non-split template or formula actions and keeps their stored JSON unchanged.
 - **Category learning** (upstream's `updateCategoryRules`, which creates or updates a payee's
   category rule after the same category is used repeatedly for that payee) runs on transaction-form
   saves, honouring the `learn-categories` preference and `payees.learn_categories`

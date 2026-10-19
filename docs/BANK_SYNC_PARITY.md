@@ -44,7 +44,7 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Per-account sync preferences (`sync-import-pending-…` etc.) | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)); not editable in Actua yet |
 | Atomic batch, transfers, `sort_order` | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | Match (neither client learns from imports) |
-| File import: formats and mapping | Intentional boundary (CSV only in common) |
+| File import: formats and mapping | Match ([#1149](https://github.com/azimul-kabir/actua/issues/1149)) for all upstream formats (CSV, OFX/QFX, QIF, CAMT.053), plus XLSX and PDF |
 | File import: payee title-case, cleared default | Match ([#1008](https://github.com/azimul-kabir/actua/issues/1008)) |
 | File import: matching existing transactions | Match ([#1009](https://github.com/azimul-kabir/actua/issues/1009)) |
 

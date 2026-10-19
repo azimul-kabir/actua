@@ -283,6 +283,24 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] With device formats left on "Same as budget", change the budget's number format, date format, hide decimals and currency in Actual, sync, and verify Actua follows each; set a device override and verify it wins. On a `JPY` budget verify amounts show and are entered as whole yen.
 - [ ] Settings → About → Diagnostics: verify recent activity (screens, syncs, a forced failed action) is listed, copy, save and email the report, and confirm it contains no server address, credentials, budget names or amounts; clear the log and verify it empties.
 
+## Standalone budgets, Google Drive backups, and recent features
+
+- [ ] On the No Budget screen (or Manage → Connection & Data → On this device), create a new local standalone budget; verify it is provisioned with starter categories and default dashboard cards without connecting to a server.
+- [ ] In a standalone budget, verify transaction creation, budget assignments, rules, schedules, and local backup snapshots operate normally.
+- [ ] From Manage → Connection & Data, import an Actual Budget `.zip` archive as a standalone budget; confirm all transactions, accounts, categories, and history load correctly.
+- [ ] Connect to a server, switch between server budgets and standalone budgets, then Disconnect from the server; confirm server budgets are cleaned up while standalone budgets remain completely intact.
+- [ ] Backups → Google Drive backup: connect with Google Drive (Chrome Custom Tab / browser PKCE auth); verify least-privilege `drive.file` scope is requested; configure a custom OAuth client ID in preferences if needed.
+- [ ] Create an encrypted Google Drive backup, verify authenticated encryption with a user password, and restore it; confirm bad password immediately fails via canary verification.
+- [ ] Reports tab: use custom report builder to create a new custom report (name, graph type, balance type, interval, date range, conditions); verify it saves, appears on the dashboard, and can be edited or deleted.
+- [ ] Manage dashboard pages: add a new page, rename/reorder pages, add widgets, reorder cards, and delete pages via CRDT mutations.
+- [ ] Accounts tab: verify collapsible account groups expand and collapse smoothly; enter in-place edit mode to reorder accounts, rename/delete groups, or create a new group.
+- [ ] Split transaction with transfer lines: in Add/Edit transaction, add a split line whose payee is a transfer to another account; verify partner transaction is created in the destination account with opposite sign and mutual link; editing or deleting updates or tombstones both legs.
+- [ ] Rules: open rule editor and verify the live matching-transaction count and expandable preview list update as conditions are changed; tap "Apply rule now" and confirm the rule is applied across existing transactions in the budget.
+- [ ] File import: import OFX, QFX, QIF, and CAMT.053 XML statement files; confirm exact-ID deduplication against existing `FITID`/references.
+- [ ] Budget settings: switch budget type between Envelope and Tracking; verify budget views and calculations update immediately.
+- [ ] Manage Categories: delete a category group and verify Actua prompts to reassign contained categories to another group before tombstoning.
+- [ ] Accounts monthly summary: customize the pay cycle start day and verify month-to-date income and expense recalculate according to the custom cycle.
+
 ## Release/distribution
 
 - [ ] README version/download badges and release notes match the release being published.
