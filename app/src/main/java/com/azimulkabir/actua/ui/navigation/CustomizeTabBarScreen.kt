@@ -42,11 +42,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.navigation.TabBarLayout
 import com.azimulkabir.actua.data.navigation.TabBarLayoutPlanner
 import com.azimulkabir.actua.data.navigation.TabItem
@@ -183,19 +185,18 @@ fun CustomizeTabBarScreen(
     val reorderable = remember(localOrder) { localOrder.filterNot { it == TabItem.MANAGE } }
 
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Customize Tab Bar", onBack = onBack) {
+        ActuaScreenHeader(title = stringResource(R.string.navigation_customize_tab_bar), onBack = onBack) {
             IconButton(onClick = {
                 val defaults = TabBarLayout.default()
                 localOrder = defaults.order
                 localHidden = defaults.hidden
                 onLayoutChange(defaults)
             }) {
-                Icon(Icons.Outlined.RestartAlt, contentDescription = "Restore default tab bar")
+                Icon(Icons.Outlined.RestartAlt, contentDescription = stringResource(R.string.navigation_restore_default_tab_bar))
             }
         }
         Text(
-            "Drag a handle to reorder, or use the up/down arrows. Manage always stays available, " +
-                "and 3 to 5 tabs must stay visible.",
+            stringResource(R.string.navigation_customize_tab_bar_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -253,11 +254,15 @@ private fun TabItemRow(
     canMoveDown: Boolean,
 ) {
     val pinned = tabItem == TabItem.MANAGE
+    val tabLabel = stringResource(tabItem.labelRes())
+    val moveUpLabel = stringResource(R.string.navigation_move_tab_up, tabLabel)
+    val moveDownLabel = stringResource(R.string.navigation_move_tab_down, tabLabel)
+    val showInBottomBarLabel = stringResource(R.string.navigation_show_tab_in_bottom_bar, tabLabel)
     Row(modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (!pinned) {
             Icon(
                 Icons.Outlined.DragHandle,
-                contentDescription = "Drag to reorder ${tabItem.label}",
+                contentDescription = stringResource(R.string.navigation_drag_to_reorder, tabLabel),
                 modifier = Modifier
                     .size(44.dp)
                     .padding(8.dp)
@@ -274,7 +279,7 @@ private fun TabItemRow(
         Icon(tabItem.icon(), contentDescription = null, modifier = Modifier.size(24.dp))
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(
-                tabItem.label,
+                tabLabel,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 overflow = TextOverflow.Ellipsis,
@@ -283,7 +288,7 @@ private fun TabItemRow(
             // so it needs an explicit explanation the other rows don't.
             if (tabItem == TabItem.ADD) {
                 Text(
-                    "Replaces the floating + Transaction button",
+                    stringResource(R.string.navigation_add_tab_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -293,21 +298,21 @@ private fun TabItemRow(
             IconButton(
                 onClick = onMoveUp,
                 enabled = canMoveUp,
-                modifier = Modifier.semantics { contentDescription = "Move ${tabItem.label} up" },
+                modifier = Modifier.semantics { contentDescription = moveUpLabel },
             ) { Icon(Icons.Outlined.KeyboardArrowUp, null) }
             IconButton(
                 onClick = onMoveDown,
                 enabled = canMoveDown,
-                modifier = Modifier.semantics { contentDescription = "Move ${tabItem.label} down" },
+                modifier = Modifier.semantics { contentDescription = moveDownLabel },
             ) { Icon(Icons.Outlined.KeyboardArrowDown, null) }
             Switch(
                 checked = !hidden,
                 onCheckedChange = { checked -> onHiddenChange(!checked) },
                 enabled = canToggleHidden,
-                modifier = Modifier.semantics { contentDescription = "Show ${tabItem.label} in the bottom bar" },
+                modifier = Modifier.semantics { contentDescription = showInBottomBarLabel },
             )
         } else {
-            Text("Required", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.navigation_required), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

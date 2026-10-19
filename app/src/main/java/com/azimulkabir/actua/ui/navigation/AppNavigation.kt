@@ -2,10 +2,13 @@ package com.azimulkabir.actua.ui.navigation
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.annotation.StringRes
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
@@ -88,6 +91,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.core.content.ContextCompat
@@ -101,6 +106,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import com.azimulkabir.actua.data.importing.NotificationImportPreferences
 import com.azimulkabir.actua.ui.accounts.AccountsScreen
@@ -164,6 +170,7 @@ import com.azimulkabir.actua.data.sync.SyncStatus
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.navigation.TabItem
+import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
@@ -196,20 +203,37 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import com.azimulkabir.actua.data.security.CredentialStore
 
-/** A tab's spoken label with how many captured transactions wait on it, e.g. "Accounts, 3 captured transactions waiting". */
-internal fun tabLabelWithCaptures(label: String, count: Int): String =
-    if (count <= 0) label else "$label, $count captured transaction${if (count == 1) "" else "s"} waiting"
+/**
+ * Localized label of a bottom tab. [TabItem.label] is the stable English name (used in
+ * preferences and planner logic); screens render [labelRes] instead so the tab bar
+ * localizes.
+ */
+@StringRes
+internal fun TabItem.labelRes(): Int = when (this) {
+    TabItem.HOME -> R.string.navigation_home
+    TabItem.BUDGET -> R.string.navigation_budget
+    TabItem.TRANSACTIONS -> R.string.navigation_transactions
+    TabItem.ACCOUNTS -> R.string.navigation_accounts
+    TabItem.REPORTS -> R.string.navigation_reports
+    TabItem.ADD -> R.string.navigation_add
+    TabItem.MANAGE -> R.string.navigation_manage
+}
 
+/**
+ * The bottom destinations. [label] is the persisted start-page value (compared against
+ * `DisplayPreferences.startPage`), so it stays English; [labelRes] localizes what is shown.
+ */
 private enum class MainDestination(
     val label: String,
+    @StringRes val labelRes: Int,
     val icon: ImageVector,
 ) {
-    Home("Home", Icons.Outlined.Home),
-    Budget("Budget", Icons.Outlined.PieChartOutline),
-    Transactions("Transactions", Icons.Outlined.ReceiptLong),
-    Accounts("Accounts", Icons.Outlined.AccountBalanceWallet),
-    Reports("Reports", Icons.Outlined.BarChart),
-    Manage("Manage", Icons.Outlined.Tune),
+    Home("Home", R.string.navigation_home, Icons.Outlined.Home),
+    Budget("Budget", R.string.navigation_budget, Icons.Outlined.PieChartOutline),
+    Transactions("Transactions", R.string.navigation_transactions, Icons.Outlined.ReceiptLong),
+    Accounts("Accounts", R.string.navigation_accounts, Icons.Outlined.AccountBalanceWallet),
+    Reports("Reports", R.string.navigation_reports, Icons.Outlined.BarChart),
+    Manage("Manage", R.string.navigation_manage, Icons.Outlined.Tune),
 }
 
 /**
@@ -267,10 +291,10 @@ internal fun SessionExpiredBanner(onSignIn: () -> Unit, modifier: Modifier = Mod
         modifier = modifier
             .statusBarsPadding()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-            .clickable(onClickLabel = "Sign in again", role = Role.Button, onClick = onSignIn),
+            .clickable(onClickLabel = stringResource(R.string.navigation_sign_in_again), role = Role.Button, onClick = onSignIn),
     ) {
         Text(
-            "Signed out of your Actual server. Tap to sign in again. Changes stay on this device until then.",
+            stringResource(R.string.navigation_signed_out_message),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 20.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
@@ -304,7 +328,7 @@ internal fun SyncStatusBanner(modifier: Modifier = Modifier) {
                     .testTag("syncStatusBannerIndicator"),
             )
             Text(
-                "Syncing budget… Showing local data.",
+                stringResource(R.string.navigation_syncing_budget),
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -333,7 +357,7 @@ private fun BudgetSwitchDialog() {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 CircularProgressIndicator()
-                Text("Loading budget…", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.navigation_loading_budget), style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -695,7 +719,8 @@ fun AppNavigation(
     // The (disk I/O) mutation runs off the main thread; [onChanged] fires afterwards on the
     // main thread once the local write has durably completed, so callers that need to react to
     // success (closing a dialog, navigating away) do so there instead of on a return value.
-    fun mutate(label: String, onChanged: () -> Unit = {}, action: () -> Boolean) {
+    fun mutate(@StringRes labelRes: Int, onChanged: () -> Unit = {}, action: () -> Boolean) {
+        val label = context.getString(labelRes)
         coroutineScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching(action) }
             result.fold(
@@ -705,12 +730,13 @@ fun AppNavigation(
                         onChanged()
                     } else {
                         DiagnosticsLog.actionRejected(label)
-                        errorMessage = "$label could not be completed."
+                        errorMessage = context.getString(R.string.navigation_mutation_incomplete, label)
                     }
                 },
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed(label, error)
-                    errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
+                    errorMessage = error.message?.takeIf(String::isNotBlank)
+                        ?: context.getString(R.string.navigation_mutation_failed, label)
                 },
             )
         }
@@ -721,37 +747,42 @@ fun AppNavigation(
     // Reorder writes are single-row updates (not the batched writes this main-thread-blocking fix
     // targets), so this stays synchronous rather than gaining the same async/onChanged shape as
     // [mutate].
-    fun mutateSync(label: String, action: () -> Boolean): Boolean = runCatching(action).fold(
-        onSuccess = { changed ->
-            if (changed) dataVersion += 1 else {
-                DiagnosticsLog.actionRejected(label)
-                errorMessage = "$label could not be completed."
-            }
-            changed
-        },
-        onFailure = { error ->
-            DiagnosticsLog.actionFailed(label, error)
-            errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
-            false
-        },
-    )
+    fun mutateSync(@StringRes labelRes: Int, action: () -> Boolean): Boolean {
+        val label = context.getString(labelRes)
+        return runCatching(action).fold(
+            onSuccess = { changed ->
+                if (changed) dataVersion += 1 else {
+                    DiagnosticsLog.actionRejected(label)
+                    errorMessage = context.getString(R.string.navigation_mutation_incomplete, label)
+                }
+                changed
+            },
+            onFailure = { error ->
+                DiagnosticsLog.actionFailed(label, error)
+                errorMessage = error.message?.takeIf(String::isNotBlank)
+                    ?: context.getString(R.string.navigation_mutation_failed, label)
+                false
+            },
+        )
+    }
 
     /** Like [mutate], but also shows [transactionImpactCues] for every budget category [categories] touches. */
     fun onUpcomingAction(transaction: Transaction, action: UpcomingTransactionAction) {
         val id = transaction.scheduleId ?: return
         when (action) {
             UpcomingTransactionAction.POST ->
-                mutate("Posting schedule") { repository.postScheduleTransaction(id, today = false) }
+                mutate(R.string.navigation_posting_schedule) { repository.postScheduleTransaction(id, today = false) }
             UpcomingTransactionAction.POST_TODAY ->
-                mutate("Posting schedule today") { repository.postScheduleTransaction(id, today = true) }
+                mutate(R.string.navigation_posting_schedule_today) { repository.postScheduleTransaction(id, today = true) }
             UpcomingTransactionAction.SKIP ->
-                mutate("Skipping next date") { repository.skipScheduleNextDate(id) }
+                mutate(R.string.navigation_skipping_next_date) { repository.skipScheduleNextDate(id) }
             UpcomingTransactionAction.COMPLETE ->
-                mutate("Completing schedule") { repository.setScheduleCompleted(id, true) }
+                mutate(R.string.navigation_completing_schedule) { repository.setScheduleCompleted(id, true) }
         }
     }
 
-    fun mutateWithImpactCue(label: String, categories: Set<String>, onChanged: () -> Unit = {}, action: () -> Boolean) {
+    fun mutateWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, onChanged: () -> Unit = {}, action: () -> Boolean) {
+        val label = context.getString(labelRes)
         coroutineScope.launch {
             val before = withContext(Dispatchers.IO) { categoryAvailableCents(categories) }
             val result = withContext(Dispatchers.IO) { runCatching(action) }
@@ -764,12 +795,13 @@ fun AppNavigation(
                         onChanged()
                     } else {
                         DiagnosticsLog.actionRejected(label)
-                        errorMessage = "$label could not be completed."
+                        errorMessage = context.getString(R.string.navigation_mutation_incomplete, label)
                     }
                 },
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed(label, error)
-                    errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
+                    errorMessage = error.message?.takeIf(String::isNotBlank)
+                        ?: context.getString(R.string.navigation_mutation_failed, label)
                 },
             )
         }
@@ -793,14 +825,15 @@ fun AppNavigation(
                     is SyncRunResult.Success -> Unit
                     SyncRunResult.NotConfigured -> dataVersion += 1
                     SyncRunResult.EncryptionKeyUnavailable -> {
-                        errorMessage = "Unlock this encrypted budget before syncing."
+                        errorMessage = context.getString(R.string.navigation_unlock_budget_before_sync)
                     }
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
                 DiagnosticsLog.actionFailed("Pull to refresh", error)
-                errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Sync failed."
+                errorMessage = error.message?.takeIf(String::isNotBlank)
+                    ?: context.getString(R.string.navigation_sync_failed)
             } finally {
                 transactionsRefreshing = false
             }
@@ -819,7 +852,7 @@ fun AppNavigation(
                     launch {
                         val action = snackbarHostState.showSnackbar(
                             bankResult.summary,
-                            actionLabel = viewAccount?.let { "View" },
+                            actionLabel = viewAccount?.let { context.getString(R.string.navigation_view) },
                             duration = if (viewAccount != null) SnackbarDuration.Long else SnackbarDuration.Short,
                         )
                         if (action == SnackbarResult.ActionPerformed && viewAccount != null) {
@@ -835,14 +868,15 @@ fun AppNavigation(
                     is SyncRunResult.Success -> Unit
                     SyncRunResult.NotConfigured -> dataVersion += 1
                     SyncRunResult.EncryptionKeyUnavailable -> {
-                        errorMessage = "Unlock this encrypted budget before syncing."
+                        errorMessage = context.getString(R.string.navigation_unlock_budget_before_sync)
                     }
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
                 DiagnosticsLog.actionFailed("Pull to refresh", error)
-                errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Sync failed."
+                errorMessage = error.message?.takeIf(String::isNotBlank)
+                    ?: context.getString(R.string.navigation_sync_failed)
             } finally {
                 accountsRefreshing = false
             }
@@ -879,24 +913,42 @@ fun AppNavigation(
     fun saveEnableBankingCredentials(applicationId: String, secretKey: String) {
         coroutineScope.launch {
             runCatching { withContext(Dispatchers.IO) { repository.setEnableBankingCredentials(applicationId, secretKey) } }
-                .onSuccess { loadBankSyncProviderStatus(); snackbarHostState.showSnackbar("Enable Banking credentials saved.") }
-                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: "Could not save Enable Banking credentials." }
+                .onSuccess {
+                    loadBankSyncProviderStatus()
+                    snackbarHostState.showSnackbar(context.getString(R.string.navigation_enable_banking_credentials_saved))
+                }
+                .onFailure {
+                    errorMessage = it.message?.takeIf(String::isNotBlank)
+                        ?: context.getString(R.string.navigation_enable_banking_credentials_save_failed)
+                }
         }
     }
 
     fun saveSimpleFinToken(token: String) {
         coroutineScope.launch {
             runCatching { withContext(Dispatchers.IO) { repository.setSimpleFinToken(token) } }
-                .onSuccess { loadBankSyncProviderStatus(); snackbarHostState.showSnackbar("SimpleFIN token saved.") }
-                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: "Could not save the SimpleFIN token." }
+                .onSuccess {
+                    loadBankSyncProviderStatus()
+                    snackbarHostState.showSnackbar(context.getString(R.string.navigation_simplefin_token_saved))
+                }
+                .onFailure {
+                    errorMessage = it.message?.takeIf(String::isNotBlank)
+                        ?: context.getString(R.string.navigation_simplefin_token_save_failed)
+                }
         }
     }
 
     fun saveGoCardlessCredentials(secretId: String, secretKey: String) {
         coroutineScope.launch {
             runCatching { withContext(Dispatchers.IO) { repository.setGoCardlessCredentials(secretId, secretKey) } }
-                .onSuccess { loadBankSyncProviderStatus(); snackbarHostState.showSnackbar("GoCardless credentials saved.") }
-                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: "Could not save GoCardless credentials." }
+                .onSuccess {
+                    loadBankSyncProviderStatus()
+                    snackbarHostState.showSnackbar(context.getString(R.string.navigation_gocardless_credentials_saved))
+                }
+                .onFailure {
+                    errorMessage = it.message?.takeIf(String::isNotBlank)
+                        ?: context.getString(R.string.navigation_gocardless_credentials_save_failed)
+                }
         }
     }
 
@@ -919,7 +971,9 @@ fun AppNavigation(
                 },
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed("Loading SimpleFIN accounts", error)
-                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(error.message ?: "Could not load SimpleFIN accounts.")
+                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(
+                        error.message ?: context.getString(R.string.navigation_simplefin_accounts_load_failed),
+                    )
                 },
             )
         }
@@ -930,7 +984,8 @@ fun AppNavigation(
         coroutineScope.launch {
             goCardlessInstitutions = runCatching { withContext(Dispatchers.IO) { repository.discoverGoCardlessInstitutions(country) } }
                 .getOrElse { error ->
-                    errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Could not load banks for $country."
+                    errorMessage = error.message?.takeIf(String::isNotBlank)
+                        ?: context.getString(R.string.navigation_banks_load_failed, country)
                     emptyList()
                 }.map { com.azimulkabir.actua.ui.banksync.GoCardlessInstitutionUi(it.id, it.name) }
             goCardlessInstitutionsLoading = false
@@ -944,7 +999,10 @@ fun AppNavigation(
                     goCardlessRequisitionId = webToken.requisitionId
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webToken.link)))
                 }
-                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: "Could not start GoCardless authorization." }
+                .onFailure {
+                    errorMessage = it.message?.takeIf(String::isNotBlank)
+                        ?: context.getString(R.string.navigation_gocardless_authorization_start_failed)
+                }
         }
     }
 
@@ -952,7 +1010,7 @@ fun AppNavigation(
         val requisitionId = goCardlessRequisitionId
         if (requisitionId == null) {
             goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(
-                "Choose a bank to link first.",
+                context.getString(R.string.navigation_choose_bank_first),
             )
             return
         }
@@ -970,14 +1028,18 @@ fun AppNavigation(
                             },
                         )
                         is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Pending ->
-                            com.azimulkabir.actua.ui.banksync.DiscoveryState.Pending("Still waiting on bank authorization (${result.status}). Finish it in the browser, then check again.")
+                            com.azimulkabir.actua.ui.banksync.DiscoveryState.Pending(
+                                context.getString(R.string.navigation_gocardless_authorization_pending, result.status),
+                            )
                         is com.azimulkabir.actua.data.network.GoCardlessAccountsResult.Error ->
                             com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(result.reason)
                     }
                 },
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed("Checking GoCardless accounts", error)
-                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(error.message ?: "Could not check GoCardless accounts.")
+                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(
+                        error.message ?: context.getString(R.string.navigation_gocardless_accounts_check_failed),
+                    )
                 },
             )
         }
@@ -1000,7 +1062,7 @@ fun AppNavigation(
         }
         val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else discovered.bankName
         mutate(
-            "Linking account",
+            R.string.navigation_linking_account,
             onChanged = {
                 goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
                 simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
@@ -1020,7 +1082,7 @@ fun AppNavigation(
         }
         val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else discovered.bankName
         mutate(
-            "Creating account",
+            R.string.navigation_creating_account,
             onChanged = {
                 goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
                 simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
@@ -1030,14 +1092,15 @@ fun AppNavigation(
     }
 
     fun unlinkBankAccount(account: Account) {
-        mutate("Unlinking account") { repository.unlinkBankAccount(account.id) }
+        mutate(R.string.navigation_unlinking_account) { repository.unlinkBankAccount(account.id) }
     }
 
     // Same contract as [mutate], but the (disk I/O) mutation runs off the main thread and
     // [onChanged] fires afterwards on the main thread once the local write has durably
     // completed. Use this for mutations on interaction-critical paths (e.g. dismissing an
     // editor) so local DB work never blocks the UI thread.
-    fun mutateAsync(label: String, action: () -> Boolean, onChanged: () -> Unit) {
+    fun mutateAsync(@StringRes labelRes: Int, action: () -> Boolean, onChanged: () -> Unit) {
+        val label = context.getString(labelRes)
         coroutineScope.launch {
             val result = withContext(Dispatchers.IO) { runCatching(action) }
             result.fold(
@@ -1047,19 +1110,21 @@ fun AppNavigation(
                         onChanged()
                     } else {
                         DiagnosticsLog.actionRejected(label)
-                        errorMessage = "$label could not be completed."
+                        errorMessage = context.getString(R.string.navigation_mutation_incomplete, label)
                     }
                 },
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed(label, error)
-                    errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
+                    errorMessage = error.message?.takeIf(String::isNotBlank)
+                        ?: context.getString(R.string.navigation_mutation_failed, label)
                 },
             )
         }
     }
 
     /** Like [mutateAsync], but also shows [transactionImpactCues] for every budget category [categories] touches. */
-    fun mutateAsyncWithImpactCue(label: String, categories: Set<String>, action: () -> Boolean, onChanged: () -> Unit) {
+    fun mutateAsyncWithImpactCue(@StringRes labelRes: Int, categories: Set<String>, action: () -> Boolean, onChanged: () -> Unit) {
+        val label = context.getString(labelRes)
         coroutineScope.launch {
             val before = withContext(Dispatchers.IO) { categoryAvailableCents(categories) }
             val result = withContext(Dispatchers.IO) { runCatching(action) }
@@ -1072,12 +1137,13 @@ fun AppNavigation(
                         onChanged()
                     } else {
                         DiagnosticsLog.actionRejected(label)
-                        errorMessage = "$label could not be completed."
+                        errorMessage = context.getString(R.string.navigation_mutation_incomplete, label)
                     }
                 },
                 onFailure = { error ->
                     DiagnosticsLog.actionFailed(label, error)
-                    errorMessage = error.message?.takeIf(String::isNotBlank) ?: "$label failed."
+                    errorMessage = error.message?.takeIf(String::isNotBlank)
+                        ?: context.getString(R.string.navigation_mutation_failed, label)
                 },
             )
         }
@@ -1190,7 +1256,7 @@ fun AppNavigation(
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 DiagnosticsLog.actionFailed("Loading reports", e)
-                errorMessage = "Failed to load reports: ${e.localizedMessage}"
+                errorMessage = context.getString(R.string.navigation_reports_load_failed_with_reason, e.localizedMessage)
             }
         }
     }
@@ -1223,8 +1289,7 @@ fun AppNavigation(
             }
             SyncRunResult.NotConfigured -> Unit
             SyncRunResult.EncryptionKeyUnavailable -> {
-                val error = IllegalStateException("Unlock this encrypted budget before syncing")
-                errorMessage = error.message
+                errorMessage = context.getString(R.string.navigation_unlock_before_syncing)
             }
             null -> Unit
         }
@@ -1423,7 +1488,7 @@ fun AppNavigation(
                     },
                     expanded = transactionFabExpanded,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
-                    text = { Text("Transaction") },
+                    text = { Text(stringResource(R.string.navigation_transaction)) },
                 )
             }
         },
@@ -1460,7 +1525,7 @@ fun AppNavigation(
                                 ) {
                                     Icon(
                                         Icons.Outlined.Add,
-                                        contentDescription = tabItem.label,
+                                        contentDescription = stringResource(tabItem.labelRes()),
                                         modifier = Modifier.padding(4.dp).size(24.dp),
                                     )
                                 }
@@ -1468,7 +1533,7 @@ fun AppNavigation(
                             label = if (showBottomNavigationLabels) {
                                 {
                                     Text(
-                                        text = tabItem.label,
+                                        text = stringResource(tabItem.labelRes()),
                                         maxLines = 1,
                                         softWrap = false,
                                         autoSize = TextAutoSize.StepBased(
@@ -1545,16 +1610,24 @@ fun AppNavigation(
                             val captures = if (item == MainDestination.Accounts) pendingCaptureCount else 0
                             if (captures > 0) {
                                 BadgedBox(badge = { Badge(Modifier.clearAndSetSemantics {}) { Text(pendingCaptureBadge(captures)) } }) {
-                                    Icon(item.icon, contentDescription = tabLabelWithCaptures(item.label, captures))
+                                    Icon(
+                                        item.icon,
+                                        contentDescription = pluralStringResource(
+                                            R.plurals.navigation_tab_captures_waiting,
+                                            captures,
+                                            stringResource(item.labelRes),
+                                            captures,
+                                        ),
+                                    )
                                 }
                             } else {
-                                Icon(item.icon, contentDescription = item.label)
+                                Icon(item.icon, contentDescription = stringResource(item.labelRes))
                             }
                         },
                         label = if (showBottomNavigationLabels) {
                             {
                                 Text(
-                                    text = item.label,
+                                    text = stringResource(item.labelRes),
                                     maxLines = 1,
                                     softWrap = false,
                                     autoSize = TextAutoSize.StepBased(
@@ -1652,7 +1725,7 @@ fun AppNavigation(
                 initialPageRequest = requestedReportPageRequest,
                 hasFab = hasFab,
                 repository = repository,
-                onMutate = { label, action -> mutate(label, action = action) },
+                onMutate = { labelRes, action -> mutate(labelRes, action = action) },
             )
             DetailDestination.Transactions -> TransactionsScreen(
                 accountName = transactionAccount,
@@ -1689,55 +1762,55 @@ fun AppNavigation(
                     ?.let { it.id in hideReconciledAccountIds } == true,
                 onHideReconciledTransactionsChange = { hide ->
                     accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
-                        mutate("Updating account view") { repository.setHideReconciled(account.id, hide) }
+                        mutate(R.string.navigation_updating_account_view) { repository.setHideReconciled(account.id, hide) }
                     }
                 },
                 onSetCleared = { transaction, cleared ->
-                    mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
+                    mutate(R.string.navigation_updating_transaction) { repository.setTransactionCleared(transaction.id, cleared) }
                 },
                 onUnlockTransaction = { transaction ->
-                    mutate("Unlocking transaction") { repository.unlockTransaction(transaction.id) }
+                    mutate(R.string.navigation_unlocking_transaction) { repository.unlockTransaction(transaction.id) }
                 },
                 onReconcileAccount = { account, onReconciled ->
-                    mutate("Reconciling account", onChanged = onReconciled) { repository.reconcileAccount(account.id) }
+                    mutate(R.string.navigation_reconciling_account, onChanged = onReconciled) { repository.reconcileAccount(account.id) }
                 },
                 onCreateReconciliationAdjustment = { account, difference, onCreated ->
-                    mutate("Creating reconciliation adjustment", onChanged = onCreated) {
+                    mutate(R.string.navigation_creating_reconciliation_adjustment, onChanged = onCreated) {
                         repository.createReconciliationAdjustment(account.id, difference)
                     }
                 },
                 onDelete = { transaction ->
-                    mutateWithImpactCue("Deleting transaction", budgetCategoriesOf(transaction)) {
+                    mutateWithImpactCue(R.string.navigation_deleting_transaction, budgetCategoriesOf(transaction)) {
                         repository.deleteTransaction(transaction.id)
                     }
                 },
                 onDeleteMultiple = { transactionsToDelete ->
                     val categories = transactionsToDelete.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
-                    mutateWithImpactCue("Deleting transactions", categories) {
+                    mutateWithImpactCue(R.string.navigation_deleting_transactions, categories) {
                         repository.deleteTransactions(transactionsToDelete.map { it.id }) > 0
                     }
                 },
                 onDuplicate = { transaction ->
                     val duplicate = transaction.asDuplicate().asTransferDraft()
-                    mutateWithImpactCue("Duplicating transaction", budgetCategoriesOf(duplicate)) {
+                    mutateWithImpactCue(R.string.navigation_duplicating_transaction, budgetCategoriesOf(duplicate)) {
                         repository.saveTransaction(duplicate); true
                     }
                 },
                 onDuplicateMultiple = { transactionsToDuplicate ->
                     val duplicates = transactionsToDuplicate.map { it.asDuplicate().asTransferDraft() }
                     val categories = duplicates.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
-                    mutateWithImpactCue("Duplicating transactions", categories) {
+                    mutateWithImpactCue(R.string.navigation_duplicating_transactions, categories) {
                         duplicates.forEach { repository.saveTransaction(it) }
                         duplicates.isNotEmpty()
                     }
                 },
                 onLinkSchedule = { transactionsToLink, scheduleId ->
-                    mutate("Linking schedule") {
+                    mutate(R.string.navigation_linking_schedule) {
                         repository.linkScheduleTransactions(scheduleId, transactionsToLink.map { it.id }) > 0
                     }
                 },
                 onUnlinkSchedule = { transactionsToUnlink ->
-                    mutate("Unlinking schedule") {
+                    mutate(R.string.navigation_unlinking_schedule) {
                         repository.unlinkScheduleFromTransactions(transactionsToUnlink.map { it.id }) > 0
                     }
                 },
@@ -1759,7 +1832,7 @@ fun AppNavigation(
                         ).asTransferDraft()
                     }
                     val categories = (transactionsToCategorize + updated).flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
-                    mutateWithImpactCue("Categorizing transactions", categories) {
+                    mutateWithImpactCue(R.string.navigation_categorizing_transactions, categories) {
                         updated.forEach { repository.saveTransaction(it) }
                         updated.isNotEmpty()
                     }
@@ -1771,27 +1844,27 @@ fun AppNavigation(
                         it.copy(account = picked?.name ?: accountName, accountId = picked?.id).asTransferDraft()
                     }
                     val categories = transactionsToMove.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
-                    mutateWithImpactCue("Moving transactions", categories) {
+                    mutateWithImpactCue(R.string.navigation_moving_transactions, categories) {
                         updated.forEach { repository.saveTransaction(it) }
                         updated.isNotEmpty()
                     }
                 },
                 onLabelMultiple = { transactionsToLabel, tag ->
                     val updated = transactionsToLabel.mapNotNull { withTagAppended(it, tag)?.asTransferDraft() }
-                    mutate("Labeling transactions") {
+                    mutate(R.string.navigation_labeling_transactions) {
                         updated.forEach { repository.saveTransaction(it) }
                         true
                     }
                 },
                 onMergeTransactions = { first, second ->
                     val categories = budgetCategoriesOf(first) + budgetCategoriesOf(second)
-                    mutateWithImpactCue("Merging transactions", categories) {
+                    mutateWithImpactCue(R.string.navigation_merging_transactions, categories) {
                         repository.mergeTransactions(first.id, second.id)
                     }
                 },
                 onMakeTransfer = { first, second ->
                     val categories = budgetCategoriesOf(first) + budgetCategoriesOf(second)
-                    mutateWithImpactCue("Making transfer", categories) {
+                    mutateWithImpactCue(R.string.navigation_making_transfer, categories) {
                         repository.linkAsTransfer(first.id, second.id)
                     }
                 },
@@ -1802,7 +1875,7 @@ fun AppNavigation(
                 },
                 onSaveAccountNote = { note ->
                     accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
-                        mutate("Saving account note") { repository.setAccountNote(account.id, note) }
+                        mutate(R.string.navigation_saving_account_note) { repository.setAccountNote(account.id, note) }
                     }
                 },
                 onViewStatements = {
@@ -1859,7 +1932,7 @@ fun AppNavigation(
                     .associate { categoryChoices.labelOf(it.id, it.name) to formatMoneyCents(it.balanceCents, hideDecimalPlaces) }
             }
             val payeeOptions = remember(payeeNames, accountOptions) {
-                (payeeNames + accountOptions.map { "Transfer: $it" }).distinct()
+                (payeeNames + accountOptions.map { context.getString(R.string.navigation_transfer_payee, it) }).distinct()
             }
             AddTransactionScreen(
                 editing = editingTransaction,
@@ -1899,7 +1972,8 @@ fun AppNavigation(
                             runCatching { repository.saveTransaction(savedTransaction) }
                         }
                         result.onFailure { error ->
-                            errorMessage = error.message?.takeIf(String::isNotBlank) ?: "Saving transaction failed."
+                            errorMessage = error.message?.takeIf(String::isNotBlank)
+                            ?: context.getString(R.string.navigation_saving_transaction_failed)
                         }
                         if (result.isSuccess) {
                             dataVersion += 1
@@ -1952,7 +2026,7 @@ fun AppNavigation(
                 },
                 onDelete = { transaction ->
                     mutateAsyncWithImpactCue(
-                        "Deleting transaction",
+                        R.string.navigation_deleting_transaction,
                         budgetCategoriesOf(transaction),
                         { repository.deleteTransaction(transaction.id) },
                     ) {
@@ -2015,26 +2089,26 @@ fun AppNavigation(
                                         )
                                     },
                                     message = if (nearby.isEmpty()) {
-                                        "No saved payee locations were found within 500 metres."
+                                        context.getString(R.string.navigation_no_nearby_payee_locations)
                                     } else {
                                         null
                                     },
                                 )
                             }
                             CurrentLocationResult.PermissionDenied -> NearbyPayeeSearchResult(
-                                message = "Location permission was not granted. You can still search normally.",
+                                message = context.getString(R.string.navigation_location_permission_search),
                             )
                             CurrentLocationResult.ServicesDisabled -> NearbyPayeeSearchResult(
-                                message = "Turn on device location to find nearby payees.",
+                                message = context.getString(R.string.navigation_location_disabled_search),
                             )
                             CurrentLocationResult.Timeout -> NearbyPayeeSearchResult(
-                                message = "Location timed out. Try again or search normally.",
+                                message = context.getString(R.string.navigation_location_timeout_search),
                             )
                             CurrentLocationResult.Unavailable -> NearbyPayeeSearchResult(
-                                message = "Your current location is unavailable. You can still search normally.",
+                                message = context.getString(R.string.navigation_location_unavailable_search),
                             )
                             is CurrentLocationResult.Inaccurate -> NearbyPayeeSearchResult(
-                                message = "Location accuracy is too low. Try again or search normally.",
+                                message = context.getString(R.string.navigation_location_inaccurate_search),
                             )
                         }
                     },
@@ -2049,26 +2123,26 @@ fun AppNavigation(
                                     PayeeLocationSaveResult(
                                         nowNearby = true,
                                         message = if (recorded) {
-                                            "Location saved for $payeeName."
+                                            context.getString(R.string.navigation_location_saved, payeeName)
                                         } else {
-                                            "$payeeName already has a saved location within 500 metres."
+                                            context.getString(R.string.navigation_location_already_saved, payeeName)
                                         },
                                     )
                                 }
                                 CurrentLocationResult.PermissionDenied -> PayeeLocationSaveResult(
-                                    false, "Location permission was not granted. Nothing was saved.",
+                                    false, context.getString(R.string.navigation_location_permission_save),
                                 )
                                 CurrentLocationResult.ServicesDisabled -> PayeeLocationSaveResult(
-                                    false, "Turn on device location to save this payee location.",
+                                    false, context.getString(R.string.navigation_location_disabled_save),
                                 )
                                 CurrentLocationResult.Timeout -> PayeeLocationSaveResult(
-                                    false, "Location timed out. Try again.",
+                                    false, context.getString(R.string.navigation_location_timeout_save),
                                 )
                                 CurrentLocationResult.Unavailable -> PayeeLocationSaveResult(
-                                    false, "Your current location is unavailable. Nothing was saved.",
+                                    false, context.getString(R.string.navigation_location_unavailable_save),
                                 )
                                 is CurrentLocationResult.Inaccurate -> PayeeLocationSaveResult(
-                                    false, "Location accuracy is too low. Try again.",
+                                    false, context.getString(R.string.navigation_location_inaccurate_save),
                                 )
                             }
                         }
@@ -2113,15 +2187,15 @@ fun AppNavigation(
                     detail = DetailDestination.EditTransaction
                 },
                 onTransactionDelete = { transaction ->
-                    mutateWithImpactCue("Deleting transaction", budgetCategoriesOf(transaction)) {
+                    mutateWithImpactCue(R.string.navigation_deleting_transaction, budgetCategoriesOf(transaction)) {
                         repository.deleteTransaction(transaction.id)
                     }
                 },
                 onTransactionClearedChange = { transaction, cleared ->
-                    mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
+                    mutate(R.string.navigation_updating_transaction) { repository.setTransactionCleared(transaction.id, cleared) }
                 },
                 onTransactionUnlock = { transaction ->
-                    mutate("Unlocking transaction") { repository.unlockTransaction(transaction.id) }
+                    mutate(R.string.navigation_unlocking_transaction) { repository.unlockTransaction(transaction.id) }
                 },
                 onAccountClick = {
                     transactionAccount = it; transactionCategory = null; transactionMonth = null; transactionSearch = ""
@@ -2164,13 +2238,13 @@ fun AppNavigation(
                 },
                 onSave = { accountId, day, paymentDue, limit ->
                     mutate(
-                        "Saving credit card",
+                        R.string.navigation_saving_credit_card,
                         onChanged = { CreditCardDueNotificationScheduler.refreshAsync(context) },
                     ) { repository.setCreditCard(accountId, day, paymentDue, limit) }
                 },
                 onRemove = { accountId ->
                     mutate(
-                        "Removing credit card",
+                        R.string.navigation_removing_credit_card,
                         onChanged = { CreditCardDueNotificationScheduler.refreshAsync(context) },
                     ) { repository.setCreditCard(accountId, null) }
                 },
@@ -2280,10 +2354,10 @@ fun AppNavigation(
                 onBack = {
                     if (scheduleRuleId != null) returnFromScheduleRule() else detail = DetailDestination.Main
                 },
-                onSave = { rule, onSaved -> mutate("Saving rule", onChanged = onSaved) { repository.saveRule(rule) } },
-                onDelete = { ruleId, onDeleted -> mutate("Deleting rule", onChanged = onDeleted) { repository.deleteRule(ruleId) } },
+                onSave = { rule, onSaved -> mutate(R.string.navigation_saving_rule, onChanged = onSaved) { repository.saveRule(rule) } },
+                onDelete = { ruleId, onDeleted -> mutate(R.string.navigation_deleting_rule, onChanged = onDeleted) { repository.deleteRule(ruleId) } },
                 onApplyRule = { rule, onApplied ->
-                    mutate("Applying rule") {
+                    mutate(R.string.navigation_applying_rule) {
                         val count = repository.applyRuleNow(rule)
                         onApplied(count)
                         count > 0
@@ -2300,23 +2374,23 @@ fun AppNavigation(
                 contentModifier = contentModifier,
                 onBack = { detail = DetailDestination.Main },
                 onReorderGroupsClick = { detail = DetailDestination.ReorderGroups },
-                onMutate = { label, action -> mutate(label, action = action) },
-                onMutateSync = { label, action -> mutateSync(label, action) },
+                onMutate = { labelRes, action -> mutate(labelRes, action = action) },
+                onMutateSync = { labelRes, action -> mutateSync(labelRes, action) },
             )
             DetailDestination.ReorderGroups -> NavigationReorderGroupsScreen(
                 repository = repository,
                 dataVersion = dataVersion,
                 contentModifier = contentModifier,
                 onBack = { detail = DetailDestination.ManageCategories },
-                onMutateSync = { label, action -> mutateSync(label, action) },
+                onMutateSync = { labelRes, action -> mutateSync(labelRes, action) },
             )
             DetailDestination.ReorderAccounts -> NavigationReorderAccountsScreen(
                 repository = repository,
                 dataVersion = dataVersion,
                 contentModifier = contentModifier,
                 onBack = { detail = DetailDestination.Main },
-                onMutate = { label, action -> mutate(label, action = action) },
-                onMutateSync = { label, action -> mutateSync(label, action) },
+                onMutate = { labelRes, action -> mutate(labelRes, action = action) },
+                onMutateSync = { labelRes, action -> mutateSync(labelRes, action) },
             )
             DetailDestination.CustomizeHome -> CustomizeHomeScreen(
                 layout = homeLayout,
@@ -2360,244 +2434,60 @@ fun AppNavigation(
                         detail = DetailDestination.Main
                     },
                     onSave = { automations ->
-                        mutate("Saving automations") { repository.setCategoryAutomations(category.id.orEmpty(), automations) }
+                        mutate(R.string.navigation_saving_automations) { repository.setCategoryAutomations(category.id.orEmpty(), automations) }
                     },
                     modifier = contentModifier,
                 )
             } ?: run { detail = DetailDestination.Main }
-            DetailDestination.Schedules -> SchedulesScreen(
+            DetailDestination.Schedules,
+            DetailDestination.PayeeLocations,
+            DetailDestination.ManagePayees,
+            DetailDestination.ImportTransactions,
+            DetailDestination.ReviewCaptured,
+            DetailDestination.BillsCalendar,
+            DetailDestination.FindSchedules,
+            DetailDestination.NewSchedule,
+            DetailDestination.EditSchedule,
+            -> NavigationScheduleScreens(
+                repository = repository,
+                dataVersion = dataVersion,
                 schedules = schedules,
-                hideDecimalPlaces = hideDecimalPlaces,
-                canAdd = accounts.any { !it.closed },
-                onBack = { detail = DetailDestination.Main },
-                onAdd = {
-                    scheduleReturnsToBills = false
-                    detail = DetailDestination.NewSchedule
-                },
-                onFind = { detail = DetailDestination.FindSchedules },
-                onCalendar = {
-                    billsCalendarReturnsToSchedules = true
-                    detail = DetailDestination.BillsCalendar
-                },
-                onEdit = { id ->
-                    editingScheduleId = id
-                    scheduleReturnsToBills = false
-                    scheduleReturnsToTransactions = false
-                    scheduleReturnsToTransactionsTab = false
-                    detail = DetailDestination.EditSchedule
-                },
-                onPost = { id, today ->
-                    mutate(if (today) "Posting schedule today" else "Posting schedule") {
-                        repository.postScheduleTransaction(id, today)
-                    }
-                },
-                onSkip = { id ->
-                    mutate("Skipping next date") { repository.skipScheduleNextDate(id) }
-                },
-                onSetCompleted = { id, completed ->
-                    mutate(if (completed) "Completing schedule" else "Restarting schedule") {
-                        repository.setScheduleCompleted(id, completed)
-                    }
-                },
-                onDelete = { id ->
-                    mutate("Deleting schedule") { repository.deleteSchedule(id) }
-                },
-                remindersEnabled = scheduleRemindersEnabled,
-                onRemindersEnabledChange = { enabled ->
-                    if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-                        PackageManager.PERMISSION_GRANTED) {
-                        scheduleReminderPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    } else {
-                        scheduleReminderSettings.isEnabled = enabled
-                        scheduleRemindersEnabled = enabled
-                    }
-                },
-                reminderLeadDays = scheduleReminderLeadDays,
-                onReminderLeadDaysChange = { days ->
-                    scheduleReminderSettings.leadDays = days
-                    scheduleReminderLeadDays = days
-                },
-                modifier = contentModifier,
-            )
-            DetailDestination.PayeeLocations -> PayeeLocationsScreen(
-                locations = remember(dataVersion) { repository.payeeLocations() },
-                writesSupported = repository.payeeLocationWritesSupported(),
-                onBack = { detail = DetailDestination.Main },
-                onDelete = { id ->
-                    mutate("Deleting payee location") { repository.deletePayeeLocation(id) }
-                },
-                onClearPayee = { payeeId ->
-                    mutate("Clearing payee locations") { repository.clearPayeeLocations(payeeId) > 0 }
-                },
-                modifier = contentModifier,
-            )
-            DetailDestination.ManagePayees -> ManagePayeesScreen(
-                payees = remember(dataVersion) { repository.managedPayees() },
-                learnCategoriesEnabled = remember(dataVersion) { repository.learnCategoriesEnabled() },
-                onBack = { detail = DetailDestination.Main },
-                onSetLearnCategoriesEnabled = { enabled ->
-                    mutate("Changing category learning") { repository.setLearnCategoriesEnabled(enabled) }
-                },
-                onRename = { payee, name -> mutate("Renaming payee") { repository.renamePayee(payee.id, name) } },
-                onSetFavorite = { payee, favorite ->
-                    mutate("Updating favorite") { repository.setPayeeFavorite(payee.id, favorite) }
-                },
-                onSetLearnCategories = { payee, learn ->
-                    mutate("Changing category learning") { repository.setPayeeLearnCategories(payee.id, learn) }
-                },
-                onDelete = { targets -> mutate("Deleting payees") { repository.deletePayees(targets.map { it.id }) } },
-                onMerge = { target, merged ->
-                    mutate("Merging payees") { repository.mergePayees(target.id, merged.map { it.id }) }
-                },
-                modifier = contentModifier,
-            )
-            DetailDestination.ImportTransactions -> ImportTransactionsScreen(
-                accounts = accounts.filterNot { it.closed },
-                findMatches = repository::importMatches,
-                onImport = { groups, cleared, onImported ->
-                    mutate("Importing transactions", onChanged = onImported) {
-                        repository.importTransactions(groups, cleared) == groups.sumOf { it.candidates.size }
-                    }
-                },
-                onBack = { detail = DetailDestination.Main },
-                modifier = contentModifier,
-                initialSharedText = sharedImportText,
-                onSharedTextConsumed = { sharedImportText = null },
-                onOpenCapturedReview = { openCapturedReview(fromImport = true) },
-            )
-            DetailDestination.ReviewCaptured -> key(capturedReviewRequest) {
-                ImportTransactionsScreen(
-                    accounts = accounts.filterNot { it.closed },
-                    findMatches = repository::importMatches,
-                    onImport = { groups, cleared, onImported ->
-                        mutate("Importing transactions", onChanged = onImported) {
-                            repository.importTransactions(groups, cleared) == groups.sumOf { it.candidates.size }
-                        }
-                    },
-                    onBack = { returnFromCapturedReview() },
-                    modifier = contentModifier,
-                    capturedReviewOnly = true,
-                )
-            }
-            DetailDestination.BillsCalendar -> BillsCalendarScreen(
-                loadItems = { year, month, cardBills ->
-                    repository.billCalendarItems(year, month, cardBills)
-                },
-                refreshKey = dataVersion,
-                hideDecimalPlaces = hideDecimalPlaces,
-                onBack = {
-                    detail = if (billsCalendarReturnsToSchedules) {
-                        billsCalendarReturnsToSchedules = false
-                        DetailDestination.Schedules
-                    } else {
-                        DetailDestination.Main
-                    }
-                },
-                onAddSchedule = {
-                    scheduleReturnsToBills = true
-                    detail = DetailDestination.NewSchedule
-                },
-                onConfigureCards = {
-                    creditCardsReturnToBills = true
-                    detail = DetailDestination.CreditCards
-                },
-                onEditSchedule = { id ->
-                    editingScheduleId = id
-                    scheduleReturnsToBills = true
-                    scheduleReturnsToTransactions = false
-                    scheduleReturnsToTransactionsTab = false
-                    detail = DetailDestination.EditSchedule
-                },
-                onPost = { id, today ->
-                    mutate(if (today) "Posting schedule today" else "Posting schedule") {
-                        repository.postScheduleTransaction(id, today)
-                    }
-                },
-                onSkip = { id -> mutate("Skipping occurrence") { repository.skipScheduleNextDate(id) } },
-                onDelete = { id -> mutate("Deleting schedule") { repository.deleteSchedule(id) } },
-                modifier = contentModifier,
-            )
-            DetailDestination.FindSchedules -> {
-                val proposals by produceState<List<com.azimulkabir.actua.data.schedules.ScheduleDiscovery.DisplayProposal>?>(
-                    initialValue = null,
-                    key1 = dataVersion,
-                ) {
-                    value = withContext(Dispatchers.IO) { repository.discoverSchedules() }
-                }
-                FindSchedulesScreen(
-                    proposals = proposals,
-                    hideDecimalPlaces = hideDecimalPlaces,
-                    onBack = { detail = DetailDestination.Schedules },
-                    onCreate = { selected ->
-                        mutate(
-                            "Creating schedules",
-                            onChanged = { detail = DetailDestination.Schedules },
-                        ) { repository.createDiscoveredSchedules(selected) }
-                    },
-                    modifier = contentModifier,
-                )
-            }
-            DetailDestination.NewSchedule -> com.azimulkabir.actua.ui.settings.EditScheduleScreen(
-                item = null,
                 accounts = accounts,
-                payeeOptions = payeeNames,
+                payeeNames = payeeNames,
                 hideDecimalPlaces = hideDecimalPlaces,
                 conventionalAmountEntry = conventionalAmountEntry,
-                onBack = {
-                    detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
-                    scheduleReturnsToBills = false
-                },
-                onSave = { fields, payeeName ->
-                    mutate(
-                        "Creating schedule",
-                        onChanged = {
-                            detail = if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules
-                            scheduleReturnsToBills = false
-                        },
-                    ) { repository.createSchedule(fields, payeeName) }
-                },
-                modifier = contentModifier,
+                context = context,
+                scheduleReminderSettings = scheduleReminderSettings,
+                scheduleReminderPermissionLauncher = scheduleReminderPermissionLauncher,
+                contentModifier = contentModifier,
+                onMutate = { labelRes, onChanged, action -> mutate(labelRes, onChanged = onChanged, action = action) },
+                detail = detail,
+                onDetailChange = { detail = it },
+                editingScheduleId = editingScheduleId,
+                onEditingScheduleIdChange = { editingScheduleId = it },
+                scheduleReturnsToBills = scheduleReturnsToBills,
+                onScheduleReturnsToBillsChange = { scheduleReturnsToBills = it },
+                scheduleReturnsToTransactions = scheduleReturnsToTransactions,
+                onScheduleReturnsToTransactionsChange = { scheduleReturnsToTransactions = it },
+                scheduleReturnsToTransactionsTab = scheduleReturnsToTransactionsTab,
+                onScheduleReturnsToTransactionsTabChange = { scheduleReturnsToTransactionsTab = it },
+                billsCalendarReturnsToSchedules = billsCalendarReturnsToSchedules,
+                onBillsCalendarReturnsToSchedulesChange = { billsCalendarReturnsToSchedules = it },
+                creditCardsReturnToBills = creditCardsReturnToBills,
+                onCreditCardsReturnToBillsChange = { creditCardsReturnToBills = it },
+                scheduleRuleId = scheduleRuleId,
+                onScheduleRuleIdChange = { scheduleRuleId = it },
+                sharedImportText = sharedImportText,
+                onSharedTextConsumed = { sharedImportText = null },
+                capturedReviewRequest = capturedReviewRequest,
+                onReturnFromCapturedReview = ::returnFromCapturedReview,
+                onOpenCapturedReview = ::openCapturedReview,
+                onReturnFromEditSchedule = ::returnFromEditSchedule,
+                scheduleRemindersEnabled = scheduleRemindersEnabled,
+                onScheduleRemindersEnabledChange = { scheduleRemindersEnabled = it },
+                scheduleReminderLeadDays = scheduleReminderLeadDays,
+                onScheduleReminderLeadDaysChange = { scheduleReminderLeadDays = it },
             )
-            DetailDestination.EditSchedule -> schedules.firstOrNull {
-                it.schedule.id == editingScheduleId
-            }?.let { item ->
-                com.azimulkabir.actua.ui.settings.EditScheduleScreen(
-                    item = item,
-                    accounts = accounts,
-                    payeeOptions = payeeNames,
-                    hideDecimalPlaces = hideDecimalPlaces,
-                    conventionalAmountEntry = conventionalAmountEntry,
-                    linkedTransactions = remember(dataVersion, item.schedule.id) {
-                        repository.scheduleTransactions(item.schedule.id)
-                    },
-                    onBack = {
-                        returnFromEditSchedule()
-                    },
-                    onSave = { fields, payeeName ->
-                        mutate(
-                            "Saving schedule",
-                            onChanged = ::returnFromEditSchedule,
-                        ) { repository.updateSchedule(item.schedule.id, fields, payeeName) }
-                    },
-                    onDelete = {
-                        mutate(
-                            "Deleting schedule",
-                            onChanged = ::returnFromEditSchedule,
-                        ) { repository.deleteSchedule(item.schedule.id) }
-                    },
-                    onUnlinkTransaction = { transactionId ->
-                        mutate("Unlinking transaction") {
-                            repository.unlinkScheduleTransaction(item.schedule.id, transactionId)
-                        }
-                    },
-                    onEditAsRule = { ruleId ->
-                        scheduleRuleId = ruleId
-                        detail = DetailDestination.Rules
-                    },
-                    modifier = contentModifier,
-                )
-            } ?: run { detail = DetailDestination.Schedules }
             DetailDestination.Main -> if (!repository.isUsingActualBudget && destination != MainDestination.Manage) {
                 NoBudgetScreen(
                     onConnect = {
@@ -2736,20 +2626,20 @@ fun AppNavigation(
                         WidgetUpdater.requestAll(context)
                     },
                     onSetCategoryHidden = { group, category, hidden, onChanged ->
-                        mutate(if (hidden) "Hiding category" else "Showing category", onChanged = onChanged) {
+                        mutate(if (hidden) R.string.navigation_hiding_category else R.string.navigation_showing_category, onChanged = onChanged) {
                             repository.setCategoryHidden(group, category, hidden)
                         }
                     },
                     onSetGroupHidden = { group, hidden, onChanged ->
-                        mutate(if (hidden) "Hiding group" else "Showing group", onChanged = onChanged) {
+                        mutate(if (hidden) R.string.navigation_hiding_group else R.string.navigation_showing_group, onChanged = onChanged) {
                             repository.setCategoryGroupHidden(group, hidden)
                         }
                     },
                     onRenameCategory = { group, category, name ->
-                        mutate("Renaming category") { repository.renameCategory(group, category, name) }
+                        mutate(R.string.navigation_renaming_category) { repository.renameCategory(group, category, name) }
                     },
                     onRenameGroup = { group, name ->
-                        mutate("Renaming group") { repository.renameCategoryGroup(group, name) }
+                        mutate(R.string.navigation_renaming_group) { repository.renameCategoryGroup(group, name) }
                     },
                     onShowCategoryTransactions = { category, thisMonth, returnToDetails ->
                         activeBudgetCategory = null
@@ -2761,12 +2651,12 @@ fun AppNavigation(
                         detail = DetailDestination.Transactions
                     },
                     onTransferBudget = { fromGroup, fromCategory, toGroup, toCategory, amount ->
-                        mutate("Moving budget") {
+                        mutate(R.string.navigation_moving_budget) {
                             repository.transferBudget(fromGroup, fromCategory, toGroup, toCategory, amount, budgetMonth)
                         }
                     },
                     onSummaryMove = { group, category, amount, covering ->
-                        mutate("Moving budget") {
+                        mutate(R.string.navigation_moving_budget) {
                             if (covering) {
                                 repository.transferBudget(group, category, null, null, amount, budgetMonth,
                                     ActuaRepository.BudgetMoveKind.COVER_OVERBUDGETED)
@@ -2777,25 +2667,25 @@ fun AppNavigation(
                         }
                     },
                     onSetBudgetAmount = { group, category, amount ->
-                        mutate("Updating budget") { repository.setBudgetAmount(group, category, amount, budgetMonth) }
+                        mutate(R.string.navigation_updating_budget) { repository.setBudgetAmount(group, category, amount, budgetMonth) }
                     },
                     onSetCategoryNote = { categoryId, note ->
-                        mutate("Saving category note") { repository.setCategoryNote(categoryId, note) }
+                        mutate(R.string.navigation_saving_category_note) { repository.setCategoryNote(categoryId, note) }
                     },
                     onSetCategoryCarryover = { categoryId, enabled ->
-                        mutate("Updating rollover") { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
+                        mutate(R.string.navigation_updating_rollover) { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
                     },
                     onHoldForNextMonth = { amount ->
-                        mutate("Holding for next month") { repository.setBufferedAmount(budgetMonth, amount) }
+                        mutate(R.string.navigation_holding_for_next_month) { repository.setBufferedAmount(budgetMonth, amount) }
                     },
                     onResetNextMonthBuffer = {
-                        mutate("Resetting next month's buffer") { repository.resetNextMonthBuffer(budgetMonth) }
+                        mutate(R.string.navigation_resetting_next_month_buffer) { repository.resetNextMonthBuffer(budgetMonth) }
                     },
                     onCopyPreviousMonth = {
-                        mutate("Copying last month's budget") { repository.copyPreviousMonthBudget(budgetMonth) }
+                        mutate(R.string.navigation_copying_previous_month_budget) { repository.copyPreviousMonthBudget(budgetMonth) }
                     },
                     onCategoryBudgetAction = { categoryId, action ->
-                        mutate("Updating budget") {
+                        mutate(R.string.navigation_updating_budget) {
                             when (action) {
                                 CategoryBudgetAction.COPY_LAST_MONTH -> repository.copyCategoryFromPreviousMonth(categoryId, budgetMonth)
                                 CategoryBudgetAction.AVERAGE_3 -> repository.setCategoryAverage(categoryId, budgetMonth, 3)
@@ -2807,23 +2697,23 @@ fun AppNavigation(
                     },
                     onPreviewAverageBudget = { months -> repository.averageBudgetPreview(budgetMonth, months) },
                     onResetIncomeHold = {
-                        mutate("Updating automatic holds") { repository.resetIncomeHold(budgetMonth) }
+                        mutate(R.string.navigation_updating_automatic_holds) { repository.resetIncomeHold(budgetMonth) }
                     },
                     onEditAutomations = { _, category ->
                         editingAutomationCategory = category.name
                         detail = DetailDestination.BudgetAutomation
                     },
                     onApplyBudgetTemplate = { preview ->
-                        mutate("Applying budget template") { repository.applyBudgetTemplate(preview) }
+                        mutate(R.string.navigation_applying_budget_template) { repository.applyBudgetTemplate(preview) }
                     },
                     scheduleFunding = budgetScheduleFunding,
                     templateHideFraction = budgetHidesFraction,
                     onPreviewCleanup = { repository.previewCleanup(budgetMonth) },
                     onRefreshNoteTemplates = {
-                        mutate("Reading template notes") { repository.refreshNoteTemplates() }
+                        mutate(R.string.navigation_reading_template_notes) { repository.refreshNoteTemplates() }
                     },
                     onApplyCleanup = { preview ->
-                        mutate("Applying month-end cleanup") { repository.applyCleanup(preview) }
+                        mutate(R.string.navigation_applying_month_end_cleanup) { repository.applyCleanup(preview) }
                     },
                     onSearch = { detail = DetailDestination.Search },
                     onManageCategories = { detail = DetailDestination.ManageCategories },
@@ -2838,7 +2728,7 @@ fun AppNavigation(
                         detail = DetailDestination.Transactions
                     },
                     onDeleteCategory = { group, category, transferToId, onChanged ->
-                        mutate("Deleting category", onChanged = onChanged) {
+                        mutate(R.string.navigation_deleting_category, onChanged = onChanged) {
                             repository.deleteCategory(group, category, transferToId)
                         }
                     },
@@ -2856,7 +2746,7 @@ fun AppNavigation(
                         detail = DetailDestination.EditTransaction
                     },
                     onDeleteTransaction = { transaction ->
-                        mutateWithImpactCue("Deleting transaction", budgetCategoriesOf(transaction)) {
+                        mutateWithImpactCue(R.string.navigation_deleting_transaction, budgetCategoriesOf(transaction)) {
                             repository.deleteTransaction(transaction.id)
                         }
                     },
@@ -2895,8 +2785,8 @@ fun AppNavigation(
                         transactionSearch = ""
                         detail = DetailDestination.Transactions
                     },
-                    onMutate = { label, action -> mutate(label, action = action) },
-                    onMutateSync = { label, action -> mutateSync(label, action) },
+                    onMutate = { labelRes, action -> mutate(labelRes, action = action) },
+                    onMutateSync = { labelRes, action -> mutateSync(labelRes, action) },
                     pendingCaptureCount = pendingCaptureCount,
                     onReviewCaptures = { openCapturedReview() },
                     newTransactionCounts = newBankTransactionCounts,
@@ -2936,51 +2826,51 @@ fun AppNavigation(
                         groupTransactionsByDate = it
                     },
                     onSetCleared = { transaction, cleared ->
-                        mutate("Updating transaction") { repository.setTransactionCleared(transaction.id, cleared) }
+                        mutate(R.string.navigation_updating_transaction) { repository.setTransactionCleared(transaction.id, cleared) }
                     },
                     onUnlockTransaction = { transaction ->
-                        mutate("Unlocking transaction") { repository.unlockTransaction(transaction.id) }
+                        mutate(R.string.navigation_unlocking_transaction) { repository.unlockTransaction(transaction.id) }
                     },
                     onReconcileAccount = { account, onReconciled ->
-                        mutate("Reconciling account", onChanged = onReconciled) { repository.reconcileAccount(account.id) }
+                        mutate(R.string.navigation_reconciling_account, onChanged = onReconciled) { repository.reconcileAccount(account.id) }
                     },
                     onCreateReconciliationAdjustment = { account, difference, onCreated ->
-                        mutate("Creating reconciliation adjustment", onChanged = onCreated) {
+                        mutate(R.string.navigation_creating_reconciliation_adjustment, onChanged = onCreated) {
                             repository.createReconciliationAdjustment(account.id, difference)
                         }
                     },
                     onDelete = { transaction ->
-                        mutateWithImpactCue("Deleting transaction", budgetCategoriesOf(transaction)) {
+                        mutateWithImpactCue(R.string.navigation_deleting_transaction, budgetCategoriesOf(transaction)) {
                             repository.deleteTransaction(transaction.id)
                         }
                     },
                     onDeleteMultiple = { transactionsToDelete ->
                         val categories = transactionsToDelete.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
-                        mutateWithImpactCue("Deleting transactions", categories) {
+                        mutateWithImpactCue(R.string.navigation_deleting_transactions, categories) {
                             repository.deleteTransactions(transactionsToDelete.map { it.id }) > 0
                         }
                     },
                     onDuplicate = { transaction ->
                         val duplicate = transaction.asDuplicate().asTransferDraft()
-                        mutateWithImpactCue("Duplicating transaction", budgetCategoriesOf(duplicate)) {
+                        mutateWithImpactCue(R.string.navigation_duplicating_transaction, budgetCategoriesOf(duplicate)) {
                             repository.saveTransaction(duplicate); true
                         }
                     },
                     onDuplicateMultiple = { transactionsToDuplicate ->
                         val duplicates = transactionsToDuplicate.map { it.asDuplicate().asTransferDraft() }
                         val categories = duplicates.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
-                        mutateWithImpactCue("Duplicating transactions", categories) {
+                        mutateWithImpactCue(R.string.navigation_duplicating_transactions, categories) {
                             duplicates.forEach { repository.saveTransaction(it) }
                             duplicates.isNotEmpty()
                         }
                     },
                     onLinkSchedule = { transactionsToLink, scheduleId ->
-                        mutate("Linking schedule") {
+                        mutate(R.string.navigation_linking_schedule) {
                             repository.linkScheduleTransactions(scheduleId, transactionsToLink.map { it.id }) > 0
                         }
                     },
                     onUnlinkSchedule = { transactionsToUnlink ->
-                        mutate("Unlinking schedule") {
+                        mutate(R.string.navigation_unlinking_schedule) {
                             repository.unlinkScheduleFromTransactions(transactionsToUnlink.map { it.id }) > 0
                         }
                     },
@@ -3002,7 +2892,7 @@ fun AppNavigation(
                             ).asTransferDraft()
                         }
                         val categories = (transactionsToCategorize + updated).flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
-                        mutateWithImpactCue("Categorizing transactions", categories) {
+                        mutateWithImpactCue(R.string.navigation_categorizing_transactions, categories) {
                             updated.forEach { repository.saveTransaction(it) }
                             updated.isNotEmpty()
                         }
@@ -3014,27 +2904,27 @@ fun AppNavigation(
                             it.copy(account = picked?.name ?: accountName, accountId = picked?.id).asTransferDraft()
                         }
                         val categories = transactionsToMove.flatMapTo(mutableSetOf()) { budgetCategoriesOf(it) }
-                        mutateWithImpactCue("Moving transactions", categories) {
+                        mutateWithImpactCue(R.string.navigation_moving_transactions, categories) {
                             updated.forEach { repository.saveTransaction(it) }
                             updated.isNotEmpty()
                         }
                     },
                     onLabelMultiple = { transactionsToLabel, tag ->
                         val updated = transactionsToLabel.mapNotNull { withTagAppended(it, tag)?.asTransferDraft() }
-                        mutate("Labeling transactions") {
+                        mutate(R.string.navigation_labeling_transactions) {
                             updated.forEach { repository.saveTransaction(it) }
                             true
                         }
                     },
                     onMergeTransactions = { first, second ->
                         val categories = budgetCategoriesOf(first) + budgetCategoriesOf(second)
-                        mutateWithImpactCue("Merging transactions", categories) {
+                        mutateWithImpactCue(R.string.navigation_merging_transactions, categories) {
                             repository.mergeTransactions(first.id, second.id)
                         }
                     },
                     onMakeTransfer = { first, second ->
                         val categories = budgetCategoriesOf(first) + budgetCategoriesOf(second)
-                        mutateWithImpactCue("Making transfer", categories) {
+                        mutateWithImpactCue(R.string.navigation_making_transfer, categories) {
                             repository.linkAsTransfer(first.id, second.id)
                         }
                     },
@@ -3085,7 +2975,7 @@ fun AppNavigation(
                     initialPageRequest = 0,
                     hasFab = hasFab,
                     repository = repository,
-                    onMutate = { label, action -> mutate(label, action = action) },
+                    onMutate = { labelRes, action -> mutate(labelRes, action = action) },
                 )
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,
@@ -3108,7 +2998,7 @@ fun AppNavigation(
                     },
                     budgetType = budgetType,
                     onBudgetTypeChange = { newType ->
-                        mutate("Change budget type") {
+                        mutate(R.string.navigation_change_budget_type) {
                             repository.setBudgetType(newType)
                         }
                     },
@@ -3318,7 +3208,7 @@ private fun NavigationReportsScreen(
     initialPageRequest: Int,
     hasFab: Boolean,
     repository: ActuaRepository,
-    onMutate: (String, () -> Boolean) -> Unit,
+    onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
 ) {
     ReportsScreen(
         snapshot = snapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
@@ -3346,49 +3236,334 @@ private fun NavigationReportsScreen(
         ruleEditorData = remember(dataVersion) { repository.ruleEditorData() },
         onComputePreview = { draft -> repository.computeCustomReportPreview(draft) },
         onSaveCustomReport = { draft ->
-            onMutate(if (draft.id.isBlank()) "Creating custom report" else "Updating custom report") {
+            onMutate(if (draft.id.isBlank()) R.string.navigation_creating_custom_report else R.string.navigation_updating_custom_report) {
                 repository.saveCustomReport(draft)
                 true
             }
         },
         onDeleteCustomReport = { id ->
-            onMutate("Deleting custom report") {
+            onMutate(R.string.navigation_deleting_custom_report) {
                 repository.deleteCustomReport(id)
             }
         },
         onAddWidgetToDashboard = { pageId, type, metaJson ->
-            onMutate("Adding dashboard card") {
+            onMutate(R.string.navigation_adding_dashboard_card) {
                 repository.addDashboardWidget(pageId, type, metaJson)
                 true
             }
         },
         onDeleteWidgetFromDashboard = { widgetId ->
-            onMutate("Removing dashboard card") {
+            onMutate(R.string.navigation_removing_dashboard_card) {
                 repository.deleteDashboardWidget(widgetId)
             }
         },
         onReorderDashboardWidgets = { pageId, widgetIds ->
-            onMutate("Reordering cards") {
+            onMutate(R.string.navigation_reordering_cards) {
                 repository.reorderDashboardWidgets(pageId, widgetIds)
             }
         },
         onCreateDashboardPage = { name ->
-            onMutate("Creating dashboard page") {
+            onMutate(R.string.navigation_creating_dashboard_page) {
                 repository.createDashboardPage(name)
                 true
             }
         },
         onRenameDashboardPage = { pageId, name ->
-            onMutate("Renaming dashboard page") {
+            onMutate(R.string.navigation_renaming_dashboard_page) {
                 repository.renameDashboardPage(pageId, name)
             }
         },
         onDeleteDashboardPage = { pageId ->
-            onMutate("Deleting dashboard page") {
+            onMutate(R.string.navigation_deleting_dashboard_page) {
                 repository.deleteDashboardPage(pageId)
             }
         },
     )
+}
+
+/**
+ * The schedule/payee/import cluster of detail screens. Extracted from [AppNavigation]'s
+ * content switch so the (already huge) AnimatedContent content lambda stays under the JVM
+ * method-size limit while strings localize — mirroring [NavigationAccountsScreen] and
+ * [NavigationManageCategoriesScreen].
+ */
+@Composable
+private fun NavigationScheduleScreens(
+    repository: ActuaRepository,
+    dataVersion: Int,
+    schedules: List<ScheduleListItem>,
+    accounts: List<Account>,
+    payeeNames: List<String>,
+    hideDecimalPlaces: Boolean,
+    conventionalAmountEntry: Boolean,
+    context: Context,
+    scheduleReminderSettings: ScheduleReminderSettings,
+    scheduleReminderPermissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
+    contentModifier: Modifier,
+    onMutate: (labelRes: Int, onChanged: () -> Unit, action: () -> Boolean) -> Unit,
+    detail: DetailDestination,
+    onDetailChange: (DetailDestination) -> Unit,
+    editingScheduleId: String?,
+    onEditingScheduleIdChange: (String?) -> Unit,
+    scheduleReturnsToBills: Boolean,
+    onScheduleReturnsToBillsChange: (Boolean) -> Unit,
+    scheduleReturnsToTransactions: Boolean,
+    onScheduleReturnsToTransactionsChange: (Boolean) -> Unit,
+    scheduleReturnsToTransactionsTab: Boolean,
+    onScheduleReturnsToTransactionsTabChange: (Boolean) -> Unit,
+    billsCalendarReturnsToSchedules: Boolean,
+    onBillsCalendarReturnsToSchedulesChange: (Boolean) -> Unit,
+    creditCardsReturnToBills: Boolean,
+    onCreditCardsReturnToBillsChange: (Boolean) -> Unit,
+    scheduleRuleId: String?,
+    onScheduleRuleIdChange: (String?) -> Unit,
+    sharedImportText: String?,
+    onSharedTextConsumed: () -> Unit,
+    capturedReviewRequest: Int,
+    onReturnFromCapturedReview: () -> Unit,
+    onOpenCapturedReview: (Boolean) -> Unit,
+    onReturnFromEditSchedule: () -> Unit,
+    scheduleRemindersEnabled: Boolean,
+    onScheduleRemindersEnabledChange: (Boolean) -> Unit,
+    scheduleReminderLeadDays: Int,
+    onScheduleReminderLeadDaysChange: (Int) -> Unit,
+) {
+    when (detail) {
+        DetailDestination.Schedules -> SchedulesScreen(
+            schedules = schedules,
+            hideDecimalPlaces = hideDecimalPlaces,
+            canAdd = accounts.any { !it.closed },
+            onBack = { onDetailChange(DetailDestination.Main) },
+            onAdd = {
+                onScheduleReturnsToBillsChange(false)
+                onDetailChange(DetailDestination.NewSchedule)
+            },
+            onFind = { onDetailChange(DetailDestination.FindSchedules) },
+            onCalendar = {
+                onBillsCalendarReturnsToSchedulesChange(true)
+                onDetailChange(DetailDestination.BillsCalendar)
+            },
+            onEdit = { id ->
+                onEditingScheduleIdChange(id)
+                onScheduleReturnsToBillsChange(false)
+                onScheduleReturnsToTransactionsChange(false)
+                onScheduleReturnsToTransactionsTabChange(false)
+                onDetailChange(DetailDestination.EditSchedule)
+            },
+            onPost = { id, today ->
+                onMutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule, {}) {
+                    repository.postScheduleTransaction(id, today)
+                }
+            },
+            onSkip = { id ->
+                onMutate(R.string.navigation_skipping_next_date, {}) { repository.skipScheduleNextDate(id) }
+            },
+            onSetCompleted = { id, completed ->
+                onMutate(if (completed) R.string.navigation_completing_schedule else R.string.navigation_restarting_schedule, {}) {
+                    repository.setScheduleCompleted(id, completed)
+                }
+            },
+            onDelete = { id ->
+                onMutate(R.string.navigation_deleting_schedule, {}) { repository.deleteSchedule(id) }
+            },
+            remindersEnabled = scheduleRemindersEnabled,
+            onRemindersEnabledChange = { enabled ->
+                if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED) {
+                    scheduleReminderPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    scheduleReminderSettings.isEnabled = enabled
+                    onScheduleRemindersEnabledChange(enabled)
+                }
+            },
+            reminderLeadDays = scheduleReminderLeadDays,
+            onReminderLeadDaysChange = { days ->
+                scheduleReminderSettings.leadDays = days
+                onScheduleReminderLeadDaysChange(days)
+            },
+            modifier = contentModifier,
+        )
+        DetailDestination.PayeeLocations -> PayeeLocationsScreen(
+            locations = remember(dataVersion) { repository.payeeLocations() },
+            writesSupported = repository.payeeLocationWritesSupported(),
+            onBack = { onDetailChange(DetailDestination.Main) },
+            onDelete = { id ->
+                onMutate(R.string.navigation_deleting_payee_location, {}) { repository.deletePayeeLocation(id) }
+            },
+            onClearPayee = { payeeId ->
+                onMutate(R.string.navigation_clearing_payee_locations, {}) { repository.clearPayeeLocations(payeeId) > 0 }
+            },
+            modifier = contentModifier,
+        )
+        DetailDestination.ManagePayees -> ManagePayeesScreen(
+            payees = remember(dataVersion) { repository.managedPayees() },
+            learnCategoriesEnabled = remember(dataVersion) { repository.learnCategoriesEnabled() },
+            onBack = { onDetailChange(DetailDestination.Main) },
+            onSetLearnCategoriesEnabled = { enabled ->
+                onMutate(R.string.navigation_changing_category_learning, {}) { repository.setLearnCategoriesEnabled(enabled) }
+            },
+            onRename = { payee, name -> onMutate(R.string.navigation_renaming_payee, {}) { repository.renamePayee(payee.id, name) } },
+            onSetFavorite = { payee, favorite ->
+                onMutate(R.string.navigation_updating_favorite, {}) { repository.setPayeeFavorite(payee.id, favorite) }
+            },
+            onSetLearnCategories = { payee, learn ->
+                onMutate(R.string.navigation_changing_category_learning, {}) { repository.setPayeeLearnCategories(payee.id, learn) }
+            },
+            onDelete = { targets -> onMutate(R.string.navigation_deleting_payees, {}) { repository.deletePayees(targets.map { it.id }) } },
+            onMerge = { target, merged ->
+                onMutate(R.string.navigation_merging_payees, {}) { repository.mergePayees(target.id, merged.map { it.id }) }
+            },
+            modifier = contentModifier,
+        )
+        DetailDestination.ImportTransactions -> ImportTransactionsScreen(
+            accounts = accounts.filterNot { it.closed },
+            findMatches = repository::importMatches,
+            onImport = { groups, cleared, onImported ->
+                onMutate(R.string.navigation_importing_transactions, onImported) {
+                    repository.importTransactions(groups, cleared) == groups.sumOf { it.candidates.size }
+                }
+            },
+            onBack = { onDetailChange(DetailDestination.Main) },
+            modifier = contentModifier,
+            initialSharedText = sharedImportText,
+            onSharedTextConsumed = onSharedTextConsumed,
+            onOpenCapturedReview = { onOpenCapturedReview(true) },
+        )
+        DetailDestination.ReviewCaptured -> key(capturedReviewRequest) {
+            ImportTransactionsScreen(
+                accounts = accounts.filterNot { it.closed },
+                findMatches = repository::importMatches,
+                onImport = { groups, cleared, onImported ->
+                    onMutate(R.string.navigation_importing_transactions, onImported) {
+                        repository.importTransactions(groups, cleared) == groups.sumOf { it.candidates.size }
+                    }
+                },
+                onBack = onReturnFromCapturedReview,
+                modifier = contentModifier,
+                capturedReviewOnly = true,
+            )
+        }
+        DetailDestination.BillsCalendar -> BillsCalendarScreen(
+            loadItems = { year, month, cardBills ->
+                repository.billCalendarItems(year, month, cardBills)
+            },
+            refreshKey = dataVersion,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onBack = {
+                onDetailChange(
+                    if (billsCalendarReturnsToSchedules) {
+                        onBillsCalendarReturnsToSchedulesChange(false)
+                        DetailDestination.Schedules
+                    } else {
+                        DetailDestination.Main
+                    },
+                )
+            },
+            onAddSchedule = {
+                onScheduleReturnsToBillsChange(true)
+                onDetailChange(DetailDestination.NewSchedule)
+            },
+            onConfigureCards = {
+                onCreditCardsReturnToBillsChange(true)
+                onDetailChange(DetailDestination.CreditCards)
+            },
+            onEditSchedule = { id ->
+                onEditingScheduleIdChange(id)
+                onScheduleReturnsToBillsChange(true)
+                onScheduleReturnsToTransactionsChange(false)
+                onScheduleReturnsToTransactionsTabChange(false)
+                onDetailChange(DetailDestination.EditSchedule)
+            },
+            onPost = { id, today ->
+                onMutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule, {}) {
+                    repository.postScheduleTransaction(id, today)
+                }
+            },
+            onSkip = { id -> onMutate(R.string.navigation_skipping_occurrence, {}) { repository.skipScheduleNextDate(id) } },
+            onDelete = { id -> onMutate(R.string.navigation_deleting_schedule, {}) { repository.deleteSchedule(id) } },
+            modifier = contentModifier,
+        )
+        DetailDestination.FindSchedules -> {
+            val proposals by produceState<List<com.azimulkabir.actua.data.schedules.ScheduleDiscovery.DisplayProposal>?>(
+                initialValue = null,
+                key1 = dataVersion,
+            ) {
+                value = withContext(Dispatchers.IO) { repository.discoverSchedules() }
+            }
+            FindSchedulesScreen(
+                proposals = proposals,
+                hideDecimalPlaces = hideDecimalPlaces,
+                onBack = { onDetailChange(DetailDestination.Schedules) },
+                onCreate = { selected ->
+                    onMutate(
+                        R.string.navigation_creating_schedules,
+                        { onDetailChange(DetailDestination.Schedules) },
+                    ) { repository.createDiscoveredSchedules(selected) }
+                },
+                modifier = contentModifier,
+            )
+        }
+        DetailDestination.NewSchedule -> com.azimulkabir.actua.ui.settings.EditScheduleScreen(
+            item = null,
+            accounts = accounts,
+            payeeOptions = payeeNames,
+            hideDecimalPlaces = hideDecimalPlaces,
+            conventionalAmountEntry = conventionalAmountEntry,
+            onBack = {
+                onDetailChange(if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules)
+                onScheduleReturnsToBillsChange(false)
+            },
+            onSave = { fields, payeeName ->
+                onMutate(
+                    R.string.navigation_creating_schedule,
+                    {
+                        onDetailChange(if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules)
+                        onScheduleReturnsToBillsChange(false)
+                    },
+                ) { repository.createSchedule(fields, payeeName) }
+            },
+            modifier = contentModifier,
+        )
+        DetailDestination.EditSchedule -> schedules.firstOrNull {
+            it.schedule.id == editingScheduleId
+        }?.let { item ->
+            com.azimulkabir.actua.ui.settings.EditScheduleScreen(
+                item = item,
+                accounts = accounts,
+                payeeOptions = payeeNames,
+                hideDecimalPlaces = hideDecimalPlaces,
+                conventionalAmountEntry = conventionalAmountEntry,
+                linkedTransactions = remember(dataVersion, item.schedule.id) {
+                    repository.scheduleTransactions(item.schedule.id)
+                },
+                onBack = onReturnFromEditSchedule,
+                onSave = { fields, payeeName ->
+                    onMutate(
+                        R.string.navigation_saving_schedule,
+                        onReturnFromEditSchedule,
+                    ) { repository.updateSchedule(item.schedule.id, fields, payeeName) }
+                },
+                onDelete = {
+                    onMutate(
+                        R.string.navigation_deleting_schedule,
+                        onReturnFromEditSchedule,
+                    ) { repository.deleteSchedule(item.schedule.id) }
+                },
+                onUnlinkTransaction = { transactionId ->
+                    onMutate(R.string.navigation_unlinking_transaction, {}) {
+                        repository.unlinkScheduleTransaction(item.schedule.id, transactionId)
+                    }
+                },
+                onEditAsRule = { ruleId ->
+                    onScheduleRuleIdChange(ruleId)
+                    onDetailChange(DetailDestination.Rules)
+                },
+                modifier = contentModifier,
+            )
+        } ?: run { onDetailChange(DetailDestination.Schedules) }
+        else -> Unit
+    }
 }
 
 @Composable
@@ -3398,37 +3573,37 @@ private fun NavigationManageCategoriesScreen(
     contentModifier: Modifier,
     onBack: () -> Unit,
     onReorderGroupsClick: () -> Unit,
-    onMutate: (String, () -> Boolean) -> Unit,
-    onMutateSync: (String, () -> Boolean) -> Boolean,
+    onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
+    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
 ) {
     ManageCategoriesScreen(
         groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
         onBack = onBack,
         onReorderGroupsClick = onReorderGroupsClick,
-        onCreateGroup = { name -> onMutate("Creating group") { repository.createCategoryGroup(name) } },
-        onRenameGroup = { group, name -> onMutate("Renaming group") { repository.renameCategoryGroup(group, name) } },
+        onCreateGroup = { name -> onMutate(R.string.navigation_creating_group) { repository.createCategoryGroup(name) } },
+        onRenameGroup = { group, name -> onMutate(R.string.navigation_renaming_group) { repository.renameCategoryGroup(group, name) } },
         onSetGroupHidden = { group, hidden ->
-            onMutate(if (hidden) "Hiding group" else "Showing group") { repository.setCategoryGroupHidden(group, hidden) }
+            onMutate(if (hidden) R.string.navigation_hiding_group else R.string.navigation_showing_group) { repository.setCategoryGroupHidden(group, hidden) }
         },
-        onCreateCategory = { group, name -> onMutate("Creating category") { repository.createCategory(group, name) } },
+        onCreateCategory = { group, name -> onMutate(R.string.navigation_creating_category) { repository.createCategory(group, name) } },
         onRenameCategory = { group, category, name ->
-            onMutate("Renaming category") { repository.renameCategory(group, category, name) }
+            onMutate(R.string.navigation_renaming_category) { repository.renameCategory(group, category, name) }
         },
         onSetCategoryHidden = { group, category, hidden ->
-            onMutate(if (hidden) "Hiding category" else "Showing category") {
+            onMutate(if (hidden) R.string.navigation_hiding_category else R.string.navigation_showing_category) {
                 repository.setCategoryHidden(group, category, hidden)
             }
         },
         onDeleteCategory = { group, category, transferToId ->
-            onMutate("Deleting category") { repository.deleteCategory(group, category, transferToId) }
+            onMutate(R.string.navigation_deleting_category) { repository.deleteCategory(group, category, transferToId) }
         },
         loadCategoryDeletePlan = { group, category ->
             withContext(Dispatchers.IO) { runCatching { repository.categoryDeletePlan(group, category) }.getOrNull() }
         },
         onDeleteGroup = { group, targetGroupId ->
-            onMutate("Deleting group") { repository.deleteCategoryGroup(group.id, targetGroupId) }
+            onMutate(R.string.navigation_deleting_group) { repository.deleteCategoryGroup(group.id, targetGroupId) }
         },
-        onMoveCategory = { move -> onMutateSync("Reordering category") { repository.moveCategory(move) } },
+        onMoveCategory = { move -> onMutateSync(R.string.navigation_reordering_category) { repository.moveCategory(move) } },
         modifier = contentModifier,
     )
 }
@@ -3439,12 +3614,12 @@ private fun NavigationReorderGroupsScreen(
     dataVersion: Int,
     contentModifier: Modifier,
     onBack: () -> Unit,
-    onMutateSync: (String, () -> Boolean) -> Boolean,
+    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
 ) {
     ReorderGroupsScreen(
         groups = remember(dataVersion) { repository.categoryGroupsForReorder() },
         onBack = onBack,
-        onMoveGroup = { move -> onMutateSync("Reordering category group") { repository.moveCategoryGroup(move) } },
+        onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_category_group) { repository.moveCategoryGroup(move) } },
         modifier = contentModifier,
     )
 }
@@ -3455,18 +3630,18 @@ private fun NavigationReorderAccountsScreen(
     dataVersion: Int,
     contentModifier: Modifier,
     onBack: () -> Unit,
-    onMutate: (String, () -> Boolean) -> Unit,
-    onMutateSync: (String, () -> Boolean) -> Boolean,
+    onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
+    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
 ) {
     ReorderAccountsScreen(
         accounts = remember(dataVersion) { repository.accountsForReorder() },
         groups = remember(dataVersion) { repository.accountGroupsForReorder() },
         onBack = onBack,
-        onMoveAccount = { move -> onMutateSync("Reordering account") { repository.moveAccount(move) } },
-        onMoveGroup = { move -> onMutateSync("Reordering account group") { repository.moveAccountGroup(move) } },
-        onCreateGroup = { name -> onMutate("Creating account group") { repository.createAccountGroup(name) } },
-        onRenameGroup = { id, name -> onMutate("Renaming account group") { repository.renameAccountGroup(id, name) } },
-        onDeleteGroup = { id -> onMutate("Deleting account group") { repository.deleteAccountGroup(id) } },
+        onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
+        onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
+        onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
+        onRenameGroup = { id, name -> onMutate(R.string.navigation_renaming_account_group) { repository.renameAccountGroup(id, name) } },
+        onDeleteGroup = { id -> onMutate(R.string.navigation_deleting_account_group) { repository.deleteAccountGroup(id) } },
         modifier = contentModifier,
     )
 }
@@ -3484,8 +3659,8 @@ private fun NavigationAccountsScreen(
     creditCards: List<CreditCardStatus>,
     onAccountClick: (String) -> Unit,
     onAllAccountsClick: () -> Unit,
-    onMutate: (String, () -> Boolean) -> Unit,
-    onMutateSync: (String, () -> Boolean) -> Boolean,
+    onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
+    onMutateSync: (labelRes: Int, action: () -> Boolean) -> Boolean,
     pendingCaptureCount: Int,
     onReviewCaptures: () -> Unit,
     newTransactionCounts: Map<String, Int>,
@@ -3520,32 +3695,32 @@ private fun NavigationAccountsScreen(
             }
         },
         onCloseAccount = { account, transferAccountId, categoryId, forced ->
-            onMutate(if (forced) "Force closing account" else "Closing account") {
+            onMutate(if (forced) R.string.navigation_force_closing_account else R.string.navigation_closing_account) {
                 repository.closeAccount(account.id, transferAccountId, categoryId, forced)
             }
         },
         onReopenAccount = { account ->
-            onMutate("Reopening account") { repository.reopenAccount(account.id) }
+            onMutate(R.string.navigation_reopening_account) { repository.reopenAccount(account.id) }
         },
         onRenameAccount = { account, name ->
-            onMutate("Renaming account") { repository.renameAccount(account.id, name) }
+            onMutate(R.string.navigation_renaming_account) { repository.renameAccount(account.id, name) }
         },
         onChangeAccountType = { account, type ->
-            onMutate("Changing account type") { repository.setAccountType(account.id, type) }
+            onMutate(R.string.navigation_changing_account_type) { repository.setAccountType(account.id, type) }
         },
         onCreateAccount = { name, offBudget, balance, type, groupId ->
-            onMutate("Creating account") { repository.createAccount(name, offBudget, balance, type, groupId) }
+            onMutate(R.string.navigation_creating_account) { repository.createAccount(name, offBudget, balance, type, groupId) }
         },
         accountGroups = remember(dataVersion) { repository.accountGroupsForReorder() },
         onSetAccountGroup = { account, groupId ->
-            onMutate("Updating account group") { repository.setAccountGroup(account.id, groupId) }
+            onMutate(R.string.navigation_updating_account_group) { repository.setAccountGroup(account.id, groupId) }
         },
         accountsForReorder = remember(dataVersion) { repository.accountsForReorder() },
-        onMoveAccount = { move -> onMutateSync("Reordering account") { repository.moveAccount(move) } },
-        onMoveGroup = { move -> onMutateSync("Reordering account group") { repository.moveAccountGroup(move) } },
-        onCreateGroup = { name -> onMutate("Creating account group") { repository.createAccountGroup(name) } },
-        onRenameGroup = { id, name -> onMutate("Renaming account group") { repository.renameAccountGroup(id, name) } },
-        onDeleteGroup = { id -> onMutate("Deleting account group") { repository.deleteAccountGroup(id) } },
+        onMoveAccount = { move -> onMutateSync(R.string.navigation_reordering_account) { repository.moveAccount(move) } },
+        onMoveGroup = { move -> onMutateSync(R.string.navigation_reordering_account_group) { repository.moveAccountGroup(move) } },
+        onCreateGroup = { name -> onMutate(R.string.navigation_creating_account_group) { repository.createAccountGroup(name) } },
+        onRenameGroup = { id, name -> onMutate(R.string.navigation_renaming_account_group) { repository.renameAccountGroup(id, name) } },
+        onDeleteGroup = { id -> onMutate(R.string.navigation_deleting_account_group) { repository.deleteAccountGroup(id) } },
         pendingCaptureCount = pendingCaptureCount,
         onReviewCaptures = onReviewCaptures,
         newTransactionCounts = newTransactionCounts,
