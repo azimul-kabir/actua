@@ -16,7 +16,7 @@
     <string name="budget_show_spent_column">Exibir coluna de gastos</string>
     <string name="budget_show_progress_bars">Exibir barras de progresso</string>
     <string name="budget_show_group_totals">Exibir totais dos grupos</string>
-    <string name="budget_show_balance_pills">Exibir pílulas de saldo</string>
+    <string name="budget_show_balance_pills">Exibir etiquetas de saldo</string>
     <string name="budget_hide_fully_spent">Ocultar categorias totalmente gastas</string>
     <string name="budget_show_hidden">Mostrar categorias e grupos ocultos</string>
     <string name="budget_show_filters">Exibir filtros de categorias</string>
@@ -30,8 +30,8 @@
 
     <!-- Category view filters (BudgetCategoryView). -->
     <string name="budget_filter_all">Todas</string>
-    <string name="budget_filter_overspent">Excedidos</string>
-    <string name="budget_filter_underfunded">Subfinanciado</string>
+    <string name="budget_filter_overspent">Excedidas</string>
+    <string name="budget_filter_underfunded">Subfinanciadas</string>
     <string name="budget_filter_overfunded">Excesso de fundos</string>
     <string name="budget_filter_money_available">Dinheiro disponível</string>
 
@@ -154,7 +154,7 @@
     <string name="budget_after_other_automations">Após outras automações</string>
     <string name="budget_at_priority">Nesta prioridade</string>
     <string name="budget_schedule_driven">Orientada por agendamento</string>
-    <string name="budget_due_amount">Vence em %1$s</string>
+    <string name="budget_due_amount">A vencer: %1$s</string>
     <string name="budget_no_auto_funding">Não solicita financiamento automaticamente</string>
     <string name="budget_no_auto_budgeting">Não orça valores automaticamente</string>
     <string name="budget_applied_preview">Aplicada na pré-visualização do orçamento inteiro</string>
