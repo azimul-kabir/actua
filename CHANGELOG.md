@@ -28,6 +28,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed Google Drive authorization failure by configuring registered OAuth client ID and custom client ID preference ([#1195](https://github.com/azimul-kabir/actua/pull/1195))
 - Fixed group dropdown in Add account dialog displaying group ID instead of group name ([#1189](https://github.com/azimul-kabir/actua/pull/1189))
 - Suppress server session expired banner when viewing standalone local budgets ([#1181](https://github.com/azimul-kabir/actua/pull/1181))
 - Prevent silent deletion of unreadable standalone budgets during repository recovery ([#1180](https://github.com/azimul-kabir/actua/pull/1180))

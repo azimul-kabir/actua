@@ -26,7 +26,7 @@ object GoogleDriveConfig {
 
     const val DEFAULT_ROOT_FOLDER_NAME = "Actua Backups"
     const val REDIRECT_URI = "com.azimulkabir.actua:/oauth2redirect"
-    const val DEFAULT_CLIENT_ID = "336829188094-0q4f1g685uon0c09199s3a8c148e227u.apps.googleusercontent.com"
+    const val DEFAULT_CLIENT_ID = "244721694764-git0bjlcnf2hjvk153dmketdao10nqqn.apps.googleusercontent.com"
 
     /**
      * PKCE helper: generates a cryptographically random code_verifier (43-128 chars URL-safe).

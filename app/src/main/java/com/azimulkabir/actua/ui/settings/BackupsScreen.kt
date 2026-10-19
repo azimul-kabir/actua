@@ -48,6 +48,7 @@ import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveAuthManager
 import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupItem
 import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveBackupManager
+import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveConfig
 import com.azimulkabir.actua.data.budget.gdrive.GoogleDriveEncryptionStore
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
@@ -93,6 +94,9 @@ fun BackupsScreen(
     var passphraseVisible by remember { mutableStateOf(false) }
 
     var showDisconnectDialog by remember { mutableStateOf(false) }
+
+    var showClientIdDialog by remember { mutableStateOf(false) }
+    var clientIdInput by remember { mutableStateOf("") }
 
     var pendingRestoreRemote by remember { mutableStateOf<GoogleDriveBackupItem?>(null) }
     var restorePassphrasePrompt by remember { mutableStateOf(false) }
@@ -334,6 +338,59 @@ fun BackupsScreen(
         )
     }
 
+    // Google OAuth Client ID Dialog
+    if (showClientIdDialog) {
+        AlertDialog(
+            onDismissRequest = { showClientIdDialog = false },
+            title = { Text("Google OAuth client ID") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Actua connects via Google Drive OAuth 2.0 PKCE. Leave blank to use Actua's default client ID.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        value = clientIdInput,
+                        onValueChange = { clientIdInput = it },
+                        label = { Text("Client ID") },
+                        placeholder = { Text(GoogleDriveConfig.DEFAULT_CLIENT_ID) },
+                        singleLine = false,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (driveManager.preferences.customClientId != null) {
+                        TextButton(
+                            onClick = {
+                                driveManager.preferences.customClientId = null
+                                showClientIdDialog = false
+                                message = "Reset to default Google OAuth client ID."
+                            },
+                        ) {
+                            Text("Reset to default", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val trimmed = clientIdInput.trim()
+                        driveManager.preferences.customClientId = trimmed.ifBlank { null }
+                        showClientIdDialog = false
+                        message = if (trimmed.isBlank()) {
+                            "Using default Google OAuth client ID."
+                        } else {
+                            "Custom Google OAuth client ID saved."
+                        }
+                    },
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClientIdDialog = false }) { Text("Cancel") }
+            },
+        )
+    }
+
     // Remote Restore Passphrase Prompt Dialog
     if (restorePassphrasePrompt && pendingRestoreRemote != null) {
         AlertDialog(
@@ -531,6 +588,27 @@ fun BackupsScreen(
                             TextButton(enabled = !busy, onClick = { showDisconnectDialog = true }) {
                                 Text("Disconnect", color = MaterialTheme.colorScheme.error)
                             }
+                        }
+                    }
+
+                    HorizontalDivider()
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("OAuth client ID", fontWeight = FontWeight.Medium)
+                            Text(
+                                if (driveManager.preferences.customClientId != null) "Custom client ID" else "Default client ID",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        TextButton(
+                            enabled = !busy && !authState.isAuthenticating,
+                            onClick = {
+                                clientIdInput = driveManager.preferences.customClientId ?: ""
+                                showClientIdDialog = true
+                            },
+                        ) {
+                            Text("Configure")
                         }
                     }
 

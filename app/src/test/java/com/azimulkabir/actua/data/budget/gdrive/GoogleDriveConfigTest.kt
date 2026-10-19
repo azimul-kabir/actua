@@ -66,4 +66,10 @@ class GoogleDriveConfigTest {
         assertEquals("offline", queryParams["access_type"])
         assertEquals("consent", queryParams["prompt"])
     }
+
+    @Test
+    fun defaultClientIdIsConfigured() {
+        assertEquals("244721694764-git0bjlcnf2hjvk153dmketdao10nqqn.apps.googleusercontent.com", GoogleDriveConfig.DEFAULT_CLIENT_ID)
+        assertTrue(GoogleDriveConfig.DEFAULT_CLIENT_ID.endsWith(".apps.googleusercontent.com"))
+    }
 }
