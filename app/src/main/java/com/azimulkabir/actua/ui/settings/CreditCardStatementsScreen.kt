@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,7 +33,6 @@ import com.azimulkabir.actua.ui.transactions.TransactionRow
 import com.azimulkabir.actua.ui.theme.success
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /** Mirrors Actuali's "Recent Statements" list within AccountDetailView, adapted as its own
  * screen since Actua has no account-detail screen yet. */
@@ -85,8 +85,13 @@ private fun StatementRow(statement: CreditCardCycle.StatementRecord, hideDecimal
     }
 }
 
+/** "dd MMM" statement-range label in the app locale (pt-BR renders "21 ago – 20 set"); mirrors
+ * BudgetScreen.formatMonth's locale resolution — DateDisplay's user formats are all-numeric/full
+ * and have no "dd MMM" shape, so the pattern is built here against the configuration locale. */
+@Composable
 private fun com.azimulkabir.actua.data.schedules.DayDate.abbreviated(): String =
-    LocalDate.of(year, month, day).format(DateTimeFormatter.ofPattern("dd MMM", Locale.ENGLISH))
+    LocalDate.of(year, month, day)
+        .format(DateTimeFormatter.ofPattern("dd MMM", LocalConfiguration.current.locales[0]))
 
 /** Mirrors Actuali's CreditCardStatementDetailView: statement summary plus its transactions. */
 @Composable

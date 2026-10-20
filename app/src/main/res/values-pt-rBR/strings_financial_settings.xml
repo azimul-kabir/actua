@@ -242,9 +242,9 @@
     <plurals name="fs_interval_years"><item quantity="one">%d ano</item><item quantity="other">%d anos</item></plurals>
     <string name="fs_every_interval">A cada %1$s</string>
     <string name="fs_monthly_default_pattern">Repete no dia %1$d do mês. Adicione dias específicos para repetir mais de uma vez.</string>
-    <string name="fs_repeats_on">Repete em %1$s.</string>
-    <string name="fs_pattern_day">o %1$s dia</string>
-    <string name="fs_pattern_weekday">o %1$s %2$s</string>
+    <string name="fs_repeats_on">Repete %1$s.</string>
+    <string name="fs_pattern_day">no %1$s dia</string>
+    <string name="fs_pattern_weekday">na %1$s %2$s</string>
     <string name="fs_no_upcoming_dates">Nenhuma data futura</string>
     <string name="fs_next_date">Próxima: %1$s</string>
     <string name="fs_budget_default">Padrão do orçamento</string>
@@ -272,7 +272,7 @@
     <plurals name="fs_every_years"><item quantity="one">A cada %d ano</item><item quantity="other">A cada %d anos</item></plurals>
     <string name="fs_last_day">último dia</string>
     <string name="fs_day_number">dia %1$d</string>
-    <string name="fs_last_weekday">último %1$s</string>
+    <string name="fs_last_weekday">última %1$s</string>
     <string name="fs_ordinal_weekday">%1$s %2$s</string>
     <string name="fs_ordinal_first">1º</string>
     <string name="fs_ordinal_st">%1$dº</string>
