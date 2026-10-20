@@ -104,7 +104,7 @@
     <string name="transactions_no_labels">Nenhuma tag ainda</string>
     <string name="transactions_more_actions">Mais ações</string>
     <string name="transactions_merge">Mesclar</string>
-    <string name="transactions_make_transfer">Criar transferência</string>
+    <string name="transactions_make_transfer">Fazer transferência</string>
     <string name="transactions_selection_total">Total: %1$s</string>
     <string name="transactions_mark_cleared">Marcar como confirmadas</string>
     <string name="transactions_mark_uncleared">Marcar como não confirmadas</string>
@@ -164,7 +164,7 @@
     <string name="reconcile_not_yet">Ainda não reconciliada</string>
     <string name="reconcile_reconciled_at">Reconciliada %1$s (%2$s)</string>
     <string name="reconcile_balance_matches">O saldo confirmado corresponde ao do seu banco.</string>
-    <string name="reconcile_lock_transactions">Bloquear transações</string>
+    <string name="reconcile_lock_transactions">Bloquear transações confirmadas</string>
     <string name="reconcile_lock_explanation">Isto marca as transações confirmadas como reconciliadas para que não sejam alteradas acidentalmente.</string>
     <string name="reconcile_difference">Diferença</string>
     <string name="reconcile_no_uncleared_review">Nenhuma transação não confirmada para revisar</string>
@@ -181,7 +181,7 @@
     <string name="location_nearby">Proximidades</string>
     <string name="location_save">Salvar local</string>
     <string name="location_nearby_failed">Não foi possível determinar beneficiários próximos. Tente novamente ou escolha um normalmente.</string>
-    <string name="location_selected_payee">%1$s selecionado, %2$s.</string>
+    <string name="location_selected_payee">Selecionado: %1$s, %2$s.</string>
     <string name="location_none_within_range">Nenhum local de beneficiário salvo foi encontrado em um raio de 500 metros.</string>
     <string name="location_save_failed">Não foi possível salvar o local deste beneficiário. Tente novamente.</string>
     <string name="location_permission_not_granted_choose">A permissão de localização não foi concedida. Você ainda pode escolher um beneficiário normalmente.</string>
