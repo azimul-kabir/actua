@@ -84,6 +84,11 @@ android {
         compose = true
         buildConfig = true
     }
+    // Ship only the locales Actua translates (see docs/LOCALIZATION.md); dependency-library
+    // locales for other languages would otherwise appear in the system picker without app strings.
+    androidResources {
+        localeFilters += listOf("en", "pt-rBR")
+    }
     bundle {
         language {
             enableSplit = false

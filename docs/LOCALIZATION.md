@@ -37,6 +37,8 @@ Actual Budget's pt-BR glossary, maintained on Weblate via [actualbudget/translat
 - The supported set is declared in `app/src/main/res/xml/locales_config.xml` (`en`, `pt-BR`), referenced by `AndroidManifest.xml` via `android:localeConfig` so the OS settings page matches the in-app picker.
 - Activities receive the locale automatically through AppCompat. Receivers, workers, and any non-activity context must wrap themselves with `Context.withAppLanguage()` (`app/src/main/java/com/azimulkabir/actua/data/preferences/AppLanguage.kt`), as the widgets do.
 - `app/build.gradle.kts` sets `bundle { language { enableSplit = false } }`, shipping every locale in a single artifact so switching in-app never triggers a Play Store download.
+- `androidResources { localeFilters += listOf("en", "pt-rBR") }` strips dependency-library locales Actua does not translate. Add a new language to this list (and to `locales_config.xml`) when shipping it.
+- Manifest shortcut labels are resolved by the launcher and follow the system — not the in-app — language below API 33.
 
 ## Adding a language
 

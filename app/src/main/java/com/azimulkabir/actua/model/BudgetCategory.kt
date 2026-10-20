@@ -188,11 +188,6 @@ data class BudgetOverview(
     val projectedSavings: Boolean = false,
 ) {
     /**
-     * The headline figure: To Budget for envelope budgets; for tracking budgets, the savings figure
-     * Actual's mobile budget shows in its place ("Projected savings" for this month and later,
-     * "Saved" or "Overspent" before).
-     */
-    /**
      * Which label the lead cell shows; [lead] resolves it to the historical English strings so
      * existing (non-localized) callers and tests keep working. Composables resolve it through
      * string resources, with the To Budget label supplied by the call site (the plan overview
@@ -212,6 +207,11 @@ data class BudgetOverview(
     val leadValue: Long?
         get() = if (leadKind == LeadKind.TO_BUDGET) toBudgetCents else savedCents
 
+    /**
+     * The headline figure: To Budget for envelope budgets; for tracking budgets, the savings figure
+     * Actual's mobile budget shows in its place ("Projected savings" for this month and later,
+     * "Saved" or "Overspent" before).
+     */
     fun lead(toBudgetLabel: String = "To budget"): Pair<String, Long?> = when (leadKind) {
         LeadKind.TO_BUDGET -> toBudgetLabel to leadValue
         LeadKind.PROJECTED_SAVINGS -> "Projected savings" to leadValue

@@ -3,9 +3,9 @@ package com.azimulkabir.actua.tasker
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,7 +54,7 @@ import kotlinx.coroutines.withContext
  * Tasker's edit screen for the "Queue transaction" plugin action (#1040). Saving returns the
  * fields and the current automation token to the app that opened it, which is named on screen.
  */
-class TaskerEditActivity : ComponentActivity() {
+class TaskerEditActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Only a host that asked for a result (Tasker) can receive the bundle and its token.
