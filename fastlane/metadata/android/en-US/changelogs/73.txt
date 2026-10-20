@@ -1,0 +1,9 @@
+• Budget on your device, no server needed
+• Import Actual Budget archives
+• Encrypted Google Drive backups
+• Build custom reports and pages
+• Collapsible account groups
+• Import OFX, QFX, QIF, CAMT files
+• Apply rules to existing transactions
+• Transfer lines in split transactions
+• Fixes for freezes opening budgets
