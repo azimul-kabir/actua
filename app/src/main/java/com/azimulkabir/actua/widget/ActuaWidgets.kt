@@ -365,8 +365,12 @@ object WidgetUpdater {
     }
 
     /** "Today", "Tomorrow", "In 5 days", "3 days overdue", in the app-selected language. */
-    internal fun relativeDueLabel(context: Context, dueDate: DayDate): String {
-        val days = DayDate.today().daysUntil(dueDate)
+    internal fun relativeDueLabel(
+        context: Context,
+        dueDate: DayDate,
+        today: DayDate = DayDate.today(),
+    ): String {
+        val days = today.daysUntil(dueDate)
         return when {
             days == 0 -> context.getString(R.string.widget_due_today)
             days == 1 -> context.getString(R.string.widget_due_tomorrow)

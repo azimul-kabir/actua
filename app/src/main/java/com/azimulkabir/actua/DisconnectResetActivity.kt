@@ -122,7 +122,10 @@ class DisconnectResetActivity : AppCompatActivity() {
             }
             result.onSuccess { resetAndRestart() }
                 .onFailure { error ->
+                    // Localized messages come from DisconnectUserException; anything else (network,
+                    // I/O) keeps its technical message so the cause stays visible, as before.
                     syncFailure = (error as? DisconnectUserException)?.userMessage
+                        ?: error.message?.takeIf { it.isNotBlank() }
                         ?: getString(R.string.disconnect_error_sync_failed)
                     stage = Stage.SyncFailed
                 }
@@ -182,8 +185,9 @@ class DisconnectResetActivity : AppCompatActivity() {
             }.onSuccess {
                 DisconnectResetManager(this@DisconnectResetActivity).restartIntoFreshConnectionState()
                 finish()
-            }.onFailure {
-                syncFailure = getString(R.string.disconnect_error_reset_failed)
+            }.onFailure { error ->
+                syncFailure = error.message?.takeIf { it.isNotBlank() }
+                    ?: getString(R.string.disconnect_error_reset_failed)
                 stage = Stage.SyncFailed
             }
         }
