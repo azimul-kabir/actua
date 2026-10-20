@@ -18,7 +18,7 @@
     <string name="navigation_reports_load_failed_with_reason">Failed to load reports: %1$s</string>
     <string name="navigation_unlock_before_syncing">Unlock this encrypted budget before syncing</string>
     <string name="navigation_unlock_budget_before_sync">Unlock this encrypted budget before syncing.</string>
-    <string name="navigation_transfer_payee">Transfer: %1$s</string>
+    <string name="navigation_transfer_payee" translatable="false">Transfer: %1$s</string>
     <string name="navigation_saving_transaction_failed">Saving transaction failed.</string>
     <string name="navigation_view">View</string>
 
