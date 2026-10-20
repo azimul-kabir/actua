@@ -79,6 +79,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.model.PickerChoices
@@ -220,9 +222,9 @@ fun AddTransactionScreen(
     val blinkingCursor = if (cursorAlpha > 0.5f) " │" else ""
     val currencySymbol = currencyInputPrefix()
     val signToggleLabel = when {
-        isTransfer -> "Reverse transfer"
-        incoming -> "Switch to expense"
-        else -> "Switch to income"
+        isTransfer -> stringResource(R.string.transaction_reverse_transfer)
+        incoming -> stringResource(R.string.transaction_switch_to_expense)
+        else -> stringResource(R.string.transaction_switch_to_income)
     }
     val formDraft = { formCategory: String ->
         transactionFromForm(
@@ -249,7 +251,7 @@ fun AddTransactionScreen(
             },
         )
     }
-    val saveWarning = editing?.let { reconciledWarning(listOf(it), ReconciledAction.EDIT) }
+    val saveWarning = editing?.let { reconciledWarningRes(listOf(it), ReconciledAction.EDIT) }
     val saveTransaction = {
         if (canSave) {
             if (saveWarning != null) confirmReconciledSave = true else onSave(draft())
@@ -287,16 +289,16 @@ fun AddTransactionScreen(
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.Close, contentDescription = "Cancel")
+                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.action_cancel))
             }
-            Text(if (editing == null) "Add transaction" else "Edit transaction",
+            Text(if (editing == null) stringResource(R.string.transaction_add) else stringResource(R.string.transaction_edit),
                 style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f))
             if (editing != null) {
                 IconButton(onClick = { confirmDelete = true }) {
                     Icon(
                         Icons.Outlined.Delete,
-                        contentDescription = "Delete transaction",
+                        contentDescription = stringResource(R.string.transaction_delete),
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -321,12 +323,13 @@ fun AddTransactionScreen(
                 },
                 isZero = amountCents == 0L && amountExpression.isNullOrEmpty(),
                 direction = transferTarget?.let { target ->
-                    if (incoming) "$target → $account" else "$account → $target"
+                    if (incoming) stringResource(R.string.transaction_transfer_direction, target, account)
+                    else stringResource(R.string.transaction_transfer_direction, account, target)
                 },
                 editing = showCalculator,
                 cursorAlpha = cursorAlpha,
                 toggleLabel = signToggleLabel,
-                hint = if (hideDecimalPlaces) "Decimal places are hidden in lists" else null,
+                hint = if (hideDecimalPlaces) stringResource(R.string.transaction_decimal_hidden) else null,
                 onAmountClick = {
                     amountExpression = null
                     showCalculator = true
@@ -335,7 +338,7 @@ fun AddTransactionScreen(
             )
             ActuaFormCard {
                 PickerTextField(
-                    label = "Payee", value = payee,
+                    label = stringResource(R.string.transaction_payee), value = payee,
                     options = payeeOptions.filterNot { it == TRANSFER_PAYEE_PREFIX + account },
                     suggested = suggestedPayees,
                     supportingValues = accountBalanceLabels.mapKeys { TRANSFER_PAYEE_PREFIX + it.key },
@@ -349,14 +352,14 @@ fun AddTransactionScreen(
                     onForgetPayeeLocation = onForgetPayeeLocation,
                     rowIcon = if (isTransfer) Icons.Outlined.SwapHoriz else Icons.Outlined.Storefront,
                     rowValue = transferTarget,
-                    rowCaption = if (isTransfer) "Transfer" else null,
-                    placeholder = "Choose or add a payee",
+                    rowCaption = if (isTransfer) stringResource(R.string.transaction_type_transfer) else null,
+                    placeholder = stringResource(R.string.transaction_choose_payee),
                 )
                 if (!isSplit) {
                     ActuaCardDivider()
                     if (categoryApplies) {
                         PickerTextField(
-                            label = "Category", value = category, options = categoryOptions,
+                            label = stringResource(R.string.transaction_category), value = category, options = categoryOptions,
                             sections = categoryChoices.sections,
                             supportingValues = categoryBalanceLabels,
                             onValueChange = { category = it; categoryIsExplicit = it.isNotBlank() },
@@ -364,16 +367,17 @@ fun AddTransactionScreen(
                             onAutoOpenHandled = { autoStep = null },
                             onPicked = { if (editing == null) autoStep = AddStep.Account },
                             rowIcon = Icons.Outlined.Category,
-                            placeholder = "Uncategorized",
+                            placeholder = stringResource(R.string.transaction_uncategorized),
                         )
                     } else {
                         ActuaFormRow(
                             icon = Icons.Outlined.Category,
-                            label = "Category",
-                            value = if (isOffBudget) "Off budget" else "Transfer",
+                            label = stringResource(R.string.transaction_category),
+                            value = if (isOffBudget) stringResource(R.string.entity_off_budget)
+                            else stringResource(R.string.transaction_type_transfer),
                             caption = when {
-                                isOffBudget -> "Off-budget accounts don't use categories"
-                                else -> "Transfers between budget accounts aren't categorized"
+                                isOffBudget -> stringResource(R.string.transaction_off_budget_no_categories)
+                                else -> stringResource(R.string.transaction_transfer_not_categorized)
                             },
                             enabled = false,
                         )
@@ -381,7 +385,7 @@ fun AddTransactionScreen(
                 }
                 ActuaCardDivider()
                 PickerTextField(
-                    label = "Account",
+                    label = stringResource(R.string.transaction_account),
                     value = account, options = accountOptions.filterNot { it == transferTarget },
                     supportingValues = accountBalanceLabels,
                     onValueChange = {
@@ -394,13 +398,14 @@ fun AddTransactionScreen(
                     autoOpen = autoStep == AddStep.Account,
                     onAutoOpenHandled = { autoStep = null },
                     rowIcon = Icons.Outlined.AccountBalanceWallet,
-                    placeholder = "Choose an account",
+                    placeholder = stringResource(R.string.transaction_choose_account),
                 )
             }
             if (!isTransfer) {
                 if (!isSplit) {
                     ActuaSecondaryButton(
-                        text = if (isOffBudget) "Split transaction" else "Split into multiple categories",
+                        text = if (isOffBudget) stringResource(R.string.transaction_split)
+                        else stringResource(R.string.transaction_split_multiple_categories),
                         onClick = {
                             splitLines = if (editing == null) listOf(SplitLine(), SplitLine())
                             else listOf(
@@ -412,13 +417,14 @@ fun AddTransactionScreen(
                 } else {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                         ActuaGroupLabel(
-                            if (isOffBudget) "Split transaction" else "Split categories",
+                            if (isOffBudget) stringResource(R.string.transaction_split)
+                            else stringResource(R.string.transaction_split_categories),
                             Modifier.weight(1f),
                         )
                         TextButton(onClick = {
                             category = if (isOffBudget) "" else splitLines.firstOrNull()?.category.orEmpty()
                             splitLines = emptyList()
-                        }) { Text("Remove split") }
+                        }) { Text(stringResource(R.string.transaction_remove_split)) }
                     }
                     splitLines.forEachIndexed { index, line ->
                         fun update(changed: SplitLine) {
@@ -428,7 +434,7 @@ fun AddTransactionScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    "Split ${index + 1}",
+                                    stringResource(R.string.transaction_split_number, index + 1),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f).padding(start = Spacing.xs),
@@ -436,7 +442,7 @@ fun AddTransactionScreen(
                                 if (splitLines.size > 2) {
                                     TextButton(onClick = {
                                         splitLines = splitLines.toMutableList().also { it.removeAt(index) }
-                                    }) { Text("Remove this split", color = MaterialTheme.colorScheme.error) }
+                                    }) { Text(stringResource(R.string.transaction_remove_this_split), color = MaterialTheme.colorScheme.error) }
                                 }
                             }
                             ActuaFormCard {
@@ -448,14 +454,14 @@ fun AddTransactionScreen(
                                 }
                                 if (lineCategoryApplies) {
                                     PickerTextField(
-                                        label = "Category",
+                                        label = stringResource(R.string.transaction_category),
                                         value = line.category,
                                         options = categoryOptions,
                                         sections = categoryChoices.sections,
                                         supportingValues = categoryBalanceLabels,
                                         onValueChange = { value -> update(line.copy(category = value)) },
                                         rowIcon = Icons.Outlined.Category,
-                                        placeholder = "Uncategorized",
+                                        placeholder = stringResource(R.string.transaction_uncategorized),
                                     )
                                     ActuaCardDivider()
                                 }
@@ -470,22 +476,26 @@ fun AddTransactionScreen(
                                     input = splitAmountInput,
                                     active = splitCalculatorIndex == index,
                                     cursor = blinkingCursor,
+                                    amountPlaceholder = stringResource(R.string.transaction_amount_label),
                                 )
                                 ActuaFormRow(
                                     icon = Icons.Outlined.Calculate,
-                                    label = "Amount",
+                                    label = stringResource(R.string.transaction_amount_label),
                                     value = splitAmountPresentation.value.ifEmpty {
                                         if (splitAmountPresentation.showEmptyCaret) withCurrencySymbol(blinkingCursor.trim(), currencySymbol)
-                                        else "Add amount"
+                                        else stringResource(R.string.transaction_add_amount)
                                     },
                                     valueIsPlaceholder = line.amountCents == 0L,
                                     caption = if (line.amountCents == 0L && remaining > 0) {
-                                        "Remaining ${withCurrencySymbol(centsToInput(remaining), currencySymbol)}"
+                                        stringResource(
+                                            R.string.transaction_remaining_amount,
+                                            withCurrencySymbol(centsToInput(remaining), currencySymbol),
+                                        )
                                     } else null,
                                     trailing = if (line.amountCents == 0L && remaining > 0) {
                                         {
                                             TextButton(onClick = { update(line.copy(amountCents = remaining)) }) {
-                                                Text("Use remaining")
+                                                Text(stringResource(R.string.transaction_use_remaining_button))
                                             }
                                         }
                                     } else null,
@@ -497,22 +507,22 @@ fun AddTransactionScreen(
                                 ActuaCardDivider()
                                 ActuaFormRow(
                                     icon = Icons.Outlined.SwapVert,
-                                    label = "Opposite direction",
+                                    label = stringResource(R.string.transaction_opposite_direction),
                                     value = null,
-                                    caption = if (line.isOpposite) "Moves money the other way from the transaction"
-                                        else "Same direction as the transaction",
+                                    caption = if (line.isOpposite) stringResource(R.string.transaction_opposite_direction_hint)
+                                        else stringResource(R.string.transaction_same_direction_hint),
                                     checked = line.isOpposite,
                                     onClick = { update(line.copy(isOpposite = !line.isOpposite)) },
                                 )
                                 ActuaCardDivider()
                                 PickerTextField(
-                                    label = "Payee",
+                                    label = stringResource(R.string.transaction_payee),
                                     value = line.payee,
                                     options = splitLinePayeeOptions(payeeOptions, account),
                                     onValueChange = { value -> update(line.copy(payee = value)) },
                                     allowCustom = true,
                                     rowIcon = Icons.Outlined.Storefront,
-                                    placeholder = "Optional",
+                                    placeholder = stringResource(R.string.transaction_optional),
                                 )
                                 ActuaCardDivider()
                                 TagAutocompleteField(
@@ -520,22 +530,25 @@ fun AddTransactionScreen(
                                     tags = availableTags,
                                     onValueChange = { value -> update(line.copy(notes = value)) },
                                     onCreateTag = { name -> tagRepository.create(name)?.also { tagVersion += 1 } },
-                                    label = "Split note",
+                                    label = stringResource(R.string.transaction_split_note),
                                     modifier = Modifier.fillMaxWidth(),
                                     rowIcon = Icons.AutoMirrored.Outlined.Notes,
-                                    placeholder = "Add a note or #tag",
+                                    placeholder = stringResource(R.string.transaction_add_note_or_tag),
                                 )
                             }
                         }
                     }
                     ActuaSecondaryButton(
-                        text = "Add another split",
+                        text = stringResource(R.string.transaction_add_another_split),
                         onClick = { splitLines = splitLines + SplitLine() },
                         icon = Icons.Outlined.Add,
                     )
                     Text(
-                        if (splitTotal == amountCents) "Split total matches the transaction amount"
-                        else "Remaining: ${withCurrencySymbol(centsToInput(amountCents - splitTotal), currencySymbol)}",
+                        if (splitTotal == amountCents) stringResource(R.string.transaction_split_total_matches)
+                        else stringResource(
+                            R.string.transaction_remaining,
+                            withCurrencySymbol(centsToInput(amountCents - splitTotal), currencySymbol),
+                        ),
                         color = if (splitTotal == amountCents) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
@@ -546,7 +559,7 @@ fun AddTransactionScreen(
             ActuaFormCard {
                 ActuaFormRow(
                     icon = Icons.Outlined.CalendarMonth,
-                    label = "Date",
+                    label = stringResource(R.string.transaction_date),
                     value = formatDate(date),
                     onClick = { showDatePicker = true },
                 )
@@ -554,16 +567,16 @@ fun AddTransactionScreen(
                 if (staysReconciled) {
                     ActuaFormRow(
                         icon = Icons.Outlined.Lock,
-                        label = "Reconciled",
+                        label = stringResource(R.string.transaction_reconciled),
                         value = null,
-                        caption = "Reconciled transactions stay cleared",
+                        caption = stringResource(R.string.transaction_reconciled_stays_cleared),
                         checked = true,
                         enabled = false,
                     )
                 } else {
                     ActuaFormRow(
                         icon = Icons.Outlined.CheckCircleOutline,
-                        label = "Cleared",
+                        label = stringResource(R.string.transaction_cleared),
                         value = null,
                         checked = cleared,
                         onClick = { cleared = !cleared },
@@ -575,15 +588,15 @@ fun AddTransactionScreen(
                     tags = availableTags,
                     onValueChange = { notes = it },
                     onCreateTag = { name -> tagRepository.create(name)?.also { tagVersion += 1 } },
-                    label = "Notes",
+                    label = stringResource(R.string.transaction_notes),
                     modifier = Modifier.fillMaxWidth(),
                     rowIcon = Icons.AutoMirrored.Outlined.Notes,
-                    placeholder = "Add a note or #tag",
+                    placeholder = stringResource(R.string.transaction_add_note_or_tag),
                 )
             }
         }
         ActuaPrimaryActionBar(
-            text = "Save",
+            text = stringResource(R.string.action_save),
             onClick = saveTransaction,
             enabled = canSave,
             icon = Icons.Outlined.Check,
@@ -591,7 +604,8 @@ fun AddTransactionScreen(
         }
     }
     if (showCalculator) CalculatorAmountSheet(
-        title = if (editing == null) "Transaction amount" else "Edit amount",
+        title = if (editing == null) stringResource(R.string.transaction_amount)
+        else stringResource(R.string.transaction_edit_amount),
         initialCents = amountCents,
         conventionalAmountEntry = conventionalAmountEntry,
         onDismiss = {
@@ -607,7 +621,7 @@ fun AddTransactionScreen(
     splitCalculatorIndex?.let { index ->
         val line = splitLines.getOrNull(index)
         if (line != null) CalculatorAmountSheet(
-            title = "Split ${index + 1} amount",
+            title = stringResource(R.string.transaction_split_amount, index + 1),
             initialCents = line.amountCents,
             conventionalAmountEntry = conventionalAmountEntry,
             onDismiss = {
@@ -622,7 +636,7 @@ fun AddTransactionScreen(
     }
     if (confirmReconciledSave && saveWarning != null) {
         ReconciledConfirmDialog(
-            message = saveWarning,
+            messageRes = saveWarning,
             onConfirm = {
                 confirmReconciledSave = false
                 if (canSave) onSave(draft())
@@ -633,21 +647,23 @@ fun AddTransactionScreen(
     if (confirmDelete && editing != null) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete transaction?") },
+            title = { Text(stringResource(R.string.transaction_delete_question)) },
             text = {
                 Text(
-                    reconciledWarning(listOf(editing), ReconciledAction.DELETE)
-                        ?: "This transaction will be removed from your budget.",
+                    stringResource(
+                        reconciledWarningRes(listOf(editing), ReconciledAction.DELETE)
+                            ?: R.string.transaction_delete_budget_message,
+                    ),
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     onDelete(editing)
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
@@ -663,9 +679,9 @@ fun AddTransactionScreen(
                         date = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.action_cancel)) } },
         ) { DatePicker(state = pickerState) }
     }
 }
@@ -765,9 +781,9 @@ private fun AmountHero(
         AmountKind.Transfer -> MaterialTheme.colorScheme.onSurface
     }
     val caption = when (kind) {
-        AmountKind.Expense -> "Expense"
-        AmountKind.Income -> "Income"
-        AmountKind.Transfer -> "Transfer"
+        AmountKind.Expense -> stringResource(R.string.transaction_type_expense)
+        AmountKind.Income -> stringResource(R.string.transaction_type_income)
+        AmountKind.Transfer -> stringResource(R.string.transaction_type_transfer)
     }
     val sign = when (kind) {
         AmountKind.Expense -> "−"
@@ -781,8 +797,8 @@ private fun AmountHero(
         amountColor = if (isZero) MaterialTheme.colorScheme.onSurfaceVariant else kindColor,
         captionColor = kindColor,
         supportingText = direction,
-        contentDescription = "Amount, $caption $shown",
-        onClickLabel = "Edit amount",
+        contentDescription = stringResource(R.string.transaction_amount_content_description, caption, shown),
+        onClickLabel = stringResource(R.string.transaction_edit_amount),
         onClick = onAmountClick,
         amountTrailing = if (editing) {
             {
@@ -832,6 +848,7 @@ internal fun PickerTextField(
     placeholder: String = "",
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    val locationStrings = payeeLocationStrings()
     LaunchedEffect(autoOpen) {
         if (autoOpen) {
             showPicker = true
@@ -860,23 +877,23 @@ internal fun PickerTextField(
                 PayeeLocationInlineAction.Nearby -> {
                     val result = runCatching { onFindNearby?.invoke() }.getOrNull()
                     if (result == null) {
-                        locationActionMessage = "Could not determine nearby payees. Try again or choose one normally."
+                        locationActionMessage = locationStrings.nearbyFailed
                     } else {
                         knownNearbyPayees = result.options.mapTo(mutableSetOf()) { it.payee }
                         val closest = result.options.firstOrNull()
                         if (closest != null) {
                             onValueChange(closest.payee)
-                            locationActionMessage = "Selected ${closest.payee}, ${closest.distance}."
+                            locationActionMessage = locationStrings.selectedPayeeFormat
+                                .format(closest.payee, closest.distance)
                         } else {
-                            locationActionMessage = result.message
-                                ?: "No saved payee locations were found within 500 metres."
+                            locationActionMessage = result.message ?: locationStrings.noneWithinRange
                         }
                     }
                 }
                 PayeeLocationInlineAction.SaveLocation -> {
                     val result = runCatching { onSavePayeeLocation?.invoke(value) }.getOrNull()
                     if (result == null) {
-                        locationActionMessage = "Could not save this payee location. Try again."
+                        locationActionMessage = locationStrings.saveFailed
                     } else {
                         locationActionMessage = result.message
                         if (result.nowNearby) {
@@ -896,7 +913,7 @@ internal fun PickerTextField(
         if (grants.values.any { it } || ForegroundLocationPermission.isGranted(context)) {
             action?.let(runLocationAction)
         } else {
-            locationActionMessage = "Location permission was not granted. You can still choose a payee normally."
+            locationActionMessage = locationStrings.permissionNotGrantedChoose
         }
     }
     val locationButton: (@Composable () -> Unit)? = inlineAction?.let { action ->
@@ -917,7 +934,8 @@ internal fun PickerTextField(
                 } else {
                     Icon(Icons.Outlined.LocationOn, contentDescription = null)
                     Text(
-                        if (action == PayeeLocationInlineAction.Nearby) "Nearby" else "Save location",
+                        if (action == PayeeLocationInlineAction.Nearby) stringResource(R.string.location_nearby)
+                        else stringResource(R.string.location_save),
                         modifier = Modifier.padding(start = 4.dp),
                     )
                 }
@@ -979,23 +997,23 @@ internal fun PickerTextField(
                 showPermissionExplanation = false
                 pendingPermissionAction = null
             },
-            title = { Text("Use your location?") },
+            title = { Text(stringResource(R.string.location_use_question)) },
             text = {
                 Text(
-                    "Actua uses a one-time foreground location to find nearby saved payees or save this payee's location inside your Actual budget. It does not track location in the background or send it to another service.",
+                    stringResource(R.string.location_explanation_save),
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     showPermissionExplanation = false
                     locationPermissionLauncher.launch(ForegroundLocationPermission.permissions)
-                }) { Text("Continue") }
+                }) { Text(stringResource(R.string.action_continue)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showPermissionExplanation = false
                     pendingPermissionAction = null
-                }) { Text("Not now") }
+                }) { Text(stringResource(R.string.action_not_now)) }
             },
         )
     }
@@ -1026,6 +1044,7 @@ private fun SearchableTransactionPicker(
     var nearbyMessage by remember { mutableStateOf<String?>(null) }
     var showPermissionExplanation by remember { mutableStateOf(false) }
     var forgettingLocationId by remember { mutableStateOf<String?>(null) }
+    val locationStrings = payeeLocationStrings()
     val loadNearby = {
         if (!nearbyLoading) onFindNearby?.let { findNearby ->
             coroutineScope.launch {
@@ -1033,7 +1052,7 @@ private fun SearchableTransactionPicker(
                 nearbyMessage = null
                 val result = runCatching { findNearby() }.getOrElse {
                     NearbyPayeeSearchResult(
-                        message = "Could not determine nearby payees. You can still search normally.",
+                        message = locationStrings.findFailed,
                     )
                 }
                 nearbyOptions = result.options
@@ -1051,7 +1070,7 @@ private fun SearchableTransactionPicker(
             loadNearby()
         } else {
             nearbyOptions = emptyList()
-            nearbyMessage = "Location permission was not granted. You can still search normally."
+            nearbyMessage = locationStrings.permissionNotGrantedSearch
         }
     }
     LaunchedEffect(Unit) {
@@ -1074,6 +1093,7 @@ private fun SearchableTransactionPicker(
             sections,
         )
     }
+    val addValueFormat = stringResource(R.string.picker_add_value)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1086,7 +1106,10 @@ private fun SearchableTransactionPicker(
                     value = query,
                     onValueChange = { query = it },
                     placeholder = {
-                        Text(if (allowCustom) "Find or add a ${title.lowercase()}" else "Search ${title.lowercase()}")
+                        Text(
+                            if (allowCustom) stringResource(R.string.picker_find_or_add, title.lowercase())
+                            else stringResource(R.string.picker_search, title.lowercase()),
+                        )
                     },
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                     singleLine = true,
@@ -1106,7 +1129,7 @@ private fun SearchableTransactionPicker(
                     ),
                 ) {
                     if (selected.isNotBlank() && query.isBlank() && selected in uniqueOptions) {
-                        item { ActuaGroupLabel("Selected") }
+                        item { ActuaGroupLabel(stringResource(R.string.picker_selected)) }
                         item {
                             PickerGroup(
                                 listOf(selected), selected, supportingValues = supportingValues,
@@ -1115,7 +1138,7 @@ private fun SearchableTransactionPicker(
                         }
                     }
                     if (query.isBlank() && onFindNearby != null) {
-                        item { ActuaGroupLabel("Nearby") }
+                        item { ActuaGroupLabel(stringResource(R.string.picker_nearby)) }
                         item {
                             FilledTonalButton(
                                 onClick = {
@@ -1138,7 +1161,8 @@ private fun SearchableTransactionPicker(
                                 } else {
                                     Icon(Icons.Outlined.LocationOn, contentDescription = null)
                                     Text(
-                                        if (nearbyOptions.isEmpty()) "Find nearby payees" else "Refresh nearby payees",
+                                        if (nearbyOptions.isEmpty()) stringResource(R.string.location_find_payees)
+                                        else stringResource(R.string.location_refresh_payees),
                                         modifier = Modifier.padding(start = 8.dp),
                                     )
                                 }
@@ -1162,10 +1186,10 @@ private fun SearchableTransactionPicker(
                                                     nearbyOptions = nearbyOptions.filterNot {
                                                         it.locationId == option.locationId
                                                     }
-                                                    nearbyMessage = "Saved location for ${option.payee} forgotten."
+                                                    nearbyMessage = locationStrings.forgottenFormat.format(option.payee)
                                                     onNearbyResult(NearbyPayeeSearchResult(nearbyOptions, nearbyMessage))
                                                 } else {
-                                                    nearbyMessage = "Could not forget the saved location. Try again."
+                                                    nearbyMessage = locationStrings.forgetFailed
                                                 }
                                                 forgettingLocationId = null
                                             }
@@ -1186,7 +1210,7 @@ private fun SearchableTransactionPicker(
                         }
                     }
                     if (query.isBlank() && suggestedOptions.isNotEmpty()) {
-                        item(key = "heading-suggested") { ActuaGroupLabel("Suggested") }
+                        item(key = "heading-suggested") { ActuaGroupLabel(stringResource(R.string.picker_suggested)) }
                         item(key = "group-suggested") {
                             PickerGroup(
                                 suggestedOptions, selected, supportingValues = supportingValues,
@@ -1195,7 +1219,7 @@ private fun SearchableTransactionPicker(
                         }
                     }
                     if (query.isNotBlank() && searchResults.isNotEmpty()) {
-                        item { ActuaGroupLabel("Search results") }
+                        item { ActuaGroupLabel(stringResource(R.string.picker_search_results)) }
                         item {
                             PickerGroup(
                                 options = searchResults,
@@ -1207,7 +1231,7 @@ private fun SearchableTransactionPicker(
                         }
                     }
                     if (query.isBlank() && transferOptions.isNotEmpty()) {
-                        item { ActuaGroupLabel("Payments and transfers") }
+                        item { ActuaGroupLabel(stringResource(R.string.picker_payments_transfers)) }
                         item {
                             PickerGroup(
                                 options = transferOptions,
@@ -1222,12 +1246,12 @@ private fun SearchableTransactionPicker(
                             it.equals(query.trim(), ignoreCase = true)
                         }
                     ) {
-                        item { ActuaGroupLabel("New ${title.lowercase()}") }
+                        item { ActuaGroupLabel(stringResource(R.string.picker_new, title.lowercase())) }
                         item {
                             PickerGroup(
                                 options = listOf(query.trim()),
                                 selected = "",
-                                displayText = { "Add “$it”" },
+                                displayText = { addValueFormat.format(it) },
                                 onSelect = onSelect,
                             )
                         }
@@ -1247,7 +1271,7 @@ private fun SearchableTransactionPicker(
                     if (query.isNotBlank() && searchResults.isEmpty() && !allowCustom) {
                         item {
                             Text(
-                                "No matches",
+                                stringResource(R.string.picker_no_matches),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(vertical = 24.dp),
                             )
@@ -1260,20 +1284,20 @@ private fun SearchableTransactionPicker(
     if (showPermissionExplanation) {
         AlertDialog(
             onDismissRequest = { showPermissionExplanation = false },
-            title = { Text("Use your location?") },
+            title = { Text(stringResource(R.string.location_use_question)) },
             text = {
                 Text(
-                    "Actua uses a one-time foreground location to find nearby payees saved inside your Actual budget. It does not track location in the background or send it to another service.",
+                    stringResource(R.string.location_explanation_find),
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     showPermissionExplanation = false
                     locationPermissionLauncher.launch(ForegroundLocationPermission.permissions)
-                }) { Text("Continue") }
+                }) { Text(stringResource(R.string.action_continue)) }
             },
             dismissButton = {
-                TextButton(onClick = { showPermissionExplanation = false }) { Text("Not now") }
+                TextButton(onClick = { showPermissionExplanation = false }) { Text(stringResource(R.string.action_not_now)) }
             },
         )
     }
@@ -1293,6 +1317,36 @@ data class NearbyPayeeOption(
 data class PayeeLocationSaveResult(
     val nowNearby: Boolean,
     val message: String,
+)
+
+/**
+ * Location-action texts resolved once at composition so the non-composable coroutine callbacks in
+ * [PickerTextField] and [SearchableTransactionPicker] stay configuration-aware — the same shape
+ * as `TransactionEditorStrings` in AppNavigation.
+ */
+private data class PayeeLocationStrings(
+    val nearbyFailed: String,
+    val selectedPayeeFormat: String,
+    val noneWithinRange: String,
+    val saveFailed: String,
+    val permissionNotGrantedChoose: String,
+    val findFailed: String,
+    val permissionNotGrantedSearch: String,
+    val forgottenFormat: String,
+    val forgetFailed: String,
+)
+
+@Composable
+private fun payeeLocationStrings(): PayeeLocationStrings = PayeeLocationStrings(
+    nearbyFailed = stringResource(R.string.location_nearby_failed),
+    selectedPayeeFormat = stringResource(R.string.location_selected_payee),
+    noneWithinRange = stringResource(R.string.location_none_within_range),
+    saveFailed = stringResource(R.string.location_save_failed),
+    permissionNotGrantedChoose = stringResource(R.string.location_permission_not_granted_choose),
+    findFailed = stringResource(R.string.location_find_failed),
+    permissionNotGrantedSearch = stringResource(R.string.location_permission_not_granted_search),
+    forgottenFormat = stringResource(R.string.location_forgotten),
+    forgetFailed = stringResource(R.string.location_forget_failed),
 )
 
 internal enum class PayeeLocationInlineAction { Nearby, SaveLocation }
@@ -1321,16 +1375,17 @@ internal fun amountFieldPresentation(
     input: String,
     active: Boolean,
     cursor: String,
+    amountPlaceholder: String,
 ): AmountFieldPresentation = if (input.isEmpty()) {
     AmountFieldPresentation(
         value = "",
-        placeholder = if (active) "" else "Amount",
+        placeholder = if (active) "" else amountPlaceholder,
         showEmptyCaret = active,
     )
 } else {
     AmountFieldPresentation(
         value = withCurrencySymbol(input + if (active) cursor else "", currencySymbol),
-        placeholder = "Amount",
+        placeholder = amountPlaceholder,
         showEmptyCaret = false,
     )
 }
@@ -1426,7 +1481,7 @@ private fun NearbyPickerGroup(
                         if (forgettingLocationId == option.locationId) {
                             CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
                         } else {
-                            Text("Forget", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.action_forget), color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }

@@ -1,13 +1,15 @@
 package com.azimulkabir.actua.ui.transactions
 
+import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
 import org.junit.Assert.assertEquals
@@ -17,7 +19,10 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class AddTransactionScreenTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    /** Labels are read from the resources the screen renders with, so the suite tracks translations. */
+    private val strings get() = compose.activity
 
     @Test fun reverseTransferSwapsOnlyTheTransferDirection() {
         val editing = Transaction(
@@ -45,8 +50,8 @@ class AddTransactionScreenTest {
             }
         }
 
-        compose.onNodeWithText("Reverse transfer").performClick()
-        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithText(strings.getString(R.string.transaction_reverse_transfer)).performClick()
+        compose.onNodeWithText(strings.getString(R.string.action_save)).performClick()
 
         assertEquals("Savings", saved?.account)
         assertEquals("Checking", saved?.transferAccount)
@@ -59,7 +64,7 @@ class AddTransactionScreenTest {
         compose.setContent {
             MaterialTheme {
                 PickerTextField(
-                    label = "Category",
+                    label = strings.getString(R.string.transaction_category),
                     value = "",
                     options = listOf("Groceries"),
                     onValueChange = {},
@@ -98,7 +103,7 @@ class AddTransactionScreenTest {
             }
         }
 
-        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithText(strings.getString(R.string.action_save)).performClick()
 
         assertEquals(0L, saved?.amountCents)
     }
@@ -120,8 +125,10 @@ class AddTransactionScreenTest {
             }
         }
 
-        compose.onNodeWithText("Checking → Savings").assertExists()
-        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithText(
+            strings.getString(R.string.transaction_transfer_direction, "Checking", "Savings"),
+        ).assertExists()
+        compose.onNodeWithText(strings.getString(R.string.action_save)).performClick()
 
         assertEquals(Type.TRANSFER, saved?.type)
         assertEquals("Checking", saved?.account)
@@ -144,9 +151,9 @@ class AddTransactionScreenTest {
             }
         }
 
-        compose.onNodeWithText("Switch to income").performClick()
-        compose.onNodeWithText("Income").assertExists()
-        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithText(strings.getString(R.string.transaction_switch_to_income)).performClick()
+        compose.onNodeWithText(strings.getString(R.string.transaction_type_income)).assertExists()
+        compose.onNodeWithText(strings.getString(R.string.action_save)).performClick()
 
         assertEquals(Type.INCOME, saved?.type)
         assertEquals(450L, saved?.amountCents)
@@ -168,8 +175,8 @@ class AddTransactionScreenTest {
             }
         }
 
-        compose.onNodeWithText("Transfers between budget accounts aren't categorized").assertExists()
-        compose.onNodeWithText("Split into multiple categories").assertDoesNotExist()
+        compose.onNodeWithText(strings.getString(R.string.transaction_transfer_not_categorized)).assertExists()
+        compose.onNodeWithText(strings.getString(R.string.transaction_split_multiple_categories)).assertDoesNotExist()
     }
 
     @Test fun splittingShowsEachLineAsAFormCard() {
@@ -186,13 +193,13 @@ class AddTransactionScreenTest {
             }
         }
 
-        compose.onNodeWithText("Split into multiple categories").performScrollTo().performClick()
+        compose.onNodeWithText(strings.getString(R.string.transaction_split_multiple_categories)).performScrollTo().performClick()
 
-        compose.onNodeWithText("Split categories").assertExists()
-        compose.onNodeWithText("Split 2").performScrollTo().assertExists()
-        compose.onAllNodesWithText("Opposite direction").assertCountEquals(2)
-        compose.onAllNodesWithText("Add amount").assertCountEquals(1)
-        compose.onNodeWithText("Remove split").performClick()
-        compose.onNodeWithText("Split into multiple categories").performScrollTo().assertExists()
+        compose.onNodeWithText(strings.getString(R.string.transaction_split_categories)).assertExists()
+        compose.onNodeWithText(strings.getString(R.string.transaction_split_number, 2)).performScrollTo().assertExists()
+        compose.onAllNodesWithText(strings.getString(R.string.transaction_opposite_direction)).assertCountEquals(2)
+        compose.onAllNodesWithText(strings.getString(R.string.transaction_add_amount)).assertCountEquals(1)
+        compose.onNodeWithText(strings.getString(R.string.transaction_remove_split)).performClick()
+        compose.onNodeWithText(strings.getString(R.string.transaction_split_multiple_categories)).performScrollTo().assertExists()
     }
 }

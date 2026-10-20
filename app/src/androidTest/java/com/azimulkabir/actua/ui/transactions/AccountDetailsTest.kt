@@ -1,15 +1,17 @@
 package com.azimulkabir.actua.ui.transactions
 
+import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardConfig
 import com.azimulkabir.actua.model.CreditCardStatus
@@ -22,7 +24,10 @@ import org.junit.Test
  * collapsible toggle.
  */
 class AccountDetailsTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    /** Labels are read from the resources the screen renders with, so the suite tracks translations. */
+    private val strings get() = compose.activity
 
     // AccountDetails persists its expand/collapse state to real SharedPreferences keyed by
     // account id, so each test uses a distinct id to avoid leaking state across test methods.
@@ -60,9 +65,9 @@ class AccountDetailsTest {
             }
         }
 
-        compose.onNode(hasContentDescriptionContaining("Cleared")).assertExists()
-        compose.onNode(hasContentDescriptionContaining("Balance")).assertExists()
-        compose.onNode(hasContentDescriptionContaining("Uncleared")).assertExists()
+        compose.onNode(hasContentDescriptionContaining(strings.getString(R.string.transaction_cleared))).assertExists()
+        compose.onNode(hasContentDescriptionContaining(strings.getString(R.string.account_balance))).assertExists()
+        compose.onNode(hasContentDescriptionContaining(strings.getString(R.string.transaction_uncleared))).assertExists()
     }
 
     @Test
@@ -75,11 +80,11 @@ class AccountDetailsTest {
         }
 
         // Only the toggle row itself says "Reconciled" until it is expanded.
-        compose.onAllNodesWithText("Reconciled").assertCountEquals(1)
+        compose.onAllNodesWithText(strings.getString(R.string.transaction_reconciled)).assertCountEquals(1)
 
-        compose.onNodeWithText("Reconciled").performClick()
+        compose.onNodeWithText(strings.getString(R.string.transaction_reconciled)).performClick()
 
-        compose.onAllNodesWithText("Reconciled").assertCountEquals(2)
+        compose.onAllNodesWithText(strings.getString(R.string.transaction_reconciled)).assertCountEquals(2)
     }
 
     @Test
@@ -92,13 +97,13 @@ class AccountDetailsTest {
             }
         }
 
-        compose.onNode(hasText("Available credit")).assertDoesNotExist()
-        compose.onNode(hasText("Credit limit")).assertDoesNotExist()
+        compose.onNode(hasText(strings.getString(R.string.account_available_credit))).assertDoesNotExist()
+        compose.onNode(hasText(strings.getString(R.string.account_credit_limit))).assertDoesNotExist()
 
-        compose.onNodeWithText("Reconciled").performClick()
+        compose.onNodeWithText(strings.getString(R.string.transaction_reconciled)).performClick()
 
-        val order = compose.onAllNodesWithText("Available credit").fetchSemanticsNodes() +
-            compose.onAllNodesWithText("Credit limit").fetchSemanticsNodes()
+        val order = compose.onAllNodesWithText(strings.getString(R.string.account_available_credit)).fetchSemanticsNodes() +
+            compose.onAllNodesWithText(strings.getString(R.string.account_credit_limit)).fetchSemanticsNodes()
         // Available credit must appear before Credit limit in layout order (top to bottom).
         assert(order[0].boundsInRoot.top < order[1].boundsInRoot.top)
     }

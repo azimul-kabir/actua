@@ -131,6 +131,9 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.azimulkabir.actua.R
 
 private val sampleTransactions = listOf(
     Transaction("1", "Today", "Agora Super Shop", "Groceries", "Everyday account", -2_450, true),
@@ -218,9 +221,9 @@ fun TransactionsScreen(
     var showLinkSchedulePicker by remember { mutableStateOf(false) }
     var confirmBulkDelete by remember { mutableStateOf(false) }
     // A bulk edit of reconciled rows waits here for confirmation (#746).
-    var pendingReconciledEdit by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
+    var pendingReconciledEdit by remember { mutableStateOf<Pair<Int, () -> Unit>?>(null) }
     fun confirmReconciled(rows: List<Transaction>, edit: () -> Unit) {
-        val warning = reconciledWarning(rows, ReconciledAction.BULK_EDIT)
+        val warning = reconciledWarningRes(rows, ReconciledAction.BULK_EDIT)
         if (warning == null) edit() else pendingReconciledEdit = warning to edit
     }
     val toggleCleared = rememberClearedToggle(onSetCleared, onUnlockTransaction)
@@ -360,7 +363,9 @@ fun TransactionsScreen(
         )
     } else Column(modifier = modifier.fillMaxSize()) {
         ActuaScreenHeader(
-            title = categoryName ?: accountName ?: if (showBackButton) "All accounts" else "Transactions",
+            title = categoryName ?: accountName
+                ?: if (showBackButton) stringResource(R.string.transactions_all_accounts)
+                else stringResource(R.string.transactions_title),
             onBack = if (showBackButton) onBack else null,
         ) {
             Surface(
@@ -370,48 +375,48 @@ fun TransactionsScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { showSearch = !showSearch }) {
-                        Icon(Icons.Outlined.Search, contentDescription = "Search transactions")
+                        Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.transactions_search))
                     }
                     androidx.compose.foundation.layout.Box {
                         IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Outlined.MoreVert, contentDescription = "Transaction options")
+                            Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.transactions_options))
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            ActuaSwitchMenuItem("Group by date", groupTransactionsByDate, onGroupTransactionsByDateChange)
-                            ActuaSwitchMenuItem("Show upcoming transactions", showUpcomingTransactions, onShowUpcomingTransactionsChange)
+                            ActuaSwitchMenuItem(stringResource(R.string.transactions_group_by_date), groupTransactionsByDate, onGroupTransactionsByDateChange)
+                            ActuaSwitchMenuItem(stringResource(R.string.transactions_show_upcoming), showUpcomingTransactions, onShowUpcomingTransactionsChange)
                             account?.let { selectedAccount ->
                                 if (!selectedAccount.closed) {
                                     DropdownMenuItem(
-                                        text = { Text("Reconcile") },
+                                        text = { Text(stringResource(R.string.transactions_reconcile)) },
                                         leadingIcon = { Icon(Icons.Outlined.Lock, contentDescription = null) },
                                         onClick = { menuOpen = false; reconcileOpen = true },
                                     )
                                     HorizontalDivider()
                                 }
                                 ActuaSwitchMenuItem(
-                                    "Hide reconciled transactions",
+                                    stringResource(R.string.transactions_hide_reconciled),
                                     hideReconciledTransactions,
                                     onHideReconciledTransactionsChange,
                                 )
                                 ActuaSwitchMenuItem(
-                                    "Show current balance summary",
+                                    stringResource(R.string.transactions_show_balance_summary),
                                     showCurrentBalanceSummary,
                                     onShowCurrentBalanceSummaryChange,
                                 )
                                 ActuaSwitchMenuItem(
-                                    "Running balance",
+                                    stringResource(R.string.transactions_running_balance),
                                     showRunningBalance,
                                     onShowRunningBalanceChange,
                                 )
                                 if (showNotes) {
-                                    ActuaSwitchMenuItem("Show notes", showAccountNotes, onCheckedChange = { show ->
+                                    ActuaSwitchMenuItem(stringResource(R.string.transactions_show_notes), showAccountNotes, onCheckedChange = { show ->
                                         showAccountNotes = show
                                         accountDetailPreferences.edit()
                                             .putBoolean("show_notes_${selectedAccount.id}", show).apply()
                                     })
                                 }
                                 if (creditCard != null) {
-                                    ActuaSwitchMenuItem("Show credit card section", showCreditCardSection, onCheckedChange = { show ->
+                                    ActuaSwitchMenuItem(stringResource(R.string.transactions_show_credit_card), showCreditCardSection, onCheckedChange = { show ->
                                         showCreditCardSection = show
                                         accountDetailPreferences.edit()
                                             .putBoolean("show_credit_card_section_${selectedAccount.id}", show).apply()
@@ -430,7 +435,7 @@ fun TransactionsScreen(
         ) {
             OutlinedTextField(
                 value = search, onValueChange = { search = it },
-                placeholder = { Text("Search transactions") }, singleLine = true,
+                placeholder = { Text(stringResource(R.string.transactions_search)) }, singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
             )
         }
@@ -450,52 +455,53 @@ fun TransactionsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        if (selectedIds.isEmpty()) "Tap transactions to select" else "${selectedIds.size} selected",
+                        if (selectedIds.isEmpty()) stringResource(R.string.transactions_tap_to_select)
+                        else pluralStringResource(R.plurals.transactions_selected, selectedIds.size, selectedIds.size),
                         modifier = Modifier.weight(1f),
                         fontWeight = FontWeight.SemiBold,
                     )
-                    TextButton(onClick = { selectionModeOn = false }) { Text("Cancel") }
+                    TextButton(onClick = { selectionModeOn = false }) { Text(stringResource(R.string.action_cancel)) }
                     IconButton(onClick = { showCategorizePicker = true }, enabled = selectedTransactions.isNotEmpty()) {
-                        Icon(Icons.Outlined.Category, contentDescription = "Categorize")
+                        Icon(Icons.Outlined.Category, contentDescription = stringResource(R.string.transactions_categorize))
                     }
                     IconButton(onClick = { newTagName = ""; showLabelPicker = true }, enabled = selectedTransactions.isNotEmpty()) {
-                        Icon(Icons.Outlined.Sell, contentDescription = "Label")
+                        Icon(Icons.Outlined.Sell, contentDescription = stringResource(R.string.transactions_label))
                     }
                     androidx.compose.foundation.layout.Box {
                         IconButton(onClick = { bulkMenuOpen = true }, enabled = selectedTransactions.isNotEmpty()) {
-                            Icon(Icons.Outlined.MoreVert, contentDescription = "More actions")
+                            Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.transactions_more_actions))
                         }
                         DropdownMenu(expanded = bulkMenuOpen, onDismissRequest = { bulkMenuOpen = false }) {
                             if (selectedTransactions.size == 1) {
-                                DropdownMenuItem(text = { Text("Edit") }, onClick = {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.action_edit)) }, onClick = {
                                     bulkMenuOpen = false
                                     selectionModeOn = false
                                     onEdit(selectedTransactions.first())
                                 })
                             }
-                            DropdownMenuItem(text = { Text("Mark cleared") }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.transactions_mark_cleared)) }, onClick = {
                                 bulkMenuOpen = false
                                 bulkClearedTargets(selectedTransactions, cleared = true).forEach { onSetCleared(it, true) }
                             })
-                            DropdownMenuItem(text = { Text("Mark uncleared") }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.transactions_mark_uncleared)) }, onClick = {
                                 bulkMenuOpen = false
                                 bulkClearedTargets(selectedTransactions, cleared = false).forEach { onSetCleared(it, false) }
                             })
-                            DropdownMenuItem(text = { Text("Duplicate") }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.action_duplicate)) }, onClick = {
                                 bulkMenuOpen = false
                                 onDuplicateMultiple(selectedTransactions)
                                 selectionModeOn = false
                             })
-                            DropdownMenuItem(text = { Text("Move") }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.action_move)) }, onClick = {
                                 bulkMenuOpen = false
                                 showMovePicker = true
                             })
-                            DropdownMenuItem(text = { Text("Link to schedule") }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.transactions_link_schedule)) }, onClick = {
                                 bulkMenuOpen = false
                                 showLinkSchedulePicker = true
                             })
                             if (selectedTransactions.any { it.scheduleId != null }) {
-                                DropdownMenuItem(text = { Text("Unlink schedule") }, onClick = {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.transactions_unlink_schedule)) }, onClick = {
                                     bulkMenuOpen = false
                                     onUnlinkSchedule(selectedTransactions.filter { it.scheduleId != null })
                                     selectionModeOn = false
@@ -503,7 +509,7 @@ fun TransactionsScreen(
                             }
                             if (selectedTransactions.size == 1) {
                                 selectedTransactions.first().scheduleId?.let { scheduleId ->
-                                    DropdownMenuItem(text = { Text("View schedule") }, onClick = {
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.transactions_view_schedule)) }, onClick = {
                                         bulkMenuOpen = false
                                         selectionModeOn = false
                                         onViewSchedule(scheduleId)
@@ -511,7 +517,7 @@ fun TransactionsScreen(
                                 }
                             }
                             DropdownMenuItem(
-                                text = { Text("Merge") },
+                                text = { Text(stringResource(R.string.transactions_merge)) },
                                 enabled = mergePair != null,
                                 onClick = {
                                     bulkMenuOpen = false
@@ -524,7 +530,7 @@ fun TransactionsScreen(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Make transfer") },
+                                text = { Text(stringResource(R.string.transactions_make_transfer)) },
                                 enabled = transferPair != null,
                                 onClick = {
                                     bulkMenuOpen = false
@@ -538,7 +544,7 @@ fun TransactionsScreen(
                             )
                             HorizontalDivider()
                             DropdownMenuItem(
-                                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                text = { Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error) },
                                 onClick = { bulkMenuOpen = false; confirmBulkDelete = true },
                             )
                         }
@@ -547,7 +553,10 @@ fun TransactionsScreen(
                 if (selectedTransactions.size > 1) {
                     val totalCents = selectedTransactions.sumOf { it.amountCents }
                     Text(
-                        "Total: ${formatMoneyCents(totalCents, hideDecimalPlaces, showPositiveSign = true)}",
+                        stringResource(
+                            R.string.transactions_selection_total,
+                            formatMoneyCents(totalCents, hideDecimalPlaces, showPositiveSign = true),
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -556,7 +565,7 @@ fun TransactionsScreen(
             }
         }
         if (searchingDatabase && completedQuery != search) {
-            Text(if (searchError) "Search failed. Change the search to try again." else "Searching…",
+            Text(if (searchError) stringResource(R.string.search_failed) else stringResource(R.string.search_searching),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         }
         Row(
@@ -566,27 +575,27 @@ fun TransactionsScreen(
             FilterChip(
                 selected = transactionStatusFilter == TransactionStatusFilter.ALL,
                 onClick = { onTransactionStatusFilterChange(TransactionStatusFilter.ALL) },
-                label = { Text("All") }
+                label = { Text(stringResource(R.string.transactions_filter_all)) }
             )
             FilterChip(
                 selected = transactionStatusFilter == TransactionStatusFilter.UNCATEGORIZED,
                 onClick = { onTransactionStatusFilterChange(TransactionStatusFilter.UNCATEGORIZED) },
-                label = { Text("Uncategorized") }
+                label = { Text(stringResource(R.string.transactions_filter_uncategorized)) }
             )
             FilterChip(
                 selected = transactionStatusFilter == TransactionStatusFilter.UNCLEARED,
                 onClick = { onTransactionStatusFilterChange(TransactionStatusFilter.UNCLEARED) },
-                label = { Text("Uncleared") }
+                label = { Text(stringResource(R.string.transactions_filter_uncleared)) }
             )
             FilterChip(
                 selected = transactionStatusFilter == TransactionStatusFilter.CLEARED,
                 onClick = { onTransactionStatusFilterChange(TransactionStatusFilter.CLEARED) },
-                label = { Text("Cleared") }
+                label = { Text(stringResource(R.string.transactions_filter_cleared)) }
             )
             FilterChip(
                 selected = transactionStatusFilter == TransactionStatusFilter.RECONCILED,
                 onClick = { onTransactionStatusFilterChange(TransactionStatusFilter.RECONCILED) },
-                label = { Text("Reconciled") }
+                label = { Text(stringResource(R.string.transactions_filter_reconciled)) }
             )
         }
         PullToRefreshBox(
@@ -618,7 +627,10 @@ fun TransactionsScreen(
                     val posted = visible.filterNot { it.isUpcoming }
                     val total = posted.sumOf { it.amountCents }
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = 10.dp)) {
-                        Text("${posted.size} transactions", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            pluralStringResource(R.plurals.transactions_count, posted.size, posted.size),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         Spacer(Modifier.weight(1f))
                         Amount(total, FontWeight.Bold, hideDecimalPlaces)
                     }
@@ -626,13 +638,13 @@ fun TransactionsScreen(
                 if (visible.isEmpty()) item("empty-transactions") {
                     Text(
                         when {
-                            search.isNotBlank() -> "No matching transactions"
-                            transactionStatusFilter == TransactionStatusFilter.UNCATEGORIZED -> "No uncategorized transactions"
-                            transactionStatusFilter == TransactionStatusFilter.UNCLEARED -> "No uncleared transactions"
-                            transactionStatusFilter == TransactionStatusFilter.CLEARED -> "No cleared transactions"
-                            transactionStatusFilter == TransactionStatusFilter.RECONCILED -> "No reconciled transactions"
-                            hideReconciledTransactions -> "No unreconciled transactions"
-                            else -> "No transactions"
+                            search.isNotBlank() -> stringResource(R.string.search_no_matching_transactions)
+                            transactionStatusFilter == TransactionStatusFilter.UNCATEGORIZED -> stringResource(R.string.transactions_empty_uncategorized)
+                            transactionStatusFilter == TransactionStatusFilter.UNCLEARED -> stringResource(R.string.transactions_empty_uncleared)
+                            transactionStatusFilter == TransactionStatusFilter.CLEARED -> stringResource(R.string.transactions_empty_cleared)
+                            transactionStatusFilter == TransactionStatusFilter.RECONCILED -> stringResource(R.string.transactions_empty_reconciled)
+                            hideReconciledTransactions -> stringResource(R.string.transactions_empty_unreconciled)
+                            else -> stringResource(R.string.transactions_empty)
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(Spacing.screenHorizontal),
@@ -728,20 +740,20 @@ fun TransactionsScreen(
                 val scheduleId = transaction.scheduleId
                 ActuaSheetTitle(transaction.payee)
                 ActuaSheetCard {
-                    ActuaFormRow(icon = Icons.Outlined.CalendarMonth, label = "Scheduled date",
+                    ActuaFormRow(icon = Icons.Outlined.CalendarMonth, label = stringResource(R.string.transactions_scheduled_date),
                         value = formatTransactionDate(transaction.date))
                 }
                 ActuaSheetCard {
                     upcomingTransactionActions(recurring = scheduleId in recurringScheduleIds).forEachIndexed { index, action ->
                         if (index > 0) ActuaCardDivider()
-                        ActuaSheetAction(action.label, icon = upcomingActionIcon(action), onClick = {
+                        ActuaSheetAction(stringResource(action.labelRes), icon = upcomingActionIcon(action), onClick = {
                             upcomingMenuFor = null
                             onUpcomingAction(transaction, action)
                         })
                     }
                     if (scheduleId != null) {
                         ActuaCardDivider()
-                        ActuaSheetAction("Edit schedule", icon = Icons.Outlined.Edit, onClick = {
+                        ActuaSheetAction(stringResource(R.string.transactions_edit_schedule), icon = Icons.Outlined.Edit, onClick = {
                             upcomingMenuFor = null
                             onViewSchedule(scheduleId)
                         })
@@ -754,11 +766,15 @@ fun TransactionsScreen(
         val count = selectedIds.size
         AlertDialog(
             onDismissRequest = { confirmBulkDelete = false },
-            title = { Text("Delete $count ${if (count == 1) "transaction" else "transactions"}?") },
+            title = {
+                Text(pluralStringResource(R.plurals.transactions_delete_count_question, count, count))
+            },
             text = {
                 Text(
-                    reconciledWarning(visible.filter { it.id in selectedIds }, ReconciledAction.DELETE)
-                        ?: "These transactions will be deleted.",
+                    stringResource(
+                        reconciledWarningRes(visible.filter { it.id in selectedIds }, ReconciledAction.DELETE)
+                            ?: R.string.transactions_delete_multiple_message,
+                    ),
                 )
             },
             confirmButton = {
@@ -766,14 +782,14 @@ fun TransactionsScreen(
                     onDeleteMultiple(visible.filter { it.id in selectedIds })
                     confirmBulkDelete = false
                     selectionModeOn = false
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { confirmBulkDelete = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmBulkDelete = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
     pendingReconciledEdit?.let { (warning, edit) ->
         ReconciledConfirmDialog(
-            message = warning,
+            messageRes = warning,
             onConfirm = {
                 pendingReconciledEdit = null
                 edit()
@@ -784,9 +800,9 @@ fun TransactionsScreen(
     if (showLinkSchedulePicker) {
         ModalBottomSheet(onDismissRequest = { showLinkSchedulePicker = false }) {
             ActuaSheetContent {
-                ActuaSheetTitle("Link to schedule")
+                ActuaSheetTitle(stringResource(R.string.transactions_link_schedule))
                 if (linkableSchedules.isEmpty()) {
-                    Text("No schedules available", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Text(stringResource(R.string.transactions_no_schedules), color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
                 } else {
                     val ids = selectedIds
@@ -807,9 +823,9 @@ fun TransactionsScreen(
     if (showCategorizePicker) {
         ModalBottomSheet(onDismissRequest = { showCategorizePicker = false }) {
             ActuaSheetContent {
-                ActuaSheetTitle("Categorize")
+                ActuaSheetTitle(stringResource(R.string.transactions_categorize))
                 if (categoryOptions.isEmpty()) {
-                    Text("No categories available", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Text(stringResource(R.string.transactions_no_categories), color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
                 } else {
                     val toCategorize = selectedTransactions
@@ -832,9 +848,9 @@ fun TransactionsScreen(
     if (showMovePicker) {
         ModalBottomSheet(onDismissRequest = { showMovePicker = false }) {
             ActuaSheetContent {
-                ActuaSheetTitle("Move to account")
+                ActuaSheetTitle(stringResource(R.string.transactions_move_to_account))
                 if (accountOptions.isEmpty()) {
-                    Text("No accounts available", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Text(stringResource(R.string.transactions_no_accounts), color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
                 } else {
                     val toMove = selectedTransactions
@@ -857,7 +873,7 @@ fun TransactionsScreen(
     if (showLabelPicker) {
         ModalBottomSheet(onDismissRequest = { showLabelPicker = false }) {
             ActuaSheetContent {
-                ActuaSheetTitle("Label")
+                ActuaSheetTitle(stringResource(R.string.transactions_label))
                 val toLabel = selectedTransactions
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
@@ -866,7 +882,7 @@ fun TransactionsScreen(
                     OutlinedTextField(
                         value = newTagName,
                         onValueChange = { newTagName = it },
-                        placeholder = { Text("New label") },
+                        placeholder = { Text(stringResource(R.string.transactions_new_label)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
@@ -881,10 +897,10 @@ fun TransactionsScreen(
                                 selectionModeOn = false
                             }
                         },
-                    ) { Text("Add") }
+                    ) { Text(stringResource(R.string.action_add)) }
                 }
                 if (availableTags.isEmpty()) {
-                    Text("No labels yet", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Text(stringResource(R.string.transactions_no_labels), color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs))
                 } else {
                     ActuaSheetCard {
@@ -937,10 +953,10 @@ private fun ReconcileAccountScreen(
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.action_back))
             }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Reconcile", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.transactions_reconcile), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(account.name, style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -954,17 +970,18 @@ private fun ReconcileAccountScreen(
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.large) {
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text("Cleared balance", style = MaterialTheme.typography.labelLarge,
+                            Text(stringResource(R.string.reconcile_cleared_balance), style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(formatReconciliationMoney(account.clearedCents, hideDecimalPlaces),
                                 style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         }
                         HorizontalDivider()
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text("What balance does your bank show?", style = MaterialTheme.typography.labelLarge,
+                            Text(stringResource(R.string.reconcile_bank_balance_question), style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
-                                bankBalance?.let { formatReconciliationMoney(it, hideDecimalPlaces) } ?: "Enter bank balance",
+                                bankBalance?.let { formatReconciliationMoney(it, hideDecimalPlaces) }
+                                    ?: stringResource(R.string.reconcile_enter_bank_balance),
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (bankBalance == null) MaterialTheme.colorScheme.onSurfaceVariant
@@ -973,16 +990,19 @@ private fun ReconcileAccountScreen(
                             TextButton(onClick = {
                                 bankBalance = account.clearedCents
                                 calculatorKey++
-                            }) { Text("Use cleared balance") }
+                            }) { Text(stringResource(R.string.reconcile_use_cleared_balance)) }
                             // Actual's "Last Balance from Bank" / "Use last synced total" (#995).
                             account.lastSyncedBalanceCents?.let { synced ->
-                                Text("Last balance from bank: ${formatReconciliationMoney(synced, hideDecimalPlaces)}",
+                                Text(stringResource(
+                                    R.string.reconcile_last_bank_balance,
+                                    formatReconciliationMoney(synced, hideDecimalPlaces),
+                                ),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 TextButton(onClick = {
                                     bankBalance = synced
                                     calculatorKey++
-                                }) { Text("Use last synced total") }
+                                }) { Text(stringResource(R.string.reconcile_use_last_synced_total)) }
                             }
                         }
                     }
@@ -993,13 +1013,13 @@ private fun ReconcileAccountScreen(
                 // Actual's "Reconciled {relative} ({date})" / "Not yet reconciled" line (#994).
                 val reconciledAt = lastReconciledMillis(account.lastReconciled)
                 Text(
-                    if (reconciledAt == null) "Not yet reconciled" else {
+                    if (reconciledAt == null) stringResource(R.string.reconcile_not_yet) else {
                         val relative = android.text.format.DateUtils.getRelativeTimeSpanString(
                             reconciledAt, System.currentTimeMillis(), android.text.format.DateUtils.MINUTE_IN_MILLIS,
                         )
                         val date = formatDate(java.time.Instant.ofEpochMilli(reconciledAt)
                             .atZone(java.time.ZoneId.systemDefault()).toLocalDate())
-                        "Reconciled $relative ($date)"
+                        stringResource(R.string.reconcile_reconciled_at, relative, date)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1017,17 +1037,17 @@ private fun ReconcileAccountScreen(
                                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Icon(Icons.Outlined.CheckCircle, contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(34.dp))
-                                Text("Reconciled", style = MaterialTheme.typography.titleLarge,
+                                Text(stringResource(R.string.transaction_reconciled), style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                Text("The cleared balance matches your bank.",
+                                Text(stringResource(R.string.reconcile_balance_matches),
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                                     textAlign = TextAlign.Center)
                                 Button(onClick = onReconcile, modifier = Modifier.fillMaxWidth()) {
                                     Icon(Icons.Outlined.Lock, contentDescription = null,
                                         modifier = Modifier.padding(end = 8.dp))
-                                    Text("Lock cleared transactions")
+                                    Text(stringResource(R.string.reconcile_lock_transactions))
                                 }
-                                Text("This marks cleared transactions as reconciled so they cannot be changed accidentally.",
+                                Text(stringResource(R.string.reconcile_lock_explanation),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                                     textAlign = TextAlign.Center)
@@ -1039,7 +1059,7 @@ private fun ReconcileAccountScreen(
                         Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.large) {
                             Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Difference", style = MaterialTheme.typography.titleMedium,
+                                    Text(stringResource(R.string.reconcile_difference), style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                                     Text((if (amount > 0L) "+" else "") + formatReconciliationMoney(amount, hideDecimalPlaces),
                                         style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
@@ -1047,18 +1067,18 @@ private fun ReconcileAccountScreen(
                                 }
                                 FilledTonalButton(onClick = { reviewExpanded = !reviewExpanded },
                                     modifier = Modifier.fillMaxWidth()) {
-                                    Text(if (uncleared.isEmpty()) "No uncleared transactions to review"
-                                        else "Review ${uncleared.size} uncleared ${if (uncleared.size == 1) "transaction" else "transactions"}")
+                                    Text(if (uncleared.isEmpty()) stringResource(R.string.reconcile_no_uncleared_review)
+                                        else pluralStringResource(R.plurals.reconcile_review_uncleared, uncleared.size, uncleared.size))
                                 }
                                 TextButton(onClick = { adjustmentConfirmation = amount }, modifier = Modifier.align(Alignment.End)) {
-                                    Text("Create adjustment transaction")
+                                    Text(stringResource(R.string.reconcile_create_adjustment))
                                 }
                             }
                         }
                     }
                     if (reviewExpanded) {
                         if (uncleared.isEmpty()) item("no-uncleared") {
-                            Text("The difference is not caused by an uncleared transaction. You can create an adjustment after checking your bank statement.",
+                            Text(stringResource(R.string.reconcile_difference_explanation),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(8.dp))
@@ -1087,12 +1107,17 @@ private fun ReconcileAccountScreen(
     adjustmentConfirmation?.let { amount ->
         AlertDialog(
             onDismissRequest = { adjustmentConfirmation = null },
-            title = { Text("Create adjustment transaction?") },
-            text = { Text("Actua will add a cleared, uncategorized transaction for ${formatReconciliationMoney(amount, hideDecimalPlaces)} so the balances match.") },
+            title = { Text(stringResource(R.string.reconcile_create_adjustment_question)) },
+            text = {
+                Text(stringResource(
+                    R.string.reconcile_adjustment_message,
+                    formatReconciliationMoney(amount, hideDecimalPlaces),
+                ))
+            },
             confirmButton = { TextButton(onClick = {
                 onCreateAdjustment(amount) { adjustmentConfirmation = null }
-            }) { Text("Create adjustment") } },
-            dismissButton = { TextButton(onClick = { adjustmentConfirmation = null }) { Text("Cancel") } },
+            }) { Text(stringResource(R.string.reconcile_create_adjustment_action)) } },
+            dismissButton = { TextButton(onClick = { adjustmentConfirmation = null }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }
@@ -1108,7 +1133,7 @@ private fun ReconciliationTransactionRow(
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(transaction.payee.ifBlank { "Unknown payee" }, fontWeight = FontWeight.SemiBold,
+                Text(transaction.payee.ifBlank { stringResource(R.string.transaction_unknown_payee) }, fontWeight = FontWeight.SemiBold,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(listOf(formatStoredDate(transaction.date), transaction.category)
                     .filter(String::isNotBlank).joinToString(" · "),
@@ -1159,7 +1184,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
             val balanceText = formatMoneyCents(account.balanceCents, hideDecimals)
             ActuaHeroAmount(
                 amount = balanceText,
-                caption = "Balance",
+                caption = stringResource(R.string.account_balance),
                 captionColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 amountColor = when {
                     account.balanceCents > 0 -> MaterialTheme.colorScheme.primary
@@ -1167,14 +1192,14 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 size = ActuaHeroSize.Medium,
-                contentDescription = "Balance $balanceText",
+                contentDescription = stringResource(R.string.account_balance_description, balanceText),
             )
         }
         if (showSummary) ActuaFormCard {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    BalanceColumn("Cleared", account.clearedCents, hideDecimals, Modifier.weight(1f), alignment = Alignment.Start)
-                    BalanceColumn("Uncleared", account.unclearedCents, hideDecimals, Modifier.weight(1f), alignment = Alignment.End)
+                    BalanceColumn(stringResource(R.string.transaction_cleared), account.clearedCents, hideDecimals, Modifier.weight(1f), alignment = Alignment.Start)
+                    BalanceColumn(stringResource(R.string.transaction_uncleared), account.unclearedCents, hideDecimals, Modifier.weight(1f), alignment = Alignment.End)
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(
@@ -1182,14 +1207,15 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        "Reconciled",
+                        stringResource(R.string.transaction_reconciled),
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Icon(
                         Icons.Outlined.ExpandMore,
-                        contentDescription = if (balanceExpanded) "Collapse reconciled details" else "Show reconciled details",
+                        contentDescription = if (balanceExpanded) stringResource(R.string.account_reconciled_details_collapse)
+                        else stringResource(R.string.account_reconciled_details_show),
                         modifier = Modifier.padding(start = 8.dp).size(20.dp).rotate(balanceArrowRotation),
                     )
                 }
@@ -1199,10 +1225,10 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                     exit = fadeOut(tween(120)) + shrinkVertically(tween(220)),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        card?.availableCreditCents?.let { DetailAmount("Available credit", it, hideDecimals) }
-                        card?.config?.limitCents?.let { DetailAmount("Credit limit", it, hideDecimals) }
+                        card?.availableCreditCents?.let { DetailAmount(stringResource(R.string.account_available_credit), it, hideDecimals) }
+                        card?.config?.limitCents?.let { DetailAmount(stringResource(R.string.account_credit_limit), it, hideDecimals) }
                         if (card != null) HorizontalDivider()
-                        DetailAmount("Reconciled", account.reconciledCents, hideDecimals)
+                        DetailAmount(stringResource(R.string.transaction_reconciled), account.reconciledCents, hideDecimals)
                     }
                 }
             }
@@ -1210,9 +1236,9 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
         if (showCreditCardSection) card?.let {
             ActuaFormCard {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Billing cycle", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.account_billing_cycle), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     val (cycleStart, cycleEnd) = it.cycle.cycleRange()
-                    Text("${cycleStart.formatted()} – ${cycleEnd.formatted()}",
+                    Text(stringResource(R.string.account_cycle_range, cycleStart.formatted(), cycleEnd.formatted()),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     val statementDue = it.pendingStatementDue()
@@ -1221,15 +1247,15 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                     statementDue?.let { due ->
                         if (due.isPaid) {
                             Row(Modifier.fillMaxWidth()) {
-                                Text("Statement due", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                                Text("Paid", style = MaterialTheme.typography.bodyMedium,
+                                Text(stringResource(R.string.account_statement_due), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                                Text(stringResource(R.string.account_statement_paid), style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.success)
                             }
                         } else {
-                            DetailAmount("Statement due", due.remainingDue, hideDecimals)
+                            DetailAmount(stringResource(R.string.account_statement_due), due.remainingDue, hideDecimals)
                         }
                     }
-                    DetailAmount("Cycle spend", it.cycleSpendCents, hideDecimals)
+                    DetailAmount(stringResource(R.string.account_cycle_spend), it.cycleSpendCents, hideDecimals)
                     if (onViewStatements != null) {
                         HorizontalDivider()
                         Row(
@@ -1237,7 +1263,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                "Statement history",
+                                stringResource(R.string.account_statement_history),
                                 modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
@@ -1252,14 +1278,14 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                 }
             }
         }
-        if (showNotes) Text("Note", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+        if (showNotes) Text(stringResource(R.string.account_note), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
         if (showNotes) Surface(
             onClick = { noteEditorOpen = true },
             color = MaterialTheme.colorScheme.surfaceContainer,
             shape = MaterialTheme.shapes.large,
         ) {
             Text(
-                text = note.ifBlank { "Add note" },
+                text = note.ifBlank { stringResource(R.string.account_add_note) },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (note.isBlank()) MaterialTheme.colorScheme.primary
@@ -1272,7 +1298,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
     if (noteEditorOpen) {
         ActuaNoteEditorSheet(
             initialNote = note,
-            placeholder = "Account note",
+            placeholder = stringResource(R.string.account_note_placeholder),
             onDismiss = { noteEditorOpen = false },
             onSave = {
                 onSaveNote(it)
@@ -1333,7 +1359,7 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
     onClearedClick: (() -> Unit)? = null, tagColors: Map<String, String>? = null,
     selectionMode: Boolean = false, selected: Boolean = false, runningBalanceCents: Long? = null,
     showDivider: Boolean = true, isNew: Boolean = false) {
-    val presentation = transactionRowPresentation(transaction, showAccount)
+    val presentation = transactionRowPresentation(transaction, showAccount, transactionRowLabels())
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     val upcoming = transaction.isUpcoming
     Row(modifier = Modifier.fillMaxWidth()
@@ -1343,7 +1369,8 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
         if (selectionMode && !upcoming) {
             Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
         }
-        val upcomingLabel = if (transaction.isMissed) "Missed" else "Upcoming"
+        val upcomingLabel = if (transaction.isMissed) stringResource(R.string.upcoming_missed)
+        else stringResource(R.string.upcoming_upcoming)
         val upcomingColor = if (transaction.isMissed) MaterialTheme.colorScheme.error
             else MaterialTheme.colorScheme.onSurfaceVariant
         if (upcoming) {
@@ -1360,7 +1387,7 @@ fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
                 fontWeight = FontWeight.SemiBold,
                 color = if (upcoming) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (isNew) Text("New from bank sync", style = MaterialTheme.typography.labelMedium,
+            if (isNew) Text(stringResource(R.string.transactions_new_from_bank_sync), style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 2.dp))
             if (upcoming) {
                 Spacer(Modifier.height(6.dp))
@@ -1409,29 +1436,63 @@ internal data class TransactionRowPresentation(
     val transferContext: String?,
 )
 
-internal fun transactionRowPresentation(transaction: Transaction, showAccount: Boolean): TransactionRowPresentation {
+/**
+ * Row labels resolved once per composition site, so [transactionRowPresentation] stays a pure,
+ * JVM-testable function while its display text still localizes.
+ */
+internal data class TransactionRowLabels(
+    val unknownPayee: String,
+    val uncategorized: String,
+    val unknownAccount: String,
+    val transferToFormat: String,
+    val transferFromFormat: String,
+    val transfer: String,
+    val fromAccountFormat: String,
+    val toAccountFormat: String,
+)
+
+@Composable
+internal fun transactionRowLabels(): TransactionRowLabels = TransactionRowLabels(
+    unknownPayee = stringResource(R.string.transaction_unknown_payee),
+    uncategorized = stringResource(R.string.transaction_uncategorized),
+    unknownAccount = stringResource(R.string.transaction_unknown_account),
+    transferToFormat = stringResource(R.string.transaction_transfer_to),
+    transferFromFormat = stringResource(R.string.transaction_transfer_from),
+    transfer = stringResource(R.string.transaction_type_transfer),
+    fromAccountFormat = stringResource(R.string.transaction_from_account),
+    toAccountFormat = stringResource(R.string.transaction_to_account),
+)
+
+internal fun transactionRowPresentation(
+    transaction: Transaction,
+    showAccount: Boolean,
+    labels: TransactionRowLabels,
+): TransactionRowPresentation {
     if (transaction.type != Type.TRANSFER) {
         return TransactionRowPresentation(
-            title = transaction.payee.ifBlank { "Unknown payee" },
+            title = transaction.payee.ifBlank { labels.unknownPayee },
             // Actual never requires a category for off-budget accounts, so an empty category
             // there isn't "Uncategorized" the way it is for an on-budget transaction.
             categoryLabel = when {
                 transaction.category.isNotBlank() -> transaction.category
                 transaction.accountOffBudget -> null
-                else -> "Uncategorized"
+                else -> labels.uncategorized
             },
             accountLabel = transaction.account.takeIf { showAccount && it.isNotBlank() },
             transferContext = null,
         )
     }
     val otherAccount = transaction.transferAccount?.ifBlank { null }
-        ?: transaction.payee.ifBlank { "Unknown account" }
+        ?: transaction.payee.ifBlank { labels.unknownAccount }
     val outgoing = transaction.amountCents < 0
     return TransactionRowPresentation(
-        title = if (outgoing) "Transfer to $otherAccount" else "Transfer from $otherAccount",
-        categoryLabel = "Transfer",
+        title = if (outgoing) labels.transferToFormat.format(otherAccount)
+        else labels.transferFromFormat.format(otherAccount),
+        categoryLabel = labels.transfer,
         accountLabel = null,
-        transferContext = if (!showAccount) null else if (outgoing) "From ${transaction.account}" else "To ${transaction.account}",
+        transferContext = if (!showAccount) null
+        else if (outgoing) labels.fromAccountFormat.format(transaction.account)
+        else labels.toAccountFormat.format(transaction.account),
     )
 }
 
@@ -1475,9 +1536,9 @@ private fun ClearedIndicator(cleared: Boolean, onClick: (() -> Unit)? = null, mo
         Icon(
             if (reconciled) Icons.Outlined.Lock else Icons.Rounded.Check,
             contentDescription = when {
-                reconciled -> "Reconciled"
-                cleared -> "Cleared"
-                else -> "Uncleared"
+                reconciled -> stringResource(R.string.transaction_reconciled)
+                cleared -> stringResource(R.string.transaction_cleared)
+                else -> stringResource(R.string.transaction_uncleared)
             },
             tint = if (cleared) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.outline,
             modifier = Modifier.padding(3.dp),
@@ -1497,12 +1558,12 @@ fun TransactionDetailsSheet(
     tagColors: Map<String, String>? = null,
 ) {
     var confirmDelete by remember(transaction.id) { mutableStateOf(false) }
-    val presentation = transactionRowPresentation(transaction, showAccount = true)
+    val presentation = transactionRowPresentation(transaction, showAccount = true, transactionRowLabels())
     val effectiveTagColors = tagColors ?: rememberActualTagColors(transaction)
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ActuaSheetContent {
             Row(Modifier.fillMaxWidth().padding(end = Spacing.xl), verticalAlignment = Alignment.CenterVertically) {
-                ActuaSheetTitle("Transaction details", Modifier.weight(1f))
+                ActuaSheetTitle(stringResource(R.string.transaction_details), Modifier.weight(1f))
                 Amount(transaction.amountCents, FontWeight.Bold, hideDecimalPlaces)
                 ClearedIndicator(transaction.cleared, modifier = Modifier.padding(start = Spacing.sm),
                     reconciled = transaction.reconciled)
@@ -1512,25 +1573,29 @@ fun TransactionDetailsSheet(
                     Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
-                    TransactionDetail("Payee", presentation.title)
-                    TransactionDetail("Date", formatTransactionDate(transaction.date))
-                    presentation.categoryLabel?.let { TransactionDetail("Category", it) }
-                    TransactionDetail("Account", transaction.account)
+                    TransactionDetail(stringResource(R.string.transaction_payee), presentation.title)
+                    TransactionDetail(stringResource(R.string.transaction_date), formatTransactionDate(transaction.date))
+                    presentation.categoryLabel?.let { TransactionDetail(stringResource(R.string.transaction_category), it) }
+                    TransactionDetail(stringResource(R.string.transaction_account), transaction.account)
                     transaction.transferAccount?.takeIf(String::isNotBlank)?.let {
-                        TransactionDetail("Transfer account", it)
+                        TransactionDetail(stringResource(R.string.transaction_transfer_account), it)
                     }
-                    TransactionDetail("Status", if (transaction.cleared) "Cleared" else "Uncleared")
+                    TransactionDetail(
+                        stringResource(R.string.transaction_status),
+                        if (transaction.cleared) stringResource(R.string.transaction_cleared)
+                        else stringResource(R.string.transaction_uncleared),
+                    )
                     transaction.notes.takeIf(String::isNotBlank)?.let {
-                        TransactionTagDetail("Notes", it, effectiveTagColors)
+                        TransactionTagDetail(stringResource(R.string.transaction_notes), it, effectiveTagColors)
                     }
                 }
             }
             ActuaSheetCard {
-                ActuaSheetAction("Edit", icon = Icons.Outlined.Edit, onClick = onEdit)
+                ActuaSheetAction(stringResource(R.string.action_edit), icon = Icons.Outlined.Edit, onClick = onEdit)
                 ActuaCardDivider()
-                ActuaSheetAction("Duplicate", icon = Icons.Outlined.ContentCopy, onClick = onDuplicate)
+                ActuaSheetAction(stringResource(R.string.action_duplicate), icon = Icons.Outlined.ContentCopy, onClick = onDuplicate)
                 ActuaCardDivider()
-                ActuaSheetAction("Delete", icon = Icons.Outlined.DeleteOutline, destructive = true,
+                ActuaSheetAction(stringResource(R.string.action_delete), icon = Icons.Outlined.DeleteOutline, destructive = true,
                     onClick = { confirmDelete = true })
             }
         }
@@ -1538,10 +1603,10 @@ fun TransactionDetailsSheet(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete transaction?") },
-            text = { Text("This transaction will be deleted.") },
-            confirmButton = { TextButton(onClick = onDelete) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.transaction_delete_question)) },
+            text = { Text(stringResource(R.string.transaction_delete_message)) },
+            confirmButton = { TextButton(onClick = onDelete) { Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }

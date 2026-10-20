@@ -46,8 +46,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.data.budget.model.ActualTag
 import com.azimulkabir.actua.ui.components.findTagOccurrences
@@ -61,7 +63,7 @@ internal fun TagAutocompleteField(
     tags: List<ActualTag>,
     onValueChange: (String) -> Unit,
     onCreateTag: (String) -> ActualTag?,
-    label: String = "Notes",
+    label: String = stringResource(R.string.transaction_notes),
     modifier: Modifier = Modifier,
     /** Renders the field as an icon row inside Add transaction's form cards instead of an outlined field. */
     rowIcon: ImageVector? = null,
@@ -177,7 +179,9 @@ internal fun TagAutocompleteField(
                     },
                 )
             }
-            if (showCreate && token != null) DropdownMenuItem(text = { Text("Create #${token.name}") }, onClick = {
+            if (showCreate && token != null) DropdownMenuItem(text = {
+                Text(stringResource(R.string.transaction_create_tag, token.name))
+            }, onClick = {
                 val current = activeTagToken(fieldValue.text, fieldValue.selection.end) ?: return@DropdownMenuItem
                 val created = onCreateTag(current.name) ?: return@DropdownMenuItem
                 val (text, cursor) = replaceActiveTag(fieldValue.text, current, created.tag)

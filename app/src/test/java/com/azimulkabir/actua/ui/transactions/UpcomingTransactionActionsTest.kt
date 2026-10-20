@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.transactions
 
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.RecurConfig
@@ -22,16 +23,23 @@ class UpcomingTransactionActionsTest {
 
     @Test fun recurringSchedulesOfferPostAndSkipLikeActual() {
         assertEquals(
-            listOf("Post transaction", "Post transaction today", "Skip next scheduled date"),
-            upcomingTransactionActions(recurring = true).map { it.label },
+            listOf(R.string.upcoming_post_transaction, R.string.upcoming_post_transaction_today, R.string.upcoming_skip_next_scheduled_date),
+            upcomingTransactionActions(recurring = true).map { it.labelRes },
         )
     }
 
     @Test fun oneOffSchedulesOfferPostAndCompleteLikeActual() {
         assertEquals(
-            listOf("Post transaction", "Post transaction today", "Mark as completed"),
-            upcomingTransactionActions(recurring = false).map { it.label },
+            listOf(R.string.upcoming_post_transaction, R.string.upcoming_post_transaction_today, R.string.upcoming_mark_completed),
+            upcomingTransactionActions(recurring = false).map { it.labelRes },
         )
+    }
+
+    @Test fun actionLabelResourcesKeepActualsMenuTexts() {
+        assertEquals("Post transaction", TransactionStringResources.english("upcoming_post_transaction"))
+        assertEquals("Post transaction today", TransactionStringResources.english("upcoming_post_transaction_today"))
+        assertEquals("Skip next scheduled date", TransactionStringResources.english("upcoming_skip_next_scheduled_date"))
+        assertEquals("Mark as completed", TransactionStringResources.english("upcoming_mark_completed"))
     }
 
     @Test fun recurringScheduleIdsOnlyIncludesRecurringSchedules() {

@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.transactions
 
+import androidx.annotation.StringRes
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
@@ -67,11 +69,11 @@ fun upcomingTransactionsFrom(
     }.sortedWith(compareByDescending<Transaction> { it.date }.thenBy { it.amountCents })
 
 /** Actions offered when tapping an upcoming row, matching Actual's scheduled-transaction menu. */
-enum class UpcomingTransactionAction(val label: String) {
-    POST("Post transaction"),
-    POST_TODAY("Post transaction today"),
-    SKIP("Skip next scheduled date"),
-    COMPLETE("Mark as completed"),
+enum class UpcomingTransactionAction(@StringRes val labelRes: Int) {
+    POST(R.string.upcoming_post_transaction),
+    POST_TODAY(R.string.upcoming_post_transaction_today),
+    SKIP(R.string.upcoming_skip_next_scheduled_date),
+    COMPLETE(R.string.upcoming_mark_completed),
 }
 
 /** As in Actual, recurring schedules can skip their next date and one-off schedules can be completed instead. */
