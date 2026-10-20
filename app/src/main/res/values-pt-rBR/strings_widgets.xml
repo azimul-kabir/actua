@@ -46,7 +46,7 @@
         <item quantity="one">em %d dia</item>
         <item quantity="other">em %d dias</item>
     </plurals>
-    <string name="credit_card_notification_title">Pagamento do %1$s vence %2$s</string>
+    <string name="credit_card_notification_title">Pagamento de %1$s vence %2$s</string>
     <string name="credit_card_notification_statement_body">Total da fatura %1$s. Pagamento vence %2$s.</string>
     <string name="credit_card_notification_body">Saldo atual %1$s. Pagamento vence %2$s.</string>
 </resources>
