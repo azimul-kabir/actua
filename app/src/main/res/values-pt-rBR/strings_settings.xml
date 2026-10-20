@@ -1,2 +1,326 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+    <!-- Settings page titles (Manage hub and its sub-pages). -->
+    <string name="settings_page_manage">Gerenciar</string>
+    <string name="settings_page_tags">Tags</string>
+    <string name="settings_page_settings">Configurações</string>
+    <string name="settings_page_transactions_accounts">Transações e contas</string>
+    <string name="settings_page_display">Exibir</string>
+    <string name="settings_page_privacy">Privacidade</string>
+    <string name="settings_page_budget">Orçamento</string>
+    <string name="settings_page_category_colors">Cores de status das categorias</string>
+    <string name="settings_page_experimental">Experimental</string>
+    <string name="settings_page_support">Apoiar o Actua</string>
+    <string name="settings_page_about">Sobre</string>
+    <string name="settings_page_diagnostics">Diagnóstico</string>
+    <string name="settings_open_settings">Configurações</string>
+
+    <!-- Manage hub sections and rows. -->
+    <string name="settings_section_insights">Insights</string>
+    <string name="settings_manage_home">Início</string>
+    <string name="settings_manage_home_description">Seu painel de favoritos, próximas faturas e atividade</string>
+    <string name="settings_reports">Relatórios</string>
+    <string name="settings_reports_description">Visualize painéis e relatórios financeiros</string>
+    <string name="settings_section_automation">Automação</string>
+    <string name="settings_bills_calendar">Faturas e calendário</string>
+    <string name="settings_bills_calendar_description">Próximos agendamentos e datas de vencimento do cartão de crédito</string>
+    <string name="settings_scheduled_transactions">Transações agendadas</string>
+    <string name="settings_scheduled_transactions_description">Revise faturas recorrentes, receitas e próximas datas</string>
+    <string name="settings_rules">Regras</string>
+    <string name="settings_rules_description">Categorize e transforme transações automaticamente</string>
+    <string name="settings_section_transactions_data">Transações e dados</string>
+    <string name="settings_tags">Tags</string>
+    <string name="settings_tags_description">Crie, edite, colore, oculte e exclua tags gerenciadas</string>
+    <string name="settings_payees">Beneficiários</string>
+    <string name="settings_payees_description">Renomeie, mescle, exclua e favorite beneficiários</string>
+    <string name="settings_import_transactions">Importar transações</string>
+    <string name="settings_import_transactions_description">Revise um extrato bancário CSV antes de importar</string>
+    <string name="settings_connection_data">Conexão e dados</string>
+    <string name="settings_connection_data_description">Servidor Actual, orçamentos, sincronização, cópias de segurança e restauração</string>
+    <string name="settings_section_financial_setup">Configuração financeira</string>
+    <string name="settings_bank_sync">Sincronizacão Bancária</string>
+    <string name="settings_bank_sync_description">Conecte o SimpleFIN ou o GoCardless e vincule contas</string>
+    <string name="settings_credit_cards">Cartões de crédito e ciclos de faturamento</string>
+    <string name="settings_credit_cards_description">Gastos do ciclo, datas de vencimento e limites de crédito</string>
+
+    <!-- Settings (General) page sections and rows. -->
+    <string name="settings_section_preferences">Preferências</string>
+    <string name="settings_home">Início</string>
+    <string name="settings_home_description">Mostre, oculte e reordene as seções do início</string>
+    <string name="settings_transactions_accounts_description">Padrões de lançamento, listas de transações e resumos de contas</string>
+    <string name="settings_display_description">Moeda, data, números, aparência e página inicial</string>
+    <string name="settings_privacy_description">Saldos e controles opcionais de beneficiários por localização</string>
+    <string name="settings_budget">Orçamento</string>
+    <string name="settings_budget_description">Ponto de status das categorias, cores da barra de progresso e grupo de receitas</string>
+    <string name="settings_section_support">Apoio</string>
+    <string name="settings_support_actua">Apoiar o Actua</string>
+    <string name="settings_support_thank_you">Você é um Apoiador do Actua — obrigado!</string>
+    <string name="settings_support_description">O Actua é gratuito e de código aberto. Deixe uma gorjeta única.</string>
+    <string name="settings_section_labs">Labs</string>
+    <string name="settings_experimental">Experimental</string>
+    <string name="settings_experimental_description">Recursos opcionais que seguem as sinalizações experimentais do Actual</string>
+    <string name="settings_section_about">Sobre</string>
+    <string name="settings_about_actua">Sobre o Actua</string>
+    <string name="settings_about_actua_description">Versão, informações do projeto, créditos e licença</string>
+
+    <!-- Transações e contas. -->
+    <string name="settings_default_account">Conta padrão</string>
+    <string name="settings_none">Nenhum</string>
+    <string name="settings_group_transactions">Agrupar transações por data</string>
+    <string name="settings_group_transactions_description">Use seções com data nas listas de transações</string>
+    <string name="settings_conventional_amount_entry">Entrada de valor convencional</string>
+    <string name="settings_conventional_amount_entry_description">Digite 324 como 324,00 em vez de preencher primeiro os centavos</string>
+    <string name="settings_account_monthly_summary">Resumo mensal da conta</string>
+    <string name="settings_account_monthly_summary_description">Mostre Receita, Despesas e Líquido no topo de Contas</string>
+    <string name="settings_current_balance_summary">Resumo do saldo atual</string>
+    <string name="settings_current_balance_summary_description">Mostre saldos atuais, confirmados, não confirmados e reconciliados dentro das contas</string>
+
+    <!-- Exibir: moeda, formatos, aparência, navegação. -->
+    <string name="settings_currency">Moeda</string>
+    <string name="settings_follow_budget">Igual ao orçamento</string>
+    <string name="settings_budget_value_preview">Orçamento: %1$s</string>
+    <string name="settings_currency_bdt">৳ BDT</string>
+    <string name="settings_currency_usd">$ USD</string>
+    <string name="settings_currency_eur">€ EUR</string>
+    <string name="settings_currency_gbp">£ GBP</string>
+    <string name="settings_currency_cad">C$ CAD</string>
+    <string name="settings_currency_aud">A$ AUD</string>
+    <string name="settings_currency_jpy">¥ JPY</string>
+    <string name="settings_currency_inr">₹ INR</string>
+    <string name="settings_currency_cny">¥ CNY</string>
+    <string name="settings_currency_sgd">S$ SGD</string>
+    <string name="settings_currency_aed">د.إ AED</string>
+    <string name="settings_currency_sar">ر.س SAR</string>
+    <string name="settings_currency_ars">Arg$ ARS</string>
+    <string name="settings_currency_byn">Br BYN</string>
+    <string name="settings_currency_brl">R$ BRL</string>
+    <string name="settings_currency_chf">Fr. CHF</string>
+    <string name="settings_currency_clp">CLP$ CLP</string>
+    <string name="settings_currency_cop">Col$ COP</string>
+    <string name="settings_currency_crc">₡ CRC</string>
+    <string name="settings_currency_czk">Kč CZK</string>
+    <string name="settings_currency_dkk">kr DKK</string>
+    <string name="settings_currency_dop">RD$ DOP</string>
+    <string name="settings_currency_egp">ج.م EGP</string>
+    <string name="settings_currency_gtq">Q GTQ</string>
+    <string name="settings_currency_hkd">HK$ HKD</string>
+    <string name="settings_currency_huf">Ft HUF</string>
+    <string name="settings_currency_idr">Rp IDR</string>
+    <string name="settings_currency_ils">₪ ILS</string>
+    <string name="settings_currency_irr">﷼ IRR</string>
+    <string name="settings_currency_jmd">J$ JMD</string>
+    <string name="settings_currency_krw">₩ KRW</string>
+    <string name="settings_currency_lkr">Rs. LKR</string>
+    <string name="settings_currency_mdl">L MDL</string>
+    <string name="settings_currency_mkd">ден MKD</string>
+    <string name="settings_currency_mxn">$ MXN</string>
+    <string name="settings_currency_myr">RM MYR</string>
+    <string name="settings_currency_pen">S/ PEN</string>
+    <string name="settings_currency_php">₱ PHP</string>
+    <string name="settings_currency_pkr">Rs. PKR</string>
+    <string name="settings_currency_pln">zł PLN</string>
+    <string name="settings_currency_qar">ر.ق QAR</string>
+    <string name="settings_currency_ron">lei RON</string>
+    <string name="settings_currency_rsd">дин RSD</string>
+    <string name="settings_currency_rub">₽ RUB</string>
+    <string name="settings_currency_sek">kr SEK</string>
+    <string name="settings_currency_thb">฿ THB</string>
+    <string name="settings_currency_try">₺ TRY</string>
+    <string name="settings_currency_twd">NT$ TWD</string>
+    <string name="settings_currency_uah">₴ UAH</string>
+    <string name="settings_currency_uyu">$U UYU</string>
+    <string name="settings_currency_uzs">UZS UZS</string>
+    <string name="settings_symbol_only">Somente o símbolo</string>
+    <string name="settings_symbol_only_description">Mostre $ em vez de US$, CA$ ou A$ quando aplicável</string>
+    <string name="settings_symbol_position">Posição do símbolo</string>
+    <string name="settings_symbol_before">Antes do valor</string>
+    <string name="settings_symbol_after">Depois do valor</string>
+    <string name="settings_symbol_position_before_preview">. Orçamento: antes do valor</string>
+    <string name="settings_symbol_position_after_preview">. Orçamento: depois do valor</string>
+    <string name="settings_symbol_spacing">Espaço entre valor e símbolo</string>
+    <string name="settings_space">Espaço</string>
+    <string name="settings_no_space">Sem espaço</string>
+    <string name="settings_symbol_spacing_space_preview">. Orçamento: com espaço</string>
+    <string name="settings_symbol_spacing_no_space_preview">. Orçamento: sem espaço</string>
+    <string name="settings_date_format">Formato de data</string>
+    <string name="settings_system_default">Padrão do sistema</string>
+    <string name="settings_date_dd_mm_yyyy">DD/MM/YYYY</string>
+    <string name="settings_date_mm_dd_yyyy">MM/DD/YYYY</string>
+    <string name="settings_date_yyyy_mm_dd">YYYY-MM-DD</string>
+    <string name="settings_date_mm_dd_yyyy_dot">MM.DD.YYYY</string>
+    <string name="settings_date_dd_mm_yyyy_dot">DD.MM.YYYY</string>
+    <string name="settings_date_dd_mm_yyyy_dash">DD-MM-YYYY</string>
+    <string name="settings_number_format">Formato de números</string>
+    <string name="settings_number_comma_decimal">1,234.56</string>
+    <string name="settings_number_period_decimal_comma">1.234,56</string>
+    <string name="settings_number_space_decimal_comma">1 234,56</string>
+    <string name="settings_number_apostrophe_dot">1’234.56</string>
+    <string name="settings_number_plain_decimal">1234.56</string>
+    <string name="settings_number_indian_grouping">1,23,456.78</string>
+    <string name="settings_preview">Prévia: %1$s</string>
+    <string name="settings_decimal_places">Casas decimais</string>
+    <string name="settings_show">Exibir</string>
+    <string name="settings_hide">Ocultar</string>
+    <string name="settings_decimal_places_hiding">Ocultar arredonda os valores exibidos sem alterar seus valores</string>
+    <string name="settings_decimal_places_budget_hidden">. Orçamento: ocultas</string>
+    <string name="settings_decimal_places_budget_shown">. Orçamento: exibidas</string>
+    <string name="settings_appearance">Aparência</string>
+    <string name="settings_appearance_system">Sistema</string>
+    <string name="settings_appearance_light">Claro</string>
+    <string name="settings_appearance_dark">Escuro</string>
+    <string name="settings_material_you_colors">Cores do Material You</string>
+    <string name="settings_material_you_colors_description">Combine as cores com seu papel de parede em vez do tema padrão do Actua</string>
+    <string name="settings_start_page">Página inicial</string>
+    <string name="settings_start_page_home">Início</string>
+    <string name="settings_start_page_budget">Orçamento</string>
+    <string name="settings_start_page_transactions">Transações</string>
+    <string name="settings_start_page_accounts">Contas</string>
+    <string name="settings_start_page_manage">Gerenciar</string>
+    <string name="settings_bottom_navigation_labels">Rótulos da navegação inferior</string>
+    <string name="settings_navigation_icons_names">Ícones e nomes</string>
+    <string name="settings_navigation_icons_only">Somente ícones</string>
+    <string name="settings_tab_bar">Barra de abas</string>
+    <string name="settings_tab_bar_description">Mostre, oculte e reordene as abas da navegação inferior</string>
+    <string name="settings_notes">Notas</string>
+    <string name="settings_notes_description">Mostre o campo Notas em contas e categorias do orçamento</string>
+
+    <!-- Privacidade. -->
+    <string name="settings_balances">Saldos</string>
+    <string name="settings_balances_hiding">Ocultar mascara os valores de orçamento, contas e transações</string>
+    <string name="settings_balances_budget_hidden">. Orçamento: ocultos</string>
+    <string name="settings_balances_budget_shown">. Orçamento: exibidos</string>
+    <string name="settings_section_location_payees">Beneficiários por localização</string>
+    <string name="settings_record_payee_locations">Registrar locais de beneficiários</string>
+    <string name="settings_record_payee_locations_enabled_description">Use sua localização somente enquanto o Actua estiver aberto, para lembrar de beneficiários elegíveis próximos. As coordenadas ficam no seu orçamento do Actual e são sincronizadas com ele.</string>
+    <string name="settings_record_payee_locations_disabled_description">Opcional e desativado por padrão. Ativar pede permissão de localização em primeiro plano. Não há rastreamento em segundo plano nem serviço de localização de terceiros.</string>
+    <string name="settings_payee_locations">Locais de beneficiários</string>
+    <string name="settings_payee_locations_description">Inspecione ou exclua coordenadas salvas neste orçamento</string>
+    <string name="settings_location_permission_allowed">Permissão de localização: permitida enquanto o app estiver em uso</string>
+    <string name="settings_location_permission_denied">Permissão de localização: não concedida</string>
+
+    <!-- Orçamento. -->
+    <string name="settings_budget_type">Tipo de orçamento</string>
+    <string name="settings_budget_type_envelope">Envelope (base zero)</string>
+    <string name="settings_budget_type_tracking">Acompanhamento (baseado em relatórios)</string>
+    <string name="settings_category_status_dot">Ponto de status das categorias</string>
+    <string name="settings_category_status_dot_description">Mostre um ponto de status ao lado dos nomes das categorias em Orçamento e Início</string>
+    <string name="settings_color_balances">Colorir saldos</string>
+    <string name="settings_color_balances_description">Desenhe a cor de status da categoria atrás do Saldo nas linhas do Orçamento</string>
+    <string name="settings_hide_income_group">Ocultar grupo de receitas</string>
+    <string name="settings_hide_income_group_description">Oculte o grupo de categorias de receita na aba Orçamento</string>
+    <string name="settings_category_status_colors">Cores de status das categorias</string>
+    <string name="settings_category_status_colors_description">Redefina as cores de status de não atribuída, financiada, em gasto, gasta, excedida e de meta</string>
+    <string name="settings_budget_mode_note">O modo envelope calcula o Para Orçar a partir da receita e do excedente. O modo acompanhamento mostra economias projetadas e reais sem acumulado.</string>
+
+    <!-- Seletor de cores de status das categorias. -->
+    <string name="settings_status_color_title">Cor de %1$s</string>
+    <string name="settings_status_color_current">Cor de %1$s: atual</string>
+    <string name="settings_status_unassigned_subtitle">Nenhum valor atribuído a esta categoria</string>
+    <string name="settings_status_funded_subtitle">Totalmente financiada, nada gasto ainda</string>
+    <string name="settings_status_spending_subtitle">Financiada e parcialmente gasta</string>
+    <string name="settings_status_spent_subtitle">Totalmente gasta, saldo em zero</string>
+    <string name="settings_status_overspent_subtitle">Gastou mais do que o disponível</string>
+    <string name="settings_status_goal_in_progress_subtitle">Meta, data alvo ou alvo de agendamento ainda sendo financiada</string>
+    <string name="settings_status_goal_reached_subtitle">Meta, data alvo ou alvo de agendamento totalmente financiada</string>
+    <string name="settings_status_goal_overfunded_subtitle">O saldo está acima da meta, data alvo ou alvo de agendamento</string>
+    <string name="settings_reset_to_defaults">Restaurar padrões</string>
+    <string name="settings_close">Fechar</string>
+    <string name="settings_swatch_selected">Selecionado</string>
+    <string name="settings_swatch_grey">Cinza</string>
+    <string name="settings_swatch_graphite">Grafite</string>
+    <string name="settings_swatch_slate">Ardósia</string>
+    <string name="settings_swatch_brown">Marrom</string>
+    <string name="settings_swatch_red">Vermelho</string>
+    <string name="settings_swatch_coral">Coral</string>
+    <string name="settings_swatch_rose">Rosa</string>
+    <string name="settings_swatch_pink">Rosa-choque</string>
+    <string name="settings_swatch_magenta">Magenta</string>
+    <string name="settings_swatch_lavender">Lavanda</string>
+    <string name="settings_swatch_violet">Violeta</string>
+    <string name="settings_swatch_indigo">Índigo</string>
+    <string name="settings_swatch_blue">Azul</string>
+    <string name="settings_swatch_sky">Azul-celeste</string>
+    <string name="settings_swatch_cyan">Ciano</string>
+    <string name="settings_swatch_teal">Verde-azulado</string>
+    <string name="settings_swatch_emerald">Esmeralda</string>
+    <string name="settings_swatch_green">Verde</string>
+    <string name="settings_swatch_mint">Menta</string>
+    <string name="settings_swatch_lime">Verde-limão</string>
+    <string name="settings_swatch_yellow">Amarelo</string>
+    <string name="settings_swatch_amber">Âmbar</string>
+    <string name="settings_swatch_orange">Laranja</string>
+    <string name="settings_swatch_burnt_orange">Laranja-queimado</string>
+
+    <!-- Experimental. -->
+    <string name="settings_enable_banking">Enable Banking</string>
+    <string name="settings_enable_banking_description">Sincronizacão bancária para bancos europeus por meio do Enable Banking, como na sinalização experimental do Actual. Precisa de um servidor Actual com o Enable Banking configurado. Aparece em Gerenciar → Sincronizacão Bancária.</string>
+    <string name="settings_experimental_note">Recursos experimentais podem mudar ou ser removidos. Eles ficam armazenados somente neste dispositivo e não alteram seu orçamento até você vincular uma conta.</string>
+
+    <!-- Apoiar o Actua. -->
+    <string name="settings_support_intro">O Actua é gratuito e de código aberto. Se você o considera útil, pode apoiar seu desenvolvimento contínuo.</string>
+    <string name="settings_supporter_badge">Apoiador do Actua</string>
+    <string name="settings_supporter_thanks">Obrigado por apoiar o Actua!</string>
+    <string name="settings_supporter_price">Apoiador do Actua · %1$s</string>
+    <string name="settings_supporter_description">Ganhe um selo permanente de Apoiador como agradecimento.</string>
+    <string name="settings_support_free">Todos os recursos do Actua continuam gratuitos.</string>
+    <string name="settings_become_supporter">Torne-se um Apoiador</string>
+
+    <!-- Sobre. -->
+    <string name="settings_about_summary">Cliente Android nativo para o Actual Budget\nVersão %1$s</string>
+    <string name="settings_section_project">Projeto</string>
+    <string name="settings_actua_github">Actua no GitHub</string>
+    <string name="settings_actua_github_url" translatable="false">github.com/azimul-kabir/actua</string>
+    <string name="settings_website">Site</string>
+    <string name="settings_website_url" translatable="false">actua.azimulkabir.com</string>
+    <string name="settings_developer_website">Site do desenvolvedor</string>
+    <string name="settings_developer_website_url" translatable="false">www.azimulkabir.com</string>
+    <string name="settings_faq">FAQ</string>
+    <string name="settings_faq_description">Respostas a perguntas comuns sobre o Actua</string>
+    <string name="settings_join_discord">Entrar no Discord</string>
+    <string name="settings_join_discord_description">Discuta o Actua, teste versões beta e ajude no desenvolvimento</string>
+    <string name="settings_independent_project">Projeto comunitário independente</string>
+    <string name="settings_independent_project_description">O Actua se conecta diretamente ao seu servidor Actual auto-hospedado e mantém os dados do orçamento disponíveis localmente offline. Não é afiliado nem endossado pela equipe do Actual Budget.</string>
+    <string name="settings_contact">Contato</string>
+    <string name="settings_contact_url" translatable="false">actua@azimulkabir.com</string>
+    <string name="settings_privacy_policy">Política de Privacidade</string>
+    <string name="settings_privacy_policy_description">Quais dados o Actua armazena, sincroniza e nunca coleta</string>
+    <string name="settings_diagnostics">Diagnóstico</string>
+    <string name="settings_diagnostics_description">Copie, salve ou envie por e-mail um relatório da atividade recente do app para resolver problemas</string>
+    <string name="settings_section_credits">Créditos</string>
+    <string name="settings_actuali_ios">Actuali para iOS</string>
+    <string name="settings_actuali_ios_description">O Actua foi originalmente baseado no projeto de código aberto Actuali, de Matt Farrell, e continua a usá-lo como referência para comportamento testado e orientação de design.</string>
+    <string name="settings_actual_budget">Actual Budget</string>
+    <string name="settings_actual_budget_description">O comportamento de sincronização é compatível com o projeto de código aberto Actual Budget. Visite actualbudget.org para saber como ele funciona e como auto-hospedar um servidor.</string>
+    <string name="settings_section_compatibility">Compatibilidade</string>
+    <string name="settings_android_requirement">Android 9 ou posterior</string>
+    <string name="settings_server_requirement">Requer um servidor Actual Budget auto-hospedado acessível.</string>
+    <string name="settings_section_license">Licença</string>
+    <string name="settings_gpl_license">GNU General Public License v3.0</string>
+    <string name="settings_license_description">Avisos de código aberto e atribuição completa estão disponíveis nos arquivos LICENSE e NOTICE do repositório.</string>
+
+    <!-- Seletor de orçamento ativo no Gerenciar. -->
+    <string name="settings_active_budget_label">Orçamento</string>
+    <string name="settings_select_budget">Selecione um orçamento</string>
+    <string name="settings_switch_budget">Trocar orçamento</string>
+    <string name="settings_active_budget">Orçamento ativo</string>
+
+    <!-- Linhas que aguardam uma fatia posterior do backend. -->
+    <string name="settings_coming_with_backend">%1$s · Chega com a portabilidade do backend</string>
+
+    <!-- Subpágina de diagnóstico. -->
+    <string name="diagnostics_intro">Atividade recente do app, mantida neste dispositivo por 7 dias: falhas, ações com erro, telas abertas, sincronizações e requisições ao servidor. Compartilhe-a com o Actua ao relatar um problema. Ela lista somente tipos de erro, localizações no código, caminhos de requisição, códigos de status, tempos e contagens, sem endereço de servidor, senhas, tokens, chaves ou dados de orçamento.</string>
+    <string name="diagnostics_copy_report">Copiar relatório</string>
+    <string name="diagnostics_report_copied">Relatório copiado.</string>
+    <string name="diagnostics_export_report">Exportar relatório</string>
+    <string name="diagnostics_report_saved">Relatório salvo.</string>
+    <string name="diagnostics_report_save_failed">Não foi possível salvar o relatório.</string>
+    <string name="diagnostics_email_report">Enviar por e-mail ao Actua</string>
+    <string name="diagnostics_no_email_app">Nenhum app de e-mail encontrado. Copie ou exporte o relatório.</string>
+    <string name="diagnostics_clear">Limpar diagnóstico</string>
+    <string name="diagnostics_cleared">Diagnóstico limpo.</string>
+    <string name="diagnostics_recent_events">Eventos recentes (%1$d)</string>
+    <string name="diagnostics_no_events">Nenhum evento ainda. Eles aparecem conforme você usa o app.</string>
+    <string name="diagnostics_clipboard_label">Diagnóstico do Actua</string>
+    <string name="diagnostics_email_subject">Relatório de diagnóstico do Actua</string>
+    <string name="diagnostics_email_chooser">Enviar diagnóstico por e-mail</string>
+</resources>

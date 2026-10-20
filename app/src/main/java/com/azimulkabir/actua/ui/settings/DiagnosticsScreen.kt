@@ -30,7 +30,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsReport
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
@@ -55,6 +57,15 @@ fun DiagnosticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     var events by remember { mutableStateOf(DiagnosticsLog.events()) }
     var message by remember { mutableStateOf<String?>(null) }
     fun report(): String = DiagnosticsReport.build(DiagnosticsLog.events().also { events = it })
+    // Resolved here so the non-composable click and activity-result callbacks never hold literals.
+    val reportSaved = stringResource(R.string.diagnostics_report_saved)
+    val reportSaveFailed = stringResource(R.string.diagnostics_report_save_failed)
+    val reportCopied = stringResource(R.string.diagnostics_report_copied)
+    val noEmailApp = stringResource(R.string.diagnostics_no_email_app)
+    val diagnosticsCleared = stringResource(R.string.diagnostics_cleared)
+    val clipboardLabel = stringResource(R.string.diagnostics_clipboard_label)
+    val emailSubject = stringResource(R.string.diagnostics_email_subject)
+    val emailChooserTitle = stringResource(R.string.diagnostics_email_chooser)
 
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -64,21 +75,18 @@ fun DiagnosticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openOutputStream(uri, "w")!!.use { it.write(text.toByteArray()) }
                 }
-            }.fold(onSuccess = { "Report saved." }, onFailure = { "Could not save the report." })
+            }.fold(onSuccess = { reportSaved }, onFailure = { reportSaveFailed })
         }
     }
 
-    Scaffold(modifier = modifier, topBar = { ActuaScreenHeader(title = "Diagnostics", onBack = onBack) }) { padding ->
+    Scaffold(modifier = modifier, topBar = { ActuaScreenHeader(title = stringResource(R.string.settings_page_diagnostics), onBack = onBack) }) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(bottom = Spacing.xl),
         ) {
             item {
                 Text(
-                    "Recent app activity, kept on this device for 7 days: crashes, failed actions, screens " +
-                        "opened, syncs and server requests. Share it with Actua when reporting a problem. It " +
-                        "lists error types, code locations, request paths, status codes, timings and counts " +
-                        "only, with no server address, passwords, tokens, keys or budget data.",
+                    stringResource(R.string.diagnostics_intro),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
@@ -86,31 +94,31 @@ fun DiagnosticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             }
             item {
                 ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)) {
-                    ActuaFormRow(icon = Icons.Outlined.ContentCopy, label = "Copy report", value = null, onClick = {
-                        copyToClipboard(context, report())
-                        message = "Report copied."
+                    ActuaFormRow(icon = Icons.Outlined.ContentCopy, label = stringResource(R.string.diagnostics_copy_report), value = null, onClick = {
+                        copyToClipboard(context, clipboardLabel, report())
+                        message = reportCopied
                     })
                     ActuaCardDivider()
-                    ActuaFormRow(icon = Icons.Outlined.SaveAlt, label = "Export report", value = null, onClick = {
+                    ActuaFormRow(icon = Icons.Outlined.SaveAlt, label = stringResource(R.string.diagnostics_export_report), value = null, onClick = {
                         export.launch(DiagnosticsReport.fileName())
                     })
                     ActuaCardDivider()
                     ActuaFormRow(
-                        icon = Icons.Outlined.Email, label = "Email to Actua",
+                        icon = Icons.Outlined.Email, label = stringResource(R.string.diagnostics_email_report),
                         value = null, caption = DiagnosticsReport.SUPPORT_EMAIL,
                         onClick = {
-                            message = if (emailReport(context, report())) null
-                                else "No email app found. Copy or export the report instead."
+                            message = if (emailReport(context, emailSubject, emailChooserTitle, report())) null
+                                else noEmailApp
                         },
                     )
                     ActuaCardDivider()
                     ActuaFormRow(
-                        icon = Icons.Outlined.DeleteOutline, label = "Clear diagnostics", value = null,
+                        icon = Icons.Outlined.DeleteOutline, label = stringResource(R.string.diagnostics_clear), value = null,
                         enabled = events.isNotEmpty(),
                         onClick = {
                             DiagnosticsLog.clear()
                             events = DiagnosticsLog.events()
-                            message = "Diagnostics cleared."
+                            message = diagnosticsCleared
                         },
                     )
                 }
@@ -123,12 +131,12 @@ fun DiagnosticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             }
             item {
                 ActuaGroupLabel(
-                    "Recent events (${events.size})",
+                    stringResource(R.string.diagnostics_recent_events, events.size),
                     Modifier.padding(horizontal = Spacing.screenHorizontal).padding(top = Spacing.md),
                 )
             }
             if (events.isEmpty()) item {
-                Text("No events yet. They appear as you use the app.",
+                Text(stringResource(R.string.diagnostics_no_events),
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm))
             }
@@ -145,23 +153,23 @@ fun DiagnosticsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-private fun copyToClipboard(context: Context, text: String) {
+private fun copyToClipboard(context: Context, label: String, text: String) {
     val clipboard = context.getSystemService(ClipboardManager::class.java) ?: return
-    clipboard.setPrimaryClip(ClipData.newPlainText("Actua diagnostics", text))
+    clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
 }
 
 /** Opens the user's email app addressed to Actua with the report as the body. False when none is installed. */
-private fun emailReport(context: Context, text: String): Boolean {
+private fun emailReport(context: Context, subject: String, chooserTitle: String, text: String): Boolean {
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_EMAIL, arrayOf(DiagnosticsReport.SUPPORT_EMAIL))
-        putExtra(Intent.EXTRA_SUBJECT, "Actua diagnostics report")
+        putExtra(Intent.EXTRA_SUBJECT, subject)
         putExtra(Intent.EXTRA_TEXT, text)
         // Only email apps: they handle mailto:, and the selector keeps chat apps out of the chooser.
         selector = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
     }
     return try {
-        context.startActivity(Intent.createChooser(send, "Email diagnostics").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(Intent.createChooser(send, chooserTitle).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         true
     } catch (_: ActivityNotFoundException) {
         false

@@ -1,2 +1,326 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+    <!-- Settings page titles (Manage hub and its sub-pages). -->
+    <string name="settings_page_manage">Manage</string>
+    <string name="settings_page_tags">Tags</string>
+    <string name="settings_page_settings">Settings</string>
+    <string name="settings_page_transactions_accounts">Transactions &amp; Accounts</string>
+    <string name="settings_page_display">Display</string>
+    <string name="settings_page_privacy">Privacy</string>
+    <string name="settings_page_budget">Budget</string>
+    <string name="settings_page_category_colors">Category status colors</string>
+    <string name="settings_page_experimental">Experimental</string>
+    <string name="settings_page_support">Support Actua</string>
+    <string name="settings_page_about">About</string>
+    <string name="settings_page_diagnostics">Diagnostics</string>
+    <string name="settings_open_settings">Settings</string>
+
+    <!-- Manage hub sections and rows. -->
+    <string name="settings_section_insights">Insights</string>
+    <string name="settings_manage_home">Home</string>
+    <string name="settings_manage_home_description">Your dashboard of favorites, upcoming bills and activity</string>
+    <string name="settings_reports">Reports</string>
+    <string name="settings_reports_description">View dashboards and financial reports</string>
+    <string name="settings_section_automation">Automation</string>
+    <string name="settings_bills_calendar">Bills &amp; Calendar</string>
+    <string name="settings_bills_calendar_description">Upcoming schedules and credit-card due dates</string>
+    <string name="settings_scheduled_transactions">Scheduled Transactions</string>
+    <string name="settings_scheduled_transactions_description">Review recurring bills, income and upcoming dates</string>
+    <string name="settings_rules">Rules</string>
+    <string name="settings_rules_description">Automatically categorize and transform transactions</string>
+    <string name="settings_section_transactions_data">Transactions &amp; data</string>
+    <string name="settings_tags">Tags</string>
+    <string name="settings_tags_description">Create, edit, color, hide and delete managed tags</string>
+    <string name="settings_payees">Payees</string>
+    <string name="settings_payees_description">Rename, merge, delete and favorite payees</string>
+    <string name="settings_import_transactions">Import Transactions</string>
+    <string name="settings_import_transactions_description">Review a CSV bank statement before importing</string>
+    <string name="settings_connection_data">Connection &amp; Data</string>
+    <string name="settings_connection_data_description">Actual server, budgets, sync, backups and restore</string>
+    <string name="settings_section_financial_setup">Financial setup</string>
+    <string name="settings_bank_sync">Bank Sync</string>
+    <string name="settings_bank_sync_description">Connect SimpleFIN or GoCardless and link accounts</string>
+    <string name="settings_credit_cards">Credit Cards &amp; Billing Cycles</string>
+    <string name="settings_credit_cards_description">Cycle spend, due dates and credit limits</string>
+
+    <!-- Settings (General) page sections and rows. -->
+    <string name="settings_section_preferences">Preferences</string>
+    <string name="settings_home">Home</string>
+    <string name="settings_home_description">Show, hide and reorder the sections on Home</string>
+    <string name="settings_transactions_accounts_description">Entry defaults, transaction lists and account summaries</string>
+    <string name="settings_display_description">Currency, date, numbers, appearance and start page</string>
+    <string name="settings_privacy_description">Balances and optional location-aware payee controls</string>
+    <string name="settings_budget">Budget</string>
+    <string name="settings_budget_description">Category status dot, progress bar colors and income group</string>
+    <string name="settings_section_support">Support</string>
+    <string name="settings_support_actua">Support Actua</string>
+    <string name="settings_support_thank_you">You\'re an Actua Supporter — thank you!</string>
+    <string name="settings_support_description">Actua is free and open source. Leave a one-time tip.</string>
+    <string name="settings_section_labs">Labs</string>
+    <string name="settings_experimental">Experimental</string>
+    <string name="settings_experimental_description">Opt-in features that follow Actual\'s experimental flags</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_about_actua">About Actua</string>
+    <string name="settings_about_actua_description">Version, project information, credits and license</string>
+
+    <!-- Transactions &amp; Accounts settings. -->
+    <string name="settings_default_account">Default account</string>
+    <string name="settings_none">None</string>
+    <string name="settings_group_transactions">Group transactions by date</string>
+    <string name="settings_group_transactions_description">Use dated sections in transaction lists</string>
+    <string name="settings_conventional_amount_entry">Conventional amount entry</string>
+    <string name="settings_conventional_amount_entry_description">Type 324 as 324.00 instead of filling cents first</string>
+    <string name="settings_account_monthly_summary">Account monthly summary</string>
+    <string name="settings_account_monthly_summary_description">Show Income, Expenses and Net at the top of Accounts</string>
+    <string name="settings_current_balance_summary">Current balance summary</string>
+    <string name="settings_current_balance_summary_description">Show current, cleared, uncleared and reconciled balances inside accounts</string>
+
+    <!-- Display settings: currency, formats, appearance, navigation. -->
+    <string name="settings_currency">Currency</string>
+    <string name="settings_follow_budget">Same as budget</string>
+    <string name="settings_budget_value_preview">Budget: %1$s</string>
+    <string name="settings_currency_bdt">৳ BDT</string>
+    <string name="settings_currency_usd">$ USD</string>
+    <string name="settings_currency_eur">€ EUR</string>
+    <string name="settings_currency_gbp">£ GBP</string>
+    <string name="settings_currency_cad">C$ CAD</string>
+    <string name="settings_currency_aud">A$ AUD</string>
+    <string name="settings_currency_jpy">¥ JPY</string>
+    <string name="settings_currency_inr">₹ INR</string>
+    <string name="settings_currency_cny">¥ CNY</string>
+    <string name="settings_currency_sgd">S$ SGD</string>
+    <string name="settings_currency_aed">د.إ AED</string>
+    <string name="settings_currency_sar">ر.س SAR</string>
+    <string name="settings_currency_ars">Arg$ ARS</string>
+    <string name="settings_currency_byn">Br BYN</string>
+    <string name="settings_currency_brl">R$ BRL</string>
+    <string name="settings_currency_chf">Fr. CHF</string>
+    <string name="settings_currency_clp">CLP$ CLP</string>
+    <string name="settings_currency_cop">Col$ COP</string>
+    <string name="settings_currency_crc">₡ CRC</string>
+    <string name="settings_currency_czk">Kč CZK</string>
+    <string name="settings_currency_dkk">kr DKK</string>
+    <string name="settings_currency_dop">RD$ DOP</string>
+    <string name="settings_currency_egp">ج.م EGP</string>
+    <string name="settings_currency_gtq">Q GTQ</string>
+    <string name="settings_currency_hkd">HK$ HKD</string>
+    <string name="settings_currency_huf">Ft HUF</string>
+    <string name="settings_currency_idr">Rp IDR</string>
+    <string name="settings_currency_ils">₪ ILS</string>
+    <string name="settings_currency_irr">﷼ IRR</string>
+    <string name="settings_currency_jmd">J$ JMD</string>
+    <string name="settings_currency_krw">₩ KRW</string>
+    <string name="settings_currency_lkr">Rs. LKR</string>
+    <string name="settings_currency_mdl">L MDL</string>
+    <string name="settings_currency_mkd">ден MKD</string>
+    <string name="settings_currency_mxn">$ MXN</string>
+    <string name="settings_currency_myr">RM MYR</string>
+    <string name="settings_currency_pen">S/ PEN</string>
+    <string name="settings_currency_php">₱ PHP</string>
+    <string name="settings_currency_pkr">Rs. PKR</string>
+    <string name="settings_currency_pln">zł PLN</string>
+    <string name="settings_currency_qar">ر.ق QAR</string>
+    <string name="settings_currency_ron">lei RON</string>
+    <string name="settings_currency_rsd">дин RSD</string>
+    <string name="settings_currency_rub">₽ RUB</string>
+    <string name="settings_currency_sek">kr SEK</string>
+    <string name="settings_currency_thb">฿ THB</string>
+    <string name="settings_currency_try">₺ TRY</string>
+    <string name="settings_currency_twd">NT$ TWD</string>
+    <string name="settings_currency_uah">₴ UAH</string>
+    <string name="settings_currency_uyu">$U UYU</string>
+    <string name="settings_currency_uzs">UZS UZS</string>
+    <string name="settings_symbol_only">Symbol only</string>
+    <string name="settings_symbol_only_description">Show $ instead of US$, CA$ or A$ where applicable</string>
+    <string name="settings_symbol_position">Symbol position</string>
+    <string name="settings_symbol_before">Before amount</string>
+    <string name="settings_symbol_after">After amount</string>
+    <string name="settings_symbol_position_before_preview">. Budget: before the amount</string>
+    <string name="settings_symbol_position_after_preview">. Budget: after the amount</string>
+    <string name="settings_symbol_spacing">Space between amount and symbol</string>
+    <string name="settings_space">Space</string>
+    <string name="settings_no_space">No space</string>
+    <string name="settings_symbol_spacing_space_preview">. Budget: space</string>
+    <string name="settings_symbol_spacing_no_space_preview">. Budget: no space</string>
+    <string name="settings_date_format">Date format</string>
+    <string name="settings_system_default">System default</string>
+    <string name="settings_date_dd_mm_yyyy">DD/MM/YYYY</string>
+    <string name="settings_date_mm_dd_yyyy">MM/DD/YYYY</string>
+    <string name="settings_date_yyyy_mm_dd">YYYY-MM-DD</string>
+    <string name="settings_date_mm_dd_yyyy_dot">MM.DD.YYYY</string>
+    <string name="settings_date_dd_mm_yyyy_dot">DD.MM.YYYY</string>
+    <string name="settings_date_dd_mm_yyyy_dash">DD-MM-YYYY</string>
+    <string name="settings_number_format">Number format</string>
+    <string name="settings_number_comma_decimal">1,234.56</string>
+    <string name="settings_number_period_decimal_comma">1.234,56</string>
+    <string name="settings_number_space_decimal_comma">1 234,56</string>
+    <string name="settings_number_apostrophe_dot">1’234.56</string>
+    <string name="settings_number_plain_decimal">1234.56</string>
+    <string name="settings_number_indian_grouping">1,23,456.78</string>
+    <string name="settings_preview">Preview: %1$s</string>
+    <string name="settings_decimal_places">Decimal places</string>
+    <string name="settings_show">Show</string>
+    <string name="settings_hide">Hide</string>
+    <string name="settings_decimal_places_hiding">Hiding rounds displayed amounts without changing their values</string>
+    <string name="settings_decimal_places_budget_hidden">. Budget: hidden</string>
+    <string name="settings_decimal_places_budget_shown">. Budget: shown</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_appearance_system">System</string>
+    <string name="settings_appearance_light">Light</string>
+    <string name="settings_appearance_dark">Dark</string>
+    <string name="settings_material_you_colors">Material You colors</string>
+    <string name="settings_material_you_colors_description">Match colors to your wallpaper instead of Actua\'s default theme</string>
+    <string name="settings_start_page">Start page</string>
+    <string name="settings_start_page_home">Home</string>
+    <string name="settings_start_page_budget">Budget</string>
+    <string name="settings_start_page_transactions">Transactions</string>
+    <string name="settings_start_page_accounts">Accounts</string>
+    <string name="settings_start_page_manage">Manage</string>
+    <string name="settings_bottom_navigation_labels">Bottom navigation labels</string>
+    <string name="settings_navigation_icons_names">Icons and names</string>
+    <string name="settings_navigation_icons_only">Icons only</string>
+    <string name="settings_tab_bar">Tab Bar</string>
+    <string name="settings_tab_bar_description">Show, hide and reorder the bottom navigation tabs</string>
+    <string name="settings_notes">Notes</string>
+    <string name="settings_notes_description">Show the Notes field on accounts and budget categories</string>
+
+    <!-- Privacy settings. -->
+    <string name="settings_balances">Balances</string>
+    <string name="settings_balances_hiding">Hiding masks budget, account and transaction amounts</string>
+    <string name="settings_balances_budget_hidden">. Budget: hidden</string>
+    <string name="settings_balances_budget_shown">. Budget: shown</string>
+    <string name="settings_section_location_payees">Location-aware payees</string>
+    <string name="settings_record_payee_locations">Record payee locations</string>
+    <string name="settings_record_payee_locations_enabled_description">Use your location only while Actua is open to remember eligible payees nearby. Coordinates stay in your Actual budget and sync with it.</string>
+    <string name="settings_record_payee_locations_disabled_description">Optional and off by default. Enabling asks for foreground location permission. No background tracking or third-party location service is used.</string>
+    <string name="settings_payee_locations">Payee Locations</string>
+    <string name="settings_payee_locations_description">Inspect or delete coordinates saved in this budget</string>
+    <string name="settings_location_permission_allowed">Location permission: allowed while using the app</string>
+    <string name="settings_location_permission_denied">Location permission: not granted</string>
+
+    <!-- Budget settings. -->
+    <string name="settings_budget_type">Budget type</string>
+    <string name="settings_budget_type_envelope">Envelope (zero-based)</string>
+    <string name="settings_budget_type_tracking">Tracking (report-based)</string>
+    <string name="settings_category_status_dot">Category status dot</string>
+    <string name="settings_category_status_dot_description">Show a status dot next to category names on Budget and Home</string>
+    <string name="settings_color_balances">Color balances</string>
+    <string name="settings_color_balances_description">Draw the category status color behind the Balance on Budget rows</string>
+    <string name="settings_hide_income_group">Hide income group</string>
+    <string name="settings_hide_income_group_description">Hide the income category group on the Budget tab</string>
+    <string name="settings_category_status_colors">Category status colors</string>
+    <string name="settings_category_status_colors_description">Retint the unassigned, funded, spending, spent, overspent and goal status colors</string>
+    <string name="settings_budget_mode_note">Envelope mode calculates To Budget from income and carryover. Tracking mode shows projected and real savings without rollover.</string>
+
+    <!-- Category status color picker. -->
+    <string name="settings_status_color_title">%1$s color</string>
+    <string name="settings_status_color_current">%1$s color: current</string>
+    <string name="settings_status_unassigned_subtitle">No money assigned to this category</string>
+    <string name="settings_status_funded_subtitle">Fully funded, nothing spent yet</string>
+    <string name="settings_status_spending_subtitle">Funded and partially spent</string>
+    <string name="settings_status_spent_subtitle">Fully spent, balance at zero</string>
+    <string name="settings_status_overspent_subtitle">Spent more than available</string>
+    <string name="settings_status_goal_in_progress_subtitle">Goal, by-date or schedule target still being funded</string>
+    <string name="settings_status_goal_reached_subtitle">Goal, by-date or schedule target fully funded</string>
+    <string name="settings_status_goal_overfunded_subtitle">Balance is above the goal, by-date or schedule target</string>
+    <string name="settings_reset_to_defaults">Reset to defaults</string>
+    <string name="settings_close">Close</string>
+    <string name="settings_swatch_selected">Selected</string>
+    <string name="settings_swatch_grey">Grey</string>
+    <string name="settings_swatch_graphite">Graphite</string>
+    <string name="settings_swatch_slate">Slate</string>
+    <string name="settings_swatch_brown">Brown</string>
+    <string name="settings_swatch_red">Red</string>
+    <string name="settings_swatch_coral">Coral</string>
+    <string name="settings_swatch_rose">Rose</string>
+    <string name="settings_swatch_pink">Pink</string>
+    <string name="settings_swatch_magenta">Magenta</string>
+    <string name="settings_swatch_lavender">Lavender</string>
+    <string name="settings_swatch_violet">Violet</string>
+    <string name="settings_swatch_indigo">Indigo</string>
+    <string name="settings_swatch_blue">Blue</string>
+    <string name="settings_swatch_sky">Sky</string>
+    <string name="settings_swatch_cyan">Cyan</string>
+    <string name="settings_swatch_teal">Teal</string>
+    <string name="settings_swatch_emerald">Emerald</string>
+    <string name="settings_swatch_green">Green</string>
+    <string name="settings_swatch_mint">Mint</string>
+    <string name="settings_swatch_lime">Lime</string>
+    <string name="settings_swatch_yellow">Yellow</string>
+    <string name="settings_swatch_amber">Amber</string>
+    <string name="settings_swatch_orange">Orange</string>
+    <string name="settings_swatch_burnt_orange">Burnt orange</string>
+
+    <!-- Experimental settings. -->
+    <string name="settings_enable_banking">Enable Banking</string>
+    <string name="settings_enable_banking_description">Bank sync for European banks through Enable Banking, as in Actual\'s experimental flag. Needs an Actual server with Enable Banking set up. Shows in Manage → Bank Sync.</string>
+    <string name="settings_experimental_note">Experimental features can change or be removed. They are stored on this device only and don\'t change your budget until you link an account.</string>
+
+    <!-- Support Actua. -->
+    <string name="settings_support_intro">Actua is free and open source. If you find it useful, you can support its continued development.</string>
+    <string name="settings_supporter_badge">Actua Supporter</string>
+    <string name="settings_supporter_thanks">Thank you for supporting Actua!</string>
+    <string name="settings_supporter_price">Actua Supporter · %1$s</string>
+    <string name="settings_supporter_description">Get a permanent Supporter badge as a thank-you.</string>
+    <string name="settings_support_free">All Actua features remain free.</string>
+    <string name="settings_become_supporter">Become a Supporter</string>
+
+    <!-- About page. -->
+    <string name="settings_about_summary">Native Android client for Actual Budget\nVersion %1$s</string>
+    <string name="settings_section_project">Project</string>
+    <string name="settings_actua_github">Actua on GitHub</string>
+    <string name="settings_actua_github_url" translatable="false">github.com/azimul-kabir/actua</string>
+    <string name="settings_website">Website</string>
+    <string name="settings_website_url" translatable="false">actua.azimulkabir.com</string>
+    <string name="settings_developer_website">Developer website</string>
+    <string name="settings_developer_website_url" translatable="false">www.azimulkabir.com</string>
+    <string name="settings_faq">FAQ</string>
+    <string name="settings_faq_description">Answers to common questions about Actua</string>
+    <string name="settings_join_discord">Join Discord</string>
+    <string name="settings_join_discord_description">Discuss Actua, test beta builds and help with development</string>
+    <string name="settings_independent_project">Independent community project</string>
+    <string name="settings_independent_project_description">Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.</string>
+    <string name="settings_contact">Contact</string>
+    <string name="settings_contact_url" translatable="false">actua@azimulkabir.com</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_privacy_policy_description">What data Actua stores, syncs and never collects</string>
+    <string name="settings_diagnostics">Diagnostics</string>
+    <string name="settings_diagnostics_description">Copy, save or email a report of recent app activity to troubleshoot problems</string>
+    <string name="settings_section_credits">Credits</string>
+    <string name="settings_actuali_ios">Actuali for iOS</string>
+    <string name="settings_actuali_ios_description">Actua was originally based on and continues to reference Matt Farrell’s open-source Actuali project for tested behavior and design guidance.</string>
+    <string name="settings_actual_budget">Actual Budget</string>
+    <string name="settings_actual_budget_description">Synchronization behavior is compatible with the open-source Actual Budget project. Visit actualbudget.org to learn how it works and how to self-host a server.</string>
+    <string name="settings_section_compatibility">Compatibility</string>
+    <string name="settings_android_requirement">Android 9 or later</string>
+    <string name="settings_server_requirement">Requires a reachable self-hosted Actual Budget server.</string>
+    <string name="settings_section_license">License</string>
+    <string name="settings_gpl_license">GNU General Public License v3.0</string>
+    <string name="settings_license_description">Open-source notices and complete attribution are available in the repository’s LICENSE and NOTICE files.</string>
+
+    <!-- Active budget selector on Manage. -->
+    <string name="settings_active_budget_label">Budget</string>
+    <string name="settings_select_budget">Select a budget</string>
+    <string name="settings_switch_budget">Switch budget</string>
+    <string name="settings_active_budget">Active budget</string>
+
+    <!-- Rows that wait for a later backend slice. -->
+    <string name="settings_coming_with_backend">%1$s · Coming with backend port</string>
+
+    <!-- Diagnostics sub-page. -->
+    <string name="diagnostics_intro">Recent app activity, kept on this device for 7 days: crashes, failed actions, screens opened, syncs and server requests. Share it with Actua when reporting a problem. It lists error types, code locations, request paths, status codes, timings and counts only, with no server address, passwords, tokens, keys or budget data.</string>
+    <string name="diagnostics_copy_report">Copy report</string>
+    <string name="diagnostics_report_copied">Report copied.</string>
+    <string name="diagnostics_export_report">Export report</string>
+    <string name="diagnostics_report_saved">Report saved.</string>
+    <string name="diagnostics_report_save_failed">Could not save the report.</string>
+    <string name="diagnostics_email_report">Email to Actua</string>
+    <string name="diagnostics_no_email_app">No email app found. Copy or export the report instead.</string>
+    <string name="diagnostics_clear">Clear diagnostics</string>
+    <string name="diagnostics_cleared">Diagnostics cleared.</string>
+    <string name="diagnostics_recent_events">Recent events (%1$d)</string>
+    <string name="diagnostics_no_events">No events yet. They appear as you use the app.</string>
+    <string name="diagnostics_clipboard_label">Actua diagnostics</string>
+    <string name="diagnostics_email_subject">Actua diagnostics report</string>
+    <string name="diagnostics_email_chooser">Email diagnostics</string>
+</resources>
