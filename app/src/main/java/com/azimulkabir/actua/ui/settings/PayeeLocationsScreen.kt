@@ -23,7 +23,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.PayeeLocationSummary
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaListRow
@@ -49,23 +51,23 @@ fun PayeeLocationsScreen(
 ) {
     var pendingDeletion by remember { mutableStateOf<LocationDeletion?>(null) }
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Payee Locations", onBack = onBack)
+        ActuaScreenHeader(title = stringResource(R.string.payee_locations_title), onBack = onBack)
         Text(
-            "Saved coordinates stay in your Actual budget and synchronize with it. Actua never tracks location in the background.",
+            stringResource(R.string.payee_locations_privacy),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
         )
         if (!writesSupported) {
             Text(
-                "This budget cannot safely synchronize payee-location changes. Existing locations are read-only.",
+                stringResource(R.string.payee_locations_read_only),
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
             )
         }
         if (locations.isEmpty()) {
             Text(
-                "No saved payee locations",
+                stringResource(R.string.payee_locations_empty),
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(Spacing.screenHorizontal),
             )
@@ -88,7 +90,7 @@ fun PayeeLocationsScreen(
                             TextButton(
                                 onClick = { pendingDeletion = LocationDeletion.All(payee.first, payee.second) },
                                 enabled = writesSupported,
-                            ) { Text("Clear all") }
+                            ) { Text(stringResource(R.string.clear_all)) }
                         }
                     }
                     itemsIndexed(entries, key = { _, location -> location.id }) { index, location ->
@@ -108,7 +110,7 @@ fun PayeeLocationsScreen(
                                     onClick = { pendingDeletion = LocationDeletion.One(location) },
                                     enabled = writesSupported,
                                 ) {
-                                    Icon(Icons.Outlined.Delete, contentDescription = "Delete location")
+                                    Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.delete_location))
                                 }
                             },
                         )
@@ -121,12 +123,14 @@ fun PayeeLocationsScreen(
 
     pendingDeletion?.let { deletion ->
         val description = when (deletion) {
-            is LocationDeletion.One -> "Delete this saved location for " + deletion.location.payeeName + "?"
-            is LocationDeletion.All -> "Delete all saved locations for " + deletion.payeeName + "?"
+            is LocationDeletion.One ->
+                stringResource(R.string.delete_one_payee_location, deletion.location.payeeName)
+            is LocationDeletion.All ->
+                stringResource(R.string.delete_all_payee_locations, deletion.payeeName)
         }
         AlertDialog(
             onDismissRequest = { pendingDeletion = null },
-            title = { Text("Delete payee location") },
+            title = { Text(stringResource(R.string.delete_payee_location_title)) },
             text = { Text(description) },
             confirmButton = {
                 TextButton(onClick = {
@@ -135,10 +139,10 @@ fun PayeeLocationsScreen(
                         is LocationDeletion.All -> onClearPayee(deletion.payeeId)
                     }
                     pendingDeletion = null
-                }) { Text("Delete") }
+                }) { Text(stringResource(R.string.delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDeletion = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDeletion = null }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }

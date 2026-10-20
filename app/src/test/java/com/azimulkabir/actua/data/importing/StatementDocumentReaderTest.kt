@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StatementDocumentReaderTest {
@@ -35,7 +34,8 @@ class StatementDocumentReaderTest {
     @Test
     fun `rejects pdf text without a recognizable table`() {
         val error = runCatching { PdfTextTableParser.parse("Scanned statement") }.exceptionOrNull()
-        assertTrue(error?.message.orEmpty().contains("no readable transaction table"))
+        val statementError = error as? ImportStatementException
+        assertEquals(ImportProblemCode.PDF_NO_TABLE, statementError?.code)
     }
 
     private fun xlsx(shared: String, sheet: String): ByteArray = ByteArrayOutputStream().also { output ->

@@ -21,7 +21,8 @@ object XlsxStatementReader {
         val shared = entries["xl/sharedStrings.xml"]?.let(::parseXml)?.getElementsByTagName("si")?.let { nodes ->
             (0 until nodes.length).map { nodes.item(it).textContent }
         }.orEmpty()
-        val sheet = entries["xl/worksheets/sheet1.xml"] ?: error("The workbook has no readable first worksheet")
+        val sheet = entries["xl/worksheets/sheet1.xml"]
+            ?: throw ImportStatementException(ImportProblemCode.XLSX_NO_SHEET)
         val nodes = parseXml(sheet).getElementsByTagName("row")
         val rows = (0 until nodes.length).map { rowIndex ->
             val cells = (nodes.item(rowIndex) as Element).getElementsByTagName("c")
@@ -88,9 +89,7 @@ object PdfTextTableParser {
                 else -> line.split(Regex(" {2,}")).map(String::trim)
             }
         }.filter { it.size > 1 }.toList()
-        require(rows.isNotEmpty()) {
-            "This PDF has no readable transaction table. Use CSV/XLSX for scanned or image-only statements."
-        }
+        if (rows.isEmpty()) throw ImportStatementException(ImportProblemCode.PDF_NO_TABLE)
         return ImportTableDetector.detect(rows)
     }
 }

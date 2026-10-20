@@ -19,8 +19,8 @@ class SyncSchedulingPolicyTest {
         assertFalse(allowsRecentSuccess(ActualSyncWorker.REASON_MUTATION))
         assertTrue(allowsRecentSuccess(ActualSyncWorker.REASON_PERIODIC))
         assertTrue(allowsRecentSuccess(ActualSyncWorker.REASON_FOREGROUND))
-        assertEquals("After change", syncTriggerLabel(ActualSyncWorker.REASON_MUTATION))
-        assertEquals("App open", syncTriggerLabel(ActualSyncWorker.REASON_FOREGROUND))
-        assertEquals("Background", syncTriggerLabel(ActualSyncWorker.REASON_PERIODIC))
+        assertEquals(SYNC_TRIGGER_AFTER_CHANGE, syncTriggerLabel(ActualSyncWorker.REASON_MUTATION))
+        assertEquals(SYNC_TRIGGER_APP_OPEN, syncTriggerLabel(ActualSyncWorker.REASON_FOREGROUND))
+        assertEquals(SYNC_TRIGGER_BACKGROUND, syncTriggerLabel(ActualSyncWorker.REASON_PERIODIC))
     }
 }

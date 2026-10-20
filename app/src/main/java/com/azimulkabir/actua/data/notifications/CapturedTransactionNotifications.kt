@@ -32,6 +32,7 @@ import com.azimulkabir.actua.data.importing.importAccountMemoryKey
 import com.azimulkabir.actua.data.importing.prefilledImportAccount
 import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.preferences.withAppLanguage
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.applyDisplayFormats
@@ -83,12 +84,17 @@ object CapturedTransactionNotifications {
 
     internal fun post(context: Context, queueId: String, build: NotificationCompat.Builder.() -> Unit) {
         if (!allowed(context)) return
+        val localized = context.withAppLanguage()
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(
-            CHANNEL_ID, "Captured transactions", NotificationManager.IMPORTANCE_DEFAULT,
-        ).apply { description = "Review or import transactions captured from notifications and automation apps" })
+            CHANNEL_ID,
+            localized.getString(R.string.captured_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = localized.getString(R.string.captured_channel_description)
+        })
         val publicVersion = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.actua_launcher_monochrome)
-            .setContentTitle("Transaction captured")
+            .setContentTitle(localized.getString(R.string.captured_notification_public_title))
             .build()
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.actua_launcher_monochrome)
@@ -133,12 +139,17 @@ object CapturedTransactionNotifications {
 /** What a captured row's notification says, and whether it may offer Import (#1046). */
 data class CapturedNotificationContent(val title: String, val text: String, val importAccountId: String?)
 
-fun capturedNotificationContent(payee: String, amountText: String, account: Account?): CapturedNotificationContent =
-    CapturedNotificationContent(
-        title = payee.trim().ifEmpty { "Captured transaction" },
-        text = if (account != null) "$amountText · ${account.name}" else "$amountText · Choose an account in Actua",
-        importAccountId = account?.id,
-    )
+fun capturedNotificationContent(
+    payee: String,
+    amountText: String,
+    account: Account?,
+    fallbackTitle: String,
+    chooseAccountLabel: String,
+): CapturedNotificationContent = CapturedNotificationContent(
+    title = payee.trim().ifEmpty { fallbackTitle },
+    text = if (account != null) "$amountText · ${account.name}" else "$amountText · $chooseAccountLabel",
+    importAccountId = account?.id,
+)
 
 /** Posts the notification for one queued row, with Import only when its account is pre-filled. */
 class CapturedTransactionNotifyWorker(context: Context, parameters: WorkerParameters) :
@@ -159,16 +170,24 @@ class CapturedTransactionNotifyWorker(context: Context, parameters: WorkerParame
                     store.rememberedAccount(budgetId, it)
                 }
             }
-            capturedNotificationContent(candidate.payee, format(candidate.amountCents), account)
+            val localized = applicationContext.withAppLanguage()
+            capturedNotificationContent(
+                candidate.payee, format(candidate.amountCents), account,
+                localized.getString(R.string.captured_fallback_title),
+                localized.getString(R.string.captured_choose_account),
+            )
         } finally {
             repository.close()
         }
         CapturedTransactionNotifications.post(applicationContext, queueId) {
             setContentTitle(content.title)
             setContentText(content.text)
-            addAction(0, "Review", CapturedTransactionNotifications.reviewIntent(applicationContext, queueId))
+            val localized = applicationContext.withAppLanguage()
+            addAction(0, localized.getString(R.string.captured_action_review),
+                CapturedTransactionNotifications.reviewIntent(applicationContext, queueId))
             content.importAccountId?.let { accountId ->
-                addAction(0, "Import", CapturedTransactionNotifications.importIntent(applicationContext, queueId, accountId))
+                addAction(0, localized.getString(R.string.captured_action_import),
+                    CapturedTransactionNotifications.importIntent(applicationContext, queueId, accountId))
             }
         }
         return Result.success()
@@ -209,14 +228,16 @@ fun importCapturedTransaction(context: Context, queueId: String, accountId: Stri
     val outcome = try {
         val account = repository.accounts().firstOrNull { it.id == accountId && !it.closed }
         when {
-            !repository.isUsingActualBudget -> CapturedImportOutcome.Failed("No budget is open in Actua")
-            account == null -> CapturedImportOutcome.Failed("That account is no longer open")
+            !repository.isUsingActualBudget ->
+                CapturedImportOutcome.Failed(context.getString(R.string.captured_failed_no_budget))
+            account == null ->
+                CapturedImportOutcome.Failed(context.getString(R.string.captured_failed_account_closed))
             repository.importTransactions(listOf(ImportGroup(accountId, listOf(candidate))), cleared = true) != 1 ->
-                CapturedImportOutcome.Failed("Actua could not import it")
+                CapturedImportOutcome.Failed(context.getString(R.string.captured_failed_generic))
             else -> CapturedImportOutcome.Imported(candidate, requireNotNull(account).name)
         }
     } catch (error: Exception) {
-        CapturedImportOutcome.Failed(error.message ?: "Actua could not import it")
+        CapturedImportOutcome.Failed(error.message ?: context.getString(R.string.captured_failed_generic))
     } finally {
         repository.close()
     }
@@ -224,7 +245,8 @@ fun importCapturedTransaction(context: Context, queueId: String, accountId: Stri
         val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
         store.rememberAccounts(budgetId, mapOf(importAccountMemoryKey(candidate.accountHint, candidate.sourceLabel) to accountId))
         ImportPreferences(context).addHistory(ImportHistoryEntry(
-            "Captured notification", StatementFormat.NOTIFICATION, outcome.accountName, 1, 0, System.currentTimeMillis(),
+            context.getString(R.string.captured_notification_source),
+            StatementFormat.NOTIFICATION, outcome.accountName, 1, 0, System.currentTimeMillis(),
         ))
         // An open app reloads its balances and lists, as it does after a background sync.
         SyncSignals.dataChanged()
@@ -239,17 +261,19 @@ class CapturedImportWorker(context: Context, parameters: WorkerParameters) : Cor
         val queueId = inputData.getString(CapturedTransactionNotifications.EXTRA_QUEUE_ID) ?: return Result.failure()
         val accountId = inputData.getString(CapturedTransactionNotifications.EXTRA_ACCOUNT_ID) ?: return Result.failure()
         val context = applicationContext
+        val localized = context.withAppLanguage()
         when (val outcome = importCapturedTransaction(context, queueId, accountId)) {
             is CapturedImportOutcome.Imported -> CapturedTransactionNotifications.post(context, queueId) {
-                setContentTitle("Imported ${outcome.candidate.payee}")
-                setContentText("Added to ${outcome.accountName}")
+                setContentTitle(localized.getString(R.string.captured_imported_title, outcome.candidate.payee))
+                setContentText(localized.getString(R.string.captured_added_to, outcome.accountName))
                 setTimeoutAfter(10_000)
             }
             CapturedImportOutcome.NotQueued -> CapturedTransactionNotifications.cancel(context, listOf(queueId))
             is CapturedImportOutcome.Failed -> CapturedTransactionNotifications.post(context, queueId) {
-                setContentTitle("Couldn't import")
+                setContentTitle(localized.getString(R.string.captured_import_failed_title))
                 setContentText(outcome.reason)
-                addAction(0, "Review", CapturedTransactionNotifications.reviewIntent(context, queueId))
+                addAction(0, localized.getString(R.string.captured_action_review),
+                    CapturedTransactionNotifications.reviewIntent(context, queueId))
             }
         }
         return Result.success()
