@@ -171,11 +171,6 @@
     <string name="settings_material_you_colors">Material You colors</string>
     <string name="settings_material_you_colors_description">Match colors to your wallpaper instead of Actua\'s default theme</string>
     <string name="settings_start_page">Start page</string>
-    <string name="settings_start_page_home">Home</string>
-    <string name="settings_start_page_budget">Budget</string>
-    <string name="settings_start_page_transactions">Transactions</string>
-    <string name="settings_start_page_accounts">Accounts</string>
-    <string name="settings_start_page_manage">Manage</string>
     <string name="settings_bottom_navigation_labels">Bottom navigation labels</string>
     <string name="settings_navigation_icons_names">Icons and names</string>
     <string name="settings_navigation_icons_only">Icons only</string>

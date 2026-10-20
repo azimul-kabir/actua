@@ -93,6 +93,7 @@ import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSectionHeader
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.navigation.mainDestinationLabelRes
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
@@ -1202,17 +1203,12 @@ private const val NAV_LABELS_ICONS_ONLY = "Icons only"
 /**
  * The display label for a persisted start-page value. The stored values are the English
  * [com.azimulkabir.actua.ui.navigation] destination labels (matched against `MainDestination.label`),
- * so they stay untranslated; only what the picker shows is localized.
+ * so they stay untranslated; the shown label resolves from the destination's own `labelRes`, so
+ * destinations added later localize without extending a per-screen mapping.
  */
 @Composable
-private fun startPageLabel(value: String): String = when (value) {
-    "Home" -> stringResource(R.string.settings_start_page_home)
-    "Budget" -> stringResource(R.string.settings_start_page_budget)
-    "Transactions" -> stringResource(R.string.settings_start_page_transactions)
-    "Accounts" -> stringResource(R.string.settings_start_page_accounts)
-    "Manage" -> stringResource(R.string.settings_start_page_manage)
-    else -> value
-}
+private fun startPageLabel(value: String): String =
+    mainDestinationLabelRes(value)?.let { stringResource(it) } ?: value
 
 /** Divider between text-only rows of a settings card. */
 @Composable

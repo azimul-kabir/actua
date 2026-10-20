@@ -238,6 +238,14 @@ private enum class MainDestination(
 }
 
 /**
+ * The localized label resource for a persisted start-page value, matched against
+ * [MainDestination.label] (which stays English). Null when no destination matches, so callers
+ * fall back to the raw stored value.
+ */
+internal fun mainDestinationLabelRes(startPage: String): Int? =
+    MainDestination.entries.firstOrNull { it.label == startPage }?.labelRes
+
+/**
  * Maps a configured [TabItem] to the root destination it drives. [TabItem.ADD] is a pseudo-tab
  * (an action shortcut to the add-transaction flow, wired in a later slice) and never resolves to a
  * navigable [MainDestination].

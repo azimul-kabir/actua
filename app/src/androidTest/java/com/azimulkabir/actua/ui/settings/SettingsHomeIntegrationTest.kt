@@ -86,8 +86,9 @@ class SettingsHomeIntegrationTest {
 
         composeRule.onNodeWithContentDescription(strings.getString(R.string.settings_open_settings)).performClick()
         composeRule.onNodeWithText(strings.getString(R.string.settings_page_display)).performScrollTo().performClick()
-        composeRule.onNodeWithText(strings.getString(R.string.settings_start_page_budget)).performScrollTo().performClick()
-        composeRule.onNodeWithText(strings.getString(R.string.settings_start_page_home)).performClick()
+        // The picker label resolves from MainDestination's labelRes (navigation_* strings).
+        composeRule.onNodeWithText(strings.getString(R.string.navigation_budget)).performScrollTo().performClick()
+        composeRule.onNodeWithText(strings.getString(R.string.navigation_home)).performClick()
 
         // The stored start-page preference keeps the English MainDestination token, not the label.
         assertTrue(selectedStartPage == "Home")

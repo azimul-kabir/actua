@@ -38,7 +38,7 @@
     <string name="settings_connection_data">Conexão e dados</string>
     <string name="settings_connection_data_description">Servidor Actual, orçamentos, sincronização, cópias de segurança e restauração</string>
     <string name="settings_section_financial_setup">Configuração financeira</string>
-    <string name="settings_bank_sync">Sincronizacão Bancária</string>
+    <string name="settings_bank_sync">Sincronização Bancária</string>
     <string name="settings_bank_sync_description">Conecte o SimpleFIN ou o GoCardless e vincule contas</string>
     <string name="settings_credit_cards">Cartões de crédito e ciclos de faturamento</string>
     <string name="settings_credit_cards_description">Gastos do ciclo, datas de vencimento e limites de crédito</string>
@@ -65,7 +65,7 @@
 
     <!-- Transações e contas. -->
     <string name="settings_default_account">Conta padrão</string>
-    <string name="settings_none">Nenhum</string>
+    <string name="settings_none">Nenhuma</string>
     <string name="settings_group_transactions">Agrupar transações por data</string>
     <string name="settings_group_transactions_description">Use seções com data nas listas de transações</string>
     <string name="settings_conventional_amount_entry">Entrada de valor convencional</string>
@@ -171,11 +171,6 @@
     <string name="settings_material_you_colors">Cores do Material You</string>
     <string name="settings_material_you_colors_description">Combine as cores com seu papel de parede em vez do tema padrão do Actua</string>
     <string name="settings_start_page">Página inicial</string>
-    <string name="settings_start_page_home">Início</string>
-    <string name="settings_start_page_budget">Orçamento</string>
-    <string name="settings_start_page_transactions">Transações</string>
-    <string name="settings_start_page_accounts">Contas</string>
-    <string name="settings_start_page_manage">Gerenciar</string>
     <string name="settings_bottom_navigation_labels">Rótulos da navegação inferior</string>
     <string name="settings_navigation_icons_names">Ícones e nomes</string>
     <string name="settings_navigation_icons_only">Somente ícones</string>
@@ -253,7 +248,7 @@
 
     <!-- Experimental. -->
     <string name="settings_enable_banking">Enable Banking</string>
-    <string name="settings_enable_banking_description">Sincronizacão bancária para bancos europeus por meio do Enable Banking, como na sinalização experimental do Actual. Precisa de um servidor Actual com o Enable Banking configurado. Aparece em Gerenciar → Sincronizacão Bancária.</string>
+    <string name="settings_enable_banking_description">Sincronização bancária para bancos europeus por meio do Enable Banking, como na sinalização experimental do Actual. Precisa de um servidor Actual com o Enable Banking configurado. Aparece em Gerenciar → Sincronização Bancária.</string>
     <string name="settings_experimental_note">Recursos experimentais podem mudar ou ser removidos. Eles ficam armazenados somente neste dispositivo e não alteram seu orçamento até você vincular uma conta.</string>
 
     <!-- Apoiar o Actua. -->
