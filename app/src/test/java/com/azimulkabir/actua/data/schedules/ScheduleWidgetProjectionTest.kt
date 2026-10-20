@@ -61,12 +61,4 @@ class ScheduleWidgetProjectionTest {
         assertEquals(false, byId["due"]?.overdue)
         assertEquals(false, byId["future"]?.overdue)
     }
-
-    @Test fun relativeLabelsMatchExpectedWording() {
-        assertEquals("Today", ScheduleWidgetProjection.relativeDueLabel(today, today))
-        assertEquals("Tomorrow", ScheduleWidgetProjection.relativeDueLabel(today, today.addingDays(1)))
-        assertEquals("In 5 days", ScheduleWidgetProjection.relativeDueLabel(today, today.addingDays(5)))
-        assertEquals("1 day overdue", ScheduleWidgetProjection.relativeDueLabel(today, today.addingDays(-1)))
-        assertEquals("3 days overdue", ScheduleWidgetProjection.relativeDueLabel(today, today.addingDays(-3)))
-    }
 }

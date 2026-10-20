@@ -8,8 +8,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.w3c.dom.Element
+import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import javax.xml.parsers.DocumentBuilderFactory
 
 class CreditCardReminderPlannerTest {
     private val utc = ZoneId.of("UTC")
@@ -66,8 +69,33 @@ class CreditCardReminderPlannerTest {
     @Test fun `body names the statement due, else the live balance`() {
         val format = { cents: Long -> "$" + cents }
         assertEquals("Statement due $20000. Payment due 29 Apr.",
-            CreditCardReminderPlanner.body(due(DayDate(2026, 4, 29), remaining = 20_000), -30_000, "29 Apr", format))
+            CreditCardReminderPlanner.body(
+                due(DayDate(2026, 4, 29), remaining = 20_000), -30_000, "29 Apr",
+                englishString("credit_card_notification_statement_body"),
+                englishString("credit_card_notification_body"),
+                format,
+            ))
         assertEquals("Current balance $30000. Payment due 29 Apr.",
-            CreditCardReminderPlanner.body(null, -30_000, "29 Apr", format))
+            CreditCardReminderPlanner.body(
+                null, -30_000, "29 Apr",
+                englishString("credit_card_notification_statement_body"),
+                englishString("credit_card_notification_body"),
+                format,
+            ))
+    }
+
+    /** The shipped English patterns, read from the catalog like StringResourceParityTest does. */
+    private fun englishString(name: String): String {
+        val nodes = DocumentBuilderFactory.newInstance()
+            .newDocumentBuilder()
+            .parse(File("src/main/res/values/strings_widgets.xml"))
+            .documentElement
+            .getElementsByTagName("string")
+        return (0 until nodes.length)
+            .asSequence()
+            .mapNotNull { nodes.item(it) as? Element }
+            .firstOrNull { it.getAttribute("name") == name }
+            ?.textContent
+            ?: error("string '$name' not found in values/strings_widgets.xml")
     }
 }

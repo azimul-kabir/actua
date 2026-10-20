@@ -2,6 +2,7 @@ package com.azimulkabir.actua.widget
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
@@ -36,5 +37,30 @@ class ScheduleWidgetRowsTest {
 
         assertEquals(20, rows.count)
         (0 until rows.count).forEach { assertNotNull(rows.getViewAt(it)) }
+    }
+
+    @Test fun dueLabelsMatchWordingResources() {
+        val now = DayDate.today()
+
+        assertEquals(
+            context.getString(R.string.widget_due_today),
+            WidgetUpdater.relativeDueLabel(context, now),
+        )
+        assertEquals(
+            context.getString(R.string.widget_due_tomorrow),
+            WidgetUpdater.relativeDueLabel(context, now.addingDays(1)),
+        )
+        assertEquals(
+            context.resources.getQuantityString(R.plurals.widget_due_in_days, 5, 5),
+            WidgetUpdater.relativeDueLabel(context, now.addingDays(5)),
+        )
+        assertEquals(
+            context.resources.getQuantityString(R.plurals.widget_days_overdue, 1, 1),
+            WidgetUpdater.relativeDueLabel(context, now.addingDays(-1)),
+        )
+        assertEquals(
+            context.resources.getQuantityString(R.plurals.widget_days_overdue, 3, 3),
+            WidgetUpdater.relativeDueLabel(context, now.addingDays(-3)),
+        )
     }
 }

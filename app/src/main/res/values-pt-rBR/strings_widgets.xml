@@ -1,3 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="notification_listener_label">Importação de transações bancárias</string>
+    <string name="disconnect_reset_title">Desconectar e redefinir?</string>
+    <string name="disconnect_reset_message">O Actua sincronizará todos os orçamentos do servidor baixados e depois removerá deste dispositivo os orçamentos do servidor baixados, as cópias de segurança locais, as chaves de criptografia e os dados de conexão. Seus orçamentos no servidor Actual não serão excluídos. As configurações de exibição do dispositivo e o orçamento de demonstração local serão mantidos.</string>
+    <string name="disconnect_reset_action">Desconectar e redefinir</string>
+    <string name="widget_action_cancel">Cancelar</string>
+    <string name="disconnect_syncing_title">Sincronizando antes de desconectar</string>
+    <string name="disconnect_syncing_message">Salvando as alterações mais recentes do Actual e do Actua de todos os orçamentos do servidor baixados antes da remoção dos dados locais.</string>
+    <string name="disconnect_sync_failed_title">Não foi possível sincronizar as alterações mais recentes</string>
+    <string name="disconnect_sync_failed_message">O Actua não removeu nenhum dado local de orçamento. Desconectar mesmo assim pode descartar permanentemente alterações que ainda não chegaram ao seu servidor Actual.</string>
+    <string name="disconnect_anyway">Desconectar mesmo assim</string>
+    <string name="disconnect_try_again">Tente novamente</string>
+    <string name="disconnect_error_sync_failed">A sincronização falhou.</string>
+    <string name="disconnect_error_session_expired">Sua sessão do servidor expirou, então as alterações não podem ser sincronizadas. Cancele e entre novamente em Conexão e dados, ou desconecte mesmo assim.</string>
+    <string name="disconnect_error_missing_server_identity">%1$s não tem identidade de servidor e não pode ser removido com segurança após a sincronização.</string>
+    <string name="disconnect_error_not_configured">%1$s não está configurado para sincronização com o servidor.</string>
+    <string name="disconnect_error_encryption_locked">%1$s está criptografado e bloqueado. Desbloqueie-o antes de desconectar ou desconecte mesmo assim.</string>
+    <string name="disconnect_error_reset_failed">Não foi possível redefinir os dados locais do Actua.</string>
+
+    <string name="widget_off_budget">Fora do orçamento</string>
+    <string name="widget_add">Adicionar widget</string>
+    <string name="widget_choose_categories">Escolha até quatro categorias para adicionar aos seus favoritos compartilhados.</string>
+    <string name="widget_choose_accounts">Escolha até quatro contas.</string>
+    <string name="widget_no_available_items">Nenhum item disponível no orçamento aberto.</string>
+    <string name="widget_schedule_period_prompt">Exibir transações agendadas com vencimento em até:</string>
+    <plurals name="widget_period_days">
+        <item quantity="one">%d dia</item>
+        <item quantity="other">%d dias</item>
+    </plurals>
+    <string name="widget_due_today">Hoje</string>
+    <string name="widget_due_tomorrow">Amanhã</string>
+    <plurals name="widget_due_in_days">
+        <item quantity="one">Em %d dia</item>
+        <item quantity="other">Em %d dias</item>
+    </plurals>
+    <plurals name="widget_days_overdue">
+        <item quantity="one">%d dia em atraso</item>
+        <item quantity="other">%d dias em atraso</item>
+    </plurals>
+
+    <string name="credit_card_due_channel_name">Vencimentos do cartão de crédito</string>
+    <string name="credit_card_due_channel_description">Lembretes de pagamento para cartões de crédito monitorados</string>
+    <string name="credit_card_due_tomorrow">amanhã</string>
+    <plurals name="credit_card_due_in_days">
+        <item quantity="one">em %d dia</item>
+        <item quantity="other">em %d dias</item>
+    </plurals>
+    <string name="credit_card_notification_title">Pagamento do %1$s vence %2$s</string>
+    <string name="credit_card_notification_statement_body">Total da fatura %1$s. Pagamento vence %2$s.</string>
+    <string name="credit_card_notification_body">Saldo atual %1$s. Pagamento vence %2$s.</string>
 </resources>

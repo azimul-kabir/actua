@@ -206,10 +206,14 @@ class StringResourceParityTest {
         assertFalse("$where has a stray '%': \"$text\"", text.replace(valid, "").contains('%'))
     }
 
-    /** Format tokens with bare `%d` normalized to `%1$d`, sorted so failures read as clean diffs. */
+    /**
+     * Format tokens with bare `%d` normalized to `%1$d`, sorted so failures read as clean diffs.
+     * Compared by equality: passing "%1$d" through String.replace would trip Java's group
+     * reference parsing (`$d`) in the replacement.
+     */
     private fun tokens(text: String): List<String> =
         PLACEHOLDER_TOKEN.findAll(text)
-            .map { it.value.replace(BARE_INTEGER, "%1\$d") }
+            .map { if (it.value == "%d") "%1\$d" else it.value }
             .sorted()
             .toList()
 
@@ -217,7 +221,6 @@ class StringResourceParityTest {
         val STRING_PLACEHOLDERS = Regex("%%|%\\d+\\$[sdf]")
         val PLURAL_PLACEHOLDERS = Regex("%%|%\\d+\\$[sdf]|%d")
         val PLACEHOLDER_TOKEN = Regex("%%|%\\d+\\$[sdf]|%d")
-        val BARE_INTEGER = Regex("%d")
         val UNESCAPED_APOSTROPHE = Regex("(?<!\\\\)'")
         val NAME = Regex("^[a-z][a-z0-9_]*$")
     }
