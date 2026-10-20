@@ -14,6 +14,14 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Localized message templates for the Enable Banking flow, resolved by the UI layer. */
+data class EnableBankingMessages(
+    val starting: String,
+    val wait: String,
+    val loadFailed: String,
+    val authorizeFailed: String,
+)
+
 /**
  * Drives the experimental Enable Banking link flow: pick a country and bank, send the user to the bank's
  * consent page, wait for the server to report the accounts the bank granted, then hand them to the link
@@ -27,6 +35,7 @@ class EnableBankingFlow(
     private val awaitAuthorization: (state: String) -> EnableBankingAuthResult,
     private val openUrl: (String) -> Unit,
     private val onError: (String) -> Unit,
+    private val messages: EnableBankingMessages,
 ) {
     var banks by mutableStateOf<List<EnableBankingBank>>(emptyList())
         private set
@@ -44,7 +53,7 @@ class EnableBankingFlow(
             val result = runCatching { withContext(io) { loadBanks.invoke(country) } }
             banks = result.getOrElse { error ->
                 if (error is CancellationException) throw error
-                onError(error.message?.takeIf(String::isNotBlank) ?: "Could not load banks for $country.")
+                onError(error.message?.takeIf(String::isNotBlank) ?: messages.loadFailed.format(country))
                 emptyList()
             }
             banksLoading = false
@@ -54,14 +63,12 @@ class EnableBankingFlow(
     /** Starts the bank's consent flow, opens it in the browser and waits for the granted accounts. */
     fun authorize(bank: EnableBankingBank) {
         authorization?.cancel()
-        discovery = DiscoveryState.Pending("Starting authorization with ${bank.name}…")
+        discovery = DiscoveryState.Pending(messages.starting.format(bank.name))
         authorization = scope.launch {
             try {
                 val start = withContext(io) { startAuthorization(bank) }
                 openUrl(start.url)
-                discovery = DiscoveryState.Pending(
-                    "Authorize ${bank.name} in the browser, then come back here. This waits up to 5 minutes.",
-                )
+                discovery = DiscoveryState.Pending(messages.wait.format(bank.name))
                 discovery = when (val result = withContext(io) { awaitAuthorization(start.state) }) {
                     is EnableBankingAuthResult.Available -> {
                         accountsById = result.accounts.associateBy { it.accountId }
@@ -74,7 +81,7 @@ class EnableBankingFlow(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                discovery = DiscoveryState.Error(error.message?.takeIf(String::isNotBlank) ?: "Could not authorize ${bank.name}.")
+                discovery = DiscoveryState.Error(error.message?.takeIf(String::isNotBlank) ?: messages.authorizeFailed.format(bank.name))
             }
         }
     }

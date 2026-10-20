@@ -917,7 +917,13 @@ fun AppNavigation(
         }
     }
 
-    val enableBankingFlow = remember(repository) {
+    val enableBankingMessages = com.azimulkabir.actua.ui.banksync.EnableBankingMessages(
+        starting = stringResource(R.string.fs_eb_starting),
+        wait = stringResource(R.string.fs_eb_wait),
+        loadFailed = stringResource(R.string.fs_eb_load_failed),
+        authorizeFailed = stringResource(R.string.fs_eb_authorize_failed),
+    )
+    val enableBankingFlow = remember(repository, enableBankingMessages) {
         com.azimulkabir.actua.ui.banksync.EnableBankingFlow(
             scope = coroutineScope,
             io = Dispatchers.IO,
@@ -926,6 +932,7 @@ fun AppNavigation(
             awaitAuthorization = repository::awaitEnableBankingAuthorization,
             openUrl = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
             onError = { message -> errorMessage = message },
+            messages = enableBankingMessages,
         )
     }
 

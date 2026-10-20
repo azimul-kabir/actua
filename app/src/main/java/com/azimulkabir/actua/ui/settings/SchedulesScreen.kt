@@ -49,10 +49,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.notifications.ScheduleReminderPlanner
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleAmountOp
@@ -116,32 +119,32 @@ fun SchedulesScreen(
 
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Scheduled Transactions", onBack = onBack) {
+        ActuaScreenHeader(title = stringResource(R.string.fs_schedules_title), onBack = onBack) {
             IconButton(onClick = { showSearch = !showSearch }) {
-                Icon(Icons.Outlined.Search, "Search schedules")
+                Icon(Icons.Outlined.Search, stringResource(R.string.fs_search_schedules))
             }
             IconButton(onClick = onCalendar) {
-                Icon(Icons.Outlined.CalendarMonth, "Bills calendar")
+                Icon(Icons.Outlined.CalendarMonth, stringResource(R.string.fs_bills_calendar))
             }
             IconButton(onClick = onAdd, enabled = canAdd) {
-                Icon(Icons.Outlined.Add, "Add schedule")
+                Icon(Icons.Outlined.Add, stringResource(R.string.fs_add_schedule))
             }
             Box {
                 IconButton(onClick = { optionsOpen = true }) {
-                    Icon(Icons.Outlined.MoreVert, "Schedule options")
+                    Icon(Icons.Outlined.MoreVert, stringResource(R.string.fs_schedule_options))
                 }
                 DropdownMenu(optionsOpen, { optionsOpen = false }) {
                     DropdownMenuItem(
-                        text = { Text("Show completed") },
+                        text = { Text(stringResource(R.string.fs_show_completed)) },
                         trailingIcon = { Checkbox(showCompleted, onCheckedChange = null) },
                         onClick = { showCompleted = !showCompleted; optionsOpen = false },
                     )
                     DropdownMenuItem(
-                        text = { Text("Find Schedules") },
+                        text = { Text(stringResource(R.string.fs_find_schedules)) },
                         onClick = { optionsOpen = false; onFind() },
                     )
                     DropdownMenuItem(
-                        text = { Text("Reminders") },
+                        text = { Text(stringResource(R.string.fs_reminders)) },
                         leadingIcon = { Icon(Icons.Outlined.NotificationsActive, contentDescription = null) },
                         onClick = { optionsOpen = false; remindersOpen = true },
                     )
@@ -150,7 +153,7 @@ fun SchedulesScreen(
         }
         if (showSearch) OutlinedTextField(
             value = search, onValueChange = { search = it },
-            placeholder = { Text("Search schedules") }, singleLine = true,
+            placeholder = { Text(stringResource(R.string.fs_search_schedules)) }, singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
         )
         when {
@@ -160,17 +163,21 @@ fun SchedulesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    if (search.isNotBlank()) "No matching schedules"
-                    else if (!showCompleted && completedCount > 0) "No active schedules"
-                    else "No scheduled transactions",
+                    stringResource(
+                        when {
+                            search.isNotBlank() -> R.string.fs_no_matching_schedules
+                            !showCompleted && completedCount > 0 -> R.string.fs_no_active_schedules
+                            else -> R.string.fs_no_schedules
+                        },
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 if (search.isBlank() && completedCount == 0) {
                     Text(
-                        "Create a schedule to track a recurring bill or paycheck.",
+                        stringResource(R.string.fs_create_schedule_hint),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    TextButton(onClick = onAdd, enabled = canAdd) { Text("New Schedule") }
+                    TextButton(onClick = onAdd, enabled = canAdd) { Text(stringResource(R.string.fs_new_schedule)) }
                 }
             }
             else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl)) {
@@ -185,7 +192,8 @@ fun SchedulesScreen(
                     }
                 }
                 if (!showCompleted && completedCount > 0) item("completed-footer") {
-                    Text("$completedCount completed ${if (completedCount == 1) "schedule" else "schedules"} hidden.",
+                    Text(
+                        pluralStringResource(R.plurals.fs_completed_schedules_hidden, completedCount, completedCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(20.dp))
@@ -228,18 +236,18 @@ fun SchedulesScreen(
     deleteItem?.let { item ->
         AlertDialog(
             onDismissRequest = { deleteItem = null },
-            title = { Text("Delete this schedule?") },
-            text = { Text("Transactions this schedule already created will be kept.") },
+            title = { Text(stringResource(R.string.fs_delete_schedule_question)) },
+            text = { Text(stringResource(R.string.fs_delete_schedule_explanation)) },
             confirmButton = {
                 TextButton(onClick = {
                     deleteItem = null
                     onDelete(item.schedule.id)
                 }) {
-                    Text("Delete schedule", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.fs_delete_schedule), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleteItem = null }) { Text("Cancel") }
+                TextButton(onClick = { deleteItem = null }) { Text(stringResource(R.string.fs_cancel)) }
             },
         )
     }
@@ -290,8 +298,9 @@ private fun ScheduleRow(
                     modifier = Modifier.weight(1f),
                 )
                 val recurring = schedule.dateCondition is ScheduleDateCondition.Recurring
+                val nextDateText = formatDate(schedule.nextDate) ?: stringResource(R.string.fs_no_next_date)
                 Text(
-                    (if (recurring) "Repeats · " else "") + formatDate(schedule.nextDate),
+                    if (recurring) stringResource(R.string.fs_repeats_date, nextDateText) else nextDateText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -300,7 +309,7 @@ private fun ScheduleRow(
         }
         Icon(
             Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-            contentDescription = "Edit schedule",
+            contentDescription = stringResource(R.string.fs_edit_schedule_description),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 8.dp),
         )
@@ -318,14 +327,13 @@ private fun ScheduleRemindersSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ActuaSheetContent {
-            ActuaSheetTitle("Reminders")
+            ActuaSheetTitle(stringResource(R.string.fs_reminders))
             ActuaSheetCard {
                 ActuaFormRow(
                     icon = Icons.Outlined.NotificationsActive,
-                    label = "Scheduled transaction reminders",
+                    label = stringResource(R.string.fs_schedule_reminders),
                     value = null,
-                    caption = "Notify before bills, income and other schedules are due. " +
-                        "Posted, skipped and paid occurrences stop notifying.",
+                    caption = stringResource(R.string.fs_schedule_reminders_caption),
                     checked = enabled,
                     onClick = { onEnabledChange(!enabled) },
                 )
@@ -346,7 +354,7 @@ private fun ScheduleRemindersSheet(
                     }
                 }
                 Text(
-                    "Reminders arrive at 9 AM for the open budget, with another on the due date.",
+                    stringResource(R.string.fs_schedule_reminders_timing),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.screenHorizontal),
@@ -356,10 +364,11 @@ private fun ScheduleRemindersSheet(
     }
 }
 
+@Composable
 internal fun reminderLeadLabel(days: Int): String = when (days) {
-    0 -> "On the due date"
-    1 -> "1 day before"
-    else -> "$days days before"
+    0 -> stringResource(R.string.fs_reminder_lead_same_day)
+    1 -> stringResource(R.string.fs_reminder_lead_one_day)
+    else -> pluralStringResource(R.plurals.fs_reminder_lead_days, days, days)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -377,25 +386,25 @@ private fun ScheduleActionsSheet(
             ActuaSheetTitle(item.title)
             if (!item.schedule.completed) {
                 ActuaSheetCard {
-                    ActuaSheetAction("Post Transaction", icon = Icons.Outlined.AddCircleOutline, onClick = { onPost(false) })
+                    ActuaSheetAction(stringResource(R.string.fs_post_transaction), icon = Icons.Outlined.AddCircleOutline, onClick = { onPost(false) })
                     ActuaCardDivider()
-                    ActuaSheetAction("Post Transaction Today", icon = Icons.Outlined.EventAvailable,
+                    ActuaSheetAction(stringResource(R.string.fs_post_transaction_today), icon = Icons.Outlined.EventAvailable,
                         onClick = { onPost(true) })
                     if (item.schedule.isRecurring) {
                         ActuaCardDivider()
-                        ActuaSheetAction("Skip Next Date", icon = Icons.Outlined.SkipNext, onClick = onSkip)
+                        ActuaSheetAction(stringResource(R.string.fs_skip_next_date), icon = Icons.Outlined.SkipNext, onClick = onSkip)
                     }
                 }
             }
             ActuaSheetCard {
                 ActuaSheetAction(
-                    if (item.schedule.completed) "Restart" else "Mark Completed",
+                    stringResource(if (item.schedule.completed) R.string.fs_restart else R.string.fs_mark_completed),
                     icon = if (item.schedule.completed) Icons.Outlined.RestartAlt
                     else Icons.Outlined.CheckCircleOutline,
                     onClick = onSetCompleted,
                 )
                 ActuaCardDivider()
-                ActuaSheetAction("Delete", icon = Icons.Outlined.DeleteOutline, destructive = true, onClick = onDelete)
+                ActuaSheetAction(stringResource(R.string.fs_delete), icon = Icons.Outlined.DeleteOutline, destructive = true, onClick = onDelete)
             }
         }
     }
@@ -414,11 +423,23 @@ private fun StatusChip(status: ScheduleStatus) {
         color = color.copy(alpha = 0.14f),
         shape = PillShape,
     ) {
-        Text(status.name.lowercase().replaceFirstChar(Char::uppercase), color = color,
+        Text(scheduleStatusLabel(status), color = color,
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
     }
 }
+
+@Composable
+internal fun scheduleStatusLabel(status: ScheduleStatus): String = stringResource(
+    when (status) {
+        ScheduleStatus.MISSED -> R.string.fs_status_missed
+        ScheduleStatus.DUE -> R.string.fs_status_due
+        ScheduleStatus.UPCOMING -> R.string.fs_status_upcoming
+        ScheduleStatus.PAID -> R.string.fs_status_paid
+        ScheduleStatus.COMPLETED -> R.string.fs_status_completed
+        ScheduleStatus.SCHEDULED -> R.string.fs_status_scheduled
+    },
+)
 
 private fun formatScheduleAmount(item: ScheduleListItem, hideDecimals: Boolean): String {
     val schedule = item.schedule
@@ -433,6 +454,6 @@ private fun formatScheduleAmount(item: ScheduleListItem, hideDecimals: Boolean):
     }
 }
 
-private fun formatDate(day: DayDate?): String = day?.let {
+private fun formatDate(day: DayDate?): String? = day?.let {
     formatDisplayDate(LocalDate.of(it.year, it.month, it.day))
-} ?: "No next date"
+}

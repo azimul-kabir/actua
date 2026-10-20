@@ -15,6 +15,12 @@ class EnableBankingFlowTest {
     private val bank = EnableBankingBank("Test Bank", "DE", null, emptyList())
     private val opened = mutableListOf<String>()
     private val errors = mutableListOf<String>()
+    private val messages = EnableBankingMessages(
+        starting = "Starting authorization with %s…",
+        wait = "Authorize %s in the browser, then come back here. This waits up to 5 minutes.",
+        loadFailed = "Could not load banks for %s.",
+        authorizeFailed = "Could not authorize %s.",
+    )
 
     private fun flow(
         loadBanks: (String) -> List<EnableBankingBank> = { listOf(bank) },
@@ -23,7 +29,7 @@ class EnableBankingFlowTest {
     ) = EnableBankingFlow(
         scope = CoroutineScope(Dispatchers.Unconfined), io = Dispatchers.Unconfined,
         loadBanks = loadBanks, startAuthorization = start, awaitAuthorization = await,
-        openUrl = { opened += it }, onError = { errors += it },
+        openUrl = { opened += it }, onError = { errors += it }, messages = messages,
     )
 
     @Test fun `loads the banks for a country`() {
@@ -39,6 +45,13 @@ class EnableBankingFlowTest {
         assertTrue(flow.banks.isEmpty())
         assertEquals(listOf("Not configured"), errors)
         assertEquals(false, flow.banksLoading)
+    }
+
+    @Test fun `a blank bank list failure falls back to the localized template`() {
+        val flow = flow(loadBanks = { error(" ") })
+        flow.loadBanks("DE")
+        assertTrue(flow.banks.isEmpty())
+        assertEquals(listOf("Could not load banks for DE."), errors)
     }
 
     @Test fun `authorizing opens the bank consent page and offers the granted accounts to link`() {

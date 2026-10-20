@@ -18,20 +18,7 @@ data class BillCalendarItem(
     val isCurrentOccurrence: Boolean = false,
     val isRecurring: Boolean = false,
     val isCreditCard: Boolean = false,
-) {
-    fun relativeDueText(today: DayDate): String {
-        if (status == ScheduleStatus.PAID) return "Paid"
-        if (status == ScheduleStatus.COMPLETED) return "Completed"
-        val days = today.daysUntil(date)
-        return when {
-            days < -1 -> "Overdue by ${-days} days"
-            days == -1 -> "Overdue by 1 day"
-            days == 0 -> "Due today"
-            days == 1 -> "Due tomorrow"
-            else -> "Due in $days days"
-        }
-    }
-}
+)
 
 data class BillsMonthSummary(
     val upcomingCents: Long,

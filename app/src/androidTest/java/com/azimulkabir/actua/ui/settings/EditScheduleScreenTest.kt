@@ -47,7 +47,7 @@ class EditScheduleScreenTest {
         compose.onNodeWithText("Expense").assertExists()
         compose.onNodeWithText("Switch to income").performClick()
         compose.onNodeWithText("Income").assertExists()
-        compose.onNodeWithText("Automatically add transaction").performScrollTo().performClick()
+        compose.onNodeWithText("Automatically Add Transaction").performScrollTo().performClick()
         compose.onNodeWithText("Save").performClick()
 
         val fields = saved!!

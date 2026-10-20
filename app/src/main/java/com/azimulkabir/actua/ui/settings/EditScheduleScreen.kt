@@ -28,9 +28,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.*
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
@@ -107,11 +110,7 @@ fun EditScheduleScreen(
     var datePickerTarget by remember { mutableStateOf<DateTarget?>(null) }
     var showRepeatEditor by remember(editorKey) { mutableStateOf(false) }
     var automaticallyAdd by remember(editorKey) { mutableStateOf(schedule?.postsTransaction ?: false) }
-    var upcomingLabel by remember(editorKey) {
-        mutableStateOf(upcomingOptions.entries.firstOrNull {
-            it.value == schedule?.customUpcomingLength
-        }?.key ?: "Budget default")
-    }
+    var upcomingValue by remember(editorKey) { mutableStateOf(schedule?.customUpcomingLength) }
     var showDelete by remember { mutableStateOf(false) }
     val unreadableDate = schedule?.dateCondition == ScheduleDateCondition.Unsupported && schedule.dateOp != null
     val accountId = accounts.firstOrNull { it.name == accountName && !it.closed }?.id
@@ -135,7 +134,7 @@ fun EditScheduleScreen(
             date = if (repeats) ScheduleDateCondition.Recurring(recurrence)
                 else ScheduleDateCondition.Fixed(oneOffDate),
             postsTransaction = automaticallyAdd,
-            customUpcomingLength = upcomingOptions[upcomingLabel],
+            customUpcomingLength = upcomingValue,
         )
     }
 
@@ -152,20 +151,21 @@ fun EditScheduleScreen(
     val currencySymbol = currencyInputPrefix()
     val sign = if (income) "+" else "−"
     val kindColor = if (income) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-    val caption = if (income) "Income" else "Expense"
+    val caption = stringResource(if (income) R.string.fs_income else R.string.fs_expense)
     val shownAmount = sign + withCurrencySymbol(heroAmountText(amountLow), currencySymbol)
+    val upperAmount = sign + withCurrencySymbol(heroAmountText(amountHigh), currencySymbol)
 
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize().imePadding()) {
         ActuaScreenHeader(
-            title = if (schedule == null) "New Schedule" else "Edit Schedule",
+            title = stringResource(if (schedule == null) R.string.fs_new_schedule else R.string.fs_edit_schedule_title),
             onBack = onBack,
         ) {
             if (onDelete != null) {
                 IconButton(onClick = { showDelete = true }) {
                     Icon(
                         Icons.Outlined.Delete,
-                        contentDescription = "Delete schedule",
+                        contentDescription = stringResource(R.string.fs_delete_schedule),
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -183,14 +183,14 @@ fun EditScheduleScreen(
                     shape = MaterialTheme.shapes.large,
                 ) {
                     Text(
-                        "This schedule uses a repeat pattern Actua cannot read. Edit it in Actual to avoid replacing that pattern.",
+                        stringResource(R.string.fs_unreadable_repeat),
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(Spacing.lg),
                     )
                 }
             } else if (schedule?.isCustom == true) {
                 Text(
-                    "Extra rule conditions created in Actual will be preserved.",
+                    stringResource(R.string.fs_custom_rule_preserved),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.xs),
@@ -203,19 +203,19 @@ fun EditScheduleScreen(
                 amountColor = if (amountLow == 0L) MaterialTheme.colorScheme.onSurfaceVariant else kindColor,
                 captionColor = kindColor,
                 supportingText = when (amountOp) {
-                    ScheduleAmountOp.EXACT -> "Exact amount"
-                    ScheduleAmountOp.APPROXIMATE -> "Approximate amount"
-                    ScheduleAmountOp.BETWEEN -> "to $sign${withCurrencySymbol(heroAmountText(amountHigh), currencySymbol)}"
+                    ScheduleAmountOp.EXACT -> stringResource(R.string.fs_exact_amount)
+                    ScheduleAmountOp.APPROXIMATE -> stringResource(R.string.fs_approximate_amount)
+                    ScheduleAmountOp.BETWEEN -> stringResource(R.string.fs_up_to_amount, upperAmount)
                 },
                 contentDescription = if (amountOp == ScheduleAmountOp.BETWEEN) {
-                    "Amount, $caption between $shownAmount and $sign${withCurrencySymbol(heroAmountText(amountHigh), currencySymbol)}"
-                } else "Amount, $caption $shownAmount",
-                onClickLabel = "Edit amount",
+                    stringResource(R.string.fs_amount_between_cd, caption, shownAmount, upperAmount)
+                } else stringResource(R.string.fs_amount_cd, caption, shownAmount),
+                onClickLabel = stringResource(R.string.fs_edit_amount),
                 onClick = { calculatorTarget = 0 },
                 action = {
                     AssistChip(
                         onClick = { income = !income },
-                        label = { Text(if (income) "Switch to expense" else "Switch to income") },
+                        label = { Text(stringResource(if (income) R.string.fs_switch_to_expense else R.string.fs_switch_to_income)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Outlined.SwapVert,
@@ -235,9 +235,9 @@ fun EditScheduleScreen(
                     ) {
                         Text(
                             when (op) {
-                                ScheduleAmountOp.EXACT -> "Exact"
-                                ScheduleAmountOp.APPROXIMATE -> "Approx."
-                                ScheduleAmountOp.BETWEEN -> "Between"
+                                ScheduleAmountOp.EXACT -> stringResource(R.string.fs_exact)
+                                ScheduleAmountOp.APPROXIMATE -> stringResource(R.string.fs_approximate)
+                                ScheduleAmountOp.BETWEEN -> stringResource(R.string.fs_between)
                             },
                         )
                     }
@@ -247,14 +247,14 @@ fun EditScheduleScreen(
                 ActuaFormCard {
                     ActuaFormRow(
                         icon = Icons.Outlined.Calculate,
-                        label = "From",
+                        label = stringResource(R.string.fs_from),
                         value = withCurrencySymbol(centsToInput(amountLow), currencySymbol),
                         onClick = { calculatorTarget = 0 },
                     )
                     ActuaCardDivider()
                     ActuaFormRow(
                         icon = Icons.Outlined.Calculate,
-                        label = "To",
+                        label = stringResource(R.string.fs_to),
                         value = withCurrencySymbol(centsToInput(amountHigh), currencySymbol),
                         onClick = { calculatorTarget = 1 },
                     )
@@ -264,36 +264,36 @@ fun EditScheduleScreen(
             ActuaFormCard {
                 ActuaFormTextField(
                     icon = Icons.Outlined.Edit,
-                    label = "Schedule name",
+                    label = stringResource(R.string.fs_schedule_name),
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Optional",
+                    placeholder = stringResource(R.string.fs_optional),
                 )
                 ActuaCardDivider()
                 PickerTextField(
-                    label = "Payee",
+                    label = stringResource(R.string.fs_payee_optional),
                     value = payeeName,
                     options = payeeOptions,
                     onValueChange = { payeeName = it },
                     allowCustom = true,
                     rowIcon = Icons.Outlined.Storefront,
-                    placeholder = "None",
+                    placeholder = stringResource(R.string.fs_none),
                 )
                 ActuaCardDivider()
                 PickerTextField(
-                    label = "Account",
+                    label = stringResource(R.string.fs_account),
                     value = accountName,
                     options = accounts.filterNot { it.closed }.map { it.name },
                     onValueChange = { accountName = it },
                     rowIcon = Icons.Outlined.AccountBalanceWallet,
-                    placeholder = "Choose an account",
+                    placeholder = stringResource(R.string.fs_choose_account),
                 )
             }
 
             ActuaFormCard {
                 ActuaFormRow(
                     icon = Icons.Outlined.Repeat,
-                    label = "Repeats",
+                    label = stringResource(R.string.fs_repeats),
                     value = null,
                     checked = repeats,
                     onClick = { repeats = !repeats },
@@ -302,7 +302,7 @@ fun EditScheduleScreen(
                 if (repeats) {
                     ActuaFormRow(
                         icon = Icons.Outlined.EventAvailable,
-                        label = "Repeat",
+                        label = stringResource(R.string.fs_repeat),
                         value = recurrenceSummary(recurrence),
                         caption = nextDateSummary(recurrence),
                         onClick = { showRepeatEditor = true },
@@ -310,7 +310,7 @@ fun EditScheduleScreen(
                 } else {
                     ActuaFormRow(
                         icon = Icons.Outlined.CalendarMonth,
-                        label = "Date",
+                        label = stringResource(R.string.fs_date),
                         value = formatDate(oneOffDate.toLocalDate()),
                         onClick = { datePickerTarget = DateTarget.ONE_OFF },
                     )
@@ -320,27 +320,31 @@ fun EditScheduleScreen(
             ActuaFormCard {
                 ActuaFormRow(
                     icon = Icons.Outlined.Bolt,
-                    label = "Automatically add transaction",
+                    label = stringResource(R.string.fs_automatically_add_transaction),
                     value = null,
-                    caption = "Create it when Actua syncs on or after the scheduled date.",
+                    caption = stringResource(R.string.fs_automatically_add_description),
                     checked = automaticallyAdd,
                     onClick = { automaticallyAdd = !automaticallyAdd },
                 )
                 ActuaCardDivider()
+                val upcomingChoices = upcomingOptionValues.map { upcomingWindowLabel(it) to it }
                 PickerTextField(
-                    label = "Upcoming window",
-                    value = upcomingLabel,
-                    options = upcomingOptions.keys.toList(),
-                    onValueChange = { upcomingLabel = it },
+                    label = stringResource(R.string.fs_upcoming_window),
+                    value = upcomingChoices.firstOrNull { it.second == upcomingValue }?.first
+                        ?: stringResource(R.string.fs_budget_default),
+                    options = upcomingChoices.map { it.first },
+                    onValueChange = { label ->
+                        upcomingValue = upcomingChoices.firstOrNull { it.first == label }?.second
+                    },
                     rowIcon = Icons.Outlined.DateRange,
                 )
             }
 
             if (schedule != null) {
-                ActuaGroupLabel("Linked transactions")
+                ActuaGroupLabel(stringResource(R.string.fs_linked_transactions))
                 if (linkedTransactions.isEmpty()) {
                     Text(
-                        "No transactions linked yet.",
+                        stringResource(R.string.fs_no_linked_transactions),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.xs),
                     )
@@ -364,18 +368,21 @@ fun EditScheduleScreen(
             if (onEditAsRule != null && ruleId != null) {
                 if (schedule?.isCustom == true) {
                     Text(
-                        "This schedule has custom conditions and actions",
+                        stringResource(R.string.fs_custom_schedule_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.xs),
                     )
                 }
-                ActuaSecondaryButton(text = "Edit as rule", onClick = { onEditAsRule(ruleId) })
+                ActuaSecondaryButton(
+                    text = stringResource(R.string.fs_edit_as_rule),
+                    onClick = { onEditAsRule(ruleId) },
+                )
             }
         }
 
         ActuaPrimaryActionBar(
-            text = "Save",
+            text = stringResource(R.string.fs_save),
             onClick = { onSave(fields(), payeeName) },
             enabled = canSave,
             icon = Icons.Outlined.Check,
@@ -384,7 +391,7 @@ fun EditScheduleScreen(
 
     calculatorTarget?.let { target ->
         CalculatorAmountSheet(
-            title = if (target == 0) "Schedule amount" else "Upper amount",
+            title = stringResource(if (target == 0) R.string.fs_schedule_amount else R.string.fs_upper_amount),
             initialCents = if (target == 0) amountLow else amountHigh,
             conventionalAmountEntry = conventionalAmountEntry,
             onDismiss = { calculatorTarget = null },
@@ -415,10 +422,10 @@ fun EditScheduleScreen(
                         }
                     }
                     datePickerTarget = null
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.fs_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { datePickerTarget = null }) { Text("Cancel") }
+                TextButton(onClick = { datePickerTarget = null }) { Text(stringResource(R.string.fs_cancel)) }
             },
         ) { DatePicker(picker) }
     }
@@ -426,16 +433,16 @@ fun EditScheduleScreen(
     if (showDelete) {
         AlertDialog(
             onDismissRequest = { showDelete = false },
-            title = { Text("Delete this schedule?") },
-            text = { Text("Transactions this schedule already created will be kept.") },
+            title = { Text(stringResource(R.string.fs_delete_schedule_question)) },
+            text = { Text(stringResource(R.string.fs_delete_schedule_explanation)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDelete = false
                     onDelete?.invoke()
-                }) { Text("Delete schedule", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.fs_delete_schedule), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showDelete = false }) { Text("Cancel") }
+                TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.fs_cancel)) }
             },
         )
     }
@@ -466,7 +473,7 @@ private fun LinkedTransactionRow(
             modifier = Modifier.padding(horizontal = 8.dp),
         )
         if (onUnlink != null) {
-            TextButton(onClick = onUnlink) { Text("Unlink") }
+            TextButton(onClick = onUnlink) { Text(stringResource(R.string.fs_unlink)) }
         }
     }
 }
@@ -482,7 +489,7 @@ private fun RepeatEditorScreen(
     var dateTarget by remember { mutableStateOf<RepeatDateTarget?>(null) }
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Repeat", onBack = onBack)
+        ActuaScreenHeader(title = stringResource(R.string.fs_repeat), onBack = onBack)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
                 .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.xxl),
@@ -491,11 +498,9 @@ private fun RepeatEditorScreen(
             ActuaFormCard {
                 ActuaMenuRow(
                     icon = Icons.Outlined.Repeat,
-                    label = "Frequency",
-                    value = recurrence.frequency.name.lowercase().replaceFirstChar(Char::uppercase),
-                    choices = RecurConfig.Frequency.entries.map {
-                        it.name.lowercase().replaceFirstChar(Char::uppercase) to it
-                    },
+                    label = stringResource(R.string.fs_frequency),
+                    value = frequencyLabel(recurrence.frequency),
+                    choices = RecurConfig.Frequency.entries.map { frequencyLabel(it) to it },
                 ) { frequency ->
                     onChange(recurrence.copy(
                         frequency = frequency,
@@ -507,7 +512,7 @@ private fun RepeatEditorScreen(
                 ActuaCardDivider()
                 StepperRow(
                     icon = Icons.Outlined.History,
-                    label = "Every",
+                    label = stringResource(R.string.fs_every),
                     value = recurrence.interval,
                     valueLabel = intervalLabel(recurrence),
                     range = 1..365,
@@ -515,14 +520,14 @@ private fun RepeatEditorScreen(
                 ActuaCardDivider()
                 ActuaFormRow(
                     icon = Icons.Outlined.CalendarMonth,
-                    label = "Starting",
+                    label = stringResource(R.string.fs_starting),
                     value = formatDate(recurrence.start.toLocalDate()),
                     onClick = { dateTarget = RepeatDateTarget.START },
                 )
             }
 
             if (recurrence.frequency == RecurConfig.Frequency.MONTHLY) {
-                ActuaGroupLabel("On these days")
+                ActuaGroupLabel(stringResource(R.string.fs_on_these_days))
                 if (recurrence.patterns.isNotEmpty()) {
                     ActuaFormCard {
                         recurrence.patterns.forEachIndexed { index, pattern ->
@@ -542,7 +547,7 @@ private fun RepeatEditorScreen(
                     }
                 }
                 ActuaSecondaryButton(
-                    text = "Add day",
+                    text = stringResource(R.string.fs_add_day),
                     icon = Icons.Outlined.AddCircleOutline,
                     onClick = {
                         onChange(recurrence.copy(
@@ -558,31 +563,31 @@ private fun RepeatEditorScreen(
                 )
             }
 
-            ActuaGroupLabel("Ends")
+            ActuaGroupLabel(stringResource(R.string.fs_ends))
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                repeatEndOptions.forEachIndexed { index, option ->
+                repeatEndTokens.forEachIndexed { index, option ->
                     SegmentedButton(
-                        selected = recurrence.endMode == option.first,
+                        selected = recurrence.endMode == option,
                         onClick = {
                             onChange(recurrence.copy(
-                                endMode = option.first,
-                                endOccurrences = if (option.first == "after_n_occurrences") {
+                                endMode = option,
+                                endOccurrences = if (option == "after_n_occurrences") {
                                     recurrence.endOccurrences ?: 1
                                 } else null,
-                                endDate = if (option.first == "on_date") {
+                                endDate = if (option == "on_date") {
                                     recurrence.endDate ?: recurrence.start
                                 } else null,
                             ))
                         },
-                        shape = SegmentedButtonDefaults.itemShape(index, repeatEndOptions.size),
-                    ) { Text(option.second) }
+                        shape = SegmentedButtonDefaults.itemShape(index, repeatEndTokens.size),
+                    ) { Text(repeatEndLabel(option)) }
                 }
             }
             if (recurrence.endMode == "after_n_occurrences") {
                 ActuaFormCard {
                     StepperRow(
                         icon = Icons.Outlined.Tune,
-                        label = "Occurrences",
+                        label = stringResource(R.string.fs_occurrences),
                         value = recurrence.endOccurrences ?: 1,
                         valueLabel = (recurrence.endOccurrences ?: 1).toString(),
                         range = 1..999,
@@ -593,20 +598,20 @@ private fun RepeatEditorScreen(
                 ActuaFormCard {
                     ActuaFormRow(
                         icon = Icons.Outlined.CalendarMonth,
-                        label = "End date",
+                        label = stringResource(R.string.fs_end_date),
                         value = formatDate((recurrence.endDate ?: recurrence.start).toLocalDate()),
                         onClick = { dateTarget = RepeatDateTarget.END },
                     )
                 }
             }
 
-            ActuaGroupLabel("Weekend handling")
+            ActuaGroupLabel(stringResource(R.string.fs_weekend_handling))
             ActuaFormCard {
                 ActuaFormRow(
                     icon = Icons.Outlined.SkipNext,
-                    label = "Skip weekends",
+                    label = stringResource(R.string.fs_skip_weekends),
                     value = null,
-                    caption = "Move weekend occurrences to a weekday.",
+                    caption = stringResource(R.string.fs_skip_weekends_description),
                     checked = recurrence.skipWeekend,
                     onClick = { onChange(recurrence.copy(skipWeekend = !recurrence.skipWeekend)) },
                 )
@@ -614,18 +619,22 @@ private fun RepeatEditorScreen(
                     ActuaCardDivider()
                     ActuaMenuRow(
                         icon = Icons.Outlined.SwapHoriz,
-                        label = "Move to",
-                        value = if (recurrence.weekendSolveMode == "before") "Friday before" else "Monday after",
-                        choices = listOf("Friday before" to "before", "Monday after" to "after"),
+                        label = stringResource(R.string.fs_move_to),
+                        value = if (recurrence.weekendSolveMode == "before") stringResource(R.string.fs_friday_before)
+                        else stringResource(R.string.fs_monday_after),
+                        choices = listOf(
+                            stringResource(R.string.fs_friday_before) to "before",
+                            stringResource(R.string.fs_monday_after) to "after",
+                        ),
                     ) { onChange(recurrence.copy(weekendSolveMode = it)) }
                 }
             }
 
-            ActuaGroupLabel("Next dates")
+            ActuaGroupLabel(stringResource(R.string.fs_next_dates))
             val preview = ScheduleRecurrence.upcomingDates(recurrence, 4, DayDate.today())
             if (preview.isEmpty()) {
                 Text(
-                    "This pattern has no upcoming dates.",
+                    stringResource(R.string.fs_no_upcoming_pattern_dates),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.xs),
                 )
@@ -635,7 +644,7 @@ private fun RepeatEditorScreen(
                         Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
                     ) {
                         Text(formatDate(day.toLocalDate()), modifier = Modifier.weight(1f))
-                        Text(weekdayNames[day.weekday].orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(weekdayName(day.weekday), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (index != preview.lastIndex) ActuaCardDivider(inset = Spacing.lg)
                 }
@@ -662,9 +671,9 @@ private fun RepeatEditorScreen(
                             else recurrence.copy(endDate = day))
                     }
                     dateTarget = null
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.fs_ok)) }
             },
-            dismissButton = { TextButton(onClick = { dateTarget = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { dateTarget = null }) { Text(stringResource(R.string.fs_cancel)) } },
         ) { DatePicker(picker) }
     }
 }
@@ -683,21 +692,21 @@ private fun MonthlyPatternRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         ChoiceField(
-            label = "Which",
-            value = ordinal(boundedValue),
-            choices = listOf("Last" to -1) + (1..max).map { ordinal(it) to it },
+            label = stringResource(R.string.fs_which),
+            value = ordinalLabel(boundedValue),
+            choices = listOf(stringResource(R.string.fs_last) to -1) + (1..max).map { ordinalLabel(it) to it },
             modifier = Modifier.weight(1f),
         ) { onChange(pattern.copy(value = it)) }
         ChoiceField(
-            label = "Day",
+            label = stringResource(R.string.fs_day),
             value = patternTypeLabel(pattern.type),
-            choices = patternTypes,
+            choices = patternTypeChoices(),
             modifier = Modifier.weight(1.35f),
         ) { type ->
             onChange(pattern.copy(type = type, value = if (type != "day" && pattern.value > 5) 5 else pattern.value))
         }
         IconButton(onClick = onDelete) {
-            Icon(Icons.Outlined.DeleteOutline, "Remove pattern")
+            Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.fs_remove_pattern))
         }
     }
 }
@@ -744,6 +753,8 @@ private fun StepperRow(
     onChange: (Int) -> Unit,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val decreaseLabel = stringResource(R.string.fs_decrease_step, label)
+    val increaseLabel = stringResource(R.string.fs_increase_step, label)
     Row(
         Modifier.fillMaxWidth().heightIn(min = Sizes.formRowMinHeight)
             .padding(start = Spacing.lg, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
@@ -758,13 +769,13 @@ private fun StepperRow(
         FilledTonalIconButton(
             onClick = { onChange(value - 1) },
             enabled = value > range.first,
-            modifier = Modifier.semantics { contentDescription = "Decrease $label" },
+            modifier = Modifier.semantics { contentDescription = decreaseLabel },
         ) { Text("−") }
         Text(value.toString(), modifier = Modifier.padding(horizontal = Spacing.md))
         FilledTonalIconButton(
             onClick = { onChange(value + 1) },
             enabled = value < range.last,
-            modifier = Modifier.semantics { contentDescription = "Increase $label" },
+            modifier = Modifier.semantics { contentDescription = increaseLabel },
         ) { Text("+") }
     }
 }
@@ -772,79 +783,122 @@ private fun StepperRow(
 private enum class DateTarget { ONE_OFF }
 private enum class RepeatDateTarget { START, END }
 
-private val repeatEndOptions = listOf(
-    "never" to "Never",
-    "after_n_occurrences" to "After",
-    "on_date" to "On date",
-)
+/** Persisted end-mode tokens; labels are resolved per locale by [repeatEndLabel]. */
+private val repeatEndTokens = listOf("never", "after_n_occurrences", "on_date")
 
-private val patternTypes = listOf(
-    "Day" to "day",
-    "Sunday" to "SU",
-    "Monday" to "MO",
-    "Tuesday" to "TU",
-    "Wednesday" to "WE",
-    "Thursday" to "TH",
-    "Friday" to "FR",
-    "Saturday" to "SA",
-)
+/** Persisted pattern type tokens (day-of-month or weekday codes); labels via [patternTypeLabel]. */
+private val patternTypeTokens = listOf("day", "SU", "MO", "TU", "WE", "TH", "FR", "SA")
 
-private val weekdayNames = mapOf(
-    1 to "Sunday", 2 to "Monday", 3 to "Tuesday", 4 to "Wednesday",
-    5 to "Thursday", 6 to "Friday", 7 to "Saturday",
-)
-
-private fun patternTypeLabel(type: String) = patternTypes.firstOrNull { it.second == type }?.first ?: "Day"
-
-private fun ordinal(value: Int): String {
-    if (value == -1) return "Last"
-    val suffix = if (value % 100 in 11..13) "th" else when (value % 10) {
-        1 -> "st"
-        2 -> "nd"
-        3 -> "rd"
-        else -> "th"
-    }
-    return "$value$suffix"
+@Composable
+private fun repeatEndLabel(token: String): String = when (token) {
+    "after_n_occurrences" -> stringResource(R.string.fs_after)
+    "on_date" -> stringResource(R.string.fs_on_date)
+    else -> stringResource(R.string.fs_never)
 }
 
-private fun intervalLabel(config: RecurConfig): String {
-    val unit = when (config.frequency) {
-        RecurConfig.Frequency.DAILY -> "day"
-        RecurConfig.Frequency.WEEKLY -> "week"
-        RecurConfig.Frequency.MONTHLY -> "month"
-        RecurConfig.Frequency.YEARLY -> "year"
-    }
-    return "${config.interval} $unit${if (config.interval == 1) "" else "s"}"
+@Composable
+internal fun weekdayName(code: String): String = when (code) {
+    "SU" -> stringResource(R.string.fs_sunday)
+    "MO" -> stringResource(R.string.fs_monday)
+    "TU" -> stringResource(R.string.fs_tuesday)
+    "WE" -> stringResource(R.string.fs_wednesday)
+    "TH" -> stringResource(R.string.fs_thursday)
+    "FR" -> stringResource(R.string.fs_friday)
+    "SA" -> stringResource(R.string.fs_saturday)
+    else -> code
 }
 
+@Composable
+private fun weekdayName(weekday: Int): String = weekdayName(
+    when (weekday) {
+        1 -> "SU"; 2 -> "MO"; 3 -> "TU"; 4 -> "WE"; 5 -> "TH"; 6 -> "FR"; else -> "SA"
+    },
+)
+
+@Composable
+private fun patternTypeChoices(): List<Pair<String, String>> =
+    patternTypeTokens.map { patternTypeLabel(it) to it }
+
+@Composable
+internal fun patternTypeLabel(type: String): String =
+    if (type == "day") stringResource(R.string.fs_day) else weekdayName(type)
+
+@Composable
+internal fun frequencyLabel(frequency: RecurConfig.Frequency): String = stringResource(
+    when (frequency) {
+        RecurConfig.Frequency.DAILY -> R.string.fs_frequency_daily
+        RecurConfig.Frequency.WEEKLY -> R.string.fs_frequency_weekly
+        RecurConfig.Frequency.MONTHLY -> R.string.fs_frequency_monthly
+        RecurConfig.Frequency.YEARLY -> R.string.fs_frequency_yearly
+    },
+)
+
+@Composable
+internal fun ordinalLabel(value: Int): String {
+    if (value == -1) return stringResource(R.string.fs_last)
+    if (value == 1) return stringResource(R.string.fs_ordinal_first)
+    return stringResource(
+        if (value % 100 in 11..13) R.string.fs_ordinal_other else when (value % 10) {
+            1 -> R.string.fs_ordinal_st
+            2 -> R.string.fs_ordinal_nd
+            3 -> R.string.fs_ordinal_rd
+            else -> R.string.fs_ordinal_other
+        },
+        value,
+    )
+}
+
+@Composable
+internal fun intervalLabel(config: RecurConfig): String = pluralStringResource(
+    when (config.frequency) {
+        RecurConfig.Frequency.DAILY -> R.plurals.fs_interval_days
+        RecurConfig.Frequency.WEEKLY -> R.plurals.fs_interval_weeks
+        RecurConfig.Frequency.MONTHLY -> R.plurals.fs_interval_months
+        RecurConfig.Frequency.YEARLY -> R.plurals.fs_interval_years
+    },
+    config.interval,
+    config.interval,
+)
+
+@Composable
 private fun recurrenceSummary(config: RecurConfig): String = when {
-    config.interval == 1 -> config.frequency.name.lowercase().replaceFirstChar(Char::uppercase)
-    else -> "Every ${intervalLabel(config)}"
+    config.interval == 1 -> frequencyLabel(config.frequency)
+    else -> stringResource(R.string.fs_every_interval, intervalLabel(config))
 }
 
+@Composable
 private fun monthlyPatternSummary(config: RecurConfig): String {
     if (config.patterns.isEmpty()) {
-        return "Repeats on day ${config.start.day} of the month. Add specific days to repeat more than once."
+        return stringResource(R.string.fs_monthly_default_pattern, config.start.day)
     }
-    return "Repeats on " + config.patterns.joinToString(", ") { pattern ->
-        if (pattern.type == "day") "the ${ordinal(pattern.value)} day"
-        else "the ${ordinal(pattern.value)} ${patternTypeLabel(pattern.type)}"
-    } + "."
+    return stringResource(
+        R.string.fs_repeats_on,
+        config.patterns.map { pattern ->
+            if (pattern.type == "day") stringResource(R.string.fs_pattern_day, ordinalLabel(pattern.value))
+            else stringResource(R.string.fs_pattern_weekday, ordinalLabel(pattern.value), patternTypeLabel(pattern.type))
+        }.joinToString(", "),
+    )
 }
 
+@Composable
 private fun nextDateSummary(config: RecurConfig): String {
     val next = ScheduleRecurrence.upcomingDates(config, 1, DayDate.today()).firstOrNull()
-    return if (next == null) "No upcoming dates" else "Next: ${formatDate(next.toLocalDate())}"
+    return if (next == null) stringResource(R.string.fs_no_upcoming_dates)
+    else stringResource(R.string.fs_next_date, formatDate(next.toLocalDate()))
 }
 
-private val upcomingOptions = linkedMapOf(
-    "Budget default" to null,
-    "1 day" to "1",
-    "1 week" to "7",
-    "2 weeks" to "14",
-    "1 month" to "oneMonth",
-    "Rest of month" to "currentMonth",
-)
+/** Persisted upcoming-window tokens (Actual's customUpcomingLength values); null is the budget default. */
+private val upcomingOptionValues = listOf(null, "1", "7", "14", "oneMonth", "currentMonth")
+
+@Composable
+internal fun upcomingWindowLabel(value: String?): String = when (value) {
+    "1" -> stringResource(R.string.fs_one_day)
+    "7" -> stringResource(R.string.fs_one_week)
+    "14" -> stringResource(R.string.fs_two_weeks)
+    "oneMonth" -> stringResource(R.string.fs_one_month)
+    "currentMonth" -> stringResource(R.string.fs_rest_of_month)
+    else -> stringResource(R.string.fs_budget_default)
+}
 
 private fun DayDate.toLocalDate(): LocalDate = LocalDate.of(year, month, day)
 
