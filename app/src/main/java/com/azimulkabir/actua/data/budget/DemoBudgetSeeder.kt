@@ -8,14 +8,78 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.util.UUID
 
+/**
+ * Localized display names for the demo budget, resolved once at seed time. Seeded row IDs stay
+ * locale-neutral; only these display strings localize, mirroring #424's treatment.
+ */
+internal data class DemoBudgetLabels(
+    val budgetName: String,
+    val checkingAccount: String,
+    val savingsAccount: String,
+    val creditAccount: String,
+    val investmentAccount: String,
+    val incomeGroup: String,
+    val essentialsGroup: String,
+    val lifestyleGroup: String,
+    val goalsGroup: String,
+    val salaryCategory: String,
+    val startingBalancesCategory: String,
+    val rentCategory: String,
+    val groceriesCategory: String,
+    val utilitiesCategory: String,
+    val transportCategory: String,
+    val diningOutCategory: String,
+    val entertainmentCategory: String,
+    val emergencyFundCategory: String,
+    val vacationCategory: String,
+    val employerPayee: String,
+    val landlordPayee: String,
+    val supermarketPayee: String,
+    val utilitiesPayee: String,
+    val fuelPayee: String,
+    val restaurantPayee: String,
+    val streamingPayee: String,
+    val cardPaymentPayee: String,
+    val cornerGrocerPayee: String,
+    val bigBoxStorePayee: String,
+    val internetPayee: String,
+    val mobilePayee: String,
+    val transitPayee: String,
+    val pizzaPayee: String,
+    val sushiPayee: String,
+    val cinemaPayee: String,
+    val booksPayee: String,
+    val airlinePayee: String,
+    val indexFundPayee: String,
+    val groceriesNote: String,
+    val checkingNote: String,
+    val salarySchedule: String,
+    val rentSchedule: String,
+    val streamingSchedule: String,
+    val cardPaymentSchedule: String,
+    val overviewReport: String,
+    val welcomeReport: String,
+    val thisMonthReport: String,
+    val spendingByCategoryReport: String,
+    val monthlySpendingReport: String,
+    val topPayeesReport: String,
+    val spendingTrendReport: String,
+    val netWorthCard: String,
+    val cashFlowCard: String,
+    val foodPerMonthCard: String,
+    val whereTheMoneyWentCard: String,
+    val budgetAnalysisCard: String,
+    val ageOfMoneyCard: String,
+    val calendarCard: String,
+)
+
 /** Seeds a local-only budget with realistic data that exercises Actua's main workflows. */
 internal object DemoBudgetSeeder {
     const val BUDGET_ID = "demo"
-    const val BUDGET_NAME = "Actua Demo Budget"
     private const val HISTORY_MONTHS = 12
     private const val CARD_PAYMENT_DAY = 25
 
-    fun seed(database: SQLiteDatabase, now: LocalDate = LocalDate.now()) {
+    fun seed(database: SQLiteDatabase, labels: DemoBudgetLabels, now: LocalDate = LocalDate.now()) {
         database.beginTransaction()
         try {
             // BlankBudgetFactory intentionally ships starter categories and Actual's default dashboard
@@ -32,26 +96,26 @@ internal object DemoBudgetSeeder {
             val credit = "demo-account-credit"
             val investment = "demo-account-investment"
 
-            insertAccount(database, checking, "Everyday Checking", "checking", 0, 1.0)
-            insertAccount(database, savings, "Emergency Savings", "savings", 0, 2.0)
-            insertAccount(database, credit, "Everyday Credit Card", "credit", 0, 3.0)
-            insertAccount(database, investment, "Investment Account", "investment", 1, 4.0)
+            insertAccount(database, checking, labels.checkingAccount, "checking", 0, 1.0)
+            insertAccount(database, savings, labels.savingsAccount, "savings", 0, 2.0)
+            insertAccount(database, credit, labels.creditAccount, "credit", 0, 3.0)
+            insertAccount(database, investment, labels.investmentAccount, "investment", 1, 4.0)
 
-            val incomeGroup = group(database, "Income", true, 1.0)
-            val essentialsGroup = group(database, "Essentials", false, 2.0)
-            val lifestyleGroup = group(database, "Lifestyle", false, 3.0)
-            val goalsGroup = group(database, "Goals", false, 4.0)
+            val incomeGroup = group(database, labels.incomeGroup, true, 1.0)
+            val essentialsGroup = group(database, labels.essentialsGroup, false, 2.0)
+            val lifestyleGroup = group(database, labels.lifestyleGroup, false, 3.0)
+            val goalsGroup = group(database, labels.goalsGroup, false, 4.0)
 
-            val salary = category(database, "Salary", incomeGroup, true, 1.0)
-            val starting = category(database, "Starting Balances", incomeGroup, true, 2.0)
-            val rent = category(database, "Rent", essentialsGroup, false, 1.0)
-            val groceries = category(database, "Groceries", essentialsGroup, false, 2.0)
-            val utilities = category(database, "Utilities", essentialsGroup, false, 3.0)
-            val transport = category(database, "Transport", essentialsGroup, false, 4.0)
-            val dining = category(database, "Dining Out", lifestyleGroup, false, 1.0)
-            val entertainment = category(database, "Entertainment", lifestyleGroup, false, 2.0)
-            val emergency = category(database, "Emergency Fund", goalsGroup, false, 1.0)
-            val vacation = category(database, "Vacation", goalsGroup, false, 2.0)
+            val salary = category(database, labels.salaryCategory, incomeGroup, true, 1.0)
+            val starting = category(database, labels.startingBalancesCategory, incomeGroup, true, 2.0)
+            val rent = category(database, labels.rentCategory, essentialsGroup, false, 1.0)
+            val groceries = category(database, labels.groceriesCategory, essentialsGroup, false, 2.0)
+            val utilities = category(database, labels.utilitiesCategory, essentialsGroup, false, 3.0)
+            val transport = category(database, labels.transportCategory, essentialsGroup, false, 4.0)
+            val dining = category(database, labels.diningOutCategory, lifestyleGroup, false, 1.0)
+            val entertainment = category(database, labels.entertainmentCategory, lifestyleGroup, false, 2.0)
+            val emergency = category(database, labels.emergencyFundCategory, goalsGroup, false, 1.0)
+            val vacation = category(database, labels.vacationCategory, goalsGroup, false, 2.0)
 
             setTarget(database, groceries, BudgetTarget(BudgetTarget.Type.FIXED, 55000, startingDate = now.withDayOfMonth(1).toString()))
             setTarget(database, emergency, BudgetTarget(BudgetTarget.Type.FIXED, 35000, startingDate = now.withDayOfMonth(1).toString()))
@@ -78,25 +142,25 @@ internal object DemoBudgetSeeder {
                 ),
             )
 
-            val paycheck = payee(database, "Employer")
-            val landlord = payee(database, "Landlord")
-            val supermarket = payee(database, "Fresh Market")
-            val cornerGrocer = payee(database, "Corner Grocer")
-            val bigBox = payee(database, "Big Box Store")
-            val utilityCo = payee(database, "City Utilities")
-            val internet = payee(database, "Fiber Net")
-            val mobile = payee(database, "Mobile Co")
-            val fuel = payee(database, "Fuel Station")
-            val transit = payee(database, "City Transit")
-            val restaurant = payee(database, "Neighborhood Cafe")
-            val pizza = payee(database, "Slice House")
-            val sushi = payee(database, "Sakura Sushi")
-            val streaming = payee(database, "StreamBox")
-            val cinema = payee(database, "Cineplex")
-            val books = payee(database, "Page Turner Books")
-            val airline = payee(database, "SkyWay Airlines")
-            val indexFund = payee(database, "Index Fund")
-            val cardPayment = payee(database, "Credit Card Payment")
+            val paycheck = payee(database, labels.employerPayee)
+            val landlord = payee(database, labels.landlordPayee)
+            val supermarket = payee(database, labels.supermarketPayee)
+            val cornerGrocer = payee(database, labels.cornerGrocerPayee)
+            val bigBox = payee(database, labels.bigBoxStorePayee)
+            val utilityCo = payee(database, labels.utilitiesPayee)
+            val internet = payee(database, labels.internetPayee)
+            val mobile = payee(database, labels.mobilePayee)
+            val fuel = payee(database, labels.fuelPayee)
+            val transit = payee(database, labels.transitPayee)
+            val restaurant = payee(database, labels.restaurantPayee)
+            val pizza = payee(database, labels.pizzaPayee)
+            val sushi = payee(database, labels.sushiPayee)
+            val streaming = payee(database, labels.streamingPayee)
+            val cinema = payee(database, labels.cinemaPayee)
+            val books = payee(database, labels.booksPayee)
+            val airline = payee(database, labels.airlinePayee)
+            val indexFund = payee(database, labels.indexFundPayee)
+            val cardPayment = payee(database, labels.cardPaymentPayee)
             val transferPayees = listOf(checking, savings, credit, investment).associateWith { transferPayee(database, it) }
             fun transferPayeeOf(account: String) = requireNotNull(transferPayees[account])
 
@@ -170,8 +234,8 @@ internal object DemoBudgetSeeder {
                 budget(database, ym, vacation, if (oldest) 130000 else 30000)
             }
 
-            note(database, groceries, "Monthly household groceries. Try changing the target or moving money into this category.")
-            note(database, "account-$checking", "Demo checking account. It includes cleared, uncleared, and reconciled transactions.")
+            note(database, groceries, labels.groceriesNote)
+            note(database, "account-$checking", labels.checkingNote)
 
             // Credit-card configuration uses the same preference key read by Actua.
             database.execSQL(
@@ -186,9 +250,9 @@ internal object DemoBudgetSeeder {
                     cinema to entertainment, fuel to transport, transit to transport, internet to utilities,
                 ),
             )
-            seedSchedules(database, now, checking, credit, paycheck, landlord, streaming, cardPayment)
-            val reports = seedCustomReports(database)
-            seedDashboard(database, now, reports, groceries, dining)
+            seedSchedules(database, labels, now, checking, credit, paycheck, landlord, streaming, cardPayment)
+            val reports = seedCustomReports(database, labels)
+            seedDashboard(database, labels, now, reports, groceries, dining)
 
             database.setTransactionSuccessful()
         } finally {
@@ -301,11 +365,11 @@ internal object DemoBudgetSeeder {
         }
     }
 
-    private fun seedSchedules(db: SQLiteDatabase, now: LocalDate, checking: String, credit: String, paycheck: String, landlord: String, streaming: String, cardPayment: String) {
-        schedule(db, "Monthly salary", checking, paycheck, 290000, now.plusMonths(1).withDayOfMonth(1), "monthly", true)
-        schedule(db, "Rent", checking, landlord, -110000, now.plusMonths(1).withDayOfMonth(3), "monthly", false)
-        schedule(db, "Streaming subscription", credit, streaming, -1299, now.plusMonths(1).withDayOfMonth(12), "monthly", true)
-        schedule(db, "Credit card payment", checking, cardPayment, -25000, now.plusMonths(1).withDayOfMonth(25), "monthly", false)
+    private fun seedSchedules(db: SQLiteDatabase, labels: DemoBudgetLabels, now: LocalDate, checking: String, credit: String, paycheck: String, landlord: String, streaming: String, cardPayment: String) {
+        schedule(db, labels.salarySchedule, checking, paycheck, 290000, now.plusMonths(1).withDayOfMonth(1), "monthly", true)
+        schedule(db, labels.rentSchedule, checking, landlord, -110000, now.plusMonths(1).withDayOfMonth(3), "monthly", false)
+        schedule(db, labels.streamingSchedule, credit, streaming, -1299, now.plusMonths(1).withDayOfMonth(12), "monthly", true)
+        schedule(db, labels.cardPaymentSchedule, checking, cardPayment, -25000, now.plusMonths(1).withDayOfMonth(25), "monthly", false)
     }
 
     private fun schedule(db: SQLiteDatabase, name: String, account: String, payee: String, amount: Long, next: LocalDate, period: String, autoPost: Boolean) {
@@ -324,7 +388,7 @@ internal object DemoBudgetSeeder {
         db.execSQL("INSERT INTO schedules_next_date(id,schedule_id,local_next_date,local_next_date_ts,base_next_date,base_next_date_ts,tombstone) VALUES(?,?,?,?,?,?,0)", arrayOf<Any?>(nextId, scheduleId, ymd, ts, ymd, ts))
     }
 
-    private fun seedCustomReports(db: SQLiteDatabase): List<String> {
+    private fun seedCustomReports(db: SQLiteDatabase, labels: DemoBudgetLabels): List<String> {
         fun report(name: String, graph: String, mode: String, groupBy: String, range: String): String = id().also {
             db.execSQL(
                 "INSERT INTO custom_reports(id,name,date_static,date_range,mode,group_by,balance_type,graph_type,interval,include_current,conditions,conditions_op,tombstone) " +
@@ -333,16 +397,16 @@ internal object DemoBudgetSeeder {
             )
         }
         return listOf(
-            report("Spending by category", "DonutGraph", "total", "Category", "Last 3 months"),
-            report("Monthly spending", "StackedBarGraph", "time", "Group", "Last 6 months"),
-            report("Top payees", "BarGraph", "total", "Payee", "Last 3 months"),
-            report("Spending trend", "LineGraph", "time", "Group", "Last 12 months"),
+            report(labels.spendingByCategoryReport, "DonutGraph", "total", "Category", "Last 3 months"),
+            report(labels.monthlySpendingReport, "StackedBarGraph", "time", "Group", "Last 6 months"),
+            report(labels.topPayeesReport, "BarGraph", "total", "Payee", "Last 3 months"),
+            report(labels.spendingTrendReport, "LineGraph", "time", "Group", "Last 12 months"),
         )
     }
 
-    private fun seedDashboard(db: SQLiteDatabase, now: LocalDate, reports: List<String>, groceries: String, dining: String) {
+    private fun seedDashboard(db: SQLiteDatabase, labels: DemoBudgetLabels, now: LocalDate, reports: List<String>, groceries: String, dining: String) {
         val page = "demo-dashboard-main"
-        db.execSQL("INSERT OR REPLACE INTO dashboard_pages(id,name,tombstone) VALUES(?,?,0)", arrayOf(page, "Overview"))
+        db.execSQL("INSERT OR REPLACE INTO dashboard_pages(id,name,tombstone) VALUES(?,?,0)", arrayOf(page, labels.overviewReport))
         var y = 0
         fun card(type: String, meta: JSONObject?, width: Int = 12, height: Int = 2) {
             db.execSQL(
@@ -353,23 +417,23 @@ internal object DemoBudgetSeeder {
         }
         val lastSixMonths = JSONObject().put("start", YearMonth.from(now).minusMonths(5).toString())
             .put("end", YearMonth.from(now).toString()).put("mode", "sliding-window")
-        card("markdown-card", JSONObject().put("content", "**Welcome to Actua Demo** 👋\n\nThis budget is stored only on this device. Try targets, rules, schedules, reconciliation, credit cards and reports."))
-        card("spending-card", JSONObject().put("name", "This Month").put("mode", "single-month"))
-        card("net-worth-card", JSONObject().put("name", "Net Worth"))
-        card("cash-flow-card", JSONObject().put("name", "Cash Flow").put("timeFrame", lastSixMonths))
+        card("markdown-card", JSONObject().put("content", labels.welcomeReport))
+        card("spending-card", JSONObject().put("name", labels.thisMonthReport).put("mode", "single-month"))
+        card("net-worth-card", JSONObject().put("name", labels.netWorthCard))
+        card("cash-flow-card", JSONObject().put("name", labels.cashFlowCard).put("timeFrame", lastSixMonths))
         card(
             "summary-card",
-            JSONObject().put("name", "Food per month")
+            JSONObject().put("name", labels.foodPerMonthCard)
                 .put("content", JSONObject().put("type", "avgPerMonth").toString())
                 .put("conditions", JSONArray().put(JSONObject().put("field", "category").put("op", "oneOf").put("value", JSONArray().put(groceries).put(dining))))
                 .put("conditionsOp", "and")
                 .put("timeFrame", JSONObject().put("start", YearMonth.from(now).minusMonths(2).toString()).put("end", YearMonth.from(now).toString()).put("mode", "sliding-window")),
         )
         reports.forEach { card("custom-report", JSONObject().put("id", it)) }
-        card("sankey-card", JSONObject().put("name", "Where the money went").put("timeFrame", lastSixMonths))
-        card("budget-analysis-card", JSONObject().put("name", "Budget Analysis").put("timeFrame", lastSixMonths))
-        card("age-of-money-card", JSONObject().put("name", "Age of Money"))
-        card("calendar-card", JSONObject().put("name", "Calendar"))
+        card("sankey-card", JSONObject().put("name", labels.whereTheMoneyWentCard).put("timeFrame", lastSixMonths))
+        card("budget-analysis-card", JSONObject().put("name", labels.budgetAnalysisCard).put("timeFrame", lastSixMonths))
+        card("age-of-money-card", JSONObject().put("name", labels.ageOfMoneyCard))
+        card("calendar-card", JSONObject().put("name", labels.calendarCard))
     }
 
     private fun safeDay(base: LocalDate, day: Int): LocalDate = base.withDayOfMonth(minOf(day, base.lengthOfMonth()))

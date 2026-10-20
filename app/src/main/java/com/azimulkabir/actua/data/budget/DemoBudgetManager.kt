@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.budget
 
 import android.database.sqlite.SQLiteDatabase
+import com.azimulkabir.actua.R
 import org.json.JSONObject
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -8,7 +9,6 @@ import kotlin.concurrent.withLock
 /** Owns creation, compatibility repair, and reset of Actua's local-only demonstration budget. */
 object DemoBudgetManager {
     const val BUDGET_ID = "demo"
-    const val BUDGET_NAME = "Actua Demo Budget"
 
     fun isDemoBudget(budgetId: String?): Boolean = budgetId == BUDGET_ID
 
@@ -56,6 +56,7 @@ object DemoBudgetManager {
      * so the normal sync runner cannot upload or merge this budget with a server.
      */
     fun recreate(files: BudgetFileManager): BudgetMetadata = recreateLock.withLock {
+        val labels = labels(files)
         val directory = files.budgetDirectory(BUDGET_ID)
         if (directory.exists()) {
             check(directory.deleteRecursively()) { "Unable to reset the demo budget" }
@@ -69,7 +70,7 @@ object DemoBudgetManager {
                 null,
                 SQLiteDatabase.OPEN_READWRITE,
             ).use { database ->
-                DemoBudgetSeeder.seed(database)
+                DemoBudgetSeeder.seed(database, labels)
                 // Actual resolves transaction/schedule payees through payee_mapping.
                 database.execSQL(
                     "INSERT OR REPLACE INTO payee_mapping(id,targetId) SELECT id,id FROM payees WHERE tombstone=0",
@@ -78,7 +79,7 @@ object DemoBudgetManager {
 
             val metadataJson = JSONObject()
                 .put("id", BUDGET_ID)
-                .put("budgetName", BUDGET_NAME)
+                .put("budgetName", labels.budgetName)
                 .put("demo", true)
             files.metadataFile(BUDGET_ID).writeText(metadataJson.toString())
             BudgetMetadata.fromJson(metadataJson)
@@ -87,4 +88,65 @@ object DemoBudgetManager {
             throw error
         }
     }
+
+    private fun labels(files: BudgetFileManager) = DemoBudgetLabels(
+        budgetName = files.localizedString(R.string.demo_budget_name),
+        checkingAccount = files.localizedString(R.string.demo_account_checking),
+        savingsAccount = files.localizedString(R.string.demo_account_savings),
+        creditAccount = files.localizedString(R.string.demo_account_credit),
+        investmentAccount = files.localizedString(R.string.demo_account_investment),
+        incomeGroup = files.localizedString(R.string.demo_group_income),
+        essentialsGroup = files.localizedString(R.string.demo_group_essentials),
+        lifestyleGroup = files.localizedString(R.string.demo_group_lifestyle),
+        goalsGroup = files.localizedString(R.string.demo_group_goals),
+        salaryCategory = files.localizedString(R.string.demo_category_salary),
+        startingBalancesCategory = files.localizedString(R.string.demo_category_starting_balances),
+        rentCategory = files.localizedString(R.string.demo_category_rent),
+        groceriesCategory = files.localizedString(R.string.demo_category_groceries),
+        utilitiesCategory = files.localizedString(R.string.demo_category_utilities),
+        transportCategory = files.localizedString(R.string.demo_category_transport),
+        diningOutCategory = files.localizedString(R.string.demo_category_dining_out),
+        entertainmentCategory = files.localizedString(R.string.demo_category_entertainment),
+        emergencyFundCategory = files.localizedString(R.string.demo_category_emergency_fund),
+        vacationCategory = files.localizedString(R.string.demo_category_vacation),
+        employerPayee = files.localizedString(R.string.demo_payee_employer),
+        landlordPayee = files.localizedString(R.string.demo_payee_landlord),
+        supermarketPayee = files.localizedString(R.string.demo_payee_supermarket),
+        utilitiesPayee = files.localizedString(R.string.demo_payee_utilities),
+        fuelPayee = files.localizedString(R.string.demo_payee_fuel),
+        restaurantPayee = files.localizedString(R.string.demo_payee_restaurant),
+        streamingPayee = files.localizedString(R.string.demo_payee_streaming),
+        cardPaymentPayee = files.localizedString(R.string.demo_payee_card_payment),
+        cornerGrocerPayee = files.localizedString(R.string.demo_payee_corner_grocer),
+        bigBoxStorePayee = files.localizedString(R.string.demo_payee_big_box_store),
+        internetPayee = files.localizedString(R.string.demo_payee_internet),
+        mobilePayee = files.localizedString(R.string.demo_payee_mobile),
+        transitPayee = files.localizedString(R.string.demo_payee_transit),
+        pizzaPayee = files.localizedString(R.string.demo_payee_pizza),
+        sushiPayee = files.localizedString(R.string.demo_payee_sushi),
+        cinemaPayee = files.localizedString(R.string.demo_payee_cinema),
+        booksPayee = files.localizedString(R.string.demo_payee_books),
+        airlinePayee = files.localizedString(R.string.demo_payee_airline),
+        indexFundPayee = files.localizedString(R.string.demo_payee_index_fund),
+        groceriesNote = files.localizedString(R.string.demo_note_groceries),
+        checkingNote = files.localizedString(R.string.demo_note_checking),
+        salarySchedule = files.localizedString(R.string.demo_schedule_salary),
+        rentSchedule = files.localizedString(R.string.demo_schedule_rent),
+        streamingSchedule = files.localizedString(R.string.demo_schedule_streaming),
+        cardPaymentSchedule = files.localizedString(R.string.demo_schedule_card_payment),
+        overviewReport = files.localizedString(R.string.demo_report_overview),
+        welcomeReport = files.localizedString(R.string.demo_report_welcome),
+        thisMonthReport = files.localizedString(R.string.demo_report_this_month),
+        spendingByCategoryReport = files.localizedString(R.string.demo_report_spending_by_category),
+        monthlySpendingReport = files.localizedString(R.string.demo_report_monthly_spending),
+        topPayeesReport = files.localizedString(R.string.demo_report_top_payees),
+        spendingTrendReport = files.localizedString(R.string.demo_report_spending_trend),
+        netWorthCard = files.localizedString(R.string.demo_report_net_worth),
+        cashFlowCard = files.localizedString(R.string.demo_report_cash_flow),
+        foodPerMonthCard = files.localizedString(R.string.demo_report_food_per_month),
+        whereTheMoneyWentCard = files.localizedString(R.string.demo_report_where_the_money_went),
+        budgetAnalysisCard = files.localizedString(R.string.demo_report_budget_analysis),
+        ageOfMoneyCard = files.localizedString(R.string.demo_report_age_of_money),
+        calendarCard = files.localizedString(R.string.demo_report_calendar),
+    )
 }

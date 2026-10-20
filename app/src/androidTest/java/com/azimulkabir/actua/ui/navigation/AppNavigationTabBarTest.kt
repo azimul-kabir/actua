@@ -139,10 +139,12 @@ class AppNavigationTabBarTest {
         composeRule.setContent { MaterialTheme { AppNavigation() } }
 
         composeRule.onNodeWithContentDescription("Accounts", useUnmergedTree = true).performClick()
-        composeRule.onNodeWithText("Everyday Checking").performClick()
+        // The demo seeds localized account names; resolve the expected label from resources.
+        val checkingName = context.getString(R.string.demo_account_checking)
+        composeRule.onNodeWithText(checkingName).performClick()
         composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).performClick()
 
-        composeRule.onNodeWithText("Everyday Checking").assertExists()
+        composeRule.onNodeWithText(checkingName).assertExists()
     }
 
     @Test fun customizingFromSettingsUpdatesTheBottomBarImmediately() {

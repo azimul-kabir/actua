@@ -34,7 +34,7 @@ class BudgetMetadataTest {
 
         val legacyDemoJson = JSONObject()
             .put("id", DemoBudgetManager.BUDGET_ID)
-            .put("budgetName", DemoBudgetManager.BUDGET_NAME)
+            .put("budgetName", "Actua Demo Budget")
         val metadataFromLegacy = BudgetMetadata.fromJson(legacyDemoJson)
         assertTrue(metadataFromLegacy.isDemo)
         assertFalse(metadataFromLegacy.isServerBacked)

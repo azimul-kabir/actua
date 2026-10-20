@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.budget
 
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.model.ReportWidgetKind
 import org.json.JSONObject
@@ -24,7 +25,8 @@ class DemoBudgetTest {
         try {
             val metadata = DemoBudgetManager.recreate(files)
             assertEquals(DemoBudgetManager.BUDGET_ID, metadata.id)
-            assertEquals(DemoBudgetManager.BUDGET_NAME, metadata.budgetName)
+            // The seeded name resolves through the demo labels, so it must match the resource.
+            assertEquals(context.getString(R.string.demo_budget_name), metadata.budgetName)
             assertNull(metadata.cloudFileId)
             assertNull(metadata.groupId)
             assertTrue(JSONObject(files.metadataFile(metadata.id).readText()).getBoolean("demo"))
