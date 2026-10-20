@@ -10,6 +10,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.R
 import kotlin.math.abs
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -56,7 +58,9 @@ class ConnectionScreenSyncUiTest {
             }
         }
 
-        compose.onNodeWithText("Demo is local only").assertExists()
+        compose.onNodeWithText(
+            InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.demo_local_only),
+        ).assertExists()
         compose.onNodeWithTag("manualSyncButtonIndicator").assertDoesNotExist()
     }
 
