@@ -222,6 +222,7 @@ sealed interface CapturedImportOutcome {
  * a second tap cannot import it twice, and put back if the import fails.
  */
 fun importCapturedTransaction(context: Context, queueId: String, accountId: String): CapturedImportOutcome {
+    val localized = context.withAppLanguage()
     val store = NotificationImportPreferences(context)
     val candidate = store.removeQueued(queueId) ?: return CapturedImportOutcome.NotQueued
     val repository = ActuaRepository(context)
@@ -229,15 +230,15 @@ fun importCapturedTransaction(context: Context, queueId: String, accountId: Stri
         val account = repository.accounts().firstOrNull { it.id == accountId && !it.closed }
         when {
             !repository.isUsingActualBudget ->
-                CapturedImportOutcome.Failed(context.getString(R.string.captured_failed_no_budget))
+                CapturedImportOutcome.Failed(localized.getString(R.string.captured_failed_no_budget))
             account == null ->
-                CapturedImportOutcome.Failed(context.getString(R.string.captured_failed_account_closed))
+                CapturedImportOutcome.Failed(localized.getString(R.string.captured_failed_account_closed))
             repository.importTransactions(listOf(ImportGroup(accountId, listOf(candidate))), cleared = true) != 1 ->
-                CapturedImportOutcome.Failed(context.getString(R.string.captured_failed_generic))
+                CapturedImportOutcome.Failed(localized.getString(R.string.captured_failed_generic))
             else -> CapturedImportOutcome.Imported(candidate, requireNotNull(account).name)
         }
     } catch (error: Exception) {
-        CapturedImportOutcome.Failed(error.message ?: context.getString(R.string.captured_failed_generic))
+        CapturedImportOutcome.Failed(error.message ?: localized.getString(R.string.captured_failed_generic))
     } finally {
         repository.close()
     }
@@ -245,7 +246,7 @@ fun importCapturedTransaction(context: Context, queueId: String, accountId: Stri
         val budgetId = ActiveBudgetStore(context).budgetId ?: "no-budget"
         store.rememberAccounts(budgetId, mapOf(importAccountMemoryKey(candidate.accountHint, candidate.sourceLabel) to accountId))
         ImportPreferences(context).addHistory(ImportHistoryEntry(
-            context.getString(R.string.captured_notification_source),
+            localized.getString(R.string.captured_notification_source),
             StatementFormat.NOTIFICATION, outcome.accountName, 1, 0, System.currentTimeMillis(),
         ))
         // An open app reloads its balances and lists, as it does after a background sync.

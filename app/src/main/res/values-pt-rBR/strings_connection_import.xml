@@ -20,7 +20,7 @@
     <string name="error">Erro</string>
     <string name="idle">Inativo</string>
     <string name="never">Nunca</string>
-    <string name="none">Nenhum</string>
+    <string name="none">Nenhuma</string>
     <string name="connection_data_title">Conexão e dados</string>
     <string name="connection">Conexão</string>
     <string name="syncing">Sincronizando…</string>
@@ -332,7 +332,7 @@
     <string name="import_problem_payee_blank">A descrição/beneficiário está em branco.</string>
     <string name="import_problem_amount_blank">O valor está em branco.</string>
     <string name="import_problem_amount_blank_or_zero">O valor está em branco ou é zero.</string>
-    <string name="import_problem_invalid_amount">O valor não é um valor válido com no máximo duas casas decimais.</string>
+    <string name="import_problem_invalid_amount">O valor não é válido ou tem mais de duas casas decimais.</string>
     <string name="import_problem_unsupported_date">Data não compatível: %1$s.</string>
     <string name="import_problem_unclosed_quote">Um campo entre aspas não está fechado.</string>
     <string name="import_problem_direction_not_recognized">Nenhuma palavra de débito ou crédito foi reconhecida. Revise as palavras-chave do analisador.</string>
