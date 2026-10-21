@@ -1232,15 +1232,12 @@ private data class SettingsChoiceOption(
     val label: String,
 )
 
-/**
- * A row showing the current [value] (and an optional [preview]); tapping it opens a menu of
- * [options] whose stored values and displayed labels may differ (e.g. the app language).
- */
+/** A row showing the current [value] (and an optional [preview]); tapping it opens a menu of [options]. */
 @Composable
 private fun SettingsChoice(
     label: String,
     value: String,
-    options: List<SettingsChoiceOption>,
+    options: List<String>,
     preview: String? = null,
     onChange: (String) -> Unit,
 ) = SettingsChoice(label, value, options.map { SettingsChoiceOption(it, it) }, preview, onChange)
