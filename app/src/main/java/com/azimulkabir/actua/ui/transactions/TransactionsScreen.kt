@@ -181,6 +181,8 @@ fun TransactionsScreen(
     account: Account? = null,
     creditCard: CreditCardStatus? = null,
     loan: LoanStatus? = null,
+    loanTarget: Long? = null,
+    onSnoozeLoanTarget: ((String?) -> Unit)? = null,
     loanFundingAccounts: List<Account> = emptyList(),
     onRecordLoanPayment: ((LoanPaymentRequest) -> Unit)? = null,
     onSaveAccountNote: (String) -> Unit = {},
@@ -634,6 +636,8 @@ fun TransactionsScreen(
                             loan,
                             loanFundingAccounts,
                             onRecordLoanPayment,
+                            loanTarget,
+                            onSnoozeLoanTarget,
                         )
                     }
                 }
@@ -1176,7 +1180,8 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
     onSaveNote: (String) -> Unit, hideDecimals: Boolean, showSummary: Boolean, showNotes: Boolean,
     onViewStatements: (() -> Unit)? = null, showCreditCardSection: Boolean = true,
     onPayStatement: ((Long) -> Unit)? = null, loan: LoanStatus? = null,
-    loanFundingAccounts: List<Account> = emptyList(), onRecordLoanPayment: ((LoanPaymentRequest) -> Unit)? = null) {
+    loanFundingAccounts: List<Account> = emptyList(), onRecordLoanPayment: ((LoanPaymentRequest) -> Unit)? = null,
+    loanTarget: Long? = null, onSnoozeLoanTarget: ((String?) -> Unit)? = null) {
     val context = LocalContext.current
     val detailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("account_detail_preferences", android.content.Context.MODE_PRIVATE)
@@ -1249,7 +1254,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                 }
             }
         }
-        loan?.let { LoanOverviewCard(it, hideDecimals, loanFundingAccounts, onRecordLoanPayment) }
+        loan?.let { LoanOverviewCard(it, hideDecimals, loanFundingAccounts, onRecordLoanPayment, loanTarget, onSnoozeLoanTarget) }
         if (showCreditCardSection) card?.let {
             ActuaFormCard {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1381,6 +1386,7 @@ private fun BalanceColumn(label: String, amountCents: Long, hideDecimals: Boolea
 @Composable
 private fun LoanOverviewCard(
     loan: LoanStatus, hideDecimals: Boolean, fundingAccounts: List<Account>, onRecordPayment: ((LoanPaymentRequest) -> Unit)?,
+    target: Long?, onSnoozeTarget: ((String?) -> Unit)?,
 ) {
     var recording by remember(loan.accountId) { mutableStateOf(false) }
     val config = loan.config
@@ -1426,6 +1432,19 @@ private fun LoanOverviewCard(
                         Text(payoffMonthText(payoff), style = MaterialTheme.typography.bodyMedium)
                     }
                     DetailAmount(stringResource(R.string.account_loan_remaining_interest), schedule.totalInterest, hideDecimals)
+                }
+                if (target != null) {
+                    val month = remember { java.time.YearMonth.now().toString() }
+                    val snoozed = config.targetIsSnoozed(month)
+                    DetailAmount(stringResource(R.string.account_loan_target), target, hideDecimals)
+                    if (snoozed) Text(stringResource(R.string.account_loan_target_skipped), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (onSnoozeTarget != null && !loan.closed) TextButton(
+                        onClick = { onSnoozeTarget(if (snoozed) null else month) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(if (snoozed) R.string.account_loan_resume_target else R.string.account_loan_skip_target))
+                    }
                 }
                 if (onRecordPayment != null && !loan.closed) {
                     FilledTonalButton(onClick = { recording = true }, modifier = Modifier.fillMaxWidth()) {

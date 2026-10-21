@@ -35,6 +35,9 @@ data class LoanConfig(
         require(annualRatePercent.isFinite() && annualRatePercent >= 0) { "Interest rate must not be negative" }
     }
 
+    /** Whether the payment target is skipped for [month] (`YYYY-MM`). */
+    fun targetIsSnoozed(month: String): Boolean = targetSnoozedMonth == month
+
     /** Principal repaid so far, clamped between nothing and the original balance. */
     fun paidOffCents(accountBalanceCents: Long): Long =
         (originalBalanceCents - owedCents(accountBalanceCents)).coerceIn(0L, originalBalanceCents)

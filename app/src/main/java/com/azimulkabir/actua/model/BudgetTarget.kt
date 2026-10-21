@@ -591,6 +591,8 @@ data class BudgetTemplatePreview(
     val skippedExistingCount: Int = 0,
     val overwriteExisting: Boolean = false,
     val goalChanges: List<BudgetGoalChange> = emptyList(),
+    /** Categories left out because a loan's target is skipped for this month ("Group · Category"). */
+    val snoozedCategories: List<String> = emptyList(),
 ) {
     val netBudgetChangeCents: Long = changes.sumOf { it.proposedCents - it.currentCents }
 }
@@ -605,7 +607,15 @@ object BudgetTemplatePlanner {
         schedules: List<BudgetScheduleFunding> = emptyList(),
         /** The budget's synced `hideFraction` preference (not the local display setting). */
         hideFraction: Boolean = false,
+        /** Categories a loan snoozed for [month]: their templates are passed over, as YNAB's skip a payment. */
+        snoozedCategoryIds: Set<String> = emptySet(),
     ): BudgetTemplatePreview {
+        val snoozed = groups.filterNot { it.isIncome || it.hidden }.flatMap { group ->
+            group.categories.filter { category ->
+                category.id in snoozedCategoryIds && !category.isIncome && !category.hidden &&
+                    (category.automations.isNotEmpty() || category.target != null)
+            }.map { "${group.name} · ${it.name}" }
+        }
         val changes = mutableListOf<BudgetTemplateChange>()
         val unsupported = mutableListOf<String>()
         val limited = mutableListOf<String>()
@@ -614,7 +624,7 @@ object BudgetTemplatePlanner {
         var unchanged = 0
         var skippedExisting = 0
         val supported = groups.filterNot { it.isIncome || it.hidden }.flatMap { group ->
-            group.categories.filterNot { it.isIncome || it.hidden }.map { group to it }
+            group.categories.filterNot { it.isIncome || it.hidden || it.id in snoozedCategoryIds }.map { group to it }
         }
         val scheduleNames = schedules.flatMap { it.referenceNames }.toSet()
         val percentageSources = groups.filter { it.isIncome }.flatMap { it.categories }.flatMap { category ->
@@ -759,7 +769,29 @@ object BudgetTemplatePlanner {
             skippedExistingCount = skippedExisting,
             overwriteExisting = overwriteExisting,
             goalChanges = goalChanges,
+            snoozedCategories = snoozed,
         )
+    }
+
+    /**
+     * What the automations would budget for [category] in [month] on their own, ignoring what is
+     * already assigned and available funds, or null when it has none (or none Actua can evaluate).
+     * The same dry run the automations editor's estimate uses; it writes nothing.
+     */
+    fun monthlyTarget(
+        group: BudgetGroup, category: BudgetCategory, month: String,
+        schedules: List<BudgetScheduleFunding> = emptyList(), hideFraction: Boolean = false,
+    ): Long? {
+        if (category.isIncome || (category.automations.isEmpty() && category.target == null)) return null
+        if (!category.automationsEvaluable) return null
+        val preview = preview(
+            listOf(group.copy(categories = listOf(category))), month,
+            overwriteExisting = true, schedules = schedules, hideFraction = hideFraction,
+        )
+        // An unchanged category is absent from the changes: it already holds exactly its target.
+        val amount = preview.changes.firstOrNull { it.categoryId == category.id }?.proposedCents
+            ?: category.assignedCents.takeIf { preview.unchangedCount > 0 }
+        return amount?.takeIf { it > 0 }
     }
 
     private fun distributeRemainder(

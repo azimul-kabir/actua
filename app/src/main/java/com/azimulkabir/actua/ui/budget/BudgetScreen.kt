@@ -278,6 +278,8 @@ fun BudgetScreen(
     scheduleFunding: List<BudgetScheduleFunding> = emptyList(),
     /** The budget's synced `hideFraction` preference; templates round to whole units with it. */
     templateHideFraction: Boolean = false,
+    /** Loan-paired category id → the month its payment target is skipped for; template runs pass over it. */
+    loanSnoozedMonths: Map<String, String> = emptyMap(),
     onPreviewCleanup: () -> CleanupPreview = { CleanupPreview("") },
     /** Re-reads notes-managed templates before a template preview opens, as Actual does (#855). */
     onRefreshNoteTemplates: () -> Unit = {},
@@ -767,10 +769,11 @@ fun BudgetScreen(
     if (templatePreviewOpen) {
         val templateGroups = templateGroupTarget?.let { target -> groups.filter { it.name == target.name } } ?: groups
         BudgetTemplatePreviewSheet(
-            preview = remember(templateGroups, month, overview.toBudgetCents, overwriteTemplates, scheduleFunding, templateHideFraction) {
+            preview = remember(templateGroups, month, overview.toBudgetCents, overwriteTemplates, scheduleFunding, templateHideFraction, loanSnoozedMonths) {
                 BudgetTemplatePlanner.preview(
                     templateGroups, month, overview.toBudgetCents ?: Long.MAX_VALUE, overwriteTemplates,
                     scheduleFunding, templateHideFraction,
+                    snoozedCategoryIds = loanSnoozedMonths.filterValues { it == month }.keys,
                 )
             },
             hideDecimalPlaces = hideDecimalPlaces,
@@ -3539,6 +3542,10 @@ private fun BudgetTemplatePreviewSheet(
             )
             if (preview.limitedCategories.isNotEmpty()) PreviewNote(
                 stringResource(R.string.budget_available_funds_limited, preview.limitedCategories.joinToString()),
+                MaterialTheme.colorScheme.tertiary,
+            )
+            if (preview.snoozedCategories.isNotEmpty()) PreviewNote(
+                stringResource(R.string.budget_loan_targets_snoozed, preview.snoozedCategories.joinToString()),
                 MaterialTheme.colorScheme.tertiary,
             )
             if (preview.cappedCategories.isNotEmpty()) PreviewNote(
