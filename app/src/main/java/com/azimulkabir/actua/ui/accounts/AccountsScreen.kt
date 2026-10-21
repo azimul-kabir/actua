@@ -112,6 +112,7 @@ import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 
 private data class AccountSection(val title: String, val accounts: List<Account>)
 
@@ -373,7 +374,7 @@ fun AccountsScreen(
                 onDeleteGroup = onDeleteGroup,
                 showManageGroupsSheet = showManageGroupsSheet,
                 onDismissManageGroupsSheet = { showManageGroupsSheet = false },
-                contentPadding = PaddingValues(bottom = if (hasFab) 96.dp else Spacing.xl),
+                contentPadding = PaddingValues(bottom = floatingBarClearance() + if (hasFab) 96.dp else Spacing.xl),
             )
         } else {
             // Otherwise this is a linear scan repeated per visible row, per recomposition
@@ -384,7 +385,7 @@ fun AccountsScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
+                    contentPadding = PaddingValues(bottom = floatingBarClearance() + if (hasFab) 96.dp else 0.dp),
                 ) {
                     item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary, summaryStartDay) }
                     accountSections.forEach { section ->

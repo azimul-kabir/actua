@@ -83,6 +83,7 @@ import com.azimulkabir.actua.ui.theme.categoryStatusColor
 import com.azimulkabir.actua.ui.theme.success
 import com.azimulkabir.actua.ui.theme.warning
 import kotlin.math.round
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 
 /**
  * Stable Home root. Each keyed module has its own visual hierarchy while retaining the
@@ -114,7 +115,7 @@ fun HomeScreen(
         modifier = modifier.fillMaxSize().testTag("homeList"),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(bottom = if (hasFab) 160.dp else 0.dp),
+        contentPadding = PaddingValues(bottom = floatingBarClearance() + if (hasFab) 160.dp else 0.dp),
     ) {
         item(key = "home-header") {
             ActuaScreenHeader(title = stringResource(R.string.home_title)) {

@@ -141,6 +141,7 @@ import java.time.YearMonth
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.roundToInt
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 
 enum class DrillDownSortOrder {
     DATE_DESC,
@@ -250,7 +251,7 @@ fun ReportsScreen(
         modifier = if (expandedWidgetId != null || isCreatingReport || editingReport != null) Modifier.fillMaxSize().clearAndSetSemantics {} else Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
             Spacing.screenHorizontal, Spacing.screenHorizontal, Spacing.screenHorizontal,
-            if (hasFab) 96.dp else 0.dp,
+            floatingBarClearance() + if (hasFab) 96.dp else 0.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
