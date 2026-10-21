@@ -1,6 +1,8 @@
 package com.azimulkabir.actua.data.budget
 
 import android.content.Context
+import androidx.annotation.StringRes
+import com.azimulkabir.actua.data.preferences.withAppLanguage
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -34,6 +36,7 @@ data class CloudFileIdentity(val fileId: String, val groupId: String?, val encry
  */
 class BudgetFileManager(context: Context) {
     private val root = File(context.applicationContext.filesDir, "Budgets")
+    private val localizedContext = context.applicationContext.withAppLanguage()
 
     init {
         check(root.mkdirs() || root.isDirectory) { "Unable to create the budgets directory" }
@@ -42,6 +45,7 @@ class BudgetFileManager(context: Context) {
     fun budgetDirectory(budgetId: String): File = File(root, safeBudgetId(budgetId))
     fun databaseFile(budgetId: String): File = File(budgetDirectory(budgetId), DATABASE_NAME)
     fun metadataFile(budgetId: String): File = File(budgetDirectory(budgetId), METADATA_NAME)
+    internal fun localizedString(@StringRes id: Int): String = localizedContext.getString(id)
     fun metadata(budgetId: String): BudgetMetadata? = runCatching {
         val file = metadataFile(budgetId)
         if (file.isFile) BudgetMetadata.fromJson(JSONObject(file.readText())) else null

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="demo_budget_name">Orçamento de Demonstração do Actua</string>
+
+    <string name="demo_account_checking">Conta Corrente do Dia a Dia</string>
+    <string name="demo_account_savings">Poupança de Emergência</string>
+    <string name="demo_account_credit">Cartão de Crédito do Dia a Dia</string>
+    <string name="demo_account_investment">Conta de Investimento</string>
+
+    <string name="demo_group_income">Receita</string>
+    <string name="demo_group_essentials">Essenciais</string>
+    <string name="demo_group_lifestyle">Estilo de Vida</string>
+    <string name="demo_group_goals">Metas</string>
+
+    <string name="demo_category_salary">Salário</string>
+    <string name="demo_category_starting_balances">Saldos Iniciais</string>
+    <string name="demo_category_rent">Aluguel</string>
+    <string name="demo_category_groceries">Mercado</string>
+    <string name="demo_category_utilities">Contas de Serviços</string>
+    <string name="demo_category_transport">Transporte</string>
+    <string name="demo_category_dining_out">Restaurantes</string>
+    <string name="demo_category_entertainment">Entretenimento</string>
+    <string name="demo_category_emergency_fund">Fundo de Emergência</string>
+    <string name="demo_category_vacation">Férias</string>
+
+    <string name="demo_payee_employer">Empregador</string>
+    <string name="demo_payee_landlord">Proprietário</string>
+    <string name="demo_payee_supermarket">Mercado Fresco</string>
+    <string name="demo_payee_utilities">Serviços Municipais</string>
+    <string name="demo_payee_fuel">Posto de Combustível</string>
+    <string name="demo_payee_restaurant">Café da Esquina</string>
+    <string name="demo_payee_streaming">StreamBox</string>
+    <string name="demo_payee_card_payment">Pagamento do Cartão de Crédito</string>
+    <string name="demo_payee_corner_grocer">Mercearia do Bairro</string>
+    <string name="demo_payee_big_box_store">Atacarejo</string>
+    <string name="demo_payee_internet">Fibra Net</string>
+    <string name="demo_payee_mobile">Operadora Móvel</string>
+    <string name="demo_payee_transit">Transporte Municipal</string>
+    <string name="demo_payee_pizza">Casa da Fatia</string>
+    <string name="demo_payee_sushi">Sakura Sushi</string>
+    <string name="demo_payee_cinema">Cineplex</string>
+    <string name="demo_payee_books">Livraria Página Virada</string>
+    <string name="demo_payee_airline">SkyWay Airlines</string>
+    <string name="demo_payee_index_fund">Fundo de Índice</string>
+
+    <string name="demo_note_groceries">Compras mensais do mercado para a casa. Experimente alterar a meta ou mover dinheiro para esta categoria.</string>
+    <string name="demo_note_checking">Conta corrente de demonstração. Ela inclui transações confirmadas, não confirmadas e reconciliadas.</string>
+
+    <string name="demo_schedule_salary">Salário mensal</string>
+    <string name="demo_schedule_rent">Aluguel</string>
+    <string name="demo_schedule_streaming">Assinatura de streaming</string>
+    <string name="demo_schedule_card_payment">Pagamento do cartão de crédito</string>
+
+    <string name="demo_report_overview">Visão geral</string>
+    <string name="demo_report_welcome">**Bem-vindo à demonstração do Actua** 👋\n\nEste orçamento fica armazenado somente neste dispositivo. Experimente metas, regras, agendamentos, reconciliação, cartões de crédito e relatórios.</string>
+    <string name="demo_report_this_month">Este mês</string>
+    <string name="demo_report_spending_by_category">Gastos por categoria</string>
+    <string name="demo_report_monthly_spending">Gastos mensais</string>
+    <string name="demo_report_top_payees">Maiores beneficiários</string>
+    <string name="demo_report_spending_trend">Tendência de gastos</string>
+    <string name="demo_report_net_worth">Patrimônio Líquido</string>
+    <string name="demo_report_cash_flow">Fluxo de Caixa</string>
+    <string name="demo_report_food_per_month">Alimentação por mês</string>
+    <string name="demo_report_where_the_money_went">Para onde foi o dinheiro</string>
+    <string name="demo_report_budget_analysis">Análise do Orçamento</string>
+    <string name="demo_report_age_of_money">Idade do Dinheiro</string>
+    <string name="demo_report_calendar">Calendário</string>
+</resources>

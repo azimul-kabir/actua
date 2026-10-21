@@ -246,7 +246,7 @@ internal fun ManualSyncButtonContent(
             }
             Text(
                 when {
-                    demoActive -> "Demo is local only"
+                    demoActive -> stringResource(R.string.demo_local_only)
                     syncing -> stringResource(R.string.syncing)
                     standaloneActive -> stringResource(R.string.process_schedules_backup)
                     else -> stringResource(R.string.sync_now)
@@ -574,9 +574,9 @@ fun ConnectionScreen(
                 .onSuccess { metadata ->
                     activeBudget.budgetId = metadata.id
                     message = if (previousBudgetId == metadata.id) {
-                        "Demo budget reset to its original sample data."
+                        resources.getString(R.string.demo_budget_reset)
                     } else {
-                        "Demo budget opened. Nothing in it is uploaded or synced."
+                        resources.getString(R.string.demo_budget_opened)
                     }
                     onBudgetInstalled()
                     refreshBackups()
@@ -585,7 +585,7 @@ fun ConnectionScreen(
                     if (previousBudgetId == DemoBudgetManager.BUDGET_ID && !files.databaseFile(DemoBudgetManager.BUDGET_ID).isFile) {
                         activeBudget.budgetId = files.listLocalBudgets().firstOrNull { it.id != DemoBudgetManager.BUDGET_ID }?.id
                     }
-                    message = error.message ?: "Could not create the demo budget."
+                    message = error.message ?: resources.getString(R.string.could_not_create_demo_budget)
                     onBudgetInstalled()
                 }
             loading = false
@@ -1206,24 +1206,24 @@ fun ConnectionScreen(
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, bottom = Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            ActuaGroupLabel("Try Actua")
+            ActuaGroupLabel(stringResource(R.string.try_actua))
             Text(
                 if (demoActive) {
-                    "You are using the local demo budget. Reset it any time to restore the original sample accounts, transactions, targets, rules, schedules and reports."
+                    stringResource(R.string.demo_budget_active_description)
                 } else {
-                    "Explore Actua with realistic sample accounts, transactions, credit-card activity, targets, rules, schedules and reports. No server or account is required."
+                    stringResource(R.string.demo_budget_description)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             ConnectionAction(
-                text = if (demoActive) "Reset demo budget" else "Try demo budget",
+                text = if (demoActive) stringResource(R.string.reset_demo_budget) else stringResource(R.string.try_demo_budget),
                 onClick = ::openDemoBudget,
                 enabled = !loading && downloadingId == null && !syncing,
                 busy = loading,
             )
             Text(
-                "The demo stays on this device and has no cloud file ID, encryption key or sync registration. It cannot change a server budget.",
+                stringResource(R.string.demo_local_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1522,7 +1522,7 @@ fun ConnectionScreen(
                 ActuaGroupLabel(stringResource(R.string.sync))
                 if (demoActive) {
                     Text(
-                        "Demo budget is local only. Select a downloaded server budget to sync.",
+                        stringResource(R.string.demo_sync_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

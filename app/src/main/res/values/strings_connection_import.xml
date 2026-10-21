@@ -23,6 +23,7 @@
     <string name="none">None</string>
     <string name="connection_data_title">Connection &amp; data</string>
     <string name="connection">Connection</string>
+    <string name="demo_local_only">Demo is local only</string>
     <string name="syncing">Syncing…</string>
     <string name="sync_now">Sync now</string>
     <string name="sync">Sync</string>
@@ -32,6 +33,7 @@
     <string name="sync_trigger_after_change">After change</string>
     <string name="sync_trigger_app_open">App open</string>
     <string name="sync_trigger_background">Background</string>
+    <string name="demo_sync_description">Demo budget is local only. Select a downloaded server budget to sync.</string>
     <string name="sync_trigger_pull_refresh">Pull to refresh</string>
     <string name="no_budgets_found">No budgets found.</string>
     <string name="could_not_load_budgets">Could not load budgets.</string>
@@ -55,6 +57,9 @@
     <string name="openid_return_to_app">Return to Actua</string>
     <string name="openid_callback_error_title">Sign-in could not be completed</string>
     <string name="openid_callback_error_message">The callback did not contain an Actual session token. Return to Actua and try again.</string>
+    <string name="demo_budget_reset">Demo budget reset to its original sample data.</string>
+    <string name="demo_budget_opened">Demo budget opened. Nothing in it is uploaded or synced.</string>
+    <string name="could_not_create_demo_budget">Could not create the demo budget.</string>
     <string name="sign_in_openid">Sign in with OpenID</string>
     <string name="openid_description">OpenID Connect sign-in opens your browser and returns the Actual session securely to this device. If Actual asks for the server password on the first OpenID sign-in, enter it above and retry.</string>
     <string name="local_network_required">Local network access is required because this server resolves to a private network address.</string>
@@ -204,6 +209,12 @@
     <string name="quick_backup_description">This replaces the one-tap pre-restore version. The restored budget remains in the normal backup list.</string>
     <string name="create_new_backup_description">This replaces the one-tap pre-restore version. The restored budget will remain available as a normal backup.</string>
     <string name="back_up">Back up</string>
+    <string name="try_actua">Try Actua</string>
+    <string name="demo_budget_active_description">You are using the local demo budget. Reset it any time to restore the original sample accounts, transactions, targets, rules, schedules and reports.</string>
+    <string name="demo_budget_description">Explore Actua with realistic sample accounts, transactions, credit-card activity, targets, rules, schedules and reports. No server or account is required.</string>
+    <string name="reset_demo_budget">Reset demo budget</string>
+    <string name="try_demo_budget">Try demo budget</string>
+    <string name="demo_local_description">The demo stays on this device and has no cloud file ID, encryption key or sync registration. It cannot change a server budget.</string>
     <string name="back_up_now">Back up now</string>
     <string name="import_backup">Import backup</string>
     <string name="available_backups">Available backups</string>

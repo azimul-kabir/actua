@@ -23,6 +23,7 @@
     <string name="none">Nenhuma</string>
     <string name="connection_data_title">Conexão e dados</string>
     <string name="connection">Conexão</string>
+    <string name="demo_local_only">A demonstração é somente local</string>
     <string name="syncing">Sincronizando…</string>
     <string name="sync_now">Sincronizar agora</string>
     <string name="sync">Sincronização</string>
@@ -32,6 +33,7 @@
     <string name="sync_trigger_after_change">Após alteração</string>
     <string name="sync_trigger_app_open">Abertura do app</string>
     <string name="sync_trigger_background">Em segundo plano</string>
+    <string name="demo_sync_description">O orçamento de demonstração é somente local. Selecione um orçamento baixado do servidor para sincronizar.</string>
     <string name="sync_trigger_pull_refresh">Puxar para atualizar</string>
     <string name="no_budgets_found">Nenhum orçamento encontrado.</string>
     <string name="could_not_load_budgets">Não foi possível carregar os orçamentos.</string>
@@ -55,6 +57,9 @@
     <string name="openid_return_to_app">Voltar ao Actua</string>
     <string name="openid_callback_error_title">Não foi possível concluir o login</string>
     <string name="openid_callback_error_message">O retorno não continha um token de sessão do Actual. Volte ao Actua e tente novamente.</string>
+    <string name="demo_budget_reset">Orçamento de demonstração redefinido com os dados de exemplo originais.</string>
+    <string name="demo_budget_opened">Orçamento de demonstração aberto. Nada nele é enviado ou sincronizado.</string>
+    <string name="could_not_create_demo_budget">Não foi possível criar o orçamento de demonstração.</string>
     <string name="sign_in_openid">Entrar com OpenID</string>
     <string name="openid_description">O login com OpenID Connect abre seu navegador e devolve a sessão do Actual com segurança a este dispositivo. Se o Actual pedir a senha do servidor no primeiro login com OpenID, digite-a acima e tente novamente.</string>
     <string name="local_network_required">O acesso à rede local é necessário porque este servidor resolve para um endereço de rede privada.</string>
@@ -204,6 +209,12 @@
     <string name="quick_backup_description">Isto substitui a versão de pré-restauração de um toque. O orçamento restaurado permanece na lista normal de cópias de segurança.</string>
     <string name="create_new_backup_description">Isto substitui a versão de pré-restauração de um toque. O orçamento restaurado permanecerá disponível como uma cópia de segurança normal.</string>
     <string name="back_up">Fazer cópia de segurança</string>
+    <string name="try_actua">Experimente o Actua</string>
+    <string name="demo_budget_active_description">Você está usando o orçamento de demonstração local. Redefina-o a qualquer momento para restaurar as contas, transações, metas, regras, agendamentos e relatórios de exemplo originais.</string>
+    <string name="demo_budget_description">Explore o Actua com contas de exemplo realistas, transações, atividade de cartão de crédito, metas, regras, agendamentos e relatórios. Não é necessário servidor nem conta.</string>
+    <string name="reset_demo_budget">Redefinir orçamento de demonstração</string>
+    <string name="try_demo_budget">Experimentar orçamento de demonstração</string>
+    <string name="demo_local_description">A demonstração fica neste dispositivo e não tem ID de arquivo na nuvem, chave de criptografia nem registro de sincronização. Ela não pode alterar um orçamento do servidor.</string>
     <string name="back_up_now">Fazer cópia de segurança agora</string>
     <string name="import_backup">Importar cópia de segurança</string>
     <string name="available_backups">Cópias de segurança disponíveis</string>
