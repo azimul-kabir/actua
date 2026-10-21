@@ -216,6 +216,13 @@
     <string name="account_cycle_range">%1$s – %2$s</string>
     <string name="account_cycle_spend">Cycle spend</string>
     <string name="account_statement_due">Statement due</string>
+    <string name="account_last_statement">Last statement</string>
+    <string name="account_current_cycle">Current cycle</string>
+    <string name="account_previous_cycle_spend">Previous cycle spend</string>
+    <string name="account_credit_utilization">Credit utilization</string>
+    <string name="account_credit_utilization_value">%1$d%%</string>
+    <string name="account_statement_closed">Statement closed %1$s</string>
+    <string name="account_pay_statement">Pay statement</string>
     <string name="account_statement_paid">Paid</string>
     <string name="account_statement_history">Statement history</string>
     <string name="account_note">Note</string>

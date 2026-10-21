@@ -192,6 +192,7 @@ fun TransactionsScreen(
     onViewSchedule: (String) -> Unit = {},
     linkableSchedules: List<ScheduleOption> = emptyList(),
     onViewStatements: (() -> Unit)? = null,
+    onPayStatement: ((remainingDueCents: Long) -> Unit)? = null,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     upcomingTransactions: List<Transaction> = emptyList(),
@@ -620,6 +621,7 @@ fun TransactionsScreen(
                             showNotes && showAccountNotes,
                             onViewStatements,
                             showCreditCardSection,
+                            onPayStatement,
                         )
                     }
                 }
@@ -1160,7 +1162,8 @@ private fun com.azimulkabir.actua.data.schedules.DayDate.formatted(): String =
 @Composable
 internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
     onSaveNote: (String) -> Unit, hideDecimals: Boolean, showSummary: Boolean, showNotes: Boolean,
-    onViewStatements: (() -> Unit)? = null, showCreditCardSection: Boolean = true) {
+    onViewStatements: (() -> Unit)? = null, showCreditCardSection: Boolean = true,
+    onPayStatement: ((Long) -> Unit)? = null) {
     val context = LocalContext.current
     val detailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("account_detail_preferences", android.content.Context.MODE_PRIVATE)
@@ -1238,24 +1241,56 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.account_billing_cycle), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     val (cycleStart, cycleEnd) = it.cycle.cycleRange()
-                    Text(stringResource(R.string.account_cycle_range, cycleStart.formatted(), cycleEnd.formatted()),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                     val statementDue = it.pendingStatementDue()
-                    Text(it.cycle.dueSummary(dueDate = statementDue?.dueDate), style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary)
-                    statementDue?.let { due ->
-                        if (due.isPaid) {
+                    val closedStatement = statementDue?.let { due ->
+                        it.cycle.statementDueCycles().firstOrNull { c -> c.dueDate == due.dueDate }
+                    }
+                    // The pending payment belongs to the statement that already closed, not to the open cycle.
+                    if (statementDue != null) {
+                        Text(stringResource(R.string.account_last_statement), style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        closedStatement?.let { closed ->
+                            Text(stringResource(R.string.account_statement_closed, closed.end.formatted()),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(it.cycle.dueSummary(dueDate = statementDue.dueDate), style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        if (statementDue.isPaid) {
                             Row(Modifier.fillMaxWidth()) {
                                 Text(stringResource(R.string.account_statement_due), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                                 Text(stringResource(R.string.account_statement_paid), style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.success)
                             }
                         } else {
-                            DetailAmount(stringResource(R.string.account_statement_due), due.remainingDue, hideDecimals)
+                            DetailAmount(stringResource(R.string.account_statement_due), statementDue.remainingDue, hideDecimals)
+                            if (onPayStatement != null && !it.closed) {
+                                FilledTonalButton(onClick = { onPayStatement(statementDue.remainingDue) }, modifier = Modifier.fillMaxWidth()) {
+                                    Text(stringResource(R.string.account_pay_statement))
+                                }
+                            }
                         }
+                        HorizontalDivider()
+                        Text(stringResource(R.string.account_current_cycle), style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(stringResource(R.string.account_cycle_range, cycleStart.formatted(), cycleEnd.formatted()),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (statementDue == null) {
+                        Text(it.cycle.dueSummary(), style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary)
                     }
                     DetailAmount(stringResource(R.string.account_cycle_spend), it.cycleSpendCents, hideDecimals)
+                    it.previousCycleSpendCents?.let { previous ->
+                        DetailAmount(stringResource(R.string.account_previous_cycle_spend), previous, hideDecimals)
+                    }
+                    it.utilizationPercent?.let { percent ->
+                        Row(Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.account_credit_utilization), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.account_credit_utilization_value, percent), style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
                     if (onViewStatements != null) {
                         HorizontalDivider()
                         Row(

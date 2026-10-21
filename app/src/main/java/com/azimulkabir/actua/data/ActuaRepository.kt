@@ -1025,6 +1025,9 @@ class ActuaRepository(context: Context) {
                 db.fetchAccountSpend(account.id, range.first.yyyymmdd, range.second.yyyymmdd),
                 config.limitCents?.plus(account.balanceCents), account.closed,
                 dues[account.id],
+                previousCycleSpendCents = cycle.cycleRange(range.first.addingDays(-1)).let { previous ->
+                    db.fetchAccountSpend(account.id, previous.first.yyyymmdd, previous.second.yyyymmdd)
+                },
             )
         }.sortedForPaymentPriority(today)
     }
