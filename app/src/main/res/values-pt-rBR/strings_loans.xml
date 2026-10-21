@@ -52,4 +52,20 @@
     <string name="loans_no_category">Sem categoria</string>
     <string name="loan_payment_category_note">O pagamento inteiro é atribuído à categoria do empréstimo, enquanto o saldo do empréstimo cai apenas o principal.</string>
     <string name="navigation_recording_loan_payment">Registrando pagamento do empréstimo</string>
+    <string name="account_loan_total_paid">Total pago</string>
+    <string name="account_loan_payoff_planner">Simulador de quitação</string>
+    <string name="loans_duration_join">%1$s, %2$s</string>
+    <string name="loan_planner_title">Simulador de quitação</string>
+    <string name="loan_planner_minimum">Pagamento mínimo exigido</string>
+    <string name="loan_planner_target_months">Quitar em (meses)</string>
+    <string name="loan_planner_extra">Pagamento extra neste mês</string>
+    <string name="loan_planner_note">Aumentar o pagamento ou adicionar um valor extra encurta o empréstimo e reduz os juros. Nada aqui é salvo; apenas mostra o que aconteceria.</string>
+    <string name="loan_planner_principal">Principal</string>
+    <string name="loan_planner_interest">Juros restantes</string>
+    <string name="loan_planner_total">Total</string>
+    <string name="loan_planner_time_remaining">Tempo restante</string>
+    <string name="loan_planner_savings">Economiza %1$s em juros e quita %2$s antes</string>
+    <string name="loan_planner_minimum_series">Pagamento mínimo</string>
+    <string name="loan_planner_your_series">Seu pagamento</string>
+    <string name="loan_planner_chart_description">Saldo do empréstimo ao longo do tempo, quitado em %1$s</string>
 </resources>
