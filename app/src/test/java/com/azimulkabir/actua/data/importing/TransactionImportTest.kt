@@ -33,7 +33,10 @@ class TransactionImportTest {
     @Test fun `requires recognizable columns`() {
         val result = CsvTransactionCandidateSource.parse("When,What,Value\n2026-01-01,A,2")
         assertTrue(result.candidates.isEmpty())
-        assertTrue(result.problems.single().message.contains("Missing required columns"))
+        val problem = result.problems.single()
+        assertEquals(ImportProblemCode.MISSING_REQUIRED_COLUMNS, problem.code)
+        // "Value" is recognized as the amount column, so only date and payee are missing.
+        assertEquals("date,description/payee", problem.detail)
     }
 
     @Test fun `duplicate keys normalize payee whitespace and case`() {

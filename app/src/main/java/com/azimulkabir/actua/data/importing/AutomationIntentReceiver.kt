@@ -51,7 +51,24 @@ fun handleAutomationExtras(
     if (rejection != null) return AutomationResult(emptyList(), rejection)
     val parsed = parseAutomationExtras(extras, today, profile)
     return AutomationResult(parsed.candidates,
-        if (parsed.candidates.isEmpty()) parsed.problems.firstOrNull()?.message ?: "Nothing to queue" else null)
+        if (parsed.candidates.isEmpty()) {
+            parsed.problems.firstOrNull()?.let { automationRejectionText(it.code) } ?: "Nothing to queue"
+        } else null)
+}
+
+/**
+ * English reason for a dropped automation broadcast, shown on the "Last broadcast ignored" row.
+ * Deliberately a fixed data-layer catalog: the review screen and tests treat these as constants.
+ */
+internal fun automationRejectionText(code: ImportProblemCode): String = when (code) {
+    ImportProblemCode.NO_AMOUNT_OR_TEXT -> "No amount or text was provided"
+    ImportProblemCode.INVALID_AMOUNT -> "Amount must be a number with at most two decimals"
+    ImportProblemCode.AMOUNT_TOO_LARGE -> "Amount is too large"
+    ImportProblemCode.INVALID_TYPE -> "Type must be debit or credit"
+    ImportProblemCode.INVALID_DATE -> "Date must use YYYY-MM-DD"
+    ImportProblemCode.DEBIT_OR_CREDIT_NOT_RECOGNIZED -> "No debit or credit wording was recognized"
+    ImportProblemCode.TRANSACTION_AMOUNT_NOT_RECOGNIZED -> "No transaction amount was recognized"
+    else -> "Nothing to queue"
 }
 
 object AutomationIntent {
@@ -85,23 +102,24 @@ fun parseAutomationExtras(
     val source = value(AutomationIntent.EXTRA_SOURCE)?.take(80) ?: AutomationIntent.DEFAULT_SOURCE
     val rawAmount = value(AutomationIntent.EXTRA_AMOUNT)
     if (rawAmount == null) {
-        val text = value(AutomationIntent.EXTRA_TEXT) ?: return automationFailure("No amount or text was provided")
+        val text = value(AutomationIntent.EXTRA_TEXT)
+            ?: return automationFailure(ImportProblemCode.NO_AMOUNT_OR_TEXT)
         return FinancialMessageParser.parse(text, source, today, profile)
     }
     val amount = rawAmount.replace(",", "").replace(" ", "").toBigDecimalOrNull()
         ?.stripTrailingZeros()?.takeIf { it.scale() <= 2 }
-        ?: return automationFailure("Amount must be a number with at most two decimals")
-    if (amount.abs() >= MAX_AUTOMATION_AMOUNT) return automationFailure("Amount is too large")
+        ?: return automationFailure(ImportProblemCode.INVALID_AMOUNT)
+    if (amount.abs() >= MAX_AUTOMATION_AMOUNT) return automationFailure(ImportProblemCode.AMOUNT_TOO_LARGE)
     val cents = amount.setScale(2).movePointRight(2).longValueExact()
     val signed = when (value(AutomationIntent.EXTRA_TYPE)?.lowercase(Locale.ROOT)) {
         null -> cents
         "debit", "expense", "outflow" -> -kotlin.math.abs(cents)
         "credit", "income", "inflow" -> kotlin.math.abs(cents)
-        else -> return automationFailure("Type must be debit or credit")
+        else -> return automationFailure(ImportProblemCode.INVALID_TYPE)
     }
     val date = value(AutomationIntent.EXTRA_DATE)?.let {
         try { LocalDate.parse(it) } catch (_: DateTimeParseException) { null }
-            ?: return automationFailure("Date must use YYYY-MM-DD")
+            ?: return automationFailure(ImportProblemCode.INVALID_DATE)
     } ?: today
     val candidate = ImportCandidate(
         sourceRow = 1,
@@ -120,4 +138,5 @@ fun parseAutomationExtras(
 
 private val MAX_AUTOMATION_AMOUNT = BigDecimal("10000000000")
 
-private fun automationFailure(message: String) = ImportParseResult(emptyList(), listOf(ImportProblem(1, message)))
+private fun automationFailure(code: ImportProblemCode) =
+    ImportParseResult(emptyList(), listOf(ImportProblem(1, code)))

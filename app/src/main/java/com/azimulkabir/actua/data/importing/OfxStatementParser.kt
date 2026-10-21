@@ -38,13 +38,13 @@ object OfxStatementParser {
         val matches = pattern.findAll(content).toList()
 
         if (matches.isEmpty()) {
-            return ImportParseResult(emptyList(), listOf(ImportProblem(1, "No transactions found in OFX/QFX statement")))
+            return ImportParseResult(emptyList(), listOf(ImportProblem(1, ImportProblemCode.NO_TRANSACTIONS_OFX)))
         }
 
         matches.forEachIndexed { index, match ->
             val sourceRow = index + 1
             val block = match.groupValues[1]
-            runCatching {
+            try {
                 val dtPosted = tagValue("DTPOSTED", block) ?: error("Missing DTPOSTED date")
                 val date = parseOfxDate(dtPosted)
                 val trnAmt = tagValue("TRNAMT", block) ?: error("Missing TRNAMT amount")
@@ -68,8 +68,8 @@ object OfxStatementParser {
                     reference = checkNum?.takeIf(String::isNotEmpty) ?: fitId?.takeIf(String::isNotEmpty),
                     financialId = fitId?.takeIf(String::isNotEmpty),
                 )
-            }.onFailure {
-                problems += ImportProblem(sourceRow, it.message ?: "Could not parse transaction")
+            } catch (_: Exception) {
+                problems += ImportProblem(sourceRow, ImportProblemCode.ROW_COULD_NOT_BE_PARSED)
             }
         }
 

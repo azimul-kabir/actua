@@ -21,13 +21,15 @@ object QifStatementParser {
     internal fun parseContent(content: String): ImportParseResult {
         val lines = content.lines().map(String::trim).filter(String::isNotEmpty)
         if (lines.isEmpty()) {
-            return ImportParseResult(emptyList(), listOf(ImportProblem(1, "The QIF file is empty")))
+            return ImportParseResult(emptyList(), listOf(ImportProblem(1, ImportProblemCode.FILE_EMPTY)))
         }
 
         val firstLine = lines.first()
         val typeMatch = Regex("""^!Type:(.*)$""", RegexOption.IGNORE_CASE).find(firstLine)
         if (typeMatch == null) {
-            return ImportParseResult(emptyList(), listOf(ImportProblem(1, "File does not appear to be a valid QIF file: $firstLine")))
+            return ImportParseResult(emptyList(), listOf(
+                ImportProblem(1, ImportProblemCode.INVALID_QIF, firstLine)
+            ))
         }
 
         val candidates = mutableListOf<ImportCandidate>()
@@ -42,7 +44,7 @@ object QifStatementParser {
 
         fun commitRecord() {
             if (dateStr == null && amountStr == null && payeeStr == null && memoStr == null) return
-            runCatching {
+            try {
                 val rawDate = dateStr ?: error("Missing transaction date")
                 val parsedDate = parseQifDate(rawDate)
                 val rawAmount = amountStr ?: error("Missing transaction amount")
@@ -62,8 +64,10 @@ object QifStatementParser {
                     amountCents = amountCents,
                     reference = numberStr?.trim()?.takeIf(String::isNotEmpty),
                 )
-            }.onFailure {
-                problems += ImportProblem(sourceRow, it.message ?: "Could not parse QIF record")
+            } catch (error: ImportParseException) {
+                problems += ImportProblem(sourceRow, error.code, error.detail)
+            } catch (_: Exception) {
+                problems += ImportProblem(sourceRow, ImportProblemCode.ROW_COULD_NOT_BE_PARSED)
             }
 
             dateStr = null
@@ -125,14 +129,14 @@ object QifStatementParser {
                 return parsed.year * 10_000 + parsed.monthValue * 100 + parsed.dayOfMonth
             } catch (_: DateTimeParseException) {}
         }
-        error("Unsupported QIF date format: $raw")
+        throw ImportParseException(ImportProblemCode.UNSUPPORTED_DATE, raw)
     }
 
     internal fun parseQifAmount(raw: String): Long {
         var clean = raw.trim().replace(" ", "").replace(",", "")
         val negative = clean.startsWith("(") && clean.endsWith(")")
         clean = clean.trim('(', ')').replace(Regex("[^0-9.+-]"), "")
-        require(clean.isNotBlank()) { "Amount is blank" }
+        if (clean.isBlank()) throw ImportParseException(ImportProblemCode.AMOUNT_BLANK)
         val cents = BigDecimal(clean).setScale(2, RoundingMode.HALF_UP).movePointRight(2).longValueExact()
         return if (negative) -cents else cents
     }

@@ -50,12 +50,14 @@ object Camt053StatementParser {
             )
             factory.newDocumentBuilder().parse(InputSource(StringReader(normalizedXml)))
         }.getOrElse {
-            return ImportParseResult(emptyList(), listOf(ImportProblem(1, "Failed to parse CAMT XML: ${it.message}")))
+            return ImportParseResult(emptyList(), listOf(
+                ImportProblem(1, ImportProblemCode.CAMT_PARSE_FAILED, it.message)
+            ))
         }
 
         val entries = doc.getElementsByTagName("Ntry")
         if (entries.length == 0) {
-            return ImportParseResult(emptyList(), listOf(ImportProblem(1, "No <Ntry> entries found in CAMT.053 file")))
+            return ImportParseResult(emptyList(), listOf(ImportProblem(1, ImportProblemCode.CAMT_NO_ENTRIES)))
         }
 
         for (i in 0 until entries.length) {
@@ -130,7 +132,7 @@ object Camt053StatementParser {
                     )
                 }
             }.onFailure {
-                problems += ImportProblem(sourceRow, it.message ?: "Could not parse CAMT entry")
+                problems += ImportProblem(sourceRow, ImportProblemCode.ROW_COULD_NOT_BE_PARSED)
             }
         }
 

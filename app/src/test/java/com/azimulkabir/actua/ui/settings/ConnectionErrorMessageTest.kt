@@ -3,7 +3,6 @@ package com.azimulkabir.actua.ui.settings
 import java.security.cert.CertPathValidatorException
 import javax.net.ssl.SSLHandshakeException
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ConnectionErrorMessageTest {
@@ -11,13 +10,13 @@ class ConnectionErrorMessageTest {
     fun explainsAnUntrustedCertificateInsteadOfTheRawExceptionMessage() {
         val certPathError = CertPathValidatorException("Trust anchor for certification path not found")
         val handshakeError = SSLHandshakeException("handshake failed").apply { initCause(certPathError) }
+        val certificateMessage = "Server certificate isn’t trusted. Actua couldn’t verify this server’s TLS certificate."
 
-        val messageFromCause = connectionErrorMessage(handshakeError, "Could not connect to the server.")
-        val messageFromDirectException = connectionErrorMessage(certPathError, "Could not connect to the server.")
+        val messageFromCause = connectionErrorMessage(handshakeError, "Could not connect to the server.", certificateMessage)
+        val messageFromDirectException = connectionErrorMessage(certPathError, "Could not connect to the server.", certificateMessage)
 
-        assertTrue(messageFromCause.contains("certificate isn't trusted"))
-        assertTrue(messageFromDirectException.contains("certificate isn't trusted"))
-        assertTrue(messageFromCause.contains("private or self-signed CA"))
+        assertEquals(certificateMessage, messageFromCause)
+        assertEquals(certificateMessage, messageFromDirectException)
     }
 
     @Test
@@ -38,6 +37,12 @@ class ConnectionErrorMessageTest {
     @Test
     fun fallsBackWhenTheErrorHasNoMessage() {
         val error = RuntimeException()
+        assertEquals("Could not connect to the server.", connectionErrorMessage(error, "Could not connect to the server."))
+    }
+
+    @Test
+    fun certificateTrustMessageDefaultsToFallbackWhenNotProvided() {
+        val error = CertPathValidatorException("Trust anchor for certification path not found")
         assertEquals("Could not connect to the server.", connectionErrorMessage(error, "Could not connect to the server."))
     }
 }

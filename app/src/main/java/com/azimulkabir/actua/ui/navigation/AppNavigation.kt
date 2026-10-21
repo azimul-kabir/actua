@@ -165,6 +165,7 @@ import com.azimulkabir.actua.data.location.LocationUtils
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_AFTER_CHANGE
+import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_PULL_REFRESH
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.sync.SyncStatus
@@ -839,7 +840,7 @@ fun AppNavigation(
                     snackbarHostState.showSnackbar(bankResult.summary)
                 }
                 when (withContext(Dispatchers.IO) {
-                    ActualSyncRunner.run(appContext, trigger = "Pull to refresh")
+                    ActualSyncRunner.run(appContext, trigger = SYNC_TRIGGER_PULL_REFRESH)
                 }) {
                     is SyncRunResult.Success -> Unit
                     SyncRunResult.NotConfigured -> dataVersion += 1
@@ -882,7 +883,7 @@ fun AppNavigation(
                     }
                 }
                 when (withContext(Dispatchers.IO) {
-                    ActualSyncRunner.run(appContext, trigger = "Pull to refresh")
+                    ActualSyncRunner.run(appContext, trigger = SYNC_TRIGGER_PULL_REFRESH)
                 }) {
                     is SyncRunResult.Success -> Unit
                     SyncRunResult.NotConfigured -> dataVersion += 1

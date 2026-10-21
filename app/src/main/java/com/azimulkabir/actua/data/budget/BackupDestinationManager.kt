@@ -13,6 +13,16 @@ data class BackupDestinationState(
     val error: String?,
 )
 
+/** Stable persisted mirror-failure codes, translated only when displayed. */
+enum class BackupDestinationError(val persistedValue: String) {
+    CANNOT_CREATE_DIRECTORY("cannot_create_directory"),
+    CANNOT_CREATE_BACKUP_FILE("cannot_create_backup_file"),
+    CANNOT_WRITE_BACKUP("cannot_write_backup"),
+}
+
+private class BackupDestinationException(val code: BackupDestinationError) :
+    Exception(code.persistedValue)
+
 /** Mirrors private backups to a user-selected Storage Access Framework folder. */
 class BackupDestinationManager(context: Context) {
     private val app = context.applicationContext
@@ -31,8 +41,10 @@ class BackupDestinationManager(context: Context) {
             uri,
             Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
         )
+        // Without a document name the UI shows its own localized "Selected folder" label.
+        val name = displayName ?: documentName(uri)
         preferences.edit().putString("uri", uri.toString())
-            .putString("name", displayName ?: documentName(uri) ?: "Selected folder")
+            .apply { if (name == null) remove("name") else putString("name", name) }
             .remove("error").apply()
     }
 
@@ -51,12 +63,16 @@ class BackupDestinationManager(context: Context) {
             val budgetDirectory = child(appDirectory, budgetId) ?: createDirectory(appDirectory, budgetId)
             child(budgetDirectory, archive.name)?.let { DocumentsContract.deleteDocument(resolver, it) }
             val target = DocumentsContract.createDocument(resolver, budgetDirectory, "application/zip", archive.name)
-                ?: error("The selected folder did not create the backup file")
-            resolver.openOutputStream(target, "w")!!.use { output -> archive.inputStream().use { it.copyTo(output) } }
+                ?: throw BackupDestinationException(BackupDestinationError.CANNOT_CREATE_BACKUP_FILE)
+            val output = resolver.openOutputStream(target, "w")
+                ?: throw BackupDestinationException(BackupDestinationError.CANNOT_WRITE_BACKUP)
+            output.use { stream -> archive.inputStream().use { it.copyTo(stream) } }
         }.onSuccess {
             preferences.edit().putLong("lastMirrored", System.currentTimeMillis()).remove("error").apply()
         }.onFailure { error ->
-            preferences.edit().putString("error", error.message ?: "Could not mirror backup").apply()
+            val code = (error as? BackupDestinationException)?.code
+                ?: BackupDestinationError.CANNOT_WRITE_BACKUP
+            preferences.edit().putString("error", code.persistedValue).apply()
             throw error
         }
     }
@@ -75,7 +91,7 @@ class BackupDestinationManager(context: Context) {
 
     private fun createDirectory(parent: Uri, name: String): Uri =
         DocumentsContract.createDocument(resolver, parent, DocumentsContract.Document.MIME_TYPE_DIR, name)
-            ?: error("The selected folder does not allow creating directories")
+            ?: throw BackupDestinationException(BackupDestinationError.CANNOT_CREATE_DIRECTORY)
 
     private fun child(parent: Uri, name: String): Uri? {
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(parent, DocumentsContract.getDocumentId(parent))

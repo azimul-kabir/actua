@@ -26,9 +26,10 @@ object FinancialMessageParser {
         val wording = directionWording(normalized, source)
         val debit = profile.debitKeywords.firstOrNull { wording.containsWord(it) }
         val credit = profile.creditKeywords.firstOrNull { wording.containsWord(it) }
-        if (debit == null && credit == null) return failure("No debit or credit wording was recognized")
+        if (debit == null && credit == null) return failure(ImportProblemCode.DEBIT_OR_CREDIT_NOT_RECOGNIZED)
         val parsedAmount = (currencyAmount.find(normalized) ?: labeledAmount.find(normalized))?.groupValues?.get(1)
-            ?.replace(",", "")?.toBigDecimalOrNull() ?: return failure("No transaction amount was recognized")
+            ?.replace(",", "")?.toBigDecimalOrNull()
+            ?: return failure(ImportProblemCode.TRANSACTION_AMOUNT_NOT_RECOGNIZED)
         val cents = parsedAmount.setScale(2).movePointRight(2).longValueExact() * if (debit != null) -1 else 1
         val parsedDate = date.find(normalized)?.destructured?.let { (day, month, year) ->
             runCatching { LocalDate.of(year.toInt(), month.toInt(), day.toInt()) }.getOrNull()
@@ -46,7 +47,7 @@ object FinancialMessageParser {
             ref, confidence, source, accountHint, keepPayeeCase = true)), emptyList())
     }
 
-    private fun failure(message: String) = ImportParseResult(emptyList(), listOf(ImportProblem(1, message)))
+    private fun failure(code: ImportProblemCode) = ImportParseResult(emptyList(), listOf(ImportProblem(1, code)))
 
     /**
      * The alert's text, lower-cased, without wording that only names the card (#1072): "credit
