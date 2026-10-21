@@ -104,4 +104,35 @@ class LoanTest {
         // On the 30th of a 30-day month the clamped due day is today.
         assertEquals(DayDate(2026, 11, 30), loan.nextPaymentDate(DayDate(2026, 11, 30)))
     }
+
+    @Test
+    fun paymentSplitChargesInterestAndEscrowInFull() {
+        val loan = LoanConfig(2_200_000, 6.0, 36_500, escrowOrFeesCents = 10_000)
+        val split = loan.paymentSplit(-2_200_000, 36_500)
+        assertEquals(LoanPaymentSplit(11_000, 10_000, 15_500), split)
+        // Underpaying grows the loan: the shortfall shows as negative principal, charges are not shrunk.
+        assertEquals(LoanPaymentSplit(11_000, 10_000, -6_000), loan.paymentSplit(-2_200_000, 15_000))
+        assertEquals(LoanPaymentSplit(0, 10_000, 5_000), loan.paymentSplit(0, 15_000))
+    }
+
+    @Test
+    fun suggestedPaymentIsCappedAtThePayoffAmount() {
+        val loan = LoanConfig(2_200_000, 6.0, 36_500, escrowOrFeesCents = 10_000)
+        assertEquals(36_500L, loan.suggestedPaymentCents(-2_200_000))
+        // 20,000.00 owed: payoff = 20,000.00 + 100.00 interest + 100.00 escrow.
+        assertEquals(2_020_000L, loan.payoffAmountCents(-2_000_000))
+        // Last payment: 200.00 owed + 1.00 interest + 100.00 escrow = 301.00, below the 365.00 minimum.
+        assertEquals(30_100L, loan.suggestedPaymentCents(-20_000))
+        assertEquals(0L, loan.payoffAmountCents(0))
+        assertEquals(0L, loan.payoffAmountCents(5_000))
+    }
+
+    @Test
+    fun nonNegativeCentsAllowBlankAndZeroButNotNegatives() {
+        assertEquals(0L, parseNonNegativeCents("", 2))
+        assertEquals(0L, parseNonNegativeCents("0", 2))
+        assertEquals(1_050L, parseNonNegativeCents("10,5", 2))
+        assertNull(parseNonNegativeCents("-1", 2))
+        assertNull(parseNonNegativeCents("x", 2))
+    }
 }

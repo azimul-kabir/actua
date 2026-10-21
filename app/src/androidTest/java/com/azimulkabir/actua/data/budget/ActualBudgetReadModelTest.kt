@@ -671,6 +671,67 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun loanPaymentPostsChargesAndCategorizedTransferAtomically() = withDatabase { database ->
+        var number = 0
+        val entities = ActualEntityWriter(database, nodeId = "eeeeeeeeeeeeeeee", idFactory = { "entity-${++number}" })
+        val groupId = entities.createCategoryGroup("Bills")
+        val categoryId = entities.createCategory("Mortgage", groupId)
+        val checking = entities.createAccount("Paying account", offBudget = false, startingBalanceCents = 200_000)
+        val loan = entities.createAccount("Mortgage", offBudget = true, startingBalanceCents = -1_000_000)
+        val writer = ActualTransactionWriter(database, nodeId = "dddddddddddddddd")
+
+        fun row(account: String, amount: Long, payee: String?, category: String?) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+            UUID.randomUUID().toString(), account, 20261022, amount, payee, null, category, null, null, true,
+            false, null, false, null, false, null, null, null, null,
+        )
+        val interestPayee = writer.resolveOrCreatePayee("Interest").id
+        val escrowPayee = writer.resolveOrCreatePayee("Escrow").id
+        val transferPayee = database.transferPayeeId(loan)!!
+
+        writer.createLoanPayment(
+            listOf(row(loan, -4_000, interestPayee, null), row(loan, -1_000, escrowPayee, null)),
+            row(checking, -50_000, transferPayee, categoryId),
+        )
+
+        val accounts = database.fetchAccounts().associateBy { it.id }
+        // The loan nets to the principal (payment - interest - escrow); checking drops by the payment.
+        assertEquals(-1_000_000L + 50_000 - 4_000 - 1_000, accounts.getValue(loan).balanceCents)
+        assertEquals(150_000L, accounts.getValue(checking).balanceCents)
+        val checkingLeg = database.fetchTransactions(checking).single { it.amountCents == -50_000L }
+        val loanLeg = database.fetchTransactions(loan).single { it.amountCents == 50_000L }
+        assertEquals(categoryId, checkingLeg.categoryId)
+        assertEquals(null, loanLeg.categoryId)
+        assertEquals(loanLeg.id, checkingLeg.transferId)
+        assertEquals(checkingLeg.id, loanLeg.transferId)
+        assertEquals(setOf("Interest", "Escrow"), database.fetchTransactions(loan)
+            .filter { it.amountCents < 0 && !it.startingBalance }.map { it.payeeName }.toSet())
+        val messages = database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString())
+        assertTrue(messages.any { it.dataset == "transactions" && it.row == checkingLeg.id && it.column == "category" })
+    }
+
+    @Test
+    fun loanPaymentRejectsBadRowsWithoutPartialWrites() = withDatabase { database ->
+        var number = 0
+        val entities = ActualEntityWriter(database, nodeId = "eeeeeeeeeeeeeeee", idFactory = { "entity-${++number}" })
+        val checking = entities.createAccount("Paying account", offBudget = false, startingBalanceCents = 200_000)
+        val loan = entities.createAccount("Mortgage", offBudget = true, startingBalanceCents = -1_000_000)
+        val writer = ActualTransactionWriter(database, nodeId = "dddddddddddddddd")
+        fun row(account: String, amount: Long, payee: String?) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+            UUID.randomUUID().toString(), account, 20261022, amount, payee, null, null, null, null, true,
+            false, null, false, null, false, null, null, null, null,
+        )
+        val before = database.fetchAccounts().associate { it.id to it.balanceCents }
+        // A charge on the wrong account, and a payment whose payee is not a transfer payee, both throw.
+        assertThrows(IllegalArgumentException::class.java) {
+            writer.createLoanPayment(listOf(row(checking, -4_000, null)), row(checking, -50_000, database.transferPayeeId(loan)))
+        }
+        assertThrows(IllegalStateException::class.java) {
+            writer.createLoanPayment(emptyList(), row(checking, -50_000, null))
+        }
+        assertEquals(before, database.fetchAccounts().associate { it.id to it.balanceCents })
+    }
+
+    @Test
     fun creditCardConfigsSkipOutOfRangeSyncedValues() = withDatabase { database ->
         val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
         val prefix = ActualBudgetDatabase.CREDIT_CARD_PREFERENCE_PREFIX

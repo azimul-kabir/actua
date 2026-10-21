@@ -63,6 +63,34 @@ data class LoanConfig(
     }
 }
 
+/** How one payment divides between the lender's charges and the balance. */
+data class LoanPaymentSplit(val interestCents: Long, val escrowCents: Long, val principalCents: Long)
+
+/**
+ * Split for a payment of [paymentCents] against [accountBalanceCents]. Unlike the schedule, this
+ * charges interest and escrow in full whatever was paid, as a lender bills them: underpaying moves
+ * the shortfall into a negative principal (the loan grew) instead of shrinking the charge.
+ */
+fun LoanConfig.paymentSplit(accountBalanceCents: Long, paymentCents: Long): LoanPaymentSplit {
+    val interest = com.azimulkabir.actua.data.loans.LoanAmortization.monthlyInterest(
+        LoanConfig.owedCents(accountBalanceCents), annualRatePercent,
+    )
+    val escrow = escrowOrFeesCents ?: 0L
+    return LoanPaymentSplit(interest, escrow, paymentCents - interest - escrow)
+}
+
+/** What clearing the loan outright this month takes: the balance plus its interest and escrow. */
+fun LoanConfig.payoffAmountCents(accountBalanceCents: Long): Long {
+    val owed = LoanConfig.owedCents(accountBalanceCents)
+    if (owed == 0L) return 0
+    return owed + com.azimulkabir.actua.data.loans.LoanAmortization.monthlyInterest(owed, annualRatePercent) +
+        (escrowOrFeesCents ?: 0L)
+}
+
+/** The amount to offer: the monthly payment, except on the last one where it would overshoot. */
+fun LoanConfig.suggestedPaymentCents(accountBalanceCents: Long): Long =
+    minOf(minimumPaymentCents, payoffAmountCents(accountBalanceCents))
+
 data class LoanStatus(
     val accountId: String,
     val accountName: String,
@@ -100,3 +128,10 @@ fun parsePositiveCents(text: String, decimalPlaces: Int): Long? = runCatching {
 /** Parses a typed annual rate percentage; null when malformed, negative or not finite. */
 fun parseRatePercent(text: String): Double? =
     text.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0 }
+
+/** Parses a typed amount to cents (HALF_UP); blank means zero. Null when malformed or negative. */
+fun parseNonNegativeCents(text: String, decimalPlaces: Int): Long? =
+    if (text.isBlank()) 0L else runCatching {
+        java.math.BigDecimal(text.trim().replace(',', '.')).movePointRight(decimalPlaces)
+            .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact().takeIf { it >= 0 }
+    }.getOrNull()
