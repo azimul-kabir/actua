@@ -25,4 +25,6 @@
     <string name="loans_start_date">Data de início (opcional)</string>
     <string name="loans_not_set">Não definido</string>
     <string name="loans_clear_date">Limpar</string>
+    <string name="loans_payoff_month">Quitação em %1$s</string>
+    <string name="loans_payment_too_small">O pagamento não cobre os juros</string>
 </resources>

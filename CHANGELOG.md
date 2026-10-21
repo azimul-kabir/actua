@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Loans screen now shows each loan's projected payoff month ([#1256](https://github.com/azimul-kabir/actua/pull/1256))
 - Loans screen in Settings to track a loan account's balance, interest rate, payment and payoff progress ([#1255](https://github.com/azimul-kabir/actua/pull/1255))
 - Pay statement button on credit cards that opens a prefilled transfer for the amount due ([#1247](https://github.com/azimul-kabir/actua/pull/1247))
 - Credit card billing cycle card now separates the last statement from the current cycle and shows previous-cycle spend and credit utilization ([#1245](https://github.com/azimul-kabir/actua/pull/1245))

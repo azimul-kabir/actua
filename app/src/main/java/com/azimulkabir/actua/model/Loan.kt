@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.model
 
+import com.azimulkabir.actua.data.loans.schedule
 import com.azimulkabir.actua.data.schedules.DayDate
 
 /**
@@ -62,6 +63,10 @@ data class LoanStatus(
     val paidOffCents: Long get() = config.paidOffCents(balanceCents)
     val paidOffPermille: Int get() = config.paidOffPermille(balanceCents)
     val isPaidOff: Boolean get() = owedCents == 0L
+
+    /** Month the loan is projected to clear, or null when paid off or the payment never clears it. */
+    fun payoffMonth(from: DayDate = DayDate.today()): DayDate? =
+        if (isPaidOff) null else config.schedule(balanceCents, from)?.payoffDate
 }
 
 /** Open, off-budget accounts not yet tracked as loans: debt-type accounts first, then by name. */

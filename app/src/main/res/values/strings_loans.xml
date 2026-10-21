@@ -25,4 +25,6 @@
     <string name="loans_start_date">Start date (optional)</string>
     <string name="loans_not_set">Not set</string>
     <string name="loans_clear_date">Clear</string>
+    <string name="loans_payoff_month">Paid off %1$s</string>
+    <string name="loans_payment_too_small">Payment doesn\'t cover interest</string>
 </resources>
