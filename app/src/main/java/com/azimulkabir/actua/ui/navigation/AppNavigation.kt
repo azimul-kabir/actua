@@ -15,6 +15,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
@@ -613,6 +618,8 @@ fun AppNavigation(
     var reportSnapshotVersion by remember(repository) { mutableStateOf(-1) }
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
+    // The floating tab bar slides away while scrolling down and returns on scroll up.
+    var tabBarVisible by remember { mutableStateOf(true) }
     var transactionsRefreshing by remember { mutableStateOf(false) }
     var accountsRefreshing by remember { mutableStateOf(false) }
     var simpleFinConfigured by remember { mutableStateOf(false) }
@@ -1238,12 +1245,15 @@ fun AppNavigation(
     val fabScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -2f) transactionFabExpanded = false
-                if (available.y > 2f) transactionFabExpanded = true
+                if (available.y < -2f) { transactionFabExpanded = false; tabBarVisible = false }
+                if (available.y > 2f) { transactionFabExpanded = true; tabBarVisible = true }
                 return Offset.Zero
             }
         }
     }
+
+    // Every tab or screen change starts with the bar showing.
+    LaunchedEffect(destination, detail) { tabBarVisible = true }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -1534,7 +1544,11 @@ fun AppNavigation(
             }
         },
         bottomBar = {
-            if (detail != DetailDestination.EditTransaction) FloatingNavigationBar(
+            AnimatedVisibility(
+                visible = tabBarVisible && detail != DetailDestination.EditTransaction,
+                enter = slideInVertically { it } + expandVertically(),
+                exit = slideOutVertically { it } + shrinkVertically(),
+            ) { FloatingNavigationBar(
                 showLabels = showBottomNavigationLabels,
             ) {
                 tabBarLayout.visibleTabs.forEach { tabItem ->
@@ -1657,7 +1671,7 @@ fun AppNavigation(
                         } else null,
                     )
                 }
-            }
+            } }
         },
     ) { innerPadding ->
         // Root list screens run behind the transparent area around the floating pill and clear it
