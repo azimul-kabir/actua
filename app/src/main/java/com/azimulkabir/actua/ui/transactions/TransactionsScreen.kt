@@ -181,6 +181,8 @@ fun TransactionsScreen(
     account: Account? = null,
     creditCard: CreditCardStatus? = null,
     loan: LoanStatus? = null,
+    loanFundingAccounts: List<Account> = emptyList(),
+    onRecordLoanPayment: ((LoanPaymentRequest) -> Unit)? = null,
     onSaveAccountNote: (String) -> Unit = {},
     searchTransactions: (suspend (String) -> List<Transaction>)? = null,
     initialSearch: String = "",
@@ -630,6 +632,8 @@ fun TransactionsScreen(
                             showCreditCardSection,
                             onPayStatement,
                             loan,
+                            loanFundingAccounts,
+                            onRecordLoanPayment,
                         )
                     }
                 }
@@ -1171,7 +1175,8 @@ private fun com.azimulkabir.actua.data.schedules.DayDate.formatted(): String =
 internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
     onSaveNote: (String) -> Unit, hideDecimals: Boolean, showSummary: Boolean, showNotes: Boolean,
     onViewStatements: (() -> Unit)? = null, showCreditCardSection: Boolean = true,
-    onPayStatement: ((Long) -> Unit)? = null, loan: LoanStatus? = null) {
+    onPayStatement: ((Long) -> Unit)? = null, loan: LoanStatus? = null,
+    loanFundingAccounts: List<Account> = emptyList(), onRecordLoanPayment: ((LoanPaymentRequest) -> Unit)? = null) {
     val context = LocalContext.current
     val detailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("account_detail_preferences", android.content.Context.MODE_PRIVATE)
@@ -1244,7 +1249,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                 }
             }
         }
-        loan?.let { LoanOverviewCard(it, hideDecimals) }
+        loan?.let { LoanOverviewCard(it, hideDecimals, loanFundingAccounts, onRecordLoanPayment) }
         if (showCreditCardSection) card?.let {
             ActuaFormCard {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1374,7 +1379,10 @@ private fun BalanceColumn(label: String, amountCents: Long, hideDecimals: Boolea
 
 /** Payoff progress, balance, payment schedule and projected payoff for a tracked loan account. */
 @Composable
-private fun LoanOverviewCard(loan: LoanStatus, hideDecimals: Boolean) {
+private fun LoanOverviewCard(
+    loan: LoanStatus, hideDecimals: Boolean, fundingAccounts: List<Account>, onRecordPayment: ((LoanPaymentRequest) -> Unit)?,
+) {
+    var recording by remember(loan.accountId) { mutableStateOf(false) }
     val config = loan.config
     val schedule = remember(loan.balanceCents, config) {
         if (loan.isPaidOff) null else config.schedule(loan.balanceCents, loan.projectionStart())
@@ -1419,9 +1427,19 @@ private fun LoanOverviewCard(loan: LoanStatus, hideDecimals: Boolean) {
                     }
                     DetailAmount(stringResource(R.string.account_loan_remaining_interest), schedule.totalInterest, hideDecimals)
                 }
+                if (onRecordPayment != null && !loan.closed) {
+                    FilledTonalButton(onClick = { recording = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.account_loan_record_payment))
+                    }
+                }
             }
         }
     }
+    if (recording && onRecordPayment != null) LoanPaymentSheet(
+        loan, loanFundingAccounts(fundingAccounts, loan.accountId), hideDecimals,
+        onDismiss = { recording = false },
+        onRecord = { request -> recording = false; onRecordPayment(request) },
+    )
 }
 
 @Composable

@@ -133,6 +133,23 @@ class ActualTransactionWriter(
         saveClock()
     }
 
+    /**
+     * A loan payment as one atomic insert: the lender's interest/escrow [charges] on the loan
+     * account, plus [payment], a transfer-payee row from the funding account whose other leg lands
+     * on the loan. The loan account nets to the principal while the payment's on-budget leg keeps
+     * its category, as for any on-budget -> off-budget transfer. Rules are not run on the charges.
+     */
+    fun createLoanPayment(charges: List<ActualTransaction>, payment: ActualTransaction) {
+        val (source, partner) = transferLegsFor(payment) ?: error("The payment must use the loan account's transfer payee")
+        require(charges.all { it.transferId == null && !it.isParent && it.parentId == null && it.accountId == partner.accountId }) {
+            "Loan charges must be plain rows on the loan account"
+        }
+        val rows = charges + source + partner
+        rows.forEach(::validateBase)
+        database.insertTransactions(rows, rows.flatMap(::fieldsForInsert))
+        saveClock()
+    }
+
     fun createSplit(
         parent: ActualTransaction,
         children: List<ActualTransaction>,

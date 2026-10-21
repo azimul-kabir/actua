@@ -37,4 +37,19 @@
     <string name="account_loan_payoff">Projected payoff</string>
     <string name="account_loan_remaining_interest">Interest still to pay</string>
     <string name="account_loan_rate">Interest rate</string>
+    <string name="account_loan_record_payment">Record payment</string>
+    <string name="loan_payment_title">Record Payment</string>
+    <string name="loan_payment_from">From</string>
+    <string name="loan_payment_amount">Payment</string>
+    <string name="loan_payment_interest">Interest</string>
+    <string name="loan_payment_escrow">Escrow or fees</string>
+    <string name="loan_payment_principal">Principal</string>
+    <string name="loan_payment_record">Record</string>
+    <string name="loan_payment_estimate_note">Interest and escrow are estimated from the balance and rate. Correct them to match what your lender charged; the principal follows.</string>
+    <string name="loan_payment_grows_note">This payment doesn\'t cover the interest and fees, so the balance will grow this month.</string>
+    <string name="loan_payment_no_funding">A loan payment has to come from an open, on-budget account. Add one first.</string>
+    <string name="loans_category_optional">Budget category (optional)</string>
+    <string name="loans_no_category">No category</string>
+    <string name="loan_payment_category_note">The whole payment is assigned to the loan\'s category, while the loan balance drops by the principal alone.</string>
+    <string name="navigation_recording_loan_payment">Recording loan payment</string>
 </resources>

@@ -1911,6 +1911,17 @@ fun AppNavigation(
                 loan = loans.firstOrNull { loan ->
                     loan.accountId == accounts.firstOrNull { it.name == transactionAccount }?.id
                 },
+                loanFundingAccounts = accounts,
+                onRecordLoanPayment = { request ->
+                    accounts.firstOrNull { it.name == transactionAccount }?.let { loanAccount ->
+                        mutate(R.string.navigation_recording_loan_payment) {
+                            repository.recordLoanPayment(
+                                loanAccount.id, request.fromAccountId, request.paymentCents,
+                                request.interestCents, request.escrowCents, request.date,
+                            )
+                        }
+                    }
+                },
                 onSaveAccountNote = { note ->
                     accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
                         mutate(R.string.navigation_saving_account_note) { repository.setAccountNote(account.id, note) }
@@ -2289,6 +2300,7 @@ fun AppNavigation(
             DetailDestination.Loans -> LoansScreen(
                 loans = loans,
                 accounts = accounts,
+                categoryChoices = categoryChoices,
                 hideDecimalPlaces = hideDecimalPlaces,
                 onBack = { detail = DetailDestination.Main },
                 onSave = { accountId, config ->

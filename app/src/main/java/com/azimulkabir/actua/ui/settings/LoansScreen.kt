@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Schedule
@@ -52,6 +53,7 @@ import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.LoanConfig
 import com.azimulkabir.actua.model.LoanStatus
+import com.azimulkabir.actua.model.PickerChoices
 import com.azimulkabir.actua.model.loanCandidates
 import com.azimulkabir.actua.model.parsePositiveCents
 import com.azimulkabir.actua.model.parseRatePercent
@@ -76,6 +78,7 @@ import java.time.ZoneOffset
 fun LoansScreen(
     loans: List<LoanStatus>,
     accounts: List<Account>,
+    categoryChoices: PickerChoices,
     hideDecimalPlaces: Boolean,
     onBack: () -> Unit,
     onSave: (String, LoanConfig) -> Unit,
@@ -109,11 +112,11 @@ fun LoansScreen(
         }
     }
 
-    if (adding) LoanEditorSheet(null, candidates, onDismiss = { adding = false }, onSave = { id, config ->
+    if (adding) LoanEditorSheet(null, candidates, categoryChoices, onDismiss = { adding = false }, onSave = { id, config ->
         onSave(id, config); adding = false
     })
     editing?.let { loan ->
-        LoanEditorSheet(loan, accounts, onDismiss = { editing = null }, onSave = { id, config ->
+        LoanEditorSheet(loan, accounts, categoryChoices, onDismiss = { editing = null }, onSave = { id, config ->
             onSave(id, config); editing = null
         }, onRemove = { onRemove(loan.accountId); editing = null })
     }
@@ -174,7 +177,7 @@ private fun centsText(cents: Long?): String =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LoanEditorSheet(
-    loan: LoanStatus?, accounts: List<Account>, onDismiss: () -> Unit,
+    loan: LoanStatus?, accounts: List<Account>, categoryChoices: PickerChoices, onDismiss: () -> Unit,
     onSave: (String, LoanConfig) -> Unit, onRemove: (() -> Unit)? = null,
 ) {
     val existing = loan?.config
@@ -185,6 +188,7 @@ private fun LoanEditorSheet(
     var escrow by remember { mutableStateOf(centsText(existing?.escrowOrFeesCents)) }
     var term by remember { mutableStateOf(existing?.termMonths?.toString().orEmpty()) }
     var paymentDay by remember { mutableStateOf(existing?.paymentDay?.toString().orEmpty()) }
+    var categoryId by remember { mutableStateOf(existing?.categoryId) }
     var startDate by remember { mutableStateOf(existing?.startDate?.let(DayDate::fromYyyymmdd)) }
     var pickingDate by remember { mutableStateOf(false) }
     val termValue = term.toIntOrNull()?.takeIf { it in 1..LoanConfig.MAX_TERM_MONTHS }
@@ -260,6 +264,16 @@ private fun LoanEditorSheet(
                     ActuaFormTextField(Icons.Outlined.Event, stringResource(R.string.loans_payment_day), paymentDay,
                         { paymentDay = it.filter(Char::isDigit).take(2) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                     ActuaCardDivider()
+                    ActuaMenuRow(
+                        icon = Icons.Outlined.Category,
+                        label = stringResource(R.string.loans_category_optional),
+                        value = categoryChoices.choices.firstOrNull { it.id == categoryId }?.label
+                            ?: stringResource(R.string.loans_no_category),
+                        valueIsPlaceholder = categoryId == null,
+                        choices = listOf(stringResource(R.string.loans_no_category) to (null as String?)) +
+                            categoryChoices.choices.filter { it.offered || it.id == categoryId }.map { it.label to it.id },
+                    ) { categoryId = it }
+                    ActuaCardDivider()
                     ActuaFormRow(
                         icon = Icons.Outlined.CalendarMonth,
                         label = stringResource(R.string.loans_start_date),
@@ -281,13 +295,13 @@ private fun LoanEditorSheet(
                 text = stringResource(R.string.fs_save),
                 enabled = valid,
                 onClick = {
-                    // Pairing and snooze aren't editable here, so an edit carries them through.
+                    // The snooze isn't editable here, so an edit carries it through.
                     onSave(accountId, LoanConfig(
                         originalBalanceCents = originalCents!!,
                         annualRatePercent = rateValue!!,
                         minimumPaymentCents = paymentCents!!,
                         escrowOrFeesCents = escrowCents,
-                        categoryId = existing?.categoryId,
+                        categoryId = categoryId,
                         targetSnoozedMonth = existing?.targetSnoozedMonth,
                         termMonths = termValue,
                         paymentDay = dayValue,

@@ -126,6 +126,10 @@ data class NearbyPayeeSummary(
     val distanceMeters: Double,
 )
 
+/** Fixed (not localized) like Actuali, so every device and language shares one payee. */
+const val LOAN_INTEREST_PAYEE = "Interest"
+const val LOAN_ESCROW_PAYEE = "Escrow"
+
 class ActuaRepository(context: Context) {
     private val appContext = context.applicationContext
     private val scheduleSync = {
@@ -1041,6 +1045,41 @@ class ActuaRepository(context: Context) {
             if (account.closed && !includeClosed) return@mapNotNull null
             LoanStatus(account.id, account.name, account.balanceCents, config, account.closed)
         }.sortedWith(compareBy({ it.accountName.lowercase(java.util.Locale.ROOT) }, { it.accountId }))
+    }
+
+    /**
+     * Records a loan payment: interest and escrow charge rows on the loan plus a transfer from
+     * [fromAccountId] carrying the loan's paired category, written atomically. [interestCents] and
+     * [escrowCents] are passed in so the caller can correct them to what the lender charged.
+     */
+    fun recordLoanPayment(
+        loanAccountId: String, fromAccountId: String, paymentCents: Long, interestCents: Long,
+        escrowCents: Long, date: Int, notes: String? = null, cleared: Boolean = true,
+    ): Boolean {
+        val db = actualDatabase ?: return false
+        val writer = actualWriter ?: return false
+        val config = db.fetchLoanConfigs()[loanAccountId] ?: error("That account is not tracked as a loan")
+        val accounts = db.fetchAccounts().associateBy { it.id }
+        val loan = accounts[loanAccountId] ?: error("That account no longer exists")
+        val from = accounts[fromAccountId] ?: error("The funding account no longer exists")
+        require(loan.offBudget && !loan.closed) { "Loans are tracked on open, off-budget accounts" }
+        require(!from.offBudget && !from.closed && from.id != loan.id) { "A loan payment has to come from an open, on-budget account" }
+        require(paymentCents > 0) { "Enter a payment amount" }
+        require(interestCents >= 0 && escrowCents >= 0) { "Interest and escrow can't be negative" }
+        require(escrowCents == 0L || config.escrowOrFeesCents != null) { "This loan has no escrow or fees" }
+        // A category deleted after pairing leaves the payment uncategorized rather than dangling.
+        val categoryId = config.categoryId?.takeIf { id -> db.fetchCategoryGroups().any { group -> group.categories.any { it.id == id } } }
+        val transferPayee = db.transferPayeeId(loanAccountId) ?: error("The loan account has no transfer payee")
+        fun row(account: String, amount: Long, payee: String?, category: String?) = ActualTransaction(
+            java.util.UUID.randomUUID().toString(), account, date, amount, payee, null, category, null,
+            notes?.takeIf(String::isNotBlank), cleared, false, null, false, null, false, null, null, null, null,
+        )
+        val charges = buildList {
+            if (interestCents > 0) add(row(loanAccountId, -interestCents, writer.resolveOrCreatePayee(LOAN_INTEREST_PAYEE).id, null))
+            if (escrowCents > 0) add(row(loanAccountId, -escrowCents, writer.resolveOrCreatePayee(LOAN_ESCROW_PAYEE).id, null))
+        }
+        writer.createLoanPayment(charges, row(fromAccountId, -paymentCents, transferPayee, categoryId))
+        return true
     }
 
     /** Saves a loan's terms, or stops tracking it when [config] is null. */

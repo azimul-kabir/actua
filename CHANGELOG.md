@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Record loan payments from the loan card, split into interest, escrow and a categorized transfer, and pair a loan with a budget category ([#1259](https://github.com/azimul-kabir/actua/pull/1259))
 - Loan accounts now show a loan card with payoff progress, payment schedule and projected payoff ([#1257](https://github.com/azimul-kabir/actua/pull/1257))
 - Loans screen now shows each loan's projected payoff month ([#1256](https://github.com/azimul-kabir/actua/pull/1256))
 - Loans screen in Settings to track a loan account's balance, interest rate, payment and payoff progress ([#1255](https://github.com/azimul-kabir/actua/pull/1255))
