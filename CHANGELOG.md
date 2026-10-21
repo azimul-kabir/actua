@@ -24,6 +24,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed Accounts tab section and group headers showing a full-width square press highlight instead of a rounded one ([#1267](https://github.com/azimul-kabir/actua/pull/1267))
 - Transfers that carry a budget category now show that category instead of "Transfer" in the transaction list and details ([#1260](https://github.com/azimul-kabir/actua/pull/1260))
 
 ### Changed
