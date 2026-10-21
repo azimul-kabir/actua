@@ -124,13 +124,25 @@ internal fun paidOffPercentText(permille: Int): String = NumberFormat.getPercent
     maximumFractionDigits = 1
 }.format(permille / 1000.0)
 
+/** "Mar 2029" in the user's locale. */
+internal fun payoffMonthText(month: DayDate): String =
+    java.time.YearMonth.of(month.year, month.month).format(
+        java.time.format.DateTimeFormatter.ofPattern("LLL yyyy", java.util.Locale.getDefault()),
+    )
+
 @Composable
 private fun LoanRow(loan: LoanStatus, hideDecimals: Boolean, modifier: Modifier = Modifier) {
     val balance = formatMoneyCents(loan.balanceCents, hideDecimals)
     val percent = if (loan.isPaidOff) stringResource(R.string.loans_paid_off)
         else stringResource(R.string.loans_paid_off_percent, paidOffPercentText(loan.paidOffPermille))
     val payment = formatMoneyCents(loan.config.minimumPaymentCents, hideDecimals)
-    val description = stringResource(R.string.loans_row_description, loan.accountName, balance, percent, payment)
+    val payoff = when {
+        loan.isPaidOff -> null
+        else -> loan.payoffMonth()?.let { stringResource(R.string.loans_payoff_month, payoffMonthText(it)) }
+            ?: stringResource(R.string.loans_payment_too_small)
+    }
+    val description = stringResource(R.string.loans_row_description, loan.accountName, balance, percent, payment) +
+        (payoff?.let { ", $it" }.orEmpty())
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(
             Modifier.padding(12.dp).clearAndSetSemantics { contentDescription = description },
@@ -146,6 +158,11 @@ private fun LoanRow(loan: LoanStatus, hideDecimals: Boolean, modifier: Modifier 
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                 Text(stringResource(R.string.loans_monthly_payment_value, payment),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            payoff?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall,
+                    color = if (loan.payoffMonth() == null) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

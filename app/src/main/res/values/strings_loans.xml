@@ -9,7 +9,7 @@
     <string name="loans_empty">Mark an off-budget account as a loan to track what you owe, its interest rate and how much you have paid off.</string>
     <string name="loans_off_budget_hint">Loans are tracked on open, off-budget accounts. Add one, or mark your loan\'s account off-budget, to track it here.</string>
     <string name="loans_original_balance">Original balance</string>
-    <string name="loans_interest_rate">Interest rate (%)</string>
+    <string name="loans_interest_rate">Interest rate (APR)</string>
     <string name="loans_monthly_payment">Monthly payment</string>
     <string name="loans_escrow_optional">Escrow or fees (optional)</string>
     <string name="loans_details_explanation">The original balance is what you owed when the loan started; payoff progress is measured against it. Escrow or fees applies to mortgages whose payment bundles them in.</string>
@@ -25,4 +25,6 @@
     <string name="loans_start_date">Start date (optional)</string>
     <string name="loans_not_set">Not set</string>
     <string name="loans_clear_date">Clear</string>
+    <string name="loans_payoff_month">Paid off %1$s</string>
+    <string name="loans_payment_too_small">Payment doesn\'t cover interest</string>
 </resources>
