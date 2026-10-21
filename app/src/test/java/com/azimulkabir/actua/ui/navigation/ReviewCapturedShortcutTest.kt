@@ -23,8 +23,25 @@ class ReviewCapturedShortcutTest {
 
     @Test
     fun `accounts tab label says how many captures wait`() {
-        assertEquals("Accounts", tabLabelWithCaptures("Accounts", 0))
-        assertEquals("Accounts, 1 captured transaction waiting", tabLabelWithCaptures("Accounts", 1))
-        assertEquals("Accounts, 120 captured transactions waiting", tabLabelWithCaptures("Accounts", 120))
+        // The spoken label comes from the navigation_tab_captures_waiting plural: the tab name,
+        // then the count, with English singular/plural exactly as the old hard-coded string built
+        // them ("Accounts, 1 captured transaction waiting" / "... 120 captured transactions waiting").
+        val items = navigationPluralItems("navigation_tab_captures_waiting")
+        assertEquals("%1\$s, %2\$d captured transaction waiting", items.getValue("one"))
+        assertEquals("%1\$s, %2\$d captured transactions waiting", items.getValue("other"))
+    }
+}
+
+/** Reads a plural's quantity→format map from the default (English) navigation catalog. */
+private fun navigationPluralItems(name: String): Map<String, String> {
+    val root = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+        .parse(File("src/main/res/values/strings_navigation.xml")).documentElement
+    val plurals = (0 until root.getElementsByTagName("plurals").length)
+        .map { root.getElementsByTagName("plurals").item(it) as Element }
+        .single { it.getAttribute("name") == name }
+    val items = plurals.getElementsByTagName("item")
+    return (0 until items.length).associate { i ->
+        val item = items.item(i) as Element
+        item.getAttribute("quantity") to item.textContent
     }
 }

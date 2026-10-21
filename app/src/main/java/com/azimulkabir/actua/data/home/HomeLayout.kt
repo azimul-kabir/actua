@@ -1,17 +1,22 @@
 package com.azimulkabir.actua.data.home
 
+import androidx.annotation.StringRes
+import com.azimulkabir.actua.R
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Stable section keys and the agreed V1 display order for the Home dashboard. */
-enum class HomeSection(val title: String) {
-    READY_TO_BUDGET("Ready to Budget"),
-    FAVORITE_CATEGORIES("Favorite Categories"),
-    FAVORITE_ACCOUNTS("Favorite Accounts"),
-    UPCOMING("Upcoming"),
-    THIS_MONTH("This Month"),
-    REPORTS("Reports"),
-    RECENT_ACTIVITY("Recent Activity"),
+/**
+ * Stable section keys and the agreed V1 display order for the Home dashboard. [title] keeps the
+ * English default for callers that have not localized yet; composables resolve [titleRes].
+ */
+enum class HomeSection(val title: String, @StringRes val titleRes: Int) {
+    READY_TO_BUDGET("Ready to Budget", R.string.home_ready_to_budget),
+    FAVORITE_CATEGORIES("Favorite Categories", R.string.home_favorite_categories),
+    FAVORITE_ACCOUNTS("Favorite Accounts", R.string.home_favorite_accounts),
+    UPCOMING("Upcoming", R.string.home_upcoming),
+    THIS_MONTH("This Month", R.string.home_this_month),
+    REPORTS("Reports", R.string.home_reports),
+    RECENT_ACTIVITY("Recent Activity", R.string.home_recent_activity),
 }
 
 /**

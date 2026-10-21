@@ -1,5 +1,8 @@
 package com.azimulkabir.actua.model
 
+import androidx.annotation.StringRes
+import com.azimulkabir.actua.R
+
 data class BudgetCategory(
     val name: String,
     val assigned: Int,
@@ -128,23 +131,27 @@ data class BudgetCategory(
     }
 }
 
-enum class BudgetProgressState(val label: String) {
-    UNASSIGNED("No money assigned"),
-    FUNDED("Funded"),
-    SPENDING("Partially spent"),
-    SPENT("Fully spent"),
-    OVERSPENT("Overspent"),
-    GOAL_IN_PROGRESS("Goal in progress"),
-    GOAL_REACHED("Goal reached"),
-    GOAL_OVERFUNDED("Funded past goal"),
+/**
+ * A category's progress-bar state. [label] keeps the English default for callers that have not
+ * localized yet; composables resolve [labelRes] instead.
+ */
+enum class BudgetProgressState(val label: String, @StringRes val labelRes: Int) {
+    UNASSIGNED("No money assigned", R.string.budget_progress_unassigned),
+    FUNDED("Funded", R.string.budget_progress_funded),
+    SPENDING("Partially spent", R.string.budget_progress_partially_spent),
+    SPENT("Fully spent", R.string.budget_progress_fully_spent),
+    OVERSPENT("Overspent", R.string.budget_progress_overspent),
+    GOAL_IN_PROGRESS("Goal in progress", R.string.budget_progress_goal_in_progress),
+    GOAL_REACHED("Goal reached", R.string.budget_progress_goal_reached),
+    GOAL_OVERFUNDED("Funded past goal", R.string.budget_progress_goal_overfunded),
 }
 
-enum class BudgetCategoryView(val label: String) {
-    ALL("All"),
-    OVERSPENT("Overspent"),
-    UNDERFUNDED("Underfunded"),
-    OVERFUNDED("Overfunded"),
-    MONEY_AVAILABLE("Money Available");
+enum class BudgetCategoryView(val label: String, @StringRes val labelRes: Int) {
+    ALL("All", R.string.budget_filter_all),
+    OVERSPENT("Overspent", R.string.budget_filter_overspent),
+    UNDERFUNDED("Underfunded", R.string.budget_filter_underfunded),
+    OVERFUNDED("Overfunded", R.string.budget_filter_overfunded),
+    MONEY_AVAILABLE("Money Available", R.string.budget_filter_money_available);
 
     fun matches(category: BudgetCategory, schedules: List<BudgetScheduleFunding> = emptyList()): Boolean = when (this) {
         ALL -> true
@@ -181,15 +188,35 @@ data class BudgetOverview(
     val projectedSavings: Boolean = false,
 ) {
     /**
+     * Which label the lead cell shows; [lead] resolves it to the historical English strings so
+     * existing (non-localized) callers and tests keep working. Composables resolve it through
+     * string resources, with the To Budget label supplied by the call site (the plan overview
+     * says "Ready to Budget", the table overview "To budget").
+     */
+    enum class LeadKind { TO_BUDGET, PROJECTED_SAVINGS, OVERSPENT, SAVED }
+
+    val leadKind: LeadKind
+        get() = when {
+            toBudgetCents != null || savedCents == null -> LeadKind.TO_BUDGET
+            projectedSavings -> LeadKind.PROJECTED_SAVINGS
+            savedCents < 0 -> LeadKind.OVERSPENT
+            else -> LeadKind.SAVED
+        }
+
+    /** The amount the lead cell shows alongside [leadKind]'s label. */
+    val leadValue: Long?
+        get() = if (leadKind == LeadKind.TO_BUDGET) toBudgetCents else savedCents
+
+    /**
      * The headline figure: To Budget for envelope budgets; for tracking budgets, the savings figure
      * Actual's mobile budget shows in its place ("Projected savings" for this month and later,
      * "Saved" or "Overspent" before).
      */
-    fun lead(toBudgetLabel: String = "To budget"): Pair<String, Long?> = when {
-        toBudgetCents != null || savedCents == null -> toBudgetLabel to toBudgetCents
-        projectedSavings -> "Projected savings" to savedCents
-        savedCents < 0 -> "Overspent" to savedCents
-        else -> "Saved" to savedCents
+    fun lead(toBudgetLabel: String = "To budget"): Pair<String, Long?> = when (leadKind) {
+        LeadKind.TO_BUDGET -> toBudgetLabel to leadValue
+        LeadKind.PROJECTED_SAVINGS -> "Projected savings" to leadValue
+        LeadKind.OVERSPENT -> "Overspent" to leadValue
+        LeadKind.SAVED -> "Saved" to leadValue
     }
 }
 

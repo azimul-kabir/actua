@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Actua</string>
+    <string name="app_name" translatable="false">Actua</string>
     <string name="widget_budget_snapshot">Budget snapshot</string>
     <string name="widget_favourite_categories">Favourite categories</string>
     <string name="widget_quick_transaction">Quick transaction</string>
@@ -22,4 +22,8 @@
     <string name="shortcut_search">Search</string>
     <string name="shortcut_review_captured">Review captured</string>
     <string name="shortcut_unavailable">Open Actua to use this action</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System default</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_portuguese_brazil">Português (Brasil)</string>
 </resources>

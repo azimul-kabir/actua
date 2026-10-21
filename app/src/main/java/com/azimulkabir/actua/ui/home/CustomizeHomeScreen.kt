@@ -37,11 +37,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeLayoutPlanner
 import com.azimulkabir.actua.data.home.HomeSection
@@ -167,18 +169,18 @@ fun CustomizeHomeScreen(
     val reorderable = remember(localOrder) { localOrder.filterNot { it == HomeSection.READY_TO_BUDGET } }
 
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Customize Home", onBack = onBack) {
+        ActuaScreenHeader(title = stringResource(R.string.home_customize), onBack = onBack) {
             IconButton(onClick = {
                 val defaults = HomeLayout.default()
                 localOrder = defaults.order
                 localHidden = defaults.hidden
                 onLayoutChange(defaults)
             }) {
-                Icon(Icons.Outlined.RestartAlt, contentDescription = "Restore default layout")
+                Icon(Icons.Outlined.RestartAlt, contentDescription = stringResource(R.string.home_restore_layout))
             }
         }
         Text(
-            "Drag a handle to reorder, or use the up/down arrows. Ready to Budget always stays first.",
+            stringResource(R.string.home_customize_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -222,10 +224,13 @@ fun CustomizeHomeScreen(
 /** Stepper for the day the This Month summary period starts; 1 keeps the calendar month. */
 @Composable
 private fun SummaryPeriodRow(startDay: Int, onChange: (Int) -> Unit) {
+    // Resolved once: semantics lambdas are not composable, so they take the ready strings.
+    val startDayEarlierLabel = stringResource(R.string.home_summary_start_earlier)
+    val startDayLaterLabel = stringResource(R.string.home_summary_start_later)
     Column(Modifier.padding(horizontal = 16.dp, vertical = Spacing.lg)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "This Month starts on day",
+                stringResource(R.string.home_summary_start_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
@@ -233,7 +238,7 @@ private fun SummaryPeriodRow(startDay: Int, onChange: (Int) -> Unit) {
             IconButton(
                 onClick = { onChange(startDay - 1) },
                 enabled = startDay > 1,
-                modifier = Modifier.semantics { contentDescription = "Start the period one day earlier" },
+                modifier = Modifier.semantics { contentDescription = startDayEarlierLabel },
             ) { Icon(Icons.Outlined.Remove, null) }
             Text(
                 startDay.toString(),
@@ -243,12 +248,11 @@ private fun SummaryPeriodRow(startDay: Int, onChange: (Int) -> Unit) {
             IconButton(
                 onClick = { onChange(startDay + 1) },
                 enabled = startDay < 31,
-                modifier = Modifier.semantics { contentDescription = "Start the period one day later" },
+                modifier = Modifier.semantics { contentDescription = startDayLaterLabel },
             ) { Icon(Icons.Outlined.Add, null) }
         }
         Text(
-            "Day 1 is the calendar month. Choose another day if you are paid mid-month; the Home summary then " +
-                "runs from that day to the day before the next one. Short months use their last day.",
+            stringResource(R.string.home_summary_start_description),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -270,11 +274,17 @@ private fun HomeSectionRow(
     canMoveDown: Boolean,
 ) {
     val pinned = section == HomeSection.READY_TO_BUDGET
+    // Resolved once: semantics lambdas are not composable, so they take the ready strings.
+    val sectionTitle = stringResource(section.titleRes)
+    val dragLabel = stringResource(R.string.home_drag_reorder, sectionTitle)
+    val moveUpLabel = stringResource(R.string.home_move_up, sectionTitle)
+    val moveDownLabel = stringResource(R.string.home_move_down, sectionTitle)
+    val showSectionLabel = stringResource(R.string.home_show_section, sectionTitle)
     Row(modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (!pinned) {
             Icon(
                 Icons.Outlined.DragHandle,
-                contentDescription = "Drag to reorder ${section.title}",
+                contentDescription = dragLabel,
                 modifier = Modifier
                     .size(44.dp)
                     .padding(8.dp)
@@ -289,7 +299,7 @@ private fun HomeSectionRow(
             Box(Modifier.size(44.dp))
         }
         Text(
-            section.title,
+            sectionTitle,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             overflow = TextOverflow.Ellipsis,
@@ -299,20 +309,20 @@ private fun HomeSectionRow(
             IconButton(
                 onClick = onMoveUp,
                 enabled = canMoveUp,
-                modifier = Modifier.semantics { contentDescription = "Move ${section.title} up" },
+                modifier = Modifier.semantics { contentDescription = moveUpLabel },
             ) { Icon(Icons.Outlined.KeyboardArrowUp, null) }
             IconButton(
                 onClick = onMoveDown,
                 enabled = canMoveDown,
-                modifier = Modifier.semantics { contentDescription = "Move ${section.title} down" },
+                modifier = Modifier.semantics { contentDescription = moveDownLabel },
             ) { Icon(Icons.Outlined.KeyboardArrowDown, null) }
             Switch(
                 checked = !hidden,
                 onCheckedChange = { checked -> onHiddenChange(!checked) },
-                modifier = Modifier.semantics { contentDescription = "Show ${section.title} on Home" },
+                modifier = Modifier.semantics { contentDescription = showSectionLabel },
             )
         } else {
-            Text("Required", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.home_required), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

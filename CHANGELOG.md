@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Brazilian Portuguese (pt-BR) translation with in-app language selection for navigation, Home, Budget, widgets and shortcuts ([#1227](https://github.com/azimul-kabir/actua/pull/1227))
+
 ## [2.0.0] - 2026-10-19
 
 ### Added

@@ -8,6 +8,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
@@ -26,6 +28,9 @@ class BudgetOverviewAlignmentTest {
 
     private fun overviewLabelTop(label: String): Float =
         compose.onAllNodesWithText(label, useUnmergedTree = true).fetchSemanticsNodes().minOf { it.boundsInRoot.top }
+
+    /** Column labels come from resources, so assertions follow the app language. */
+    private fun label(resId: Int) = InstrumentationRegistry.getInstrumentation().targetContext.getString(resId)
 
     @Test fun overviewLabelsShareOneLineInTheColumnsLayout() {
         compose.setContent {
@@ -47,7 +52,12 @@ class BudgetOverviewAlignmentTest {
             }
         }
         compose.waitForIdle()
-        val tops = listOf("To budget", "Budgeted", "Spent", "Balance").map(::overviewLabelTop)
+        val tops = listOf(
+            label(R.string.budget_to_budget),
+            label(R.string.budget_budgeted),
+            label(R.string.budget_spent),
+            label(R.string.budget_balance),
+        ).map(::overviewLabelTop)
         tops.forEach { assertEquals("labels are on different lines: $tops", tops.first(), it, 1f) }
     }
 }

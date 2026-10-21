@@ -73,10 +73,12 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.billing.createSupportBillingManager
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
@@ -137,6 +139,8 @@ fun SettingsScreen(
     onCurrencySymbolPositionChange: (String) -> Unit = {},
     currencySymbolSpacing: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
     onCurrencySymbolSpacingChange: (String) -> Unit = {},
+    languageTag: String = "",
+    onLanguageChange: (String) -> Unit = {},
     dateFormat: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
     onDateFormatChange: (String) -> Unit = {},
     numberFormat: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
@@ -454,6 +458,17 @@ fun SettingsScreen(
                 }
                 SettingsPage.Display -> {
                     SettingsGroup {
+                        SettingsChoice(
+                            stringResource(R.string.settings_language),
+                            languageTag,
+                            listOf(
+                                SettingsChoiceOption("", stringResource(R.string.settings_language_system)),
+                                SettingsChoiceOption("en", stringResource(R.string.settings_language_english)),
+                                SettingsChoiceOption("pt-BR", stringResource(R.string.settings_language_portuguese_brazil)),
+                            ),
+                            onChange = onLanguageChange,
+                        )
+                        SettingsDivider()
                         SettingsChoice(
                             "Currency",
                             currencyLabel(currencyCode),
@@ -958,6 +973,12 @@ private fun SettingsNote(text: String) {
     )
 }
 
+/** One entry of a [SettingsChoice] menu: the stored [value] with the [label] shown for it. */
+private data class SettingsChoiceOption(
+    val value: String,
+    val label: String,
+)
+
 /** A row showing the current [value] (and an optional [preview]); tapping it opens a menu of [options]. */
 @Composable
 private fun SettingsChoice(
@@ -966,13 +987,28 @@ private fun SettingsChoice(
     options: List<String>,
     preview: String? = null,
     onChange: (String) -> Unit,
+) = SettingsChoice(label, value, options.map { SettingsChoiceOption(it, it) }, preview, onChange)
+
+/**
+ * As above, for choices whose stored value and displayed label differ (e.g. the app language).
+ * Renamed on the JVM so it can overload the string-options variant despite generics erasure.
+ */
+@JvmName("SettingsChoiceWithOptions")
+@Composable
+private fun SettingsChoice(
+    label: String,
+    value: String,
+    options: List<SettingsChoiceOption>,
+    preview: String? = null,
+    onChange: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val selectedLabel = options.firstOrNull { it.value == value }?.label ?: value
     Box {
         ActuaListRow(
             title = { Text(label, style = MaterialTheme.typography.bodyLarge) },
             subtitle = {
-                Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                Text(selectedLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                 preview?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -983,10 +1019,10 @@ private fun SettingsChoice(
             onClick = { expanded = true },
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.distinct().forEach { option ->
-                DropdownMenuItem(text = { Text(option) }, onClick = {
+            options.distinctBy { it.value }.forEach { option ->
+                DropdownMenuItem(text = { Text(option.label) }, onClick = {
                     expanded = false
-                    onChange(option)
+                    onChange(option.value)
                 })
             }
         }

@@ -84,6 +84,16 @@ android {
         compose = true
         buildConfig = true
     }
+    // Ship only the locales Actua translates (see docs/LOCALIZATION.md); dependency-library
+    // locales for other languages would otherwise appear in the system picker without app strings.
+    androidResources {
+        localeFilters += listOf("en", "pt-rBR")
+    }
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
 }
 
 baselineProfile {
@@ -97,6 +107,7 @@ dependencies {
     implementation(libs.androidx.profileinstaller)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui)

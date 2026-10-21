@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.azimulkabir.actua.R
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -21,6 +22,9 @@ import org.junit.runner.RunWith
 class BudgetScreenTest {
     @get:Rule val compose = createComposeRule()
     private val context get() = ApplicationProvider.getApplicationContext<Context>()
+
+    /** Group-header and menu labels come from resources, so assertions follow the app language. */
+    private fun label(resId: Int, vararg args: Any) = context.getString(resId, *args)
 
     @Before fun clear() {
         context.getSharedPreferences("budget_ui_preferences", Context.MODE_PRIVATE).edit().clear().commit()
@@ -35,14 +39,14 @@ class BudgetScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Collapse Monthly bills").performClick()
-        compose.onNodeWithContentDescription("Expand Monthly bills").assertExists()
+        compose.onNodeWithContentDescription(label(R.string.budget_collapse_group, "Monthly bills")).performClick()
+        compose.onNodeWithContentDescription(label(R.string.budget_expand_group, "Monthly bills")).assertExists()
 
         // Simulate leaving the Budget tab (screen torn down) and coming back to it.
         compose.runOnIdle { showScreen = false }
         compose.runOnIdle { showScreen = true }
 
-        compose.onNodeWithContentDescription("Expand Monthly bills").assertExists()
+        compose.onNodeWithContentDescription(label(R.string.budget_expand_group, "Monthly bills")).assertExists()
     }
 
     @Test fun collapseAllPersistsAcrossRecomposition() {
@@ -53,14 +57,14 @@ class BudgetScreenTest {
             }
         }
 
-        compose.onNodeWithContentDescription("Budget display options").performClick()
-        compose.onNodeWithText("Collapse all groups").performClick()
-        compose.onNodeWithContentDescription("Expand Monthly bills").assertExists()
+        compose.onNodeWithContentDescription(label(R.string.budget_display_options)).performClick()
+        compose.onNodeWithText(label(R.string.budget_collapse_all_groups)).performClick()
+        compose.onNodeWithContentDescription(label(R.string.budget_expand_group, "Monthly bills")).assertExists()
 
         compose.runOnIdle { showScreen = false }
         compose.runOnIdle { showScreen = true }
 
-        compose.onNodeWithContentDescription("Expand Monthly bills").assertExists()
-        compose.onNodeWithContentDescription("Expand Daily spending").assertExists()
+        compose.onNodeWithContentDescription(label(R.string.budget_expand_group, "Monthly bills")).assertExists()
+        compose.onNodeWithContentDescription(label(R.string.budget_expand_group, "Daily spending")).assertExists()
     }
 }
