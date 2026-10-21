@@ -211,4 +211,22 @@ class CreditCardCycleTest {
         assertEquals("$342.18 · Due in 27d", CreditCardCycle.duePillText("$342.18", "Due in 27d", 34_218L))
         assertEquals("Due in 27d", CreditCardCycle.duePillText("$0.00", "Due in 27d", 0L))
     }
+
+    @Test fun dueDateBeforeCycleEndBelongsToTheClosedStatement() {
+        val cycle = CreditCardCycle(2, CreditCardCycle.PaymentDue.DayOfMonth(28))
+        val today = DayDate(2026, 10, 21)
+        assertEquals(DayDate(2026, 11, 2), cycle.cycleRange(today).second)
+        assertEquals(DayDate(2026, 10, 28), cycle.upcomingDueDate(today))
+        val pending = cycle.statementDueCycles(today).first { it.dueDate == cycle.upcomingDueDate(today) }
+        assertEquals(DayDate(2026, 10, 2), pending.end)
+    }
+
+    @Test fun utilizationRoundsDownAndNeedsAPositiveLimit() {
+        fun status(balance: Long, limit: Long?) = CreditCardStatus(
+            "a", "Card", balance, CreditCardConfig(2, limitCents = limit), 0L, null, false)
+        assertEquals(33, status(-100_000L, 300_000L).utilizationPercent)
+        assertEquals(0, status(5_000L, 300_000L).utilizationPercent)
+        assertNull(status(-100_000L, null).utilizationPercent)
+        assertNull(status(-100_000L, 0L).utilizationPercent)
+    }
 }

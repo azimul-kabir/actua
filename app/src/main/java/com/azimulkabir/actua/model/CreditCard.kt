@@ -22,7 +22,15 @@ data class CreditCardStatus(
     val closed: Boolean,
     /** Recent statement dues, oldest first; null when statement data wasn't loaded. */
     val statementDues: List<CreditCardCycle.StatementDue>? = null,
+    /** Spend in the billing cycle before the current one; null when it wasn't loaded. */
+    val previousCycleSpendCents: Long? = null,
 ) {
+    /** Percent of the credit limit in use, rounded down; null without a positive limit. */
+    val utilizationPercent: Int?
+        get() = config.limitCents?.takeIf { it > 0 }?.let { limit ->
+            (maxOf(0L, -balanceCents) * 100 / limit).toInt()
+        }
+
     val cycle: CreditCardCycle get() = CreditCardCycle(config.statementDay, config.paymentDue)
 
     /** The statement still awaiting payment, shared by every screen that shows the card. */
