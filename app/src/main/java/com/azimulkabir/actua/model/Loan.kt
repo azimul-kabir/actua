@@ -100,6 +100,8 @@ data class LoanStatus(
     val balanceCents: Long,
     val config: LoanConfig,
     val closed: Boolean,
+    /** Everything paid into the account so far; the principal-only progress is [paidOffCents]. */
+    val totalPaidCents: Long = 0,
 ) {
     val owedCents: Long get() = LoanConfig.owedCents(balanceCents)
     val paidOffCents: Long get() = config.paidOffCents(balanceCents)

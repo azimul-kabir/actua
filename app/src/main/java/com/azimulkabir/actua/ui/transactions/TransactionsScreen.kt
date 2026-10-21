@@ -1389,6 +1389,7 @@ private fun LoanOverviewCard(
     target: Long?, onSnoozeTarget: ((String?) -> Unit)?,
 ) {
     var recording by remember(loan.accountId) { mutableStateOf(false) }
+    var planning by remember(loan.accountId) { mutableStateOf(false) }
     val config = loan.config
     val schedule = remember(loan.balanceCents, config) {
         if (loan.isPaidOff) null else config.schedule(loan.balanceCents, loan.projectionStart())
@@ -1407,6 +1408,7 @@ private fun LoanOverviewCard(
             }
             LinearProgressIndicator(progress = { loan.paidOffPermille / 1000f }, modifier = Modifier.fillMaxWidth())
             if (!loan.isPaidOff) DetailAmount(stringResource(R.string.account_loan_owed), loan.owedCents, hideDecimals)
+            if (loan.totalPaidCents > 0) DetailAmount(stringResource(R.string.account_loan_total_paid), loan.totalPaidCents, hideDecimals)
             DetailAmount(stringResource(R.string.account_loan_monthly_payment), config.minimumPaymentCents, hideDecimals)
             config.escrowOrFeesCents?.let { DetailAmount(stringResource(R.string.account_loan_escrow), it, hideDecimals) }
             Row(Modifier.fillMaxWidth()) {
@@ -1446,6 +1448,9 @@ private fun LoanOverviewCard(
                         Text(stringResource(if (snoozed) R.string.account_loan_resume_target else R.string.account_loan_skip_target))
                     }
                 }
+                FilledTonalButton(onClick = { planning = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.account_loan_payoff_planner))
+                }
                 if (onRecordPayment != null && !loan.closed) {
                     FilledTonalButton(onClick = { recording = true }, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.account_loan_record_payment))
@@ -1454,6 +1459,7 @@ private fun LoanOverviewCard(
             }
         }
     }
+    if (planning) LoanPlannerSheet(loan, hideDecimals, onDismiss = { planning = false })
     if (recording && onRecordPayment != null) LoanPaymentSheet(
         loan, loanFundingAccounts(fundingAccounts, loan.accountId), hideDecimals,
         onDismiss = { recording = false },

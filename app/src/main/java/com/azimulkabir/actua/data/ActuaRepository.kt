@@ -1044,7 +1044,8 @@ class ActuaRepository(context: Context) {
         return db.fetchAccounts().mapNotNull { account ->
             val config = configs[account.id] ?: return@mapNotNull null
             if (account.closed && !includeClosed) return@mapNotNull null
-            LoanStatus(account.id, account.name, account.balanceCents, config, account.closed)
+            LoanStatus(account.id, account.name, account.balanceCents, config, account.closed,
+                totalPaidCents = db.fetchTotalPaidInto(account.id))
         }.sortedWith(compareBy({ it.accountName.lowercase(java.util.Locale.ROOT) }, { it.accountId }))
     }
 
