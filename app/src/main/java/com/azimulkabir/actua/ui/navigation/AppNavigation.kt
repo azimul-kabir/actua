@@ -596,6 +596,8 @@ fun AppNavigation(
     }
     var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
     var newTransactionType by remember { mutableStateOf(com.azimulkabir.actua.model.Type.EXPENSE) }
+    // Starting values for a new transfer opened from "Pay statement"; cleared whenever the editor closes.
+    var transactionPrefill by remember { mutableStateOf<com.azimulkabir.actua.ui.transactions.TransactionPrefill?>(null) }
     var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
     var editorReturnsToCategory by rememberSaveable { mutableStateOf(false) }
     var editorReturnsToReports by rememberSaveable { mutableStateOf(false) }
@@ -1909,6 +1911,20 @@ fun AppNavigation(
                         mutate(R.string.navigation_saving_account_note) { repository.setAccountNote(account.id, note) }
                     }
                 },
+                onPayStatement = { remainingDueCents ->
+                    accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
+                        com.azimulkabir.actua.ui.transactions.payStatementPrefill(
+                            accountChoices.labelOf(account.id, account.name), remainingDueCents,
+                        )?.let { prefill ->
+                            transactionPrefill = prefill
+                            editingTransaction = null
+                            newTransactionType = com.azimulkabir.actua.model.Type.EXPENSE
+                            editorReturnsToTransactions = true
+                            editorReturnsToCategory = false
+                            detail = DetailDestination.EditTransaction
+                        }
+                    }
+                },
                 onViewStatements = {
                     accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
                         statementsAccountId = account.id
@@ -1970,8 +1986,10 @@ fun AppNavigation(
             }
             AddTransactionScreen(
                 editing = editingTransaction,
+                prefill = transactionPrefill,
                 defaultType = newTransactionType,
                 onBack = {
+                    transactionPrefill = null
                     if (editorReturnsToCategory) {
                         reopenBudgetCategory = transactionCategory
                         destination = MainDestination.Budget
@@ -2030,6 +2048,7 @@ fun AppNavigation(
                                 }
                             }
                             editingTransaction = null
+                            transactionPrefill = null
                             if (editorReturnsToCategory) {
                                 reopenBudgetCategory = transactionCategory
                                 destination = MainDestination.Budget

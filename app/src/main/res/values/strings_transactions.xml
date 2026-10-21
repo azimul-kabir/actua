@@ -222,6 +222,7 @@
     <string name="account_credit_utilization">Credit utilization</string>
     <string name="account_credit_utilization_value">%1$d%%</string>
     <string name="account_statement_closed">Statement closed %1$s</string>
+    <string name="account_pay_statement">Pay statement</string>
     <string name="account_statement_paid">Paid</string>
     <string name="account_statement_history">Statement history</string>
     <string name="account_note">Note</string>

@@ -222,6 +222,7 @@
     <string name="account_credit_utilization">Utilização do limite</string>
     <string name="account_credit_utilization_value">%1$d%%</string>
     <string name="account_statement_closed">Fatura fechada em %1$s</string>
+    <string name="account_pay_statement">Pagar fatura</string>
     <string name="account_statement_paid">Paga</string>
     <string name="account_statement_history">Histórico de faturas</string>
     <string name="account_note">Nota</string>
