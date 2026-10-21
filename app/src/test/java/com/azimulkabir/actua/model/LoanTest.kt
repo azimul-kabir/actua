@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.model
 
+import com.azimulkabir.actua.data.schedules.DayDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -82,5 +83,25 @@ class LoanTest {
             account("tracked", "debt"), account("auto", "debt"),
         ), configuredIds = setOf("tracked"))
         assertEquals(listOf("auto", "mortgage", "savings", "visa"), result.map { it.id })
+    }
+
+    @Test
+    fun nextPaymentDateIsThePaymentDayOnOrAfterToday() {
+        val loan = LoanConfig(1_000, 5.0, 100, paymentDay = 15)
+        assertEquals(DayDate(2026, 10, 15), loan.nextPaymentDate(DayDate(2026, 10, 10)))
+        assertEquals(DayDate(2026, 10, 15), loan.nextPaymentDate(DayDate(2026, 10, 15)))
+        assertEquals(DayDate(2026, 11, 15), loan.nextPaymentDate(DayDate(2026, 10, 16)))
+        assertEquals(DayDate(2027, 1, 15), loan.nextPaymentDate(DayDate(2026, 12, 20)))
+        assertNull(LoanConfig(1_000, 5.0, 100).nextPaymentDate(DayDate(2026, 10, 10)))
+    }
+
+    @Test
+    fun nextPaymentDateClampsToShortMonths() {
+        val loan = LoanConfig(1_000, 5.0, 100, paymentDay = 31)
+        assertEquals(DayDate(2026, 11, 30), loan.nextPaymentDate(DayDate(2026, 11, 1)))
+        assertEquals(DayDate(2027, 2, 28), loan.nextPaymentDate(DayDate(2027, 1, 31).addingDays(1)))
+        assertEquals(DayDate(2028, 2, 29), loan.nextPaymentDate(DayDate(2028, 1, 31).addingDays(1)))
+        // On the 30th of a 30-day month the clamped due day is today.
+        assertEquals(DayDate(2026, 11, 30), loan.nextPaymentDate(DayDate(2026, 11, 30)))
     }
 }

@@ -27,4 +27,13 @@
     <string name="loans_clear_date">Clear</string>
     <string name="loans_payoff_month">Paid off %1$s</string>
     <string name="loans_payment_too_small">Payment doesn\'t cover interest</string>
+    <string name="account_loan">Loan</string>
+    <string name="account_loan_of_original">%1$s of %2$s</string>
+    <string name="account_loan_owed">Still owed</string>
+    <string name="account_loan_monthly_payment">Monthly payment</string>
+    <string name="account_loan_escrow">Escrow or fees</string>
+    <string name="account_loan_rate_value">%1$s%% APR</string>
+    <string name="account_loan_next_payment">Next payment</string>
+    <string name="account_loan_payoff">Projected payoff</string>
+    <string name="account_loan_remaining_interest">Interest still to pay</string>
 </resources>

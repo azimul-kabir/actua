@@ -27,4 +27,13 @@
     <string name="loans_clear_date">Limpar</string>
     <string name="loans_payoff_month">Quitação em %1$s</string>
     <string name="loans_payment_too_small">O pagamento não cobre os juros</string>
+    <string name="account_loan">Empréstimo</string>
+    <string name="account_loan_of_original">%1$s de %2$s</string>
+    <string name="account_loan_owed">Saldo devedor</string>
+    <string name="account_loan_monthly_payment">Pagamento mensal</string>
+    <string name="account_loan_escrow">Escrow ou taxas</string>
+    <string name="account_loan_rate_value">%1$s%% a.a.</string>
+    <string name="account_loan_next_payment">Próximo pagamento</string>
+    <string name="account_loan_payoff">Quitação prevista</string>
+    <string name="account_loan_remaining_interest">Juros a pagar</string>
 </resources>

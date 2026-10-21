@@ -101,6 +101,12 @@ import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardStatus
+import com.azimulkabir.actua.model.LoanStatus
+import java.math.BigDecimal
+import com.azimulkabir.actua.ui.settings.payoffMonthText
+import com.azimulkabir.actua.ui.settings.paidOffPercentText
+import com.azimulkabir.actua.data.loans.schedule
+import androidx.compose.material3.LinearProgressIndicator
 import com.azimulkabir.actua.ui.components.ActuaSwitchMenuItem
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatDate
@@ -174,6 +180,7 @@ fun TransactionsScreen(
     onDuplicateMultiple: (List<Transaction>) -> Unit = {},
     account: Account? = null,
     creditCard: CreditCardStatus? = null,
+    loan: LoanStatus? = null,
     onSaveAccountNote: (String) -> Unit = {},
     searchTransactions: (suspend (String) -> List<Transaction>)? = null,
     initialSearch: String = "",
@@ -622,6 +629,7 @@ fun TransactionsScreen(
                             onViewStatements,
                             showCreditCardSection,
                             onPayStatement,
+                            loan,
                         )
                     }
                 }
@@ -1163,7 +1171,7 @@ private fun com.azimulkabir.actua.data.schedules.DayDate.formatted(): String =
 internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
     onSaveNote: (String) -> Unit, hideDecimals: Boolean, showSummary: Boolean, showNotes: Boolean,
     onViewStatements: (() -> Unit)? = null, showCreditCardSection: Boolean = true,
-    onPayStatement: ((Long) -> Unit)? = null) {
+    onPayStatement: ((Long) -> Unit)? = null, loan: LoanStatus? = null) {
     val context = LocalContext.current
     val detailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("account_detail_preferences", android.content.Context.MODE_PRIVATE)
@@ -1236,6 +1244,7 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                 }
             }
         }
+        loan?.let { LoanOverviewCard(it, hideDecimals) }
         if (showCreditCardSection) card?.let {
             ActuaFormCard {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1360,6 +1369,58 @@ private fun BalanceColumn(label: String, amountCents: Long, hideDecimals: Boolea
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/** Payoff progress, balance, payment schedule and projected payoff for a tracked loan account. */
+@Composable
+private fun LoanOverviewCard(loan: LoanStatus, hideDecimals: Boolean) {
+    val config = loan.config
+    val schedule = remember(loan.balanceCents, config) {
+        if (loan.isPaidOff) null else config.schedule(loan.balanceCents)
+    }
+    ActuaFormCard {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.account_loan), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            val progress = if (loan.isPaidOff) stringResource(R.string.loans_paid_off)
+                else stringResource(R.string.loans_paid_off_percent, paidOffPercentText(loan.paidOffPermille))
+            Row(Modifier.fillMaxWidth()) {
+                Text(progress, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.account_loan_of_original, formatMoneyCents(loan.paidOffCents, hideDecimals),
+                    formatMoneyCents(config.originalBalanceCents, hideDecimals)),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            LinearProgressIndicator(progress = { loan.paidOffPermille / 1000f }, modifier = Modifier.fillMaxWidth())
+            if (!loan.isPaidOff) DetailAmount(stringResource(R.string.account_loan_owed), loan.owedCents, hideDecimals)
+            DetailAmount(stringResource(R.string.account_loan_monthly_payment), config.minimumPaymentCents, hideDecimals)
+            config.escrowOrFeesCents?.let { DetailAmount(stringResource(R.string.account_loan_escrow), it, hideDecimals) }
+            Row(Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.loans_interest_rate), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.account_loan_rate_value, BigDecimal.valueOf(config.annualRatePercent).stripTrailingZeros().toPlainString()),
+                    style = MaterialTheme.typography.bodyMedium)
+            }
+            if (!loan.isPaidOff) {
+                config.nextPaymentDate()?.let { next ->
+                    Row(Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.account_loan_next_payment), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                        Text(next.formatted(), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                HorizontalDivider()
+                val payoff = schedule?.payoffDate
+                if (payoff == null) {
+                    Text(stringResource(R.string.loans_payment_too_small), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error)
+                } else {
+                    Row(Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.account_loan_payoff), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                        Text(payoffMonthText(payoff), style = MaterialTheme.typography.bodyMedium)
+                    }
+                    DetailAmount(stringResource(R.string.account_loan_remaining_interest), schedule.totalInterest, hideDecimals)
+                }
+            }
+        }
     }
 }
 
