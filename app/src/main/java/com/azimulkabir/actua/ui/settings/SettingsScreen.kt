@@ -186,8 +186,8 @@ fun SettingsScreen(
     onCustomizeTabBarClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = true,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
-    showBottomNavigationLabels: Boolean = true,
-    onShowBottomNavigationLabelsChange: (Boolean) -> Unit = {},
+    /** Tab bar display options (labels, hide while scrolling); null hides those rows. */
+    tabBarDisplay: com.azimulkabir.actua.ui.navigation.TabBarScrollState? = null,
     showCurrentBalanceSummary: Boolean = true,
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
     budgetOptions: List<BudgetSelectionItem> = emptyList(),
@@ -795,7 +795,7 @@ fun SettingsScreen(
                         SettingsDivider()
                         SettingsChoice(
                             stringResource(R.string.settings_bottom_navigation_labels),
-                            if (showBottomNavigationLabels) NAV_LABELS_ICONS_AND_NAMES else NAV_LABELS_ICONS_ONLY,
+                            if (tabBarDisplay?.showLabels != false) NAV_LABELS_ICONS_AND_NAMES else NAV_LABELS_ICONS_ONLY,
                             listOf(
                                 SettingsChoiceOption(
                                     NAV_LABELS_ICONS_AND_NAMES,
@@ -806,7 +806,14 @@ fun SettingsScreen(
                                     stringResource(R.string.settings_navigation_icons_only),
                                 ),
                             ),
-                        ) { onShowBottomNavigationLabelsChange(it == NAV_LABELS_ICONS_AND_NAMES) }
+                        ) { tabBarDisplay?.updateShowLabels(it == NAV_LABELS_ICONS_AND_NAMES) }
+                        SettingsDivider()
+                        SettingsToggle(
+                            stringResource(R.string.settings_hide_tab_bar_on_scroll),
+                            stringResource(R.string.settings_hide_tab_bar_on_scroll_description),
+                            tabBarDisplay?.hideOnScroll != false,
+                            { tabBarDisplay?.updateHideOnScroll(it) },
+                        )
                         SettingsDivider()
                         SettingsRow(
                             stringResource(R.string.settings_tab_bar),

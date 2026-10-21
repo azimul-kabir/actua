@@ -618,8 +618,6 @@ fun AppNavigation(
     var reportSnapshotVersion by remember(repository) { mutableStateOf(-1) }
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
-    // The floating tab bar slides away while scrolling down and returns on scroll up.
-    var tabBarVisible by remember { mutableStateOf(true) }
     var transactionsRefreshing by remember { mutableStateOf(false) }
     var accountsRefreshing by remember { mutableStateOf(false) }
     var simpleFinConfigured by remember { mutableStateOf(false) }
@@ -682,7 +680,8 @@ fun AppNavigation(
     var groupTransactionsByDate by remember { mutableStateOf(displayPreferences.groupTransactionsByDate) }
     var showAccountsMonthlySummary by remember { mutableStateOf(displayPreferences.showAccountsMonthlySummary) }
     var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
-    var showBottomNavigationLabels by remember { mutableStateOf(displayPreferences.showBottomNavigationLabels) }
+    val tabBarScroll = remember { TabBarScrollState(displayPreferences) }
+    val showBottomNavigationLabels = tabBarScroll.showLabels
     var showCurrentBalanceSummary by remember { mutableStateOf(displayPreferences.showCurrentBalanceSummary) }
     var showRunningBalance by remember { mutableStateOf(displayPreferences.showRunningBalance) }
     var showNotes by remember { mutableStateOf(displayPreferences.showNotes) }
@@ -1245,15 +1244,16 @@ fun AppNavigation(
     val fabScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -2f) { transactionFabExpanded = false; tabBarVisible = false }
-                if (available.y > 2f) { transactionFabExpanded = true; tabBarVisible = true }
+                if (available.y < -2f) transactionFabExpanded = false
+                if (available.y > 2f) transactionFabExpanded = true
+                tabBarScroll.onScroll(available.y)
                 return Offset.Zero
             }
         }
     }
 
     // Every tab or screen change starts with the bar showing.
-    LaunchedEffect(destination, detail) { tabBarVisible = true }
+    LaunchedEffect(destination, detail) { tabBarScroll.show() }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -1545,7 +1545,7 @@ fun AppNavigation(
         },
         bottomBar = {
             AnimatedVisibility(
-                visible = tabBarVisible && detail != DetailDestination.EditTransaction,
+                visible = tabBarScroll.visible && detail != DetailDestination.EditTransaction,
                 enter = slideInVertically { it } + expandVertically(),
                 exit = slideOutVertically { it } + shrinkVertically(),
             ) { FloatingNavigationBar(
@@ -3207,11 +3207,7 @@ fun AppNavigation(
                         displayPreferences.conventionalAmountEntry = it
                         conventionalAmountEntry = it
                     },
-                    showBottomNavigationLabels = showBottomNavigationLabels,
-                    onShowBottomNavigationLabelsChange = {
-                        displayPreferences.showBottomNavigationLabels = it
-                        showBottomNavigationLabels = it
-                    },
+                    tabBarDisplay = tabBarScroll,
                     showCurrentBalanceSummary = showCurrentBalanceSummary,
                     onShowCurrentBalanceSummaryChange = {
                         displayPreferences.showCurrentBalanceSummary = it

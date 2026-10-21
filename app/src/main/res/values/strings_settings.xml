@@ -171,6 +171,8 @@
     <string name="settings_material_you_colors">Material You colors</string>
     <string name="settings_material_you_colors_description">Match colors to your wallpaper instead of Actua\'s default theme</string>
     <string name="settings_start_page">Start page</string>
+    <string name="settings_hide_tab_bar_on_scroll">Hide tab bar while scrolling</string>
+    <string name="settings_hide_tab_bar_on_scroll_description">The tab bar slides away as you scroll down and returns when you scroll up</string>
     <string name="settings_bottom_navigation_labels">Bottom navigation labels</string>
     <string name="settings_navigation_icons_names">Icons and names</string>
     <string name="settings_navigation_icons_only">Icons only</string>
