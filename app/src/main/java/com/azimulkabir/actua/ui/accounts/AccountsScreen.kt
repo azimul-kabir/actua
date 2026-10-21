@@ -615,16 +615,18 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
                 .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md)
                 .clip(MaterialTheme.shapes.large)
                 .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = {})
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                // End inset matches an account row (4dp + its 24dp chevron) so the totals line up with
+                // the balances below them.
+                .padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(section.title, style = MaterialTheme.typography.labelLarge,
+            Text(section.title, style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
             MonetaryText(total, hideDecimalPlaces)
             Icon(Icons.Outlined.KeyboardArrowDown,
                 contentDescription = if (collapsed) "Expand ${section.title}" else "Collapse ${section.title}",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = Spacing.xs).rotate(rotation))
+                modifier = Modifier.rotate(rotation))
         }
     }
 }
@@ -652,12 +654,12 @@ private fun AccountGroupHeader(
             )
             .clip(MaterialTheme.shapes.large)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            .padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             groupName,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -667,13 +669,12 @@ private fun AccountGroupHeader(
             totalCents,
             hideDecimalPlaces,
             modifier = Modifier.padding(start = Spacing.sm),
-            style = MaterialTheme.typography.labelMedium,
         )
         Icon(
             Icons.Outlined.KeyboardArrowDown,
             contentDescription = if (collapsed) "Expand $groupName" else "Collapse $groupName",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = Spacing.xs).rotate(rotation),
+            modifier = Modifier.rotate(rotation),
         )
     }
 }
