@@ -1237,7 +1237,7 @@ private data class SettingsChoiceOption(
 private fun SettingsChoice(
     label: String,
     value: String,
-    options: List<SettingsChoiceOption>,
+    options: List<String>,
     preview: String? = null,
     onChange: (String) -> Unit,
 ) = SettingsChoice(label, value, options.map { SettingsChoiceOption(it, it) }, preview, onChange)
