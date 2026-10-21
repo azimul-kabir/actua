@@ -20,6 +20,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Brazilian Portuguese (pt-BR) translation of widget, disconnect and notification strings ([#1231](https://github.com/azimul-kabir/actua/pull/1231))
 - Brazilian Portuguese (pt-BR) translation with in-app language selection for navigation, Home, Budget, widgets and shortcuts ([#1227](https://github.com/azimul-kabir/actua/pull/1227))
 
+### Fixed
+
+- Transfers that carry a budget category now show that category instead of "Transfer" in the transaction list and details ([#1260](https://github.com/azimul-kabir/actua/pull/1260))
+
 ## [2.0.0] - 2026-10-19
 
 ### Added

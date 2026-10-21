@@ -1602,7 +1602,8 @@ internal fun transactionRowPresentation(
     return TransactionRowPresentation(
         title = if (outgoing) labels.transferToFormat.format(otherAccount)
         else labels.transferFromFormat.format(otherAccount),
-        categoryLabel = labels.transfer,
+        // An on-budget -> off-budget transfer's on-budget leg carries a category; other transfers don't.
+        categoryLabel = transaction.category.ifBlank { labels.transfer },
         accountLabel = null,
         transferContext = if (!showAccount) null
         else if (outgoing) labels.fromAccountFormat.format(transaction.account)
