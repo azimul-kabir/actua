@@ -140,6 +140,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 
 private val sampleTransactions = listOf(
     Transaction("1", "Today", "Agora Super Shop", "Groceries", "Everyday account", -2_450, true),
@@ -618,7 +619,7 @@ fun TransactionsScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = floatingBarClearance() + if (hasFab) 96.dp else 0.dp),
             ) {
                 account?.let { selectedAccount ->
                     item("account-details") {

@@ -54,9 +54,6 @@ import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Badge
@@ -1528,31 +1525,21 @@ fun AppNavigation(
                         else -> ::openAddTransaction
                     },
                     expanded = transactionFabExpanded,
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.navigation_transaction)) },
                 )
             }
         },
         bottomBar = {
-            if (detail != DetailDestination.EditTransaction) NavigationBar(
-                modifier = if (showBottomNavigationLabels) {
-                    Modifier
-                } else {
-                    Modifier
-                        .background(MaterialTheme.colorScheme.surfaceContainer)
-                        .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-                        .height(64.dp)
-                },
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                windowInsets = if (showBottomNavigationLabels) {
-                    NavigationBarDefaults.windowInsets
-                } else {
-                    WindowInsets(0, 0, 0, 0)
-                },
+            if (detail != DetailDestination.EditTransaction) FloatingNavigationBar(
+                showLabels = showBottomNavigationLabels,
             ) {
                 tabBarLayout.visibleTabs.forEach { tabItem ->
                     if (tabItem == TabItem.ADD) {
-                        NavigationBarItem(
+                        FloatingNavigationBarItem(
                             selected = false,
                             onClick = {
                                 if (inAccount) openAddTransactionForAccount() else openAddTransaction()
@@ -1567,28 +1554,18 @@ fun AppNavigation(
                                     Icon(
                                         Icons.Outlined.Add,
                                         contentDescription = stringResource(tabItem.labelRes()),
-                                        modifier = Modifier.padding(4.dp).size(24.dp),
+                                        modifier = Modifier.padding(10.dp).size(28.dp),
                                     )
                                 }
                             },
-                            label = if (showBottomNavigationLabels) {
-                                {
-                                    Text(
-                                        text = stringResource(tabItem.labelRes()),
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        autoSize = TextAutoSize.StepBased(
-                                            minFontSize = 8.sp,
-                                            maxFontSize = 12.sp,
-                                        ),
-                                    )
-                                }
-                            } else null,
+                            // Just the big +, with no text even when tab labels are on; its content
+                            // description above stays the accessibility name.
+                            label = null,
                         )
                         return@forEach
                     }
                     val item = tabItem.toMainDestination() ?: return@forEach
-                    NavigationBarItem(
+                    FloatingNavigationBarItem(
                         selected = selectedTab == item,
                         onClick = {
                             if (item != MainDestination.Manage && !repository.isUsingActualBudget) {
@@ -1596,7 +1573,7 @@ fun AppNavigation(
                                 selectedTab = MainDestination.Manage
                                 destination = MainDestination.Manage
                                 detail = DetailDestination.Connection
-                                return@NavigationBarItem
+                                return@FloatingNavigationBarItem
                             }
                             if (item == destination) {
                                 tabSwitchJob?.cancel()
@@ -1683,7 +1660,12 @@ fun AppNavigation(
             }
         },
     ) { innerPadding ->
-        val contentModifier = Modifier.padding(innerPadding).nestedScroll(fabScrollConnection)
+        // Root list screens run behind the transparent area around the floating pill and clear it
+        // with their own bottom padding; every other screen still ends above the bar.
+        val drawsBehindTabBar = (detail == DetailDestination.Main && destination != MainDestination.Manage) ||
+            detail == DetailDestination.Transactions || detail == DetailDestination.Reports
+        val contentModifier = (if (drawsBehindTabBar) Modifier.padding(top = innerPadding.calculateTopPadding()) else Modifier.padding(innerPadding))
+            .nestedScroll(fabScrollConnection)
         val loadReportWidgets: suspend (ReportViewFilter) -> List<ReportWidget> = remember(repository, dataVersion) {
             { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } }
         }

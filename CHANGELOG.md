@@ -26,6 +26,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Transfers that carry a budget category now show that category instead of "Transfer" in the transaction list and details ([#1260](https://github.com/azimul-kabir/actua/pull/1260))
 
+### Changed
+
+- The bottom tab bar is now a floating pill, keeping your tab order, the Add tab and the labels setting ([#1265](https://github.com/azimul-kabir/actua/pull/1265))
+
 ## [2.0.0] - 2026-10-19
 
 ### Added

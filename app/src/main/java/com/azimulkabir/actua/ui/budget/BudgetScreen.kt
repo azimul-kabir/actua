@@ -186,6 +186,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
 import kotlinx.coroutines.launch
+import com.azimulkabir.actua.ui.navigation.floatingBarClearance
 
 private val sampleGroups = listOf(
     BudgetGroup("Monthly bills", listOf(
@@ -458,7 +459,7 @@ fun BudgetScreen(
             CompositionLocalProvider(LocalTableLayout provides tableLayout) { LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (hasFab) 96.dp else 0.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = floatingBarClearance() + if (hasFab) 96.dp else 0.dp),
             ) {
                 // The Ready to Budget hero and warnings scroll with the categories; the toolbar stays.
                 item(key = "budget-overview", contentType = "budget-overview") {
