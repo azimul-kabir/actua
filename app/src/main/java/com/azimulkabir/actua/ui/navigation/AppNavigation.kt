@@ -15,6 +15,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
@@ -675,7 +680,8 @@ fun AppNavigation(
     var groupTransactionsByDate by remember { mutableStateOf(displayPreferences.groupTransactionsByDate) }
     var showAccountsMonthlySummary by remember { mutableStateOf(displayPreferences.showAccountsMonthlySummary) }
     var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
-    var showBottomNavigationLabels by remember { mutableStateOf(displayPreferences.showBottomNavigationLabels) }
+    val tabBarScroll = remember { TabBarScrollState(displayPreferences) }
+    val showBottomNavigationLabels = tabBarScroll.showLabels
     var showCurrentBalanceSummary by remember { mutableStateOf(displayPreferences.showCurrentBalanceSummary) }
     var showRunningBalance by remember { mutableStateOf(displayPreferences.showRunningBalance) }
     var showNotes by remember { mutableStateOf(displayPreferences.showNotes) }
@@ -1240,10 +1246,14 @@ fun AppNavigation(
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (available.y < -2f) transactionFabExpanded = false
                 if (available.y > 2f) transactionFabExpanded = true
+                tabBarScroll.onScroll(available.y)
                 return Offset.Zero
             }
         }
     }
+
+    // Every tab or screen change starts with the bar showing.
+    LaunchedEffect(destination, detail) { tabBarScroll.show() }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
@@ -1534,7 +1544,11 @@ fun AppNavigation(
             }
         },
         bottomBar = {
-            if (detail != DetailDestination.EditTransaction) FloatingNavigationBar(
+            AnimatedVisibility(
+                visible = tabBarScroll.visible && detail != DetailDestination.EditTransaction,
+                enter = slideInVertically { it } + expandVertically(),
+                exit = slideOutVertically { it } + shrinkVertically(),
+            ) { FloatingNavigationBar(
                 showLabels = showBottomNavigationLabels,
             ) {
                 tabBarLayout.visibleTabs.forEach { tabItem ->
@@ -1657,7 +1671,7 @@ fun AppNavigation(
                         } else null,
                     )
                 }
-            }
+            } }
         },
     ) { innerPadding ->
         // Root list screens run behind the transparent area around the floating pill and clear it
@@ -3193,11 +3207,7 @@ fun AppNavigation(
                         displayPreferences.conventionalAmountEntry = it
                         conventionalAmountEntry = it
                     },
-                    showBottomNavigationLabels = showBottomNavigationLabels,
-                    onShowBottomNavigationLabelsChange = {
-                        displayPreferences.showBottomNavigationLabels = it
-                        showBottomNavigationLabels = it
-                    },
+                    tabBarDisplay = tabBarScroll,
                     showCurrentBalanceSummary = showCurrentBalanceSummary,
                     onShowCurrentBalanceSummaryChange = {
                         displayPreferences.showCurrentBalanceSummary = it

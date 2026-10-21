@@ -171,6 +171,8 @@
     <string name="settings_material_you_colors">Cores do Material You</string>
     <string name="settings_material_you_colors_description">Combine as cores com seu papel de parede em vez do tema padrão do Actua</string>
     <string name="settings_start_page">Página inicial</string>
+    <string name="settings_hide_tab_bar_on_scroll">Ocultar a barra de abas ao rolar</string>
+    <string name="settings_hide_tab_bar_on_scroll_description">A barra de abas some ao rolar para baixo e volta ao rolar para cima</string>
     <string name="settings_bottom_navigation_labels">Rótulos da navegação inferior</string>
     <string name="settings_navigation_icons_names">Ícones e nomes</string>
     <string name="settings_navigation_icons_only">Somente ícones</string>
