@@ -76,8 +76,11 @@ data class LoanStatus(
     val isPaidOff: Boolean get() = owedCents == 0L
 
     /** Month the loan is projected to clear, or null when paid off or the payment never clears it. */
-    fun payoffMonth(from: DayDate = DayDate.today()): DayDate? =
+    fun payoffMonth(from: DayDate = projectionStart()): DayDate? =
         if (isPaidOff) null else config.schedule(balanceCents, from)?.payoffDate
+
+    /** First projected payment month: the next payment day when set, otherwise the current month. */
+    fun projectionStart(today: DayDate = DayDate.today()): DayDate = config.nextPaymentDate(today) ?: today
 }
 
 /** Open, off-budget accounts not yet tracked as loans: debt-type accounts first, then by name. */

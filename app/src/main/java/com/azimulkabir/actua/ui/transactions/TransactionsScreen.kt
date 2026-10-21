@@ -1377,7 +1377,7 @@ private fun BalanceColumn(label: String, amountCents: Long, hideDecimals: Boolea
 private fun LoanOverviewCard(loan: LoanStatus, hideDecimals: Boolean) {
     val config = loan.config
     val schedule = remember(loan.balanceCents, config) {
-        if (loan.isPaidOff) null else config.schedule(loan.balanceCents)
+        if (loan.isPaidOff) null else config.schedule(loan.balanceCents, loan.projectionStart())
     }
     ActuaFormCard {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1396,7 +1396,7 @@ private fun LoanOverviewCard(loan: LoanStatus, hideDecimals: Boolean) {
             DetailAmount(stringResource(R.string.account_loan_monthly_payment), config.minimumPaymentCents, hideDecimals)
             config.escrowOrFeesCents?.let { DetailAmount(stringResource(R.string.account_loan_escrow), it, hideDecimals) }
             Row(Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.loans_interest_rate), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.account_loan_rate), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 Text(stringResource(R.string.account_loan_rate_value, BigDecimal.valueOf(config.annualRatePercent).stripTrailingZeros().toPlainString()),
                     style = MaterialTheme.typography.bodyMedium)
             }
