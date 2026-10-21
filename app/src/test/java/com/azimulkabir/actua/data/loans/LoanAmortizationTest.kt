@@ -126,4 +126,14 @@ class LoanAmortizationTest {
         assertNull(status(0, 36_500).payoffMonth(start))
         assertNull(status(-2_200_000, 5_000).payoffMonth(start))
     }
+
+    @Test
+    fun projectionStartsAtTheNextPaymentMonth() {
+        val withDay = LoanStatus("a", "Car", -100_000, LoanConfig(2_200_000, 0.0, 25_000, paymentDay = 15), closed = false)
+        // Past the 15th the first payment is next month, so 4 payments end in the month after.
+        assertEquals(DayDate(2026, 11, 15), withDay.projectionStart(DayDate(2026, 10, 20)))
+        assertEquals(DayDate(2027, 2, 15), withDay.payoffMonth(withDay.projectionStart(DayDate(2026, 10, 20))))
+        val noDay = LoanStatus("a", "Car", -100_000, LoanConfig(2_200_000, 0.0, 25_000), closed = false)
+        assertEquals(DayDate(2026, 10, 20), noDay.projectionStart(DayDate(2026, 10, 20)))
+    }
 }

@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Loan accounts now show a loan card with payoff progress, payment schedule and projected payoff ([#1257](https://github.com/azimul-kabir/actua/pull/1257))
 - Loans screen now shows each loan's projected payoff month ([#1256](https://github.com/azimul-kabir/actua/pull/1256))
 - Loans screen in Settings to track a loan account's balance, interest rate, payment and payoff progress ([#1255](https://github.com/azimul-kabir/actua/pull/1255))
 - Pay statement button on credit cards that opens a prefilled transfer for the amount due ([#1247](https://github.com/azimul-kabir/actua/pull/1247))

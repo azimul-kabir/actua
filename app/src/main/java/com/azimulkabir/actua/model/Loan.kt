@@ -39,6 +39,17 @@ data class LoanConfig(
     fun paidOffCents(accountBalanceCents: Long): Long =
         (originalBalanceCents - owedCents(accountBalanceCents)).coerceIn(0L, originalBalanceCents)
 
+    /**
+     * Next due date for [paymentDay] on or after [today], clamped to short months; null without a
+     * payment day. A paid-off loan has no next payment either way, which callers decide.
+     */
+    fun nextPaymentDate(today: DayDate = DayDate.today()): DayDate? {
+        val day = paymentDay ?: return null
+        fun inMonth(month: DayDate) = DayDate(month.year, month.month, minOf(day, DayDate.lastDay(month.year, month.month)))
+        val thisMonth = inMonth(today)
+        return if (thisMonth >= today) thisMonth else inMonth(today.addingMonths(1).let { DayDate(it.year, it.month, 1) })
+    }
+
     /** Share of the original balance repaid in tenths of a percent (0..1000), rounded down. */
     fun paidOffPermille(accountBalanceCents: Long): Int =
         (paidOffCents(accountBalanceCents) * 1000 / originalBalanceCents).toInt()
@@ -65,8 +76,11 @@ data class LoanStatus(
     val isPaidOff: Boolean get() = owedCents == 0L
 
     /** Month the loan is projected to clear, or null when paid off or the payment never clears it. */
-    fun payoffMonth(from: DayDate = DayDate.today()): DayDate? =
+    fun payoffMonth(from: DayDate = projectionStart()): DayDate? =
         if (isPaidOff) null else config.schedule(balanceCents, from)?.payoffDate
+
+    /** First projected payment month: the next payment day when set, otherwise the current month. */
+    fun projectionStart(today: DayDate = DayDate.today()): DayDate = config.nextPaymentDate(today) ?: today
 }
 
 /** Open, off-budget accounts not yet tracked as loans: debt-type accounts first, then by name. */

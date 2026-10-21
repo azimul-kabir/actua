@@ -1908,6 +1908,9 @@ fun AppNavigation(
                 creditCard = creditCards.firstOrNull { card ->
                     card.accountId == accounts.firstOrNull { it.name == transactionAccount }?.id
                 },
+                loan = loans.firstOrNull { loan ->
+                    loan.accountId == accounts.firstOrNull { it.name == transactionAccount }?.id
+                },
                 onSaveAccountNote = { note ->
                     accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
                         mutate(R.string.navigation_saving_account_note) { repository.setAccountNote(account.id, note) }
