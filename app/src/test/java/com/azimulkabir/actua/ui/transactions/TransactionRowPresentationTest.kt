@@ -36,7 +36,7 @@ class TransactionRowPresentationTest {
     @Test
     fun `all accounts names both sides of outgoing transfer`() {
         val row = transactionRowPresentation(
-            transaction(account = "Bhaiya", amountCents = -200_000, transferAccount = "Cash in Hand"),
+            transaction(account = "Bhaiya", amountCents = -200_000, transferAccount = "Cash in Hand", category = ""),
             showAccount = true,
             labels,
         )
@@ -66,15 +66,37 @@ class TransactionRowPresentationTest {
         assertEquals("To %1\$s", labels.toAccountFormat)
     }
 
+    @Test
+    fun `transfer leg with a category shows the category`() {
+        val row = transactionRowPresentation(
+            transaction(account = "Checking", amountCents = -1_000, transferAccount = "DPS", category = "Emergency Fund"),
+            showAccount = false, labels,
+        )
+
+        assertEquals("Emergency Fund", row.categoryLabel)
+        assertEquals("Transfer to DPS", row.title)
+    }
+
+    @Test
+    fun `transfer leg without a category still shows Transfer`() {
+        val row = transactionRowPresentation(
+            transaction(account = "DPS", amountCents = 1_000, transferAccount = "Checking", category = ""),
+            showAccount = false, labels,
+        )
+
+        assertEquals("Transfer", row.categoryLabel)
+    }
+
     private fun transaction(
         account: String,
         amountCents: Long = -50_000,
         transferAccount: String? = null,
+        category: String = "Transportation",
     ) = Transaction(
         id = "transaction-id",
         date = "20260831",
         payee = "Family Expense",
-        category = "Transportation",
+        category = category,
         account = account,
         amount = (amountCents / 100).toInt(),
         cleared = true,
