@@ -166,6 +166,7 @@ fun SettingsScreen(
     showAccountsMonthlySummary: Boolean = true,
     onShowAccountsMonthlySummaryChange: (Boolean) -> Unit = {},
     onCreditCardsClick: () -> Unit = {},
+    onLoansClick: () -> Unit = {},
     onBankSyncClick: () -> Unit = {},
     /** Actual's experimental `enableBanking` flag; device-local and off by default. */
     enableBankingExperiment: Boolean = false,
@@ -437,6 +438,15 @@ fun SettingsScreen(
                         ) {
                             openFullScreen(onCreditCardsClick)
                         }
+                        ActuaCardDivider()
+                        SettingsRow(
+                            stringResource(R.string.settings_loans),
+                            stringResource(R.string.settings_loans_description),
+                            true,
+                            Icons.Outlined.AccountBalance,
+                        ) {
+                            openFullScreen(onLoansClick)
+                        }
                     }
                 }
                 SettingsPage.General -> {
@@ -568,6 +578,15 @@ fun SettingsScreen(
                             Icons.Outlined.CreditCard,
                         ) {
                             openFullScreen(onCreditCardsClick)
+                        }
+                        ActuaCardDivider()
+                        SettingsRow(
+                            stringResource(R.string.settings_loans),
+                            stringResource(R.string.settings_loans_description),
+                            true,
+                            Icons.Outlined.AccountBalance,
+                        ) {
+                            openFullScreen(onLoansClick)
                         }
                     }
                 }

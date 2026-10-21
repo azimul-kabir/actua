@@ -626,6 +626,51 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun loanConfigUsesIosPreferenceContractAndSyncLog() = withDatabase { database ->
+        val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
+        val prefix = ActualBudgetDatabase.LOAN_PREFERENCE_PREFIX
+        writer.setPreference(prefix + "mortgage", ActualBudgetDatabase.encodeLoanConfig(
+            com.azimulkabir.actua.model.LoanConfig(25_000_000, 5.25, 150_000, 30_000, "cat-1", "2026-10", 360, 15, 20240201),
+        ))
+        writer.setPreference(
+            prefix + "ios",
+            "{\"originalBalance\":120000,\"annualRatePercent\":4,\"minimumPayment\":5000}",
+        )
+        val configs = database.fetchLoanConfigs()
+        val mortgage = configs.getValue("mortgage")
+        assertEquals(25_000_000L, mortgage.originalBalanceCents)
+        assertEquals(5.25, mortgage.annualRatePercent, 0.0)
+        assertEquals(30_000L, mortgage.escrowOrFeesCents)
+        assertEquals("cat-1", mortgage.categoryId)
+        assertEquals("2026-10", mortgage.targetSnoozedMonth)
+        assertEquals(360, mortgage.termMonths)
+        assertEquals(15, mortgage.paymentDay)
+        assertEquals(20240201, mortgage.startDate)
+        assertEquals(null, configs.getValue("ios").escrowOrFeesCents)
+        assertEquals(null, configs.getValue("ios").termMonths)
+        assertTrue(database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString()).any {
+            it.dataset == "preferences" && it.row == "actuali:loan:mortgage" && it.column == "value"
+        })
+        writer.setPreference(prefix + "mortgage", null)
+        writer.setPreference(prefix + "ios", null)
+        assertTrue(database.fetchLoanConfigs().isEmpty())
+    }
+
+    @Test
+    fun loanConfigsSkipInvalidSyncedValues() = withDatabase { database ->
+        val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
+        val prefix = ActualBudgetDatabase.LOAN_PREFERENCE_PREFIX
+        writer.setPreference(prefix + "valid", "{\"originalBalance\":1000,\"annualRatePercent\":0,\"minimumPayment\":100}")
+        writer.setPreference(prefix + "zeroBalance", "{\"originalBalance\":0,\"annualRatePercent\":3,\"minimumPayment\":100}")
+        writer.setPreference(prefix + "negativeRate", "{\"originalBalance\":1000,\"annualRatePercent\":-1,\"minimumPayment\":100}")
+        writer.setPreference(prefix + "missingPayment", "{\"originalBalance\":1000,\"annualRatePercent\":3}")
+        writer.setPreference(prefix + "badTerm", "{\"originalBalance\":1000,\"annualRatePercent\":3,\"minimumPayment\":100,\"termMonths\":0}")
+        writer.setPreference(prefix + "badDay", "{\"originalBalance\":1000,\"annualRatePercent\":3,\"minimumPayment\":100,\"paymentDay\":40}")
+        writer.setPreference(prefix + "garbage", "not json")
+        assertEquals(setOf("valid"), database.fetchLoanConfigs().keys)
+    }
+
+    @Test
     fun creditCardConfigsSkipOutOfRangeSyncedValues() = withDatabase { database ->
         val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
         val prefix = ActualBudgetDatabase.CREDIT_CARD_PREFERENCE_PREFIX

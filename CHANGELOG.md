@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Loans screen in Settings to track a loan account's balance, interest rate, payment and payoff progress ([#1255](https://github.com/azimul-kabir/actua/pull/1255))
 - Brazilian Portuguese (pt-BR) translation of demo budget strings ([#1242](https://github.com/azimul-kabir/actua/pull/1242))
 - Brazilian Portuguese (pt-BR) translation of connection and transaction import strings ([#1239](https://github.com/azimul-kabir/actua/pull/1239))
 - Brazilian Portuguese (pt-BR) translation of financial settings strings ([#1237](https://github.com/azimul-kabir/actua/pull/1237))
