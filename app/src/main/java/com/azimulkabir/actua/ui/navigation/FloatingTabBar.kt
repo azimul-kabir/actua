@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -118,6 +119,8 @@ internal fun RowScope.FloatingNavigationBarItem(
             .weight(1f)
             .fillMaxHeight()
             .padding(horizontal = 2.dp, vertical = 4.dp)
+            // Clip before selectable so the press ripple is the same capsule as the highlight.
+            .clip(CircleShape)
             .selectable(selected = selected, onClick = onClick, role = Role.Tab),
         contentAlignment = Alignment.Center,
     ) {
