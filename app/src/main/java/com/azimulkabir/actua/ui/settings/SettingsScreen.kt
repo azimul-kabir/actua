@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.snap
@@ -92,23 +93,24 @@ import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.ActuaSectionHeader
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.navigation.mainDestinationLabelRes
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
 
-internal enum class SettingsPage(val title: String, val depth: Int) {
-    Manage("Manage", 0),
-    Tags("Tags", 1),
-    General("Settings", 1),
-    Transactions("Transactions & Accounts", 2),
-    Display("Display", 2),
-    Privacy("Privacy", 2),
-    Budget("Budget", 2),
-    CategoryColors("Category status colors", 3),
-    Experimental("Experimental", 2),
-    Support("Support Actua", 2),
-    About("About", 2),
-    Diagnostics("Diagnostics", 3),
+internal enum class SettingsPage(@StringRes val titleRes: Int, val depth: Int) {
+    Manage(R.string.settings_page_manage, 0),
+    Tags(R.string.settings_page_tags, 1),
+    General(R.string.settings_page_settings, 1),
+    Transactions(R.string.settings_page_transactions_accounts, 2),
+    Display(R.string.settings_page_display, 2),
+    Privacy(R.string.settings_page_privacy, 2),
+    Budget(R.string.settings_page_budget, 2),
+    CategoryColors(R.string.settings_page_category_colors, 3),
+    Experimental(R.string.settings_page_experimental, 2),
+    Support(R.string.settings_page_support, 2),
+    About(R.string.settings_page_about, 2),
+    Diagnostics(R.string.settings_page_diagnostics, 3),
 }
 
 internal fun isForwardSettingsNavigation(from: SettingsPage, to: SettingsPage): Boolean =
@@ -311,12 +313,12 @@ fun SettingsScreen(
             )
         } else Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
             ActuaScreenHeader(
-                title = shownPage.title,
+                title = stringResource(shownPage.titleRes),
                 onBack = if (shownPage != SettingsPage.Manage) ::navigateBack else null,
             ) {
                 if (shownPage == SettingsPage.Manage) {
                     IconButton(onClick = { page = SettingsPage.General }) {
-                        Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                        Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings_open_settings))
                     }
                 }
             }
@@ -329,129 +331,242 @@ fun SettingsScreen(
                             onBudgetChange = onBudgetChange,
                         )
                     }
-                    if (showHomeShortcut || showReportsShortcut) SettingsGroup("Insights") {
+                    if (showHomeShortcut || showReportsShortcut) SettingsGroup(stringResource(R.string.settings_section_insights)) {
                         if (showHomeShortcut) {
-                            SettingsRow("Home", "Your dashboard of favorites, upcoming bills and activity", true, Icons.Outlined.Home) {
+                            SettingsRow(
+                                stringResource(R.string.settings_manage_home),
+                                stringResource(R.string.settings_manage_home_description),
+                                true,
+                                Icons.Outlined.Home,
+                            ) {
                                 openFullScreen(onHomeClick)
                             }
                         }
                         if (showHomeShortcut && showReportsShortcut) ActuaCardDivider()
                         if (showReportsShortcut) {
-                            SettingsRow("Reports", "View dashboards and financial reports", true, Icons.Outlined.BarChart) {
+                            SettingsRow(
+                                stringResource(R.string.settings_reports),
+                                stringResource(R.string.settings_reports_description),
+                                true,
+                                Icons.Outlined.BarChart,
+                            ) {
                                 openFullScreen(onReportsClick)
                             }
                         }
                     }
-                    SettingsGroup("Automation") {
-                        SettingsRow("Bills & Calendar", "Upcoming schedules and credit-card due dates", true, Icons.Outlined.CalendarMonth) {
+                    SettingsGroup(stringResource(R.string.settings_section_automation)) {
+                        SettingsRow(
+                            stringResource(R.string.settings_bills_calendar),
+                            stringResource(R.string.settings_bills_calendar_description),
+                            true,
+                            Icons.Outlined.CalendarMonth,
+                        ) {
                             openFullScreen(onBillsCalendarClick)
                         }
                         ActuaCardDivider()
-                        SettingsRow("Scheduled Transactions", "Review recurring bills, income and upcoming dates", true, Icons.Outlined.Repeat) {
+                        SettingsRow(
+                            stringResource(R.string.settings_scheduled_transactions),
+                            stringResource(R.string.settings_scheduled_transactions_description),
+                            true,
+                            Icons.Outlined.Repeat,
+                        ) {
                             openFullScreen(onSchedulesClick)
                         }
                         ActuaCardDivider()
-                        SettingsRow("Rules", "Automatically categorize and transform transactions", true, Icons.Outlined.AutoAwesome) {
+                        SettingsRow(
+                            stringResource(R.string.settings_rules),
+                            stringResource(R.string.settings_rules_description),
+                            true,
+                            Icons.Outlined.AutoAwesome,
+                        ) {
                             openFullScreen(onRulesClick)
                         }
                     }
-                    SettingsGroup("Transactions & data") {
-                        SettingsRow("Tags", "Create, edit, color, hide and delete managed tags", true, Icons.Outlined.Sell) {
+                    SettingsGroup(stringResource(R.string.settings_section_transactions_data)) {
+                        SettingsRow(
+                            stringResource(R.string.settings_tags),
+                            stringResource(R.string.settings_tags_description),
+                            true,
+                            Icons.Outlined.Sell,
+                        ) {
                             page = SettingsPage.Tags
                         }
                         ActuaCardDivider()
-                        SettingsRow("Payees", "Rename, merge, delete and favorite payees", true, Icons.Outlined.Storefront) {
+                        SettingsRow(
+                            stringResource(R.string.settings_payees),
+                            stringResource(R.string.settings_payees_description),
+                            true,
+                            Icons.Outlined.Storefront,
+                        ) {
                             openFullScreen(onManagePayeesClick)
                         }
                         ActuaCardDivider()
-                        SettingsRow("Import Transactions", "Review a CSV bank statement before importing", true, Icons.AutoMirrored.Outlined.ReceiptLong) {
+                        SettingsRow(
+                            stringResource(R.string.settings_import_transactions),
+                            stringResource(R.string.settings_import_transactions_description),
+                            true,
+                            Icons.AutoMirrored.Outlined.ReceiptLong,
+                        ) {
                             openFullScreen(onImportTransactionsClick)
                         }
                         ActuaCardDivider()
-                        SettingsRow("Connection & Data", "Actual server, budgets, sync, backups and restore", true, Icons.Outlined.Sync) {
+                        SettingsRow(
+                            stringResource(R.string.settings_connection_data),
+                            stringResource(R.string.settings_connection_data_description),
+                            true,
+                            Icons.Outlined.Sync,
+                        ) {
                             openFullScreen(onConnectionClick)
                         }
                     }
-                    SettingsGroup("Financial setup") {
-                        SettingsRow("Bank Sync", "Connect SimpleFIN or GoCardless and link accounts", true, Icons.Outlined.AccountBalance) {
+                    SettingsGroup(stringResource(R.string.settings_section_financial_setup)) {
+                        SettingsRow(
+                            stringResource(R.string.settings_bank_sync),
+                            stringResource(R.string.settings_bank_sync_description),
+                            true,
+                            Icons.Outlined.AccountBalance,
+                        ) {
                             openFullScreen(onBankSyncClick)
                         }
                         ActuaCardDivider()
-                        SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, Icons.Outlined.CreditCard) {
+                        SettingsRow(
+                            stringResource(R.string.settings_credit_cards),
+                            stringResource(R.string.settings_credit_cards_description),
+                            true,
+                            Icons.Outlined.CreditCard,
+                        ) {
                             openFullScreen(onCreditCardsClick)
                         }
                     }
                 }
                 SettingsPage.General -> {
-                    SettingsGroup("Preferences") {
-                        SettingsRow("Home", "Show, hide and reorder the sections on Home", true, Icons.Outlined.Home) {
+                    SettingsGroup(stringResource(R.string.settings_section_preferences)) {
+                        SettingsRow(
+                            stringResource(R.string.settings_home),
+                            stringResource(R.string.settings_home_description),
+                            true,
+                            Icons.Outlined.Home,
+                        ) {
                             // Unlike openFullScreen's other destinations, Customize Home is reached
                             // from this page rather than from Manage root, so the back gesture should
                             // return here instead of resetting all the way to Manage.
                             onCustomizeHomeClick()
                         }
                         ActuaCardDivider()
-                        SettingsRow("Transactions & Accounts", "Entry defaults, transaction lists and account summaries", true, Icons.Outlined.AccountBalanceWallet) {
+                        SettingsRow(
+                            stringResource(R.string.settings_page_transactions_accounts),
+                            stringResource(R.string.settings_transactions_accounts_description),
+                            true,
+                            Icons.Outlined.AccountBalanceWallet,
+                        ) {
                             page = SettingsPage.Transactions
                         }
                         ActuaCardDivider()
-                        SettingsRow("Display", "Currency, date, numbers, appearance and start page", true, Icons.Outlined.Palette) {
+                        SettingsRow(
+                            stringResource(R.string.settings_page_display),
+                            stringResource(R.string.settings_display_description),
+                            true,
+                            Icons.Outlined.Palette,
+                        ) {
                             page = SettingsPage.Display
                         }
                         ActuaCardDivider()
-                        SettingsRow("Privacy", "Balances and optional location-aware payee controls", true, Icons.Outlined.Lock) {
+                        SettingsRow(
+                            stringResource(R.string.settings_page_privacy),
+                            stringResource(R.string.settings_privacy_description),
+                            true,
+                            Icons.Outlined.Lock,
+                        ) {
                             page = SettingsPage.Privacy
                         }
                         ActuaCardDivider()
-                        SettingsRow("Budget", "Category status dot, progress bar colors and income group", true, Icons.Outlined.PieChartOutline) {
+                        SettingsRow(
+                            stringResource(R.string.settings_budget),
+                            stringResource(R.string.settings_budget_description),
+                            true,
+                            Icons.Outlined.PieChartOutline,
+                        ) {
                             page = SettingsPage.Budget
                         }
                     }
-                    if (supportPurchaseState.isAvailable) SettingsGroup("Support") {
+                    if (supportPurchaseState.isAvailable) SettingsGroup(stringResource(R.string.settings_section_support)) {
                         SettingsRow(
-                            "Support Actua",
-                            if (supportPurchaseState.isPurchased) "You're an Actua Supporter — thank you!"
-                            else "Actua is free and open source. Leave a one-time tip.",
+                            stringResource(R.string.settings_support_actua),
+                            if (supportPurchaseState.isPurchased) stringResource(R.string.settings_support_thank_you)
+                            else stringResource(R.string.settings_support_description),
                             true,
                             Icons.Outlined.FavoriteBorder,
                         ) {
                             page = SettingsPage.Support
                         }
                     }
-                    SettingsGroup("Labs") {
-                        SettingsRow("Experimental", "Opt-in features that follow Actual's experimental flags", true, Icons.Outlined.Science) {
+                    SettingsGroup(stringResource(R.string.settings_section_labs)) {
+                        SettingsRow(
+                            stringResource(R.string.settings_experimental),
+                            stringResource(R.string.settings_experimental_description),
+                            true,
+                            Icons.Outlined.Science,
+                        ) {
                             page = SettingsPage.Experimental
                         }
                     }
-                    SettingsGroup("About") {
-                        SettingsRow("About Actua", "Version, project information, credits and license", true, Icons.Outlined.Info) {
+                    SettingsGroup(stringResource(R.string.settings_section_about)) {
+                        SettingsRow(
+                            stringResource(R.string.settings_about_actua),
+                            stringResource(R.string.settings_about_actua_description),
+                            true,
+                            Icons.Outlined.Info,
+                        ) {
                             page = SettingsPage.About
                         }
                     }
                 }
                 SettingsPage.Transactions -> {
                     SettingsGroup {
-                        SettingsChoice("Default account", defaultAccount ?: "None", listOf("None") + accountOptions) {
-                            onDefaultAccountChange(it.takeUnless { value -> value == "None" })
+                        SettingsChoice(
+                            stringResource(R.string.settings_default_account),
+                            defaultAccount ?: DEFAULT_ACCOUNT_NONE,
+                            listOf(SettingsChoiceOption(DEFAULT_ACCOUNT_NONE, stringResource(R.string.settings_none))) +
+                                accountOptions.map { SettingsChoiceOption(it, it) },
+                        ) {
+                            onDefaultAccountChange(it.takeUnless { value -> value == DEFAULT_ACCOUNT_NONE })
                         }
                         SettingsDivider()
-                        SettingsToggle("Group transactions by date", "Use dated sections in transaction lists", groupTransactionsByDate, onGroupTransactionsByDateChange)
-                        SettingsDivider()
-                        SettingsToggle("Conventional amount entry", "Type 324 as 324.00 instead of filling cents first",
-                            conventionalAmountEntry, onConventionalAmountEntryChange)
-                        SettingsDivider()
-                        SettingsToggle("Account monthly summary", "Show Income, Expenses and Net at the top of Accounts",
-                            showAccountsMonthlySummary, onShowAccountsMonthlySummaryChange)
+                        SettingsToggle(
+                            stringResource(R.string.settings_group_transactions),
+                            stringResource(R.string.settings_group_transactions_description),
+                            groupTransactionsByDate,
+                            onGroupTransactionsByDateChange,
+                        )
                         SettingsDivider()
                         SettingsToggle(
-                            "Current balance summary",
-                            "Show current, cleared, uncleared and reconciled balances inside accounts",
+                            stringResource(R.string.settings_conventional_amount_entry),
+                            stringResource(R.string.settings_conventional_amount_entry_description),
+                            conventionalAmountEntry,
+                            onConventionalAmountEntryChange,
+                        )
+                        SettingsDivider()
+                        SettingsToggle(
+                            stringResource(R.string.settings_account_monthly_summary),
+                            stringResource(R.string.settings_account_monthly_summary_description),
+                            showAccountsMonthlySummary,
+                            onShowAccountsMonthlySummaryChange,
+                        )
+                        SettingsDivider()
+                        SettingsToggle(
+                            stringResource(R.string.settings_current_balance_summary),
+                            stringResource(R.string.settings_current_balance_summary_description),
                             showCurrentBalanceSummary,
                             onShowCurrentBalanceSummaryChange,
                         )
                     }
                     SettingsGroup {
-                        SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, Icons.Outlined.CreditCard) {
+                        SettingsRow(
+                            stringResource(R.string.settings_credit_cards),
+                            stringResource(R.string.settings_credit_cards_description),
+                            true,
+                            Icons.Outlined.CreditCard,
+                        ) {
                             openFullScreen(onCreditCardsClick)
                         }
                     }
@@ -469,21 +584,30 @@ fun SettingsScreen(
                             onChange = onLanguageChange,
                         )
                         SettingsDivider()
+                        val noneLabel = stringResource(R.string.settings_none)
                         SettingsChoice(
-                            "Currency",
-                            currencyLabel(currencyCode),
-                            currencyOptions.map { it.first },
+                            stringResource(R.string.settings_currency),
+                            currencyCode,
+                            currencyOptions.map { (labelRes, code) ->
+                                SettingsChoiceOption(code, if (code.isEmpty()) noneLabel else stringResource(labelRes))
+                            },
                             preview = if (currencyCode == EffectiveDisplayFormats.FOLLOW_BUDGET) {
-                                "Budget: ${currencyLabel(budgetDisplayFormats.currencyCode)}"
+                                stringResource(
+                                    R.string.settings_budget_value_preview,
+                                    currencyLabel(budgetDisplayFormats.currencyCode, noneLabel),
+                                )
                             } else null,
                         ) { selected ->
-                            onCurrencyCodeChange(currencyOptions.first { it.first == selected }.second)
+                            onCurrencyCodeChange(selected)
                         }
                         if (currencyCode.isNotBlank() && currencyCode != EffectiveDisplayFormats.FOLLOW_BUDGET) {
                             SettingsDivider()
-                            SettingsToggle("Symbol only",
-                                "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
-                                currencySymbolOnly, onCurrencySymbolOnlyChange)
+                            SettingsToggle(
+                                stringResource(R.string.settings_symbol_only),
+                                stringResource(R.string.settings_symbol_only_description),
+                                currencySymbolOnly,
+                                onCurrencySymbolOnlyChange,
+                            )
                         }
                         val shownCurrency = if (currencyCode == EffectiveDisplayFormats.FOLLOW_BUDGET) {
                             budgetDisplayFormats.currencyCode
@@ -491,80 +615,150 @@ fun SettingsScreen(
                         if (shownCurrency.isNotBlank()) {
                             SettingsDivider()
                             SettingsChoice(
-                                "Symbol position",
+                                stringResource(R.string.settings_symbol_position),
                                 currencySymbolPosition,
                                 listOf(
-                                    EffectiveDisplayFormats.FOLLOW_BUDGET,
-                                    EffectiveDisplayFormats.BEFORE_AMOUNT,
-                                    EffectiveDisplayFormats.AFTER_AMOUNT,
+                                    SettingsChoiceOption(
+                                        EffectiveDisplayFormats.FOLLOW_BUDGET,
+                                        stringResource(R.string.settings_follow_budget),
+                                    ),
+                                    SettingsChoiceOption(
+                                        EffectiveDisplayFormats.BEFORE_AMOUNT,
+                                        stringResource(R.string.settings_symbol_before),
+                                    ),
+                                    SettingsChoiceOption(
+                                        EffectiveDisplayFormats.AFTER_AMOUNT,
+                                        stringResource(R.string.settings_symbol_after),
+                                    ),
                                 ),
-                                preview = "Preview: ${currencyPlacementPreview()}" +
+                                preview = stringResource(R.string.settings_preview, currencyPlacementPreview()) +
                                     if (currencySymbolPosition == EffectiveDisplayFormats.FOLLOW_BUDGET) {
-                                        ". Budget: ${if (budgetDisplayFormats.symbolAfterAmount) "after" else "before"} the amount"
+                                        if (budgetDisplayFormats.symbolAfterAmount) {
+                                            stringResource(R.string.settings_symbol_position_after_preview)
+                                        } else {
+                                            stringResource(R.string.settings_symbol_position_before_preview)
+                                        }
                                     } else "",
                                 onChange = onCurrencySymbolPositionChange,
                             )
                             SettingsDivider()
                             SettingsChoice(
-                                "Space between amount and symbol",
+                                stringResource(R.string.settings_symbol_spacing),
                                 currencySymbolSpacing,
                                 listOf(
-                                    EffectiveDisplayFormats.FOLLOW_BUDGET,
-                                    EffectiveDisplayFormats.SPACE,
-                                    EffectiveDisplayFormats.NO_SPACE,
+                                    SettingsChoiceOption(
+                                        EffectiveDisplayFormats.FOLLOW_BUDGET,
+                                        stringResource(R.string.settings_follow_budget),
+                                    ),
+                                    SettingsChoiceOption(
+                                        EffectiveDisplayFormats.SPACE,
+                                        stringResource(R.string.settings_space),
+                                    ),
+                                    SettingsChoiceOption(
+                                        EffectiveDisplayFormats.NO_SPACE,
+                                        stringResource(R.string.settings_no_space),
+                                    ),
                                 ),
-                                preview = "Preview: ${currencyPlacementPreview()}" +
+                                preview = stringResource(R.string.settings_preview, currencyPlacementPreview()) +
                                     if (currencySymbolSpacing == EffectiveDisplayFormats.FOLLOW_BUDGET) {
-                                        ". Budget: ${if (budgetDisplayFormats.spaceBetweenAmountAndSymbol) "space" else "no space"}"
+                                        if (budgetDisplayFormats.spaceBetweenAmountAndSymbol) {
+                                            stringResource(R.string.settings_symbol_spacing_space_preview)
+                                        } else {
+                                            stringResource(R.string.settings_symbol_spacing_no_space_preview)
+                                        }
                                     } else "",
                                 onChange = onCurrencySymbolSpacingChange,
                             )
                         }
                         SettingsDivider()
                         SettingsChoice(
-                            "Date format",
+                            stringResource(R.string.settings_date_format),
                             dateFormat,
                             listOf(
-                                EffectiveDisplayFormats.FOLLOW_BUDGET, "System default", "MM/DD/YYYY", "DD/MM/YYYY",
-                                "YYYY-MM-DD", "MM.DD.YYYY", "DD.MM.YYYY", "DD-MM-YYYY",
+                                SettingsChoiceOption(
+                                    EffectiveDisplayFormats.FOLLOW_BUDGET,
+                                    stringResource(R.string.settings_follow_budget),
+                                ),
+                                SettingsChoiceOption("System default", stringResource(R.string.settings_system_default)),
+                                SettingsChoiceOption("MM/DD/YYYY", stringResource(R.string.settings_date_mm_dd_yyyy)),
+                                SettingsChoiceOption("DD/MM/YYYY", stringResource(R.string.settings_date_dd_mm_yyyy)),
+                                SettingsChoiceOption("YYYY-MM-DD", stringResource(R.string.settings_date_yyyy_mm_dd)),
+                                SettingsChoiceOption("MM.DD.YYYY", stringResource(R.string.settings_date_mm_dd_yyyy_dot)),
+                                SettingsChoiceOption("DD.MM.YYYY", stringResource(R.string.settings_date_dd_mm_yyyy_dot)),
+                                SettingsChoiceOption("DD-MM-YYYY", stringResource(R.string.settings_date_dd_mm_yyyy_dash)),
                             ),
-                            preview = "Preview: ${datePreview(
-                                if (dateFormat == EffectiveDisplayFormats.FOLLOW_BUDGET) budgetDisplayFormats.dateFormat else dateFormat,
-                            )}",
+                            preview = stringResource(
+                                R.string.settings_preview,
+                                datePreview(
+                                    if (dateFormat == EffectiveDisplayFormats.FOLLOW_BUDGET) budgetDisplayFormats.dateFormat else dateFormat,
+                                ),
+                            ),
                             onChange = onDateFormatChange,
                         )
                         SettingsDivider()
                         SettingsChoice(
-                            "Number format",
+                            stringResource(R.string.settings_number_format),
                             numberFormat,
                             listOf(
-                                EffectiveDisplayFormats.FOLLOW_BUDGET, "System default", "1,234.56", "1.234,56",
-                                "1 234,56", "1’234.56", "1234.56", "1,23,456.78",
+                                SettingsChoiceOption(
+                                    EffectiveDisplayFormats.FOLLOW_BUDGET,
+                                    stringResource(R.string.settings_follow_budget),
+                                ),
+                                SettingsChoiceOption("System default", stringResource(R.string.settings_system_default)),
+                                SettingsChoiceOption("1,234.56", stringResource(R.string.settings_number_comma_decimal)),
+                                SettingsChoiceOption("1.234,56", stringResource(R.string.settings_number_period_decimal_comma)),
+                                SettingsChoiceOption("1 234,56", stringResource(R.string.settings_number_space_decimal_comma)),
+                                SettingsChoiceOption("1’234.56", stringResource(R.string.settings_number_apostrophe_dot)),
+                                SettingsChoiceOption("1234.56", stringResource(R.string.settings_number_plain_decimal)),
+                                SettingsChoiceOption("1,23,456.78", stringResource(R.string.settings_number_indian_grouping)),
                             ),
-                            preview = "Preview: ${numberPreview(
-                                if (numberFormat == EffectiveDisplayFormats.FOLLOW_BUDGET) budgetDisplayFormats.numberFormat else numberFormat,
-                            )}",
+                            preview = stringResource(
+                                R.string.settings_preview,
+                                numberPreview(
+                                    if (numberFormat == EffectiveDisplayFormats.FOLLOW_BUDGET) budgetDisplayFormats.numberFormat else numberFormat,
+                                ),
+                            ),
                             onChange = onNumberFormatChange,
                         )
                         SettingsDivider()
                         SettingsChoice(
-                            "Decimal places",
+                            stringResource(R.string.settings_decimal_places),
                             decimalPlacesMode,
-                            listOf(EffectiveDisplayFormats.FOLLOW_BUDGET, EffectiveDisplayFormats.SHOW, EffectiveDisplayFormats.HIDE),
-                            preview = "Hiding rounds displayed amounts without changing their values" +
+                            listOf(
+                                SettingsChoiceOption(
+                                    EffectiveDisplayFormats.FOLLOW_BUDGET,
+                                    stringResource(R.string.settings_follow_budget),
+                                ),
+                                SettingsChoiceOption(EffectiveDisplayFormats.SHOW, stringResource(R.string.settings_show)),
+                                SettingsChoiceOption(EffectiveDisplayFormats.HIDE, stringResource(R.string.settings_hide)),
+                            ),
+                            preview = stringResource(R.string.settings_decimal_places_hiding) +
                                 if (decimalPlacesMode == EffectiveDisplayFormats.FOLLOW_BUDGET) {
-                                    ". Budget: ${if (budgetDisplayFormats.hideFraction) "hidden" else "shown"}"
+                                    if (budgetDisplayFormats.hideFraction) {
+                                        stringResource(R.string.settings_decimal_places_budget_hidden)
+                                    } else {
+                                        stringResource(R.string.settings_decimal_places_budget_shown)
+                                    }
                                 } else "",
                             onChange = onDecimalPlacesModeChange,
                         )
                     }
                     SettingsGroup {
-                        SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onChange = onAppearanceChange)
+                        SettingsChoice(
+                            stringResource(R.string.settings_appearance),
+                            appearance,
+                            listOf(
+                                SettingsChoiceOption("System", stringResource(R.string.settings_appearance_system)),
+                                SettingsChoiceOption("Light", stringResource(R.string.settings_appearance_light)),
+                                SettingsChoiceOption("Dark", stringResource(R.string.settings_appearance_dark)),
+                            ),
+                            onChange = onAppearanceChange,
+                        )
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                             SettingsDivider()
                             SettingsToggle(
-                                "Material You colors",
-                                "Match colors to your wallpaper instead of Actua's default theme",
+                                stringResource(R.string.settings_material_you_colors),
+                                stringResource(R.string.settings_material_you_colors_description),
                                 useDynamicColor,
                                 onUseDynamicColorChange,
                             )
@@ -572,64 +766,94 @@ fun SettingsScreen(
                     }
                     SettingsGroup {
                         SettingsChoice(
-                            "Start page",
+                            stringResource(R.string.settings_start_page),
                             startPage,
-                            startPageOptions,
+                            startPageOptions.map { option ->
+                                SettingsChoiceOption(option, startPageLabel(option))
+                            },
                             onChange = onStartPageChange,
                         )
                         SettingsDivider()
                         SettingsChoice(
-                            "Bottom navigation labels",
-                            if (showBottomNavigationLabels) "Icons and names" else "Icons only",
-                            listOf("Icons and names", "Icons only"),
-                        ) { onShowBottomNavigationLabelsChange(it == "Icons and names") }
+                            stringResource(R.string.settings_bottom_navigation_labels),
+                            if (showBottomNavigationLabels) NAV_LABELS_ICONS_AND_NAMES else NAV_LABELS_ICONS_ONLY,
+                            listOf(
+                                SettingsChoiceOption(
+                                    NAV_LABELS_ICONS_AND_NAMES,
+                                    stringResource(R.string.settings_navigation_icons_names),
+                                ),
+                                SettingsChoiceOption(
+                                    NAV_LABELS_ICONS_ONLY,
+                                    stringResource(R.string.settings_navigation_icons_only),
+                                ),
+                            ),
+                        ) { onShowBottomNavigationLabelsChange(it == NAV_LABELS_ICONS_AND_NAMES) }
                         SettingsDivider()
-                        SettingsRow("Tab Bar", "Show, hide and reorder the bottom navigation tabs", true) {
+                        SettingsRow(
+                            stringResource(R.string.settings_tab_bar),
+                            stringResource(R.string.settings_tab_bar_description),
+                            true,
+                        ) {
                             // Reached from this page (Display), so back should return here rather than
                             // resetting all the way to Manage the way openFullScreen's other rows do.
                             onCustomizeTabBarClick()
                         }
                         SettingsDivider()
-                        SettingsToggle("Notes", "Show the Notes field on accounts and budget categories",
-                            showNotes, onShowNotesChange)
+                        SettingsToggle(
+                            stringResource(R.string.settings_notes),
+                            stringResource(R.string.settings_notes_description),
+                            showNotes,
+                            onShowNotesChange,
+                        )
                     }
                 }
                 SettingsPage.Privacy -> {
                     SettingsGroup {
                         SettingsChoice(
-                            "Balances",
+                            stringResource(R.string.settings_balances),
                             privacyMode,
-                            listOf(EffectiveDisplayFormats.FOLLOW_BUDGET, EffectiveDisplayFormats.SHOW, EffectiveDisplayFormats.HIDE),
-                            preview = "Hiding masks budget, account and transaction amounts" +
+                            listOf(
+                                SettingsChoiceOption(
+                                    EffectiveDisplayFormats.FOLLOW_BUDGET,
+                                    stringResource(R.string.settings_follow_budget),
+                                ),
+                                SettingsChoiceOption(EffectiveDisplayFormats.SHOW, stringResource(R.string.settings_show)),
+                                SettingsChoiceOption(EffectiveDisplayFormats.HIDE, stringResource(R.string.settings_hide)),
+                            ),
+                            preview = stringResource(R.string.settings_balances_hiding) +
                                 if (privacyMode == EffectiveDisplayFormats.FOLLOW_BUDGET) {
-                                    ". Budget: ${if (budgetDisplayFormats.privacyEnabled) "hidden" else "shown"}"
+                                    if (budgetDisplayFormats.privacyEnabled) {
+                                        stringResource(R.string.settings_balances_budget_hidden)
+                                    } else {
+                                        stringResource(R.string.settings_balances_budget_shown)
+                                    }
                                 } else "",
                             onChange = onPrivacyModeChange,
                         )
                     }
-                    SettingsGroup("Location-aware payees") {
+                    SettingsGroup(stringResource(R.string.settings_section_location_payees)) {
                         SettingsToggle(
-                            "Record payee locations",
+                            stringResource(R.string.settings_record_payee_locations),
                             if (recordPayeeLocations && locationPermissionGranted) {
-                                "Use your location only while Actua is open to remember eligible payees nearby. Coordinates stay in your Actual budget and sync with it."
+                                stringResource(R.string.settings_record_payee_locations_enabled_description)
                             } else {
-                                "Optional and off by default. Enabling asks for foreground location permission. No background tracking or third-party location service is used."
+                                stringResource(R.string.settings_record_payee_locations_disabled_description)
                             },
                             recordPayeeLocations,
                             ::setRecordPayeeLocations,
                         )
                         SettingsDivider()
                         SettingsRow(
-                            "Payee Locations",
-                            "Inspect or delete coordinates saved in this budget",
+                            stringResource(R.string.settings_payee_locations),
+                            stringResource(R.string.settings_payee_locations_description),
                             true,
                         ) { openFullScreen(onPayeeLocationsClick) }
                     }
                     SettingsNote(
                         if (locationPermissionGranted) {
-                            "Location permission: allowed while using the app"
+                            stringResource(R.string.settings_location_permission_allowed)
                         } else {
-                            "Location permission: not granted"
+                            stringResource(R.string.settings_location_permission_denied)
                         },
                     )
                 }
@@ -637,42 +861,42 @@ fun SettingsScreen(
                     val categoryStatusColors = LocalCategoryStatusColors.current
                     SettingsGroup {
                         SettingsChoice(
-                            "Budget type",
-                            if (budgetType == "tracking") "Tracking (report-based)" else "Envelope (zero-based)",
-                            listOf("Envelope (zero-based)", "Tracking (report-based)"),
-                            onChange = { selected ->
-                                onBudgetTypeChange(if (selected.startsWith("Tracking")) "tracking" else "envelope")
-                            },
+                            stringResource(R.string.settings_budget_type),
+                            budgetType,
+                            listOf(
+                                SettingsChoiceOption("envelope", stringResource(R.string.settings_budget_type_envelope)),
+                                SettingsChoiceOption("tracking", stringResource(R.string.settings_budget_type_tracking)),
+                            ),
+                            onChange = onBudgetTypeChange,
                         )
                         SettingsDivider()
                         SettingsToggle(
-                            "Category status dot",
-                            "Show a status dot next to category names on Budget and Home",
+                            stringResource(R.string.settings_category_status_dot),
+                            stringResource(R.string.settings_category_status_dot_description),
                             categoryStatusColors?.showDots ?: true,
                         ) { categoryStatusColors?.updateShowDots(it) }
                         SettingsDivider()
                         SettingsToggle(
-                            "Color balances",
-                            "Draw the category status color behind the Balance on Budget rows",
+                            stringResource(R.string.settings_color_balances),
+                            stringResource(R.string.settings_color_balances_description),
                             categoryStatusColors?.colorBudgetedAmounts ?: false,
                         ) { categoryStatusColors?.updateColorBudgetedAmounts(it) }
                         SettingsDivider()
                         SettingsToggle(
-                            "Hide income group",
-                            "Hide the income category group on the Budget tab",
+                            stringResource(R.string.settings_hide_income_group),
+                            stringResource(R.string.settings_hide_income_group_description),
                             hideIncomeGroupInBudget,
                             onHideIncomeGroupInBudgetChange,
                         )
                         SettingsDivider()
                         SettingsRow(
-                            "Category status colors",
-                            "Retint the unassigned, funded, spending, spent, overspent and goal status colors",
+                            stringResource(R.string.settings_category_status_colors),
+                            stringResource(R.string.settings_category_status_colors_description),
                             true,
                         ) { page = SettingsPage.CategoryColors }
                     }
                     SettingsNote(
-                        "Envelope mode calculates To Budget from income and carryover. " +
-                            "Tracking mode shows projected and real savings without rollover.",
+                        stringResource(R.string.settings_budget_mode_note),
                     )
                 }
                 SettingsPage.CategoryColors -> {
@@ -681,41 +905,39 @@ fun SettingsScreen(
                 SettingsPage.Experimental -> {
                     SettingsGroup {
                         SettingsToggle(
-                            "Enable Banking",
-                            "Bank sync for European banks through Enable Banking, as in Actual's experimental flag. " +
-                                "Needs an Actual server with Enable Banking set up. Shows in Manage → Bank Sync.",
+                            stringResource(R.string.settings_enable_banking),
+                            stringResource(R.string.settings_enable_banking_description),
                             enableBankingExperiment,
                             onEnableBankingExperimentChange,
                         )
                     }
                     SettingsNote(
-                        "Experimental features can change or be removed. They are stored on this device only " +
-                            "and don't change your budget until you link an account.",
+                        stringResource(R.string.settings_experimental_note),
                     )
                 }
                 SettingsPage.Support -> {
                     SettingsNote(
-                        "Actua is free and open source. If you find it useful, you can support its continued development.",
+                        stringResource(R.string.settings_support_intro),
                     )
                     SettingsGroup {
                         if (supportPurchaseState.isPurchased) {
                             ActuaFormRow(
                                 icon = Icons.Outlined.FavoriteBorder,
-                                label = "Actua Supporter",
+                                label = stringResource(R.string.settings_supporter_badge),
                                 value = null,
-                                caption = "Thank you for supporting Actua!",
+                                caption = stringResource(R.string.settings_supporter_thanks),
                             )
                         } else {
                             ActuaFormRow(
                                 icon = Icons.Outlined.FavoriteBorder,
-                                label = "Actua Supporter · ${supportPurchaseState.priceLabel}",
+                                label = stringResource(R.string.settings_supporter_price, supportPurchaseState.priceLabel),
                                 value = null,
-                                caption = "Get a permanent Supporter badge as a thank-you.",
+                                caption = stringResource(R.string.settings_supporter_description),
                             )
                         }
                     }
                     if (!supportPurchaseState.isPurchased) {
-                        SettingsNote("All Actua features remain free.")
+                        SettingsNote(stringResource(R.string.settings_support_free))
                         Button(
                             enabled = supportPurchaseState.isAvailable && !supportPurchaseState.isProcessing,
                             onClick = { (context as? Activity)?.let(supportBillingManager::launchPurchase) },
@@ -728,70 +950,73 @@ fun SettingsScreen(
                             if (supportPurchaseState.isProcessing) {
                                 CircularProgressIndicator(Modifier.padding(end = Spacing.sm).size(18.dp), strokeWidth = 2.dp)
                             }
-                            Text("Become a Supporter")
+                            Text(stringResource(R.string.settings_become_supporter))
                         }
                     }
                 }
                 SettingsPage.About -> {
                     SettingsGroup {
-                        AboutRow("Actua", "Native Android client for Actual Budget\nVersion ${BuildConfig.VERSION_NAME}")
+                        AboutRow(stringResource(R.string.app_name), stringResource(R.string.settings_about_summary, BuildConfig.VERSION_NAME))
                     }
-                    SettingsGroup("Project") {
-                        AboutRow("Actua on GitHub", "github.com/azimul-kabir/actua") {
+                    SettingsGroup(stringResource(R.string.settings_section_project)) {
+                        AboutRow(stringResource(R.string.settings_actua_github), stringResource(R.string.settings_actua_github_url)) {
                             uriHandler.openUri("https://github.com/azimul-kabir/actua")
                         }
                         SettingsDivider()
-                        AboutRow("Website", "actua.azimulkabir.com") {
+                        AboutRow(stringResource(R.string.settings_website), stringResource(R.string.settings_website_url)) {
                             uriHandler.openUri("https://actua.azimulkabir.com")
                         }
                         SettingsDivider()
-                        AboutRow("Developer website", "www.azimulkabir.com") {
+                        AboutRow(stringResource(R.string.settings_developer_website), stringResource(R.string.settings_developer_website_url)) {
                             uriHandler.openUri("https://www.azimulkabir.com")
                         }
                         SettingsDivider()
-                        AboutRow("FAQ", "Answers to common questions about Actua") {
+                        AboutRow(stringResource(R.string.settings_faq), stringResource(R.string.settings_faq_description)) {
                             uriHandler.openUri("https://actua.azimulkabir.com#faq")
                         }
                         SettingsDivider()
-                        AboutRow("Join Discord", "Discuss Actua, test beta builds and help with development") {
+                        AboutRow(stringResource(R.string.settings_join_discord), stringResource(R.string.settings_join_discord_description)) {
                             uriHandler.openUri("https://discord.gg/FhedEyP97f")
                         }
                         SettingsDivider()
                         AboutRow(
-                            "Independent community project",
-                            "Actua connects directly to your self-hosted Actual server and keeps budget data locally available offline. It is not affiliated with or endorsed by the Actual Budget team.",
+                            stringResource(R.string.settings_independent_project),
+                            stringResource(R.string.settings_independent_project_description),
                         )
                         SettingsDivider()
-                        AboutRow("Contact", "actua@azimulkabir.com") {
+                        AboutRow(stringResource(R.string.settings_contact), stringResource(R.string.settings_contact_url)) {
                             uriHandler.openUri("mailto:actua@azimulkabir.com")
                         }
                         SettingsDivider()
-                        AboutRow("Privacy Policy", "What data Actua stores, syncs and never collects") {
+                        AboutRow(stringResource(R.string.settings_privacy_policy), stringResource(R.string.settings_privacy_policy_description)) {
                             uriHandler.openUri("https://github.com/azimul-kabir/actua/blob/main/PRIVACY.md")
                         }
                         SettingsDivider()
-                        AboutRow("Diagnostics", "Copy, save or email a report of recent app activity to troubleshoot problems") {
+                        AboutRow(stringResource(R.string.settings_diagnostics), stringResource(R.string.settings_diagnostics_description)) {
                             page = SettingsPage.Diagnostics
                         }
                     }
-                    SettingsGroup("Credits") {
+                    SettingsGroup(stringResource(R.string.settings_section_credits)) {
                         AboutRow(
-                            "Actuali for iOS",
-                            "Actua was originally based on and continues to reference Matt Farrell’s open-source Actuali project for tested behavior and design guidance.",
+                            stringResource(R.string.settings_actuali_ios),
+                            stringResource(R.string.settings_actuali_ios_description),
                         )
                         SettingsDivider()
                         AboutRow(
-                            "Actual Budget",
-                            "Synchronization behavior is compatible with the open-source Actual Budget project. Visit actualbudget.org to learn how it works and how to self-host a server.",
+                            stringResource(R.string.settings_actual_budget),
+                            stringResource(R.string.settings_actual_budget_description),
                         ) { uriHandler.openUri("https://actualbudget.org") }
                     }
-                    SettingsGroup("Compatibility") {
-                        AboutRow("Android 9 or later", "Requires a reachable self-hosted Actual Budget server.")
-                    }
-                    SettingsGroup("License") {
+                    SettingsGroup(stringResource(R.string.settings_section_compatibility)) {
                         AboutRow(
-                            "GNU General Public License v3.0",
-                            "Open-source notices and complete attribution are available in the repository’s LICENSE and NOTICE files.",
+                            stringResource(R.string.settings_android_requirement),
+                            stringResource(R.string.settings_server_requirement),
+                        )
+                    }
+                    SettingsGroup(stringResource(R.string.settings_section_license)) {
+                        AboutRow(
+                            stringResource(R.string.settings_gpl_license),
+                            stringResource(R.string.settings_license_description),
                         )
                     }
                 }
@@ -820,14 +1045,14 @@ private fun ActiveBudgetSelector(
     Box(Modifier.onSizeChanged { anchorWidth = it.width }) {
         ActuaFormRow(
             icon = Icons.Outlined.FolderOpen,
-            label = "Budget",
-            value = active?.name ?: "Select a budget",
+            label = stringResource(R.string.settings_active_budget_label),
+            value = active?.name ?: stringResource(R.string.settings_select_budget),
             valueIsPlaceholder = active == null,
             trailing = if (switchable) {
                 {
                     Icon(
                         Icons.Outlined.ExpandMore,
-                        contentDescription = "Switch budget",
+                        contentDescription = stringResource(R.string.settings_switch_budget),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -854,7 +1079,7 @@ private fun ActiveBudgetSelector(
                         )
                     },
                     trailingIcon = if (isActive) {
-                        { Icon(Icons.Outlined.Check, contentDescription = "Active budget") }
+                        { Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.settings_active_budget)) }
                     } else null,
                     onClick = {
                         expanded = false
@@ -891,64 +1116,75 @@ private fun numberPreview(format: String): String = when (format) {
     else -> java.text.NumberFormat.getNumberInstance().format(1234.56)
 }
 
-private val currencyOptions = listOf(
-    EffectiveDisplayFormats.FOLLOW_BUDGET to EffectiveDisplayFormats.FOLLOW_BUDGET,
-    "None" to "",
-    "د.إ AED" to "AED",
-    "Arg${'$'} ARS" to "ARS",
-    "A${'$'} AUD" to "AUD",
-    "৳ BDT" to "BDT",
-    "R${'$'} BRL" to "BRL",
-    "Br BYN" to "BYN",
-    "C${'$'} CAD" to "CAD",
-    "Fr. CHF" to "CHF",
-    "CLP${'$'} CLP" to "CLP",
-    "¥ CNY" to "CNY",
-    "Col${'$'} COP" to "COP",
-    "₡ CRC" to "CRC",
-    "Kč CZK" to "CZK",
-    "kr DKK" to "DKK",
-    "RD${'$'} DOP" to "DOP",
-    "ج.م EGP" to "EGP",
-    "€ EUR" to "EUR",
-    "£ GBP" to "GBP",
-    "Q GTQ" to "GTQ",
-    "HK${'$'} HKD" to "HKD",
-    "Ft HUF" to "HUF",
-    "Rp IDR" to "IDR",
-    "₪ ILS" to "ILS",
-    "₹ INR" to "INR",
-    "﷼ IRR" to "IRR",
-    "J${'$'} JMD" to "JMD",
-    "¥ JPY" to "JPY",
-    "₩ KRW" to "KRW",
-    "Rs. LKR" to "LKR",
-    "L MDL" to "MDL",
-    "ден MKD" to "MKD",
-    "${'$'} MXN" to "MXN",
-    "RM MYR" to "MYR",
-    "S/ PEN" to "PEN",
-    "₱ PHP" to "PHP",
-    "Rs. PKR" to "PKR",
-    "zł PLN" to "PLN",
-    "ر.ق QAR" to "QAR",
-    "lei RON" to "RON",
-    "дин RSD" to "RSD",
-    "₽ RUB" to "RUB",
-    "ر.س SAR" to "SAR",
-    "kr SEK" to "SEK",
-    "S${'$'} SGD" to "SGD",
-    "฿ THB" to "THB",
-    "₺ TRY" to "TRY",
-    "NT${'$'} TWD" to "TWD",
-    "₴ UAH" to "UAH",
-    "${'$'} USD" to "USD",
-    "${'$'}U UYU" to "UYU",
-    "UZS UZS" to "UZS",
+/** A currency menu entry: the ISO [code] stored in preferences and a display-label resource. */
+private data class CurrencyOption(
+    @StringRes val labelRes: Int,
+    val code: String,
 )
 
-private fun currencyLabel(code: String): String =
-    currencyOptions.firstOrNull { it.second == code }?.first ?: code.ifBlank { "None" }
+private val currencyOptions = listOf(
+    CurrencyOption(R.string.settings_follow_budget, EffectiveDisplayFormats.FOLLOW_BUDGET),
+    CurrencyOption(R.string.settings_none, ""),
+    CurrencyOption(R.string.settings_currency_bdt, "BDT"),
+    CurrencyOption(R.string.settings_currency_usd, "USD"),
+    CurrencyOption(R.string.settings_currency_eur, "EUR"),
+    CurrencyOption(R.string.settings_currency_gbp, "GBP"),
+    CurrencyOption(R.string.settings_currency_cad, "CAD"),
+    CurrencyOption(R.string.settings_currency_aud, "AUD"),
+    CurrencyOption(R.string.settings_currency_jpy, "JPY"),
+    CurrencyOption(R.string.settings_currency_inr, "INR"),
+    CurrencyOption(R.string.settings_currency_cny, "CNY"),
+    CurrencyOption(R.string.settings_currency_sgd, "SGD"),
+    CurrencyOption(R.string.settings_currency_aed, "AED"),
+    CurrencyOption(R.string.settings_currency_sar, "SAR"),
+    CurrencyOption(R.string.settings_currency_ars, "ARS"),
+    CurrencyOption(R.string.settings_currency_byn, "BYN"),
+    CurrencyOption(R.string.settings_currency_brl, "BRL"),
+    CurrencyOption(R.string.settings_currency_chf, "CHF"),
+    CurrencyOption(R.string.settings_currency_clp, "CLP"),
+    CurrencyOption(R.string.settings_currency_cop, "COP"),
+    CurrencyOption(R.string.settings_currency_crc, "CRC"),
+    CurrencyOption(R.string.settings_currency_czk, "CZK"),
+    CurrencyOption(R.string.settings_currency_dkk, "DKK"),
+    CurrencyOption(R.string.settings_currency_dop, "DOP"),
+    CurrencyOption(R.string.settings_currency_egp, "EGP"),
+    CurrencyOption(R.string.settings_currency_gtq, "GTQ"),
+    CurrencyOption(R.string.settings_currency_hkd, "HKD"),
+    CurrencyOption(R.string.settings_currency_huf, "HUF"),
+    CurrencyOption(R.string.settings_currency_idr, "IDR"),
+    CurrencyOption(R.string.settings_currency_ils, "ILS"),
+    CurrencyOption(R.string.settings_currency_irr, "IRR"),
+    CurrencyOption(R.string.settings_currency_jmd, "JMD"),
+    CurrencyOption(R.string.settings_currency_krw, "KRW"),
+    CurrencyOption(R.string.settings_currency_lkr, "LKR"),
+    CurrencyOption(R.string.settings_currency_mdl, "MDL"),
+    CurrencyOption(R.string.settings_currency_mkd, "MKD"),
+    CurrencyOption(R.string.settings_currency_mxn, "MXN"),
+    CurrencyOption(R.string.settings_currency_myr, "MYR"),
+    CurrencyOption(R.string.settings_currency_pen, "PEN"),
+    CurrencyOption(R.string.settings_currency_php, "PHP"),
+    CurrencyOption(R.string.settings_currency_pkr, "PKR"),
+    CurrencyOption(R.string.settings_currency_pln, "PLN"),
+    CurrencyOption(R.string.settings_currency_qar, "QAR"),
+    CurrencyOption(R.string.settings_currency_ron, "RON"),
+    CurrencyOption(R.string.settings_currency_rsd, "RSD"),
+    CurrencyOption(R.string.settings_currency_rub, "RUB"),
+    CurrencyOption(R.string.settings_currency_sek, "SEK"),
+    CurrencyOption(R.string.settings_currency_thb, "THB"),
+    CurrencyOption(R.string.settings_currency_try, "TRY"),
+    CurrencyOption(R.string.settings_currency_twd, "TWD"),
+    CurrencyOption(R.string.settings_currency_uah, "UAH"),
+    CurrencyOption(R.string.settings_currency_uyu, "UYU"),
+    CurrencyOption(R.string.settings_currency_uzs, "UZS"),
+)
+
+/** The display label for a stored currency [code]; [noneLabel] localizes the no-currency entry. */
+@Composable
+private fun currencyLabel(code: String, noneLabel: String): String =
+    currencyOptions.firstOrNull { it.code == code }?.let { option ->
+        // The no-currency option's label is a translatable word, not a symbol-plus-code notation.
+        if (option.code.isEmpty()) noneLabel else stringResource(option.labelRes)
+    } ?: code.ifBlank { noneLabel }
 
 /** An optional section [label] over a rounded card holding the section's rows. */
 @Composable
@@ -956,6 +1192,23 @@ private fun SettingsGroup(label: String? = null, content: @Composable ColumnScop
     if (label != null) ActuaSectionHeader(label) else Spacer(Modifier.height(Spacing.md))
     ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal), content = content)
 }
+
+/** Locale-neutral sentinel value for "no default account"; only its label is translated. */
+private const val DEFAULT_ACCOUNT_NONE = "\u0000"
+
+/** Locale-neutral values for the bottom-navigation-labels choice; only their labels are translated. */
+private const val NAV_LABELS_ICONS_AND_NAMES = "Icons and names"
+private const val NAV_LABELS_ICONS_ONLY = "Icons only"
+
+/**
+ * The display label for a persisted start-page value. The stored values are the English
+ * [com.azimulkabir.actua.ui.navigation] destination labels (matched against `MainDestination.label`),
+ * so they stay untranslated; the shown label resolves from the destination's own `labelRes`, so
+ * destinations added later localize without extending a per-screen mapping.
+ */
+@Composable
+private fun startPageLabel(value: String): String =
+    mainDestinationLabelRes(value)?.let { stringResource(it) } ?: value
 
 /** Divider between text-only rows of a settings card. */
 @Composable
@@ -1056,7 +1309,7 @@ private fun SettingsRow(
     icon: ImageVector? = null,
     onClick: () -> Unit = {},
 ) {
-    val shownDetail = if (enabled) detail else "$detail · Coming with backend port"
+    val shownDetail = if (enabled) detail else stringResource(R.string.settings_coming_with_backend, detail)
     if (icon != null) {
         ActuaFormRow(icon = icon, label = label, value = null, caption = shownDetail, enabled = enabled, onClick = onClick)
     } else ActuaListRow(

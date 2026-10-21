@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
@@ -32,6 +33,7 @@ class SettingsBackNavigationTest {
     private val files = BudgetFileManager(context)
     private val activeBudget = ActiveBudgetStore(context)
     private var previousBudgetId: String? = null
+    private val strings get() = composeRule.activity
 
     @Before fun seedDemoBudget() {
         previousBudgetId = activeBudget.budgetId
@@ -49,8 +51,8 @@ class SettingsBackNavigationTest {
         composeRule.setContent { MaterialTheme { AppNavigation() } }
 
         composeRule.onNodeWithContentDescription("Manage", useUnmergedTree = true).performClick()
-        composeRule.onNodeWithContentDescription("Settings").performClick()
-        composeRule.onNodeWithText("Home").performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription(strings.getString(R.string.settings_open_settings)).performClick()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_home)).performScrollTo().performClick()
 
         // Customize Home's own header title confirms we actually reached it. (Its "Customize Home"
         // content description belongs to a different icon, on the Home tab screen itself.)
@@ -60,17 +62,17 @@ class SettingsBackNavigationTest {
 
         // Landing back on the General settings page (title "Settings") means the row that opened
         // Customize Home, not the Manage root, is what the back gesture returned to.
-        composeRule.onNodeWithText("Home").assertExists()
-        composeRule.onNodeWithText("Display").assertExists()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_home)).assertExists()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_page_display)).assertExists()
     }
 
     @Test fun backFromCustomizeTabBarReturnsToDisplaySettingsNotManage() {
         composeRule.setContent { MaterialTheme { AppNavigation() } }
 
         composeRule.onNodeWithContentDescription("Manage", useUnmergedTree = true).performClick()
-        composeRule.onNodeWithContentDescription("Settings").performClick()
-        composeRule.onNodeWithText("Display").performScrollTo().performClick()
-        composeRule.onNodeWithText("Tab Bar").performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription(strings.getString(R.string.settings_open_settings)).performClick()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_page_display)).performScrollTo().performClick()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_tab_bar)).performScrollTo().performClick()
 
         composeRule.onNodeWithContentDescription("Restore default tab bar").assertExists()
 
@@ -78,7 +80,7 @@ class SettingsBackNavigationTest {
 
         // Landing back on the Display settings page (still showing the "Tab Bar" row) means back
         // returned to Display, not all the way to the Manage root.
-        composeRule.onNodeWithText("Tab Bar").assertExists()
-        composeRule.onNodeWithText("Number format").assertExists()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_tab_bar)).assertExists()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_number_format)).assertExists()
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.azimulkabir.actua.R
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -22,6 +23,8 @@ class SettingsHomeIntegrationTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
+    private val strings get() = composeRule.activity
+
     @Test
     fun manageScreenReportsRowRoutesToTheSharedReportsDestination() {
         var reportsClicked = false
@@ -31,7 +34,7 @@ class SettingsHomeIntegrationTest {
             }
         }
 
-        composeRule.onNodeWithText("Reports").performScrollTo().performClick()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_reports)).performScrollTo().performClick()
 
         assertTrue(reportsClicked)
     }
@@ -45,7 +48,7 @@ class SettingsHomeIntegrationTest {
             }
         }
 
-        composeRule.onNodeWithText("Home").performScrollTo().performClick()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_manage_home)).performScrollTo().performClick()
 
         assertTrue(homeClicked)
     }
@@ -57,8 +60,8 @@ class SettingsHomeIntegrationTest {
                 SettingsScreen(showHomeShortcut = false, showReportsShortcut = true)
             }
         }
-        composeRule.onNodeWithText("Reports").assertExists()
-        composeRule.onNodeWithText("Home").assertDoesNotExist()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_reports)).assertExists()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_manage_home)).assertDoesNotExist()
     }
 
     @Test
@@ -68,8 +71,8 @@ class SettingsHomeIntegrationTest {
                 SettingsScreen(showHomeShortcut = false, showReportsShortcut = false)
             }
         }
-        composeRule.onNodeWithText("Insights", ignoreCase = true).assertDoesNotExist()
-        composeRule.onNodeWithText("Reports").assertDoesNotExist()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_section_insights), ignoreCase = true).assertDoesNotExist()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_reports)).assertDoesNotExist()
     }
 
     @Test
@@ -81,11 +84,13 @@ class SettingsHomeIntegrationTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Settings").performClick()
-        composeRule.onNodeWithText("Display").performScrollTo().performClick()
-        composeRule.onNodeWithText("Budget").performScrollTo().performClick()
-        composeRule.onNodeWithText("Home").performClick()
+        composeRule.onNodeWithContentDescription(strings.getString(R.string.settings_open_settings)).performClick()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_page_display)).performScrollTo().performClick()
+        // The picker label resolves from MainDestination's labelRes (navigation_* strings).
+        composeRule.onNodeWithText(strings.getString(R.string.navigation_budget)).performScrollTo().performClick()
+        composeRule.onNodeWithText(strings.getString(R.string.navigation_home)).performClick()
 
+        // The stored start-page preference keeps the English MainDestination token, not the label.
         assertTrue(selectedStartPage == "Home")
     }
 }

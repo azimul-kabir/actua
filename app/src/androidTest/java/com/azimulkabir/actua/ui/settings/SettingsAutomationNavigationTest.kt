@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.azimulkabir.actua.R
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -17,6 +18,8 @@ class SettingsAutomationNavigationTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
+    private val strings get() = composeRule.activity
+
     @Test
     fun billsCalendarIsASeparateAutomationDestination() {
         var opened = false
@@ -24,13 +27,13 @@ class SettingsAutomationNavigationTest {
             SettingsScreen(onBillsCalendarClick = { opened = true })
         }
 
-        composeRule.onNodeWithText("Bills & Calendar")
+        composeRule.onNodeWithText(strings.getString(R.string.settings_bills_calendar))
             .performScrollTo()
             .performClick()
 
         composeRule.waitUntil(5_000) { opened }
         assertTrue(opened)
-        composeRule.onNodeWithText("Scheduled Transactions").assertExists()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_scheduled_transactions)).assertExists()
     }
     @Test
     fun manageGearOpensGeneralSettingsAndBackReturnsToManage() {
@@ -38,14 +41,14 @@ class SettingsAutomationNavigationTest {
             SettingsScreen()
         }
 
-        composeRule.onNodeWithContentDescription("Settings").performClick()
+        composeRule.onNodeWithContentDescription(strings.getString(R.string.settings_open_settings)).performClick()
 
-        composeRule.onNodeWithText("Transactions & Accounts").assertExists()
-        composeRule.onNodeWithText("Bills & Calendar").assertDoesNotExist()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_page_transactions_accounts)).assertExists()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_bills_calendar)).assertDoesNotExist()
 
         composeRule.onNodeWithContentDescription("Back").performClick()
 
-        composeRule.onNodeWithText("Bills & Calendar").assertExists()
-        composeRule.onNodeWithText("Transactions & Accounts").assertDoesNotExist()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_bills_calendar)).assertExists()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_page_transactions_accounts)).assertDoesNotExist()
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.DemoBudgetManager
@@ -40,6 +41,7 @@ class AppNavigationTabBarTest {
     private val displayPreferences = DisplayPreferences(context)
     private var previousBudgetId: String? = null
     private var previousStartPage: String? = null
+    private val strings get() = composeRule.activity
 
     @Before fun seedDemoBudget() {
         previousBudgetId = activeBudget.budgetId
@@ -151,9 +153,9 @@ class AppNavigationTabBarTest {
         composeRule.setContent { MaterialTheme { AppNavigation() } }
 
         composeRule.onNodeWithContentDescription("Manage", useUnmergedTree = true).performClick()
-        composeRule.onNodeWithContentDescription("Settings", useUnmergedTree = true).performClick()
-        composeRule.onNodeWithText("Display").performScrollTo().performClick()
-        composeRule.onNodeWithText("Tab Bar").performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription(strings.getString(R.string.settings_open_settings), useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_page_display)).performScrollTo().performClick()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_tab_bar)).performScrollTo().performClick()
 
         // The default layout is already at the 5-tab maximum, so Transactions' switch (hidden by
         // default) starts disabled; hide Add first to free a slot before showing Transactions.
@@ -171,7 +173,7 @@ class AppNavigationTabBarTest {
         // explicit save step is needed for the bottom bar to reflect the change either way.
         pressBack()
 
-        composeRule.onNodeWithText("Tab Bar").assertExists()
+        composeRule.onNodeWithText(strings.getString(R.string.settings_tab_bar)).assertExists()
         composeRule.onNodeWithContentDescription("Transactions", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithContentDescription("Add", useUnmergedTree = true).assertDoesNotExist()
     }
