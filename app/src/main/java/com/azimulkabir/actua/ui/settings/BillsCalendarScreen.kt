@@ -52,10 +52,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.BillCalendarItem
 import com.azimulkabir.actua.data.schedules.BillFilter
 import com.azimulkabir.actua.data.schedules.BillsCalendarEngine
@@ -109,9 +112,13 @@ fun BillsCalendarScreen(
 
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Bills", onBack = onBack) {
+        ActuaScreenHeader(title = stringResource(R.string.fs_bills), onBack = onBack) {
             IconButton(onClick = if (mode == BillsTabMode.RECURRING) onAddSchedule else onConfigureCards) {
-                Icon(Icons.Outlined.Add, if (mode == BillsTabMode.RECURRING) "Add schedule" else "Configure cards")
+                Icon(
+                    Icons.Outlined.Add,
+                    if (mode == BillsTabMode.RECURRING) stringResource(R.string.fs_add_schedule)
+                    else stringResource(R.string.fs_configure_cards),
+                )
             }
         }
         Column(
@@ -125,13 +132,19 @@ fun BillsCalendarScreen(
                         selected = mode == tab,
                         onClick = { mode = tab; selectedDate = null },
                         shape = SegmentedButtonDefaults.itemShape(index, BillsTabMode.entries.size),
-                    ) { Text(if (tab == BillsTabMode.RECURRING) "Recurring" else "Card Bills") }
+                    ) {
+                        Text(
+                            stringResource(
+                                if (tab == BillsTabMode.RECURRING) R.string.fs_recurring else R.string.fs_card_bills,
+                            ),
+                        )
+                    }
                 }
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { month = month.addingMonths(-1); selectedDate = null }) {
-                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, "Previous month")
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, stringResource(R.string.fs_previous_month))
                 }
                 Text(
                     "${Month.of(month.month).getDisplayName(TextStyle.FULL, locale)} ${month.year}",
@@ -141,12 +154,12 @@ fun BillsCalendarScreen(
                     modifier = Modifier.weight(1f),
                 )
                 if (summary.totalCount > 0) Text(
-                    "${summary.clearedCount}/${summary.totalCount} paid",
+                    stringResource(R.string.fs_paid_count, summary.clearedCount, summary.totalCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 IconButton(onClick = { month = month.addingMonths(1); selectedDate = null }) {
-                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, "Next month")
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, stringResource(R.string.fs_next_month))
                 }
             }
 
@@ -160,12 +173,12 @@ fun BillsCalendarScreen(
             )
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SummaryMetric("Upcoming", summary.upcomingCents, MaterialTheme.colorScheme.primary,
-                    hideDecimalPlaces, Modifier.weight(1f))
-                SummaryMetric("Overdue", summary.overdueCents, MaterialTheme.colorScheme.error,
-                    hideDecimalPlaces, Modifier.weight(1f))
-                SummaryMetric("Paid", summary.paidCents, MaterialTheme.colorScheme.success,
-                    hideDecimalPlaces, Modifier.weight(1f))
+                SummaryMetric(stringResource(R.string.fs_filter_upcoming), summary.upcomingCents,
+                    MaterialTheme.colorScheme.primary, hideDecimalPlaces, Modifier.weight(1f))
+                SummaryMetric(stringResource(R.string.fs_overdue), summary.overdueCents,
+                    MaterialTheme.colorScheme.error, hideDecimalPlaces, Modifier.weight(1f))
+                SummaryMetric(stringResource(R.string.fs_filter_paid), summary.paidCents,
+                    MaterialTheme.colorScheme.success, hideDecimalPlaces, Modifier.weight(1f))
             }
 
             Row(
@@ -176,11 +189,13 @@ fun BillsCalendarScreen(
                     FilterChip(
                         selected = filter == option,
                         onClick = { filter = option },
-                        label = { Text(option.name.lowercase().replaceFirstChar(Char::uppercase)) },
+                        label = { Text(billFilterLabel(option)) },
                     )
                 }
                 selectedDate?.let { day ->
-                    FilterChip(selected = true, onClick = { selectedDate = null }, label = { Text("Day ${day.day} ×") })
+                    FilterChip(selected = true, onClick = { selectedDate = null }, label = {
+                        Text(stringResource(R.string.fs_day_filter, day.day))
+                    })
                 }
             }
 
@@ -200,11 +215,18 @@ fun BillsCalendarScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(Icons.Outlined.EventAvailable, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(if (mode == BillsTabMode.RECURRING) "No schedules due" else "No card bills due",
-                            fontWeight = FontWeight.SemiBold)
                         Text(
-                            if (selectedDate != null) "Nothing is scheduled for this date."
-                            else "No items match the selected filter.",
+                            stringResource(
+                                if (mode == BillsTabMode.RECURRING) R.string.fs_no_schedules_due
+                                else R.string.fs_no_card_bills_due,
+                            ),
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            stringResource(
+                                if (selectedDate != null) R.string.fs_nothing_scheduled_date
+                                else R.string.fs_no_filter_matches,
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -243,15 +265,15 @@ fun BillsCalendarScreen(
     pendingDelete?.let { item ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete schedule?") },
-            text = { Text("${item.title} will be removed. Existing posted transactions will stay intact.") },
+            title = { Text(stringResource(R.string.fs_delete_schedule_short_question)) },
+            text = { Text(stringResource(R.string.fs_delete_schedule_named, item.title)) },
             confirmButton = {
                 TextButton(onClick = {
                     pendingDelete = null
                     item.scheduleId?.let(onDelete)
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.fs_delete), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.fs_cancel)) } },
         )
     }
 }
@@ -268,10 +290,11 @@ private fun BillsCalendarGrid(
     val byDate = items.groupBy(BillCalendarItem::date)
     val cells = List<DayDate?>(BillsCalendarEngine.leadingEmptyDays(year, month)) { null } +
         BillsCalendarEngine.daysInMonth(year, month)
+    val weekdayInitials = stringResource(R.string.fs_weekdays_narrow).split(',')
     Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(Modifier.fillMaxWidth()) {
-                listOf("M", "T", "W", "T", "F", "S", "S").forEach { label ->
+                weekdayInitials.forEach { label ->
                     Text(label, style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f))
@@ -363,7 +386,7 @@ private fun BillCard(
                     Text(formatMoneyCents(item.amountCents, hideDecimalPlaces),
                         color = if (item.amountCents > 0) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.onSurface)
                     Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(item.relativeDueText(today), style = MaterialTheme.typography.bodySmall,
+                    Text(relativeDueLabel(item, today), style = MaterialTheme.typography.bodySmall,
                         color = statusColor(item.status))
                 }
                 Text(listOfNotNull(item.categoryName, item.accountName).joinToString(" · "),
@@ -396,26 +419,56 @@ private fun BillActionsSheet(
             ActuaSheetTitle(item.title)
             if (item.scheduleId != null && item.isCurrentOccurrence && item.status != ScheduleStatus.COMPLETED) {
                 ActuaSheetCard {
-                    ActuaSheetAction("Post transaction", icon = Icons.Outlined.Add, onClick = { onPost(false) })
+                    ActuaSheetAction(stringResource(R.string.fs_post_transaction), icon = Icons.Outlined.Add, onClick = { onPost(false) })
                     ActuaCardDivider()
-                    ActuaSheetAction("Post transaction today", icon = Icons.Outlined.EventAvailable,
+                    ActuaSheetAction(stringResource(R.string.fs_post_transaction_today), icon = Icons.Outlined.EventAvailable,
                         onClick = { onPost(true) })
                     if (item.isRecurring) {
                         ActuaCardDivider()
-                        ActuaSheetAction("Skip next date", icon = Icons.Outlined.SkipNext, onClick = onSkip)
+                        ActuaSheetAction(stringResource(R.string.fs_skip_next_date), icon = Icons.Outlined.SkipNext, onClick = onSkip)
                     }
                 }
             }
             ActuaSheetCard {
-                ActuaSheetAction(if (item.isCreditCard) "Configure credit cards" else "Edit schedule",
-                    icon = Icons.Outlined.Edit, onClick = onEdit)
+                ActuaSheetAction(
+                    stringResource(
+                        if (item.isCreditCard) R.string.fs_configure_credit_cards
+                        else R.string.fs_edit_schedule_description,
+                    ),
+                    icon = Icons.Outlined.Edit, onClick = onEdit,
+                )
                 if (item.scheduleId != null) {
                     ActuaCardDivider()
-                    ActuaSheetAction("Delete schedule", icon = Icons.Outlined.DeleteOutline, destructive = true,
+                    ActuaSheetAction(stringResource(R.string.fs_delete_schedule), icon = Icons.Outlined.DeleteOutline, destructive = true,
                         onClick = onDelete)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun billFilterLabel(option: BillFilter): String = stringResource(
+    when (option) {
+        BillFilter.ALL -> R.string.fs_filter_all
+        BillFilter.UPCOMING -> R.string.fs_filter_upcoming
+        BillFilter.OVERDUE -> R.string.fs_filter_overdue
+        BillFilter.PAID -> R.string.fs_filter_paid
+    },
+)
+
+/** Localized "Paid"/"Overdue by N days"/"Due …" text for a calendar card (mirrors BillCalendarItem). */
+@Composable
+private fun relativeDueLabel(item: BillCalendarItem, today: DayDate): String {
+    if (item.status == ScheduleStatus.PAID) return stringResource(R.string.fs_status_paid)
+    if (item.status == ScheduleStatus.COMPLETED) return stringResource(R.string.fs_status_completed)
+    val days = today.daysUntil(item.date)
+    return when {
+        days < -1 -> pluralStringResource(R.plurals.fs_overdue_by_days, -days, -days)
+        days == -1 -> pluralStringResource(R.plurals.fs_overdue_by_days, 1, 1)
+        days == 0 -> stringResource(R.string.fs_due_today)
+        days == 1 -> stringResource(R.string.fs_due_tomorrow)
+        else -> pluralStringResource(R.plurals.fs_due_in_days, days, days)
     }
 }
 

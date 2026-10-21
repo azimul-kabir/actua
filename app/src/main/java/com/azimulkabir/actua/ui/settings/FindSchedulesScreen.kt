@@ -26,8 +26,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.RecurConfig
 import com.azimulkabir.actua.data.schedules.ScheduleDiscovery
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
@@ -45,9 +48,9 @@ fun FindSchedulesScreen(
     val selected = proposals.orEmpty().filter { it.proposal.id in selectedIds }.map { it.proposal }
     BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Find Schedules", onBack = onBack) {
+        ActuaScreenHeader(title = stringResource(R.string.fs_find_schedules), onBack = onBack) {
             TextButton(onClick = { onCreate(selected) }, enabled = selected.isNotEmpty()) {
-                Text("Create")
+                Text(stringResource(R.string.fs_create))
             }
         }
         if (proposals == null) {
@@ -57,7 +60,7 @@ fun FindSchedulesScreen(
                 verticalArrangement = Arrangement.Center,
             ) {
                 CircularProgressIndicator()
-                Text("Looking for repeating transactions…", modifier = Modifier.padding(top = 16.dp))
+                Text(stringResource(R.string.fs_looking_for_repeating), modifier = Modifier.padding(top = 16.dp))
             }
         } else if (proposals.isEmpty()) {
             Column(
@@ -66,15 +69,15 @@ fun FindSchedulesScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(Icons.Outlined.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Nothing found", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.fs_nothing_found), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "No repeating transactions were found in your history.",
+                    stringResource(R.string.fs_no_repeating_found),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         } else {
             Text(
-                "Select repeating transactions to turn into schedules.",
+                stringResource(R.string.fs_select_repeating),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
             )
@@ -113,37 +116,36 @@ fun FindSchedulesScreen(
     }
 }
 
+@Composable
 private fun recurrenceLabel(config: RecurConfig): String {
-    val unit = when (config.frequency) {
-        RecurConfig.Frequency.DAILY -> "day"
-        RecurConfig.Frequency.WEEKLY -> "week"
-        RecurConfig.Frequency.MONTHLY -> "month"
-        RecurConfig.Frequency.YEARLY -> "year"
+    val base = when (config.frequency) {
+        RecurConfig.Frequency.DAILY ->
+            if (config.interval == 1) stringResource(R.string.fs_every_day)
+            else pluralStringResource(R.plurals.fs_every_days, config.interval, config.interval)
+        RecurConfig.Frequency.WEEKLY ->
+            if (config.interval == 1) stringResource(R.string.fs_every_week)
+            else pluralStringResource(R.plurals.fs_every_weeks, config.interval, config.interval)
+        RecurConfig.Frequency.MONTHLY ->
+            if (config.interval == 1) stringResource(R.string.fs_every_month)
+            else pluralStringResource(R.plurals.fs_every_months, config.interval, config.interval)
+        RecurConfig.Frequency.YEARLY ->
+            if (config.interval == 1) stringResource(R.string.fs_every_year)
+            else pluralStringResource(R.plurals.fs_every_years, config.interval, config.interval)
     }
-    val base = if (config.interval == 1) "Every $unit" else "Every ${config.interval} ${unit}s"
     return if (config.exactPatternLabel().isEmpty()) base else "$base · ${config.exactPatternLabel()}"
 }
 
-private fun RecurConfig.exactPatternLabel(): String = patterns.joinToString(", ") { pattern ->
+@Composable
+private fun RecurConfig.exactPatternLabel(): String = patterns.map { pattern ->
     when {
-        pattern.type == "day" && pattern.value == -1 -> "last day"
-        pattern.type == "day" -> "day ${pattern.value}"
-        pattern.value == -1 -> "last ${weekdayLabel(pattern.type)}"
-        else -> "${ordinal(pattern.value)} ${weekdayLabel(pattern.type)}"
+        pattern.type == "day" && pattern.value == -1 -> stringResource(R.string.fs_last_day)
+        pattern.type == "day" -> stringResource(R.string.fs_day_number, pattern.value)
+        pattern.value == -1 -> stringResource(R.string.fs_last_weekday, weekdayLabel(pattern.type))
+        else -> stringResource(
+            R.string.fs_ordinal_weekday, ordinalLabel(pattern.value), weekdayLabel(pattern.type),
+        )
     }
-}
+}.joinToString(", ")
 
-private fun weekdayLabel(code: String) = mapOf(
-    "SU" to "Sunday", "MO" to "Monday", "TU" to "Tuesday", "WE" to "Wednesday",
-    "TH" to "Thursday", "FR" to "Friday", "SA" to "Saturday",
-)[code].orEmpty()
-
-private fun ordinal(value: Int): String {
-    val suffix = if (value % 100 in 11..13) "th" else when (value % 10) {
-        1 -> "st"
-        2 -> "nd"
-        3 -> "rd"
-        else -> "th"
-    }
-    return "$value$suffix"
-}
+@Composable
+private fun weekdayLabel(code: String): String = weekdayName(code)

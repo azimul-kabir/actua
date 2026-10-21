@@ -45,7 +45,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.model.ActualTag
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaListRow
@@ -81,23 +83,31 @@ fun ManageTagsScreen(
         return
     }
 
-    Scaffold(modifier = modifier, topBar = { ActuaScreenHeader(title = "Manage Tags", onBack = onBack) }, floatingActionButton = { FloatingActionButton(onClick = { creating = true }) { Icon(Icons.Outlined.Add, "Create tag") } }) { padding ->
+    Scaffold(modifier = modifier, topBar = {
+        ActuaScreenHeader(title = stringResource(R.string.fs_manage_tags), onBack = onBack)
+    }, floatingActionButton = {
+        FloatingActionButton(onClick = { creating = true }) { Icon(Icons.Outlined.Add, stringResource(R.string.fs_create_tag)) }
+    }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            OutlinedTextField(query, { query = it }, label = { Text("Search tags") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm))
-            if (filtered.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(if (tags.isEmpty()) "No managed tags yet" else "No tags match your search") }
+            OutlinedTextField(query, { query = it }, label = { Text(stringResource(R.string.fs_search_tags)) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm))
+            if (filtered.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    stringResource(if (tags.isEmpty()) R.string.fs_no_managed_tags else R.string.fs_no_matching_tags),
+                )
+            }
             else LazyColumn(contentPadding = PaddingValues(top = Spacing.sm, bottom = 88.dp)) { itemsIndexed(filtered, key = { _, tag -> tag.id }) { index, tag ->
                 ActuaGroupedItem(GroupPosition.of(index, filtered.size), dividerInset = Spacing.lg + 18.dp + Spacing.md) {
                 ActuaListRow(
                     title = { Text("#${tag.tag}", style = MaterialTheme.typography.bodyLarge) },
-                    subtitle = { val detail = listOfNotNull(tag.description?.takeIf(String::isNotBlank), if (tag.hidden) "Hidden" else null); if (detail.isNotEmpty()) Text(detail.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    subtitle = { val detail = listOfNotNull(tag.description?.takeIf(String::isNotBlank), if (tag.hidden) stringResource(R.string.fs_hidden) else null); if (detail.isNotEmpty()) Text(detail.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     leading = { TagColorDot(tag.color) },
                     trailing = {
                         Box {
-                            IconButton(onClick = { actionsFor = tag }) { Icon(Icons.Outlined.Edit, "Actions for #${tag.tag}") }
+                            IconButton(onClick = { actionsFor = tag }) { Icon(Icons.Outlined.Edit, stringResource(R.string.fs_tag_actions, tag.tag)) }
                             DropdownMenu(expanded = actionsFor?.id == tag.id, onDismissRequest = { actionsFor = null }) {
-                                DropdownMenuItem(text = { Text("View transactions") }, leadingIcon = { Icon(Icons.Outlined.ReceiptLong, null) }, onClick = { actionsFor = null; viewing = tag })
-                                DropdownMenuItem(text = { Text("Edit") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { actionsFor = null; editing = tag })
-                                DropdownMenuItem(text = { Text("Delete") }, leadingIcon = { Icon(Icons.Outlined.Delete, null) }, onClick = { actionsFor = null; deleting = tag })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.fs_view_transactions)) }, leadingIcon = { Icon(Icons.Outlined.ReceiptLong, null) }, onClick = { actionsFor = null; viewing = tag })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.fs_edit)) }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { actionsFor = null; editing = tag })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.fs_delete)) }, leadingIcon = { Icon(Icons.Outlined.Delete, null) }, onClick = { actionsFor = null; deleting = tag })
                             }
                         }
                     },
@@ -107,9 +117,9 @@ fun ManageTagsScreen(
             } }
         }
     }
-    if (creating) TagEditorDialog("Create Tag", null, hiddenSupported, { creating = false }) { n,c,d,h -> onCreate(n,c,d,h); creating = false }
-    editing?.let { tag -> TagEditorDialog("Edit #${tag.tag}", tag, hiddenSupported, { editing = null }) { n,c,d,h -> onUpdate(tag,n,c,d,h); editing = null } }
-    deleting?.let { tag -> AlertDialog(onDismissRequest = { deleting = null }, title = { Text("Delete #${tag.tag}?") }, text = { Text("This deletes the managed tag metadata. Existing #${tag.tag} text in historical transaction notes will remain as an unmanaged hashtag.") }, confirmButton = { TextButton(onClick = { onDelete(tag); deleting = null }) { Text("Delete") } }, dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } }) }
+    if (creating) TagEditorDialog(stringResource(R.string.fs_create_tag_title), null, hiddenSupported, { creating = false }) { n,c,d,h -> onCreate(n,c,d,h); creating = false }
+    editing?.let { tag -> TagEditorDialog(stringResource(R.string.fs_edit_tag_title, tag.tag), tag, hiddenSupported, { editing = null }) { n,c,d,h -> onUpdate(tag,n,c,d,h); editing = null } }
+    deleting?.let { tag -> AlertDialog(onDismissRequest = { deleting = null }, title = { Text(stringResource(R.string.fs_delete_tag_title, tag.tag)) }, text = { Text(stringResource(R.string.fs_delete_tag_message, tag.tag)) }, confirmButton = { TextButton(onClick = { onDelete(tag); deleting = null }) { Text(stringResource(R.string.fs_delete)) } }, dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.fs_cancel)) } }) }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -118,13 +128,13 @@ fun ManageTagsScreen(
     var description by remember(existing) { mutableStateOf(existing?.description.orEmpty()) }; var hidden by remember(existing) { mutableStateOf(existing?.hidden ?: false) }
     val valid = isValidManagedTagName(name)
     AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
-        OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true, isError = name.isNotEmpty() && !valid)
-        OutlinedTextField(description, { description = it }, label = { Text("Description") }); Text("Color", style = MaterialTheme.typography.labelLarge)
+        OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.fs_name)) }, singleLine = true, isError = name.isNotEmpty() && !valid)
+        OutlinedTextField(description, { description = it }, label = { Text(stringResource(R.string.fs_description)) }); Text(stringResource(R.string.fs_color), style = MaterialTheme.typography.labelLarge)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             tagPalette.forEach { option -> Box(Modifier.size(if (color == option) 36.dp else 32.dp).background(parseTagColor(option), CircleShape).clickable { color = option }) }
         }
-        if (hiddenSupported) Row(verticalAlignment = Alignment.CenterVertically) { Text("Hidden", modifier = Modifier.weight(1f)); Switch(hidden, { hidden = it }) }
-    } }, confirmButton = { Button(onClick = { onSave(name.trim(), color, description.trim().ifBlank { null }, hidden) }, enabled = valid) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+        if (hiddenSupported) Row(verticalAlignment = Alignment.CenterVertically) { Text(stringResource(R.string.fs_hidden), modifier = Modifier.weight(1f)); Switch(hidden, { hidden = it }) }
+    } }, confirmButton = { Button(onClick = { onSave(name.trim(), color, description.trim().ifBlank { null }, hidden) }, enabled = valid) { Text(stringResource(R.string.fs_save)) } }, dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.fs_cancel)) } })
 }
 
 @Composable private fun TagColorDot(value: String?) { Box(Modifier.size(18.dp).background(parseTagColor(value), CircleShape)) }

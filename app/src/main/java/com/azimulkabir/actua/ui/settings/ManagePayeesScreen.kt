@@ -40,11 +40,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.model.ActualManagedPayee
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
 import com.azimulkabir.actua.ui.components.ActuaListRow
@@ -107,31 +110,32 @@ fun ManagePayeesScreen(
     Column(modifier.fillMaxSize().imePadding()) {
         if (selecting) {
             ActuaScreenHeader(
-                title = "${selected.size} selected",
+                title = pluralStringResource(R.plurals.fs_selected_count, selected.size, selected.size),
                 onBack = { selectedIds = emptyList() },
                 actions = {
-                    TextButton(onClick = { merging = selected }, enabled = selected.size >= 2) { Text("Merge") }
-                    TextButton(onClick = { deleting = selected }) { Text("Delete") }
+                    TextButton(onClick = { merging = selected }, enabled = selected.size >= 2) { Text(stringResource(R.string.fs_merge)) }
+                    TextButton(onClick = { deleting = selected }) { Text(stringResource(R.string.fs_delete)) }
                 },
             )
         } else {
-            ActuaScreenHeader(title = "Payees", onBack = onBack)
+            ActuaScreenHeader(title = stringResource(R.string.fs_payees_title), onBack = onBack)
         }
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            label = { Text("Search payees") },
+            label = { Text(stringResource(R.string.fs_search_payees)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
         )
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = Spacing.xl)) {
             item(key = "learning") {
                 ActuaGroupedItem(GroupPosition.of(0, 1)) {
+                    val categoryLearning = stringResource(R.string.fs_payee_category_learning)
                     ActuaListRow(
-                        title = { Text("Category learning", style = MaterialTheme.typography.bodyLarge) },
+                        title = { Text(categoryLearning, style = MaterialTheme.typography.bodyLarge) },
                         subtitle = {
                             Text(
-                                "Create a payee rule when you categorize its transactions the same way",
+                                stringResource(R.string.fs_payee_category_learning_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -140,17 +144,20 @@ fun ManagePayeesScreen(
                             Switch(
                                 checked = learnCategoriesEnabled,
                                 onCheckedChange = onSetLearnCategoriesEnabled,
-                                modifier = Modifier.semantics { contentDescription = "Category learning" },
+                                modifier = Modifier.semantics { contentDescription = categoryLearning },
                             )
                         },
                     )
                 }
             }
-            item(key = "payees-header") { ActuaSectionHeader("Payees") }
+            item(key = "payees-header") { ActuaSectionHeader(stringResource(R.string.fs_payees_title)) }
             if (sections.ordinary.isEmpty()) {
                 item(key = "payees-empty") {
                     Text(
-                        if (payees.none { it.transferAccountId == null }) "No payees yet" else "No payees match your search",
+                        stringResource(
+                            if (payees.none { it.transferAccountId == null }) R.string.fs_no_payees_yet
+                            else R.string.fs_no_payees_match,
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs, vertical = Spacing.sm),
                     )
@@ -158,59 +165,79 @@ fun ManagePayeesScreen(
             }
             itemsIndexed(sections.ordinary, key = { _, payee -> payee.id }) { index, payee ->
                 val isSelected = payee.id in selectedIds
+                val selectionDescription = if (selecting) stringResource(
+                    if (isSelected) R.string.fs_selected_payee else R.string.fs_not_selected_payee,
+                    payee.name,
+                ) else null
                 ActuaGroupedItem(GroupPosition.of(index, sections.ordinary.size)) {
                     ActuaListRow(
                         title = {
-                            Text(payee.name.ifBlank { "Unnamed payee" }, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                payee.name.ifBlank { stringResource(R.string.fs_unnamed_payee) }, maxLines = 2,
+                                overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge,
+                            )
                         },
                         subtitle = if (payee.learnCategories) null else {
                             {
-                                Text("Category learning off", style = MaterialTheme.typography.bodySmall,
+                                Text(stringResource(R.string.fs_payee_category_learning_off), style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         },
                         leading = if (selecting) {
                             { Checkbox(checked = isSelected, onCheckedChange = null) }
                         } else if (payee.favorite) {
-                            { Icon(Icons.Filled.Star, contentDescription = "Favorite", tint = MaterialTheme.colorScheme.primary) }
+                            { Icon(Icons.Filled.Star, contentDescription = stringResource(R.string.fs_favorite), tint = MaterialTheme.colorScheme.primary) }
                         } else null,
                         trailing = if (selecting) null else {
                             {
                                 Box {
                                     IconButton(onClick = { actionsFor = payee.id }) {
-                                        Icon(Icons.Outlined.MoreVert, contentDescription = "Actions for ${payee.name}")
+                                        Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.fs_payee_actions, payee.name))
                                     }
                                     DropdownMenu(expanded = actionsFor == payee.id, onDismissRequest = { actionsFor = null }) {
-                                        DropdownMenuItem(text = { Text("Rename") }, onClick = { actionsFor = null; renaming = payee })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.fs_rename)) }, onClick = { actionsFor = null; renaming = payee })
                                         DropdownMenuItem(
-                                            text = { Text(if (payee.favorite) "Remove from favorites" else "Add to favorites") },
+                                            text = {
+                                                Text(
+                                                    stringResource(
+                                                        if (payee.favorite) R.string.fs_remove_from_favorites
+                                                        else R.string.fs_add_to_favorites,
+                                                    ),
+                                                )
+                                            },
                                             leadingIcon = { Icon(if (payee.favorite) Icons.Outlined.StarBorder else Icons.Filled.Star, null) },
                                             onClick = { actionsFor = null; onSetFavorite(payee, !payee.favorite) },
                                         )
                                         DropdownMenuItem(
-                                            text = { Text(if (payee.learnCategories) "Turn off category learning" else "Turn on category learning") },
+                                            text = {
+                                                Text(
+                                                    stringResource(
+                                                        if (payee.learnCategories) R.string.fs_turn_off_category_learning
+                                                        else R.string.fs_turn_on_category_learning,
+                                                    ),
+                                                )
+                                            },
                                             onClick = { actionsFor = null; onSetLearnCategories(payee, !payee.learnCategories) },
                                         )
-                                        DropdownMenuItem(text = { Text("Select") }, onClick = { actionsFor = null; toggle(payee) })
-                                        DropdownMenuItem(text = { Text("Delete") }, onClick = { actionsFor = null; deleting = listOf(payee) })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.fs_select)) }, onClick = { actionsFor = null; toggle(payee) })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.fs_delete)) }, onClick = { actionsFor = null; deleting = listOf(payee) })
                                     }
                                 }
                             }
                         },
                         onClick = if (selecting) ({ toggle(payee) }) else null,
                         onLongClick = { toggle(payee) },
-                        modifier = if (selecting) Modifier.semantics {
-                            contentDescription = (if (isSelected) "Selected " else "Not selected ") + payee.name
+                        modifier = if (selectionDescription != null) Modifier.semantics {
+                            contentDescription = selectionDescription
                         } else Modifier,
                     )
                 }
             }
             if (sections.transfers.isNotEmpty()) {
-                item(key = "transfers-header") { ActuaSectionHeader("Transfer payees") }
+                item(key = "transfers-header") { ActuaSectionHeader(stringResource(R.string.fs_transfer_payees)) }
                 item(key = "transfers-note") {
                     Text(
-                        "Transfer payees belong to their account and can't be edited here.",
+                        stringResource(R.string.fs_transfer_payees_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = Spacing.screenHorizontal + Spacing.xs, vertical = Spacing.xs),
@@ -229,31 +256,40 @@ fun ManagePayeesScreen(
         var name by remember(payee.id) { mutableStateOf(payee.name) }
         AlertDialog(
             onDismissRequest = { renaming = null },
-            title = { Text("Rename payee") },
+            title = { Text(stringResource(R.string.fs_rename_payee)) },
             text = {
-                OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true)
+                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.fs_name)) }, singleLine = true)
             },
             confirmButton = {
                 TextButton(onClick = { onRename(payee, name.trim()); renaming = null }, enabled = name.isNotBlank()) {
-                    Text("Save")
+                    Text(stringResource(R.string.fs_save))
                 }
             },
-            dismissButton = { TextButton(onClick = { renaming = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { renaming = null }) { Text(stringResource(R.string.fs_cancel)) } },
         )
     }
 
     deleting?.let { targets ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text(if (targets.size == 1) "Delete ${targets.single().name}?" else "Delete ${targets.size} payees?") },
+            title = {
+                Text(
+                    if (targets.size == 1) stringResource(R.string.fs_delete_payee_question, targets.single().name)
+                    else pluralStringResource(R.plurals.fs_delete_payees_question, targets.size, targets.size),
+                )
+            },
             text = {
-                Text("Transactions keep their amounts and categories but will show no payee. Rules that mention " +
-                    (if (targets.size == 1) "this payee" else "these payees") + " stay as they are.")
+                Text(
+                    stringResource(
+                        if (targets.size == 1) R.string.fs_delete_payees_message_this
+                        else R.string.fs_delete_payees_message_these,
+                    ),
+                )
             },
             confirmButton = {
-                TextButton(onClick = { onDelete(targets); deleting = null; selectedIds = emptyList() }) { Text("Delete") }
+                TextButton(onClick = { onDelete(targets); deleting = null; selectedIds = emptyList() }) { Text(stringResource(R.string.fs_delete)) }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.fs_cancel)) } },
         )
     }
 
@@ -261,10 +297,10 @@ fun ManagePayeesScreen(
         var targetId by remember(targets) { mutableStateOf(targets.first().id) }
         AlertDialog(
             onDismissRequest = { merging = null },
-            title = { Text("Merge ${targets.size} payees") },
+            title = { Text(stringResource(R.string.fs_merge_payees_title, targets.size)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Text("Keep this payee. The others are merged into it: their transactions and rules move to it.")
+                    Text(stringResource(R.string.fs_merge_payees_keep))
                     LazyColumn(Modifier.heightIn(max = 320.dp).selectableGroup()) {
                         items(targets, key = ActualManagedPayee::id) { payee ->
                             Row(
@@ -286,9 +322,9 @@ fun ManagePayeesScreen(
                     onMerge(target, targets.filter { it.id != targetId })
                     merging = null
                     selectedIds = emptyList()
-                }) { Text("Merge payees") }
+                }) { Text(stringResource(R.string.fs_merge_payees)) }
             },
-            dismissButton = { TextButton(onClick = { merging = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { merging = null }) { Text(stringResource(R.string.fs_cancel)) } },
         )
     }
 }

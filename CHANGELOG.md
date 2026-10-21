@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Brazilian Portuguese (pt-BR) translation of financial settings strings ([#1237](https://github.com/azimul-kabir/actua/pull/1237))
 - Brazilian Portuguese (pt-BR) translation of core settings strings ([#1235](https://github.com/azimul-kabir/actua/pull/1235))
 - Brazilian Portuguese (pt-BR) translation of transaction entry, list, tags and reconciliation strings ([#1233](https://github.com/azimul-kabir/actua/pull/1233))
 - Brazilian Portuguese (pt-BR) translation of widget, disconnect and notification strings ([#1231](https://github.com/azimul-kabir/actua/pull/1231))

@@ -41,11 +41,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.CreditCardStatus
@@ -58,12 +62,14 @@ import com.azimulkabir.actua.ui.components.ActuaMenuRow
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
+import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.theme.Spacing
 import com.azimulkabir.actua.ui.theme.success
 import com.azimulkabir.actua.ui.theme.warning
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalDate
 import java.util.Locale
 
 @Composable
@@ -84,9 +90,9 @@ fun CreditCardsScreen(
     val availableAccounts = creditCardCandidates(accounts, cards.mapTo(mutableSetOf()) { it.accountId })
 
     Column(modifier.fillMaxSize()) {
-        ActuaScreenHeader(title = "Credit Cards", onBack = onBack) {
+        ActuaScreenHeader(title = stringResource(R.string.fs_credit_cards), onBack = onBack) {
             IconButton(onClick = { adding = true }, enabled = availableAccounts.isNotEmpty()) {
-                Icon(Icons.Outlined.Add, "Add credit card")
+                Icon(Icons.Outlined.Add, stringResource(R.string.fs_add_credit_card))
             }
         }
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -94,16 +100,16 @@ fun CreditCardsScreen(
                 ActuaFormCard(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)) {
                     ActuaFormRow(
                         icon = Icons.Outlined.NotificationsActive,
-                        label = "Payment reminders",
+                        label = stringResource(R.string.fs_payment_reminders),
                         value = null,
-                        caption = "Notify 7, 5, 3 and 1 days before an unpaid card is due.",
+                        caption = stringResource(R.string.fs_payment_reminders_description),
                         checked = notificationsEnabled,
                         onClick = { onNotificationsEnabledChange(!notificationsEnabled) },
                     )
                 }
             }
             if (cards.isEmpty()) item {
-                Text("Mark an account as a credit card to track its billing cycle, cycle spend, payment due date and available credit.",
+                Text(stringResource(R.string.fs_no_credit_cards),
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(20.dp))
             }
@@ -149,15 +155,7 @@ private fun CreditCardRow(
         else -> Color(0xFFF9A825)
     }
     // The pill's short text and its long form for TalkBack, which keeps the date the pill drops.
-    fun dueText(short: Boolean): String {
-        if (isPaid) return "Paid"
-        val summary = if (short) card.cycle.dueShortSummary(dueDate = statementDue?.dueDate)
-            else card.cycle.dueSummary(dueDate = statementDue?.dueDate)
-        return statementDue?.let {
-            CreditCardCycle.duePillText(formatMoneyCents(it.remainingDue, hideDecimals), summary, it.remainingDue)
-        } ?: summary
-    }
-    val pillText = dueText(short = true)
+    val pillText = duePillText(statementDue, isPaid, card.cycle, days, hideDecimals, short = true)
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.padding(vertical = 0.dp).align(Alignment.CenterVertically)) {
@@ -169,8 +167,11 @@ private fun CreditCardRow(
                 card.accountName,
                 formatMoneyCents(card.balanceCents, hideDecimals),
                 formatMoneyCents(card.cycleSpendCents, hideDecimals),
-                dueText(short = false),
+                duePillText(statementDue, isPaid, card.cycle, days, hideDecimals, short = false),
                 card.availableCreditCents?.let { formatMoneyCents(it, hideDecimals) },
+                stringResource(R.string.fs_row_balance_label),
+                stringResource(R.string.fs_row_cycle_spend_label),
+                stringResource(R.string.fs_row_available_credit_label),
             )
             Column(
                 Modifier.padding(12.dp).weight(1f).clearAndSetSemantics { contentDescription = description },
@@ -181,19 +182,29 @@ private fun CreditCardRow(
                     Text(formatMoneyCents(card.balanceCents, hideDecimals), fontWeight = FontWeight.SemiBold)
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Spend ${formatMoneyCents(card.cycleSpendCents, hideDecimals)} · ${card.cycle.daysRemainingInCycle()}d left",
+                    Text(
+                        pluralStringResource(
+                            R.plurals.fs_card_spend_days_left,
+                            card.cycle.daysRemainingInCycle(),
+                            formatMoneyCents(card.cycleSpendCents, hideDecimals),
+                            card.cycle.daysRemainingInCycle(),
+                        ),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f))
+                        modifier = Modifier.weight(1f),
+                    )
                     Text(pillText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 8.dp))
                 }
                 card.availableCreditCents?.let {
-                    Text("Available credit ${formatMoneyCents(it, hideDecimals)}", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        stringResource(R.string.fs_available_credit, formatMoneyCents(it, hideDecimals)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
             IconButton(onClick = onViewStatements) {
-                Icon(Icons.Outlined.History, "View recent statements")
+                Icon(Icons.Outlined.History, stringResource(R.string.fs_view_recent_statements))
             }
         }
     }
@@ -202,9 +213,49 @@ private fun CreditCardRow(
 /** TalkBack description for a card row: "Visa, balance -$120.00, cycle spend $80.00, Due … (9d)". */
 internal fun creditCardRowDescription(
     name: String, balance: String, cycleSpend: String, dueSummary: String, availableCredit: String?,
+    balanceLabel: String, cycleSpendLabel: String, availableCreditLabel: String,
 ): String = buildString {
-    append("$name, balance $balance, cycle spend $cycleSpend, $dueSummary")
-    availableCredit?.let { append(", available credit $it") }
+    append("$name, $balanceLabel $balance, $cycleSpendLabel $cycleSpend, $dueSummary")
+    availableCredit?.let { append(", $availableCreditLabel $it") }
+}
+
+/** The row's due pill: "Paid", "$342.18 · Due in 27d", or the summary alone once settled. */
+@Composable
+private fun duePillText(
+    statementDue: CreditCardCycle.StatementDue?,
+    isPaid: Boolean,
+    cycle: CreditCardCycle,
+    days: Int,
+    hideDecimals: Boolean,
+    short: Boolean,
+): String {
+    if (isPaid) return stringResource(R.string.fs_status_paid)
+    val summary = if (short) dueShortLabel(cycle, days, statementDue?.dueDate)
+        else dueLongLabel(cycle, days, statementDue?.dueDate)
+    return statementDue?.let {
+        CreditCardCycle.duePillText(formatMoneyCents(it.remainingDue, hideDecimals), summary, it.remainingDue)
+    } ?: summary
+}
+
+/** Localized "Due in Nd" short summary for the cards row (long form for a day or less). */
+@Composable
+private fun dueShortLabel(cycle: CreditCardCycle, days: Int, dueDate: DayDate?): String =
+    if (days <= 1) dueLongLabel(cycle, days, dueDate)
+    else stringResource(R.string.fs_due_in_days_short, days)
+
+/** Localized "Due today"/"Due tomorrow"/"Due <date> (Nd)" summary in the user's date format. */
+@Composable
+private fun dueLongLabel(cycle: CreditCardCycle, days: Int, dueDate: DayDate?): String = when (days) {
+    0 -> stringResource(R.string.fs_due_today)
+    1 -> stringResource(R.string.fs_due_tomorrow)
+    else -> {
+        val due = dueDate ?: cycle.upcomingDueDate()
+        stringResource(
+            R.string.fs_due_on_date_days,
+            formatDate(LocalDate.of(due.year, due.month, due.day)),
+            days,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -235,32 +286,36 @@ private fun CardEditorSheet(
                     .padding(horizontal = Spacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                Text(if (card == null) "Add Credit Card" else "Edit Card",
+                Text(if (card == null) stringResource(R.string.fs_add_credit_card_title)
+                    else stringResource(R.string.fs_edit_card),
                     style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 ActuaFormCard {
                     if (card == null) {
                         ActuaMenuRow(
                             icon = Icons.Outlined.CreditCard,
-                            label = "Account",
-                            value = account?.name ?: "Select account",
+                            label = stringResource(R.string.fs_account),
+                            value = account?.name ?: stringResource(R.string.fs_select_account),
                             valueIsPlaceholder = account == null,
                             choices = accounts.map { it.name to it.id },
                         ) { accountId = it }
                     } else {
-                        ActuaFormRow(icon = Icons.Outlined.CreditCard, label = "Account", value = card.accountName)
+                        ActuaFormRow(icon = Icons.Outlined.CreditCard, label = stringResource(R.string.fs_account), value = card.accountName)
                     }
                     ActuaCardDivider()
                     ActuaFormTextField(
                         icon = Icons.Outlined.CalendarMonth,
-                        label = "Statement closing day (1–31)",
+                        label = stringResource(R.string.fs_statement_closing_day),
                         value = day,
                         onValueChange = { day = it.filter(Char::isDigit).take(2) },
                         keyboardOptions = numberKeyboard,
                     )
                 }
-                ActuaGroupLabel("Payment due")
+                ActuaGroupLabel(stringResource(R.string.fs_payment_due))
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    listOf(false to "Days after", true to "Day of month").forEachIndexed { index, (fixed, label) ->
+                    listOf(
+                        false to stringResource(R.string.fs_days_after),
+                        true to stringResource(R.string.fs_day_of_month),
+                    ).forEachIndexed { index, (fixed, label) ->
                         SegmentedButton(
                             selected = useFixedDueDay == fixed,
                             onClick = { useFixedDueDay = fixed },
@@ -272,7 +327,7 @@ private fun CardEditorSheet(
                     if (useFixedDueDay) {
                         ActuaFormTextField(
                             icon = Icons.Outlined.Event,
-                            label = "Payment due day (1–31)",
+                            label = stringResource(R.string.fs_payment_due_day),
                             value = dueDay,
                             onValueChange = { dueDay = it.filter(Char::isDigit).take(2) },
                             keyboardOptions = numberKeyboard,
@@ -280,7 +335,7 @@ private fun CardEditorSheet(
                     } else {
                         ActuaFormTextField(
                             icon = Icons.Outlined.Event,
-                            label = "Payment due after (1–60 days)",
+                            label = stringResource(R.string.fs_payment_due_after),
                             value = offset,
                             onValueChange = { offset = it.filter(Char::isDigit).take(2) },
                             keyboardOptions = numberKeyboard,
@@ -289,23 +344,26 @@ private fun CardEditorSheet(
                     ActuaCardDivider()
                     ActuaFormTextField(
                         icon = Icons.Outlined.Payments,
-                        label = "Credit limit (optional)",
+                        label = stringResource(R.string.fs_credit_limit_optional),
                         value = limit,
                         onValueChange = { value -> limit = value.filter { it.isDigit() || it == '.' } },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     )
                 }
-                Text(if (useFixedDueDay) "The due date uses the issuer’s fixed calendar day, clamped for shorter months."
-                    else "The due date is the statement closing date plus the issuer’s payment period.",
+                Text(
+                    stringResource(
+                        if (useFixedDueDay) R.string.fs_fixed_due_explanation
+                        else R.string.fs_offset_due_explanation,
+                    ),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.xs))
                 if (onRemove != null) TextButton(onClick = onRemove, modifier = Modifier.fillMaxWidth()) {
-                    Text("Remove Credit Card Tracking", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.fs_remove_credit_card_tracking), color = MaterialTheme.colorScheme.error)
                 }
-                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.fs_cancel)) }
             }
             ActuaPrimaryActionBar(
-                text = "Save",
+                text = stringResource(R.string.fs_save),
                 enabled = accountId.isNotBlank() && validDay != null && validPaymentDue && (limit.isBlank() || limitCents != null),
                 onClick = {
                     val paymentDue = if (useFixedDueDay) CreditCardCycle.PaymentDue.DayOfMonth(validDueDay!!)
