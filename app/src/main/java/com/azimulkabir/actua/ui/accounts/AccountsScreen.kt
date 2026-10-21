@@ -76,6 +76,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -609,14 +610,12 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
     val total = section.accounts.sumOf { it.balanceCents }
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
-            modifier = Modifier.fillMaxWidth().combinedClickable(
-                role = Role.Button, onClick = onClick, onLongClick = {},
-            ).padding(
-                start = Spacing.screenHorizontal + Spacing.xs,
-                end = Spacing.screenHorizontal,
-                top = Spacing.lg,
-                bottom = Spacing.sm,
-            ),
+            // Same rounded press area, padding and thickness as the Budget tab's group headers.
+            modifier = Modifier.fillMaxWidth()
+                .padding(start = Spacing.screenHorizontal, end = Spacing.screenHorizontal, top = Spacing.md)
+                .clip(MaterialTheme.shapes.large)
+                .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = {})
+                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(section.title, style = MaterialTheme.typography.labelLarge,
@@ -646,13 +645,14 @@ private fun AccountGroupHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
             .padding(
-                start = Spacing.screenHorizontal + Spacing.xs,
+                start = Spacing.screenHorizontal,
                 end = Spacing.screenHorizontal,
                 top = if (isFirstGroup) Spacing.xs else Spacing.md,
-                bottom = Spacing.sm,
-            ),
+            )
+            .clip(MaterialTheme.shapes.large)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
