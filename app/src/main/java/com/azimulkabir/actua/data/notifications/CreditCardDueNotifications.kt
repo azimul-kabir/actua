@@ -25,6 +25,7 @@ import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.preferences.withAppLanguage
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardCycle
@@ -95,14 +96,19 @@ object CreditCardReminderPlanner {
         return ReminderDue(statementDue?.dueDate ?: card.cycle.upcomingDueDate(today), statementDue)
     }
 
-    /** "Statement due X" for an unpaid statement, else the live balance owed. */
+    /**
+     * "Statement due X" for an unpaid statement, else the live balance owed. The caller
+     * supplies the localized sentence patterns (positional placeholders) so this stays a
+     * pure, JVM-testable function.
+     */
     fun body(
         statementDue: CreditCardCycle.StatementDue?, balanceCents: Long, dueDate: String,
+        statementPattern: String, balancePattern: String,
         formatCents: (Long) -> String,
     ): String = if (statementDue != null && statementDue.remainingDue > 0) {
-        "Statement due ${formatCents(statementDue.remainingDue)}. Payment due $dueDate."
+        statementPattern.format(formatCents(statementDue.remainingDue), dueDate)
     } else {
-        "Current balance ${formatCents(kotlin.math.abs(balanceCents))}. Payment due $dueDate."
+        balancePattern.format(formatCents(kotlin.math.abs(balanceCents)), dueDate)
     }
 
     data class ReminderDue(val dueDate: DayDate, val statementDue: CreditCardCycle.StatementDue?)
@@ -186,7 +192,9 @@ class CreditCardDueNotificationWorker(context: Context, parameters: WorkerParame
         if (card == null || due == null || due.dueDate != dueDate || today.daysUntil(dueDate) != offset) {
             return Result.success()
         }
-        postNotification(applicationContext, card, dueDate, offset, due.statementDue, budgetFormats)
+        // Workers resolve the app language explicitly on API 28-32, where the framework
+        // per-app locale only applies to activity contexts.
+        postNotification(applicationContext.withAppLanguage(), card, dueDate, offset, due.statementDue, budgetFormats)
         return Result.success()
     }
 
@@ -209,9 +217,13 @@ private fun postNotification(
         PackageManager.PERMISSION_GRANTED) return
 
     val manager = context.getSystemService(NotificationManager::class.java)
+    // Channel names/descriptions are read at creation time only; a channel created before
+    // a language switch keeps its original name (known Android behavior).
     manager.createNotificationChannel(NotificationChannel(
-        CHANNEL_ID, "Credit card due dates", NotificationManager.IMPORTANCE_DEFAULT
-    ).apply { description = "Payment reminders for tracked credit cards" })
+        CHANNEL_ID,
+        context.getString(R.string.credit_card_due_channel_name),
+        NotificationManager.IMPORTANCE_DEFAULT,
+    ).apply { description = context.getString(R.string.credit_card_due_channel_description) })
     val openAccount = Intent(context, MainActivity::class.java).apply {
         action = CreditCardDueLaunch.ACTION
         addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -224,13 +236,21 @@ private fun postNotification(
     val display = DisplayPreferences(context).resolve(budgetFormats)
     applyDisplayFormats(display)
     val date = formatDate(LocalDate.of(dueDate.year, dueDate.month, dueDate.day))
-    val whenText = if (offset == 1) "tomorrow" else "in $offset days"
-    val body = CreditCardReminderPlanner.body(statementDue, card.balanceCents, date) { cents ->
+    val whenText = if (offset == 1) {
+        context.getString(R.string.credit_card_due_tomorrow)
+    } else {
+        context.resources.getQuantityString(R.plurals.credit_card_due_in_days, offset, offset)
+    }
+    val body = CreditCardReminderPlanner.body(
+        statementDue, card.balanceCents, date,
+        context.getString(R.string.credit_card_notification_statement_body),
+        context.getString(R.string.credit_card_notification_body),
+    ) { cents ->
         formatMoneyCents(cents, display.hideDecimals, respectBalanceVisibility = false)
     }
     val notification = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(R.drawable.actua_launcher_monochrome)
-        .setContentTitle("${card.accountName} payment due $whenText")
+        .setContentTitle(context.getString(R.string.credit_card_notification_title, card.accountName, whenText))
         .setContentText(body)
         .setStyle(NotificationCompat.BigTextStyle().bigText(body))
         .setContentIntent(openApp).setAutoCancel(true).setCategory(NotificationCompat.CATEGORY_REMINDER)

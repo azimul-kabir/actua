@@ -352,13 +352,32 @@ object WidgetUpdater {
         }
     }
 
-    internal fun scheduleRow(context: Context, entry: ScheduleWidgetEntry): RemoteViews =
-        RemoteViews(context.packageName, R.layout.widget_schedule_item).apply {
+    internal fun scheduleRow(context: Context, entry: ScheduleWidgetEntry): RemoteViews {
+        // Rows bind from the RemoteViewsService's application context, which does not follow
+        // the app locale on API 28-32; resolve strings through the app-language context.
+        val localized = context.withAppLanguage()
+        return RemoteViews(localized.packageName, R.layout.widget_schedule_item).apply {
             setTextViewText(R.id.widget_schedule_title, entry.item.title)
-            setTextViewText(R.id.widget_schedule_due, entry.relativeLabel)
-            setTextViewText(R.id.widget_schedule_amount, scheduleAmount(context, entry.item.schedule))
+            setTextViewText(R.id.widget_schedule_due, relativeDueLabel(localized, entry.dueDate))
+            setTextViewText(R.id.widget_schedule_amount, scheduleAmount(localized, entry.item.schedule))
             setOnClickFillInIntent(R.id.widget_schedule_row, Intent())
         }
+    }
+
+    /** "Today", "Tomorrow", "In 5 days", "3 days overdue", in the app-selected language. */
+    internal fun relativeDueLabel(
+        context: Context,
+        dueDate: DayDate,
+        today: DayDate = DayDate.today(),
+    ): String {
+        val days = today.daysUntil(dueDate)
+        return when {
+            days == 0 -> context.getString(R.string.widget_due_today)
+            days == 1 -> context.getString(R.string.widget_due_tomorrow)
+            days > 1 -> context.resources.getQuantityString(R.plurals.widget_due_in_days, days, days)
+            else -> context.resources.getQuantityString(R.plurals.widget_days_overdue, -days, -days)
+        }
+    }
 
     private fun scheduleAmount(context: Context, schedule: ActualScheduleSummary): String {
         val amount = schedule.amount

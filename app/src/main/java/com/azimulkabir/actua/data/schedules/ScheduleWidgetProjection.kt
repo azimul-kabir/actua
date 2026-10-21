@@ -4,7 +4,6 @@ package com.azimulkabir.actua.data.schedules
 data class ScheduleWidgetEntry(
     val item: ScheduleListItem,
     val dueDate: DayDate,
-    val relativeLabel: String,
     val overdue: Boolean,
 )
 
@@ -19,19 +18,7 @@ object ScheduleWidgetProjection {
             .filter { it.status != ScheduleStatus.COMPLETED && it.status != ScheduleStatus.PAID }
             .mapNotNull { item -> item.schedule.nextDate?.let { date -> item to date } }
             .filter { (_, date) -> date <= horizon }
-            .map { (item, date) -> ScheduleWidgetEntry(item, date, relativeDueLabel(today, date), date < today) }
+            .map { (item, date) -> ScheduleWidgetEntry(item, date, date < today) }
             .sortedBy { it.dueDate }
-    }
-
-    /** "Today", "Tomorrow", "In 5 days", "3 days overdue". */
-    fun relativeDueLabel(today: DayDate, dueDate: DayDate): String {
-        val days = today.daysUntil(dueDate)
-        return when {
-            days == 0 -> "Today"
-            days == 1 -> "Tomorrow"
-            days > 1 -> "In $days days"
-            days == -1 -> "1 day overdue"
-            else -> "${-days} days overdue"
-        }
     }
 }
