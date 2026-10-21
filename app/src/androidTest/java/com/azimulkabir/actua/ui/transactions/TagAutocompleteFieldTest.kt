@@ -1,20 +1,25 @@
 package com.azimulkabir.actua.ui.transactions
 
+import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.budget.model.ActualTag
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
 class TagAutocompleteFieldTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    /** Labels are read from the resources the field renders with, so the suite tracks translations. */
+    private val strings get() = compose.activity
 
     private val tags = listOf(
         ActualTag("t1", "school", "#800080", null, hidden = false),
@@ -58,7 +63,7 @@ class TagAutocompleteFieldTest {
 
         compose.onNode(hasSetTextAction()).performTextInput("#travel")
 
-        compose.onNodeWithText("Create #travel").assertExists()
+        compose.onNodeWithText(strings.getString(R.string.transaction_create_tag, "travel")).assertExists()
     }
 
     @Test
@@ -87,7 +92,7 @@ class TagAutocompleteFieldTest {
         compose.onNode(hasSetTextAction()).performTextInput("##school")
 
         compose.onNodeWithText("#school").assertDoesNotExist()
-        compose.onNodeWithText("Create #school").assertDoesNotExist()
+        compose.onNodeWithText(strings.getString(R.string.transaction_create_tag, "school")).assertDoesNotExist()
     }
 
     @Test

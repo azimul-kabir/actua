@@ -1,5 +1,7 @@
 package com.azimulkabir.actua.ui.transactions
 
+import androidx.annotation.StringRes
+import com.azimulkabir.actua.R
 import com.azimulkabir.actua.model.Transaction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -14,24 +16,55 @@ class ReconciledWarningsTest {
 
     @Test
     fun unreconciledRowsNeedNoConfirmation() {
-        ReconciledAction.entries.forEach { assertNull(reconciledWarning(listOf(row(), row()), it)) }
-        assertNull(reconciledWarning(emptyList(), ReconciledAction.DELETE))
+        ReconciledAction.entries.forEach { assertNull(reconciledWarningRes(listOf(row(), row()), it)) }
+        assertNull(reconciledWarningRes(emptyList(), ReconciledAction.DELETE))
     }
 
     @Test
     fun aReconciledRowWarnsForEveryAction() {
         val rows = listOf(row(), row(reconciled = true))
         assertEquals(
+            R.string.reconciled_warning_edit,
+            reconciledWarningRes(listOf(row(reconciled = true)), ReconciledAction.EDIT),
+        )
+        assertEquals(
+            R.string.reconciled_warning_bulk_edit,
+            reconciledWarningRes(rows, ReconciledAction.BULK_EDIT),
+        )
+        assertEquals(
+            R.string.reconciled_warning_delete,
+            reconciledWarningRes(rows, ReconciledAction.DELETE),
+        )
+    }
+
+    @Test
+    fun warningTextsStayVerbatimFromConfirmTransactionEditModal() {
+        assertEquals(
             "Saving your changes to this reconciled transaction may bring your reconciliation out of balance.",
-            reconciledWarning(listOf(row(reconciled = true)), ReconciledAction.EDIT),
+            TransactionStringResources.english("reconciled_warning_edit"),
         )
         assertEquals(
             "Editing reconciled transactions may bring your reconciliation out of balance.",
-            reconciledWarning(rows, ReconciledAction.BULK_EDIT),
+            TransactionStringResources.english("reconciled_warning_bulk_edit"),
         )
         assertEquals(
             "Deleting reconciled transactions may bring your reconciliation out of balance.",
-            reconciledWarning(rows, ReconciledAction.DELETE),
+            TransactionStringResources.english("reconciled_warning_delete"),
+        )
+        assertEquals(
+            "This transfer has a linked transaction in another account that is reconciled. " +
+                "Editing it may bring that account’s reconciliation out of balance.",
+            TransactionStringResources.english("reconciled_warning_transfer_edit"),
+        )
+        assertEquals(
+            "This transfer has a linked transaction in another account that is reconciled. " +
+                "Deleting it may bring that account’s reconciliation out of balance.",
+            TransactionStringResources.english("reconciled_warning_transfer_delete"),
+        )
+        assertEquals(
+            "Unlocking this transaction means you won’t be warned about changes that can impact your " +
+                "reconciled balance. (Changes to amount, account, payee, etc).",
+            TransactionStringResources.english("reconciled_unlock_warning"),
         )
     }
 
@@ -39,19 +72,17 @@ class ReconciledWarningsTest {
     fun aReconciledOtherTransferLegWarnsAboutThatAccount() {
         val rows = listOf(row(transferReconciled = true))
         assertEquals(
-            "This transfer has a linked transaction in another account that is reconciled. " +
-                "Editing it may bring that account's reconciliation out of balance.",
-            reconciledWarning(rows, ReconciledAction.EDIT),
+            R.string.reconciled_warning_transfer_edit,
+            reconciledWarningRes(rows, ReconciledAction.EDIT),
         )
         assertEquals(
-            "This transfer has a linked transaction in another account that is reconciled. " +
-                "Deleting it may bring that account's reconciliation out of balance.",
-            reconciledWarning(rows, ReconciledAction.DELETE),
+            R.string.reconciled_warning_transfer_delete,
+            reconciledWarningRes(rows, ReconciledAction.DELETE),
         )
         // A reconciled row of its own takes precedence, as in Actual.
         assertEquals(
-            "Deleting reconciled transactions may bring your reconciliation out of balance.",
-            reconciledWarning(rows + row(reconciled = true), ReconciledAction.DELETE),
+            R.string.reconciled_warning_delete,
+            reconciledWarningRes(rows + row(reconciled = true), ReconciledAction.DELETE),
         )
     }
 
@@ -66,11 +97,8 @@ class ReconciledWarningsTest {
     }
 
     @Test
-    fun unlockUsesActualsUnlockReconciledText() {
-        assertEquals(
-            "Unlocking this transaction means you won't be warned about changes that can impact your " +
-                "reconciled balance. (Changes to amount, account, payee, etc).",
-            UNLOCK_RECONCILED_WARNING,
-        )
+    fun unlockWarningPointsAtActualsUnlockReconciledText() {
+        @StringRes val expected: Int = R.string.reconciled_unlock_warning
+        assertEquals(expected, UNLOCK_RECONCILED_WARNING_RES)
     }
 }

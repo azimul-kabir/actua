@@ -13,8 +13,8 @@ class AmountFieldPresentationTest {
 
     @Test
     fun activeBlankAmountKeepsCaretSeparateFromPlaceholder() {
-        val visibleCursor = amountFieldPresentation("৳", "", active = true, cursor = " │")
-        val hiddenCursor = amountFieldPresentation("৳", "", active = true, cursor = "")
+        val visibleCursor = amountFieldPresentation("৳", "", active = true, cursor = " │", amountPlaceholder = "Amount")
+        val hiddenCursor = amountFieldPresentation("৳", "", active = true, cursor = "", amountPlaceholder = "Amount")
 
         assertEquals("", visibleCursor.value)
         assertEquals("", hiddenCursor.value)
@@ -26,7 +26,7 @@ class AmountFieldPresentationTest {
 
     @Test
     fun inactiveBlankAmountUsesAPlainPlaceholder() {
-        val presentation = amountFieldPresentation("৳", "", active = false, cursor = "")
+        val presentation = amountFieldPresentation("৳", "", active = false, cursor = "", amountPlaceholder = "Amount")
 
         assertEquals("", presentation.value)
         assertEquals("Amount", presentation.placeholder)
@@ -35,7 +35,7 @@ class AmountFieldPresentationTest {
 
     @Test
     fun enteredAmountKeepsCurrencyAndCursorInValue() {
-        val presentation = amountFieldPresentation("৳", "12.34", active = true, cursor = " │")
+        val presentation = amountFieldPresentation("৳", "12.34", active = true, cursor = " │", amountPlaceholder = "Amount")
 
         assertEquals("৳12.34 │", presentation.value)
         assertEquals("Amount", presentation.placeholder)
@@ -47,7 +47,7 @@ class AmountFieldPresentationTest {
         CurrencyDisplay.symbolAfterAmount = true
         CurrencyDisplay.spaceBetweenAmountAndSymbol = true
 
-        assertEquals("12.34 │\u202F€", amountFieldPresentation("€", "12.34", active = true, cursor = " │").value)
-        assertEquals("12.34\u202F€", amountFieldPresentation("€", "12.34", active = false, cursor = "").value)
+        assertEquals("12.34 │\u202F€", amountFieldPresentation("€", "12.34", active = true, cursor = " │", amountPlaceholder = "Amount").value)
+        assertEquals("12.34\u202F€", amountFieldPresentation("€", "12.34", active = false, cursor = "", amountPlaceholder = "Amount").value)
     }
 }
