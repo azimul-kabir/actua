@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
-- Pay statement button on credit cards that opens a prefilled transfer for the amount due ([#1246](https://github.com/azimul-kabir/actua/pull/1246))
+- Pay statement button on credit cards that opens a prefilled transfer for the amount due ([#1247](https://github.com/azimul-kabir/actua/pull/1247))
 - Credit card billing cycle card now separates the last statement from the current cycle and shows previous-cycle spend and credit utilization ([#1245](https://github.com/azimul-kabir/actua/pull/1245))
 - Brazilian Portuguese (pt-BR) translation of demo budget strings ([#1242](https://github.com/azimul-kabir/actua/pull/1242))
 - Brazilian Portuguese (pt-BR) translation of connection and transaction import strings ([#1239](https://github.com/azimul-kabir/actua/pull/1239))
