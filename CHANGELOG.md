@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Loan card shows the paired category's monthly target and lets you skip it for a month, so budget template runs leave that loan category alone ([#1263](https://github.com/azimul-kabir/actua/pull/1263))
 - Payoff planner on loan accounts with a burndown chart, plus a total-paid figure on the loan card ([#1262](https://github.com/azimul-kabir/actua/pull/1262))
 - Record loan payments from the loan card, split into interest, escrow and a categorized transfer, and pair a loan with a budget category ([#1258](https://github.com/azimul-kabir/actua/pull/1258))
 - Loan accounts now show a loan card with payoff progress, payment schedule and projected payoff ([#1257](https://github.com/azimul-kabir/actua/pull/1257))

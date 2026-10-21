@@ -442,8 +442,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   `LoanAmortization` and `LoanPayoffPlannerView` (monthly interest rate/12, rounded to the
   cent; escrow covered before principal). "Record payment" writes the interest/escrow
   charge rows and the funding-account transfer (carrying the paired category on its
-  on-budget leg) as one atomic insert. The payment target and per-month snooze are not
-  implemented yet (#1261)
+  on-budget leg) as one atomic insert.
+  The paired category's monthly target is read from the automations dry run (no new writer);
+  a per-month snooze (`targetSnoozedMonth`) makes the budget template preview skip that
+  category for the month, as in Actuali
 - Statement-due tracking ported from Actuali: the Bills calendar, reminders, Credit Cards
   row pill and account billing cycle card use the pending statement's remaining due (or
   Paid) and due date, falling back to the live balance only without statement data

@@ -80,6 +80,7 @@ import com.azimulkabir.actua.model.CreditCardConfig
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.paymentDue
 import com.azimulkabir.actua.model.CreditCardStatus
+import com.azimulkabir.actua.model.BudgetTemplatePlanner
 import com.azimulkabir.actua.model.LoanConfig
 import com.azimulkabir.actua.model.LoanStatus
 import com.azimulkabir.actua.model.sortedForPaymentPriority
@@ -1082,6 +1083,33 @@ class ActuaRepository(context: Context) {
         writer.createLoanPayment(charges, row(fromAccountId, -paymentCents, transferPayee, categoryId))
         return true
     }
+
+    /**
+     * What the loan's paired category's automations would budget in [month], read from the same
+     * dry run as the automations editor's estimate. A read, not a writer: automations are created
+     * in one place, the editor, so the loan screen shows the number rather than writing templates.
+     */
+    fun loanTargetMonthly(categoryId: String, month: String): Long? {
+        val schedules = budgetScheduleFunding(month)
+        for (group in budgetGroups(month)) {
+            val category = group.categories.firstOrNull { it.id == categoryId } ?: continue
+            return BudgetTemplatePlanner.monthlyTarget(group, category, month, schedules, budgetHidesFraction())
+        }
+        return null
+    }
+
+    /** Skips this loan's target for [month] (`YYYY-MM`), or clears the skip with null. */
+    fun snoozeLoanTarget(accountId: String, month: String?): Boolean {
+        val db = actualDatabase ?: return false
+        val config = db.fetchLoanConfigs()[accountId] ?: return false
+        return setLoan(accountId, config.copy(targetSnoozedMonth = month))
+    }
+
+    /** Paired category id → the month its loan's target is skipped for, for open loans. */
+    fun loanSnoozedMonths(): Map<String, String> = loans().mapNotNull { loan ->
+        val category = loan.config.categoryId ?: return@mapNotNull null
+        loan.config.targetSnoozedMonth?.let { category to it }
+    }.toMap()
 
     /** Saves a loan's terms, or stops tracking it when [config] is null. */
     fun setLoan(accountId: String, config: LoanConfig?): Boolean {

@@ -52,6 +52,12 @@
     <string name="loans_no_category">Sem categoria</string>
     <string name="loan_payment_category_note">O pagamento inteiro é atribuído à categoria do empréstimo, enquanto o saldo do empréstimo cai apenas o principal.</string>
     <string name="navigation_recording_loan_payment">Registrando pagamento do empréstimo</string>
+    <string name="account_loan_target">Meta mensal</string>
+    <string name="account_loan_target_skipped">Meta ignorada neste mês</string>
+    <string name="account_loan_skip_target">Ignorar a meta deste mês</string>
+    <string name="account_loan_resume_target">Retomar meta</string>
+    <string name="budget_loan_targets_snoozed">Metas de empréstimo ignoradas neste mês: %1$s.</string>
+    <string name="navigation_updating_loan_target">Atualizando meta do empréstimo</string>
     <string name="account_loan_total_paid">Total pago</string>
     <string name="account_loan_payoff_planner">Simulador de quitação</string>
     <string name="loans_duration_join">%1$s, %2$s</string>

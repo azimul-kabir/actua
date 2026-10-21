@@ -519,6 +519,7 @@ fun AppNavigation(
     val suggestedPayees = remember(dataVersion) { repository.suggestedPayeeNames() }
     val creditCards = remember(dataVersion) { repository.creditCards() }
     val loans = remember(dataVersion) { repository.loans() }
+    val loanSnoozedMonths = remember(dataVersion) { repository.loanSnoozedMonths() }
     // reportSnapshot, rules/rulesSupported/scheduleOwnedRuleIds/ruleEditorData, and
     // reorderCategoryGroups are each read by exactly one destination (Reports, Rules,
     // ManageCategories/ReorderGroups) that isn't always on screen, unlike the values above. Per
@@ -761,6 +762,11 @@ fun AppNavigation(
                 },
             )
         }
+    }
+
+    val transactionLoanAccount = accounts.firstOrNull { it.name == transactionAccount }
+    val transactionLoanActions = remember(repository, transactionLoanAccount) {
+        LoanScreenActions(repository, transactionLoanAccount) { res, action -> mutate(res, action = action) }
     }
 
     // Drag-to-reorder screens need to know synchronously whether a move was accepted, to decide
@@ -1908,20 +1914,11 @@ fun AppNavigation(
                 creditCard = creditCards.firstOrNull { card ->
                     card.accountId == accounts.firstOrNull { it.name == transactionAccount }?.id
                 },
-                loan = loans.firstOrNull { loan ->
-                    loan.accountId == accounts.firstOrNull { it.name == transactionAccount }?.id
-                },
+                loan = loans.firstOrNull { loan -> loan.accountId == transactionLoanAccount?.id },
+                loanTarget = rememberLoanTarget(repository, loans, transactionLoanAccount, dataVersion),
+                onSnoozeLoanTarget = transactionLoanActions::snooze,
                 loanFundingAccounts = accounts,
-                onRecordLoanPayment = { request ->
-                    accounts.firstOrNull { it.name == transactionAccount }?.let { loanAccount ->
-                        mutate(R.string.navigation_recording_loan_payment) {
-                            repository.recordLoanPayment(
-                                loanAccount.id, request.fromAccountId, request.paymentCents,
-                                request.interestCents, request.escrowCents, request.date,
-                            )
-                        }
-                    }
-                },
+                onRecordLoanPayment = transactionLoanActions::record,
                 onSaveAccountNote = { note ->
                     accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
                         mutate(R.string.navigation_saving_account_note) { repository.setAccountNote(account.id, note) }
@@ -2791,6 +2788,7 @@ fun AppNavigation(
                     },
                     scheduleFunding = budgetScheduleFunding,
                     templateHideFraction = budgetHidesFraction,
+                    loanSnoozedMonths = loanSnoozedMonths,
                     onPreviewCleanup = { repository.previewCleanup(budgetMonth) },
                     onRefreshNoteTemplates = {
                         mutate(R.string.navigation_reading_template_notes) { repository.refreshNoteTemplates() }

@@ -52,6 +52,12 @@
     <string name="loans_no_category">No category</string>
     <string name="loan_payment_category_note">The whole payment is assigned to the loan\'s category, while the loan balance drops by the principal alone.</string>
     <string name="navigation_recording_loan_payment">Recording loan payment</string>
+    <string name="account_loan_target">Monthly target</string>
+    <string name="account_loan_target_skipped">Target skipped this month</string>
+    <string name="account_loan_skip_target">Skip this month\'s target</string>
+    <string name="account_loan_resume_target">Resume target</string>
+    <string name="budget_loan_targets_snoozed">Loan targets skipped this month: %1$s.</string>
+    <string name="navigation_updating_loan_target">Updating loan target</string>
     <string name="account_loan_total_paid">Total paid</string>
     <string name="account_loan_payoff_planner">Payoff planner</string>
     <string name="loans_duration_join">%1$s, %2$s</string>

@@ -135,4 +135,12 @@ class LoanTest {
         assertNull(parseNonNegativeCents("-1", 2))
         assertNull(parseNonNegativeCents("x", 2))
     }
+
+    @Test
+    fun targetSnoozeIsASingleMonthThatExpiresOnItsOwn() {
+        val snoozed = LoanConfig(1_000, 5.0, 100, targetSnoozedMonth = "2026-10")
+        assertTrue(snoozed.targetIsSnoozed("2026-10"))
+        assertFalse(snoozed.targetIsSnoozed("2026-11"))
+        assertFalse(LoanConfig(1_000, 5.0, 100).targetIsSnoozed("2026-10"))
+    }
 }

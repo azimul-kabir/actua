@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class BudgetTemplatePlannerTest {
@@ -567,6 +568,43 @@ class BudgetTemplatePlannerTest {
         assertEquals(1, preview.changes.size)
         assertEquals("power", preview.changes.single().categoryId)
         assertEquals("Bills", preview.changes.single().groupName)
+    }
+
+    @Test fun snoozedLoanCategoriesAreSkippedAndNamed() {
+        val groups = listOf(BudgetGroup("Bills", listOf(
+            category("loan", "Loan EMI", assigned = 0, target = BudgetTarget(BudgetTarget.Type.FIXED, 60_000)),
+            category("rent", "Rent", assigned = 0, target = BudgetTarget(BudgetTarget.Type.FIXED, 100_000)),
+            category("plain", "Plain", assigned = 0),
+        )))
+
+        val preview = BudgetTemplatePlanner.preview(groups, "2026-10", snoozedCategoryIds = setOf("loan", "plain"))
+
+        assertEquals(listOf("rent"), preview.changes.map { it.categoryId })
+        // Only categories that had templates are reported as skipped; a plain one was never going to run.
+        assertEquals(listOf("Bills · Loan EMI"), preview.snoozedCategories)
+        // The next month, with no snooze, the loan category runs again.
+        val next = BudgetTemplatePlanner.preview(groups, "2026-11", snoozedCategoryIds = emptySet())
+        assertEquals(setOf("loan", "rent"), next.changes.map { it.categoryId }.toSet())
+        assertEquals(emptyList<String>(), next.snoozedCategories)
+    }
+
+    @Test fun monthlyTargetIsWhatTheAutomationsWouldBudgetWithoutWriting() {
+        val group = BudgetGroup("Bills", emptyList())
+        val loan = category("loan", "Loan EMI", assigned = 25_000, target = BudgetTarget(BudgetTarget.Type.FIXED, 60_000))
+        // Ignores what is already assigned: the estimate is the full target.
+        assertEquals(60_000L, BudgetTemplatePlanner.monthlyTarget(group, loan, "2026-10"))
+        // A category already at its target is "unchanged" but still reports the target.
+        val funded = category("loan", "Loan EMI", assigned = 60_000, target = BudgetTarget(BudgetTarget.Type.FIXED, 60_000))
+        assertEquals(60_000L, BudgetTemplatePlanner.monthlyTarget(group, funded, "2026-10"))
+    }
+
+    @Test fun monthlyTargetIsNullWithoutEvaluableAutomations() {
+        val group = BudgetGroup("Bills", emptyList())
+        assertNull(BudgetTemplatePlanner.monthlyTarget(group, category("a", "None", assigned = 40_000), "2026-10"))
+        assertNull(BudgetTemplatePlanner.monthlyTarget(group, category("b", "Adv", assigned = 0, unsupported = true), "2026-10"))
+        assertNull(BudgetTemplatePlanner.monthlyTarget(
+            group, category("c", "Zero", assigned = 0, target = BudgetTarget(BudgetTarget.Type.FIXED, 0)), "2026-10",
+        ))
     }
 
     private fun category(
