@@ -1232,10 +1232,21 @@ private data class SettingsChoiceOption(
     val label: String,
 )
 
+/** A row showing the current [value] (and an optional [preview]); tapping it opens a menu of [options]. */
+@Composable
+private fun SettingsChoice(
+    label: String,
+    value: String,
+    options: List<String>,
+    preview: String? = null,
+    onChange: (String) -> Unit,
+) = SettingsChoice(label, value, options.map { SettingsChoiceOption(it, it) }, preview, onChange)
+
 /**
- * A row showing the current [value] (and an optional [preview]); tapping it opens a menu of
- * [options] whose stored values and displayed labels may differ (e.g. the app language).
+ * As above, for choices whose stored value and displayed label differ (e.g. the app language).
+ * Renamed on the JVM so it can overload the string-options variant despite generics erasure.
  */
+@JvmName("SettingsChoiceWithOptions")
 @Composable
 private fun SettingsChoice(
     label: String,
