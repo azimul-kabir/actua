@@ -89,4 +89,25 @@ class TransactionFormMappingTest {
             splitLinePayeeOptions(options, currentAccount = "Checking"),
         )
     }
+
+    @Test
+    fun payStatementPrefillOnlyExistsWhileSomethingIsOwed() {
+        assertEquals(TransactionPrefill("Amex", 2_431L), payStatementPrefill("Amex", 2_431L))
+        assertNull(payStatementPrefill("Amex", 0L))
+        assertNull(payStatementPrefill("Amex", -5L))
+    }
+
+    @Test
+    fun payStatementPrefillStartsAnOutgoingTransferToTheCard() {
+        val prefill = payStatementPrefill("Amex", 2_431L)
+        val start = transactionFormStart(null, Type.EXPENSE, prefill)
+        assertEquals("Transfer: Amex", start.payee)
+        assertEquals(false, start.incoming)
+
+        val saved = save(start.payee, account = "Checking", incoming = start.incoming, amount = prefill!!.amountCents)
+        assertEquals(Type.TRANSFER, saved.type)
+        assertEquals("Checking", saved.account)
+        assertEquals("Amex", saved.transferAccount)
+        assertEquals(-2_431L, saved.amountCents)
+    }
 }

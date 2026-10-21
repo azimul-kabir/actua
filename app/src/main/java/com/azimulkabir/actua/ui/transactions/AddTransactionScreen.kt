@@ -139,16 +139,18 @@ fun AddTransactionScreen(
     /** Map the account and category option labels to ids; see [PickerChoices]. */
     accountChoices: PickerChoices = PickerChoices.EMPTY,
     categoryChoices: PickerChoices = PickerChoices.EMPTY,
+    /** New-transaction prefill, e.g. paying a credit card statement: the receiving account's picker label and the amount in cents. */
+    prefill: TransactionPrefill? = null,
 ) {
     // The form works in picker labels, which stay unique when Actual names repeat.
     val editingLabels = remember(editing, accountChoices, categoryChoices) {
         editing?.withChoiceLabels(accountChoices, categoryChoices)
     }
-    val start = remember(editing, defaultType) { transactionFormStart(editingLabels, defaultType) }
-    var amountCents by remember(editing) { mutableStateOf(abs(editing?.amountCents ?: 0L)) }
+    val start = remember(editing, defaultType, prefill) { transactionFormStart(editingLabels, defaultType, prefill) }
+    var amountCents by remember(editing, prefill) { mutableStateOf(abs(editing?.amountCents ?: prefill?.amountCents ?: 0L)) }
     // A new transaction opens straight into the amount calculator, then walks the user through
     // the payee, category and account pickers; each step is skipped if it isn't shown.
-    var showCalculator by remember(editing) { mutableStateOf(editing == null) }
+    var showCalculator by remember(editing, prefill) { mutableStateOf(editing == null && prefill == null) }
     var autoStep by remember(editing) { mutableStateOf<AddStep?>(null) }
     var amountExpression by remember(editing) { mutableStateOf<String?>(null) }
     var confirmDelete by remember(editing) { mutableStateOf(false) }
@@ -156,7 +158,7 @@ fun AddTransactionScreen(
     // Like Actual's mobile editor there is no type selector: a `Transfer: <account>` payee makes a
     // transfer, otherwise the sign decides expense or income. [account] is always the edited
     // transaction's own account, so either side of a transfer is edited without swapping.
-    var payee by remember(editing) { mutableStateOf(start.payee) }
+    var payee by remember(editing, prefill) { mutableStateOf(start.payee) }
     var incoming by remember(editing, defaultType) { mutableStateOf(start.incoming) }
     var category by remember(editing, defaultCategory) {
         mutableStateOf(
@@ -164,10 +166,12 @@ fun AddTransactionScreen(
                 ?: defaultCategory?.let { categoryChoices.labelOf(null, it) }?.takeIf(categoryOptions::contains).orEmpty(),
         )
     }
-    var account by remember(editing, accountOptions) {
+    var account by remember(editing, accountOptions, prefill) {
         mutableStateOf(
-            editingLabels?.account ?: defaultAccount?.let { accountChoices.labelOf(null, it) }?.takeIf(accountOptions::contains)
-                ?: accountOptions.firstOrNull().orEmpty(),
+            editingLabels?.account ?: defaultAccount?.let { accountChoices.labelOf(null, it) }
+                ?.takeIf { it in accountOptions && it != prefill?.transferAccount }
+                // A transfer can't start and end in the same account.
+                ?: accountOptions.firstOrNull { it != prefill?.transferAccount }.orEmpty(),
         )
     }
     var date by remember(editing) { mutableStateOf(editing?.date?.let(::parseStoredDate) ?: LocalDate.now()) }
@@ -690,6 +694,13 @@ private enum class AddStep { Payee, Category, Account }
 
 internal const val TRANSFER_PAYEE_PREFIX = "Transfer: "
 
+/** A new transfer's starting values: [transferAccount] receives [amountCents]; the sender is picked in the form. */
+data class TransactionPrefill(val transferAccount: String, val amountCents: Long)
+
+/** The prefill for paying a statement's [remainingDueCents], or null when nothing is owed. */
+fun payStatementPrefill(cardAccountLabel: String, remainingDueCents: Long): TransactionPrefill? =
+    remainingDueCents.takeIf { it > 0 }?.let { TransactionPrefill(cardAccountLabel, it) }
+
 /** The other account when [payee] is a `Transfer: <account>` picker entry, else null. */
 internal fun transferTargetOf(payee: String): String? = payee
     .takeIf { it.startsWith(TRANSFER_PAYEE_PREFIX) }
@@ -707,7 +718,12 @@ internal data class TransactionFormStart(val payee: String, val incoming: Boolea
  * Opening state of the single-page form. A transfer is shown from its own leg: the payee is the
  * other account and money arriving in this account is `incoming`, like Actual's mobile editor.
  */
-internal fun transactionFormStart(editing: Transaction?, defaultType: Type): TransactionFormStart = when {
+internal fun transactionFormStart(
+    editing: Transaction?,
+    defaultType: Type,
+    prefill: TransactionPrefill? = null,
+): TransactionFormStart = when {
+    editing == null && prefill != null -> TransactionFormStart(payee = TRANSFER_PAYEE_PREFIX + prefill.transferAccount, incoming = false)
     editing == null -> TransactionFormStart(payee = "", incoming = defaultType == Type.INCOME)
     editing.type == Type.TRANSFER && editing.transferAccount != null -> TransactionFormStart(
         payee = TRANSFER_PAYEE_PREFIX + editing.transferAccount,

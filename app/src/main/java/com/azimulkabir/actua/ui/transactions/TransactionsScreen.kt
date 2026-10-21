@@ -192,6 +192,7 @@ fun TransactionsScreen(
     onViewSchedule: (String) -> Unit = {},
     linkableSchedules: List<ScheduleOption> = emptyList(),
     onViewStatements: (() -> Unit)? = null,
+    onPayStatement: ((remainingDueCents: Long) -> Unit)? = null,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     upcomingTransactions: List<Transaction> = emptyList(),
@@ -620,6 +621,7 @@ fun TransactionsScreen(
                             showNotes && showAccountNotes,
                             onViewStatements,
                             showCreditCardSection,
+                            onPayStatement,
                         )
                     }
                 }
@@ -1160,7 +1162,8 @@ private fun com.azimulkabir.actua.data.schedules.DayDate.formatted(): String =
 @Composable
 internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
     onSaveNote: (String) -> Unit, hideDecimals: Boolean, showSummary: Boolean, showNotes: Boolean,
-    onViewStatements: (() -> Unit)? = null, showCreditCardSection: Boolean = true) {
+    onViewStatements: (() -> Unit)? = null, showCreditCardSection: Boolean = true,
+    onPayStatement: ((Long) -> Unit)? = null) {
     val context = LocalContext.current
     val detailPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("account_detail_preferences", android.content.Context.MODE_PRIVATE)
@@ -1261,6 +1264,11 @@ internal fun AccountDetails(account: Account, card: CreditCardStatus?, note: Str
                             }
                         } else {
                             DetailAmount(stringResource(R.string.account_statement_due), statementDue.remainingDue, hideDecimals)
+                            if (onPayStatement != null && !it.closed) {
+                                FilledTonalButton(onClick = { onPayStatement(statementDue.remainingDue) }, modifier = Modifier.fillMaxWidth()) {
+                                    Text(stringResource(R.string.account_pay_statement))
+                                }
+                            }
                         }
                         HorizontalDivider()
                         Text(stringResource(R.string.account_current_cycle), style = MaterialTheme.typography.labelLarge,
