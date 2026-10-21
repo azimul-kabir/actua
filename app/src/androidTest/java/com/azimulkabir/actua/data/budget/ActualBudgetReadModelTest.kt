@@ -732,6 +732,24 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun totalPaidIntoCountsOnlyLiveInflowsAndSkipsSplitParents() = withDatabase { database ->
+        var number = 0
+        val entities = ActualEntityWriter(database, nodeId = "eeeeeeeeeeeeeeee", idFactory = { "entity-${++number}" })
+        val loan = entities.createAccount("Auto loan", offBudget = true, startingBalanceCents = -1_000_000)
+        assertEquals(0L, database.fetchTotalPaidInto(loan))
+        val writer = ActualTransactionWriter(database, nodeId = "dddddddddddddddd")
+        fun row(amount: Long, parent: Boolean = false) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+            UUID.randomUUID().toString(), loan, 20261022, amount, null, null, null, null, null, true,
+            false, null, parent, null, false, null, null, null, null,
+        )
+        writer.createTransaction(row(50_000), applyRules = false)
+        writer.createTransaction(row(30_000), applyRules = false)
+        writer.createTransaction(row(-7_000), applyRules = false)
+        assertEquals(80_000L, database.fetchTotalPaidInto(loan))
+        assertEquals(0L, database.fetchTotalPaidInto("missing"))
+    }
+
+    @Test
     fun creditCardConfigsSkipOutOfRangeSyncedValues() = withDatabase { database ->
         val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
         val prefix = ActualBudgetDatabase.CREDIT_CARD_PREFERENCE_PREFIX

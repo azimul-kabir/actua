@@ -554,6 +554,20 @@ class ActualBudgetDatabase private constructor(
         return result
     }
 
+    /**
+     * Everything ever paid into [accountId], in cents. On a loan the money only moves one way:
+     * payments arrive as inflows while the opening balance and the lender's charges are outflows,
+     * so the inflows are the total paid. Split parents are skipped in favour of their children.
+     */
+    @Synchronized
+    fun fetchTotalPaidInto(accountId: String): Long = database.rawQuery(
+        """
+            SELECT COALESCE(SUM(amount), 0) FROM transactions
+            WHERE acct = ? AND (tombstone = 0 OR tombstone IS NULL)
+              AND (isParent = 0 OR isParent IS NULL) AND amount > 0
+        """.trimIndent(), arrayOf(accountId),
+    ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else 0L }
+
     /** Positive total of charges/debits in an inclusive billing-cycle window. */
     @Synchronized
     fun fetchAccountSpend(accountId: String, fromDate: Int, toDate: Int): Long = database.rawQuery(

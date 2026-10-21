@@ -433,6 +433,17 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   to its own transaction list, ported 1:1 from Actuali's `CreditCardCycle`; a per-account
   "Show credit card section" toggle in the account dropdown menu hides the billing
   cycle/statement history section entirely
+- Loan accounts (off-budget): terms synced in Actual's `preferences` table under
+  `actuali:loan:<accountId>` with Actuali's JSON fields (original balance, APR, minimum
+  payment, escrow/fees, paired category, snoozed month); Actua additionally writes the
+  optional `termMonths`, `paymentDay` and `startDate` keys, which Actuali ignores. Loans
+  screen, loan card with payoff progress/next payment/projected payoff/total paid, and a
+  payoff simulator with burndown chart are ported from Actuali's `LoanConfig`,
+  `LoanAmortization` and `LoanPayoffPlannerView` (monthly interest rate/12, rounded to the
+  cent; escrow covered before principal). "Record payment" writes the interest/escrow
+  charge rows and the funding-account transfer (carrying the paired category on its
+  on-budget leg) as one atomic insert. The payment target and per-month snooze are not
+  implemented yet (#1261)
 - Statement-due tracking ported from Actuali: the Bills calendar, reminders, Credit Cards
   row pill and account billing cycle card use the pending statement's remaining due (or
   Paid) and due date, falling back to the live balance only without statement data
