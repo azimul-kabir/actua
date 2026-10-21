@@ -48,6 +48,7 @@ import com.azimulkabir.actua.data.sync.MurmurHash3
 import org.json.JSONObject
 import com.azimulkabir.actua.model.CreditCardConfig
 import com.azimulkabir.actua.model.CreditCardCycle
+import com.azimulkabir.actua.model.LoanConfig
 import com.azimulkabir.actua.model.paymentDue
 import java.io.Closeable
 import java.io.File
@@ -528,6 +529,26 @@ class ActualBudgetDatabase private constructor(
                     CreditCardConfig(day, offset, limit, dueDay)
                         .also { CreditCardCycle(it.statementDay, it.paymentDue) }
                 }.getOrNull()?.let { result[id.removePrefix(prefix)] = it }
+            }
+        }
+        return result
+    }
+
+    /** Actuali's cross-platform loan terms stored in Actual's synced preferences table. */
+    @Synchronized
+    fun fetchLoanConfigs(): Map<String, LoanConfig> {
+        if (!hasTable("preferences")) return emptyMap()
+        val prefix = LOAN_PREFERENCE_PREFIX
+        val result = linkedMapOf<String, LoanConfig>()
+        database.rawQuery(
+            "SELECT id, value FROM preferences WHERE id LIKE ? AND value IS NOT NULL",
+            arrayOf("$prefix%"),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val id = cursor.stringOrNull(0) ?: continue
+                val value = cursor.stringOrNull(1) ?: continue
+                // A config another client synced with unusable terms is skipped, not thrown.
+                runCatching { parseLoanConfig(value) }.getOrNull()?.let { result[id.removePrefix(prefix)] = it }
             }
         }
         return result
@@ -2332,6 +2353,40 @@ class ActualBudgetDatabase private constructor(
         const val BUDGET_TYPE_ENVELOPE = "envelope"
         const val BUDGET_TYPE_TRACKING = "tracking"
         const val CREDIT_CARD_PREFERENCE_PREFIX = "actuali:credit_card:"
+        const val LOAN_PREFERENCE_PREFIX = "actuali:loan:"
+
+        private fun JSONObject.optStringOrNull(key: String): String? =
+            if (has(key) && !isNull(key)) getString(key) else null
+
+        private fun JSONObject.optLongOrNull(key: String): Long? =
+            if (has(key) && !isNull(key)) getLong(key) else null
+
+        /** Decodes Actuali's `LoanConfig` JSON; throws on missing or invalid required terms. */
+        fun parseLoanConfig(value: String): LoanConfig = JSONObject(value).let { json ->
+            LoanConfig(
+                originalBalanceCents = json.getLong("originalBalance"),
+                annualRatePercent = json.getDouble("annualRatePercent"),
+                minimumPaymentCents = json.getLong("minimumPayment"),
+                escrowOrFeesCents = json.optLongOrNull("escrowOrFees")?.takeIf { it > 0 },
+                categoryId = json.optStringOrNull("categoryId"),
+                targetSnoozedMonth = json.optStringOrNull("targetSnoozedMonth"),
+                termMonths = json.optLongOrNull("termMonths")?.toInt(),
+                paymentDay = json.optLongOrNull("paymentDay")?.toInt(),
+                startDate = json.optLongOrNull("startDate")?.toInt(),
+            )
+        }
+
+        fun encodeLoanConfig(config: LoanConfig): String = JSONObject().apply {
+            put("originalBalance", config.originalBalanceCents)
+            put("annualRatePercent", config.annualRatePercent)
+            put("minimumPayment", config.minimumPaymentCents)
+            config.escrowOrFeesCents?.let { put("escrowOrFees", it) }
+            config.categoryId?.let { put("categoryId", it) }
+            config.targetSnoozedMonth?.let { put("targetSnoozedMonth", it) }
+            config.termMonths?.let { put("termMonths", it) }
+            config.paymentDay?.let { put("paymentDay", it) }
+            config.startDate?.let { put("startDate", it) }
+        }.toString()
         const val HIDE_RECONCILED_PREFERENCE_PREFIX = "hide-reconciled-"
         private const val transactionSearchClause = """
             AND (

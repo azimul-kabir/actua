@@ -123,6 +123,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.ui.settings.SettingsScreen
 import com.azimulkabir.actua.ui.settings.ConnectionScreen
 import com.azimulkabir.actua.ui.settings.CreditCardsScreen
+import com.azimulkabir.actua.ui.settings.LoansScreen
 import com.azimulkabir.actua.ui.settings.RulesScreen
 import com.azimulkabir.actua.ui.settings.SchedulesScreen
 import com.azimulkabir.actua.ui.settings.FindSchedulesScreen
@@ -261,7 +262,7 @@ private fun TabItem.toMainDestination(): MainDestination? = when (this) {
     TabItem.ADD -> null
 }
 
-internal enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Rules, Schedules, ImportTransactions, ReviewCaptured, PayeeLocations, ManagePayees, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
+internal enum class DetailDestination { Main, Reports, Transactions, EditTransaction, Search, Connection, CreditCards, CreditCardStatements, CreditCardStatementDetail, Loans, Rules, Schedules, ImportTransactions, ReviewCaptured, PayeeLocations, ManagePayees, BillsCalendar, FindSchedules, NewSchedule, EditSchedule, ManageCategories, ReorderGroups, ReorderAccounts, BudgetAutomation, CustomizeHome, CustomizeTabBar, BankSync }
 
 private data class TabSnapshot(
     val detail: DetailDestination = DetailDestination.Main,
@@ -517,6 +518,7 @@ fun AppNavigation(
     val payeeNames = remember(dataVersion) { repository.payeeNames() }
     val suggestedPayees = remember(dataVersion) { repository.suggestedPayeeNames() }
     val creditCards = remember(dataVersion) { repository.creditCards() }
+    val loans = remember(dataVersion) { repository.loans() }
     // reportSnapshot, rules/rulesSupported/scheduleOwnedRuleIds/ruleEditorData, and
     // reorderCategoryGroups are each read by exactly one destination (Reports, Rules,
     // ManageCategories/ReorderGroups) that isn't always on screen, unlike the values above. Per
@@ -2281,6 +2283,19 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
             )
+            DetailDestination.Loans -> LoansScreen(
+                loans = loans,
+                accounts = accounts,
+                hideDecimalPlaces = hideDecimalPlaces,
+                onBack = { detail = DetailDestination.Main },
+                onSave = { accountId, config ->
+                    mutate(R.string.navigation_saving_loan) { repository.setLoan(accountId, config) }
+                },
+                onRemove = { accountId ->
+                    mutate(R.string.navigation_removing_loan) { repository.setLoan(accountId, null) }
+                },
+                modifier = contentModifier,
+            )
             DetailDestination.CreditCards -> CreditCardsScreen(
                 cards = creditCards,
                 accounts = accounts,
@@ -3150,6 +3165,7 @@ fun AppNavigation(
                         creditCardsReturnToBills = false
                         detail = DetailDestination.CreditCards
                     },
+                    onLoansClick = { detail = DetailDestination.Loans },
                     onBankSyncClick = {
                         loadBankSyncProviderStatus()
                         detail = DetailDestination.BankSync

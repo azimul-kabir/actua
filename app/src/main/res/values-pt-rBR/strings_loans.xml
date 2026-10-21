@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_loans">Empréstimos</string>
+    <string name="settings_loans_description">Saldo devedor, taxa de juros e progresso da quitação</string>
+    <string name="loans_title">Empréstimos</string>
+    <string name="loans_add">Adicionar empréstimo</string>
+    <string name="loans_add_title">Adicionar empréstimo</string>
+    <string name="loans_edit_title">Editar empréstimo</string>
+    <string name="loans_empty">Marque uma conta fora do orçamento como empréstimo para acompanhar o que você deve, a taxa de juros e quanto já pagou.</string>
+    <string name="loans_off_budget_hint">Empréstimos são acompanhados em contas abertas e fora do orçamento. Adicione uma ou marque a conta do seu empréstimo como fora do orçamento para acompanhá-lo aqui.</string>
+    <string name="loans_original_balance">Saldo original</string>
+    <string name="loans_interest_rate">Taxa de juros (a.a.)</string>
+    <string name="loans_monthly_payment">Pagamento mensal</string>
+    <string name="loans_escrow_optional">Escrow ou taxas (opcional)</string>
+    <string name="loans_details_explanation">O saldo original é o que você devia quando o empréstimo começou; o progresso da quitação é medido em relação a ele. Escrow ou taxas se aplica a financiamentos cujo pagamento já os inclui.</string>
+    <string name="loans_remove_tracking">Remover acompanhamento de empréstimo</string>
+    <string name="loans_paid_off_percent">%1$s pago</string>
+    <string name="loans_paid_off">Quitado</string>
+    <string name="loans_row_description">%1$s, saldo %2$s, %3$s pago, pagamento mensal %4$s</string>
+    <string name="loans_monthly_payment_value">%1$s por mês</string>
+    <string name="navigation_saving_loan">Salvando empréstimo</string>
+    <string name="navigation_removing_loan">Removendo empréstimo</string>
+    <string name="loans_term_months">Prazo (meses, opcional)</string>
+    <string name="loans_payment_day">Dia do pagamento no mês (opcional)</string>
+    <string name="loans_start_date">Data de início (opcional)</string>
+    <string name="loans_not_set">Não definido</string>
+    <string name="loans_clear_date">Limpar</string>
+</resources>

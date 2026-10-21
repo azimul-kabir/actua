@@ -80,6 +80,8 @@ import com.azimulkabir.actua.model.CreditCardConfig
 import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.paymentDue
 import com.azimulkabir.actua.model.CreditCardStatus
+import com.azimulkabir.actua.model.LoanConfig
+import com.azimulkabir.actua.model.LoanStatus
 import com.azimulkabir.actua.model.sortedForPaymentPriority
 import com.azimulkabir.actua.data.reports.SavedReportRow
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
@@ -1028,6 +1030,28 @@ class ActuaRepository(context: Context) {
                 },
             )
         }.sortedForPaymentPriority(today)
+    }
+
+    /** Tracked loans, open accounts first by name; closed ones only when [includeClosed]. */
+    fun loans(includeClosed: Boolean = false): List<LoanStatus> {
+        val db = actualDatabase ?: return emptyList()
+        val configs = db.fetchLoanConfigs()
+        return db.fetchAccounts().mapNotNull { account ->
+            val config = configs[account.id] ?: return@mapNotNull null
+            if (account.closed && !includeClosed) return@mapNotNull null
+            LoanStatus(account.id, account.name, account.balanceCents, config, account.closed)
+        }.sortedWith(compareBy({ it.accountName.lowercase(java.util.Locale.ROOT) }, { it.accountId }))
+    }
+
+    /** Saves a loan's terms, or stops tracking it when [config] is null. */
+    fun setLoan(accountId: String, config: LoanConfig?): Boolean {
+        val db = actualDatabase ?: return false
+        require(db.fetchAccounts().any { it.id == accountId }) { "That account no longer exists" }
+        actualEntities!!.setPreference(
+            ActualBudgetDatabase.LOAN_PREFERENCE_PREFIX + accountId,
+            config?.let(ActualBudgetDatabase::encodeLoanConfig),
+        )
+        return true
     }
 
     fun setCreditCard(accountId: String, statementDay: Int?,
