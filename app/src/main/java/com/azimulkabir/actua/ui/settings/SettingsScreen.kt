@@ -1243,6 +1243,20 @@ private fun SettingsChoice(
     options: List<SettingsChoiceOption>,
     preview: String? = null,
     onChange: (String) -> Unit,
+) = SettingsChoice(label, value, options.map { SettingsChoiceOption(it, it) }, preview, onChange)
+
+/**
+ * As above, for choices whose stored value and displayed label differ (e.g. the app language).
+ * Renamed on the JVM so it can overload the string-options variant despite generics erasure.
+ */
+@JvmName("SettingsChoiceWithOptions")
+@Composable
+private fun SettingsChoice(
+    label: String,
+    value: String,
+    options: List<SettingsChoiceOption>,
+    preview: String? = null,
+    onChange: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedLabel = options.firstOrNull { it.value == value }?.label ?: value
