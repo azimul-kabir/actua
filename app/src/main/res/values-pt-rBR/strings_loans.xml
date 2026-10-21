@@ -9,7 +9,7 @@
     <string name="loans_empty">Marque uma conta fora do orçamento como empréstimo para acompanhar o que você deve, a taxa de juros e quanto já pagou.</string>
     <string name="loans_off_budget_hint">Empréstimos são acompanhados em contas abertas e fora do orçamento. Adicione uma ou marque a conta do seu empréstimo como fora do orçamento para acompanhá-lo aqui.</string>
     <string name="loans_original_balance">Saldo original</string>
-    <string name="loans_interest_rate">Taxa de juros (%)</string>
+    <string name="loans_interest_rate">Taxa de juros (a.a.)</string>
     <string name="loans_monthly_payment">Pagamento mensal</string>
     <string name="loans_escrow_optional">Escrow ou taxas (opcional)</string>
     <string name="loans_details_explanation">O saldo original é o que você devia quando o empréstimo começou; o progresso da quitação é medido em relação a ele. Escrow ou taxas se aplica a financiamentos cujo pagamento já os inclui.</string>
