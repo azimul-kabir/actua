@@ -707,6 +707,30 @@ class TimeFrameTest {
         assertEquals(-2_000L, widget.valueCents)
     }
 
+    private val periodRows = listOf(
+        tx("before", 20260710, -1_000), tx("julPeriod", 20260726, -2_000), tx("augPeriod", 20260805, -3_000),
+    )
+
+    @Test fun `cash flow and summary default to the pay period when a start day is set`() {
+        // today 2026-08-20, start day 25: the period is 2026-07-25..2026-08-24.
+        val cash = CoreReportEngine.compute(
+            DashboardWidgetRow("w", "cash-flow-card", null), periodRows, today = today, periodStartDay = 25)
+        assertEquals(-5_000L, cash.valueCents)
+        assertEquals(1, cash.points.size)
+        assertEquals(20260725, cash.points.single().drillDownQuery?.startDate)
+        assertEquals(20260820, cash.points.single().drillDownQuery?.endDate)
+        val summary = CoreReportEngine.compute(
+            DashboardWidgetRow("w", "summary-card", null), periodRows, today = today, periodStartDay = 25)
+        assertEquals(-5_000L, summary.valueCents)
+    }
+
+    @Test fun `a stored time frame and start day 1 keep calendar months`() {
+        val stored = DashboardWidgetRow("w", "cash-flow-card", """{"timeFrame":{"mode":"static","start":"2026-07","end":"2026-08"}}""")
+        assertEquals(-6_000L, CoreReportEngine.compute(stored, periodRows, today = today, periodStartDay = 25).valueCents)
+        assertEquals(-3_000L, CoreReportEngine.compute(
+            DashboardWidgetRow("w", "cash-flow-card", null), periodRows, today = today, periodStartDay = 1).valueCents)
+    }
+
     @Test fun `a net worth card without a time frame charts the last 6 months`() {
         val widget = CoreReportEngine.compute(
             DashboardWidgetRow("w", "net-worth-card", null),
