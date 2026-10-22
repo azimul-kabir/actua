@@ -616,6 +616,7 @@ fun AppNavigation(
     val tabStateHolder = rememberSaveableStateHolder()
     var reportSnapshot by remember(repository) { mutableStateOf<ReportSnapshot?>(null) }
     var reportSnapshotVersion by remember(repository) { mutableStateOf(-1) }
+    var reportSnapshotStartDay by remember(repository) { mutableStateOf(-1) }
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var transactionsRefreshing by remember { mutableStateOf(false) }
@@ -1293,14 +1294,16 @@ fun AppNavigation(
         }
     }
 
-    LaunchedEffect(destination, detail, dataVersion, repository) {
+    LaunchedEffect(destination, detail, dataVersion, repository, homeSummaryStartDay) {
+        repository.reportPeriodStartDay = homeSummaryStartDay
         val needsReportSnapshot = detail == DetailDestination.Reports ||
             (detail == DetailDestination.Main && destination in setOf(MainDestination.Home, MainDestination.Reports))
-        if (needsReportSnapshot && reportSnapshotVersion != dataVersion) {
+        if (needsReportSnapshot && (reportSnapshotVersion != dataVersion || reportSnapshotStartDay != homeSummaryStartDay)) {
             try {
                 val loaded = withContext(Dispatchers.IO) { repository.reports(dataVersion) }
                 reportSnapshot = loaded
                 reportSnapshotVersion = dataVersion
+                reportSnapshotStartDay = homeSummaryStartDay
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 DiagnosticsLog.actionFailed("Loading reports", e)
@@ -1680,10 +1683,10 @@ fun AppNavigation(
             detail == DetailDestination.Transactions || detail == DetailDestination.Reports
         val contentModifier = (if (drawsBehindTabBar) Modifier.padding(top = innerPadding.calculateTopPadding()) else Modifier.padding(innerPadding))
             .nestedScroll(fabScrollConnection)
-        val loadReportWidgets: suspend (ReportViewFilter) -> List<ReportWidget> = remember(repository, dataVersion) {
+        val loadReportWidgets: suspend (ReportViewFilter) -> List<ReportWidget> = remember(repository, dataVersion, homeSummaryStartDay) {
             { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } }
         }
-        val loadReportWidgetForRange: suspend (String, com.azimulkabir.actua.model.ReportRange) -> ReportWidget? = remember(repository, dataVersion) {
+        val loadReportWidgetForRange: suspend (String, com.azimulkabir.actua.model.ReportRange) -> ReportWidget? = remember(repository, dataVersion, homeSummaryStartDay) {
             { widgetId, range -> withContext(Dispatchers.IO) { repository.reportWidgetForRange(widgetId, range, dataVersion) } }
         }
         val loadReportTransactions: suspend (List<String>) -> List<Transaction> = remember(repository) {

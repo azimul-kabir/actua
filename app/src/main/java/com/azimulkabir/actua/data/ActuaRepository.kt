@@ -1475,6 +1475,9 @@ class ActuaRepository(context: Context) {
 
     @Volatile private var reportInputs: ReportInputs? = null
 
+    /** Device-local day the report month presets start on (the Home summary start day); 1 = calendar month. */
+    @Volatile var reportPeriodStartDay: Int = com.azimulkabir.actua.data.home.HomeSummaryPeriod.CALENDAR_MONTH_START_DAY
+
     /** Report inputs are read once per data version so filter changes don't reload the whole ledger. */
     private fun reportInputs(db: ActualBudgetDatabase, version: Int): ReportInputs {
         reportInputs?.takeIf { it.version == version && it.database === db }?.let { return it }
@@ -1496,6 +1499,7 @@ class ActuaRepository(context: Context) {
             budgetMonth = { month -> budgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() } },
             payees = db.fetchPayees(),
             firstDayOfWeek = db.firstDayOfWeekPreference(),
+            periodStartDay = reportPeriodStartDay,
         )
     }
 
@@ -1538,6 +1542,7 @@ class ActuaRepository(context: Context) {
             budgetMonth = { month ->
                 reportBudgetMonths.getOrPut(month) { runCatching { db.fetchBudgetMonth(month.toString()) }.getOrNull() }
             },
+            periodStartDay = reportPeriodStartDay,
             widgetFilter = widgetFilter,
             range = range,
         )
@@ -1602,6 +1607,7 @@ class ActuaRepository(context: Context) {
             },
             payees = payees,
             firstDayOfWeek = firstDayOfWeek,
+            periodStartDay = reportPeriodStartDay,
         )
         val pages = dashboards + com.azimulkabir.actua.model.ReportDashboardPage("saved-reports", "Overview", savedWidgets)
         return ReportSnapshot(
@@ -1680,6 +1686,7 @@ class ActuaRepository(context: Context) {
             groups = inputs.groups,
             payees = payees,
             firstDayOfWeek = firstDayOfWeek,
+            periodStartDay = reportPeriodStartDay,
         )
         return runCatching {
             com.azimulkabir.actua.data.reports.SavedReportEngine.compute(

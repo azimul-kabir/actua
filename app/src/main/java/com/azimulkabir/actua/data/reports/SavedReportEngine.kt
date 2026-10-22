@@ -6,6 +6,7 @@ import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualPayee
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
 import com.azimulkabir.actua.data.rules.Rule
 import com.azimulkabir.actua.data.rules.RuleContext
 import com.azimulkabir.actua.data.rules.RulesEngine
@@ -31,6 +32,11 @@ object SavedReportEngine {
         payees: List<ActualPayee> = emptyList(),
         /** Synced `firstDayOfWeekIdx` preference, 0 = Sunday. */
         val firstDayOfWeek: Int = 0,
+        /**
+         * Device-local day (1–31) the month-based presets start on; 1 is upstream's calendar month.
+         * Never written to the synced report, so Actual shows calendar months regardless.
+         */
+        val periodStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
     ) {
         val aggregator = ReportAggregator(accounts, groups)
         /** Upstream's `get-earliest-transaction`/`get-latest-transaction` dates, for live ranges. */
@@ -56,8 +62,9 @@ object SavedReportEngine {
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
         payees: List<ActualPayee> = emptyList(),
         firstDayOfWeek: Int = 0,
+        periodStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
     ): List<ReportWidget> {
-        val shared = Shared(transactions, accounts, groups, payees, firstDayOfWeek)
+        val shared = Shared(transactions, accounts, groups, payees, firstDayOfWeek, periodStartDay)
         return listOf(incomeExpense(transactions, view, shared = shared)) +
             rows.map { compute(it, transactions, accounts, groups, view = view, shared = shared, budgetMonth = budgetMonth) }
     }
@@ -76,7 +83,7 @@ object SavedReportEngine {
         val weekStart = shared.firstDayOfWeek
         val (start, end) = dateRange(
             view.datePreset?.let { row.copy(dateStatic = false, dateRange = it, includeCurrent = false) } ?: row, today, weekStart,
-            shared.earliest, shared.latest,
+            shared.earliest, shared.latest, shared.periodStartDay,
         )
         val selected = row.selectedCategories?.let { runCatching { JSONArray(it) }.getOrNull() }?.let { array ->
             (0 until array.length()).mapNotNull { array.optJSONObject(it)?.optString("id")?.takeIf(String::isNotBlank) }
@@ -400,7 +407,7 @@ object SavedReportEngine {
         val preset = view.datePreset ?: "Last 12 months"
         val (start, end) = dateRange(
             SavedReportRow("", "", null, null, false, preset, "Category", "Net", false, false, true, null,
-                "BarGraph", null, "and", "Monthly"), today, shared.firstDayOfWeek, shared.earliest, shared.latest,
+                "BarGraph", null, "and", "Monthly"), today, shared.firstDayOfWeek, shared.earliest, shared.latest, shared.periodStartDay,
         )
         val filter = ReportFilter(
             startDate = start.toYmd(), endDate = end.toYmd(),
@@ -449,6 +456,7 @@ object SavedReportEngine {
     internal fun dateRange(
         row: SavedReportRow, today: LocalDate, weekStart: Int = 0,
         earliest: LocalDate? = null, latest: LocalDate? = null,
+        periodStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
     ): Pair<LocalDate, LocalDate> {
         fun parse(v: String?, end: Boolean): LocalDate? = when (v?.length) {
             7 -> runCatching { YearMonth.parse(v) }.getOrNull()?.let { if (end) it.atEndOfMonth() else it.atDay(1) }
@@ -458,9 +466,17 @@ object SavedReportEngine {
         val month = YearMonth.from(today)
         // Mirrors upstream's `getLiveRange`/`getSpecificRange`: a "Last N" range starts N intervals
         // back and spans N - 1 more, or N more (through the current one) with `include_current`.
-        fun lastMonths(n: Int) = month.minusMonths(n.toLong()).let { start ->
-            start.atDay(1) to start.plusMonths((n - if (row.includeCurrent) 0 else 1).toLong()).atEndOfMonth()
-        }
+        // With a custom start day the months are pay periods: the one containing today is "this".
+        val period = HomeSummaryPeriod.containing(today, periodStartDay)
+        val custom = periodStartDay != HomeSummaryPeriod.CALENDAR_MONTH_START_DAY
+        fun periodStart(offset: Long) = HomeSummaryPeriod.containing(period.start.plusMonths(offset), periodStartDay).start
+        fun lastMonths(n: Int): Pair<LocalDate, LocalDate> =
+            if (custom) periodStart(-n.toLong()) to HomeSummaryPeriod.containing(
+                period.start.plusMonths(-(if (row.includeCurrent) 0L else 1L)), periodStartDay,
+            ).endInclusive
+            else month.minusMonths(n.toLong()).let { start ->
+                start.atDay(1) to start.plusMonths((n - if (row.includeCurrent) 0 else 1).toLong()).atEndOfMonth()
+            }
         fun lastWeeks(n: Int) = startOfWeek(today, weekStart).minusWeeks(n.toLong()).let { start ->
             start to start.plusWeeks((n - if (row.includeCurrent) 0 else 1).toLong()).plusDays(6)
         }
@@ -470,7 +486,7 @@ object SavedReportEngine {
         if (!row.dateStatic) when (row.dateRange) {
             "This week" -> return lastWeeks(0).first.let { it to it.plusDays(6) }
             "Last week" -> return lastWeeks(1)
-            "This month" -> return month.atDay(1) to month.atEndOfMonth()
+            "This month" -> return if (custom) period.start to period.endInclusive else month.atDay(1) to month.atEndOfMonth()
             "Last month" -> return lastMonths(1)
             "Current quarter" -> return validated(quarter.atDay(1) to quarter.plusMonths(2).atEndOfMonth())
             "Previous quarter" -> return validated(quarter.minusMonths(3).let { it.atDay(1) to it.plusMonths(2).atEndOfMonth() })
