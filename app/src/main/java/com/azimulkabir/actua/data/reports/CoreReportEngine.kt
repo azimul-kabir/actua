@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.reports
 
 import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
+import com.azimulkabir.actua.data.home.HomeSummaryPeriod
 import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
@@ -93,7 +94,7 @@ object CoreReportEngine {
                         compute(
                             row, transactions, context, incomeCategories, budgetedByCategory, today,
                             accounts.associate { it.id to it.balanceCents }, schedules, budgetMonth,
-                            transferAccountByPayee, firstDayOfWeek,
+                            transferAccountByPayee, firstDayOfWeek, periodStartDay,
                         )
                     }
                 },
@@ -131,6 +132,7 @@ object CoreReportEngine {
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
         transferAccountByPayee: Map<String, String> = emptyMap(),
         firstDayOfWeek: Int = 0,
+        periodStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
     ): ReportWidget {
         val meta = row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
         val name = meta?.optString("name")?.takeIf(String::isNotBlank) ?: label(row.type)
@@ -142,17 +144,26 @@ object CoreReportEngine {
         val (start, end) = timeFrame(
             meta?.optJSONObject("timeFrame"), today, defaultTimeFrame(row.type, today), latestTransaction,
         ).let { (from, to) -> from.withDayOfMonth(1) to to.withDayOfMonth(to.lengthOfMonth()) }
+        // Device-local pay period: only Summary and Cash Flow, and only on their default range (no
+        // stored timeFrame mode), so a range set in Actual is never reinterpreted.
+        val payPeriod = HomeSummaryPeriod.containing(today, periodStartDay).takeIf {
+            periodStartDay != HomeSummaryPeriod.CALENDAR_MONTH_START_DAY &&
+                row.type in setOf("summary-card", "cash-flow-card") &&
+                meta?.optJSONObject("timeFrame")?.optString("mode").isNullOrBlank()
+        }
         val filtered = transactions.asSequence()
             .filterNot { it.tombstone }
             .filter { it.date in start.toYmd()..end.toYmd() }
             .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }
             .toList()
         return when (row.type) {
-            "summary-card" -> summary(row.id, name, meta, transactions, conditions, context, start, end, today)
+            "summary-card" -> summary(row.id, name, meta, transactions, conditions, context, start, end, today, payPeriod)
             "net-worth-card" -> netWorth(row.id, name, meta, transactions.filterNot { it.tombstone }
                 .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }, start, end, firstDayOfWeek)
-            "cash-flow-card" -> cashFlow(row.id, name, filtered.filter { it.transferAccountId == null &&
-                it.accountId !in context.offBudgetAccountIds && it.date <= minOf(end, today).toYmd() }, start, end, today)
+            "cash-flow-card" -> cashFlow(row.id, name, (if (payPeriod == null) filtered else
+                transactions.filter { !it.tombstone && it.date in payPeriod.start.toYmd()..payPeriod.endInclusive.toYmd() &&
+                    RulesEngine.matches(it, conditions.first, conditions.second, context) }).filter { it.transferAccountId == null &&
+                it.accountId !in context.offBudgetAccountIds && it.date <= minOf(end, today).toYmd() }, start, end, today, payPeriod)
             "spending-card" -> spending(row.id, name, meta, transactions, context, incomeCategoryIds,
                 budgetedByCategory, today)
             "markdown-card" -> ReportWidget(row.id, ReportWidgetKind.MARKDOWN, name,
@@ -968,7 +979,7 @@ object CoreReportEngine {
     private fun summary(
         id: String, name: String, meta: JSONObject?, all: List<ActualTransaction>,
         conditions: Pair<List<Rule.Condition>, Rule.ConditionsOp>, context: RuleContext,
-        start: LocalDate, end: LocalDate, today: LocalDate,
+        start: LocalDate, end: LocalDate, today: LocalDate, payPeriod: HomeSummaryPeriod? = null,
     ): ReportWidget {
         val contentValue = meta?.opt("content")
         val content = when (contentValue) {
@@ -976,8 +987,9 @@ object CoreReportEngine {
             is String -> runCatching { JSONObject(contentValue) }.getOrNull()
             else -> null
         }
-        val effectiveStart = YearMonth.from(start).atDay(1)
-        val effectiveEnd = if (YearMonth.from(end) == YearMonth.from(today)) today else end
+        val effectiveStart = payPeriod?.start ?: YearMonth.from(start).atDay(1)
+        val effectiveEnd = if (payPeriod != null) minOf(payPeriod.endInclusive, today)
+            else if (YearMonth.from(end) == YearMonth.from(today)) today else end
         val filtered = all.asSequence().filterNot { it.tombstone }
             .filter { it.date in effectiveStart.toYmd()..effectiveEnd.toYmd() }
             .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }.toList()
@@ -986,8 +998,14 @@ object CoreReportEngine {
             "avgPerTransact" -> ReportWidget(id, ReportWidgetKind.SUMMARY, name,
                 valueCents = if (filtered.isEmpty()) 0 else (total / filtered.size).roundToLong())
             "avgPerMonth" -> {
-                val completeMonths = ChronoUnit.MONTHS.between(YearMonth.from(effectiveStart), YearMonth.from(effectiveEnd)).toDouble()
-                val months = completeMonths + effectiveEnd.dayOfMonth.toDouble() / effectiveEnd.lengthOfMonth()
+                val months = if (payPeriod != null) {
+                    // One pay period, counted like the calendar month: the share of it elapsed.
+                    (ChronoUnit.DAYS.between(effectiveStart, effectiveEnd) + 1).toDouble() /
+                        (ChronoUnit.DAYS.between(payPeriod.start, payPeriod.endInclusive) + 1)
+                } else {
+                    val completeMonths = ChronoUnit.MONTHS.between(YearMonth.from(effectiveStart), YearMonth.from(effectiveEnd)).toDouble()
+                    completeMonths + effectiveEnd.dayOfMonth.toDouble() / effectiveEnd.lengthOfMonth()
+                }
                 ReportWidget(id, ReportWidgetKind.SUMMARY, name, valueCents = if (months > 0) (total / months).roundToLong() else 0)
             }
             "avgPerYear" -> {
@@ -1032,12 +1050,15 @@ object CoreReportEngine {
 
     private fun cashFlow(
         id: String, name: String, transactions: List<ActualTransaction>, start: LocalDate, end: LocalDate, today: LocalDate,
+        payPeriod: HomeSummaryPeriod? = null,
     ): ReportWidget {
-        val points = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
-            .takeWhile { !it.isAfter(YearMonth.from(end)) }.map { month ->
-                val rows = transactions.filter { YearMonth.from(it.localDate()) == month }
-                val startDay = month.atDay(1)
-                val endDay = minOf(month.atEndOfMonth(), end, today)
+        // A pay period is one point, keyed by the month it starts in.
+        val months = if (payPeriod != null) listOf(YearMonth.from(payPeriod.start))
+            else generateSequence(YearMonth.from(start)) { it.plusMonths(1) }.takeWhile { !it.isAfter(YearMonth.from(end)) }.toList()
+        val points = months.asSequence().map { month ->
+                val rows = if (payPeriod != null) transactions else transactions.filter { YearMonth.from(it.localDate()) == month }
+                val startDay = payPeriod?.start ?: month.atDay(1)
+                val endDay = if (payPeriod != null) minOf(payPeriod.endInclusive, today) else minOf(month.atEndOfMonth(), end, today)
                 val query = DrillDownQuery(
                     startDate = startDay.toYmd(),
                     endDate = endDay.toYmd(),
