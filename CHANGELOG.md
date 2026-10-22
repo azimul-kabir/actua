@@ -18,13 +18,13 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Loans screen in Settings to track a loan account's balance, interest rate, payment and payoff progress ([#1255](https://github.com/azimul-kabir/actua/pull/1255))
 - Pay statement button on credit cards that opens a prefilled transfer for the amount due ([#1247](https://github.com/azimul-kabir/actua/pull/1247))
 - Credit card billing cycle card now separates the last statement from the current cycle and shows previous-cycle spend and credit utilization ([#1245](https://github.com/azimul-kabir/actua/pull/1245))
-- Brazilian Portuguese (pt-BR) translation of demo budget strings ([#1242](https://github.com/azimul-kabir/actua/pull/1242)) — [@edurbs](https://github.com/edurbs)
-- Brazilian Portuguese (pt-BR) translation of connection and transaction import strings ([#1239](https://github.com/azimul-kabir/actua/pull/1239)) — [@edurbs](https://github.com/edurbs)
-- Brazilian Portuguese (pt-BR) translation of financial settings strings ([#1237](https://github.com/azimul-kabir/actua/pull/1237)) — [@edurbs](https://github.com/edurbs)
-- Brazilian Portuguese (pt-BR) translation of core settings strings ([#1235](https://github.com/azimul-kabir/actua/pull/1235)) — [@edurbs](https://github.com/edurbs)
-- Brazilian Portuguese (pt-BR) translation of transaction entry, list, tags and reconciliation strings ([#1233](https://github.com/azimul-kabir/actua/pull/1233)) — [@edurbs](https://github.com/edurbs)
-- Brazilian Portuguese (pt-BR) translation of widget, disconnect and notification strings ([#1231](https://github.com/azimul-kabir/actua/pull/1231)) — [@edurbs](https://github.com/edurbs)
-- Brazilian Portuguese (pt-BR) translation with in-app language selection for navigation, Home, Budget, widgets and shortcuts ([#1227](https://github.com/azimul-kabir/actua/pull/1227)) — [@edurbs](https://github.com/edurbs)
+- Brazilian Portuguese (pt-BR) translation of demo budget strings ([#1242](https://github.com/azimul-kabir/actua/pull/1242)) — thanks to [@edurbs](https://github.com/edurbs)
+- Brazilian Portuguese (pt-BR) translation of connection and transaction import strings ([#1239](https://github.com/azimul-kabir/actua/pull/1239)) — thanks to [@edurbs](https://github.com/edurbs)
+- Brazilian Portuguese (pt-BR) translation of financial settings strings ([#1237](https://github.com/azimul-kabir/actua/pull/1237)) — thanks to [@edurbs](https://github.com/edurbs)
+- Brazilian Portuguese (pt-BR) translation of core settings strings ([#1235](https://github.com/azimul-kabir/actua/pull/1235)) — thanks to [@edurbs](https://github.com/edurbs)
+- Brazilian Portuguese (pt-BR) translation of transaction entry, list, tags and reconciliation strings ([#1233](https://github.com/azimul-kabir/actua/pull/1233)) — thanks to [@edurbs](https://github.com/edurbs)
+- Brazilian Portuguese (pt-BR) translation of widget, disconnect and notification strings ([#1231](https://github.com/azimul-kabir/actua/pull/1231)) — thanks to [@edurbs](https://github.com/edurbs)
+- Brazilian Portuguese (pt-BR) translation with in-app language selection for navigation, Home, Budget, widgets and shortcuts ([#1227](https://github.com/azimul-kabir/actua/pull/1227)) — thanks to [@edurbs](https://github.com/edurbs)
 
 ### Fixed
 
