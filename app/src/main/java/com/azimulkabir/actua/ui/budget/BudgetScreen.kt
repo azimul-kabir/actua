@@ -63,6 +63,7 @@ import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Output
@@ -1478,6 +1479,7 @@ private fun PlanBudgetCategoryRow(
                 fontWeight = FontWeight.Bold,
                 horizontalPadding = 10.dp,
                 verticalPadding = 3.dp,
+                hasTarget = category.target != null,
             )
         }
         if (showProgressBar && category.showsProgressBar) {
@@ -2550,7 +2552,7 @@ private fun ShrinkToFitText(
  * drops its fill and dims the amount to read as "nothing here". Without [LocalShowBalancePills]
  * no pill is filled, but its padding stays so amounts keep their alignment.
  */
-private fun BalancePill(
+internal fun BalancePill(
     amount: Long,
     hideDecimalPlaces: Boolean,
     status: BudgetProgressState,
@@ -2562,13 +2564,15 @@ private fun BalancePill(
     verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
     /** In the table view: shrink like the other [TableAmountText]s rather than [ShrinkToFitText]. */
     tableAmount: Boolean = false,
+    /** The category has a target or goal: a small icon leads the amount (not in the table view, which keeps its columns aligned). */
+    hasTarget: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     val statusColor = categoryStatusColor(status)
     val tone = balancePillTone(amount, status, colorByStatus)
     Surface(
         modifier = modifier,
-        shape = MaterialTheme.shapes.small,
+        shape = CircleShape,
         color = when {
             !LocalShowBalancePills.current -> Color.Transparent
             tone == BalancePillTone.ALERT -> statusColor.copy(alpha = 0.16f)
@@ -2586,6 +2590,16 @@ private fun BalancePill(
         val padding = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding)
         if (tableAmount) {
             TableAmountText(text, fontWeight = weight, color = color, style = textStyle, modifier = padding)
+        } else if (hasTarget) {
+            Row(padding, verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Outlined.TrackChanges,
+                    contentDescription = stringResource(R.string.budget_balance_has_target),
+                    modifier = Modifier.padding(end = 4.dp).size(14.dp),
+                    tint = color,
+                )
+                ShrinkToFitText(text = text, style = textStyle, fontWeight = weight, color = color)
+            }
         } else {
             ShrinkToFitText(text = text, style = textStyle, fontWeight = weight, color = color, modifier = padding)
         }
