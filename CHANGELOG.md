@@ -33,6 +33,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- The month start day setting moved from Customize Home to Settings > Budget ([#1275](https://github.com/azimul-kabir/actua/pull/1275))
 - The bottom tab bar is now a floating pill, keeping your tab order, the Add tab and the labels setting ([#1265](https://github.com/azimul-kabir/actua/pull/1265))
 
 ## [2.0.0] - 2026-10-19

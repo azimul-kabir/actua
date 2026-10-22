@@ -2478,12 +2478,6 @@ fun AppNavigation(
                     homePreferences.save(updated)
                     homeLayout = updated
                 },
-                summaryStartDay = homeSummaryStartDay,
-                onSummaryStartDayChange = { day ->
-                    val clamped = day.coerceIn(1, 31)
-                    homePreferences.setSummaryStartDay(favoriteBudgetId, clamped)
-                    homeSummaryStartDay = clamped
-                },
                 modifier = contentModifier,
             )
             DetailDestination.CustomizeTabBar -> CustomizeTabBarScreen(
@@ -3059,6 +3053,12 @@ fun AppNavigation(
                 )
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,
+                    summaryStartDay = homeSummaryStartDay,
+                    onSummaryStartDayChange = { day ->
+                        val clamped = day.coerceIn(1, 31)
+                        homePreferences.setSummaryStartDay(favoriteBudgetId, clamped)
+                        homeSummaryStartDay = clamped
+                    },
                     onConnectionClick = { detail = DetailDestination.Connection },
                     decimalPlacesMode = decimalPlacesMode,
                     onDecimalPlacesModeChange = {
