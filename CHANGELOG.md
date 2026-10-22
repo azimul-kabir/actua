@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Sankey card defaults to the last 6 pay periods when a Home summary start day is set, on this device only ([#1273](https://github.com/azimul-kabir/actua/pull/1273))
 - Summary and Cash Flow cards default to the current pay period when a Home summary start day is set, on this device only ([#1272](https://github.com/azimul-kabir/actua/pull/1272))
 - Custom report month presets (This month, Last month, Last N months) follow the Home summary start day, so pay-period pie charts work on this device ([#1270](https://github.com/azimul-kabir/actua/pull/1270))
 - The floating tab bar slides away while you scroll down and comes back when you scroll up, with a Hide tab bar while scrolling switch in Settings > Display ([#1269](https://github.com/azimul-kabir/actua/pull/1269))
