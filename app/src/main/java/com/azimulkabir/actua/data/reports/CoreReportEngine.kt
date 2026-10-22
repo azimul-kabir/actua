@@ -151,9 +151,18 @@ object CoreReportEngine {
                 row.type in setOf("summary-card", "cash-flow-card") &&
                 meta?.optJSONObject("timeFrame")?.optString("mode").isNullOrBlank()
         }
+        // Sankey's default is a sliding window of the last 6 months; on this device that becomes the
+        // last 6 pay periods ending with the current one.
+        val sankeyPayRange = HomeSummaryPeriod.containing(today, periodStartDay).takeIf {
+            periodStartDay != HomeSummaryPeriod.CALENDAR_MONTH_START_DAY && row.type == "sankey-card" &&
+                meta?.optJSONObject("timeFrame")?.optString("mode").isNullOrBlank()
+        }?.let { current ->
+            HomeSummaryPeriod.containing(current.start.minusMonths(5), periodStartDay).start to current.endInclusive
+        }
+        val (rangeStart, rangeEnd) = sankeyPayRange ?: (start to end)
         val filtered = transactions.asSequence()
             .filterNot { it.tombstone }
-            .filter { it.date in start.toYmd()..end.toYmd() }
+            .filter { it.date in rangeStart.toYmd()..rangeEnd.toYmd() }
             .filter { RulesEngine.matches(it, conditions.first, conditions.second, context) }
             .toList()
         return when (row.type) {
@@ -194,7 +203,8 @@ object CoreReportEngine {
             "crossover-card" -> crossover(row.id, name, meta, transactions, context, incomeCategoryIds,
                 accountBalances, today)
             "budget-analysis-card" -> budgetAnalysis(row.id, name, meta, context, budgetMonth, start, end)
-            "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, start, end)
+            "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, rangeStart, rangeEnd,
+                exactDates = sankeyPayRange != null)
             // Upstream's card only uses the tracking-budget source in a tracking budget file.
             "balance-forecast-card" -> if (meta?.optString("source") == "tracking-budget" &&
                 budgetMonth(YearMonth.from(start))?.isTracking == true
@@ -579,7 +589,7 @@ object CoreReportEngine {
      */
     private fun sankey(
         id: String, name: String, transactions: List<ActualTransaction>, context: RuleContext,
-        incomeCategoryIds: Set<String>, start: LocalDate, end: LocalDate,
+        incomeCategoryIds: Set<String>, start: LocalDate, end: LocalDate, exactDates: Boolean = false,
     ): ReportWidget {
         data class Flow(val label: String, val cents: Long)
         val inflows = mutableListOf<Flow>()
@@ -624,7 +634,8 @@ object CoreReportEngine {
         val incomeCategories = breakdown(inflows, isIncome = true)
         val categories = breakdown(outflows, isIncome = false)
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", java.util.Locale.ENGLISH)
-        val subtitle = if (YearMonth.from(start) == YearMonth.from(end)) start.format(formatter)
+        val subtitle = if (exactDates) "$start - $end"
+            else if (YearMonth.from(start) == YearMonth.from(end)) start.format(formatter)
             else "${start.format(formatter)} - ${end.format(formatter)}"
         return ReportWidget(id, ReportWidgetKind.SANKEY, name, valueCents = incomeCategories.sumOf { it.spentCents },
             comparisonCents = categories.sumOf { it.spentCents }, categories = categories,

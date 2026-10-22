@@ -326,7 +326,7 @@
     <string name="home_summary_start_title">This Month starts on day</string>
     <string name="home_summary_start_earlier">Start the period one day earlier</string>
     <string name="home_summary_start_later">Start the period one day later</string>
-    <string name="home_summary_start_description">Day 1 is the calendar month. Choose another day if you are paid mid-month; the Home summary and the month presets of custom reports (This month, Last month, Last N months) and the default range of the Summary and Cash Flow cards then run from that day to the day before the next one. This applies on this device only; Actual shows calendar months. Short months use their last day.</string>
+    <string name="home_summary_start_description">Day 1 is the calendar month. Choose another day if you are paid mid-month; the Home summary and the month presets of custom reports (This month, Last month, Last N months) and the default range of the Summary, Cash Flow and Sankey cards then run from that day to the day before the next one. This applies on this device only; Actual shows calendar months. Short months use their last day.</string>
 
     <plurals name="home_transactions_count">
         <item quantity="one">%1$d transaction</item>

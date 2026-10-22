@@ -56,6 +56,23 @@ class SankeyTest {
 
     private val april = """{"timeFrame":{"mode":"static","start":"2026-04","end":"2026-04"}}"""
 
+    @Test fun `a start day turns the default window into the last 6 pay periods`() {
+        // today 2026-08-20, start day 25: the current period is 07-25..08-24, six periods reach back to 02-25.
+        val rows = listOf(
+            tx("before", 20260224, 100000, "salary"),
+            tx("first", 20260225, 200000, "salary"),
+            tx("last", 20260824, 400000, "salary"),
+            tx("after", 20260825, 800000, "salary"),
+        )
+        val today = LocalDate.of(2026, 8, 20)
+        val pay = CoreReportEngine.compute(row(), rows, context, incomeCategoryIds, today = today, periodStartDay = 25)
+        assertEquals(600000L, pay.valueCents)
+        assertEquals("2026-02-25 - 2026-08-24", pay.subtitle)
+        // Start day 1 keeps upstream's calendar window (Mar-Aug), and a stored time frame is never reinterpreted.
+        assertEquals(1200000L, CoreReportEngine.compute(row(), rows, context, incomeCategoryIds, today = today).valueCents)
+        assertEquals(0L, CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds, today = today, periodStartDay = 25).valueCents)
+    }
+
     @Test fun `a refund to an expense category reduces that category's outflow instead of adding income`() {
         val rows = listOf(
             tx("1", 20260405, 800000, "salary"),
