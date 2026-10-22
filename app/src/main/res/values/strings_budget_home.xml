@@ -131,6 +131,7 @@
     <string name="budget_managed_actual">Managed in Actual Budget</string>
     <string name="budget_view_target_info">View target information</string>
     <string name="budget_balance_has_target">Has a target</string>
+    <string name="budget_balance_goal_not_started">Goal not started</string>
     <string name="budget_edit_automation_list">Edit automation list · Apply after whole-budget preview</string>
     <string name="budget_set_target">Set a target</string>
     <string name="budget_plan_amount">Plan how much to budget</string>

@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Budget balance pills show how far a goal, save-by-date or cover-schedule target is funded: not started, in progress, reached or funded past it ([#1281](https://github.com/azimul-kabir/actua/pull/1281))
 - Budget balance pills are now fully rounded and show an icon when the category has a target ([#1280](https://github.com/azimul-kabir/actua/pull/1280))
 - Sankey card defaults to the last 6 pay periods when a Home summary start day is set, on this device only ([#1273](https://github.com/azimul-kabir/actua/pull/1273))
 - Summary and Cash Flow cards default to the current pay period when a Home summary start day is set, on this device only ([#1272](https://github.com/azimul-kabir/actua/pull/1272))
