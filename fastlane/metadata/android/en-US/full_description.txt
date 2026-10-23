@@ -5,6 +5,7 @@ WHAT YOU CAN DO
 • Add, edit, search, and filter transactions
 • Split transactions, make transfers, and reconcile accounts
 • Group and reorder accounts, and manage categories, targets, and budget templates
+• Track loans with a payoff planner, and see goal and target progress on your balances
 • View scheduled transactions and a bills calendar, with optional reminders before they are due
 • Review dashboards and reports, tap any chart to see its transactions, or open a report full screen with a data table
 • Sync with your Actual Budget server and use supported bank-sync providers through that server
@@ -14,6 +15,7 @@ WHAT YOU CAN DO
 • Create local backups and restore your budget data, or back up to your own Google Drive with encryption
 • Budget on your device without a server, or import an Actual Budget archive
 • Use home-screen widgets and launcher shortcuts
+• Use Actua in English or Brazilian Portuguese
 
 MADE FOR ANDROID
 Actua is built as a native Android app, not a website wrapped in an app. Its Material 3 interface is designed for Android phones and supports features such as offline budgets, customizable navigation, and flexible appearance settings.

@@ -1,0 +1,7 @@
+• Track loans with a payoff planner
+• Record loan payments with interest split
+• Floating tab bar that hides on scroll
+• Pay-period month start day for reports
+• Goal and target icons on balance pills
+• Pay credit card statements in one tap
+• Brazilian Portuguese translation

@@ -305,6 +305,13 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] 2.0.0 Category details: filter the Transactions tab, open a category's details and confirm recent activity still lists its transactions.
 - [ ] 2.0.0 Budget download/switch: download a large server budget and switch budgets; the loading dialog appears, the app stays responsive (no ANR), and Back is ignored until it finishes.
 - [ ] 2.0.0 License: the repository LICENSE is GPL v3 and NOTICE.md keeps the upstream MIT credits.
+- [ ] 2.1.0 Loans: add a loan under Settings > Loans, open the loan account's card (payoff progress, next payment, projected payoff, total paid), record a payment (interest/escrow split and the funding-account transfer), pair a budget category, skip its target for a month, and run the payoff planner.
+- [ ] 2.1.0 Floating tab bar: the bar is a floating pill, slides away when scrolling down and returns when scrolling up, and "Hide tab bar while scrolling" in Settings > Display turns that off; tab order, the Add tab and the labels setting are kept.
+- [ ] 2.1.0 Month start day: set it under Settings > Budget (for example 25) and confirm Home and Accounts summaries, a custom report's "This month"/"Last month"/"Last N months", and the Summary, Cash Flow and Sankey cards follow it; day 1 gives calendar months, saved reports and Actual are unchanged.
+- [ ] 2.1.0 Budget balance pills: pills are fully rounded; a category with a target shows an icon, a goal / save-by-date / cover-schedule category shows not started, in progress and reached/funded-past states, and the table view keeps its columns aligned (also at the largest font size and on a 360dp screen).
+- [ ] 2.1.0 Credit cards: the billing-cycle card separates the last statement from the current cycle, and "Pay statement" opens a prefilled transfer for the amount due.
+- [ ] 2.1.0 Languages: choose Brazilian Portuguese in Settings and confirm navigation, Home, Budget, settings and notifications switch language, then switch back to English.
+- [ ] 2.1.0 Transfers: a transfer that carries a budget category shows that category in the transaction list and details instead of "Transfer".
 
 ## Release/distribution
 

@@ -241,6 +241,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   category cards open their category details directly, and This Month shares Accounts' category-aware
   cash-flow calculation so on-budget transfers and uncategorized rows are excluded. Reports remains
   reachable from Home and Manage, and can additionally be shown as its own bottom tab
+- The bottom tab bar is a floating pill that can slide away while scrolling (device-local; Settings → Display).
 - Customizable bottom tab bar (Settings → Tab Bar), mirroring the Home dashboard customization
   pattern: drag or up/down-arrow reorder, per-tab show/hide with Manage pinned and required and a
   3-5 visible-tab range enforced instead of silently no-oping, an optional "+ Add" pseudo-tab that
@@ -334,6 +335,17 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   (`currencySymbolPosition`, `currencySpaceBetweenAmountAndSymbol`) and balance masking follow the
   budget's synced Actual preferences by default ("Same as budget"), with a device-local override for
   each; amount entry fields place the symbol the same way as displayed amounts
+- Budget balance pills are fully rounded and, in the plan view, a category with a target shows an
+  icon. For goal, save-by-date and cover-schedule targets (those whose progress bar measures the
+  balance against a target) the icon shows not started, in progress, reached or funded past it, using
+  the same rules as the bar; any other target keeps a plain target icon. Presentation only, derived
+  from existing target and balance data, nothing written.
+- Device-local month start day (Settings → Budget, per budget, never synced; Actua-specific, Actual
+  has no such setting): Home and Accounts monthly summaries, a custom report's month presets
+  (This month, Last month, Last N months) and the Summary, Cash Flow and Sankey cards' default
+  ranges use pay periods instead of calendar months. Stored report and widget settings are never
+  rewritten and day 1 is byte-for-byte upstream; Spending, Budget Analysis and Calendar stay on
+  calendar months because their data is monthly.
 - Per-budget device-local quick-access favorites for categories, accounts, and report dashboards;
   these are intentionally not synced because Actual has no favorite fields. Budget's Favorites
   filter composes with the other category filters, and the Favorites widget reads the same
