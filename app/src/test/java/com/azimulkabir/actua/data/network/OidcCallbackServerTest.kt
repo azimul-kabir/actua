@@ -37,4 +37,32 @@ class OidcCallbackServerTest {
             }
         }
     }
+
+    @Test
+    fun ignoresIdleConnectionOpenedBeforeCallback() {
+        OidcCallbackServer().use { server ->
+            val executor = Executors.newSingleThreadExecutor()
+            try {
+                val tokenFuture = executor.submit<String> { server.awaitToken(15_000) }
+                val port = URI(server.returnUrl).port
+
+                // Speculative browser socket: connects first and never sends a request.
+                Socket("localhost", port).use {
+                    Socket("localhost", port).use { socket ->
+                        val writer = socket.getOutputStream().bufferedWriter()
+                        writer.write("GET /openid-cb?token=after-idle HTTP/1.1\r\n")
+                        writer.write("Host: localhost:$port\r\n")
+                        writer.write("Connection: close\r\n\r\n")
+                        writer.flush()
+                        socket.soTimeout = 10_000
+                        assertTrue(socket.getInputStream().bufferedReader().readText().startsWith("HTTP/1.1 302 Found"))
+                    }
+                }
+
+                assertEquals("after-idle", tokenFuture.get(10, TimeUnit.SECONDS))
+            } finally {
+                executor.shutdownNow()
+            }
+        }
+    }
 }
