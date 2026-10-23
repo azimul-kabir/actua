@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.1.0] - 2026-10-23
+
 ### Added
 
 - Budget balance pills show how far a goal, save-by-date or cover-schedule target is funded: not started, in progress, reached or funded past it ([#1281](https://github.com/azimul-kabir/actua/pull/1281))

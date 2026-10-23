@@ -38,8 +38,9 @@ Actua is an independent community project and is not affiliated with or endorsed
 ## Features
 
 - Native Material You Android interface
+- English and Brazilian Portuguese (pt-BR) with in-app language selection
 - Home dashboard with an at-a-glance financial overview (ready to budget, favorite categories/accounts, upcoming bills, this month, reports and recent activity), customizable via show/hide and drag-to-reorder, with an optional start day for the This Month summary to match mid-month pay cycles
-- Customizable bottom tab bar: show/hide and reorder tabs (Reports can be added as its own tab), plus an optional "Add" quick-add tab
+- Customizable floating bottom tab bar: show/hide and reorder tabs (Reports can be added as its own tab), plus an optional "Add" quick-add tab, and optional hiding while you scroll
 - App-wide favorites for categories, accounts and reports, shared by Home, the Budget favorites filter and the home-screen widget
 - Password and OpenID/OIDC login
 - Standalone on-device budgets: full envelope budgeting without needing a server, with automated schedule posting, local backups, and export/import compatibility with Actual Budget archives (see [docs/STANDALONE_BUDGETS.md](docs/STANDALONE_BUDGETS.md))
@@ -50,7 +51,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Bank sync through your Actual server (SimpleFIN and GoCardless), plus experimental Enable Banking for European banks; newly synced transactions are marked until you view the account
 - Category targets and budget automations, including `#template` notes, checked against Actual's own template engine
 - Scheduled transactions and Bills calendar, with optional reminders before they are due
-- Accounts with collapsible groups, custom group creation/management, in-place reordering, group totals, flat favorites, credit cards, payment reminders, and custom pay cycle period on monthly summary
+- Accounts with collapsible groups, custom group creation/management, in-place reordering, group totals, flat favorites, credit cards, payment reminders, loan accounts with a payoff planner, and a device-local month start day for monthly summaries, report presets and report cards
 - Actual dashboard and custom reports with a report builder, authoring and card/page management, with smooth line, bar, donut, Sankey, calendar, Budget Analysis and Monte Carlo charts, tap-to-open transactions with search and sorting, a full-screen view with a view-only time range and a data table, optional total and average per period, and date/account filtering
 - Rules and automatic categorization, run on manual entry, transfers, imports and bank sync as in Actual, including template, formula and split actions, split rule authoring, live matching preview, and 'Apply rule now' bulk execution
 - CSV, OFX, QFX, QIF, CAMT.053, XLSX, PDF, SMS and notification imports, plus a [Tasker plugin and intents](docs/TRANSACTION_IMPORTS.md#tasker-and-other-automation-apps); captured transactions wait in a review queue with per-row, remembered and default accounts, optional review notifications, a launcher shortcut and an Accounts tab badge
