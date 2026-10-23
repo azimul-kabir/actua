@@ -57,12 +57,15 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.Timelapse
 import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -174,6 +177,7 @@ import com.azimulkabir.actua.ui.components.ActuaSheetCard
 import com.azimulkabir.actua.ui.components.ActuaSheetAction
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
 import com.azimulkabir.actua.model.BudgetProgressState
+import com.azimulkabir.actua.model.TargetFunding
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.ui.theme.categoryStatusColor
 import com.azimulkabir.actua.ui.theme.danger
@@ -1479,7 +1483,7 @@ private fun PlanBudgetCategoryRow(
                 fontWeight = FontWeight.Bold,
                 horizontalPadding = 10.dp,
                 verticalPadding = 3.dp,
-                hasTarget = category.target != null,
+                targetFunding = category.targetFunding(scheduleFunding),
             )
         }
         if (showProgressBar && category.showsProgressBar) {
@@ -2564,8 +2568,8 @@ internal fun BalancePill(
     verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
     /** In the table view: shrink like the other [TableAmountText]s rather than [ShrinkToFitText]. */
     tableAmount: Boolean = false,
-    /** The category has a target or goal: a small icon leads the amount (not in the table view, which keeps its columns aligned). */
-    hasTarget: Boolean = false,
+    /** The category's target state: a small icon leads the amount (not in the table view, which keeps its columns aligned). */
+    targetFunding: TargetFunding? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val statusColor = categoryStatusColor(status)
@@ -2590,11 +2594,11 @@ internal fun BalancePill(
         val padding = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding)
         if (tableAmount) {
             TableAmountText(text, fontWeight = weight, color = color, style = textStyle, modifier = padding)
-        } else if (hasTarget) {
+        } else if (targetFunding != null) {
             Row(padding, verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    Icons.Outlined.TrackChanges,
-                    contentDescription = stringResource(R.string.budget_balance_has_target),
+                    targetFundingIcon(targetFunding),
+                    contentDescription = stringResource(targetFundingDescription(targetFunding)),
                     modifier = Modifier.padding(end = 4.dp).size(14.dp),
                     tint = color,
                 )
@@ -2604,6 +2608,22 @@ internal fun BalancePill(
             ShrinkToFitText(text = text, style = textStyle, fontWeight = weight, color = color, modifier = padding)
         }
     }
+}
+
+private fun targetFundingIcon(funding: TargetFunding) = when (funding) {
+    TargetFunding.PLAIN -> Icons.Outlined.TrackChanges
+    TargetFunding.NOT_STARTED -> Icons.Outlined.RadioButtonUnchecked
+    TargetFunding.PARTIAL -> Icons.Outlined.Timelapse
+    TargetFunding.REACHED, TargetFunding.OVERFUNDED -> Icons.Outlined.CheckCircle
+}
+
+@StringRes
+private fun targetFundingDescription(funding: TargetFunding) = when (funding) {
+    TargetFunding.PLAIN -> R.string.budget_balance_has_target
+    TargetFunding.NOT_STARTED -> R.string.budget_balance_goal_not_started
+    TargetFunding.PARTIAL -> R.string.budget_progress_goal_in_progress
+    TargetFunding.REACHED -> R.string.budget_progress_goal_reached
+    TargetFunding.OVERFUNDED -> R.string.budget_progress_goal_overfunded
 }
 
 /** Budget display option "Show balance pills": whether balances are drawn on a filled pill. */

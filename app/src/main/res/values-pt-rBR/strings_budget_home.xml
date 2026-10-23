@@ -131,6 +131,7 @@
     <string name="budget_managed_actual">Gerenciada no Actual Budget</string>
     <string name="budget_view_target_info">Ver informações da meta</string>
     <string name="budget_balance_has_target">Tem uma meta</string>
+    <string name="budget_balance_goal_not_started">Meta não iniciada</string>
     <string name="budget_edit_automation_list">Editar lista de automações · Aplicar após a pré-visualização do orçamento inteiro</string>
     <string name="budget_set_target">Definir uma meta</string>
     <string name="budget_plan_amount">Planeje quanto orçar</string>

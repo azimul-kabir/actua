@@ -116,6 +116,24 @@ data class BudgetCategory(
             BudgetProgressState.GOAL_OVERFUNDED
         else progressState
 
+    /**
+     * What the balance pill's target icon shows (issue #1279), or null for a category without a
+     * target. It reuses the progress bar's own rules, so the icon and the bar always agree: only a
+     * category whose bar measures the balance against a target ([usesGoalProgress]: a goal, or
+     * save-by-date / cover-schedule alone) gets a funding state; any other target, and an
+     * overspent category, keeps the plain icon.
+     */
+    fun targetFunding(schedules: List<BudgetScheduleFunding> = emptyList()): TargetFunding? {
+        if (target == null) return null
+        if (!usesGoalProgress) return TargetFunding.PLAIN
+        return when (progressBarState(schedules)) {
+            BudgetProgressState.GOAL_REACHED -> TargetFunding.REACHED
+            BudgetProgressState.GOAL_OVERFUNDED -> TargetFunding.OVERFUNDED
+            BudgetProgressState.OVERSPENT -> TargetFunding.PLAIN
+            else -> if (progressFraction(schedules) > 0f) TargetFunding.PARTIAL else TargetFunding.NOT_STARTED
+        }
+    }
+
     fun progressFraction(schedules: List<BudgetScheduleFunding> = emptyList()): Float {
         // Preserve Actua's long-term targets, including unresolved schedule fallback.
         if (usesGoalProgress) {
@@ -130,6 +148,9 @@ data class BudgetCategory(
         return if (capacity > 0.0) (spentAmount / capacity).toFloat().coerceIn(0f, 1f) else 0f
     }
 }
+
+/** How far a category's target is funded, shown by the balance pill's icon; see [BudgetCategory.targetFunding]. */
+enum class TargetFunding { PLAIN, NOT_STARTED, PARTIAL, REACHED, OVERFUNDED }
 
 /**
  * A category's progress-bar state. [label] keeps the English default for callers that have not
