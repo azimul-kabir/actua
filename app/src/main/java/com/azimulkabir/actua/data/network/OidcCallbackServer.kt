@@ -1,9 +1,11 @@
 package com.azimulkabir.actua.data.network
 
 import java.io.Closeable
+import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
+import java.net.Socket
 import java.net.SocketTimeoutException
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -57,30 +59,36 @@ class OidcCallbackServer(
             serverSocket.soTimeout = remaining
 
             val socket = serverSocket.accept()
-            socket.use { client ->
-                val reader = client.getInputStream().bufferedReader()
-                val requestLine = reader.readLine().orEmpty()
-                while (true) {
-                    val line = reader.readLine() ?: break
-                    if (line.isEmpty()) break
-                }
-
-                val target = requestLine.split(' ').getOrNull(1).orEmpty()
-                val token = tokenFromTarget(target)
-                if (token != null) {
-                    writeAppRedirect(client)
-                    return token
-                }
-
-                writeResponse(
-                    client,
-                    400,
-                    pageText.callbackErrorTitle,
-                    pageText.callbackErrorMessage,
-                )
+            // Browsers open speculative sockets that never send a request; without a read timeout
+            // one of them would block this single-threaded loop and starve the real callback.
+            socket.soTimeout = CLIENT_READ_TIMEOUT_MILLIS
+            val token = try {
+                socket.use { client -> handleClient(client) }
+            } catch (_: IOException) {
+                null
             }
+            if (token != null) return token
         }
         throw IllegalStateException("OpenID callback listener was closed.")
+    }
+
+    private fun handleClient(client: Socket): String? {
+        val reader = client.getInputStream().bufferedReader()
+        val requestLine = reader.readLine().orEmpty()
+        while (true) {
+            val line = reader.readLine() ?: break
+            if (line.isEmpty()) break
+        }
+
+        val target = requestLine.split(' ').getOrNull(1).orEmpty()
+        val token = tokenFromTarget(target)
+        if (token != null) {
+            writeAppRedirect(client)
+            return token
+        }
+
+        writeResponse(client, 400, pageText.callbackErrorTitle, pageText.callbackErrorMessage)
+        return null
     }
 
     override fun close() {
@@ -104,7 +112,7 @@ class OidcCallbackServer(
     }
 
     private fun writeResponse(
-        socket: java.net.Socket,
+        socket: Socket,
         status: Int,
         title: String,
         message: String,
@@ -140,7 +148,7 @@ class OidcCallbackServer(
         }
     }
 
-    private fun writeAppRedirect(socket: java.net.Socket) {
+    private fun writeAppRedirect(socket: Socket) {
         val escapedLanguageTag = pageText.languageTag.escapeHtml()
         val escapedTitle = pageText.completionTitle.escapeHtml()
         val escapedMessage = pageText.completionMessage.escapeHtml()
@@ -175,6 +183,7 @@ class OidcCallbackServer(
 
     companion object {
         private const val APP_RETURN_URL = "actua://oidc-complete"
+        private const val CLIENT_READ_TIMEOUT_MILLIS = 1_500
         private const val DEFAULT_TIMEOUT_MILLIS = 5 * 60 * 1000
     }
 }
