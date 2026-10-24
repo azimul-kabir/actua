@@ -100,7 +100,7 @@ own default. Actua: `CRE.timeFrame` (`:974`).
 | No `timeFrame` or no `mode` (Net Worth, Age of Money, Sankey, Budget Analysis) | last 6 months, sliding | same | Match (#948) |
 | Card ranges widen to whole months (`firstDayOfMonth`/`lastDayOfMonth`) | every card spreadsheet | `CRE.compute` | Match (#948) |
 | No `timeFrame` (Summary, Calendar: this month; Cash Flow: this month; Balance Forecast: this + 11 months) | card default | same | Match |
-| Custom report presets (This month, Last month, Last N months) and the default range of Summary, Cash Flow (no stored `timeFrame` mode) and Sankey (last 6 months) | calendar months | calendar months at start day 1; pay periods when the device-local month start day (Settings → Budget) is 2–31 | Deviation: device-local only (#1240) |
+| Custom report presets (This month, Last month, Last N months) and the default range of Summary, Cash Flow (no stored `timeFrame` mode) and Sankey (last 6 months; also a saved current month, last month or N-month sliding window) | calendar months | calendar months at start day 1; pay periods when the device-local month start day (Settings → Budget) is 2–31 | Deviation: device-local only (#1240) |
 
 The month start day is never synced or written into a saved report or widget: stored presets and
 `timeFrame` values keep their upstream meaning, so Actual shows calendar months, and a range stored in

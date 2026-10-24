@@ -151,14 +151,11 @@ object CoreReportEngine {
                 row.type in setOf("summary-card", "cash-flow-card") &&
                 meta?.optJSONObject("timeFrame")?.optString("mode").isNullOrBlank()
         }
-        // Sankey's default is a sliding window of the last 6 months; on this device that becomes the
-        // last 6 pay periods ending with the current one.
-        val sankeyPayRange = HomeSummaryPeriod.containing(today, periodStartDay).takeIf {
-            periodStartDay != HomeSummaryPeriod.CALENDAR_MONTH_START_DAY && row.type == "sankey-card" &&
-                meta?.optJSONObject("timeFrame")?.optString("mode").isNullOrBlank()
-        }?.let { current ->
-            HomeSummaryPeriod.containing(current.start.minusMonths(5), periodStartDay).start to current.endInclusive
-        }
+        // Sankey's month-shaped ranges (the default last 6 months, a saved current/last month or N-month
+        // sliding window) become pay periods on this device; every other saved range keeps its meaning.
+        val sankeyPayRange = if (periodStartDay != HomeSummaryPeriod.CALENDAR_MONTH_START_DAY && row.type == "sankey-card") {
+            sankeyPayRange(meta?.optJSONObject("timeFrame"), today, periodStartDay)
+        } else null
         val (rangeStart, rangeEnd) = sankeyPayRange ?: (start to end)
         val filtered = transactions.asSequence()
             .filterNot { it.tombstone }
@@ -1223,6 +1220,25 @@ object CoreReportEngine {
             val rule = Rule.parse("report", null, meta?.optString("conditionsOp"), filtered.toString(), "[]")
             rule.conditions to rule.conditionsOp
         }.getOrDefault(emptyList<Rule.Condition>() to Rule.ConditionsOp.AND)
+    }
+
+    /** The pay-period range for a month-shaped Sankey [timeFrame], or null to keep its calendar-month range. */
+    internal fun sankeyPayRange(timeFrame: JSONObject?, today: LocalDate, periodStartDay: Int): Pair<LocalDate, LocalDate>? {
+        val current = HomeSummaryPeriod.containing(today, periodStartDay)
+        fun lastPeriods(count: Long) =
+            HomeSummaryPeriod.containing(current.start.minusMonths(count - 1), periodStartDay).start to current.endInclusive
+        return when (timeFrame?.optString("mode").orEmpty()) {
+            "" -> lastPeriods(6)
+            "lastMonth" -> HomeSummaryPeriod.containing(current.start.minusDays(1), periodStartDay)
+                .let { it.start to it.endInclusive }
+            "sliding-window" -> {
+                val start = month(timeFrame?.optString("start").orEmpty().takeIf { it.length == 7 })
+                val end = month(timeFrame?.optString("end").orEmpty().takeIf { it.length == 7 })
+                if (start == null || end == null || start.isAfter(end)) null
+                else lastPeriods(ChronoUnit.MONTHS.between(start, end) + 1)
+            }
+            else -> null
+        }
     }
 
     /** A card's own fallback time frame, upstream's `defaultTimeFrame` argument to `calculateTimeRange`. */

@@ -73,6 +73,30 @@ class SankeyTest {
         assertEquals(0L, CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds, today = today, periodStartDay = 25).valueCents)
     }
 
+    @Test fun `a start day turns saved month-shaped time frames into pay periods`() {
+        // today 2026-08-20, start day 25: this period is 07-25..08-24, the one before is 06-25..07-24.
+        val rows = listOf(
+            tx("older", 20260624, 100000, "salary"),
+            tx("prev", 20260625, 200000, "salary"),
+            tx("prevEnd", 20260724, 400000, "salary"),
+            tx("cur", 20260725, 800000, "salary"),
+            tx("curEnd", 20260824, 1600000, "salary"),
+            tx("after", 20260825, 3200000, "salary"),
+        )
+        val today = LocalDate.of(2026, 8, 20)
+        fun total(frame: String, startDay: Int = 25) = CoreReportEngine.compute(
+            row("""{"timeFrame":$frame}"""), rows, context, incomeCategoryIds, today = today, periodStartDay = startDay,
+        ).valueCents
+        val thisMonth = """{"mode":"sliding-window","start":"2026-08","end":"2026-08"}"""
+        assertEquals(2400000L, total(thisMonth))
+        assertEquals(600000L, total("""{"mode":"lastMonth"}"""))
+        assertEquals(3000000L, total("""{"mode":"sliding-window","start":"2026-07","end":"2026-08"}"""))
+        // Calendar months at start day 1, and ranges that are not month-shaped keep their upstream meaning.
+        assertEquals(4800000L, total(thisMonth, startDay = 1))
+        assertEquals(0L, total("""{"mode":"static","start":"2026-04","end":"2026-04"}"""))
+        assertEquals(4800000L, total("""{"mode":"sliding-window","start":"2026-08-01","end":"2026-08-10"}"""))
+    }
+
     @Test fun `a refund to an expense category reduces that category's outflow instead of adding income`() {
         val rows = listOf(
             tx("1", 20260405, 800000, "salary"),
