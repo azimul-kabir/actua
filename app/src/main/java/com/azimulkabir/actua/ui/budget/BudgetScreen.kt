@@ -1660,7 +1660,7 @@ private fun BudgetOverviewRow(
                         // Same columns as the table below, so the totals line up with its amounts.
                         amountCells({ column ->
                             when {
-                                layout == null -> Modifier.weight(1f)
+                                layout == null -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f)
                                 column == 0 -> Modifier.width(layout.budgeted)
                                 column == 1 -> Modifier.width(layout.spent)
                                 else -> Modifier.width(layout.balance)
@@ -1673,7 +1673,7 @@ private fun BudgetOverviewRow(
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         leadCell(Modifier.fillMaxWidth(), OverviewButtonHeight)
                         StackedTableAmounts {
-                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells({ Modifier.weight(1f) }, OverviewStackedValueHeight) }
+                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells({ column -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f) }, OverviewStackedValueHeight) }
                         }
                     }
                 }
@@ -1835,6 +1835,9 @@ private val TableAmountGap = 6.dp
 /** An amount in a table column, plus the [padding] (a pill's, or [TableAmountGap]) beside it. */
 private data class TableAmount(val text: String, val padding: androidx.compose.ui.unit.Dp = TableAmountGap)
 
+/** Extra share of a weighted (stacked) row for the balance cell, so a target icon doesn't crowd the spent amount. */
+private const val StackedBalanceWeight = 1.25f
+
 /** The category table's balance pill padding (each side); see [CategoryRow]. */
 private val CategoryPillPadding = 10.dp
 
@@ -1927,6 +1930,7 @@ private fun rememberTableLayout(
         val headerBalance = mutableListOf<String>()
         val rowBudgeted = mutableListOf<String>(); val rowSpent = mutableListOf<String>()
         val rowBalance = mutableListOf<String>()
+        var hasTarget = false
         if (overview != null) {
             headerBudgeted += formatMoneyCents(overview.budgetedCents, hideDecimalPlaces)
             headerSpent += formatMoneyCents(overview.spentCents, hideDecimalPlaces)
@@ -1944,6 +1948,7 @@ private fun rememberTableLayout(
                 rowBudgeted += formatMoneyCents(it.assignedCents, hideDecimalPlaces)
                 rowSpent += formatMoneyCents(-it.spentCents, hideDecimalPlaces)
                 rowBalance += formatMoneyCents(it.balanceCents, hideDecimalPlaces)
+                if (it.target != null) hasTarget = true
             }
         }
         tableLayoutFor(
@@ -1954,6 +1959,7 @@ private fun rememberTableLayout(
             showSpent = showSpent,
             gap = TableAmountGap.value,
             pillPadding = CategoryPillPadding.value,
+            iconWidth = if (hasTarget) TargetIconWidth.value else 0f,
         )
     }
 }
@@ -1964,7 +1970,7 @@ private fun rememberTableLayout(
  * The scale is the largest (up to 1) that leaves the name column [TableNameMinShare] of the width;
  * null when that falls under [TableLayoutMinScale], or when there are no amounts to size.
  * Each column also holds a [gap] before its text and a little slack; the balance column holds the
- * balance pill's [pillPadding] on its left.
+ * balance pill's [pillPadding] on its left, plus [iconWidth] when its rows lead with a target icon.
  */
 internal fun tableLayoutFor(
     budgetedText: Float,
@@ -1974,11 +1980,12 @@ internal fun tableLayoutFor(
     showSpent: Boolean,
     gap: Float,
     pillPadding: Float,
+    iconWidth: Float = 0f,
 ): TableLayout? {
     val slack = 2f
     val textTotal = budgetedText + spentText + balanceText
     if (textTotal <= 0f) return null
-    val fixed = (if (showSpent) 3 else 2) * (gap + slack) + pillPadding
+    val fixed = (if (showSpent) 3 else 2) * (gap + slack) + pillPadding + iconWidth
     val nameMin = availableWidth * TableNameMinShare
     val scale = ((availableWidth - nameMin - fixed) / textTotal).coerceAtMost(1f)
     if (scale < TableLayoutMinScale) return null
@@ -1987,7 +1994,7 @@ internal fun tableLayoutFor(
         scale = scale,
         budgeted = column(budgetedText),
         spent = if (showSpent) column(spentText) else 0.dp,
-        balance = column(balanceText, pillPadding),
+        balance = column(balanceText, pillPadding + iconWidth),
     )
 }
 
@@ -2050,7 +2057,7 @@ private fun BudgetGroupHeader(
                         Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                             AmountColumn(stringResource(R.string.budget_budgeted), budgeted, Modifier.weight(1f), hideDecimalPlaces)
                             if (showSpent) AmountColumn(stringResource(R.string.budget_spent), -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                            AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
+                            AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.weight(StackedBalanceWeight), hideDecimalPlaces, balance = true)
                         }
                     }
                 }
@@ -2138,6 +2145,7 @@ private fun CategoryRow(
                         horizontalPadding = CategoryPillPadding,
                         verticalPadding = 3.dp,
                         tableAmount = true,
+                        targetFunding = category.targetFunding(scheduleFunding),
                     )
                 }
             }
@@ -2145,7 +2153,7 @@ private fun CategoryRow(
                 name(Modifier.fillMaxWidth())
                 StackedTableAmounts {
                     Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        amounts { Modifier.weight(1f) }
+                        amounts { column -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f) }
                     }
                 }
             } else {
@@ -2154,7 +2162,7 @@ private fun CategoryRow(
                     name(Modifier.weight(1f))
                     amounts { column ->
                         when {
-                            layout == null -> Modifier.weight(1f)
+                            layout == null -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f)
                             column == 0 -> Modifier.width(layout.budgeted)
                             column == 1 -> Modifier.width(layout.spent)
                             else -> Modifier.width(layout.balance)
@@ -2568,7 +2576,7 @@ internal fun BalancePill(
     verticalPadding: androidx.compose.ui.unit.Dp = 2.dp,
     /** In the table view: shrink like the other [TableAmountText]s rather than [ShrinkToFitText]. */
     tableAmount: Boolean = false,
-    /** The category's target state: a small icon leads the amount (not in the table view, which keeps its columns aligned). */
+    /** The category's target state: a small icon leads the amount (the table view reserves its width, see [TargetIconWidth]). */
     targetFunding: TargetFunding? = null,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -2592,23 +2600,31 @@ internal fun BalancePill(
             BalancePillTone.EMPTY -> colors.onSurfaceVariant.copy(alpha = 0.55f)
         }
         val padding = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding)
-        if (tableAmount) {
-            TableAmountText(text, fontWeight = weight, color = color, style = textStyle, modifier = padding)
-        } else if (targetFunding != null) {
+        if (targetFunding != null) {
             Row(padding, verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     targetFundingIcon(targetFunding),
                     contentDescription = stringResource(targetFundingDescription(targetFunding)),
-                    modifier = Modifier.padding(end = 4.dp).size(14.dp),
+                    modifier = Modifier.padding(end = if (tableAmount) TableTargetIconGap else TargetIconGap).size(TargetIconSize),
                     tint = color,
                 )
-                ShrinkToFitText(text = text, style = textStyle, fontWeight = weight, color = color)
+                if (tableAmount) TableAmountText(text, fontWeight = weight, color = color, style = textStyle)
+                else ShrinkToFitText(text = text, style = textStyle, fontWeight = weight, color = color)
             }
+        } else if (tableAmount) {
+            TableAmountText(text, fontWeight = weight, color = color, style = textStyle, modifier = padding)
         } else {
             ShrinkToFitText(text = text, style = textStyle, fontWeight = weight, color = color, modifier = padding)
         }
     }
 }
+
+private val TargetIconSize = 14.dp
+private val TargetIconGap = 4.dp
+private val TableTargetIconGap = 2.dp
+
+/** The width a table balance pill's target icon adds; the table's balance column reserves it. */
+internal val TargetIconWidth = TargetIconSize + TableTargetIconGap
 
 private fun targetFundingIcon(funding: TargetFunding) = when (funding) {
     TargetFunding.PLAIN -> Icons.Outlined.TrackChanges
