@@ -108,13 +108,12 @@ data class BudgetCategory(
     }
 
     /**
-     * The state behind the status dot and the budgeted-amount pill: [progressState], except a goal
-     * category funded past its target reads [BudgetProgressState.GOAL_OVERFUNDED].
+     * The state behind the status dot and the budgeted-amount pill. Goal categories
+     * ([usesGoalProgress]) share [progressBarState] so the dot, pill and bar always agree
+     * (issue #1286); every other category reads [progressState].
      */
     fun statusState(schedules: List<BudgetScheduleFunding> = emptyList()): BudgetProgressState =
-        if (usesGoalProgress && progressBarState(schedules) == BudgetProgressState.GOAL_OVERFUNDED)
-            BudgetProgressState.GOAL_OVERFUNDED
-        else progressState
+        if (usesGoalProgress) progressBarState(schedules) else progressState
 
     /**
      * What the balance pill's target icon shows (issue #1279), or null for a category without a
