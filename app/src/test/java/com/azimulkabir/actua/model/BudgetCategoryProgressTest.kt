@@ -185,8 +185,9 @@ class BudgetCategoryProgressTest {
         assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, state(19_999).progressBarState())
         assertEquals(BudgetProgressState.GOAL_REACHED, state(20_000).progressBarState())
         assertEquals(BudgetProgressState.GOAL_OVERFUNDED, state(20_001).progressBarState())
-        // The dot and pill keep the ordinary state until the goal is actually overshot.
-        assertEquals(BudgetProgressState.FUNDED, state(20_000).statusState())
+        // The dot and pill follow the bar's goal states (issue #1286).
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, state(19_999).statusState())
+        assertEquals(BudgetProgressState.GOAL_REACHED, state(20_000).statusState())
         assertEquals(BudgetProgressState.GOAL_OVERFUNDED, state(20_001).statusState())
     }
 
@@ -199,7 +200,24 @@ class BudgetCategoryProgressTest {
     @Test fun `spending back below the goal is no longer funded past goal`() {
         val category = category(assignedCents = 25_000, spentCents = 10_000, balanceCents = 15_000, goalCents = 20_000)
         assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.progressBarState())
-        assertEquals(BudgetProgressState.SPENDING, category.statusState())
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.statusState())
+    }
+
+    @Test fun `goal category below its goal reads goal in progress on the dot and pill`() {
+        val category = category(assignedCents = 5_000, spentCents = 0, balanceCents = 5_000, goalCents = 20_000)
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.statusState())
+    }
+
+    @Test fun `goal category with nothing assigned stays unassigned`() {
+        val category = category(assignedCents = 0, spentCents = 0, balanceCents = 0, goalCents = 20_000)
+        assertEquals(BudgetProgressState.UNASSIGNED, category.statusState())
+    }
+
+    @Test fun `status state always matches the progress bar for goal categories with funding`() {
+        for (balance in listOf(1L, 10_000L, 19_999L, 20_000L, 20_001L, 50_000L)) {
+            val category = category(assignedCents = balance, spentCents = 0, balanceCents = balance, goalCents = 20_000)
+            assertEquals(category.progressBarState(), category.statusState())
+        }
     }
 
     @Test fun `negative balance on a goal category is overspent not overfunded`() {

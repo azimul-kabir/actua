@@ -108,13 +108,19 @@ data class BudgetCategory(
     }
 
     /**
-     * The state behind the status dot and the budgeted-amount pill: [progressState], except a goal
-     * category funded past its target reads [BudgetProgressState.GOAL_OVERFUNDED].
+     * The state behind the status dot and the balance pill. A goal-progress category reads the
+     * same goal state as its progress bar ([progressBarState]), so the dot, pill and bar always
+     * agree and a configured Goal in progress / reached / Funded past goal color shows everywhere
+     * (issue #1286). A goal category with nothing assigned or spent keeps [BudgetProgressState.UNASSIGNED]
+     * so its zero balance stays muted; any other category reads [progressState].
      */
-    fun statusState(schedules: List<BudgetScheduleFunding> = emptyList()): BudgetProgressState =
-        if (usesGoalProgress && progressBarState(schedules) == BudgetProgressState.GOAL_OVERFUNDED)
-            BudgetProgressState.GOAL_OVERFUNDED
-        else progressState
+    fun statusState(schedules: List<BudgetScheduleFunding> = emptyList()): BudgetProgressState {
+        if (!usesGoalProgress) return progressState
+        val state = progressBarState(schedules)
+        return if (state == BudgetProgressState.GOAL_IN_PROGRESS && progressState == BudgetProgressState.UNASSIGNED)
+            BudgetProgressState.UNASSIGNED
+        else state
+    }
 
     /**
      * What the balance pill's target icon shows (issue #1279), or null for a category without a
