@@ -185,8 +185,8 @@ class BudgetCategoryProgressTest {
         assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, state(19_999).progressBarState())
         assertEquals(BudgetProgressState.GOAL_REACHED, state(20_000).progressBarState())
         assertEquals(BudgetProgressState.GOAL_OVERFUNDED, state(20_001).progressBarState())
-        // The dot and pill keep the ordinary state until the goal is actually overshot.
-        assertEquals(BudgetProgressState.FUNDED, state(20_000).statusState())
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, state(19_999).statusState())
+        assertEquals(BudgetProgressState.GOAL_REACHED, state(20_000).statusState())
         assertEquals(BudgetProgressState.GOAL_OVERFUNDED, state(20_001).statusState())
     }
 
@@ -199,7 +199,7 @@ class BudgetCategoryProgressTest {
     @Test fun `spending back below the goal is no longer funded past goal`() {
         val category = category(assignedCents = 25_000, spentCents = 10_000, balanceCents = 15_000, goalCents = 20_000)
         assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.progressBarState())
-        assertEquals(BudgetProgressState.SPENDING, category.statusState())
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.statusState())
     }
 
     @Test fun `negative balance on a goal category is overspent not overfunded`() {
@@ -229,9 +229,20 @@ class BudgetCategoryProgressTest {
         assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.progressBarState())
     }
 
-    @Test fun `goal bar states never drive the category status dot`() {
+    @Test fun `goal categories share the bar state on the status dot and pill`() {
         val category = category(assignedCents = 5_000, spentCents = 0, balanceCents = 5_000, goalCents = 20_000)
         assertEquals(BudgetProgressState.FUNDED, category.progressState)
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, category.statusState())
+    }
+
+    @Test fun `by-date and schedule categories share the bar state on the status dot`() {
+        val byDate = category(assignedCents = 5_000, spentCents = 0, balanceCents = 10_000)
+            .copy(target = BudgetTarget(BudgetTarget.Type.BY_DATE, 40_000, "2026-12"))
+        assertEquals(byDate.progressBarState(), byDate.statusState())
+        assertEquals(BudgetProgressState.GOAL_IN_PROGRESS, byDate.statusState())
+        val covered = category(assignedCents = 5_000, spentCents = 0, balanceCents = 5_000)
+            .copy(automations = listOf(emiSchedule))
+        assertEquals(covered.progressBarState(emiFunding), covered.statusState(emiFunding))
     }
 
     @Test fun `cover schedule only keeps the goal bar`() {
