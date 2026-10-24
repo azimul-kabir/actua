@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed goal categories keeping the Funded color on the status dot and balance pill instead of the Goal in progress and Goal reached colors ([#1290](https://github.com/azimul-kabir/actua/pull/1290))
 - Fixed OpenID sign-in hanging in the browser when it opened an idle connection to Actua first ([#1285](https://github.com/azimul-kabir/actua/pull/1285))
 
 ## [2.1.0] - 2026-10-23
