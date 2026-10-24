@@ -1660,7 +1660,7 @@ private fun BudgetOverviewRow(
                         // Same columns as the table below, so the totals line up with its amounts.
                         amountCells({ column ->
                             when {
-                                layout == null -> Modifier.weight(1f)
+                                layout == null -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f)
                                 column == 0 -> Modifier.width(layout.budgeted)
                                 column == 1 -> Modifier.width(layout.spent)
                                 else -> Modifier.width(layout.balance)
@@ -1673,7 +1673,7 @@ private fun BudgetOverviewRow(
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         leadCell(Modifier.fillMaxWidth(), OverviewButtonHeight)
                         StackedTableAmounts {
-                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells({ Modifier.weight(1f) }, OverviewStackedValueHeight) }
+                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells({ column -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f) }, OverviewStackedValueHeight) }
                         }
                     }
                 }
@@ -2057,7 +2057,7 @@ private fun BudgetGroupHeader(
                         Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                             AmountColumn(stringResource(R.string.budget_budgeted), budgeted, Modifier.weight(1f), hideDecimalPlaces)
                             if (showSpent) AmountColumn(stringResource(R.string.budget_spent), -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                            AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.weight(1f), hideDecimalPlaces, balance = true)
+                            AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.weight(StackedBalanceWeight), hideDecimalPlaces, balance = true)
                         }
                     }
                 }

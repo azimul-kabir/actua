@@ -11,7 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** #1278: a balance pill shows a target icon only for a category with a target, and not in the aligned table view. */
+/** #1278, #1287: a balance pill shows a target icon only for a category with a target, in the Plan and table views. */
 @RunWith(AndroidJUnit4::class)
 class BalancePillTargetIconTest {
     @get:Rule val compose = createComposeRule()
@@ -44,9 +44,16 @@ class BalancePillTargetIconTest {
         icons().assertCountEquals(0)
     }
 
-    @Test fun theTableViewKeepsItsColumnsAndShowsNoIcon() {
+    @Test fun theTableViewShowsTheIconToo() {
         compose.setContent {
             MaterialTheme { BalancePill(10_000, false, BudgetProgressState.FUNDED, targetFunding = TargetFunding.PLAIN, tableAmount = true) }
+        }
+        icons().assertCountEquals(1)
+    }
+
+    @Test fun aTableCategoryWithoutATargetShowsNoIcon() {
+        compose.setContent {
+            MaterialTheme { BalancePill(10_000, false, BudgetProgressState.FUNDED, tableAmount = true) }
         }
         icons().assertCountEquals(0)
     }
