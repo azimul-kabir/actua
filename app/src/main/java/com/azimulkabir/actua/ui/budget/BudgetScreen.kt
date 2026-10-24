@@ -2605,7 +2605,7 @@ internal fun BalancePill(
                 Icon(
                     targetFundingIcon(targetFunding),
                     contentDescription = stringResource(targetFundingDescription(targetFunding)),
-                    modifier = Modifier.padding(end = TargetIconGap).size(TargetIconSize),
+                    modifier = Modifier.padding(end = if (tableAmount) TableTargetIconGap else TargetIconGap).size(TargetIconSize),
                     tint = color,
                 )
                 if (tableAmount) TableAmountText(text, fontWeight = weight, color = color, style = textStyle)
@@ -2621,9 +2621,10 @@ internal fun BalancePill(
 
 private val TargetIconSize = 14.dp
 private val TargetIconGap = 4.dp
+private val TableTargetIconGap = 2.dp
 
-/** The width a balance pill's target icon adds; the table's balance column reserves it. */
-internal val TargetIconWidth = TargetIconSize + TargetIconGap
+/** The width a table balance pill's target icon adds; the table's balance column reserves it. */
+internal val TargetIconWidth = TargetIconSize + TableTargetIconGap
 
 private fun targetFundingIcon(funding: TargetFunding) = when (funding) {
     TargetFunding.PLAIN -> Icons.Outlined.TrackChanges
