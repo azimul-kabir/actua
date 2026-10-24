@@ -13,7 +13,8 @@ class BudgetTableLayoutTest {
         balance: Float,
         width: Float = 330f,
         showSpent: Boolean = true,
-    ) = tableLayoutFor(budgeted, spent, balance, width, showSpent, gap = 6f, pillPadding = 10f)
+        iconWidth: Float = 0f,
+    ) = tableLayoutFor(budgeted, spent, balance, width, showSpent, gap = 6f, pillPadding = 10f, iconWidth = iconWidth)
 
     private fun nonNull(layout: TableLayout?): TableLayout {
         assertNotNull(layout)
@@ -63,5 +64,29 @@ class BudgetTableLayoutTest {
         val wide = nonNull(layout(budgeted = 80f, spent = 75f, balance = 85f, width = 420f))
         assertTrue(narrow.scale < wide.scale)
         assertEquals(1f, wide.scale, 0f)
+    }
+
+    @Test
+    fun targetIconsWidenOnlyTheBalanceColumnAndCostTheNameNoRoom() {
+        val plain = nonNull(layout(budgeted = 55f, spent = 60f, balance = 50f))
+        val icons = nonNull(layout(budgeted = 55f, spent = 60f, balance = 50f, iconWidth = 18f))
+        assertEquals(plain.balance.value + 18f, icons.balance.value, 0.001f)
+        assertEquals(plain.budgeted.value, icons.budgeted.value, 0.001f)
+        assertEquals(plain.spent.value, icons.spent.value, 0.001f)
+    }
+
+    @Test
+    fun targetIconsShrinkAmountsRatherThanCrowdOutTheName() {
+        val plain = nonNull(layout(budgeted = 72f, spent = 68f, balance = 76f))
+        val icons = nonNull(layout(budgeted = 72f, spent = 68f, balance = 76f, iconWidth = 18f))
+        assertTrue(icons.scale < plain.scale)
+        val columns = icons.budgeted.value + icons.spent.value + icons.balance.value
+        assertEquals(330f * (1f - TableNameMinShare), columns, 0.5f)
+    }
+
+    @Test
+    fun targetIconsCanPushATightTableIntoTheStackedLayout() {
+        assertNotNull(layout(budgeted = 85f, spent = 80f, balance = 85f))
+        assertNull(layout(budgeted = 85f, spent = 80f, balance = 85f, iconWidth = 40f))
     }
 }
