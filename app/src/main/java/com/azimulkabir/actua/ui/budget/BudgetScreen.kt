@@ -1835,6 +1835,9 @@ private val TableAmountGap = 6.dp
 /** An amount in a table column, plus the [padding] (a pill's, or [TableAmountGap]) beside it. */
 private data class TableAmount(val text: String, val padding: androidx.compose.ui.unit.Dp = TableAmountGap)
 
+/** Extra share of a weighted (stacked) row for the balance cell, so a target icon doesn't crowd the spent amount. */
+private const val StackedBalanceWeight = 1.25f
+
 /** The category table's balance pill padding (each side); see [CategoryRow]. */
 private val CategoryPillPadding = 10.dp
 
@@ -2150,7 +2153,7 @@ private fun CategoryRow(
                 name(Modifier.fillMaxWidth())
                 StackedTableAmounts {
                     Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        amounts { Modifier.weight(1f) }
+                        amounts { column -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f) }
                     }
                 }
             } else {
@@ -2159,7 +2162,7 @@ private fun CategoryRow(
                     name(Modifier.weight(1f))
                     amounts { column ->
                         when {
-                            layout == null -> Modifier.weight(1f)
+                            layout == null -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f)
                             column == 0 -> Modifier.width(layout.budgeted)
                             column == 1 -> Modifier.width(layout.spent)
                             else -> Modifier.width(layout.balance)
