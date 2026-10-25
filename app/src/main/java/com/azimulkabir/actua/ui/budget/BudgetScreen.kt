@@ -315,12 +315,12 @@ fun BudgetScreen(
     val budgetUiPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("budget_ui_preferences", android.content.Context.MODE_PRIVATE)
     }
-    val activeBudgetId = remember(context) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
-    val collapsedGroupsKey = "collapsed_groups_$activeBudgetId"
+    val storedBudgetId = remember(context) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
+    val collapsedGroupsKey = "collapsed_groups_$storedBudgetId"
     var selectedCategory by remember { mutableStateOf<BudgetCategory?>(null) }
     var selectedGroup by remember { mutableStateOf<BudgetGroup?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
-    var collapsedGroups by remember(activeBudgetId) {
+    var collapsedGroups by remember(storedBudgetId) {
         mutableStateOf(budgetUiPreferences.getStringSet(collapsedGroupsKey, emptySet()).orEmpty().toSet())
     }
     fun saveCollapsedGroups(value: Set<String>) {
