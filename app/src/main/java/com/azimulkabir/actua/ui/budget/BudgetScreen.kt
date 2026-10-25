@@ -1651,6 +1651,7 @@ private fun BudgetOverviewRow(
                     ),
                 )
                 if (fits) {
+                    val balanceWeight = stackedBalanceWeight()
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // The To budget chip is a button (Material's 48dp minimum height), so every value gets
                         // that height: the four labels and amounts then share one row.
@@ -1658,7 +1659,7 @@ private fun BudgetOverviewRow(
                         // Same columns as the table below, so the totals line up with its amounts.
                         amountCells({ column ->
                             when {
-                                layout == null -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f)
+                                layout == null -> Modifier.weight(if (column == 2) balanceWeight else 1f)
                                 column == 0 -> Modifier.width(layout.budgeted)
                                 column == 1 -> Modifier.width(layout.spent)
                                 else -> Modifier.width(layout.balance)
@@ -1670,8 +1671,9 @@ private fun BudgetOverviewRow(
                     // own line so the other amounts share the full width.
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         leadCell(Modifier.fillMaxWidth(), OverviewButtonHeight)
+                        val balanceWeight = stackedBalanceWeight()
                         StackedTableAmounts {
-                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells({ column -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f) }, OverviewStackedValueHeight) }
+                            Row(verticalAlignment = Alignment.CenterVertically) { amountCells({ column -> Modifier.weight(if (column == 2) balanceWeight else 1f) }, OverviewStackedValueHeight) }
                         }
                     }
                 }
@@ -1800,15 +1802,18 @@ private fun TableAmountText(
 ) {
     val layout = LocalTableLayout.current
     if (layout != null) {
-        // Columns were sized to these exact amounts at this scale, so there's nothing to shrink to fit.
+        val maxFontSize = style.fontSize * layout.scale
+        val minScale = minOf(LocalTableAmountMinScale.current, layout.scale)
+        val minFontSize = style.fontSize * minScale
         Text(
             amount,
-            style = style.copy(fontSize = style.fontSize * layout.scale),
+            style = style.copy(fontSize = maxFontSize),
             fontWeight = fontWeight,
             color = color,
             textAlign = textAlign,
             maxLines = 1,
             softWrap = false,
+            autoSize = TextAutoSize.StepBased(minFontSize = minFontSize, maxFontSize = maxFontSize),
             modifier = modifier,
         )
         return
@@ -1834,7 +1839,14 @@ private val TableAmountGap = 6.dp
 private data class TableAmount(val text: String, val padding: androidx.compose.ui.unit.Dp = TableAmountGap)
 
 /** Extra share of a weighted (stacked) row for the balance cell, so a target icon doesn't crowd the spent amount. */
-private const val StackedBalanceWeight = 1.25f
+internal const val StackedBalanceWeight = 1.25f
+
+/** The balance cell's share in a weighted (stacked) row; [StackedBalanceWeight] when goal icons need room, else 1f. */
+internal fun stackedBalanceWeight(showGoalIcons: Boolean): Float =
+    if (showGoalIcons) StackedBalanceWeight else 1f
+
+@Composable
+private fun stackedBalanceWeight(): Float = stackedBalanceWeight(LocalShowGoalIcons.current)
 
 /** The category table's balance pill padding (each side); see [CategoryRow]. */
 private val CategoryPillPadding = 10.dp
@@ -1875,7 +1887,7 @@ private fun tableAmountsFit(
 private val TableRowPadding = Spacing.lg
 
 /** The smallest scale the table's amounts shrink to side by side; below it rows stack instead. */
-internal const val TableLayoutMinScale = 0.75f
+internal const val TableLayoutMinScale = 0.60f
 
 /** The share of the table's width the name column keeps, however wide the amounts are. */
 internal const val TableNameMinShare = 0.32f
@@ -2052,11 +2064,12 @@ private fun BudgetGroupHeader(
                 // Too narrow for the table's columns: totals go under the name and share the full width.
                 Column {
                     nameRow(Modifier.fillMaxWidth())
+                    val balanceWeight = stackedBalanceWeight()
                     StackedTableAmounts {
                         Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                             AmountColumn(stringResource(R.string.budget_budgeted), budgeted, Modifier.weight(1f), hideDecimalPlaces)
                             if (showSpent) AmountColumn(stringResource(R.string.budget_spent), -spent, Modifier.weight(1f), hideDecimalPlaces, muted = spent == 0L)
-                            AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.weight(StackedBalanceWeight), hideDecimalPlaces, balance = true)
+                            AmountColumn(stringResource(R.string.budget_balance), balance, Modifier.weight(balanceWeight), hideDecimalPlaces, balance = true)
                         }
                     }
                 }
@@ -2148,11 +2161,12 @@ private fun CategoryRow(
                     )
                 }
             }
+            val balanceWeight = stackedBalanceWeight()
             if (stacked) {
                 name(Modifier.fillMaxWidth())
                 StackedTableAmounts {
                     Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        amounts { column -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f) }
+                        amounts { column -> Modifier.weight(if (column == 2) balanceWeight else 1f) }
                     }
                 }
             } else {
@@ -2161,7 +2175,7 @@ private fun CategoryRow(
                     name(Modifier.weight(1f))
                     amounts { column ->
                         when {
-                            layout == null -> Modifier.weight(if (column == 2) StackedBalanceWeight else 1f)
+                            layout == null -> Modifier.weight(if (column == 2) balanceWeight else 1f)
                             column == 0 -> Modifier.width(layout.budgeted)
                             column == 1 -> Modifier.width(layout.spent)
                             else -> Modifier.width(layout.balance)
