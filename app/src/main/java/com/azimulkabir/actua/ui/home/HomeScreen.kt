@@ -546,7 +546,7 @@ private fun scheduleStatusColor(status: ScheduleStatus): Color = when (status) {
 
 @Composable
 private fun scheduleLabel(item: ScheduleListItem): String {
-    val due = item.schedule.nextDate?.let { date ->
+    val due = item.dueDate?.let { date ->
         when (DayDate.today().daysUntil(date)) {
             in Int.MIN_VALUE..-1 -> stringResource(R.string.home_overdue)
             0 -> stringResource(R.string.home_due_today)

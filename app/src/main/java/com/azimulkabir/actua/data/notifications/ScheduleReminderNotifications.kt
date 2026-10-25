@@ -20,8 +20,10 @@ import androidx.work.WorkerParameters
 import com.azimulkabir.actua.MainActivity
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.ActuaRepository
+import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
+import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
@@ -96,7 +98,7 @@ object ScheduleReminderPlanner {
      * nor paid. Posting, skipping or matching a transaction settles it (Actual advances `next_date`
      * or links the payment), so later reminders follow the new next date.
      */
-    fun pendingDueDate(item: ScheduleListItem): DayDate? = item.schedule.nextDate
+    fun pendingDueDate(item: ScheduleListItem): DayDate? = item.dueDate
         ?.takeIf { item.status != ScheduleStatus.COMPLETED && item.status != ScheduleStatus.PAID }
 
     /** The lead-time reminder and, when it isn't already on the day, one on the due date. */
@@ -172,7 +174,7 @@ object ScheduleReminderScheduler {
 
         val repository = ActuaRepository(app)
         val schedules = try {
-            repository.schedules(DayDate.from(now.toLocalDate()))
+            repository.schedules(DayDate.from(now.toLocalDate()), activeBudgetWeekendDays(app))
         } finally { repository.close() }
 
         val posted = settings.postedOccurrences
@@ -219,7 +221,7 @@ class ScheduleReminderWorker(context: Context, parameters: WorkerParameters) :
         val item = try {
             CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
             budgetFormats = repository.budgetDisplayFormats()
-            repository.schedules(today).firstOrNull { it.schedule.id == scheduleId }
+            repository.schedules(today, activeBudgetWeekendDays(applicationContext)).firstOrNull { it.schedule.id == scheduleId }
         } finally { repository.close() }
         // Re-check against the budget as it is now: the occurrence may have been posted, skipped,
         // matched, edited or deleted since this reminder was planned.
@@ -297,3 +299,7 @@ private fun postNotification(
 }
 
 private const val CHANNEL_ID = "schedule-reminders"
+
+/** The weekend days set for the active budget, so reminders fire on the dates the app shows. */
+private fun activeBudgetWeekendDays(context: Context) =
+    HomePreferences(context).weekendDays(ActiveBudgetStore(context).budgetId ?: "no-budget")

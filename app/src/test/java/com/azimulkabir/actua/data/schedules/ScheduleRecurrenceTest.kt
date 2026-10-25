@@ -1,7 +1,9 @@
 package com.azimulkabir.actua.data.schedules
 
+import com.azimulkabir.actua.data.home.MonthStartRule
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.DayOfWeek
 
 class ScheduleRecurrenceTest {
     private fun next(config: RecurConfig, day: String) = ScheduleRecurrence.nextOccurrence(config, requireNotNull(DayDate.fromIso(day)))?.iso
@@ -73,5 +75,47 @@ class ScheduleRecurrenceTest {
         val config = requireNotNull(RecurConfig.parse(json))
         assertEquals(1, config.interval)
         assertEquals(listOf(RecurConfig.Pattern("day", 3)), config.patterns)
+    }
+
+    private val fridaySaturday = setOf(DayOfWeek.FRIDAY, DayOfWeek.SATURDAY)
+    private fun salary(mode: String, skipWeekend: Boolean = true) = RecurConfig(
+        RecurConfig.Frequency.MONTHLY, 1, DayDate(2026, 1, 25), skipWeekend = skipWeekend, weekendSolveMode = mode,
+    )
+    private fun shown(config: RecurConfig, stored: DayDate, weekend: Set<DayOfWeek> = fridaySaturday) =
+        ScheduleRecurrence.displayDate(config, stored, weekend)
+
+    @Test fun aBeforeScheduleShowsThursdayWhenTheWeekendIsFridayAndSaturday() {
+        // The 25th is a Saturday in April and July (Actual stores the Friday before) and a Friday in September.
+        assertEquals(DayDate(2026, 4, 23), shown(salary("before"), DayDate(2026, 4, 24)))
+        assertEquals(DayDate(2026, 7, 23), shown(salary("before"), DayDate(2026, 7, 24)))
+        assertEquals(DayDate(2026, 9, 24), shown(salary("before"), DayDate(2026, 9, 25)))
+    }
+
+    @Test fun anAfterScheduleShowsTheSundayAfterAFridaySaturdayWeekend() {
+        assertEquals(DayDate(2026, 4, 26), shown(salary("after"), DayDate(2026, 4, 27)))
+        assertEquals(DayDate(2026, 9, 27), shown(salary("after"), DayDate(2026, 9, 25)))
+    }
+
+    @Test fun workingDayOccurrencesAndSaturdaySundayWeekendsAreUntouched() {
+        assertEquals(DayDate(2026, 5, 25), shown(salary("before"), DayDate(2026, 5, 25)))
+        assertEquals(DayDate(2026, 4, 24), shown(salary("before"), DayDate(2026, 4, 24), MonthStartRule.DEFAULT_WEEKEND_DAYS))
+    }
+
+    @Test fun aScheduleThatDoesNotSkipWeekendsIsNeverMoved() {
+        assertEquals(DayDate(2026, 4, 25), shown(salary("before", skipWeekend = false), DayDate(2026, 4, 25)))
+    }
+
+    @Test fun aStoredDateThatIsNoOccurrenceIsLeftAlone() {
+        assertEquals(DayDate(2026, 4, 10), shown(salary("before"), DayDate(2026, 4, 10)))
+    }
+
+    @Test fun anEmptyOrFullWeekendNeverMovesAnything() {
+        assertEquals(DayDate(2026, 4, 25), shown(salary("before"), DayDate(2026, 4, 24), emptySet()))
+        assertEquals(DayDate(2026, 4, 25), shown(salary("before"), DayDate(2026, 4, 24), DayOfWeek.values().toSet()))
+    }
+
+    @Test fun displayingNeverChangesTheStoredRecurrence() {
+        val config = salary("before")
+        assertEquals("2026-04-24", next(config, "2026-04-01"))
     }
 }

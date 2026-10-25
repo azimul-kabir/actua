@@ -16,7 +16,7 @@ object ScheduleWidgetProjection {
         val horizon = today.addingDays(periodDays)
         return schedules
             .filter { it.status != ScheduleStatus.COMPLETED && it.status != ScheduleStatus.PAID }
-            .mapNotNull { item -> item.schedule.nextDate?.let { date -> item to date } }
+            .mapNotNull { item -> item.dueDate?.let { date -> item to date } }
             .filter { (_, date) -> date <= horizon }
             .map { (item, date) -> ScheduleWidgetEntry(item, date, date < today) }
             .sortedBy { it.dueDate }

@@ -38,20 +38,16 @@ class MonthStartDayRowTest {
         compose.onNodeWithContentDescription("Start the period one day later").assertIsNotEnabled()
     }
 
-    @Test fun weekendDaysAppearOnlyOnceAnAdjustmentIsChosenAndToggle() {
+    @Test fun weekendDaysAreAlwaysShownAndToggle() {
         var rule by mutableStateOf(MonthStartRule(25))
         compose.setContent { MaterialTheme { MonthStartDayRow(rule, { rule = it }) } }
 
-        compose.onNodeWithTag("weekendDayFRIDAY").assertDoesNotExist()
-        compose.onNodeWithTag("startDayAdjustmentPREVIOUS_WORKING_DAY").performClick()
-        assertEquals(StartDayAdjustment.PREVIOUS_WORKING_DAY, rule.adjustment)
+        // They apply to schedules too, so they don't wait for a month start adjustment.
+        assertEquals(StartDayAdjustment.NONE, rule.adjustment)
 
         // Sat-Sun by default: adding Friday and removing Sunday gives the Friday-Saturday weekend.
         compose.onNodeWithTag("weekendDayFRIDAY").performClick()
         compose.onNodeWithTag("weekendDaySUNDAY").performClick()
         assertEquals(setOf(DayOfWeek.FRIDAY, DayOfWeek.SATURDAY), rule.weekendDays)
-
-        compose.onNodeWithTag("startDayAdjustmentNONE").performClick()
-        compose.onNodeWithTag("weekendDayFRIDAY").assertDoesNotExist()
     }
 }

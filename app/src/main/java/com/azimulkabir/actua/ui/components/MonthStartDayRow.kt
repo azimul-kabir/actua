@@ -90,29 +90,27 @@ fun MonthStartDayRow(rule: MonthStartRule, onChange: (MonthStartRule) -> Unit, m
                 )
             }
         }
-        if (rule.adjustment != StartDayAdjustment.NONE) {
-            Text(
-                stringResource(R.string.home_summary_weekend_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = Spacing.lg),
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DayOfWeek.values().forEach { day ->
-                    FilterChip(
-                        selected = day in rule.weekendDays,
-                        onClick = { onChange(rule.copy(weekendDays = rule.weekendDays.toggled(day))) },
-                        label = { Text(day.getDisplayName(TextStyle.SHORT, locale)) },
-                        modifier = Modifier.testTag("weekendDay${day.name}"),
-                    )
-                }
+        Text(
+            stringResource(R.string.home_summary_weekend_title),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = Spacing.lg),
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DayOfWeek.values().forEach { day ->
+                FilterChip(
+                    selected = day in rule.weekendDays,
+                    onClick = { onChange(rule.copy(weekendDays = rule.weekendDays.toggled(day))) },
+                    label = { Text(day.getDisplayName(TextStyle.SHORT, locale)) },
+                    modifier = Modifier.testTag("weekendDay${day.name}"),
+                )
             }
-            Text(
-                stringResource(R.string.home_summary_weekend_description),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
+        Text(
+            stringResource(R.string.home_summary_weekend_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

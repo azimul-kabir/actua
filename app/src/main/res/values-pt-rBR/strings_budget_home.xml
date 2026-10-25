@@ -334,7 +334,7 @@
     <string name="home_summary_adjustment_previous">Dia útil anterior</string>
     <string name="home_summary_adjustment_next">Próximo dia útil</string>
     <string name="home_summary_weekend_title">Dias de fim de semana</string>
-    <string name="home_summary_weekend_description">Os dias de fim de semana são ignorados ao mover o início para um dia útil, para que o período sempre comece em um dia de pagamento ou de expediente bancário. Feriados não são considerados. Isso vale apenas neste dispositivo.</string>
+    <string name="home_summary_weekend_description">Os dias de fim de semana são ignorados ao mover o início do mês para um dia útil e definem quando os agendamentos que evitam fins de semana aparecem como vencidos. O Actual mantém sábado e domingo, então isso muda apenas o que você vê neste dispositivo. Feriados não são considerados.</string>
 
     <plurals name="home_transactions_count">
         <item quantity="one">%1$d transação</item>

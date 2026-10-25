@@ -2,6 +2,7 @@ package com.azimulkabir.actua.ui.transactions
 
 import androidx.annotation.StringRes
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.ScheduleDateCondition
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
@@ -9,6 +10,7 @@ import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
 import com.azimulkabir.actua.data.schedules.ScheduleStatus
 import com.azimulkabir.actua.data.schedules.ScheduleUpcomingLength
 import com.azimulkabir.actua.model.Transaction
+import java.time.DayOfWeek
 
 // Actual's preview rows (`isForPreview` / `computeSchedulePreviewTransactions` in loot-core
 // `shared/schedules.ts`): due, upcoming, missed and paid schedules; completed and far-off ones stay out.
@@ -20,11 +22,13 @@ private val upcomingStatuses = setOf(ScheduleStatus.DUE, ScheduleStatus.UPCOMING
  * next date through the end of its upcoming window (`custom_upcoming_length`, else
  * [defaultUpcomingLength]); a paid schedule leaves out its already-paid next date. Schedules
  * without an account are included with no account name. Rows sort newest first, then by amount.
+ * Dates are shown for [weekendDays]; the occurrences themselves stay Actual's own.
  */
 fun upcomingTransactionsFrom(
     schedules: List<ScheduleListItem>,
     today: DayDate = DayDate.today(),
     defaultUpcomingLength: String? = null,
+    weekendDays: Set<DayOfWeek> = MonthStartRule.DEFAULT_WEEKEND_DAYS,
 ): List<Transaction> =
     schedules.flatMap { item ->
         if (item.status !in upcomingStatuses) return@flatMap emptyList()
@@ -50,11 +54,13 @@ fun upcomingTransactionsFrom(
         }
         if (item.status == ScheduleStatus.PAID) dates.removeAt(0)
         val amountCents = item.schedule.postAmount
+        val recurrence = (item.schedule.dateCondition as? ScheduleDateCondition.Recurring)?.config
         dates.map { date ->
             val missed = item.status == ScheduleStatus.MISSED && date == next
+            val shown = recurrence?.let { ScheduleRecurrence.displayDate(it, date, weekendDays) } ?: date
             Transaction(
                 id = "upcoming-${item.schedule.id}-${date.yyyymmdd}",
-                date = date.yyyymmdd.toString(),
+                date = shown.yyyymmdd.toString(),
                 payee = item.title,
                 category = if (missed) "Missed" else "Upcoming",
                 account = item.accountName.orEmpty(),

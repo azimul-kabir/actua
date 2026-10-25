@@ -112,7 +112,7 @@ fun SchedulesScreen(
     val visible = remember(schedules, search, showCompleted) {
         schedules.filter { showCompleted || !it.schedule.completed }.filter { item ->
             search.isBlank() || listOfNotNull(
-                item.title, item.accountName, item.payeeName, item.schedule.nextDate?.iso,
+                item.title, item.accountName, item.payeeName, item.dueDate?.iso,
             ).any { it.contains(search.trim(), ignoreCase = true) }
         }
     }
@@ -298,7 +298,7 @@ private fun ScheduleRow(
                     modifier = Modifier.weight(1f),
                 )
                 val recurring = schedule.dateCondition is ScheduleDateCondition.Recurring
-                val nextDateText = formatDate(schedule.nextDate) ?: stringResource(R.string.fs_no_next_date)
+                val nextDateText = formatDate(item.dueDate) ?: stringResource(R.string.fs_no_next_date)
                 Text(
                     if (recurring) stringResource(R.string.fs_repeats_date, nextDateText) else nextDateText,
                     style = MaterialTheme.typography.bodySmall,

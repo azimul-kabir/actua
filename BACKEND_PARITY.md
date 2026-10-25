@@ -347,8 +347,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   rewritten and day 1 is byte-for-byte upstream; Spending, Budget Analysis and Calendar stay on
   calendar months because their data is monthly. A start day that lands on a weekend day can move
   to the previous or next working day (configurable weekend days, Saturday and Sunday by default,
-  e.g. Friday and Saturday); holidays are not considered and scheduled transactions keep Actual's
-  own weekend handling.
+  e.g. Friday and Saturday); holidays are not considered. The same weekend days change where a
+  schedule that skips weekends is shown as due (Schedules, Home, upcoming rows, the bills calendar,
+  the widget and reminders), derived on read from the stored `next_date`. The synced `next_date`,
+  status-changing writes (post, skip, complete) and the date a posted transaction gets stay
+  Actual's own Saturday/Sunday results, so clients never disagree about stored schedule state.
 - Per-budget device-local quick-access favorites for categories, accounts, and report dashboards;
   these are intentionally not synced because Actual has no favorite fields. Budget's Favorites
   filter composes with the other category filters, and the Favorites widget reads the same
