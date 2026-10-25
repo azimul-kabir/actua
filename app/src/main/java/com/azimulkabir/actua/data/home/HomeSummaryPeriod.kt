@@ -18,10 +18,16 @@ data class HomeSummaryPeriod(val start: LocalDate, val endInclusive: LocalDate) 
      * period's anchor month rather than by date arithmetic, because an adjusted start can sit in the
      * month before the one it belongs to.
      */
-    fun shiftedByMonths(rule: MonthStartRule, months: Long): HomeSummaryPeriod {
+    fun shiftedByMonths(rule: MonthStartRule, months: Long): HomeSummaryPeriod =
+        anchoredTo(rule, anchorMonth(rule).plusMonths(months))
+
+    /**
+     * The month this period belongs to: the one whose start day it begins on. Usually the month of
+     * [start], but a start moved to a working day can sit in the month before it (day 1 on a weekend).
+     */
+    fun anchorMonth(rule: MonthStartRule): YearMonth {
         val startMonth = YearMonth.from(start)
-        val anchor = listOf(1L, 0L, -1L).map(startMonth::plusMonths).firstOrNull { rule.startFor(it) == start } ?: startMonth
-        return anchoredTo(rule, anchor.plusMonths(months))
+        return listOf(1L, 0L, -1L).map(startMonth::plusMonths).firstOrNull { rule.startFor(it) == start } ?: startMonth
     }
 
     companion object {

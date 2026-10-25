@@ -343,7 +343,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Device-local month start day (Settings → Budget, per budget, never synced; Actua-specific, Actual
   has no such setting): Home and Accounts monthly summaries, a custom report's month presets
   (This month, Last month, Last N months) and the Summary, Cash Flow and Sankey cards' default
-  ranges use pay periods instead of calendar months. Stored report and widget settings are never
+  ranges use pay periods instead of calendar months. A saved month-shaped time frame (last month or
+  a sliding window of months) on the Summary, Cash Flow and Sankey cards follows them too, with one
+  Cash Flow bar per pay period. Stored report and widget settings are never
   rewritten and day 1 is byte-for-byte upstream; Spending, Budget Analysis and Calendar stay on
   calendar months because their data is monthly. A start day that lands on a weekend day can move
   to the previous or next working day (configurable weekend days, Saturday and Sunday by default,
