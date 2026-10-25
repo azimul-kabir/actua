@@ -492,13 +492,29 @@ class ActuaRepository(context: Context) {
         return true
     }
 
-    /** Posts one linked transaction. An early "today" post completes the current recurring occurrence. */
-    fun postScheduleTransaction(scheduleId: String, today: Boolean): Boolean {
+    /**
+     * Posts one linked transaction. An early "today" post completes the current recurring occurrence.
+     * Otherwise the transaction gets the due date shown for [weekendDays] when the schedule still reads
+     * as paid with it; the schedule's own `next_date` is never changed by that.
+     */
+    fun postScheduleTransaction(
+        scheduleId: String,
+        today: Boolean,
+        weekendDays: Set<java.time.DayOfWeek> = com.azimulkabir.actua.data.home.MonthStartRule.DEFAULT_WEEKEND_DAYS,
+    ): Boolean {
         val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
             ?: return false
         require(!schedule.completed) { "Restart this schedule before posting a transaction" }
         val accountId = requireNotNull(schedule.accountId) { "This schedule has no account" }
-        val date = if (today) DayDate.today() else schedule.nextDate ?: DayDate.today()
+        val date = if (today) DayDate.today() else schedule.nextDate?.let { stored ->
+            val recurring = schedule.dateCondition as? com.azimulkabir.actua.data.schedules.ScheduleDateCondition.Recurring
+            ScheduleStatusCalculator.postedDate(
+                stored,
+                recurring?.let { ScheduleRecurrence.displayDate(it.config, stored, weekendDays) },
+                schedule.dateOp,
+                schedule.postsTransaction,
+            )
+        } ?: DayDate.today()
         actualWriter!!.createTransaction(
             ActualTransaction(
                 id = java.util.UUID.randomUUID().toString().lowercase(),

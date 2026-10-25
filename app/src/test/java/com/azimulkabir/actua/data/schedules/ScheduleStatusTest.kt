@@ -70,4 +70,30 @@ class ScheduleStatusTest {
         assertEquals(listOf("manual", "alpha-a", "alpha-b", "later", "no-date"),
             values.sortedForDisplay().map { it.schedule.id })
     }
+
+    /** #1296: a posted occurrence takes the shown date only while it still counts as paying the stored one. */
+    @Test fun postedDateFollowsTheShownDateWhileTheOccurrenceStaysPaid() {
+        val stored = DayDate(2030, 1, 25)
+        val shown = DayDate(2030, 1, 24)
+        // An approximate date matches from two days before the stored date, so Thursday is still paid.
+        assertEquals(shown, ScheduleStatusCalculator.postedDate(stored, shown, "isapprox", false))
+        assertEquals(shown, ScheduleStatusCalculator.postedDate(stored, shown, null, false))
+        assertEquals(DayDate(2030, 1, 23), ScheduleStatusCalculator.postedDate(stored, DayDate(2030, 1, 23), "isapprox", false))
+        // Three days early is outside the window, so the stored date is kept.
+        assertEquals(stored, ScheduleStatusCalculator.postedDate(stored, DayDate(2030, 1, 22), "isapprox", false))
+    }
+
+    @Test fun postedDateKeepsTheStoredDateForExactAndAutoPostingSchedules() {
+        val stored = DayDate(2030, 1, 25)
+        val shown = DayDate(2030, 1, 24)
+        assertEquals(stored, ScheduleStatusCalculator.postedDate(stored, shown, "is", false))
+        assertEquals(stored, ScheduleStatusCalculator.postedDate(stored, shown, "isapprox", true))
+        // A shown date on or after the stored date is inside the window for them too.
+        assertEquals(DayDate(2030, 1, 26), ScheduleStatusCalculator.postedDate(stored, DayDate(2030, 1, 26), "is", false))
+    }
+
+    @Test fun postedDateWithoutAShownDateIsTheStoredDate() {
+        val stored = DayDate(2030, 1, 25)
+        assertEquals(stored, ScheduleStatusCalculator.postedDate(stored, null, "isapprox", false))
+    }
 }

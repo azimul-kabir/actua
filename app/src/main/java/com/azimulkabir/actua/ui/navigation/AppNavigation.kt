@@ -810,9 +810,13 @@ fun AppNavigation(
         val id = transaction.scheduleId ?: return
         when (action) {
             UpcomingTransactionAction.POST ->
-                mutate(R.string.navigation_posting_schedule) { repository.postScheduleTransaction(id, today = false) }
+                mutate(R.string.navigation_posting_schedule) {
+                    repository.postScheduleTransaction(id, today = false, weekendDays = homeMonthStart.weekendDays)
+                }
             UpcomingTransactionAction.POST_TODAY ->
-                mutate(R.string.navigation_posting_schedule_today) { repository.postScheduleTransaction(id, today = true) }
+                mutate(R.string.navigation_posting_schedule_today) {
+                    repository.postScheduleTransaction(id, today = true, weekendDays = homeMonthStart.weekendDays)
+                }
             UpcomingTransactionAction.SKIP ->
                 mutate(R.string.navigation_skipping_next_date) { repository.skipScheduleNextDate(id) }
             UpcomingTransactionAction.COMPLETE ->
@@ -3532,7 +3536,7 @@ private fun NavigationScheduleScreens(
             },
             onPost = { id, today ->
                 onMutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule, {}) {
-                    repository.postScheduleTransaction(id, today)
+                    repository.postScheduleTransaction(id, today, weekendDays)
                 }
             },
             onSkip = { id ->
@@ -3657,7 +3661,7 @@ private fun NavigationScheduleScreens(
             },
             onPost = { id, today ->
                 onMutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule, {}) {
-                    repository.postScheduleTransaction(id, today)
+                    repository.postScheduleTransaction(id, today, weekendDays)
                 }
             },
             onSkip = { id -> onMutate(R.string.navigation_skipping_occurrence, {}) { repository.skipScheduleNextDate(id) } },

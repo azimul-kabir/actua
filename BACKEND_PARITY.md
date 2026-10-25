@@ -349,9 +349,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   to the previous or next working day (configurable weekend days, Saturday and Sunday by default,
   e.g. Friday and Saturday); holidays are not considered. The same weekend days change where a
   schedule that skips weekends is shown as due (Schedules, Home, upcoming rows, the bills calendar,
-  the widget and reminders), derived on read from the stored `next_date`. The synced `next_date`,
-  status-changing writes (post, skip, complete) and the date a posted transaction gets stay
-  Actual's own Saturday/Sunday results, so clients never disagree about stored schedule state.
+  the widget and reminders), derived on read from the stored `next_date`. The synced `next_date`
+  and the status-changing writes (post, skip, complete) stay Actual's own Saturday/Sunday results,
+  so clients never disagree about stored schedule state. A posted transaction takes the shown date
+  (its date is ordinary transaction data) only while it still counts as paying the stored occurrence:
+  exact-date and auto-posting schedules, which match from the stored date, keep Actual's date.
 - Per-budget device-local quick-access favorites for categories, accounts, and report dashboards;
   these are intentionally not synced because Actual has no favorite fields. Budget's Favorites
   filter composes with the other category filters, and the Favorites widget reads the same
