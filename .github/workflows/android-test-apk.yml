@@ -33,6 +33,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
+          import re
           from pathlib import Path
 
           gradle = Path("app/build.gradle.kts")
@@ -46,11 +47,11 @@ jobs:
 
           strings = Path("app/src/main/res/values/strings.xml")
           text = strings.read_text(encoding="utf-8")
-          old = '<string name="app_name">Actua</string>'
-          new = '<string name="app_name">Actua Test</string>'
-          if old not in text:
+          # Match on the name only: the line carries other attributes (translatable="false").
+          app_name = re.compile(r'(<string name="app_name"[^>]*>)Actua(</string>)')
+          if not app_name.search(text):
               raise SystemExit("Expected production app_name was not found")
-          text = text.replace(old, new, 1)
+          text = app_name.sub(r'\1Actua Test\2', text, count=1)
           text = text.replace("Open Actua to", "Open Actua Test to")
           strings.write_text(text, encoding="utf-8")
 
