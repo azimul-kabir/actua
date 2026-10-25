@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.2.0] - 2026-10-25
+
 ### Added
 
 - Added a Switch budget row to the Budget menu ([#1316](https://github.com/azimul-kabir/actua/pull/1316))

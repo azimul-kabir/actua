@@ -6,7 +6,7 @@ WHAT YOU CAN DO
 • Split transactions, make transfers, and reconcile accounts
 • Group and reorder accounts, and manage categories, targets, and budget templates
 • Track loans with a payoff planner, and see goal and target progress on your balances
-• View scheduled transactions and a bills calendar, with optional reminders before they are due
+• View scheduled transactions and a bills calendar, with optional reminders before they are due, and set your own weekend days and holidays for pay periods and schedules
 • Review dashboards and reports, tap any chart to see its transactions, or open a report full screen with a data table
 • Sync with your Actual Budget server and use supported bank-sync providers through that server
 • Import transactions from CSV, OFX, QFX, QIF, CAMT.053, XLSX, PDF, SMS, and supported bank notifications, and review captured transactions before they are saved
