@@ -12,6 +12,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.azimulkabir.actua.data.home.MonthStartRule
+import com.azimulkabir.actua.data.home.StartDayAdjustment
+import java.time.DayOfWeek
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,8 +25,8 @@ class MonthStartDayRowTest {
     @get:Rule val compose = createComposeRule()
 
     @Test fun steppingChangesTheDayAndStopsAtTheBounds() {
-        var day by mutableStateOf(1)
-        compose.setContent { MaterialTheme { MonthStartDayRow(day, { day = it.coerceIn(1, 31) }) } }
+        var rule by mutableStateOf(MonthStartRule())
+        compose.setContent { MaterialTheme { MonthStartDayRow(rule, { rule = it.copy(day = it.day.coerceIn(1, 31)) }) } }
 
         compose.onNodeWithTag("summaryStartDay").assertTextEquals("1")
         compose.onNodeWithContentDescription("Start the period one day earlier").assertIsNotEnabled()
@@ -30,7 +34,24 @@ class MonthStartDayRowTest {
         compose.onNodeWithTag("summaryStartDay").assertTextEquals("2")
         compose.onNodeWithContentDescription("Start the period one day earlier").assertIsEnabled()
 
-        day = 31
+        rule = rule.copy(day = 31)
         compose.onNodeWithContentDescription("Start the period one day later").assertIsNotEnabled()
+    }
+
+    @Test fun weekendDaysAppearOnlyOnceAnAdjustmentIsChosenAndToggle() {
+        var rule by mutableStateOf(MonthStartRule(25))
+        compose.setContent { MaterialTheme { MonthStartDayRow(rule, { rule = it }) } }
+
+        compose.onNodeWithTag("weekendDayFRIDAY").assertDoesNotExist()
+        compose.onNodeWithTag("startDayAdjustmentPREVIOUS_WORKING_DAY").performClick()
+        assertEquals(StartDayAdjustment.PREVIOUS_WORKING_DAY, rule.adjustment)
+
+        // Sat-Sun by default: adding Friday and removing Sunday gives the Friday-Saturday weekend.
+        compose.onNodeWithTag("weekendDayFRIDAY").performClick()
+        compose.onNodeWithTag("weekendDaySUNDAY").performClick()
+        assertEquals(setOf(DayOfWeek.FRIDAY, DayOfWeek.SATURDAY), rule.weekendDays)
+
+        compose.onNodeWithTag("startDayAdjustmentNONE").performClick()
+        compose.onNodeWithTag("weekendDayFRIDAY").assertDoesNotExist()
     }
 }

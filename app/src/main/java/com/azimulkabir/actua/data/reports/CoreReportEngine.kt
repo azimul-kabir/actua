@@ -3,6 +3,7 @@ package com.azimulkabir.actua.data.reports
 import com.azimulkabir.actua.data.budget.model.ActualAccount
 import com.azimulkabir.actua.data.budget.model.ActualBudgetMonth
 import com.azimulkabir.actua.data.home.HomeSummaryPeriod
+import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.budget.model.ActualCategoryBudget
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
@@ -51,7 +52,7 @@ object CoreReportEngine {
         transferAccountByPayee: Map<String, String> = emptyMap(),
         payees: List<com.azimulkabir.actua.data.budget.model.ActualPayee> = emptyList(),
         firstDayOfWeek: Int = 0,
-        periodStartDay: Int = com.azimulkabir.actua.data.home.HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
+        monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
         /** With [range], only widgets passing this filter are computed, over the viewer's range. */
         widgetFilter: (DashboardWidgetRow) -> Boolean = { true },
         range: com.azimulkabir.actua.model.ReportRange? = null,
@@ -71,7 +72,7 @@ object CoreReportEngine {
         val earliestMonth = transactions.asSequence().filterNot { it.tombstone }.minOfOrNull { it.date }
             ?.let { YearMonth.of(it / 10000, it / 100 % 100) }
         val savedShared = if (savedReports.isEmpty()) null else
-            SavedReportEngine.Shared(transactions, accounts, groups, payees, firstDayOfWeek, periodStartDay)
+            SavedReportEngine.Shared(transactions, accounts, groups, payees, firstDayOfWeek, monthStart)
         return resolvedPages.map { page ->
             ReportDashboardPage(
                 page.id,
@@ -94,7 +95,7 @@ object CoreReportEngine {
                         compute(
                             row, transactions, context, incomeCategories, budgetedByCategory, today,
                             accounts.associate { it.id to it.balanceCents }, schedules, budgetMonth,
-                            transferAccountByPayee, firstDayOfWeek, periodStartDay,
+                            transferAccountByPayee, firstDayOfWeek, monthStart,
                         )
                     }
                 },
@@ -132,7 +133,7 @@ object CoreReportEngine {
         budgetMonth: (YearMonth) -> ActualBudgetMonth? = { null },
         transferAccountByPayee: Map<String, String> = emptyMap(),
         firstDayOfWeek: Int = 0,
-        periodStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
+        monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
     ): ReportWidget {
         val meta = row.metaJson?.let { runCatching { JSONObject(it) }.getOrNull() }
         val name = meta?.optString("name")?.takeIf(String::isNotBlank) ?: label(row.type)
@@ -146,15 +147,15 @@ object CoreReportEngine {
         ).let { (from, to) -> from.withDayOfMonth(1) to to.withDayOfMonth(to.lengthOfMonth()) }
         // Device-local pay period: only Summary and Cash Flow, and only on their default range (no
         // stored timeFrame mode), so a range set in Actual is never reinterpreted.
-        val payPeriod = HomeSummaryPeriod.containing(today, periodStartDay).takeIf {
-            periodStartDay != HomeSummaryPeriod.CALENDAR_MONTH_START_DAY &&
+        val payPeriod = HomeSummaryPeriod.containing(today, monthStart).takeIf {
+            !monthStart.isCalendarMonth &&
                 row.type in setOf("summary-card", "cash-flow-card") &&
                 meta?.optJSONObject("timeFrame")?.optString("mode").isNullOrBlank()
         }
         // Sankey's month-shaped ranges (the default last 6 months, a saved current/last month or N-month
         // sliding window) become pay periods on this device; every other saved range keeps its meaning.
-        val sankeyPayRange = if (periodStartDay != HomeSummaryPeriod.CALENDAR_MONTH_START_DAY && row.type == "sankey-card") {
-            sankeyPayRange(meta?.optJSONObject("timeFrame"), today, periodStartDay)
+        val sankeyPayRange = if (!monthStart.isCalendarMonth && row.type == "sankey-card") {
+            sankeyPayRange(meta?.optJSONObject("timeFrame"), today, monthStart)
         } else null
         val (rangeStart, rangeEnd) = sankeyPayRange ?: (start to end)
         val filtered = transactions.asSequence()
@@ -1223,13 +1224,13 @@ object CoreReportEngine {
     }
 
     /** The pay-period range for a month-shaped Sankey [timeFrame], or null to keep its calendar-month range. */
-    internal fun sankeyPayRange(timeFrame: JSONObject?, today: LocalDate, periodStartDay: Int): Pair<LocalDate, LocalDate>? {
-        val current = HomeSummaryPeriod.containing(today, periodStartDay)
+    internal fun sankeyPayRange(timeFrame: JSONObject?, today: LocalDate, monthStart: MonthStartRule): Pair<LocalDate, LocalDate>? {
+        val current = HomeSummaryPeriod.containing(today, monthStart)
         fun lastPeriods(count: Long) =
-            HomeSummaryPeriod.containing(current.start.minusMonths(count - 1), periodStartDay).start to current.endInclusive
+            current.shiftedByMonths(monthStart, -(count - 1)).start to current.endInclusive
         return when (timeFrame?.optString("mode").orEmpty()) {
             "" -> lastPeriods(6)
-            "lastMonth" -> HomeSummaryPeriod.containing(current.start.minusDays(1), periodStartDay)
+            "lastMonth" -> HomeSummaryPeriod.containing(current.start.minusDays(1), monthStart)
                 .let { it.start to it.endInclusive }
             "sliding-window" -> {
                 val start = month(timeFrame?.optString("start").orEmpty().takeIf { it.length == 7 })

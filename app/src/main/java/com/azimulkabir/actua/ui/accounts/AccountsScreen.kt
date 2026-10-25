@@ -82,7 +82,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import com.azimulkabir.actua.data.home.HomeSummaryPeriod
+import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.ui.components.formatDate
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -194,7 +194,7 @@ fun AccountsScreen(
     onReviewCaptures: () -> Unit = {},
     /** How many transactions bank sync added that haven't been looked at, by account id (#1066). */
     newTransactionCounts: Map<String, Int> = emptyMap(),
-    summaryStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
+    monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
     accountsForReorder: List<ActualAccount> = emptyList(),
     onMoveAccount: (AccountReorderPlanner.AccountMove) -> Boolean = { false },
     onMoveGroup: ((AccountGroupReorderPlanner.GroupMove) -> Boolean)? = null,
@@ -388,7 +388,7 @@ fun AccountsScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = floatingBarClearance() + if (hasFab) 96.dp else 0.dp),
                 ) {
-                    item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary, summaryStartDay) }
+                    item { AccountsSummary(accounts, transactions, onAllAccountsClick, hideDecimalPlaces, showMonthlySummary, monthStart) }
                     accountSections.forEach { section ->
                         val collapsed = section.title in collapsedSections
                         stickyHeader(key = "account-header-${section.title}") {
@@ -532,7 +532,7 @@ private fun AccountsSummary(
     onClick: () -> Unit,
     hideDecimalPlaces: Boolean,
     showMonthlySummary: Boolean,
-    summaryStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
+    monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val total = accounts.sumOf { it.balanceCents }
@@ -540,8 +540,8 @@ private fun AccountsSummary(
     // and otherwise only recompute it when `transactions` actually changes, not on every
     // recomposition of this row (e.g. opening the overflow menu elsewhere on the screen).
     val summary = if (showMonthlySummary) {
-        remember(transactions, accounts, summaryStartDay) {
-            val (monthTransactions, period) = filterTransactionsForSummary(transactions, summaryStartDay)
+        remember(transactions, accounts, monthStart) {
+            val (monthTransactions, period) = filterTransactionsForSummary(transactions, monthStart)
             val offBudgetAccountNames = accounts.filter { it.offBudget }.map { it.name }.toSet()
             AccountMonthlySummaryCalculator.calculate(monthTransactions, offBudgetAccountNames) to period
         }

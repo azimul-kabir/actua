@@ -345,7 +345,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   (This month, Last month, Last N months) and the Summary, Cash Flow and Sankey cards' default
   ranges use pay periods instead of calendar months. Stored report and widget settings are never
   rewritten and day 1 is byte-for-byte upstream; Spending, Budget Analysis and Calendar stay on
-  calendar months because their data is monthly.
+  calendar months because their data is monthly. A start day that lands on a weekend day can move
+  to the previous or next working day (configurable weekend days, Saturday and Sunday by default,
+  e.g. Friday and Saturday); holidays are not considered and scheduled transactions keep Actual's
+  own weekend handling.
 - Per-budget device-local quick-access favorites for categories, accounts, and report dashboards;
   these are intentionally not synced because Actual has no favorite fields. Budget's Favorites
   filter composes with the other category filters, and the Favorites widget reads the same

@@ -80,7 +80,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.R
-import com.azimulkabir.actua.data.home.HomeSummaryPeriod
+import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.billing.createSupportBillingManager
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
 import com.azimulkabir.actua.data.location.ForegroundLocationPermission
@@ -133,8 +133,8 @@ fun SettingsScreen(
     onShowNotesChange: (Boolean) -> Unit = {},
     hideIncomeGroupInBudget: Boolean = false,
     onHideIncomeGroupInBudgetChange: (Boolean) -> Unit = {},
-    summaryStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
-    onSummaryStartDayChange: (Int) -> Unit = {},
+    monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
+    onMonthStartChange: (MonthStartRule) -> Unit = {},
     budgetType: String = "envelope",
     onBudgetTypeChange: (String) -> Unit = {},
     currencyCode: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
@@ -926,7 +926,7 @@ fun SettingsScreen(
                         ) { page = SettingsPage.CategoryColors }
                     }
                     SettingsGroup {
-                        MonthStartDayRow(summaryStartDay, onSummaryStartDayChange)
+                        MonthStartDayRow(monthStart, onMonthStartChange)
                     }
                     SettingsNote(
                         stringResource(R.string.settings_budget_mode_note),
