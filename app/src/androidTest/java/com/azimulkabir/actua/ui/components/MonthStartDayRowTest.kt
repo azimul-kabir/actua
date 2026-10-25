@@ -46,8 +46,8 @@ class MonthStartDayRowTest {
         compose.onNodeWithTag("startDayAdjustmentPREVIOUS_WORKING_DAY").performClick()
         assertEquals(StartDayAdjustment.PREVIOUS_WORKING_DAY, rule.adjustment)
 
+        // Sat-Sun by default: adding Friday and removing Sunday gives the Friday-Saturday weekend.
         compose.onNodeWithTag("weekendDayFRIDAY").performClick()
-        compose.onNodeWithTag("weekendDaySATURDAY").performClick()
         compose.onNodeWithTag("weekendDaySUNDAY").performClick()
         assertEquals(setOf(DayOfWeek.FRIDAY, DayOfWeek.SATURDAY), rule.weekendDays)
 
