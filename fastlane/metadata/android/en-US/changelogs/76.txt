@@ -1,0 +1,4 @@
+• Display options sheet always expanded
+• Equal column widths in table view
+• Table view amounts scale smoothly
+• OpenID sign-in listener stays open
