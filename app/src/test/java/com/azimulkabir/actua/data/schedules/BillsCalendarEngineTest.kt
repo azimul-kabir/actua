@@ -109,6 +109,23 @@ class BillsCalendarEngineTest {
             BillsCalendarEngine.filter(items, BillFilter.ALL, DayDate(2026, 9, 20)).map { it.id })
     }
 
+    @Test fun aWeekendSkippingBillIsDrawnOnTheDayTheWeekendDaysGive() {
+        // The 25th skips weekends "before"; Apr 25 2026 is a Saturday, so Actual stores Friday the 24th.
+        val salary = schedule(
+            nextDate = DayDate(2026, 4, 24),
+            condition = ScheduleDateCondition.Recurring(
+                RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2026, 1, 25), skipWeekend = true, weekendSolveMode = "before"),
+            ),
+            status = ScheduleStatus.UPCOMING,
+        )
+        fun days(weekend: Set<java.time.DayOfWeek>) = BillsCalendarEngine.itemsForSchedules(
+            listOf(salary), emptyMap(), emptyMap(), 2026, 4, DayDate(2026, 4, 20), weekend,
+        ).map { it.date.day }
+
+        assertEquals(listOf(24), days(com.azimulkabir.actua.data.home.MonthStartRule.DEFAULT_WEEKEND_DAYS))
+        assertEquals(listOf(23), days(setOf(java.time.DayOfWeek.FRIDAY, java.time.DayOfWeek.SATURDAY)))
+    }
+
     private fun schedule(
         nextDate: DayDate,
         condition: ScheduleDateCondition,

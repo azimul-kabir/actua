@@ -23,7 +23,12 @@ data class ScheduleListItem(
     val status: ScheduleStatus,
     val accountName: String?,
     val payeeName: String?,
+    /** Where the user's weekend days put the next occurrence, when that differs from Actual's `next_date`. */
+    val displayDate: DayDate? = null,
 ) {
+    /** The next date to show and to judge due, upcoming or missed by; never written back. */
+    val dueDate: DayDate? get() = displayDate ?: schedule.nextDate
+
     val title: String get() = schedule.name?.takeIf(String::isNotBlank)
         ?: payeeName?.takeIf(String::isNotBlank)
         ?: accountName?.takeIf(String::isNotBlank)
@@ -41,8 +46,8 @@ data class ScheduleLinkedTransaction(
 fun Iterable<ScheduleListItem>.sortedForDisplay() = sortedWith(
     compareBy<ScheduleListItem> { it.schedule.sortOrder == null }
         .thenBy { it.schedule.sortOrder ?: Double.MAX_VALUE }
-        .thenBy { it.schedule.nextDate == null }
-        .thenBy { it.schedule.nextDate }
+        .thenBy { it.dueDate == null }
+        .thenBy { it.dueDate }
         .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
         .thenBy { it.schedule.id },
 )

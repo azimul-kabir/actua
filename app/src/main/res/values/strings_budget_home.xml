@@ -334,7 +334,7 @@
     <string name="home_summary_adjustment_previous">Previous working day</string>
     <string name="home_summary_adjustment_next">Next working day</string>
     <string name="home_summary_weekend_title">Weekend days</string>
-    <string name="home_summary_weekend_description">Weekend days are skipped when moving the start to a working day, so a period always starts on a day you are paid or banking is open. Holidays are not considered. This applies on this device only.</string>
+    <string name="home_summary_weekend_description">Weekend days are skipped when moving the month start to a working day, and are where schedules that skip weekends are shown as due. Actual itself keeps Saturday and Sunday, so this changes only what you see on this device. Holidays are not considered.</string>
 
     <plurals name="home_transactions_count">
         <item quantity="one">%1$d transaction</item>

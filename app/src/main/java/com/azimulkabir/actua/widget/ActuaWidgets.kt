@@ -346,7 +346,15 @@ object WidgetUpdater {
             if (!repository.isUsingActualBudget) return emptyList()
             val today = DayDate.today()
             val periodDays = ScheduleWidgetPreferences(context).periodDays(widgetId)
-            return ScheduleWidgetProjection.upcoming(repository.schedules(today), today, periodDays)
+            return ScheduleWidgetProjection.upcoming(
+                repository.schedules(
+                    today,
+                    com.azimulkabir.actua.data.preferences.HomePreferences(context).weekendDays(
+                        com.azimulkabir.actua.data.budget.ActiveBudgetStore(context).budgetId ?: "no-budget",
+                    ),
+                ),
+                today, periodDays,
+            )
         } finally {
             repository.close()
         }

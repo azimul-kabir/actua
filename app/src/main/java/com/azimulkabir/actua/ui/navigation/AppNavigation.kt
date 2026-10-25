@@ -531,15 +531,21 @@ fun AppNavigation(
     // transaction cleared while on the Budget tab no longer also recomputes Reports' aggregation
     // or refetches rule-editor data (accounts/categories/payees) that nothing is currently
     // showing — matching the existing pattern `payeeLocations` already used below.
-    val schedules = remember(dataVersion) { repository.schedules() }
+    val schedules = remember(dataVersion, homeMonthStart.weekendDays) {
+        repository.schedules(weekendDays = homeMonthStart.weekendDays)
+    }
     // Replan schedule reminders after any local write, sync or budget switch, so posted, skipped,
     // matched, edited and deleted occurrences stop notifying. Rapid successive writes replan once.
-    LaunchedEffect(dataVersion, repositoryVersion, scheduleRemindersEnabled, scheduleReminderLeadDays) {
+    LaunchedEffect(dataVersion, repositoryVersion, scheduleRemindersEnabled, scheduleReminderLeadDays, homeMonthStart.weekendDays) {
         delay(1_000)
         withContext(Dispatchers.IO) { ScheduleReminderScheduler.refresh(appContext) }
     }
-    val upcomingTransactions = remember(schedules) {
-        upcomingTransactionsFrom(schedules, defaultUpcomingLength = repository.upcomingScheduleLength())
+    val upcomingTransactions = remember(schedules, homeMonthStart.weekendDays) {
+        upcomingTransactionsFrom(
+            schedules,
+            defaultUpcomingLength = repository.upcomingScheduleLength(),
+            weekendDays = homeMonthStart.weekendDays,
+        )
     }
     val upcomingRecurringScheduleIds = remember(schedules) { recurringScheduleIds(schedules) }
     val linkableSchedules = remember(schedules) {
@@ -2526,6 +2532,7 @@ fun AppNavigation(
                 repository = repository,
                 dataVersion = dataVersion,
                 schedules = schedules,
+                weekendDays = homeMonthStart.weekendDays,
                 accounts = accounts,
                 payeeNames = payeeNames,
                 hideDecimalPlaces = hideDecimalPlaces,
@@ -3464,6 +3471,7 @@ private fun NavigationScheduleScreens(
     repository: ActuaRepository,
     dataVersion: Int,
     schedules: List<ScheduleListItem>,
+    weekendDays: Set<java.time.DayOfWeek>,
     accounts: List<Account>,
     payeeNames: List<String>,
     hideDecimalPlaces: Boolean,
@@ -3618,7 +3626,7 @@ private fun NavigationScheduleScreens(
         }
         DetailDestination.BillsCalendar -> BillsCalendarScreen(
             loadItems = { year, month, cardBills ->
-                repository.billCalendarItems(year, month, cardBills)
+                repository.billCalendarItems(year, month, cardBills, weekendDays)
             },
             refreshKey = dataVersion,
             hideDecimalPlaces = hideDecimalPlaces,

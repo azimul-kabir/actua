@@ -118,4 +118,19 @@ class UpcomingTransactionsTest {
 
         assertEquals(listOf("b", "a"), rows.map { it.scheduleId })
     }
+
+    @Test fun datesFollowTheWeekendDaysWhileTheOccurrencesStayActuals() {
+        // The 25th skips weekends "before"; Apr 25 2026 is a Saturday, so Actual stores Friday the 24th.
+        val salary = ScheduleDateCondition.Recurring(
+            RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2026, 1, 25), skipWeekend = true, weekendSolveMode = "before"),
+        )
+        val today = DayDate(2026, 4, 20)
+        val item = item("salary", ScheduleStatus.UPCOMING, DayDate(2026, 4, 24), salary)
+        val friSat = setOf(java.time.DayOfWeek.FRIDAY, java.time.DayOfWeek.SATURDAY)
+
+        assertEquals(listOf("20260423"), upcomingTransactionsFrom(listOf(item), today, weekendDays = friSat).map { it.date })
+        // The default weekend keeps Actual's date, and the row's id stays on it either way.
+        assertEquals(listOf("20260424"), upcomingTransactionsFrom(listOf(item), today).map { it.date })
+        assertEquals(listOf("upcoming-salary-20260424"), upcomingTransactionsFrom(listOf(item), today, weekendDays = friSat).map { it.id })
+    }
 }

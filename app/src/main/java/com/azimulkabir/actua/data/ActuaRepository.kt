@@ -321,7 +321,15 @@ class ActuaRepository(context: Context) {
 
     fun scheduleOwnedRuleIds(): Set<String> = actualDatabase?.scheduleOwnedRuleIds().orEmpty()
 
-    fun schedules(today: DayDate = DayDate.today()): List<ScheduleListItem> {
+    /**
+     * The schedules with their due dates shown for [weekendDays]. A weekend-skipping schedule's
+     * stored `next_date` stays Actual's Saturday/Sunday result; only [ScheduleListItem.dueDate] (and
+     * the status from it) follows the user's weekend, so nothing here changes what syncs.
+     */
+    fun schedules(
+        today: DayDate = DayDate.today(),
+        weekendDays: Set<java.time.DayOfWeek> = com.azimulkabir.actua.data.home.MonthStartRule.DEFAULT_WEEKEND_DAYS,
+    ): List<ScheduleListItem> {
         val db = actualDatabase ?: return emptyList()
         val schedules = db.fetchScheduleSummaries()
         val paid = db.fetchPaidScheduleIds(schedules)
@@ -329,14 +337,21 @@ class ActuaRepository(context: Context) {
         val payees = db.fetchPayees().associate { it.id to it.name }
         val upcomingLength = db.upcomingScheduledTransactionLength()
         return schedules.map { schedule ->
+            val recurring = schedule.dateCondition as? com.azimulkabir.actua.data.schedules.ScheduleDateCondition.Recurring
+            val displayDate = if (schedule.completed || recurring == null) null else {
+                schedule.nextDate
+                    ?.let { ScheduleRecurrence.displayDate(recurring.config, it, weekendDays) }
+                    ?.takeIf { it != schedule.nextDate }
+            }
             ScheduleListItem(
                 schedule,
                 ScheduleStatusCalculator.status(
-                    schedule.nextDate, schedule.completed, schedule.id in paid,
+                    displayDate ?: schedule.nextDate, schedule.completed, schedule.id in paid,
                     ScheduleUpcomingLength.effective(schedule.customUpcomingLength, upcomingLength), today,
                 ),
                 schedule.accountId?.let(accounts::get),
                 schedule.payeeId?.let(payees::get),
+                displayDate,
             )
         }.sortedForDisplay()
     }
@@ -371,10 +386,15 @@ class ActuaRepository(context: Context) {
         }
     }
 
-    fun billCalendarItems(year: Int, month: Int, cardBills: Boolean): List<BillCalendarItem> {
+    fun billCalendarItems(
+        year: Int,
+        month: Int,
+        cardBills: Boolean,
+        weekendDays: Set<java.time.DayOfWeek> = com.azimulkabir.actua.data.home.MonthStartRule.DEFAULT_WEEKEND_DAYS,
+    ): List<BillCalendarItem> {
         if (cardBills) return BillsCalendarEngine.itemsForCreditCards(creditCards(), year, month)
         val database = actualDatabase ?: return emptyList()
-        val schedules = schedules()
+        val schedules = schedules(weekendDays = weekendDays)
         val categoryNames = database.fetchCategoryGroups().flatMap { it.categories }.associate { it.id to it.name }
         return BillsCalendarEngine.itemsForSchedules(
             schedules = schedules,
@@ -382,6 +402,7 @@ class ActuaRepository(context: Context) {
             categoryNames = categoryNames,
             year = year,
             month = month,
+            weekendDays = weekendDays,
         )
     }
 
