@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
@@ -60,8 +61,12 @@ class BudgetGoalIconsTest {
                         groups = groups,
                         overview = BudgetOverview(0L, 0L, 0L, 5_000L),
                         budgetView = view,
-                        showGoalIcons = showIcons.value,
-                        showBudgetStatusBanners = false,
+                        displayOptions = BudgetDisplayOptions(
+                            showSpent = false,
+                            showGroupTotals = false,
+                            showGoalIcons = showIcons.value,
+                            showBudgetStatusBanners = false,
+                        ),
                     )
                 }
             }

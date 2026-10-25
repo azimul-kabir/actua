@@ -179,6 +179,7 @@ import com.azimulkabir.actua.data.home.HolidayCodec
 import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.navigation.TabItem
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
+import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
@@ -675,22 +676,13 @@ fun AppNavigation(
     var currencySymbolSpacing by remember { mutableStateOf(displayPreferences.currencySymbolSpacing) }
     var dateFormat by remember { mutableStateOf(displayPreferences.dateFormat) }
     var numberFormat by remember { mutableStateOf(displayPreferences.numberFormat) }
-    var showHiddenCategories by remember { mutableStateOf(displayPreferences.showHiddenCategories) }
-    var showSpentColumn by remember { mutableStateOf(displayPreferences.showSpentColumn) }
-    var showBudgetProgressBars by remember { mutableStateOf(displayPreferences.showBudgetProgressBars) }
     var budgetView by remember { mutableStateOf(displayPreferences.budgetView) }
-    var showBudgetOverview by remember { mutableStateOf(displayPreferences.showBudgetOverview) }
-    var showBudgetStatusBanners by remember { mutableStateOf(displayPreferences.showBudgetStatusBanners) }
-    var showGroupTotals by remember { mutableStateOf(displayPreferences.showGroupTotals) }
-    var showBalancePills by remember { mutableStateOf(displayPreferences.showBalancePills) }
-    var showGoalIcons by remember { mutableStateOf(displayPreferences.showGoalIcons) }
-    val onShowGoalIconsChange: (Boolean) -> Unit = {
-        displayPreferences.showGoalIcons = it
-        showGoalIcons = it
+    var budgetDisplay by remember { mutableStateOf(displayPreferences.budgetDisplayOptions) }
+    val onBudgetDisplayChange: (BudgetDisplayOptions) -> Unit = {
+        displayPreferences.budgetDisplayOptions = it
+        budgetDisplay = it
     }
-    var hideFullySpentCategories by remember { mutableStateOf(displayPreferences.hideFullySpentCategories) }
     var budgetCategoryView by remember { mutableStateOf(displayPreferences.budgetCategoryView) }
-    var showCategoryFilters by remember { mutableStateOf(displayPreferences.showCategoryFilters) }
     var favoritesOnly by remember { mutableStateOf(displayPreferences.favoritesOnly) }
     var favoriteCategoryIds by remember(favoriteBudgetId) {
         mutableStateOf(favoritePreferences.ids(favoriteBudgetId, FavoritePreferences.Type.CATEGORY))
@@ -2798,62 +2790,17 @@ fun AppNavigation(
                     monthRange = budgetMonthRange,
                     onMonthChange = { budgetMonth = it },
                     hideDecimalPlaces = hideDecimalPlaces,
-                    showHidden = showHiddenCategories,
-                    onShowHiddenChange = {
-                        displayPreferences.showHiddenCategories = it
-                        showHiddenCategories = it
-                    },
-                    showSpent = showSpentColumn,
-                    onShowSpentChange = {
-                        displayPreferences.showSpentColumn = it
-                        showSpentColumn = it
-                    },
-                    showProgressBars = showBudgetProgressBars,
-                    onShowProgressBarsChange = {
-                        displayPreferences.showBudgetProgressBars = it
-                        showBudgetProgressBars = it
-                    },
+                    displayOptions = budgetDisplay,
+                    onDisplayOptionsChange = onBudgetDisplayChange,
                     budgetView = budgetView,
                     onBudgetViewChange = {
                         displayPreferences.budgetView = it
                         budgetView = it
                     },
-                    showOverview = showBudgetOverview,
-                    onShowOverviewChange = {
-                        displayPreferences.showBudgetOverview = it
-                        showBudgetOverview = it
-                    },
-                    showBudgetStatusBanners = showBudgetStatusBanners,
-                    onShowBudgetStatusBannersChange = {
-                        displayPreferences.showBudgetStatusBanners = it
-                        showBudgetStatusBanners = it
-                    },
-                    showGroupTotals = showGroupTotals,
-                    onShowGroupTotalsChange = {
-                        displayPreferences.showGroupTotals = it
-                        showGroupTotals = it
-                    },
-                    showBalancePills = showBalancePills,
-                    onShowBalancePillsChange = {
-                        displayPreferences.showBalancePills = it
-                        showBalancePills = it
-                    },
-                    showGoalIcons = showGoalIcons,
-                    onShowGoalIconsChange = onShowGoalIconsChange,
-                    hideFullySpent = hideFullySpentCategories,
-                    onHideFullySpentChange = {
-                        displayPreferences.hideFullySpentCategories = it
-                        hideFullySpentCategories = it
-                    },
                     categoryView = budgetCategoryView,
                     onCategoryViewChange = {
                         displayPreferences.budgetCategoryView = it
                         budgetCategoryView = it
-                    },
-                    showCategoryFilters = showCategoryFilters,
-                    onShowCategoryFiltersChange = {
-                        displayPreferences.showCategoryFilters = it
-                        showCategoryFilters = it
                     },
                     favoritesOnly = favoritesOnly,
                     onFavoritesOnlyChange = {

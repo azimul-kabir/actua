@@ -13,6 +13,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added weekend days and a previous or next working day option for the month start day in Settings > Budget ([#1294](https://github.com/azimul-kabir/actua/pull/1294))
 - Added the target funding icon to balance pills in the Budget table view ([#1289](https://github.com/azimul-kabir/actua/pull/1289))
 
+### Changed
+
+- Changed the Budget menu to a short list plus a collapsible Display options sheet with a new Show status dots switch, and moved Copy last month's budget to the Add to budget sheet ([#1314](https://github.com/azimul-kabir/actua/pull/1314))
+
 ### Fixed
 
 - Fixed the Summary and Cash Flow cards ignoring the month start day when their time frame is last month or a sliding window ([#1309](https://github.com/azimul-kabir/actua/pull/1309))

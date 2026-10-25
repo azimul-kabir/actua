@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
@@ -45,8 +46,7 @@ class BudgetOverviewAlignmentTest {
                             toBudgetCents = 0L, budgetedCents = 290_000L, spentCents = -165_456L, availableCents = 1_366_500L,
                         ),
                         budgetView = "Table",
-                        showSpent = true,
-                        showGroupTotals = true,
+                        displayOptions = BudgetDisplayOptions(showSpent = true, showGroupTotals = true),
                     )
                 }
             }
