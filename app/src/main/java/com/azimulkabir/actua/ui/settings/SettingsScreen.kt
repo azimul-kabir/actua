@@ -88,6 +88,7 @@ import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.LocationPreferences
+import com.azimulkabir.actua.ui.components.BudgetTypeConfirmDialog
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaFormRow
@@ -893,6 +894,7 @@ fun SettingsScreen(
                 }
                 SettingsPage.Budget -> {
                     val categoryStatusColors = LocalCategoryStatusColors.current
+                    var pendingBudgetType by remember { mutableStateOf<String?>(null) }
                     SettingsGroup {
                         SettingsChoice(
                             stringResource(R.string.settings_budget_type),
@@ -901,8 +903,18 @@ fun SettingsScreen(
                                 SettingsChoiceOption("envelope", stringResource(R.string.settings_budget_type_envelope)),
                                 SettingsChoiceOption("tracking", stringResource(R.string.settings_budget_type_tracking)),
                             ),
-                            onChange = onBudgetTypeChange,
+                            onChange = { if (it != budgetType) pendingBudgetType = it },
                         )
+                        pendingBudgetType?.let { newType ->
+                            BudgetTypeConfirmDialog(
+                                newType = newType,
+                                onConfirm = {
+                                    pendingBudgetType = null
+                                    onBudgetTypeChange(newType)
+                                },
+                                onDismiss = { pendingBudgetType = null },
+                            )
+                        }
                         SettingsDivider()
                         SettingsToggle(
                             stringResource(R.string.settings_category_status_dot),

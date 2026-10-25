@@ -2792,6 +2792,11 @@ fun AppNavigation(
                     hideDecimalPlaces = hideDecimalPlaces,
                     displayOptions = budgetDisplay,
                     onDisplayOptionsChange = onBudgetDisplayChange,
+                    budgetType = budgetType,
+                    onBudgetTypeChange = settingsBudgetTypeChange,
+                    budgetOptions = availableBudgetOptions,
+                    activeBudgetId = activeBudgetId,
+                    onBudgetChange = settingsBudgetChange,
                     budgetView = budgetView,
                     onBudgetViewChange = {
                         displayPreferences.budgetView = it
