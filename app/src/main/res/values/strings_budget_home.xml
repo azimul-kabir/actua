@@ -27,7 +27,6 @@
     <string name="budget_options_section_expanded">Expanded</string>
     <string name="budget_options_section_collapsed">Collapsed</string>
     <string name="budget_show_status_dots">Show status dots</string>
-    <string name="budget_type_row">Budget type: %1$s</string>
     <string name="budget_switch_budget">Switch budget</string>
     <string name="budget_type_confirm_title_tracking">Switch to a tracking budget?</string>
     <string name="budget_type_confirm_title_envelope">Switch to an envelope budget?</string>

@@ -297,10 +297,6 @@
     <string name="settings_license_description">Open-source notices and complete attribution are available in the repository’s LICENSE and NOTICE files.</string>
 
     <!-- Active budget selector on Manage. -->
-    <string name="settings_active_budget_label">Budget</string>
-    <string name="settings_select_budget">Select a budget</string>
-    <string name="settings_switch_budget">Switch budget</string>
-    <string name="settings_active_budget">Active budget</string>
 
     <!-- Rows that wait for a later backend slice. -->
     <string name="settings_coming_with_backend">%1$s · Coming with backend port</string>

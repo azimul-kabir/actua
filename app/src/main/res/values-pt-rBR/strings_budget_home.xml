@@ -27,7 +27,6 @@
     <string name="budget_options_section_expanded">Expandido</string>
     <string name="budget_options_section_collapsed">Recolhido</string>
     <string name="budget_show_status_dots">Exibir indicadores de status</string>
-    <string name="budget_type_row">Tipo de orçamento: %1$s</string>
     <string name="budget_switch_budget">Trocar orçamento</string>
     <string name="budget_type_confirm_title_tracking">Mudar para um orçamento de acompanhamento?</string>
     <string name="budget_type_confirm_title_envelope">Mudar para um orçamento de envelope?</string>

@@ -162,7 +162,6 @@ import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.ui.components.ActuaSwitchMenuItem
-import com.azimulkabir.actua.ui.components.BudgetTypeConfirmDialog
 import com.azimulkabir.actua.ui.settings.BudgetSelectionItem
 import com.azimulkabir.actua.ui.components.CategoryStatusDot
 import com.azimulkabir.actua.ui.components.RenameDialog
@@ -281,9 +280,6 @@ fun BudgetScreen(
     onApplyCleanup: (CleanupPreview) -> Unit = {},
     onSearch: () -> Unit = {},
     onManageCategories: () -> Unit = {},
-    /** The synced budget type, `"envelope"` or `"tracking"`; changing it asks for confirmation first. */
-    budgetType: String = "envelope",
-    onBudgetTypeChange: (String) -> Unit = {},
     /** Local budgets to switch between; the Switch budget row shows only when there is more than one. */
     budgetOptions: List<BudgetSelectionItem> = emptyList(),
     activeBudgetId: String? = null,
@@ -409,8 +405,6 @@ fun BudgetScreen(
                 },
                 onSearch = onSearch,
                 onManageCategories = onManageCategories,
-                budgetType = budgetType,
-                onBudgetTypeChange = onBudgetTypeChange,
                 budgetOptions = budgetOptions,
                 activeBudgetId = activeBudgetId,
                 onBudgetChange = onBudgetChange,
@@ -965,13 +959,10 @@ private fun BudgetToolbar(
     onCollapseAll: () -> Unit,
     onSearch: () -> Unit,
     onManageCategories: () -> Unit,
-    budgetType: String,
-    onBudgetTypeChange: (String) -> Unit,
     budgetOptions: List<BudgetSelectionItem>,
     activeBudgetId: String?,
     onBudgetChange: (String) -> Unit,
 ) {
-    var pendingBudgetType by remember { mutableStateOf<String?>(null) }
     var switchBudgetOpen by remember { mutableStateOf(false) }
     var monthPickerOpen by remember { mutableStateOf(false) }
     var optionsSheetOpen by remember { mutableStateOf(false) }
@@ -1042,24 +1033,6 @@ private fun BudgetToolbar(
                         onManageCategories()
                     },
                 )
-                val otherBudgetType = if (budgetType == "tracking") "envelope" else "tracking"
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            stringResource(
-                                R.string.budget_type_row,
-                                stringResource(
-                                    if (budgetType == "tracking") R.string.settings_budget_type_tracking
-                                    else R.string.settings_budget_type_envelope,
-                                ),
-                            ),
-                        )
-                    },
-                    onClick = {
-                        onOptionsChange(false)
-                        pendingBudgetType = otherBudgetType
-                    },
-                )
                 if (budgetOptions.size > 1) DropdownMenuItem(
                     text = { Text(stringResource(R.string.budget_switch_budget)) },
                     onClick = {
@@ -1096,16 +1069,6 @@ private fun BudgetToolbar(
             expanded = expandedSections,
             onExpandedChange = { expandedSections = it },
             onDismiss = { optionsSheetOpen = false },
-        )
-    }
-    pendingBudgetType?.let { newType ->
-        BudgetTypeConfirmDialog(
-            newType = newType,
-            onConfirm = {
-                pendingBudgetType = null
-                onBudgetTypeChange(newType)
-            },
-            onDismiss = { pendingBudgetType = null },
         )
     }
     if (switchBudgetOpen) {

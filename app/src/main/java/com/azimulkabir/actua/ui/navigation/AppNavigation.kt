@@ -2792,8 +2792,6 @@ fun AppNavigation(
                     hideDecimalPlaces = hideDecimalPlaces,
                     displayOptions = budgetDisplay,
                     onDisplayOptionsChange = onBudgetDisplayChange,
-                    budgetType = budgetType,
-                    onBudgetTypeChange = settingsBudgetTypeChange,
                     budgetOptions = availableBudgetOptions,
                     activeBudgetId = activeBudgetId,
                     onBudgetChange = settingsBudgetChange,
@@ -3247,9 +3245,6 @@ fun AppNavigation(
                     tabBarDisplay = tabBarScroll,
                     showCurrentBalanceSummary = showCurrentBalanceSummary,
                     onShowCurrentBalanceSummaryChange = settingsShowCurrentBalanceSummaryChange,
-                    budgetOptions = availableBudgetOptions,
-                    activeBudgetId = activeBudgetId,
-                    onBudgetChange = settingsBudgetChange,
                     returnToRootRequest = rootRequests[MainDestination.Manage] ?: 0,
                 ) }
             }

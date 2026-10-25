@@ -297,10 +297,6 @@
     <string name="settings_license_description">Avisos de código aberto e atribuição completa estão disponíveis nos arquivos LICENSE e NOTICE do repositório.</string>
 
     <!-- Seletor de orçamento ativo no Gerenciar. -->
-    <string name="settings_active_budget_label">Orçamento</string>
-    <string name="settings_select_budget">Selecione um orçamento</string>
-    <string name="settings_switch_budget">Trocar orçamento</string>
-    <string name="settings_active_budget">Orçamento ativo</string>
 
     <!-- Linhas que aguardam uma fatia posterior do backend. -->
     <string name="settings_coming_with_backend">%1$s · Chega com a portabilidade do backend</string>
