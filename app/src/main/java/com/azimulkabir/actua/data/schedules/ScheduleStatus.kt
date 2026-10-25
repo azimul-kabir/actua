@@ -44,4 +44,13 @@ object ScheduleStatusCalculator {
 
     fun occurrenceMatchStartDate(nextDate: DayDate, dateOp: String?, postsTransaction: Boolean): DayDate =
         if (dateOp == "is" || postsTransaction) nextDate else nextDate.addingDays(-2)
+
+    /**
+     * The date a posted occurrence gets: the [shown] due date (the user's weekend days), unless that
+     * falls before the window in which a linked transaction counts as paying [stored] (an exact-date
+     * or auto-posting schedule matches from the stored date itself), in which case the stored date
+     * stays so the occurrence is still recognised as paid.
+     */
+    fun postedDate(stored: DayDate, shown: DayDate?, dateOp: String?, postsTransaction: Boolean): DayDate =
+        shown?.takeIf { it >= occurrenceMatchStartDate(stored, dateOp, postsTransaction) } ?: stored
 }
