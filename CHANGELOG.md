@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added Budget type and Switch budget rows to the Budget menu, and a confirmation before the budget type changes ([#1315](https://github.com/azimul-kabir/actua/pull/1315))
 - Added a Show goal icons option in the Budget menu to hide the target icons on balance pills in the table and plan views ([#1311](https://github.com/azimul-kabir/actua/pull/1311))
 - Added a holiday list in Settings > Budget that the working-day month start and weekend-skipping schedules skip ([#1299](https://github.com/azimul-kabir/actua/pull/1299))
 - Added posting a weekend-skipping schedule on the due date shown for your weekend days ([#1298](https://github.com/azimul-kabir/actua/pull/1298))
