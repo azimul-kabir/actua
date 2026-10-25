@@ -14,6 +14,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed the Cash Flow chart's month labels not sitting under their bars ([#1308](https://github.com/azimul-kabir/actua/pull/1308))
 - Fixed the weekend days description in Settings > Budget saying holidays are not considered ([#1307](https://github.com/azimul-kabir/actua/pull/1307))
 - Fixed the Sankey card ignoring the month start day when its time frame is the current month, last month or a sliding window ([#1292](https://github.com/azimul-kabir/actua/pull/1292))
 - Fixed OpenID sign-in hanging in the browser when it opened an idle connection to Actua first ([#1285](https://github.com/azimul-kabir/actua/pull/1285))
