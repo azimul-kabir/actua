@@ -1,8 +1,7 @@
 package com.azimulkabir.actua.data.schedules
 
-import com.azimulkabir.actua.data.home.MonthStartRule
+import com.azimulkabir.actua.data.home.NonWorkingDays
 import org.json.JSONObject
-import java.time.DayOfWeek
 import kotlin.math.abs
 
 data class RecurConfig(
@@ -91,21 +90,19 @@ object ScheduleRecurrence {
     }
 
     /**
-     * Where a weekend-skipping occurrence lands when the weekend is [weekendDays] instead of Actual's
-     * Saturday and Sunday. [stored] is Actual's own (Saturday/Sunday) result, which stays the synced
+     * Where a weekend-skipping occurrence lands when the non-working days are [nonWorkingDays] (the
+     * user's weekend and holidays) instead of Actual's Saturday and Sunday. [stored] is Actual's own
+     * (Saturday/Sunday) result, which stays the synced
      * `next_date`; this is for showing a due date only and never feeds a write. Without a matching
      * occurrence near [stored] (a hand-edited next date, say) it returns [stored] unchanged.
      */
-    fun displayDate(config: RecurConfig, stored: DayDate, weekendDays: Set<DayOfWeek>): DayDate {
-        if (!config.skipWeekend || weekendDays == MonthStartRule.DEFAULT_WEEKEND_DAYS) return stored
+    fun displayDate(config: RecurConfig, stored: DayDate, nonWorkingDays: NonWorkingDays): DayDate {
+        if (!config.skipWeekend || nonWorkingDays.isDefault) return stored
         val raw = listOf(0, -1, 1, -2, 2).map(stored::addingDays)
             .firstOrNull { unadjustedNext(config, it) == it && solveWeekend(config, it) == stored }
             ?: return stored
-        if (weekendDays.size >= DayOfWeek.values().size || raw.dayOfWeek !in weekendDays) return raw
-        val step = if (config.weekendSolveMode == "before") -1 else 1
-        var result = raw
-        while (result.dayOfWeek in weekendDays) result = result.addingDays(step)
-        return result
+        val step = if (config.weekendSolveMode == "before") -1L else 1L
+        return DayDate.from(nonWorkingDays.workingDayFrom(raw.localDate, step))
     }
 
     /** Whether `date` is itself an occurrence of `config`. */

@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data
 
+import com.azimulkabir.actua.data.home.NonWorkingDays
 import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
@@ -32,12 +33,12 @@ class ActuaRepositoryScheduleWeekendPostTest {
     fun postingUsesTheShownDateAndLeavesTheStoredNextDateAlone() = withRepository { repository ->
         val schedule = createSalary(repository)
         assertEquals(DayDate(2030, 1, 25), schedule.schedule.nextDate)
-        assertEquals(DayDate(2030, 1, 24), repository.schedules(weekendDays = fridaySaturday).single().dueDate)
+        assertEquals(DayDate(2030, 1, 24), repository.schedules(nonWorkingDays = NonWorkingDays(fridaySaturday)).single().dueDate)
 
-        assertTrue(repository.postScheduleTransaction(schedule.schedule.id, today = false, weekendDays = fridaySaturday))
+        assertTrue(repository.postScheduleTransaction(schedule.schedule.id, today = false, nonWorkingDays = NonWorkingDays(fridaySaturday)))
 
         assertEquals(listOf<DayDate?>(DayDate(2030, 1, 24)), repository.scheduleTransactions(schedule.schedule.id).map { it.date })
-        val after = repository.schedules(weekendDays = fridaySaturday).single()
+        val after = repository.schedules(nonWorkingDays = NonWorkingDays(fridaySaturday)).single()
         assertEquals(DayDate(2030, 1, 25), after.schedule.nextDate)
         assertEquals(com.azimulkabir.actua.data.schedules.ScheduleStatus.PAID, after.status)
     }

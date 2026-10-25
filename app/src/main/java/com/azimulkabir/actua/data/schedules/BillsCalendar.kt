@@ -1,8 +1,7 @@
 package com.azimulkabir.actua.data.schedules
 
-import com.azimulkabir.actua.data.home.MonthStartRule
+import com.azimulkabir.actua.data.home.NonWorkingDays
 import com.azimulkabir.actua.model.CreditCardStatus
-import java.time.DayOfWeek
 import kotlin.math.abs
 
 enum class BillFilter { ALL, UPCOMING, OVERDUE, PAID }
@@ -43,7 +42,7 @@ object BillsCalendarEngine {
         year: Int,
         month: Int,
         today: DayDate = DayDate.today(),
-        weekendDays: Set<DayOfWeek> = MonthStartRule.DEFAULT_WEEKEND_DAYS,
+        nonWorkingDays: NonWorkingDays = NonWorkingDays(),
     ): List<BillCalendarItem> {
         val start = DayDate(year, month, 1)
         val end = DayDate(year, month, DayDate.lastDay(year, month))
@@ -76,7 +75,7 @@ object BillsCalendarEngine {
                     // Status and payment matching above use Actual's own date; only where the bill is
                     // drawn follows the user's weekend, and never into another month's grid.
                     val recurrence = (schedule.dateCondition as? ScheduleDateCondition.Recurring)?.config
-                    val shown = recurrence?.let { ScheduleRecurrence.displayDate(it, date, weekendDays) }
+                    val shown = recurrence?.let { ScheduleRecurrence.displayDate(it, date, nonWorkingDays) }
                         ?.takeIf { it.year == year && it.month == month } ?: date
                     add(item(listItem, shown, status, categoryNames, date == schedule.nextDate))
                 }

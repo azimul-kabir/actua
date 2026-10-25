@@ -354,6 +354,9 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   so clients never disagree about stored schedule state. A posted transaction takes the shown date
   (its date is ordinary transaction data) only while it still counts as paying the stored occurrence:
   exact-date and auto-posting schedules, which match from the stored date, keep Actual's date.
+  A device-local, per-budget list of holidays (Settings → Budget → Holidays, never synced) is skipped
+  like weekend days by the month start adjustment and by the schedule display and posting above;
+  no holiday calendar is bundled.
 - Per-budget device-local quick-access favorites for categories, accounts, and report dashboards;
   these are intentionally not synced because Actual has no favorite fields. Budget's Favorites
   filter composes with the other category filters, and the Favorites widget reads the same

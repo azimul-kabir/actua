@@ -70,7 +70,7 @@ budget file.
 | `custom-sync-mappings-<id>`, `sync-import-pending-<id>`, `sync-reimport-deleted-<id>`, `sync-import-notes-<id>`, `sync-import-transactions-<id>`, `sync-update-dates-<id>` | per-account bank-sync settings | not read or written | Ignored (bank sync parity is [#673](https://github.com/azimul-kabir/actua/issues/673)) |
 | `flags.<FeatureFlag>` | experimental features, synced per budget | not read or written. Actua's features follow their own availability; the only opt-in, Enable Banking, is device-local (`data/preferences/ExperimentalPreferences.kt`, whose comment wrongly calls Actual's flags device-local) | Ignored |
 
-**Device-local only, by design:** favorites, tab bar (including hide on scroll), month start day (with its weekend days, which also set where weekend-skipping schedules are shown as due, and working-day adjustment), home layout, start page, appearance,
+**Device-local only, by design:** favorites, tab bar (including hide on scroll), month start day (with its weekend days, which also set where weekend-skipping schedules are shown as due, the holiday list, and working-day adjustment), home layout, start page, appearance,
 category status colors, location and every other key in `data/preferences/` write only to
 Android `SharedPreferences` (each class calls `getSharedPreferences`; none takes a database).
 Actual has no synced equivalent, so nothing is lost for other clients.

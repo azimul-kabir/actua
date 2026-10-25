@@ -9,6 +9,7 @@
     <string name="settings_page_privacy">Privacidade</string>
     <string name="settings_page_budget">Orçamento</string>
     <string name="settings_page_category_colors">Cores de status das categorias</string>
+    <string name="settings_page_holidays">Feriados</string>
     <string name="settings_page_experimental">Experimental</string>
     <string name="settings_page_support">Apoiar o Actua</string>
     <string name="settings_page_about">Sobre</string>

@@ -2,11 +2,13 @@ package com.azimulkabir.actua.data.preferences
 
 import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
+import com.azimulkabir.actua.data.home.Holiday
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.home.StartDayAdjustment
 import java.time.DayOfWeek
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -81,5 +83,29 @@ class HomePreferencesTest {
         // An empty weekend (every day is a working day) is a real choice and survives a restart.
         fresh.setWeekendDays("budget-a", emptySet())
         assertEquals(emptySet<DayOfWeek>(), HomePreferences(context).weekendDays("budget-a"))
+    }
+
+    @Test
+    fun holidaysDefaultToNoneRoundTripSortedAndArePerBudget() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("home_preferences", Context.MODE_PRIVATE).edit().clear().commit()
+
+        val fresh = HomePreferences(context)
+        assertEquals(emptyList<Holiday>(), fresh.holidays("budget-a"))
+
+        fresh.setHolidays("budget-a", listOf(Holiday(LocalDate.of(2026, 6, 1), "Eid"), Holiday(LocalDate.of(2026, 2, 21))))
+        assertEquals(
+            listOf(Holiday(LocalDate.of(2026, 2, 21), ""), Holiday(LocalDate.of(2026, 6, 1), "Eid")),
+            HomePreferences(context).holidays("budget-a"),
+        )
+        assertEquals(emptyList<Holiday>(), HomePreferences(context).holidays("budget-b"))
+        assertEquals(
+            setOf(LocalDate.of(2026, 2, 21), LocalDate.of(2026, 6, 1)),
+            HomePreferences(context).monthStartRule("budget-a").holidays,
+        )
+        assertEquals(emptySet<LocalDate>(), HomePreferences(context).monthStartRule("budget-b").holidays)
+
+        fresh.setHolidays("budget-a", emptyList())
+        assertEquals(emptyList<Holiday>(), HomePreferences(context).holidays("budget-a"))
     }
 }

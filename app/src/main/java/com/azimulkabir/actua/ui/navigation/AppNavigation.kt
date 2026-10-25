@@ -174,6 +174,7 @@ import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.sync.SyncStatus
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.home.HomeLayout
+import com.azimulkabir.actua.data.home.HolidayCodec
 import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.navigation.TabItem
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
@@ -430,6 +431,7 @@ fun AppNavigation(
     val activeBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId }
     val favoriteBudgetId = activeBudgetId ?: "no-budget"
     var homeMonthStart by remember(favoriteBudgetId) { mutableStateOf(homePreferences.monthStartRule(favoriteBudgetId)) }
+    var homeHolidays by remember(favoriteBudgetId) { mutableStateOf(homePreferences.holidays(favoriteBudgetId)) }
     val availableBudgetOptions = remember(repositoryVersion) {
         BudgetFileManager(context).listLocalBudgets().map { budget ->
             BudgetSelectionItem(
@@ -531,20 +533,20 @@ fun AppNavigation(
     // transaction cleared while on the Budget tab no longer also recomputes Reports' aggregation
     // or refetches rule-editor data (accounts/categories/payees) that nothing is currently
     // showing — matching the existing pattern `payeeLocations` already used below.
-    val schedules = remember(dataVersion, homeMonthStart.weekendDays) {
-        repository.schedules(weekendDays = homeMonthStart.weekendDays)
+    val schedules = remember(dataVersion, homeMonthStart.nonWorkingDays) {
+        repository.schedules(nonWorkingDays = homeMonthStart.nonWorkingDays)
     }
     // Replan schedule reminders after any local write, sync or budget switch, so posted, skipped,
     // matched, edited and deleted occurrences stop notifying. Rapid successive writes replan once.
-    LaunchedEffect(dataVersion, repositoryVersion, scheduleRemindersEnabled, scheduleReminderLeadDays, homeMonthStart.weekendDays) {
+    LaunchedEffect(dataVersion, repositoryVersion, scheduleRemindersEnabled, scheduleReminderLeadDays, homeMonthStart.nonWorkingDays) {
         delay(1_000)
         withContext(Dispatchers.IO) { ScheduleReminderScheduler.refresh(appContext) }
     }
-    val upcomingTransactions = remember(schedules, homeMonthStart.weekendDays) {
+    val upcomingTransactions = remember(schedules, homeMonthStart.nonWorkingDays) {
         upcomingTransactionsFrom(
             schedules,
             defaultUpcomingLength = repository.upcomingScheduleLength(),
-            weekendDays = homeMonthStart.weekendDays,
+            nonWorkingDays = homeMonthStart.nonWorkingDays,
         )
     }
     val upcomingRecurringScheduleIds = remember(schedules) { recurringScheduleIds(schedules) }
@@ -811,11 +813,11 @@ fun AppNavigation(
         when (action) {
             UpcomingTransactionAction.POST ->
                 mutate(R.string.navigation_posting_schedule) {
-                    repository.postScheduleTransaction(id, today = false, weekendDays = homeMonthStart.weekendDays)
+                    repository.postScheduleTransaction(id, today = false, nonWorkingDays = homeMonthStart.nonWorkingDays)
                 }
             UpcomingTransactionAction.POST_TODAY ->
                 mutate(R.string.navigation_posting_schedule_today) {
-                    repository.postScheduleTransaction(id, today = true, weekendDays = homeMonthStart.weekendDays)
+                    repository.postScheduleTransaction(id, today = true, nonWorkingDays = homeMonthStart.nonWorkingDays)
                 }
             UpcomingTransactionAction.SKIP ->
                 mutate(R.string.navigation_skipping_next_date) { repository.skipScheduleNextDate(id) }
@@ -2536,7 +2538,7 @@ fun AppNavigation(
                 repository = repository,
                 dataVersion = dataVersion,
                 schedules = schedules,
-                weekendDays = homeMonthStart.weekendDays,
+                nonWorkingDays = homeMonthStart.nonWorkingDays,
                 accounts = accounts,
                 payeeNames = payeeNames,
                 hideDecimalPlaces = hideDecimalPlaces,
@@ -3073,6 +3075,13 @@ fun AppNavigation(
                         homePreferences.setWeekendDays(favoriteBudgetId, clamped.weekendDays)
                         homeMonthStart = clamped
                     },
+                    holidays = homeHolidays,
+                    onHolidaysChange = { holidays ->
+                        val normalized = HolidayCodec.normalize(holidays)
+                        homePreferences.setHolidays(favoriteBudgetId, normalized)
+                        homeHolidays = normalized
+                        homeMonthStart = homeMonthStart.copy(holidays = normalized.mapTo(mutableSetOf()) { it.date })
+                    },
                     onConnectionClick = { detail = DetailDestination.Connection },
                     decimalPlacesMode = decimalPlacesMode,
                     onDecimalPlacesModeChange = {
@@ -3475,7 +3484,7 @@ private fun NavigationScheduleScreens(
     repository: ActuaRepository,
     dataVersion: Int,
     schedules: List<ScheduleListItem>,
-    weekendDays: Set<java.time.DayOfWeek>,
+    nonWorkingDays: com.azimulkabir.actua.data.home.NonWorkingDays,
     accounts: List<Account>,
     payeeNames: List<String>,
     hideDecimalPlaces: Boolean,
@@ -3536,7 +3545,7 @@ private fun NavigationScheduleScreens(
             },
             onPost = { id, today ->
                 onMutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule, {}) {
-                    repository.postScheduleTransaction(id, today, weekendDays)
+                    repository.postScheduleTransaction(id, today, nonWorkingDays)
                 }
             },
             onSkip = { id ->
@@ -3630,7 +3639,7 @@ private fun NavigationScheduleScreens(
         }
         DetailDestination.BillsCalendar -> BillsCalendarScreen(
             loadItems = { year, month, cardBills ->
-                repository.billCalendarItems(year, month, cardBills, weekendDays)
+                repository.billCalendarItems(year, month, cardBills, nonWorkingDays)
             },
             refreshKey = dataVersion,
             hideDecimalPlaces = hideDecimalPlaces,
@@ -3661,7 +3670,7 @@ private fun NavigationScheduleScreens(
             },
             onPost = { id, today ->
                 onMutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule, {}) {
-                    repository.postScheduleTransaction(id, today, weekendDays)
+                    repository.postScheduleTransaction(id, today, nonWorkingDays)
                 }
             },
             onSkip = { id -> onMutate(R.string.navigation_skipping_occurrence, {}) { repository.skipScheduleNextDate(id) } },

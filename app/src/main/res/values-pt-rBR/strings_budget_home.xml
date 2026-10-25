@@ -335,6 +335,14 @@
     <string name="home_summary_adjustment_next">Próximo dia útil</string>
     <string name="home_summary_weekend_title">Dias de fim de semana</string>
     <string name="home_summary_weekend_description">Os dias de fim de semana são ignorados ao mover o início do mês para um dia útil e definem quando os agendamentos que evitam fins de semana aparecem como vencidos. O Actual mantém sábado e domingo, então isso muda apenas o que você vê neste dispositivo. Feriados não são considerados.</string>
+    <string name="settings_holidays_row_title">Feriados</string>
+    <string name="settings_holidays_row_none">Nenhum cadastrado</string>
+    <string name="settings_holidays_row_count">%1$d cadastrados</string>
+    <string name="settings_holidays_empty">Nenhum feriado cadastrado. Adicione as datas em que seu banco ou empresa fecha.</string>
+    <string name="settings_holidays_add">Adicionar feriado</string>
+    <string name="settings_holidays_label">Nome (opcional)</string>
+    <string name="settings_holidays_remove">Remover %1$s</string>
+    <string name="settings_holidays_note">Os feriados são ignorados como os dias de fim de semana ao mover o início do mês para um dia útil e ao mostrar agendamentos que evitam fins de semana. Isso vale apenas neste dispositivo; o Actual mantém sábado e domingo. Datas passadas ficam até você removê-las.</string>
 
     <plurals name="home_transactions_count">
         <item quantity="one">%1$d transação</item>

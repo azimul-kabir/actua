@@ -14,6 +14,7 @@ class SettingsNavigationMotionTest {
         assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.About))
         assertTrue(isForwardSettingsNavigation(SettingsPage.General, SettingsPage.Budget))
         assertTrue(isForwardSettingsNavigation(SettingsPage.Budget, SettingsPage.CategoryColors))
+        assertTrue(isForwardSettingsNavigation(SettingsPage.Budget, SettingsPage.Holidays))
     }
 
     @Test

@@ -127,4 +127,44 @@ class MonthStartRuleTest {
             }
         }
     }
+
+    @Test
+    fun aHolidayMovesTheStartLikeAWeekendDay() {
+        // 2026-04-25 is a Saturday; with a Friday-Saturday weekend Thursday the 23rd would be the start,
+        // but it is a listed holiday, so "previous" goes on to Wednesday the 22nd.
+        val thursday = setOf(d(2026, 4, 23))
+        val previous = MonthStartRule(25, StartDayAdjustment.PREVIOUS_WORKING_DAY, bangladeshWeekend, thursday)
+        assertEquals(d(2026, 4, 22), previous.startFor(java.time.YearMonth.of(2026, 4)))
+        // "Next" goes to Sunday the 26th, a working day here, unless that is a holiday too.
+        val next = MonthStartRule(25, StartDayAdjustment.NEXT_WORKING_DAY, bangladeshWeekend, setOf(d(2026, 4, 26)))
+        assertEquals(d(2026, 4, 27), next.startFor(java.time.YearMonth.of(2026, 4)))
+    }
+
+    @Test
+    fun aHolidayOnAWorkingStartDayMovesItAndNoneKeepsIt() {
+        val monday = setOf(d(2026, 5, 25))
+        assertEquals(d(2026, 5, 22), MonthStartRule(25, StartDayAdjustment.PREVIOUS_WORKING_DAY, MonthStartRule.DEFAULT_WEEKEND_DAYS, monday).startFor(java.time.YearMonth.of(2026, 5)))
+        assertEquals(d(2026, 5, 25), MonthStartRule(25, StartDayAdjustment.NONE, MonthStartRule.DEFAULT_WEEKEND_DAYS, monday).startFor(java.time.YearMonth.of(2026, 5)))
+    }
+
+    @Test
+    fun periodsStayContiguousWithHolidays() {
+        val holidays = setOf(d(2026, 3, 20), d(2026, 3, 21), d(2026, 4, 23), d(2026, 5, 25), d(2026, 12, 31), d(2027, 1, 1))
+        val rules = listOf(
+            MonthStartRule(25, StartDayAdjustment.PREVIOUS_WORKING_DAY, bangladeshWeekend, holidays),
+            MonthStartRule(25, StartDayAdjustment.NEXT_WORKING_DAY, bangladeshWeekend, holidays),
+            MonthStartRule(1, StartDayAdjustment.PREVIOUS_WORKING_DAY, bangladeshWeekend, holidays),
+            MonthStartRule(31, StartDayAdjustment.NEXT_WORKING_DAY, MonthStartRule.DEFAULT_WEEKEND_DAYS, holidays),
+        )
+        for (rule in rules) {
+            var day = d(2026, 1, 1)
+            while (day < d(2027, 3, 1)) {
+                val period = HomeSummaryPeriod.containing(day, rule)
+                assertTrue("$rule $day in $period", day >= period.start && day <= period.endInclusive)
+                val next = HomeSummaryPeriod.containing(period.endInclusive.plusDays(1), rule)
+                assertEquals("$rule after $period", period.endInclusive.plusDays(1), next.start)
+                day = day.plusDays(1)
+            }
+        }
+    }
 }
