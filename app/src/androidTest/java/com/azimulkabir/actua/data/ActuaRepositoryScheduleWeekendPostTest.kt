@@ -36,7 +36,7 @@ class ActuaRepositoryScheduleWeekendPostTest {
 
         assertTrue(repository.postScheduleTransaction(schedule.schedule.id, today = false, weekendDays = fridaySaturday))
 
-        assertEquals(listOf("20300124"), repository.transactions().filter { it.scheduleId != null }.map { it.date })
+        assertEquals(listOf<DayDate?>(DayDate(2030, 1, 24)), repository.scheduleTransactions(schedule.schedule.id).map { it.date })
         val after = repository.schedules(weekendDays = fridaySaturday).single()
         assertEquals(DayDate(2030, 1, 25), after.schedule.nextDate)
         assertEquals(com.azimulkabir.actua.data.schedules.ScheduleStatus.PAID, after.status)
@@ -48,7 +48,7 @@ class ActuaRepositoryScheduleWeekendPostTest {
 
         assertTrue(repository.postScheduleTransaction(schedule.schedule.id, today = false))
 
-        assertEquals(listOf("20300125"), repository.transactions().filter { it.scheduleId != null }.map { it.date })
+        assertEquals(listOf<DayDate?>(DayDate(2030, 1, 25)), repository.scheduleTransactions(schedule.schedule.id).map { it.date })
     }
 
     private fun createSalary(repository: ActuaRepository): com.azimulkabir.actua.data.schedules.ScheduleListItem {
