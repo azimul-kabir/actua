@@ -33,7 +33,8 @@ class MonthStartRuleTest {
     @Test
     fun nextWorkingDayMovesPastTheWeekend() {
         val next = rule(25, StartDayAdjustment.NEXT_WORKING_DAY)
-        assertEquals(d(2026, 4, 26), next.startFor(java.time.YearMonth.of(2026, 4)))
+        // Friday the 25th and the Saturday after it are both weekend days, so April moves to Sunday the 27th.
+        assertEquals(d(2026, 4, 27), next.startFor(java.time.YearMonth.of(2026, 4)))
         assertEquals(d(2026, 7, 26), next.startFor(java.time.YearMonth.of(2026, 7)))
         assertEquals(d(2026, 5, 25), next.startFor(java.time.YearMonth.of(2026, 5)))
     }
