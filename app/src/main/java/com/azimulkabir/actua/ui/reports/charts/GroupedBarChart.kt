@@ -426,9 +426,11 @@ fun GroupedBarChart(
                     val slotWidthDp = chartAreaWidthDp / n
                     visibleIndices.forEach { idx ->
                         Box(
+                            // Offset first, then size: with the width applied first the offset ate into the slot
+                            // and every label from the second on landed on its slot's left edge, not its centre.
                             modifier = Modifier
-                                .width(slotWidthDp)
-                                .padding(start = slotWidthDp * idx),
+                                .padding(start = slotWidthDp * idx)
+                                .width(slotWidthDp),
                             contentAlignment = Alignment.Center,
                         ) {
                             // Centred on the slot at its natural width, so a large font never clips it to the slot.
