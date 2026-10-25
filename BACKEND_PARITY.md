@@ -390,6 +390,10 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - "Copy last month's budget" Budget screen action that copies the previous month's budgeted
   amounts for visible expense categories (and visible income categories for tracking budgets)
   into the selected month, leaving hidden categories and groups unchanged
+- The budget type (envelope or tracking) is Actual's synced `budgetType` preference. Settings and the
+  Budget tab's menu both change it through the same mutation after a confirmation that says it applies
+  on every device; the Budget menu also lists the local budgets to switch between, using the same
+  switching as Settings > Manage
 - Actual's remaining budget actions (`budget/actions.ts`): preview-first "Set budgets to 3/6/12-month
   average" for the month, and per category: copy last month's budget, set to a 3/6/12-month average,
   copy to the rest of the year; envelope income "Hold automatically" (income carryover) and resetting
