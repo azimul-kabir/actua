@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.unit.dp
@@ -16,6 +15,8 @@ import com.azimulkabir.actua.model.BudgetOverview
 import com.azimulkabir.actua.model.BudgetTarget
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -68,27 +69,28 @@ class BudgetGoalIconsTest {
         compose.waitForIdle()
     }
 
-    private fun icons() = compose.onAllNodesWithContentDescription("Goal in progress", useUnmergedTree = true)
+    /** "Goal in progress" also labels the status dot and progress bar, so compare counts rather than expect one node. */
+    private fun iconCount() =
+        compose.onAllNodesWithContentDescription("Goal in progress", useUnmergedTree = true).fetchSemanticsNodes().size
+
+    private fun assertIconFollowsTheOption() {
+        val withIcon = iconCount()
+        assertTrue("the icon should be drawn by default", withIcon > 0)
+        compose.runOnIdle { showIcons.value = false }
+        compose.waitForIdle()
+        assertEquals("one icon fewer once hidden", withIcon - 1, iconCount())
+        compose.runOnIdle { showIcons.value = true }
+        compose.waitForIdle()
+        assertEquals("shown again", withIcon, iconCount())
+    }
 
     @Test fun planViewHidesTheIconAndShowsItAgain() {
         setBudget("Plan")
-        icons().assertCountEquals(1)
-        compose.runOnIdle { showIcons.value = false }
-        compose.waitForIdle()
-        icons().assertCountEquals(0)
-        compose.runOnIdle { showIcons.value = true }
-        compose.waitForIdle()
-        icons().assertCountEquals(1)
+        assertIconFollowsTheOption()
     }
 
     @Test fun tableViewHidesTheIconAndShowsItAgain() {
         setBudget("Table")
-        icons().assertCountEquals(1)
-        compose.runOnIdle { showIcons.value = false }
-        compose.waitForIdle()
-        icons().assertCountEquals(0)
-        compose.runOnIdle { showIcons.value = true }
-        compose.waitForIdle()
-        icons().assertCountEquals(1)
+        assertIconFollowsTheOption()
     }
 }
