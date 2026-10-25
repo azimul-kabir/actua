@@ -51,6 +51,9 @@ class OidcCallbackServer(
     val returnUrl: String
         get() = "http://localhost:${serverSocket.localPort}"
 
+    val isClosed: Boolean
+        get() = serverSocket.isClosed
+
     fun awaitToken(timeoutMillis: Int = DEFAULT_TIMEOUT_MILLIS): String {
         val deadline = System.currentTimeMillis() + timeoutMillis
         while (!serverSocket.isClosed) {
@@ -64,7 +67,7 @@ class OidcCallbackServer(
             socket.soTimeout = CLIENT_READ_TIMEOUT_MILLIS
             val token = try {
                 socket.use { client -> handleClient(client) }
-            } catch (_: IOException) {
+            } catch (ignored: IOException) {
                 null
             }
             if (token != null) return token
