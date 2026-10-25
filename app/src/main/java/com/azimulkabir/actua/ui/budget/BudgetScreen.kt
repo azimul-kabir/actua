@@ -1802,15 +1802,18 @@ private fun TableAmountText(
 ) {
     val layout = LocalTableLayout.current
     if (layout != null) {
-        // Columns were sized to these exact amounts at this scale, so there's nothing to shrink to fit.
+        val maxFontSize = style.fontSize * layout.scale
+        val minScale = minOf(LocalTableAmountMinScale.current, layout.scale)
+        val minFontSize = style.fontSize * minScale
         Text(
             amount,
-            style = style.copy(fontSize = style.fontSize * layout.scale),
+            style = style.copy(fontSize = maxFontSize),
             fontWeight = fontWeight,
             color = color,
             textAlign = textAlign,
             maxLines = 1,
             softWrap = false,
+            autoSize = TextAutoSize.StepBased(minFontSize = minFontSize, maxFontSize = maxFontSize),
             modifier = modifier,
         )
         return
