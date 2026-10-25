@@ -5,3 +5,4 @@
 • Post schedules on the date shown
 • Target icon on Budget balance pills
 • Summary and Cash Flow follow your month start
+• Option to hide goal icons on balance pills
