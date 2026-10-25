@@ -683,6 +683,11 @@ fun AppNavigation(
     var showBudgetStatusBanners by remember { mutableStateOf(displayPreferences.showBudgetStatusBanners) }
     var showGroupTotals by remember { mutableStateOf(displayPreferences.showGroupTotals) }
     var showBalancePills by remember { mutableStateOf(displayPreferences.showBalancePills) }
+    var showGoalIcons by remember { mutableStateOf(displayPreferences.showGoalIcons) }
+    val onShowGoalIconsChange: (Boolean) -> Unit = {
+        displayPreferences.showGoalIcons = it
+        showGoalIcons = it
+    }
     var hideFullySpentCategories by remember { mutableStateOf(displayPreferences.hideFullySpentCategories) }
     var budgetCategoryView by remember { mutableStateOf(displayPreferences.budgetCategoryView) }
     var showCategoryFilters by remember { mutableStateOf(displayPreferences.showCategoryFilters) }
@@ -2833,6 +2838,8 @@ fun AppNavigation(
                         displayPreferences.showBalancePills = it
                         showBalancePills = it
                     },
+                    showGoalIcons = showGoalIcons,
+                    onShowGoalIconsChange = onShowGoalIconsChange,
                     hideFullySpent = hideFullySpentCategories,
                     onHideFullySpentChange = {
                         displayPreferences.hideFullySpentCategories = it

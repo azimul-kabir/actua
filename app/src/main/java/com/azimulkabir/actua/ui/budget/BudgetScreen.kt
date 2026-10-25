@@ -244,6 +244,8 @@ fun BudgetScreen(
     onShowGroupTotalsChange: (Boolean) -> Unit = {},
     showBalancePills: Boolean = true,
     onShowBalancePillsChange: (Boolean) -> Unit = {},
+    showGoalIcons: Boolean = true,
+    onShowGoalIconsChange: (Boolean) -> Unit = {},
     hideFullySpent: Boolean = false,
     onHideFullySpentChange: (Boolean) -> Unit = {},
     categoryView: String = "All",
@@ -379,7 +381,7 @@ fun BudgetScreen(
         uncategorizedTransactions.sumOf { it.amountCents }
     }
 
-    CompositionLocalProvider(LocalShowBalancePills provides showBalancePills) { BoxWithConstraints(modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalShowBalancePills provides showBalancePills, LocalShowGoalIcons provides showGoalIcons) { BoxWithConstraints(modifier.fillMaxSize()) {
         val screenWidth = maxWidth
         Column(modifier = Modifier.fillMaxSize()) {
             BudgetToolbar(
@@ -394,6 +396,7 @@ fun BudgetScreen(
                 showBudgetStatusBanners = showBudgetStatusBanners,
                 showGroupTotals = showGroupTotals,
                 showBalancePills = showBalancePills,
+                showGoalIcons = showGoalIcons,
                 hideFullySpent = hideFullySpent,
                 showHidden = showHidden,
                 showCategoryFilters = showCategoryFilters,
@@ -406,6 +409,7 @@ fun BudgetScreen(
                 onShowBudgetStatusBannersChange = onShowBudgetStatusBannersChange,
                 onShowGroupTotalsChange = onShowGroupTotalsChange,
                 onShowBalancePillsChange = onShowBalancePillsChange,
+                onShowGoalIconsChange = onShowGoalIconsChange,
                 onHideFullySpentChange = onHideFullySpentChange,
                 onShowHiddenChange = onShowHiddenChange,
                 onShowCategoryFiltersChange = onShowCategoryFiltersChange,
@@ -967,6 +971,7 @@ private fun BudgetToolbar(
     showBudgetStatusBanners: Boolean,
     showGroupTotals: Boolean,
     showBalancePills: Boolean,
+    showGoalIcons: Boolean,
     hideFullySpent: Boolean,
     showHidden: Boolean,
     showCategoryFilters: Boolean,
@@ -979,6 +984,7 @@ private fun BudgetToolbar(
     onShowBudgetStatusBannersChange: (Boolean) -> Unit,
     onShowGroupTotalsChange: (Boolean) -> Unit,
     onShowBalancePillsChange: (Boolean) -> Unit,
+    onShowGoalIconsChange: (Boolean) -> Unit,
     onHideFullySpentChange: (Boolean) -> Unit,
     onShowHiddenChange: (Boolean) -> Unit,
     onShowCategoryFiltersChange: (Boolean) -> Unit,
@@ -1058,6 +1064,7 @@ private fun BudgetToolbar(
                 ActuaSwitchMenuItem(stringResource(R.string.budget_show_progress_bars), showProgressBars, onShowProgressBarsChange)
                 ActuaSwitchMenuItem(stringResource(R.string.budget_show_group_totals), showGroupTotals, onShowGroupTotalsChange)
                 ActuaSwitchMenuItem(stringResource(R.string.budget_show_balance_pills), showBalancePills, onShowBalancePillsChange)
+                ActuaSwitchMenuItem(stringResource(R.string.budget_show_goal_icons), showGoalIcons, onShowGoalIconsChange)
                 HorizontalDivider()
                 ActuaSwitchMenuItem(stringResource(R.string.budget_hide_fully_spent), hideFullySpent, onHideFullySpentChange)
                 ActuaSwitchMenuItem(stringResource(R.string.budget_show_hidden), showHidden, onShowHiddenChange)
@@ -1911,10 +1918,11 @@ private fun rememberTableLayout(
     /** The overview card above the table, whose amounts sit in the same columns. */
     overview: BudgetOverview? = null,
 ): TableLayout? {
+    val showGoalIcons = LocalShowGoalIcons.current
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val typography = MaterialTheme.typography
-    return remember(availableWidth, groups, showSpent, showGroupTotals, hideDecimalPlaces, overview, density, typography) {
+    return remember(availableWidth, groups, showSpent, showGroupTotals, hideDecimalPlaces, overview, density, typography, showGoalIcons) {
         // Every amount shares one size (bodyMedium), so only the weight differs between them.
         val headerStyle = typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
         val balanceStyle = typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
@@ -1959,7 +1967,7 @@ private fun rememberTableLayout(
             showSpent = showSpent,
             gap = TableAmountGap.value,
             pillPadding = CategoryPillPadding.value,
-            iconWidth = if (hasTarget) TargetIconWidth.value else 0f,
+            iconWidth = if (hasTarget && showGoalIcons) TargetIconWidth.value else 0f,
         )
     }
 }
@@ -2600,11 +2608,12 @@ internal fun BalancePill(
             BalancePillTone.EMPTY -> colors.onSurfaceVariant.copy(alpha = 0.55f)
         }
         val padding = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding)
-        if (targetFunding != null) {
+        val funding = targetFunding.takeIf { LocalShowGoalIcons.current }
+        if (funding != null) {
             Row(padding, verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    targetFundingIcon(targetFunding),
-                    contentDescription = stringResource(targetFundingDescription(targetFunding)),
+                    targetFundingIcon(funding),
+                    contentDescription = stringResource(targetFundingDescription(funding)),
                     modifier = Modifier.padding(end = if (tableAmount) TableTargetIconGap else TargetIconGap).size(TargetIconSize),
                     tint = color,
                 )
@@ -2644,6 +2653,9 @@ private fun targetFundingDescription(funding: TargetFunding) = when (funding) {
 
 /** Budget display option "Show balance pills": whether balances are drawn on a filled pill. */
 private val LocalShowBalancePills = compositionLocalOf { true }
+
+/** Budget display option "Show goal icons": whether a balance pill leads with its target funding icon. */
+internal val LocalShowGoalIcons = compositionLocalOf { true }
 
 /** How loudly a category's balance pill is drawn; see [BalancePill]. */
 internal enum class BalancePillTone { ALERT, NEUTRAL, EMPTY }

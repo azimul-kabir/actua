@@ -96,6 +96,15 @@ class DisplayPreferencesTest {
         assertEquals(false, DisplayPreferences(context).showBalancePills)
     }
 
+    @Test fun goalIconsDefaultOnAndPersistWhenDisabled() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(true, DisplayPreferences(context).showGoalIcons)
+
+        DisplayPreferences(context).showGoalIcons = false
+
+        assertEquals(false, DisplayPreferences(context).showGoalIcons)
+    }
+
     @Test fun categoryStatusDotsDefaultOnAndPersistWhenDisabled() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals(true, DisplayPreferences(context).showCategoryStatusDots)

@@ -17,6 +17,7 @@
     <string name="budget_show_progress_bars">Show progress bars</string>
     <string name="budget_show_group_totals">Show group totals</string>
     <string name="budget_show_balance_pills">Show balance pills</string>
+    <string name="budget_show_goal_icons">Show goal icons</string>
     <string name="budget_hide_fully_spent">Hide fully spent</string>
     <string name="budget_show_hidden">Show hidden categories and groups</string>
     <string name="budget_show_filters">Show category filters</string>

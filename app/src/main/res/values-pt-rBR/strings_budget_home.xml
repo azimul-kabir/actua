@@ -17,6 +17,7 @@
     <string name="budget_show_progress_bars">Exibir barras de progresso</string>
     <string name="budget_show_group_totals">Exibir totais dos grupos</string>
     <string name="budget_show_balance_pills">Exibir etiquetas de saldo</string>
+    <string name="budget_show_goal_icons">Exibir ícones de meta</string>
     <string name="budget_hide_fully_spent">Ocultar categorias totalmente gastas</string>
     <string name="budget_show_hidden">Mostrar categorias e grupos ocultos</string>
     <string name="budget_show_filters">Exibir filtros de categorias</string>

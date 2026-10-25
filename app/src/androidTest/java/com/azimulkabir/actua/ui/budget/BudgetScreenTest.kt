@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.azimulkabir.actua.R
@@ -58,7 +59,7 @@ class BudgetScreenTest {
         }
 
         compose.onNodeWithContentDescription(label(R.string.budget_display_options)).performClick()
-        compose.onNodeWithText(label(R.string.budget_collapse_all_groups)).performClick()
+        compose.onNodeWithText(label(R.string.budget_collapse_all_groups)).performScrollTo().performClick()
         compose.onNodeWithContentDescription(label(R.string.budget_expand_group, "Monthly bills")).assertExists()
 
         compose.runOnIdle { showScreen = false }

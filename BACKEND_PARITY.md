@@ -340,6 +340,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   balance against a target) the icon shows not started, in progress, reached or funded past it, using
   the same rules as the bar; any other target keeps a plain target icon. Presentation only, derived
   from existing target and balance data, nothing written.
+  The device-local "Show goal icons" option in the Budget menu hides the icon in both views, and the
+  table stops reserving its width, so the columns match the layout from before the icons.
 - Device-local month start day (Settings → Budget, per budget, never synced; Actua-specific, Actual
   has no such setting): Home and Accounts monthly summaries, a custom report's month presets
   (This month, Last month, Last N months) and the Summary, Cash Flow and Sankey cards' default

@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.budget
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -54,6 +55,18 @@ class BalancePillTargetIconTest {
     @Test fun aTableCategoryWithoutATargetShowsNoIcon() {
         compose.setContent {
             MaterialTheme { BalancePill(10_000, false, BudgetProgressState.FUNDED, tableAmount = true) }
+        }
+        icons().assertCountEquals(0)
+    }
+
+    @Test fun hidingGoalIconsRemovesTheIconInBothViews() {
+        compose.setContent {
+            MaterialTheme {
+                CompositionLocalProvider(LocalShowGoalIcons provides false) {
+                    BalancePill(10_000, false, BudgetProgressState.FUNDED, targetFunding = TargetFunding.PLAIN)
+                    BalancePill(10_000, false, BudgetProgressState.FUNDED, targetFunding = TargetFunding.PLAIN, tableAmount = true)
+                }
+            }
         }
         icons().assertCountEquals(0)
     }
