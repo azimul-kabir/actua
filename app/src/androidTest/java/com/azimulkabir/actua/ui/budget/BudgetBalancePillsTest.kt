@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
@@ -78,9 +79,13 @@ class BudgetBalancePillsTest {
                         groups = groups,
                         overview = overview,
                         budgetView = view,
-                        showBalancePills = showPills.value,
-                        // The overspent banner repeats "−$70.00" on its own tinted background.
-                        showBudgetStatusBanners = false,
+                        displayOptions = BudgetDisplayOptions(
+                            showSpent = false,
+                            showGroupTotals = false,
+                            showBalancePills = showPills.value,
+                            // The overspent banner repeats "−$70.00" on its own tinted background.
+                            showBudgetStatusBanners = false,
+                        ),
                     )
                 }
             }

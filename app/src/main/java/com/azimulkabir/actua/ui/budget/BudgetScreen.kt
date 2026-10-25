@@ -109,6 +109,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -159,6 +160,7 @@ import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
+import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.ui.components.ActuaSwitchMenuItem
 import com.azimulkabir.actua.ui.components.CategoryStatusDot
 import com.azimulkabir.actua.ui.components.RenameDialog
@@ -228,30 +230,13 @@ fun BudgetScreen(
     /** Actual's budget months; the month picker offers only these. Null allows any month. */
     monthRange: ClosedRange<java.time.YearMonth>? = null,
     hideDecimalPlaces: Boolean = false,
-    showHidden: Boolean = false,
-    onShowHiddenChange: (Boolean) -> Unit = {},
-    showSpent: Boolean = false,
-    onShowSpentChange: (Boolean) -> Unit = {},
-    showProgressBars: Boolean = true,
-    onShowProgressBarsChange: (Boolean) -> Unit = {},
+    /** The device-local display switches; defaults match the screen's previous per-switch defaults. */
+    displayOptions: BudgetDisplayOptions = BudgetDisplayOptions(showSpent = false, showGroupTotals = false),
+    onDisplayOptionsChange: (BudgetDisplayOptions) -> Unit = {},
     budgetView: String = "Plan",
     onBudgetViewChange: (String) -> Unit = {},
-    showOverview: Boolean = true,
-    onShowOverviewChange: (Boolean) -> Unit = {},
-    showBudgetStatusBanners: Boolean = true,
-    onShowBudgetStatusBannersChange: (Boolean) -> Unit = {},
-    showGroupTotals: Boolean = false,
-    onShowGroupTotalsChange: (Boolean) -> Unit = {},
-    showBalancePills: Boolean = true,
-    onShowBalancePillsChange: (Boolean) -> Unit = {},
-    showGoalIcons: Boolean = true,
-    onShowGoalIconsChange: (Boolean) -> Unit = {},
-    hideFullySpent: Boolean = false,
-    onHideFullySpentChange: (Boolean) -> Unit = {},
     categoryView: String = "All",
     onCategoryViewChange: (String) -> Unit = {},
-    showCategoryFilters: Boolean = true,
-    onShowCategoryFiltersChange: (Boolean) -> Unit = {},
     favoritesOnly: Boolean = false,
     onFavoritesOnlyChange: (Boolean) -> Unit = {},
     favoriteCategoryIds: Set<String> = emptySet(),
@@ -311,6 +296,16 @@ fun BudgetScreen(
     hideIncomeGroup: Boolean = false,
     hasFab: Boolean = true,
 ) {
+    val showHidden = displayOptions.showHidden
+    val showSpent = displayOptions.showSpent
+    val showProgressBars = displayOptions.showProgressBars
+    val showOverview = displayOptions.showOverview
+    val showBudgetStatusBanners = displayOptions.showBudgetStatusBanners
+    val showGroupTotals = displayOptions.showGroupTotals
+    val showBalancePills = displayOptions.showBalancePills
+    val showGoalIcons = displayOptions.showGoalIcons
+    val hideFullySpent = displayOptions.hideFullySpent
+    val showCategoryFilters = displayOptions.showCategoryFilters
     val context = LocalContext.current
     val budgetUiPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("budget_ui_preferences", android.content.Context.MODE_PRIVATE)
@@ -389,40 +384,18 @@ fun BudgetScreen(
                 onMonthChange = onMonthChange,
                 monthRange = monthRange,
                 optionsExpanded = optionsExpanded,
-                showSpent = showSpent,
-                showProgressBars = showProgressBars,
                 budgetView = budgetView,
-                showOverview = showOverview,
-                showBudgetStatusBanners = showBudgetStatusBanners,
-                showGroupTotals = showGroupTotals,
-                showBalancePills = showBalancePills,
-                showGoalIcons = showGoalIcons,
-                hideFullySpent = hideFullySpent,
-                showHidden = showHidden,
-                showCategoryFilters = showCategoryFilters,
+                displayOptions = displayOptions,
                 onOptionsChange = { optionsExpanded = it },
                 onAdd = { showAddSheet = true },
-                onShowSpentChange = onShowSpentChange,
-                onShowProgressBarsChange = onShowProgressBarsChange,
                 onBudgetViewChange = onBudgetViewChange,
-                onShowOverviewChange = onShowOverviewChange,
-                onShowBudgetStatusBannersChange = onShowBudgetStatusBannersChange,
-                onShowGroupTotalsChange = onShowGroupTotalsChange,
-                onShowBalancePillsChange = onShowBalancePillsChange,
-                onShowGoalIconsChange = onShowGoalIconsChange,
-                onHideFullySpentChange = onHideFullySpentChange,
-                onShowHiddenChange = onShowHiddenChange,
-                onShowCategoryFiltersChange = onShowCategoryFiltersChange,
+                onDisplayOptionsChange = onDisplayOptionsChange,
                 onExpandAll = {
                     saveCollapsedGroups(emptySet())
                     optionsExpanded = false
                 },
                 onCollapseAll = {
                     saveCollapsedGroups(groups.mapTo(mutableSetOf()) { it.name })
-                    optionsExpanded = false
-                },
-                onCopyPreviousMonth = {
-                    onCopyPreviousMonth()
                     optionsExpanded = false
                 },
                 onSearch = onSearch,
@@ -706,6 +679,10 @@ fun BudgetScreen(
                 showAddSheet = false
                 zeroBudgetPreviewOpen = true
             },
+            onCopyPreviousMonth = {
+                showAddSheet = false
+                onCopyPreviousMonth()
+            },
             onPreviewAverage = { months ->
                 showAddSheet = false
                 averagePreview = onPreviewAverageBudget(months)?.let { months to it }
@@ -964,37 +941,22 @@ private fun BudgetToolbar(
     onMonthChange: (String) -> Unit,
     monthRange: ClosedRange<java.time.YearMonth>?,
     optionsExpanded: Boolean,
-    showSpent: Boolean,
-    showProgressBars: Boolean,
     budgetView: String,
-    showOverview: Boolean,
-    showBudgetStatusBanners: Boolean,
-    showGroupTotals: Boolean,
-    showBalancePills: Boolean,
-    showGoalIcons: Boolean,
-    hideFullySpent: Boolean,
-    showHidden: Boolean,
-    showCategoryFilters: Boolean,
+    displayOptions: BudgetDisplayOptions,
     onOptionsChange: (Boolean) -> Unit,
     onAdd: () -> Unit,
-    onShowSpentChange: (Boolean) -> Unit,
-    onShowProgressBarsChange: (Boolean) -> Unit,
     onBudgetViewChange: (String) -> Unit,
-    onShowOverviewChange: (Boolean) -> Unit,
-    onShowBudgetStatusBannersChange: (Boolean) -> Unit,
-    onShowGroupTotalsChange: (Boolean) -> Unit,
-    onShowBalancePillsChange: (Boolean) -> Unit,
-    onShowGoalIconsChange: (Boolean) -> Unit,
-    onHideFullySpentChange: (Boolean) -> Unit,
-    onShowHiddenChange: (Boolean) -> Unit,
-    onShowCategoryFiltersChange: (Boolean) -> Unit,
+    onDisplayOptionsChange: (BudgetDisplayOptions) -> Unit,
     onExpandAll: () -> Unit,
     onCollapseAll: () -> Unit,
-    onCopyPreviousMonth: () -> Unit,
     onSearch: () -> Unit,
     onManageCategories: () -> Unit,
 ) {
     var monthPickerOpen by remember { mutableStateOf(false) }
+    var optionsSheetOpen by remember { mutableStateOf(false) }
+    var expandedSections by rememberSaveable(stateSaver = BudgetOptionsSectionsSaver) {
+        mutableStateOf(setOf(BudgetOptionsSection.ROWS))
+    }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -1036,9 +998,6 @@ private fun BudgetToolbar(
                     IconButton(onClick = onAdd) {
                         Icon(Icons.Outlined.AutoAwesome, contentDescription = stringResource(R.string.budget_add_to_budget))
                     }
-                    IconButton(onClick = onManageCategories) {
-                        Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = stringResource(R.string.budget_manage_categories))
-                    }
                     IconButton(onClick = { onOptionsChange(true) }) {
                         Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.budget_display_options))
                     }
@@ -1052,28 +1011,23 @@ private fun BudgetToolbar(
                     onBudgetViewChange(if (it) "Plan" else "Table")
                     onOptionsChange(false)
                 })
-                HorizontalDivider()
-                ActuaSwitchMenuItem(stringResource(R.string.budget_show_overview), showOverview, onShowOverviewChange)
-                ActuaSwitchMenuItem(stringResource(R.string.budget_show_warnings), showBudgetStatusBanners, onShowBudgetStatusBannersChange)
-                ActuaSwitchMenuItem(
-                    if (budgetView == "Plan") stringResource(R.string.budget_show_spending_details)
-                    else stringResource(R.string.budget_show_spent_column),
-                    showSpent,
-                    onShowSpentChange,
-                )
-                ActuaSwitchMenuItem(stringResource(R.string.budget_show_progress_bars), showProgressBars, onShowProgressBarsChange)
-                ActuaSwitchMenuItem(stringResource(R.string.budget_show_group_totals), showGroupTotals, onShowGroupTotalsChange)
-                ActuaSwitchMenuItem(stringResource(R.string.budget_show_balance_pills), showBalancePills, onShowBalancePillsChange)
-                ActuaSwitchMenuItem(stringResource(R.string.budget_show_goal_icons), showGoalIcons, onShowGoalIconsChange)
-                HorizontalDivider()
-                ActuaSwitchMenuItem(stringResource(R.string.budget_hide_fully_spent), hideFullySpent, onHideFullySpentChange)
-                ActuaSwitchMenuItem(stringResource(R.string.budget_show_hidden), showHidden, onShowHiddenChange)
-                ActuaSwitchMenuItem(stringResource(R.string.budget_show_filters), showCategoryFilters, onShowCategoryFiltersChange)
-                HorizontalDivider()
                 DropdownMenuItem(text = { Text(stringResource(R.string.budget_expand_all_groups)) }, onClick = onExpandAll)
                 DropdownMenuItem(text = { Text(stringResource(R.string.budget_collapse_all_groups)) }, onClick = onCollapseAll)
                 HorizontalDivider()
-                DropdownMenuItem(text = { Text(stringResource(R.string.budget_copy_last_month)) }, onClick = onCopyPreviousMonth)
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.budget_manage_categories)) },
+                    onClick = {
+                        onOptionsChange(false)
+                        onManageCategories()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.budget_display_options_menu)) },
+                    onClick = {
+                        onOptionsChange(false)
+                        optionsSheetOpen = true
+                    },
+                )
             }
         }
     }
@@ -1086,6 +1040,16 @@ private fun BudgetToolbar(
                 onMonthChange(it)
                 monthPickerOpen = false
             },
+        )
+    }
+    if (optionsSheetOpen) {
+        BudgetDisplayOptionsSheet(
+            options = displayOptions,
+            onOptionsChange = onDisplayOptionsChange,
+            planView = budgetView == "Plan",
+            expanded = expandedSections,
+            onExpandedChange = { expandedSections = it },
+            onDismiss = { optionsSheetOpen = false },
         )
     }
 }
@@ -3440,6 +3404,7 @@ private fun averageBudgetTitle(months: Int) =
 @Composable
 private fun AddBudgetSheet(onDismiss: () -> Unit,
     onApplyTemplate: (Boolean) -> Unit, onPreviewCleanup: () -> Unit, onPreviewZeroBudget: () -> Unit,
+    onCopyPreviousMonth: () -> Unit = {},
     onPreviewAverage: (Int) -> Unit = {}) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ActuaSheetContent {
@@ -3454,8 +3419,10 @@ private fun AddBudgetSheet(onDismiss: () -> Unit,
                 ActuaSheetAction(stringResource(R.string.budget_month_end_cleanup), icon = Icons.Outlined.CleaningServices, onClick = onPreviewCleanup)
             }
             ActuaSheetCard {
-                listOf(3, 6, 12).forEachIndexed { index, months ->
-                    if (index > 0) ActuaCardDivider()
+                ActuaSheetAction(stringResource(R.string.budget_copy_last_month), icon = Icons.Outlined.Replay,
+                    onClick = onCopyPreviousMonth)
+                listOf(3, 6, 12).forEach { months ->
+                    ActuaCardDivider()
                     ActuaSheetAction(averageBudgetTitle(months), icon = Icons.Outlined.Calculate,
                         onClick = { onPreviewAverage(months) })
                 }

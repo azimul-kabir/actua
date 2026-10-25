@@ -100,6 +100,35 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(HIDE_FULLY_SPENT_CATEGORIES, false)
         set(value) { preferences.edit().putBoolean(HIDE_FULLY_SPENT_CATEGORIES, value).apply() }
 
+    /** The Budget tab's display switches as one value; writing stores them together under their existing keys. */
+    var budgetDisplayOptions: BudgetDisplayOptions
+        get() = BudgetDisplayOptions(
+            showOverview = showBudgetOverview,
+            showBudgetStatusBanners = showBudgetStatusBanners,
+            showCategoryFilters = showCategoryFilters,
+            showSpent = showSpentColumn,
+            showProgressBars = showBudgetProgressBars,
+            showGroupTotals = showGroupTotals,
+            showBalancePills = showBalancePills,
+            showGoalIcons = showGoalIcons,
+            hideFullySpent = hideFullySpentCategories,
+            showHidden = showHiddenCategories,
+        )
+        set(value) {
+            preferences.edit()
+                .putBoolean(SHOW_BUDGET_OVERVIEW, value.showOverview)
+                .putBoolean(SHOW_OVERSPENT_WARNING, value.showBudgetStatusBanners)
+                .putBoolean(SHOW_CATEGORY_FILTERS, value.showCategoryFilters)
+                .putBoolean(SHOW_SPENT_COLUMN, value.showSpent)
+                .putBoolean(SHOW_BUDGET_PROGRESS_BARS, value.showProgressBars)
+                .putBoolean(SHOW_GROUP_TOTALS, value.showGroupTotals)
+                .putBoolean(SHOW_BALANCE_PILLS, value.showBalancePills)
+                .putBoolean(SHOW_GOAL_ICONS, value.showGoalIcons)
+                .putBoolean(HIDE_FULLY_SPENT_CATEGORIES, value.hideFullySpent)
+                .putBoolean(SHOW_HIDDEN_CATEGORIES, value.showHidden)
+                .apply()
+        }
+
     var budgetCategoryView: String
         get() = preferences.getString(BUDGET_CATEGORY_VIEW, "All") ?: "All"
         set(value) { preferences.edit().putString(BUDGET_CATEGORY_VIEW, value).apply() }

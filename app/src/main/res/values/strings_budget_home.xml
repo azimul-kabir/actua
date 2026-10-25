@@ -18,6 +18,15 @@
     <string name="budget_show_group_totals">Show group totals</string>
     <string name="budget_show_balance_pills">Show balance pills</string>
     <string name="budget_show_goal_icons">Show goal icons</string>
+    <string name="budget_display_options_menu">Display options</string>
+    <string name="budget_display_options_title">Display options</string>
+    <string name="budget_options_section_page">Page</string>
+    <string name="budget_options_section_rows">Each category row</string>
+    <string name="budget_options_section_categories">Categories shown</string>
+    <string name="budget_options_section_summary">%1$d of %2$d on</string>
+    <string name="budget_options_section_expanded">Expanded</string>
+    <string name="budget_options_section_collapsed">Collapsed</string>
+    <string name="budget_show_status_dots">Show status dots</string>
     <string name="budget_hide_fully_spent">Hide fully spent</string>
     <string name="budget_show_hidden">Show hidden categories and groups</string>
     <string name="budget_show_filters">Show category filters</string>

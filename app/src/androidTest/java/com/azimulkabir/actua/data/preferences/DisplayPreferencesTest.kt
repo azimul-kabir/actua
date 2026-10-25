@@ -105,6 +105,28 @@ class DisplayPreferencesTest {
         assertEquals(false, DisplayPreferences(context).showGoalIcons)
     }
 
+    @Test fun budgetDisplayOptionsRoundTripUnderTheirExistingKeys() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val preferences = DisplayPreferences(context)
+        val options = BudgetDisplayOptions(
+            showOverview = false, showBudgetStatusBanners = false, showCategoryFilters = false, showSpent = false,
+            showProgressBars = false, showGroupTotals = false, showBalancePills = false, showGoalIcons = false,
+            hideFullySpent = true, showHidden = true,
+        )
+
+        preferences.budgetDisplayOptions = options
+
+        assertEquals(options, DisplayPreferences(context).budgetDisplayOptions)
+        // The grouped value reads and writes the same stored keys as the individual properties.
+        assertEquals(false, DisplayPreferences(context).showGoalIcons)
+        assertEquals(true, DisplayPreferences(context).hideFullySpentCategories)
+    }
+
+    @Test fun budgetDisplayOptionsDefaultToTheStoredDefaults() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(BudgetDisplayOptions(), DisplayPreferences(context).budgetDisplayOptions)
+    }
+
     @Test fun categoryStatusDotsDefaultOnAndPersistWhenDisabled() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals(true, DisplayPreferences(context).showCategoryStatusDots)
