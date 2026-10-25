@@ -6,3 +6,5 @@
 • Target icon on Budget balance pills
 • Summary and Cash Flow follow your month start
 • Option to hide goal icons on balance pills
+• Shorter Budget menu with a Display options sheet
+• Switch budget from the Budget tab
