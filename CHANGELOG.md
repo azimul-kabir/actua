@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a holiday list in Settings > Budget that the working-day month start and weekend-skipping schedules skip ([#1299](https://github.com/azimul-kabir/actua/pull/1299))
 - Added posting a weekend-skipping schedule on the due date shown for your weekend days ([#1298](https://github.com/azimul-kabir/actua/pull/1298))
 - Added showing weekend-skipping schedules on your chosen weekend days in Settings > Budget ([#1295](https://github.com/azimul-kabir/actua/pull/1295))
 - Added weekend days and a previous or next working day option for the month start day in Settings > Budget ([#1294](https://github.com/azimul-kabir/actua/pull/1294))
