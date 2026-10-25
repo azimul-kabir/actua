@@ -94,13 +94,13 @@ class BudgetDisplayOptionsSheetTest {
     @Test fun aSwitchInTheSheetAppliesImmediatelyAndUpdatesTheSummary() {
         setBudget()
         openSheet()
-        compose.onNodeWithText("6 of 6 on").assertExists()
+        compose.onNodeWithText("6 of 7 on").assertExists()
 
         compose.onNodeWithText(label(R.string.budget_show_goal_icons)).performScrollTo().performClick()
 
         assertFalse(options.showGoalIcons)
         assertTrue(options.showBalancePills)
-        compose.onNodeWithText("5 of 6 on").assertExists()
+        compose.onNodeWithText("5 of 7 on").assertExists()
     }
 
     @Test fun statusDotsFollowTheSharedSetting() {
@@ -114,6 +114,20 @@ class BudgetDisplayOptionsSheetTest {
             assertFalse(state.showDots)
         } finally {
             state.updateShowDots(before)
+        }
+    }
+
+    @Test fun colorBalancesFollowTheSharedSetting() {
+        val state = CategoryStatusColorState(context)
+        val before = state.colorBudgetedAmounts
+        try {
+            state.updateColorBudgetedAmounts(false)
+            setBudget(state)
+            openSheet()
+            compose.onNodeWithText(label(R.string.settings_color_balances)).performScrollTo().performClick()
+            assertTrue(state.colorBudgetedAmounts)
+        } finally {
+            state.updateColorBudgetedAmounts(before)
         }
     }
 

@@ -63,6 +63,7 @@ internal fun BudgetDisplayOptionsSheet(
 ) {
     val statusColors = LocalCategoryStatusColors.current
     val statusDots = statusColors?.showDots ?: true
+    val colorBalances = statusColors?.colorBudgetedAmounts ?: false
     fun toggle(section: BudgetOptionsSection) =
         onExpandedChange(if (section in expanded) expanded - section else expanded + section)
 
@@ -89,7 +90,7 @@ internal fun BudgetDisplayOptionsSheet(
                 }
             }
             val rowSwitches = listOf(
-                options.showSpent, options.showProgressBars, statusDots, options.showBalancePills,
+                options.showSpent, options.showProgressBars, statusDots, colorBalances, options.showBalancePills,
                 options.showGoalIcons, options.showGroupTotals,
             )
             OptionsSection(
@@ -111,6 +112,10 @@ internal fun BudgetDisplayOptionsSheet(
                 ActuaCardDivider()
                 OptionSwitchRow(stringResource(R.string.budget_show_status_dots), statusDots) {
                     statusColors?.updateShowDots(it)
+                }
+                ActuaCardDivider()
+                OptionSwitchRow(stringResource(R.string.settings_color_balances), colorBalances) {
+                    statusColors?.updateColorBudgetedAmounts(it)
                 }
                 ActuaCardDivider()
                 OptionSwitchRow(stringResource(R.string.budget_show_balance_pills), options.showBalancePills) {
