@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.transactions
 
+import com.azimulkabir.actua.data.home.NonWorkingDays
 import com.azimulkabir.actua.data.schedules.ActualScheduleSummary
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.data.schedules.RecurConfig
@@ -128,9 +129,20 @@ class UpcomingTransactionsTest {
         val item = item("salary", ScheduleStatus.UPCOMING, DayDate(2026, 4, 24), salary)
         val friSat = setOf(java.time.DayOfWeek.FRIDAY, java.time.DayOfWeek.SATURDAY)
 
-        assertEquals(listOf("20260423"), upcomingTransactionsFrom(listOf(item), today, weekendDays = friSat).map { it.date })
+        assertEquals(listOf("20260423"), upcomingTransactionsFrom(listOf(item), today, nonWorkingDays = NonWorkingDays(friSat)).map { it.date })
         // The default weekend keeps Actual's date, and the row's id stays on it either way.
         assertEquals(listOf("20260424"), upcomingTransactionsFrom(listOf(item), today).map { it.date })
-        assertEquals(listOf("upcoming-salary-20260424"), upcomingTransactionsFrom(listOf(item), today, weekendDays = friSat).map { it.id })
+        assertEquals(listOf("upcoming-salary-20260424"), upcomingTransactionsFrom(listOf(item), today, nonWorkingDays = NonWorkingDays(friSat)).map { it.id })
+    }
+
+    @Test fun aHolidayMovesTheShownDateToo() {
+        val salary = ScheduleDateCondition.Recurring(
+            RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2026, 1, 25), skipWeekend = true, weekendSolveMode = "before"),
+        )
+        // May 25 2026 is a Monday and a listed holiday, so a "before" schedule is shown on Friday the 22nd.
+        val item = item("salary", ScheduleStatus.UPCOMING, DayDate(2026, 5, 25), salary)
+        val holiday = NonWorkingDays(holidays = setOf(java.time.LocalDate.of(2026, 5, 25)))
+
+        assertEquals(listOf("20260522"), upcomingTransactionsFrom(listOf(item), DayDate(2026, 5, 20), nonWorkingDays = holiday).map { it.date })
     }
 }

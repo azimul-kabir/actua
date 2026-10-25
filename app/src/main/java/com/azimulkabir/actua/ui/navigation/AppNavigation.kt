@@ -174,6 +174,8 @@ import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.sync.SyncStatus
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.home.HomeLayout
+import com.azimulkabir.actua.data.home.Holiday
+import com.azimulkabir.actua.data.home.HolidayCodec
 import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.navigation.TabItem
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
@@ -430,6 +432,22 @@ fun AppNavigation(
     val activeBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId }
     val favoriteBudgetId = activeBudgetId ?: "no-budget"
     var homeMonthStart by remember(favoriteBudgetId) { mutableStateOf(homePreferences.monthStartRule(favoriteBudgetId)) }
+    var homeHolidays by remember(favoriteBudgetId) { mutableStateOf(homePreferences.holidays(favoriteBudgetId)) }
+    // Kept out of the screen lambdas below: AppNavigation's content lambda is close to the JVM's
+    // 64 KB method limit, and inline handlers here pushed it over.
+    val onMonthStartChange: (MonthStartRule) -> Unit = { rule ->
+        val clamped = rule.copy(day = rule.day.coerceIn(1, 31))
+        homePreferences.setSummaryStartDay(favoriteBudgetId, clamped.day)
+        homePreferences.setStartDayAdjustment(favoriteBudgetId, clamped.adjustment)
+        homePreferences.setWeekendDays(favoriteBudgetId, clamped.weekendDays)
+        homeMonthStart = clamped
+    }
+    val onHolidaysChange: (List<Holiday>) -> Unit = { holidays ->
+        val normalized = HolidayCodec.normalize(holidays)
+        homePreferences.setHolidays(favoriteBudgetId, normalized)
+        homeHolidays = normalized
+        homeMonthStart = homeMonthStart.copy(holidays = normalized.mapTo(mutableSetOf()) { it.date })
+    }
     val availableBudgetOptions = remember(repositoryVersion) {
         BudgetFileManager(context).listLocalBudgets().map { budget ->
             BudgetSelectionItem(
@@ -531,20 +549,20 @@ fun AppNavigation(
     // transaction cleared while on the Budget tab no longer also recomputes Reports' aggregation
     // or refetches rule-editor data (accounts/categories/payees) that nothing is currently
     // showing — matching the existing pattern `payeeLocations` already used below.
-    val schedules = remember(dataVersion, homeMonthStart.weekendDays) {
-        repository.schedules(weekendDays = homeMonthStart.weekendDays)
+    val schedules = remember(dataVersion, homeMonthStart.nonWorkingDays) {
+        repository.schedules(nonWorkingDays = homeMonthStart.nonWorkingDays)
     }
     // Replan schedule reminders after any local write, sync or budget switch, so posted, skipped,
     // matched, edited and deleted occurrences stop notifying. Rapid successive writes replan once.
-    LaunchedEffect(dataVersion, repositoryVersion, scheduleRemindersEnabled, scheduleReminderLeadDays, homeMonthStart.weekendDays) {
+    LaunchedEffect(dataVersion, repositoryVersion, scheduleRemindersEnabled, scheduleReminderLeadDays, homeMonthStart.nonWorkingDays) {
         delay(1_000)
         withContext(Dispatchers.IO) { ScheduleReminderScheduler.refresh(appContext) }
     }
-    val upcomingTransactions = remember(schedules, homeMonthStart.weekendDays) {
+    val upcomingTransactions = remember(schedules, homeMonthStart.nonWorkingDays) {
         upcomingTransactionsFrom(
             schedules,
             defaultUpcomingLength = repository.upcomingScheduleLength(),
-            weekendDays = homeMonthStart.weekendDays,
+            nonWorkingDays = homeMonthStart.nonWorkingDays,
         )
     }
     val upcomingRecurringScheduleIds = remember(schedules) { recurringScheduleIds(schedules) }
@@ -811,11 +829,11 @@ fun AppNavigation(
         when (action) {
             UpcomingTransactionAction.POST ->
                 mutate(R.string.navigation_posting_schedule) {
-                    repository.postScheduleTransaction(id, today = false, weekendDays = homeMonthStart.weekendDays)
+                    repository.postScheduleTransaction(id, today = false, nonWorkingDays = homeMonthStart.nonWorkingDays)
                 }
             UpcomingTransactionAction.POST_TODAY ->
                 mutate(R.string.navigation_posting_schedule_today) {
-                    repository.postScheduleTransaction(id, today = true, weekendDays = homeMonthStart.weekendDays)
+                    repository.postScheduleTransaction(id, today = true, nonWorkingDays = homeMonthStart.nonWorkingDays)
                 }
             UpcomingTransactionAction.SKIP ->
                 mutate(R.string.navigation_skipping_next_date) { repository.skipScheduleNextDate(id) }
@@ -1719,6 +1737,137 @@ fun AppNavigation(
             transactionSearch = ""
             detail = DetailDestination.Transactions
         }
+        // Settings callbacks live here, not inline in the AnimatedContent lambda below, which is at the
+        // JVM's 64 KB method limit.
+        val settingsDecimalPlacesModeChange: (String) -> Unit = { value ->
+            displayPreferences.decimalPlacesMode = value
+            decimalPlacesMode = value
+            WidgetUpdater.requestAll(context)
+        }
+        val settingsShowNotesChange: (Boolean) -> Unit = { value ->
+            displayPreferences.showNotes = value
+            showNotes = value
+        }
+        val settingsHideIncomeGroupInBudgetChange: (Boolean) -> Unit = { value ->
+            displayPreferences.hideIncomeGroupInBudget = value
+            hideIncomeGroupInBudget = value
+        }
+        val settingsBudgetTypeChange: (String) -> Unit = { newType ->
+            mutate(R.string.navigation_change_budget_type) {
+                repository.setBudgetType(newType)
+            }
+        }
+        val settingsCurrencyCodeChange: (String) -> Unit = { value ->
+            displayPreferences.currencyCode = value
+            currencyCode = value
+            WidgetUpdater.requestAll(context)
+        }
+        val settingsCurrencySymbolOnlyChange: (Boolean) -> Unit = { value ->
+            displayPreferences.currencySymbolOnly = value
+            currencySymbolOnly = value
+            WidgetUpdater.requestAll(context)
+        }
+        val settingsCurrencySymbolPositionChange: (String) -> Unit = { value ->
+            displayPreferences.currencySymbolPosition = value
+            currencySymbolPosition = value
+            WidgetUpdater.requestAll(context)
+        }
+        val settingsCurrencySymbolSpacingChange: (String) -> Unit = { value ->
+            displayPreferences.currencySymbolSpacing = value
+            currencySymbolSpacing = value
+            WidgetUpdater.requestAll(context)
+        }
+        val settingsLanguageChange: (String) -> Unit = { tag ->
+            val locales = if (tag.isBlank()) {
+                LocaleListCompat.getEmptyLocaleList()
+            } else {
+                LocaleListCompat.forLanguageTags(tag)
+            }
+            AppCompatDelegate.setApplicationLocales(locales)
+            WidgetUpdater.requestAll(context)
+            CreditCardDueNotificationScheduler.refreshAsync(context)
+        }
+        val settingsDateFormatChange: (String) -> Unit = { value ->
+            displayPreferences.dateFormat = value
+            dateFormat = value
+        }
+        val settingsNumberFormatChange: (String) -> Unit = { value ->
+            displayPreferences.numberFormat = value
+            numberFormat = value
+            WidgetUpdater.requestAll(context)
+        }
+        val settingsPrivacyModeChange: (String) -> Unit = { value ->
+            displayPreferences.privacyMode = value
+            privacyMode = value
+            WidgetUpdater.requestAll(context)
+        }
+        val settingsStartPageChange: (String) -> Unit = { value ->
+            displayPreferences.startPage = value
+            startPage = value
+        }
+        val settingsDefaultAccountChange: (String?) -> Unit = { value ->
+            displayPreferences.defaultAccount = value
+            defaultAccount = value
+        }
+        val settingsGroupTransactionsByDateChange: (Boolean) -> Unit = { value ->
+            displayPreferences.groupTransactionsByDate = value
+            groupTransactionsByDate = value
+        }
+        val settingsShowAccountsMonthlySummaryChange: (Boolean) -> Unit = { value ->
+            displayPreferences.showAccountsMonthlySummary = value
+            showAccountsMonthlySummary = value
+        }
+        val settingsBillsCalendarClick: () -> Unit = {                        billsCalendarReturnsToSchedules = false
+            detail = DetailDestination.BillsCalendar
+        }
+        val settingsCreditCardsClick: () -> Unit = {                        creditCardsReturnToBills = false
+            detail = DetailDestination.CreditCards
+        }
+        val settingsBankSyncClick: () -> Unit = {                        loadBankSyncProviderStatus()
+            detail = DetailDestination.BankSync
+        }
+        val settingsEnableBankingExperimentChange: (Boolean) -> Unit = { value ->
+            experimentalPreferences.enableBanking = value
+            enableBankingExperiment = value
+            if (!value) enableBankingFlow.reset()
+        }
+        val settingsRulesClick: () -> Unit = {                        scheduleRuleId = null
+            detail = DetailDestination.Rules
+        }
+        val settingsHomeClick: () -> Unit = {                        detail = DetailDestination.Main
+            destination = MainDestination.Home
+        }
+        val settingsConventionalAmountEntryChange: (Boolean) -> Unit = { value ->
+            displayPreferences.conventionalAmountEntry = value
+            conventionalAmountEntry = value
+        }
+        val settingsShowCurrentBalanceSummaryChange: (Boolean) -> Unit = { value ->
+            displayPreferences.showCurrentBalanceSummary = value
+            showCurrentBalanceSummary = value
+        }
+        val settingsBudgetChange: (String) -> Unit = { budgetId ->
+            if (budgetId != activeBudgetId &&
+                availableBudgetOptions.any { it.id == budgetId } &&
+                !budgetReplacementInProgress
+            ) {
+                budgetReplacementInProgress = true
+                budgetReplacementCompleted = false
+                repository.close()
+                ActiveBudgetStore(context).budgetId = budgetId
+                // Account, category and month filters hold ids from the previous budget.
+                transactionAccount = null
+                transactionCategory = null
+                transactionMonth = null
+                transactionSearch = ""
+                repositoryVersion += 1
+                dataVersion += 1
+                budgetReplacementCompleted = true
+                CreditCardDueNotificationScheduler.refreshAsync(context)
+                WidgetUpdater.requestAll(context)
+                // Catch up with the server and send any edits made before switching away.
+                ActualSyncScheduler.scheduleMutation(context)
+            }
+        }
         AnimatedContent(
             targetState = detail to destination,
             transitionSpec = {
@@ -2536,7 +2685,7 @@ fun AppNavigation(
                 repository = repository,
                 dataVersion = dataVersion,
                 schedules = schedules,
-                weekendDays = homeMonthStart.weekendDays,
+                nonWorkingDays = homeMonthStart.nonWorkingDays,
                 accounts = accounts,
                 payeeNames = payeeNames,
                 hideDecimalPlaces = hideDecimalPlaces,
@@ -2636,7 +2785,7 @@ fun AppNavigation(
                     returnToRootRequest = rootRequests[MainDestination.Home] ?: 0,
                     hasFab = hasFab,
                 )
-                MainDestination.Budget -> BudgetScreen(
+                MainDestination.Budget -> NavigationBranch { BudgetScreen(
                     contentModifier,
                     groups = budgetGroups,
                     overview = budgetOverview,
@@ -2845,7 +2994,7 @@ fun AppNavigation(
                     showNotes = showNotes,
                     hideIncomeGroup = hideIncomeGroupInBudget,
                     hasFab = hasFab,
-                )
+                ) }
                 MainDestination.Accounts -> NavigationAccountsScreen(
                     repository = repository,
                     dataVersion = dataVersion,
@@ -2889,7 +3038,7 @@ fun AppNavigation(
                     hasFab = hasFab,
                     monthStart = homeMonthStart,
                 )
-                MainDestination.Transactions -> TransactionsScreen(
+                MainDestination.Transactions -> NavigationBranch { TransactionsScreen(
                     accountName = null,
                     categoryName = null,
                     month = null,
@@ -3028,7 +3177,7 @@ fun AppNavigation(
                     recurringScheduleIds = upcomingRecurringScheduleIds,
                     onUpcomingAction = ::onUpcomingAction,
                     hasFab = hasFab,
-                )
+                ) }
                 MainDestination.Reports -> NavigationReportsScreen(
                     snapshot = reportSnapshot,
                     snapshotVersion = reportSnapshotVersion,
@@ -3063,91 +3212,37 @@ fun AppNavigation(
                     repository = repository,
                     onMutate = { labelRes, action -> mutate(labelRes, action = action) },
                 )
-                MainDestination.Manage -> SettingsScreen(
+                MainDestination.Manage -> NavigationBranch { SettingsScreen(
                     modifier = contentModifier,
                     monthStart = homeMonthStart,
-                    onMonthStartChange = { rule ->
-                        val clamped = rule.copy(day = rule.day.coerceIn(1, 31))
-                        homePreferences.setSummaryStartDay(favoriteBudgetId, clamped.day)
-                        homePreferences.setStartDayAdjustment(favoriteBudgetId, clamped.adjustment)
-                        homePreferences.setWeekendDays(favoriteBudgetId, clamped.weekendDays)
-                        homeMonthStart = clamped
-                    },
+                    onMonthStartChange = onMonthStartChange,
+                    holidays = homeHolidays,
+                    onHolidaysChange = onHolidaysChange,
                     onConnectionClick = { detail = DetailDestination.Connection },
                     decimalPlacesMode = decimalPlacesMode,
-                    onDecimalPlacesModeChange = {
-                        displayPreferences.decimalPlacesMode = it
-                        decimalPlacesMode = it
-                        WidgetUpdater.requestAll(context)
-                    },
+                    onDecimalPlacesModeChange = settingsDecimalPlacesModeChange,
                     showNotes = showNotes,
-                    onShowNotesChange = {
-                        displayPreferences.showNotes = it
-                        showNotes = it
-                    },
+                    onShowNotesChange = settingsShowNotesChange,
                     hideIncomeGroupInBudget = hideIncomeGroupInBudget,
-                    onHideIncomeGroupInBudgetChange = {
-                        displayPreferences.hideIncomeGroupInBudget = it
-                        hideIncomeGroupInBudget = it
-                    },
+                    onHideIncomeGroupInBudgetChange = settingsHideIncomeGroupInBudgetChange,
                     budgetType = budgetType,
-                    onBudgetTypeChange = { newType ->
-                        mutate(R.string.navigation_change_budget_type) {
-                            repository.setBudgetType(newType)
-                        }
-                    },
+                    onBudgetTypeChange = settingsBudgetTypeChange,
                     currencyCode = currencyCode,
-                    onCurrencyCodeChange = {
-                        displayPreferences.currencyCode = it
-                        currencyCode = it
-                        WidgetUpdater.requestAll(context)
-                    },
+                    onCurrencyCodeChange = settingsCurrencyCodeChange,
                     currencySymbolOnly = currencySymbolOnly,
-                    onCurrencySymbolOnlyChange = {
-                        displayPreferences.currencySymbolOnly = it
-                        currencySymbolOnly = it
-                        WidgetUpdater.requestAll(context)
-                    },
+                    onCurrencySymbolOnlyChange = settingsCurrencySymbolOnlyChange,
                     currencySymbolPosition = currencySymbolPosition,
-                    onCurrencySymbolPositionChange = {
-                        displayPreferences.currencySymbolPosition = it
-                        currencySymbolPosition = it
-                        WidgetUpdater.requestAll(context)
-                    },
+                    onCurrencySymbolPositionChange = settingsCurrencySymbolPositionChange,
                     currencySymbolSpacing = currencySymbolSpacing,
-                    onCurrencySymbolSpacingChange = {
-                        displayPreferences.currencySymbolSpacing = it
-                        currencySymbolSpacing = it
-                        WidgetUpdater.requestAll(context)
-                    },
+                    onCurrencySymbolSpacingChange = settingsCurrencySymbolSpacingChange,
                     languageTag = languageTag,
-                    onLanguageChange = { tag ->
-                        val locales = if (tag.isBlank()) {
-                            LocaleListCompat.getEmptyLocaleList()
-                        } else {
-                            LocaleListCompat.forLanguageTags(tag)
-                        }
-                        AppCompatDelegate.setApplicationLocales(locales)
-                        WidgetUpdater.requestAll(context)
-                        CreditCardDueNotificationScheduler.refreshAsync(context)
-                    },
+                    onLanguageChange = settingsLanguageChange,
                     dateFormat = dateFormat,
-                    onDateFormatChange = {
-                        displayPreferences.dateFormat = it
-                        dateFormat = it
-                    },
+                    onDateFormatChange = settingsDateFormatChange,
                     numberFormat = numberFormat,
-                    onNumberFormatChange = {
-                        displayPreferences.numberFormat = it
-                        numberFormat = it
-                        WidgetUpdater.requestAll(context)
-                    },
+                    onNumberFormatChange = settingsNumberFormatChange,
                     privacyMode = privacyMode,
-                    onPrivacyModeChange = {
-                        displayPreferences.privacyMode = it
-                        privacyMode = it
-                        WidgetUpdater.requestAll(context)
-                    },
+                    onPrivacyModeChange = settingsPrivacyModeChange,
                     budgetDisplayFormats = budgetDisplayFormats,
                     appearance = appearance,
                     onAppearanceChange = {
@@ -3162,50 +3257,22 @@ fun AppNavigation(
                         onUseDynamicColorChange(it)
                     },
                     startPage = startPage,
-                    onStartPageChange = {
-                        displayPreferences.startPage = it
-                        startPage = it
-                    },
+                    onStartPageChange = settingsStartPageChange,
                     startPageOptions = visibleMainDestinations.map { it.label },
                     accountOptions = accounts.filterNot { it.closed }.map { it.name },
                     defaultAccount = defaultAccount,
-                    onDefaultAccountChange = {
-                        displayPreferences.defaultAccount = it
-                        defaultAccount = it
-                    },
+                    onDefaultAccountChange = settingsDefaultAccountChange,
                     groupTransactionsByDate = groupTransactionsByDate,
-                    onGroupTransactionsByDateChange = {
-                        displayPreferences.groupTransactionsByDate = it
-                        groupTransactionsByDate = it
-                    },
+                    onGroupTransactionsByDateChange = settingsGroupTransactionsByDateChange,
                     showAccountsMonthlySummary = showAccountsMonthlySummary,
-                    onShowAccountsMonthlySummaryChange = {
-                        displayPreferences.showAccountsMonthlySummary = it
-                        showAccountsMonthlySummary = it
-                    },
-                    onBillsCalendarClick = {
-                        billsCalendarReturnsToSchedules = false
-                        detail = DetailDestination.BillsCalendar
-                    },
-                    onCreditCardsClick = {
-                        creditCardsReturnToBills = false
-                        detail = DetailDestination.CreditCards
-                    },
+                    onShowAccountsMonthlySummaryChange = settingsShowAccountsMonthlySummaryChange,
+                    onBillsCalendarClick = settingsBillsCalendarClick,
+                    onCreditCardsClick = settingsCreditCardsClick,
                     onLoansClick = { detail = DetailDestination.Loans },
-                    onBankSyncClick = {
-                        loadBankSyncProviderStatus()
-                        detail = DetailDestination.BankSync
-                    },
+                    onBankSyncClick = settingsBankSyncClick,
                     enableBankingExperiment = enableBankingExperiment,
-                    onEnableBankingExperimentChange = {
-                        experimentalPreferences.enableBanking = it
-                        enableBankingExperiment = it
-                        if (!it) enableBankingFlow.reset()
-                    },
-                    onRulesClick = {
-                        scheduleRuleId = null
-                        detail = DetailDestination.Rules
-                    },
+                    onEnableBankingExperimentChange = settingsEnableBankingExperimentChange,
+                    onRulesClick = settingsRulesClick,
                     onSchedulesClick = { detail = DetailDestination.Schedules },
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },
                     onPayeeLocationsClick = { detail = DetailDestination.PayeeLocations },
@@ -3213,50 +3280,19 @@ fun AppNavigation(
                     onReportsClick = { detail = DetailDestination.Reports },
                     showReportsShortcut = TabItem.REPORTS !in tabBarLayout.visibleTabs,
                     showHomeShortcut = TabItem.HOME !in tabBarLayout.visibleTabs,
-                    onHomeClick = {
-                        detail = DetailDestination.Main
-                        destination = MainDestination.Home
-                    },
+                    onHomeClick = settingsHomeClick,
                     onCustomizeHomeClick = { detail = DetailDestination.CustomizeHome },
                     onCustomizeTabBarClick = { detail = DetailDestination.CustomizeTabBar },
                     conventionalAmountEntry = conventionalAmountEntry,
-                    onConventionalAmountEntryChange = {
-                        displayPreferences.conventionalAmountEntry = it
-                        conventionalAmountEntry = it
-                    },
+                    onConventionalAmountEntryChange = settingsConventionalAmountEntryChange,
                     tabBarDisplay = tabBarScroll,
                     showCurrentBalanceSummary = showCurrentBalanceSummary,
-                    onShowCurrentBalanceSummaryChange = {
-                        displayPreferences.showCurrentBalanceSummary = it
-                        showCurrentBalanceSummary = it
-                    },
+                    onShowCurrentBalanceSummaryChange = settingsShowCurrentBalanceSummaryChange,
                     budgetOptions = availableBudgetOptions,
                     activeBudgetId = activeBudgetId,
-                    onBudgetChange = { budgetId ->
-                        if (budgetId != activeBudgetId &&
-                            availableBudgetOptions.any { it.id == budgetId } &&
-                            !budgetReplacementInProgress
-                        ) {
-                            budgetReplacementInProgress = true
-                            budgetReplacementCompleted = false
-                            repository.close()
-                            ActiveBudgetStore(context).budgetId = budgetId
-                            // Account, category and month filters hold ids from the previous budget.
-                            transactionAccount = null
-                            transactionCategory = null
-                            transactionMonth = null
-                            transactionSearch = ""
-                            repositoryVersion += 1
-                            dataVersion += 1
-                            budgetReplacementCompleted = true
-                            CreditCardDueNotificationScheduler.refreshAsync(context)
-                            WidgetUpdater.requestAll(context)
-                            // Catch up with the server and send any edits made before switching away.
-                            ActualSyncScheduler.scheduleMutation(context)
-                        }
-                    },
+                    onBudgetChange = settingsBudgetChange,
                     returnToRootRequest = rootRequests[MainDestination.Manage] ?: 0,
-                )
+                ) }
             }
         }
         }
@@ -3270,6 +3306,16 @@ fun AppNavigation(
         modifier = Modifier.fillMaxSize(),
     )
     }
+}
+
+/**
+ * Hosts one of the (size-critical) main destinations. The call inside [content] is compiled into its
+ * own method, which keeps its many arguments out of the AnimatedContent content lambda that sits at
+ * the JVM's 64 KB method limit.
+ */
+@Composable
+private fun NavigationBranch(content: @Composable () -> Unit) {
+    content()
 }
 
 @Composable
@@ -3475,7 +3521,7 @@ private fun NavigationScheduleScreens(
     repository: ActuaRepository,
     dataVersion: Int,
     schedules: List<ScheduleListItem>,
-    weekendDays: Set<java.time.DayOfWeek>,
+    nonWorkingDays: com.azimulkabir.actua.data.home.NonWorkingDays,
     accounts: List<Account>,
     payeeNames: List<String>,
     hideDecimalPlaces: Boolean,
@@ -3536,7 +3582,7 @@ private fun NavigationScheduleScreens(
             },
             onPost = { id, today ->
                 onMutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule, {}) {
-                    repository.postScheduleTransaction(id, today, weekendDays)
+                    repository.postScheduleTransaction(id, today, nonWorkingDays)
                 }
             },
             onSkip = { id ->
@@ -3630,7 +3676,7 @@ private fun NavigationScheduleScreens(
         }
         DetailDestination.BillsCalendar -> BillsCalendarScreen(
             loadItems = { year, month, cardBills ->
-                repository.billCalendarItems(year, month, cardBills, weekendDays)
+                repository.billCalendarItems(year, month, cardBills, nonWorkingDays)
             },
             refreshKey = dataVersion,
             hideDecimalPlaces = hideDecimalPlaces,
@@ -3661,7 +3707,7 @@ private fun NavigationScheduleScreens(
             },
             onPost = { id, today ->
                 onMutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule, {}) {
-                    repository.postScheduleTransaction(id, today, weekendDays)
+                    repository.postScheduleTransaction(id, today, nonWorkingDays)
                 }
             },
             onSkip = { id -> onMutate(R.string.navigation_skipping_occurrence, {}) { repository.skipScheduleNextDate(id) } },

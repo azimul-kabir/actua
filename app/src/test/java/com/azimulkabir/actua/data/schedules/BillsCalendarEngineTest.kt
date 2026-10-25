@@ -119,7 +119,7 @@ class BillsCalendarEngineTest {
             status = ScheduleStatus.UPCOMING,
         )
         fun days(weekend: Set<java.time.DayOfWeek>) = BillsCalendarEngine.itemsForSchedules(
-            listOf(salary), emptyMap(), emptyMap(), 2026, 4, DayDate(2026, 4, 20), weekend,
+            listOf(salary), emptyMap(), emptyMap(), 2026, 4, DayDate(2026, 4, 20), com.azimulkabir.actua.data.home.NonWorkingDays(weekend),
         ).map { it.date.day }
 
         assertEquals(listOf(24), days(com.azimulkabir.actua.data.home.MonthStartRule.DEFAULT_WEEKEND_DAYS))

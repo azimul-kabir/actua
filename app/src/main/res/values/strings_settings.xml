@@ -8,6 +8,7 @@
     <string name="settings_page_display">Display</string>
     <string name="settings_page_privacy">Privacy</string>
     <string name="settings_page_budget">Budget</string>
+    <string name="settings_page_holidays">Holidays</string>
     <string name="settings_page_category_colors">Category status colors</string>
     <string name="settings_page_experimental">Experimental</string>
     <string name="settings_page_support">Support Actua</string>

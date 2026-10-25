@@ -322,13 +322,13 @@ class ActuaRepository(context: Context) {
     fun scheduleOwnedRuleIds(): Set<String> = actualDatabase?.scheduleOwnedRuleIds().orEmpty()
 
     /**
-     * The schedules with their due dates shown for [weekendDays]. A weekend-skipping schedule's
+     * The schedules with their due dates shown for the user's [nonWorkingDays] (weekend and holidays). A weekend-skipping schedule's
      * stored `next_date` stays Actual's Saturday/Sunday result; only [ScheduleListItem.dueDate] (and
      * the status from it) follows the user's weekend, so nothing here changes what syncs.
      */
     fun schedules(
         today: DayDate = DayDate.today(),
-        weekendDays: Set<java.time.DayOfWeek> = com.azimulkabir.actua.data.home.MonthStartRule.DEFAULT_WEEKEND_DAYS,
+        nonWorkingDays: com.azimulkabir.actua.data.home.NonWorkingDays = com.azimulkabir.actua.data.home.NonWorkingDays(),
     ): List<ScheduleListItem> {
         val db = actualDatabase ?: return emptyList()
         val schedules = db.fetchScheduleSummaries()
@@ -340,7 +340,7 @@ class ActuaRepository(context: Context) {
             val recurring = schedule.dateCondition as? com.azimulkabir.actua.data.schedules.ScheduleDateCondition.Recurring
             val displayDate = if (schedule.completed || recurring == null) null else {
                 schedule.nextDate
-                    ?.let { ScheduleRecurrence.displayDate(recurring.config, it, weekendDays) }
+                    ?.let { ScheduleRecurrence.displayDate(recurring.config, it, nonWorkingDays) }
                     ?.takeIf { it != schedule.nextDate }
             }
             ScheduleListItem(
@@ -390,11 +390,11 @@ class ActuaRepository(context: Context) {
         year: Int,
         month: Int,
         cardBills: Boolean,
-        weekendDays: Set<java.time.DayOfWeek> = com.azimulkabir.actua.data.home.MonthStartRule.DEFAULT_WEEKEND_DAYS,
+        nonWorkingDays: com.azimulkabir.actua.data.home.NonWorkingDays = com.azimulkabir.actua.data.home.NonWorkingDays(),
     ): List<BillCalendarItem> {
         if (cardBills) return BillsCalendarEngine.itemsForCreditCards(creditCards(), year, month)
         val database = actualDatabase ?: return emptyList()
-        val schedules = schedules(weekendDays = weekendDays)
+        val schedules = schedules(nonWorkingDays = nonWorkingDays)
         val categoryNames = database.fetchCategoryGroups().flatMap { it.categories }.associate { it.id to it.name }
         return BillsCalendarEngine.itemsForSchedules(
             schedules = schedules,
@@ -402,7 +402,7 @@ class ActuaRepository(context: Context) {
             categoryNames = categoryNames,
             year = year,
             month = month,
-            weekendDays = weekendDays,
+            nonWorkingDays = nonWorkingDays,
         )
     }
 
@@ -494,13 +494,13 @@ class ActuaRepository(context: Context) {
 
     /**
      * Posts one linked transaction. An early "today" post completes the current recurring occurrence.
-     * Otherwise the transaction gets the due date shown for [weekendDays] when the schedule still reads
+     * Otherwise the transaction gets the due date shown for [nonWorkingDays] when the schedule still reads
      * as paid with it; the schedule's own `next_date` is never changed by that.
      */
     fun postScheduleTransaction(
         scheduleId: String,
         today: Boolean,
-        weekendDays: Set<java.time.DayOfWeek> = com.azimulkabir.actua.data.home.MonthStartRule.DEFAULT_WEEKEND_DAYS,
+        nonWorkingDays: com.azimulkabir.actua.data.home.NonWorkingDays = com.azimulkabir.actua.data.home.NonWorkingDays(),
     ): Boolean {
         val schedule = actualDatabase?.fetchScheduleSummaries()?.firstOrNull { it.id == scheduleId }
             ?: return false
@@ -510,7 +510,7 @@ class ActuaRepository(context: Context) {
             val recurring = schedule.dateCondition as? com.azimulkabir.actua.data.schedules.ScheduleDateCondition.Recurring
             ScheduleStatusCalculator.postedDate(
                 stored,
-                recurring?.let { ScheduleRecurrence.displayDate(it.config, stored, weekendDays) },
+                recurring?.let { ScheduleRecurrence.displayDate(it.config, stored, nonWorkingDays) },
                 schedule.dateOp,
                 schedule.postsTransaction,
             )

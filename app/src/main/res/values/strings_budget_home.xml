@@ -335,6 +335,14 @@
     <string name="home_summary_adjustment_next">Next working day</string>
     <string name="home_summary_weekend_title">Weekend days</string>
     <string name="home_summary_weekend_description">Weekend days are skipped when moving the month start to a working day, and are where schedules that skip weekends are shown as due. Actual itself keeps Saturday and Sunday, so this changes only what you see on this device. Holidays are not considered.</string>
+    <string name="settings_holidays_row_title">Holidays</string>
+    <string name="settings_holidays_row_none">None listed</string>
+    <string name="settings_holidays_row_count">%1$d listed</string>
+    <string name="settings_holidays_empty">No holidays listed. Add the dates your bank or office is closed.</string>
+    <string name="settings_holidays_add">Add holiday</string>
+    <string name="settings_holidays_label">Name (optional)</string>
+    <string name="settings_holidays_remove">Remove %1$s</string>
+    <string name="settings_holidays_note">Holidays are skipped like weekend days when moving the month start to a working day and when showing schedules that skip weekends. This applies on this device only; Actual keeps Saturday and Sunday. Past dates stay until you remove them.</string>
 
     <plurals name="home_transactions_count">
         <item quantity="one">%1$d transaction</item>

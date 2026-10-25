@@ -349,9 +349,9 @@ object WidgetUpdater {
             return ScheduleWidgetProjection.upcoming(
                 repository.schedules(
                     today,
-                    com.azimulkabir.actua.data.preferences.HomePreferences(context).weekendDays(
+                    com.azimulkabir.actua.data.preferences.HomePreferences(context).monthStartRule(
                         com.azimulkabir.actua.data.budget.ActiveBudgetStore(context).budgetId ?: "no-budget",
-                    ),
+                    ).nonWorkingDays,
                 ),
                 today, periodDays,
             )

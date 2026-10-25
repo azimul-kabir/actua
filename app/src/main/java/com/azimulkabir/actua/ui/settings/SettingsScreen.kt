@@ -80,6 +80,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.home.Holiday
 import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.billing.createSupportBillingManager
 import com.azimulkabir.actua.data.budget.ActiveTagRepository
@@ -109,6 +110,7 @@ internal enum class SettingsPage(@StringRes val titleRes: Int, val depth: Int) {
     Privacy(R.string.settings_page_privacy, 2),
     Budget(R.string.settings_page_budget, 2),
     CategoryColors(R.string.settings_page_category_colors, 3),
+    Holidays(R.string.settings_page_holidays, 3),
     Experimental(R.string.settings_page_experimental, 2),
     Support(R.string.settings_page_support, 2),
     About(R.string.settings_page_about, 2),
@@ -135,6 +137,8 @@ fun SettingsScreen(
     onHideIncomeGroupInBudgetChange: (Boolean) -> Unit = {},
     monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
     onMonthStartChange: (MonthStartRule) -> Unit = {},
+    holidays: List<Holiday> = emptyList(),
+    onHolidaysChange: (List<Holiday>) -> Unit = {},
     budgetType: String = "envelope",
     onBudgetTypeChange: (String) -> Unit = {},
     currencyCode: String = EffectiveDisplayFormats.FOLLOW_BUDGET,
@@ -260,7 +264,7 @@ fun SettingsScreen(
         SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.Budget,
         SettingsPage.Experimental, SettingsPage.Support, SettingsPage.About,
         -> SettingsPage.General
-        SettingsPage.CategoryColors -> SettingsPage.Budget
+        SettingsPage.CategoryColors, SettingsPage.Holidays -> SettingsPage.Budget
         SettingsPage.Diagnostics -> SettingsPage.About
         SettingsPage.General -> SettingsPage.Manage
         SettingsPage.Manage -> SettingsPage.Manage
@@ -927,6 +931,13 @@ fun SettingsScreen(
                     }
                     SettingsGroup {
                         MonthStartDayRow(monthStart, onMonthStartChange)
+                        SettingsDivider()
+                        SettingsRow(
+                            stringResource(R.string.settings_holidays_row_title),
+                            if (holidays.isEmpty()) stringResource(R.string.settings_holidays_row_none)
+                            else stringResource(R.string.settings_holidays_row_count, holidays.size),
+                            true,
+                        ) { page = SettingsPage.Holidays }
                     }
                     SettingsNote(
                         stringResource(R.string.settings_budget_mode_note),
@@ -935,6 +946,7 @@ fun SettingsScreen(
                 SettingsPage.CategoryColors -> {
                     CategoryStatusColorSettings(Modifier.padding(top = Spacing.md))
                 }
+                SettingsPage.Holidays -> HolidaysSettings(holidays, onHolidaysChange)
                 SettingsPage.Experimental -> {
                     SettingsGroup {
                         SettingsToggle(

@@ -174,7 +174,7 @@ object ScheduleReminderScheduler {
 
         val repository = ActuaRepository(app)
         val schedules = try {
-            repository.schedules(DayDate.from(now.toLocalDate()), activeBudgetWeekendDays(app))
+            repository.schedules(DayDate.from(now.toLocalDate()), activeBudgetNonWorkingDays(app))
         } finally { repository.close() }
 
         val posted = settings.postedOccurrences
@@ -221,7 +221,7 @@ class ScheduleReminderWorker(context: Context, parameters: WorkerParameters) :
         val item = try {
             CurrencyDisplay.decimalPlaces = repository.budgetDecimalPlaces()
             budgetFormats = repository.budgetDisplayFormats()
-            repository.schedules(today, activeBudgetWeekendDays(applicationContext)).firstOrNull { it.schedule.id == scheduleId }
+            repository.schedules(today, activeBudgetNonWorkingDays(applicationContext)).firstOrNull { it.schedule.id == scheduleId }
         } finally { repository.close() }
         // Re-check against the budget as it is now: the occurrence may have been posted, skipped,
         // matched, edited or deleted since this reminder was planned.
@@ -300,6 +300,6 @@ private fun postNotification(
 
 private const val CHANNEL_ID = "schedule-reminders"
 
-/** The weekend days set for the active budget, so reminders fire on the dates the app shows. */
-private fun activeBudgetWeekendDays(context: Context) =
-    HomePreferences(context).weekendDays(ActiveBudgetStore(context).budgetId ?: "no-budget")
+/** The weekend days and holidays set for the active budget, so reminders fire on the dates the app shows. */
+private fun activeBudgetNonWorkingDays(context: Context) =
+    HomePreferences(context).monthStartRule(ActiveBudgetStore(context).budgetId ?: "no-budget").nonWorkingDays

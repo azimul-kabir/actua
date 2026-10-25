@@ -13,6 +13,7 @@ data class DayDate(val year: Int, val month: Int, val day: Int) : Comparable<Day
     val weekday get() = date.dayOfWeek.value % 7 + 1 // Sunday = 1
     val isWeekend get() = weekday == 1 || weekday == 7
     val dayOfWeek: java.time.DayOfWeek get() = date.dayOfWeek
+    val localDate: LocalDate get() = date
     override fun compareTo(other: DayDate) = yyyymmdd.compareTo(other.yyyymmdd)
     fun addingDays(days: Int) = from(date.plusDays(days.toLong()))
     fun addingMonths(months: Int) = from(date.plusMonths(months.toLong()))

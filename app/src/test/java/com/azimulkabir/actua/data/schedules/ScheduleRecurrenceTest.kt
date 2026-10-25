@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.schedules
 
+import com.azimulkabir.actua.data.home.NonWorkingDays
 import com.azimulkabir.actua.data.home.MonthStartRule
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -82,7 +83,7 @@ class ScheduleRecurrenceTest {
         RecurConfig.Frequency.MONTHLY, 1, DayDate(2026, 1, 25), skipWeekend = skipWeekend, weekendSolveMode = mode,
     )
     private fun shown(config: RecurConfig, stored: DayDate, weekend: Set<DayOfWeek> = fridaySaturday) =
-        ScheduleRecurrence.displayDate(config, stored, weekend)
+        ScheduleRecurrence.displayDate(config, stored, NonWorkingDays(weekend))
 
     @Test fun aBeforeScheduleShowsThursdayWhenTheWeekendIsFridayAndSaturday() {
         // The 25th is a Saturday in April and July (Actual stores the Friday before) and a Friday in September.
@@ -117,5 +118,26 @@ class ScheduleRecurrenceTest {
     @Test fun displayingNeverChangesTheStoredRecurrence() {
         val config = salary("before")
         assertEquals("2026-04-24", next(config, "2026-04-01"))
+    }
+
+    @Test fun aHolidayMovesAWeekdayOccurrenceInTheScheduleDirection() {
+        // 2026-05-25 is a Monday; with it listed as a holiday a "before" schedule is shown on Friday the 22nd
+        // and an "after" schedule on Tuesday the 26th, both with Actual's own Saturday/Sunday weekend.
+        val holiday = NonWorkingDays(holidays = setOf(java.time.LocalDate.of(2026, 5, 25)))
+        assertEquals(DayDate(2026, 5, 22), ScheduleRecurrence.displayDate(salary("before"), DayDate(2026, 5, 25), holiday))
+        assertEquals(DayDate(2026, 5, 26), ScheduleRecurrence.displayDate(salary("after"), DayDate(2026, 5, 25), holiday))
+    }
+
+    @Test fun aHolidayNextToAWeekendStepsOverBoth() {
+        // The 25th is a Saturday. Friday the 24th (before) and Monday the 27th (after) are listed holidays,
+        // so a "before" schedule is shown on Thursday the 23rd and an "after" one on Tuesday the 28th.
+        val holidays = NonWorkingDays(holidays = setOf(java.time.LocalDate.of(2026, 4, 24), java.time.LocalDate.of(2026, 4, 27)))
+        assertEquals(DayDate(2026, 4, 23), ScheduleRecurrence.displayDate(salary("before"), DayDate(2026, 4, 24), holidays))
+        assertEquals(DayDate(2026, 4, 28), ScheduleRecurrence.displayDate(salary("after"), DayDate(2026, 4, 27), holidays))
+    }
+
+    @Test fun holidaysNeverMoveAScheduleThatDoesNotSkipWeekends() {
+        val holiday = NonWorkingDays(holidays = setOf(java.time.LocalDate.of(2026, 5, 25)))
+        assertEquals(DayDate(2026, 5, 25), ScheduleRecurrence.displayDate(salary("before", skipWeekend = false), DayDate(2026, 5, 25), holiday))
     }
 }
