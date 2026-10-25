@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.data.network
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.net.Socket
@@ -64,5 +65,13 @@ class OidcCallbackServerTest {
                 executor.shutdownNow()
             }
         }
+    }
+
+    @Test
+    fun reportsIsClosedWhenClosed() {
+        val server = OidcCallbackServer()
+        assertFalse(server.isClosed)
+        server.close()
+        assertTrue(server.isClosed)
     }
 }

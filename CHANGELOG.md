@@ -8,6 +8,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Changed Budget display options to always show all sections expanded in a scrollable sheet ([#1321](https://github.com/azimul-kabir/actua/pull/1321))
 
+### Fixed
+
+- Fixed OpenID sign-in failing immediately with a closed listener when the browser opens ([#1320](https://github.com/azimul-kabir/actua/pull/1320))
+
 ## [2.2.0] - 2026-10-25
 
 ### Added
