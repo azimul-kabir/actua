@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.reports
 
+import com.azimulkabir.actua.data.home.MonthStartRule
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
@@ -59,7 +60,7 @@ class SavedReportEngineTest {
 
     @Test fun `a period start day shifts the month presets to pay periods`() {
         val today = LocalDate.of(2026, 9, 22)
-        fun range(r: SavedReportRow) = SavedReportEngine.dateRange(r, today, periodStartDay = 25)
+        fun range(r: SavedReportRow) = SavedReportEngine.dateRange(r, today, monthStart = MonthStartRule(25))
         assertEquals(LocalDate.of(2026, 8, 25) to LocalDate.of(2026, 9, 24), range(row("This month")))
         assertEquals(LocalDate.of(2026, 7, 25) to LocalDate.of(2026, 8, 24), range(row("Last month")))
         assertEquals(LocalDate.of(2026, 5, 25) to LocalDate.of(2026, 8, 24), range(row("Last 3 months")))
@@ -69,9 +70,9 @@ class SavedReportEngineTest {
     @Test fun `start day 1 and static ranges are unchanged`() {
         val today = LocalDate.of(2026, 9, 22)
         assertEquals(SavedReportEngine.dateRange(row("Last 3 months"), today),
-            SavedReportEngine.dateRange(row("Last 3 months"), today, periodStartDay = 1))
+            SavedReportEngine.dateRange(row("Last 3 months"), today, monthStart = MonthStartRule(1)))
         val static = row(null, static = true, start = "2026-01-10", end = "2026-02-09")
-        assertEquals(LocalDate.of(2026, 1, 10) to LocalDate.of(2026, 2, 9), SavedReportEngine.dateRange(static, today, periodStartDay = 25))
+        assertEquals(LocalDate.of(2026, 1, 10) to LocalDate.of(2026, 2, 9), SavedReportEngine.dateRange(static, today, monthStart = MonthStartRule(25)))
         assertEquals(LocalDate.of(2026, 9, 1) to LocalDate.of(2026, 9, 30),
             SavedReportEngine.dateRange(row("This month"), today))
     }
@@ -79,7 +80,7 @@ class SavedReportEngineTest {
     @Test fun `a start day past a short month uses its last day`() {
         val today = LocalDate.of(2027, 3, 2)
         assertEquals(LocalDate.of(2027, 2, 28) to LocalDate.of(2027, 3, 30),
-            SavedReportEngine.dateRange(row("This month"), today, periodStartDay = 31))
+            SavedReportEngine.dateRange(row("This month"), today, monthStart = MonthStartRule(31)))
     }
 }
 

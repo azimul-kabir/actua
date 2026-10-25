@@ -2,6 +2,7 @@ package com.azimulkabir.actua.ui.home
 
 import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.data.home.HomeSummaryPeriod
+import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.BudgetCategory
@@ -49,11 +50,10 @@ data class HomeDashboardProjection(
             favoriteAccountIds: Set<String>,
             favoriteReportIds: Set<String>,
             month: String,
-            summaryStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
+            monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
             today: LocalDate = LocalDate.now(),
         ): HomeDashboardProjection {
-            val period = summaryStartDay.takeIf { it != HomeSummaryPeriod.CALENDAR_MONTH_START_DAY }
-                ?.let { HomeSummaryPeriod.containing(today, it) }
+            val period = monthStart.takeUnless { it.isCalendarMonth }?.let { HomeSummaryPeriod.containing(today, it) }
             return HomeDashboardProjection(
                 budgetOverview = budgetOverview,
                 favoriteCategories = budgetGroups

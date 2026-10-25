@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.accounts
 
+import com.azimulkabir.actua.data.home.MonthStartRule
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
@@ -105,7 +106,7 @@ class AccountsScreenTest {
                 AccountsScreen(
                     accounts = listOf(checking),
                     showMonthlySummary = true,
-                    summaryStartDay = 25,
+                    monthStart = MonthStartRule(25),
                 )
             }
         }

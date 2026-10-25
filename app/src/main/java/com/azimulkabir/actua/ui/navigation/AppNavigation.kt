@@ -174,6 +174,7 @@ import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.sync.SyncStatus
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.home.HomeLayout
+import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.navigation.TabItem
 import com.azimulkabir.actua.data.schedules.ScheduleListItem
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
@@ -428,7 +429,7 @@ fun AppNavigation(
     var budgetReplacementCompleted by remember { mutableStateOf(false) }
     val activeBudgetId = remember(repositoryVersion) { ActiveBudgetStore(context).budgetId }
     val favoriteBudgetId = activeBudgetId ?: "no-budget"
-    var homeSummaryStartDay by remember(favoriteBudgetId) { mutableStateOf(homePreferences.summaryStartDay(favoriteBudgetId)) }
+    var homeMonthStart by remember(favoriteBudgetId) { mutableStateOf(homePreferences.monthStartRule(favoriteBudgetId)) }
     val availableBudgetOptions = remember(repositoryVersion) {
         BudgetFileManager(context).listLocalBudgets().map { budget ->
             BudgetSelectionItem(
@@ -616,7 +617,7 @@ fun AppNavigation(
     val tabStateHolder = rememberSaveableStateHolder()
     var reportSnapshot by remember(repository) { mutableStateOf<ReportSnapshot?>(null) }
     var reportSnapshotVersion by remember(repository) { mutableStateOf(-1) }
-    var reportSnapshotStartDay by remember(repository) { mutableStateOf(-1) }
+    var reportSnapshotMonthStart by remember(repository) { mutableStateOf<MonthStartRule?>(null) }
     var addOrigin by rememberSaveable { mutableStateOf(MainDestination.Accounts) }
     var transactionFabExpanded by rememberSaveable { mutableStateOf(true) }
     var transactionsRefreshing by remember { mutableStateOf(false) }
@@ -1294,16 +1295,16 @@ fun AppNavigation(
         }
     }
 
-    LaunchedEffect(destination, detail, dataVersion, repository, homeSummaryStartDay) {
-        repository.reportPeriodStartDay = homeSummaryStartDay
+    LaunchedEffect(destination, detail, dataVersion, repository, homeMonthStart) {
+        repository.reportMonthStart = homeMonthStart
         val needsReportSnapshot = detail == DetailDestination.Reports ||
             (detail == DetailDestination.Main && destination in setOf(MainDestination.Home, MainDestination.Reports))
-        if (needsReportSnapshot && (reportSnapshotVersion != dataVersion || reportSnapshotStartDay != homeSummaryStartDay)) {
+        if (needsReportSnapshot && (reportSnapshotVersion != dataVersion || reportSnapshotMonthStart != homeMonthStart)) {
             try {
                 val loaded = withContext(Dispatchers.IO) { repository.reports(dataVersion) }
                 reportSnapshot = loaded
                 reportSnapshotVersion = dataVersion
-                reportSnapshotStartDay = homeSummaryStartDay
+                reportSnapshotMonthStart = homeMonthStart
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 DiagnosticsLog.actionFailed("Loading reports", e)
@@ -1683,10 +1684,10 @@ fun AppNavigation(
             detail == DetailDestination.Transactions || detail == DetailDestination.Reports
         val contentModifier = (if (drawsBehindTabBar) Modifier.padding(top = innerPadding.calculateTopPadding()) else Modifier.padding(innerPadding))
             .nestedScroll(fabScrollConnection)
-        val loadReportWidgets: suspend (ReportViewFilter) -> List<ReportWidget> = remember(repository, dataVersion, homeSummaryStartDay) {
+        val loadReportWidgets: suspend (ReportViewFilter) -> List<ReportWidget> = remember(repository, dataVersion, homeMonthStart) {
             { view -> withContext(Dispatchers.IO) { repository.savedReportWidgets(view, dataVersion) } }
         }
-        val loadReportWidgetForRange: suspend (String, com.azimulkabir.actua.model.ReportRange) -> ReportWidget? = remember(repository, dataVersion, homeSummaryStartDay) {
+        val loadReportWidgetForRange: suspend (String, com.azimulkabir.actua.model.ReportRange) -> ReportWidget? = remember(repository, dataVersion, homeMonthStart) {
             { widgetId, range -> withContext(Dispatchers.IO) { repository.reportWidgetForRange(widgetId, range, dataVersion) } }
         }
         val loadReportTransactions: suspend (List<String>) -> List<Transaction> = remember(repository) {
@@ -2580,7 +2581,7 @@ fun AppNavigation(
                         favoriteReportIds,
                         reportSnapshot,
                         budgetMonth,
-                        homeSummaryStartDay,
+                        homeMonthStart,
                     ) {
                         HomeDashboardProjection.from(
                             budgetOverview = budgetOverview,
@@ -2593,7 +2594,7 @@ fun AppNavigation(
                             favoriteAccountIds = favoriteAccountIds,
                             favoriteReportIds = favoriteReportIds,
                             month = budgetMonth,
-                            summaryStartDay = homeSummaryStartDay,
+                            monthStart = homeMonthStart,
                         )
                     },
                     sections = homeLayout.visibleSections,
@@ -2875,7 +2876,7 @@ fun AppNavigation(
                     },
                     scrollToTopRequest = rootRequests[MainDestination.Accounts] ?: 0,
                     hasFab = hasFab,
-                    summaryStartDay = homeSummaryStartDay,
+                    monthStart = homeMonthStart,
                 )
                 MainDestination.Transactions -> TransactionsScreen(
                     accountName = null,
@@ -3053,11 +3054,13 @@ fun AppNavigation(
                 )
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,
-                    summaryStartDay = homeSummaryStartDay,
-                    onSummaryStartDayChange = { day ->
-                        val clamped = day.coerceIn(1, 31)
-                        homePreferences.setSummaryStartDay(favoriteBudgetId, clamped)
-                        homeSummaryStartDay = clamped
+                    monthStart = homeMonthStart,
+                    onMonthStartChange = { rule ->
+                        val clamped = rule.copy(day = rule.day.coerceIn(1, 31))
+                        homePreferences.setSummaryStartDay(favoriteBudgetId, clamped.day)
+                        homePreferences.setStartDayAdjustment(favoriteBudgetId, clamped.adjustment)
+                        homePreferences.setWeekendDays(favoriteBudgetId, clamped.weekendDays)
+                        homeMonthStart = clamped
                     },
                     onConnectionClick = { detail = DetailDestination.Connection },
                     decimalPlacesMode = decimalPlacesMode,
@@ -3841,7 +3844,7 @@ private fun NavigationAccountsScreen(
     onFavoriteAccountChange: (String, Boolean) -> Unit,
     scrollToTopRequest: Int,
     hasFab: Boolean,
-    summaryStartDay: Int,
+    monthStart: MonthStartRule,
 ) {
     AccountsScreen(
         modifier = contentModifier,
@@ -3901,7 +3904,7 @@ private fun NavigationAccountsScreen(
         onFavoriteAccountChange = onFavoriteAccountChange,
         scrollToTopRequest = scrollToTopRequest,
         hasFab = hasFab,
-        summaryStartDay = summaryStartDay,
+        monthStart = monthStart,
     )
 }
 

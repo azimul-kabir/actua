@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.reports
 
+import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
 import com.azimulkabir.actua.data.budget.model.ActualTransaction
@@ -65,12 +66,12 @@ class SankeyTest {
             tx("after", 20260825, 800000, "salary"),
         )
         val today = LocalDate.of(2026, 8, 20)
-        val pay = CoreReportEngine.compute(row(), rows, context, incomeCategoryIds, today = today, periodStartDay = 25)
+        val pay = CoreReportEngine.compute(row(), rows, context, incomeCategoryIds, today = today, monthStart = MonthStartRule(25))
         assertEquals(600000L, pay.valueCents)
         assertEquals("2026-02-25 - 2026-08-24", pay.subtitle)
         // Start day 1 keeps upstream's calendar window (Mar-Aug), and a stored time frame is never reinterpreted.
         assertEquals(1200000L, CoreReportEngine.compute(row(), rows, context, incomeCategoryIds, today = today).valueCents)
-        assertEquals(0L, CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds, today = today, periodStartDay = 25).valueCents)
+        assertEquals(0L, CoreReportEngine.compute(row(april), rows, context, incomeCategoryIds, today = today, monthStart = MonthStartRule(25)).valueCents)
     }
 
     @Test fun `a start day turns saved month-shaped time frames into pay periods`() {
@@ -85,7 +86,7 @@ class SankeyTest {
         )
         val today = LocalDate.of(2026, 8, 20)
         fun total(frame: String, startDay: Int = 25) = CoreReportEngine.compute(
-            row("""{"timeFrame":$frame}"""), rows, context, incomeCategoryIds, today = today, periodStartDay = startDay,
+            row("""{"timeFrame":$frame}"""), rows, context, incomeCategoryIds, today = today, monthStart = MonthStartRule(startDay),
         ).valueCents
         val thisMonth = """{"mode":"sliding-window","start":"2026-08","end":"2026-08"}"""
         assertEquals(2400000L, total(thisMonth))
@@ -755,21 +756,21 @@ class TimeFrameTest {
     @Test fun `cash flow and summary default to the pay period when a start day is set`() {
         // today 2026-08-20, start day 25: the period is 2026-07-25..2026-08-24.
         val cash = CoreReportEngine.compute(
-            DashboardWidgetRow("w", "cash-flow-card", null), periodRows, today = today, periodStartDay = 25)
+            DashboardWidgetRow("w", "cash-flow-card", null), periodRows, today = today, monthStart = MonthStartRule(25))
         assertEquals(-5_000L, cash.valueCents)
         assertEquals(1, cash.points.size)
         assertEquals(20260725, cash.points.single().drillDownQuery?.startDate)
         assertEquals(20260820, cash.points.single().drillDownQuery?.endDate)
         val summary = CoreReportEngine.compute(
-            DashboardWidgetRow("w", "summary-card", null), periodRows, today = today, periodStartDay = 25)
+            DashboardWidgetRow("w", "summary-card", null), periodRows, today = today, monthStart = MonthStartRule(25))
         assertEquals(-5_000L, summary.valueCents)
     }
 
     @Test fun `a stored time frame and start day 1 keep calendar months`() {
         val stored = DashboardWidgetRow("w", "cash-flow-card", """{"timeFrame":{"mode":"static","start":"2026-07","end":"2026-08"}}""")
-        assertEquals(-6_000L, CoreReportEngine.compute(stored, periodRows, today = today, periodStartDay = 25).valueCents)
+        assertEquals(-6_000L, CoreReportEngine.compute(stored, periodRows, today = today, monthStart = MonthStartRule(25)).valueCents)
         assertEquals(-3_000L, CoreReportEngine.compute(
-            DashboardWidgetRow("w", "cash-flow-card", null), periodRows, today = today, periodStartDay = 1).valueCents)
+            DashboardWidgetRow("w", "cash-flow-card", null), periodRows, today = today, monthStart = MonthStartRule(1)).valueCents)
     }
 
     @Test fun `a net worth card without a time frame charts the last 6 months`() {

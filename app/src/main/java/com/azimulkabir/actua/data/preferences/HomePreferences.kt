@@ -4,6 +4,9 @@ import android.content.Context
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeLayoutCodec
 import com.azimulkabir.actua.data.home.HomeSummaryPeriod
+import com.azimulkabir.actua.data.home.MonthStartRule
+import com.azimulkabir.actua.data.home.StartDayAdjustment
+import java.time.DayOfWeek
 
 /** Home dashboard section order and visibility; device-local UI preference, not budget data. */
 class HomePreferences(context: Context) {
@@ -25,10 +28,40 @@ class HomePreferences(context: Context) {
         preferences.edit().putInt(summaryStartDayKey(budgetId), day.coerceIn(1, 31)).apply()
     }
 
+    /** What to do when the start day lands on a weekend day for [budgetId]; none by default. */
+    fun startDayAdjustment(budgetId: String): StartDayAdjustment =
+        preferences.getString(startDayAdjustmentKey(budgetId), null)
+            ?.let { name -> StartDayAdjustment.values().firstOrNull { it.name == name } }
+            ?: StartDayAdjustment.NONE
+
+    fun setStartDayAdjustment(budgetId: String, adjustment: StartDayAdjustment) {
+        preferences.edit().putString(startDayAdjustmentKey(budgetId), adjustment.name).apply()
+    }
+
+    /** The weekdays treated as the weekend for [budgetId]; Saturday and Sunday unless changed. */
+    fun weekendDays(budgetId: String): Set<DayOfWeek> =
+        preferences.getString(weekendDaysKey(budgetId), null)
+            ?.split(',')
+            ?.mapNotNull { it.toIntOrNull()?.takeIf { value -> value in 1..7 }?.let(DayOfWeek::of) }
+            ?.toSet()
+            ?: MonthStartRule.DEFAULT_WEEKEND_DAYS
+
+    fun setWeekendDays(budgetId: String, days: Set<DayOfWeek>) {
+        preferences.edit().putString(weekendDaysKey(budgetId), days.map { it.value }.sorted().joinToString(",")).apply()
+    }
+
+    /** The full start rule for [budgetId], as the summaries and report presets consume it. */
+    fun monthStartRule(budgetId: String) =
+        MonthStartRule(summaryStartDay(budgetId), startDayAdjustment(budgetId), weekendDays(budgetId))
+
     private fun summaryStartDayKey(budgetId: String) = "$SUMMARY_START_DAY:$budgetId"
+    private fun startDayAdjustmentKey(budgetId: String) = "$START_DAY_ADJUSTMENT:$budgetId"
+    private fun weekendDaysKey(budgetId: String) = "$WEEKEND_DAYS:$budgetId"
 
     private companion object {
         const val LAYOUT = "layout"
         const val SUMMARY_START_DAY = "summary_start_day"
+        const val START_DAY_ADJUSTMENT = "start_day_adjustment"
+        const val WEEKEND_DAYS = "weekend_days"
     }
 }

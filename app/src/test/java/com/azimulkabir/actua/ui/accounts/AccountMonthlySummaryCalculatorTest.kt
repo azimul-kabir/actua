@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.accounts
 
+import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.model.SplitLine
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
@@ -97,7 +98,7 @@ class AccountMonthlySummaryCalculatorTest {
 
         val (filtered, period) = filterTransactionsForSummary(
             transactions = listOf(txOct1, txOct15, txSep30, txNov1),
-            summaryStartDay = 1,
+            monthStart = MonthStartRule(1),
             today = java.time.LocalDate.of(2026, 10, 18),
         )
 
@@ -115,7 +116,7 @@ class AccountMonthlySummaryCalculatorTest {
 
         val (filtered, period) = filterTransactionsForSummary(
             transactions = listOf(txBefore, txStart, txInside, txEnd, txAfter),
-            summaryStartDay = 25,
+            monthStart = MonthStartRule(25),
             today = java.time.LocalDate.of(2026, 10, 18),
         )
 

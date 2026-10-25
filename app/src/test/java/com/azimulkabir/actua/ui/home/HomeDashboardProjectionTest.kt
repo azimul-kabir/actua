@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.ui.home
 
+import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.home.HomeSection
 import com.azimulkabir.actua.data.home.HomeSummaryPeriod
 import com.azimulkabir.actua.model.Account
@@ -90,7 +91,7 @@ class HomeDashboardProjectionTest {
             favoriteAccountIds = emptySet(),
             favoriteReportIds = emptySet(),
             month = "2026-10",
-            summaryStartDay = 27,
+            monthStart = MonthStartRule(27),
             today = java.time.LocalDate.of(2026, 10, 5),
         )
 

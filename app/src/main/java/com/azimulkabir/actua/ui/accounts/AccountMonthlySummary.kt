@@ -1,6 +1,7 @@
 package com.azimulkabir.actua.ui.accounts
 
 import com.azimulkabir.actua.data.home.HomeSummaryPeriod
+import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.Type
 import java.time.LocalDate
@@ -14,11 +15,10 @@ internal data class AccountMonthlySummary(
 
 internal fun filterTransactionsForSummary(
     transactions: List<Transaction>,
-    summaryStartDay: Int = HomeSummaryPeriod.CALENDAR_MONTH_START_DAY,
+    monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
     today: LocalDate = LocalDate.now(),
 ): Pair<List<Transaction>, HomeSummaryPeriod?> {
-    val period = summaryStartDay.takeIf { it != HomeSummaryPeriod.CALENDAR_MONTH_START_DAY }
-        ?.let { HomeSummaryPeriod.containing(today, it) }
+    val period = monthStart.takeUnless { it.isCalendarMonth }?.let { HomeSummaryPeriod.containing(today, it) }
     val monthTransactions = transactions.filter {
         val digits = it.date.filter(Char::isDigit)
         if (period == null) {

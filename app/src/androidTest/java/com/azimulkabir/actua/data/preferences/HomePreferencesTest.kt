@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
 import com.azimulkabir.actua.data.home.HomeLayout
 import com.azimulkabir.actua.data.home.HomeSection
+import com.azimulkabir.actua.data.home.MonthStartRule
+import com.azimulkabir.actua.data.home.StartDayAdjustment
+import java.time.DayOfWeek
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -54,5 +57,29 @@ class HomePreferencesTest {
         assertEquals(31, fresh.summaryStartDay("budget-a"))
         fresh.setSummaryStartDay("budget-a", 0)
         assertEquals(1, fresh.summaryStartDay("budget-a"))
+    }
+
+    @Test
+    fun adjustmentAndWeekendDaysDefaultPersistAndArePerBudget() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("home_preferences", Context.MODE_PRIVATE).edit().clear().commit()
+
+        val fresh = HomePreferences(context)
+        assertEquals(StartDayAdjustment.NONE, fresh.startDayAdjustment("budget-a"))
+        assertEquals(MonthStartRule.DEFAULT_WEEKEND_DAYS, fresh.weekendDays("budget-a"))
+        assertEquals(MonthStartRule.CALENDAR_MONTH, fresh.monthStartRule("budget-a"))
+
+        fresh.setSummaryStartDay("budget-a", 25)
+        fresh.setStartDayAdjustment("budget-a", StartDayAdjustment.PREVIOUS_WORKING_DAY)
+        fresh.setWeekendDays("budget-a", setOf(DayOfWeek.FRIDAY, DayOfWeek.SATURDAY))
+        assertEquals(
+            MonthStartRule(25, StartDayAdjustment.PREVIOUS_WORKING_DAY, setOf(DayOfWeek.FRIDAY, DayOfWeek.SATURDAY)),
+            HomePreferences(context).monthStartRule("budget-a"),
+        )
+        assertEquals(MonthStartRule.CALENDAR_MONTH, HomePreferences(context).monthStartRule("budget-b"))
+
+        // An empty weekend (every day is a working day) is a real choice and survives a restart.
+        fresh.setWeekendDays("budget-a", emptySet())
+        assertEquals(emptySet<DayOfWeek>(), HomePreferences(context).weekendDays("budget-a"))
     }
 }

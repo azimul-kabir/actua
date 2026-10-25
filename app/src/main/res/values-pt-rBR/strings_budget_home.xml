@@ -329,6 +329,12 @@
     <string name="home_summary_start_earlier">Iniciar o período um dia antes</string>
     <string name="home_summary_start_later">Iniciar o período um dia depois</string>
     <string name="home_summary_start_description">O dia 1 é o mês civil. Escolha outro dia se você recebe no meio do mês; o resumo do Início então vai desse dia até o dia anterior ao próximo. Meses curtos usam o último dia.</string>
+    <string name="home_summary_start_adjustment_title">Se o dia inicial cair em um fim de semana</string>
+    <string name="home_summary_adjustment_none">Manter esse dia</string>
+    <string name="home_summary_adjustment_previous">Dia útil anterior</string>
+    <string name="home_summary_adjustment_next">Próximo dia útil</string>
+    <string name="home_summary_weekend_title">Dias de fim de semana</string>
+    <string name="home_summary_weekend_description">Os dias de fim de semana são ignorados ao mover o início para um dia útil, para que o período sempre comece em um dia de pagamento ou de expediente bancário. Feriados não são considerados. Isso vale apenas neste dispositivo.</string>
 
     <plurals name="home_transactions_count">
         <item quantity="one">%1$d transação</item>
