@@ -334,7 +334,7 @@
     <string name="home_summary_adjustment_previous">Previous working day</string>
     <string name="home_summary_adjustment_next">Next working day</string>
     <string name="home_summary_weekend_title">Weekend days</string>
-    <string name="home_summary_weekend_description">Weekend days are skipped when moving the month start to a working day, and are where schedules that skip weekends are shown as due. Actual itself keeps Saturday and Sunday, so this changes only what you see on this device. Holidays are not considered.</string>
+    <string name="home_summary_weekend_description">Weekend days are skipped when moving the month start to a working day, and are where schedules that skip weekends are shown as due. Actual itself keeps Saturday and Sunday, so this changes only what you see on this device. Holidays you list below are skipped the same way.</string>
     <string name="settings_holidays_row_title">Holidays</string>
     <string name="settings_holidays_row_none">None listed</string>
     <string name="settings_holidays_row_count">%1$d listed</string>
