@@ -24,7 +24,8 @@ class MonthStartRuleTest {
     @Test
     fun aSalaryDayOnAFridayOrSaturdayMovesToThursdayWithAFridaySaturdayWeekend() {
         val previous = rule(25, StartDayAdjustment.PREVIOUS_WORKING_DAY)
-        // 2026-04-25 is a Friday and 2026-07-25 a Saturday; 2026-05-25 is a Monday.
+        // 2026-09-25 is a Friday, 2026-04-25 and 2026-07-25 are Saturdays; 2026-05-25 is a Monday.
+        assertEquals(d(2026, 9, 24), previous.startFor(java.time.YearMonth.of(2026, 9)))
         assertEquals(d(2026, 4, 23), previous.startFor(java.time.YearMonth.of(2026, 4)))
         assertEquals(d(2026, 7, 23), previous.startFor(java.time.YearMonth.of(2026, 7)))
         assertEquals(d(2026, 5, 25), previous.startFor(java.time.YearMonth.of(2026, 5)))
@@ -33,8 +34,9 @@ class MonthStartRuleTest {
     @Test
     fun nextWorkingDayMovesPastTheWeekend() {
         val next = rule(25, StartDayAdjustment.NEXT_WORKING_DAY)
-        // Friday the 25th and the Saturday after it are both weekend days, so April moves to Sunday the 27th.
-        assertEquals(d(2026, 4, 27), next.startFor(java.time.YearMonth.of(2026, 4)))
+        // A Friday the 25th (September) is followed by a weekend Saturday, so it moves to Sunday the 27th.
+        assertEquals(d(2026, 9, 27), next.startFor(java.time.YearMonth.of(2026, 9)))
+        assertEquals(d(2026, 4, 26), next.startFor(java.time.YearMonth.of(2026, 4)))
         assertEquals(d(2026, 7, 26), next.startFor(java.time.YearMonth.of(2026, 7)))
         assertEquals(d(2026, 5, 25), next.startFor(java.time.YearMonth.of(2026, 5)))
     }
@@ -42,8 +44,9 @@ class MonthStartRuleTest {
     @Test
     fun theDefaultWeekendIsSaturdayAndSunday() {
         val previous = MonthStartRule(25, StartDayAdjustment.PREVIOUS_WORKING_DAY)
-        // 2026-04-25 is a Saturday under Sat-Sun only if it were; it is a Friday, so it stays.
-        assertEquals(d(2026, 4, 25), previous.startFor(java.time.YearMonth.of(2026, 4)))
+        // 2026-09-25 is a Friday, a working day under Sat-Sun, so it stays; 2026-04-25 is a Saturday.
+        assertEquals(d(2026, 9, 25), previous.startFor(java.time.YearMonth.of(2026, 9)))
+        assertEquals(d(2026, 4, 24), previous.startFor(java.time.YearMonth.of(2026, 4)))
         // 2026-10-25 is a Sunday, so it moves back to Friday the 23rd.
         assertEquals(d(2026, 10, 23), previous.startFor(java.time.YearMonth.of(2026, 10)))
     }
@@ -63,7 +66,7 @@ class MonthStartRuleTest {
     @Test
     fun theAdjustedPeriodsRunFromPayDayToTheDayBeforeTheNextOne() {
         val rule = rule(25, StartDayAdjustment.PREVIOUS_WORKING_DAY)
-        // The April payday is Thursday the 23rd (the 25th is a Friday); May's is Monday the 25th.
+        // The April payday is Thursday the 23rd (the 25th is a Saturday); May's is Monday the 25th.
         assertEquals(period(d(2026, 4, 23), d(2026, 5, 24)), HomeSummaryPeriod.containing(d(2026, 4, 24), rule))
         assertEquals(period(d(2026, 4, 23), d(2026, 5, 24)), HomeSummaryPeriod.containing(d(2026, 4, 23), rule))
         assertEquals(period(d(2026, 3, 25), d(2026, 4, 22)), HomeSummaryPeriod.containing(d(2026, 4, 22), rule))
