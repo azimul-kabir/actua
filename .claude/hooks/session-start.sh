@@ -7,6 +7,20 @@ fi
 
 echo "=== Setting up Actua cloud environment ==="
 
+# --- Git Identity --------------------------------------------------------
+# Ensure commits authored in Claude Code cloud sessions match the repository
+# owner's Git identity so GitHub does not inject an unwanted Co-authored-by
+# trailer on squash merge.
+git config --global user.name "Azimul Kabir Apu"
+git config --global user.email "azimul.kabir123@gmail.com"
+
+if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+  echo "export GIT_AUTHOR_NAME=\"Azimul Kabir Apu\"" >> "$CLAUDE_ENV_FILE"
+  echo "export GIT_AUTHOR_EMAIL=\"azimul.kabir123@gmail.com\"" >> "$CLAUDE_ENV_FILE"
+  echo "export GIT_COMMITTER_NAME=\"Azimul Kabir Apu\"" >> "$CLAUDE_ENV_FILE"
+  echo "export GIT_COMMITTER_EMAIL=\"azimul.kabir123@gmail.com\"" >> "$CLAUDE_ENV_FILE"
+fi
+
 # --- JDK -----------------------------------------------------------------
 # Actua pins its Gradle Daemon JVM via gradle/gradle-daemon-jvm.properties
 # (toolchainVersion=25). If Gradle can't find a matching JDK through its own
