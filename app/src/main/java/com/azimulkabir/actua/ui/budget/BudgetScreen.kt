@@ -998,9 +998,6 @@ private fun BudgetToolbar(
                     IconButton(onClick = onAdd) {
                         Icon(Icons.Outlined.AutoAwesome, contentDescription = stringResource(R.string.budget_add_to_budget))
                     }
-                    IconButton(onClick = onManageCategories) {
-                        Icon(Icons.AutoMirrored.Outlined.FormatListBulleted, contentDescription = stringResource(R.string.budget_manage_categories))
-                    }
                     IconButton(onClick = { onOptionsChange(true) }) {
                         Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.budget_display_options))
                     }
@@ -1017,6 +1014,13 @@ private fun BudgetToolbar(
                 DropdownMenuItem(text = { Text(stringResource(R.string.budget_expand_all_groups)) }, onClick = onExpandAll)
                 DropdownMenuItem(text = { Text(stringResource(R.string.budget_collapse_all_groups)) }, onClick = onCollapseAll)
                 HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.budget_manage_categories)) },
+                    onClick = {
+                        onOptionsChange(false)
+                        onManageCategories()
+                    },
+                )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.budget_display_options_menu)) },
                     onClick = {

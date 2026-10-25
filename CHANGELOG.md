@@ -15,7 +15,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
-- Changed the Budget menu to a short list plus a collapsible Display options sheet with a new Show status dots switch, and moved Copy last month's budget to the Add to budget sheet ([#1314](https://github.com/azimul-kabir/actua/pull/1314))
+- Changed the Budget menu to a short list plus a collapsible Display options sheet with a new Show status dots switch, moved Copy last month's budget to the Add to budget sheet, and moved Manage Categories into the menu ([#1314](https://github.com/azimul-kabir/actua/pull/1314))
 
 ### Fixed
 

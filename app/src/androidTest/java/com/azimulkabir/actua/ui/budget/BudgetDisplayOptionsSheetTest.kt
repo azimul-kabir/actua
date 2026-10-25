@@ -36,6 +36,7 @@ class BudgetDisplayOptionsSheetTest {
 
     private var options by mutableStateOf(BudgetDisplayOptions())
     private var copied = 0
+    private var managed = 0
 
     private fun setBudget(statusColors: CategoryStatusColorState? = null) {
         compose.setContent {
@@ -45,6 +46,7 @@ class BudgetDisplayOptionsSheetTest {
                         displayOptions = options,
                         onDisplayOptionsChange = { options = it },
                         onCopyPreviousMonth = { copied++ },
+                        onManageCategories = { managed++ },
                     )
                 }
             }
@@ -68,6 +70,7 @@ class BudgetDisplayOptionsSheetTest {
         compose.onNodeWithText(label(R.string.budget_plan_view)).assertExists()
         compose.onNodeWithText(label(R.string.budget_expand_all_groups)).assertExists()
         compose.onNodeWithText(label(R.string.budget_collapse_all_groups)).assertExists()
+        compose.onNodeWithText(label(R.string.budget_manage_categories)).assertExists()
         compose.onNodeWithText(label(R.string.budget_display_options_menu)).assertExists()
         compose.onNodeWithText(label(R.string.budget_show_overview)).assertDoesNotExist()
         compose.onNodeWithText(label(R.string.budget_show_balance_pills)).assertDoesNotExist()
@@ -121,5 +124,15 @@ class BudgetDisplayOptionsSheetTest {
         assertEquals(1, copied)
         // The sheet closes after copying.
         compose.onNodeWithText(label(R.string.budget_copy_last_month)).assertDoesNotExist()
+    }
+
+    @Test fun manageCategoriesIsARowInTheMenuNotAToolbarButton() {
+        setBudget()
+        // The toolbar no longer has a Manage Categories button; the menu row opens it and closes the menu.
+        compose.onNodeWithContentDescription(label(R.string.budget_manage_categories)).assertDoesNotExist()
+        openMenu()
+        compose.onNodeWithText(label(R.string.budget_manage_categories)).performClick()
+        assertEquals(1, managed)
+        compose.onNodeWithText(label(R.string.budget_manage_categories)).assertDoesNotExist()
     }
 }
