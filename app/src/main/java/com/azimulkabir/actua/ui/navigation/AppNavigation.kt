@@ -2785,7 +2785,7 @@ fun AppNavigation(
                     returnToRootRequest = rootRequests[MainDestination.Home] ?: 0,
                     hasFab = hasFab,
                 )
-                MainDestination.Budget -> BudgetScreen(
+                MainDestination.Budget -> NavigationBranch { BudgetScreen(
                     contentModifier,
                     groups = budgetGroups,
                     overview = budgetOverview,
@@ -2994,7 +2994,7 @@ fun AppNavigation(
                     showNotes = showNotes,
                     hideIncomeGroup = hideIncomeGroupInBudget,
                     hasFab = hasFab,
-                )
+                ) }
                 MainDestination.Accounts -> NavigationAccountsScreen(
                     repository = repository,
                     dataVersion = dataVersion,
@@ -3038,7 +3038,7 @@ fun AppNavigation(
                     hasFab = hasFab,
                     monthStart = homeMonthStart,
                 )
-                MainDestination.Transactions -> TransactionsScreen(
+                MainDestination.Transactions -> NavigationBranch { TransactionsScreen(
                     accountName = null,
                     categoryName = null,
                     month = null,
@@ -3177,7 +3177,7 @@ fun AppNavigation(
                     recurringScheduleIds = upcomingRecurringScheduleIds,
                     onUpcomingAction = ::onUpcomingAction,
                     hasFab = hasFab,
-                )
+                ) }
                 MainDestination.Reports -> NavigationReportsScreen(
                     snapshot = reportSnapshot,
                     snapshotVersion = reportSnapshotVersion,
@@ -3212,7 +3212,7 @@ fun AppNavigation(
                     repository = repository,
                     onMutate = { labelRes, action -> mutate(labelRes, action = action) },
                 )
-                MainDestination.Manage -> SettingsScreen(
+                MainDestination.Manage -> NavigationBranch { SettingsScreen(
                     modifier = contentModifier,
                     monthStart = homeMonthStart,
                     onMonthStartChange = onMonthStartChange,
@@ -3292,7 +3292,7 @@ fun AppNavigation(
                     activeBudgetId = activeBudgetId,
                     onBudgetChange = settingsBudgetChange,
                     returnToRootRequest = rootRequests[MainDestination.Manage] ?: 0,
-                )
+                ) }
             }
         }
         }
@@ -3306,6 +3306,16 @@ fun AppNavigation(
         modifier = Modifier.fillMaxSize(),
     )
     }
+}
+
+/**
+ * Hosts one of the (size-critical) main destinations. The call inside [content] is compiled into its
+ * own method, which keeps its many arguments out of the AnimatedContent content lambda that sits at
+ * the JVM's 64 KB method limit.
+ */
+@Composable
+private fun NavigationBranch(content: @Composable () -> Unit) {
+    content()
 }
 
 @Composable
