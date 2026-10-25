@@ -89,4 +89,10 @@ class BudgetTableLayoutTest {
         assertNotNull(layout(budgeted = 85f, spent = 80f, balance = 85f))
         assertNull(layout(budgeted = 85f, spent = 80f, balance = 85f, iconWidth = 40f))
     }
+
+    @Test
+    fun stackedBalanceWeightGivesExtraRoomOnlyWhenGoalIconsAreShown() {
+        assertEquals(StackedBalanceWeight, stackedBalanceWeight(showGoalIcons = true), 0f)
+        assertEquals(1f, stackedBalanceWeight(showGoalIcons = false), 0f)
+    }
 }

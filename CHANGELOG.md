@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed the Budget table stacked balance column keeping extra width when goal icons are turned off ([#1318](https://github.com/azimul-kabir/actua/pull/1318))
+
 ## [2.2.0] - 2026-10-25
 
 ### Added
