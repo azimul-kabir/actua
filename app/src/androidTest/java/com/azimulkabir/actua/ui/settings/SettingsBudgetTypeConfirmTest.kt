@@ -1,8 +1,6 @@
 package com.azimulkabir.actua.ui.settings
 
 import android.content.Context
-import androidx.compose.ui.test.assertDoesNotExist
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
