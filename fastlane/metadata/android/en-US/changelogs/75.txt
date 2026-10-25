@@ -4,3 +4,4 @@
 • Add holidays that pay periods and schedules skip
 • Post schedules on the date shown
 • Target icon on Budget balance pills
+• Summary and Cash Flow follow your month start
