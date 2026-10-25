@@ -466,7 +466,6 @@ fun ConnectionScreen(
         loading = true
         message = resources.getString(R.string.preparing_openid)
         scope.launch {
-            var callbackServer: OidcCallbackServer? = null
             // Tracks whichever URL the most recent OpenID step targeted, so a certificate trust
             // prompt inspects the certificate that actually failed rather than always the primary.
             var attemptedUrl = serverUrl
@@ -655,7 +654,8 @@ fun ConnectionScreen(
 
     LaunchedEffect(headerEntries) { client.customHeaders = headerEntries.toMap() }
     DisposableEffect(activeOidcServer) {
-        onDispose { activeOidcServer?.close() }
+        val server = activeOidcServer
+        onDispose { server?.close() }
     }
     LaunchedEffect(connected) {
         if (connected && remoteBudgets.isEmpty()) loadBudgets()
