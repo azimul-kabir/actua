@@ -1,0 +1,10 @@
+• Set your own weekend days for pay periods
+• Month start moves to the previous or next working day
+• Weekend-skipping schedules follow your weekend
+• Add holidays that pay periods and schedules skip
+• Post schedules on the date shown
+• Target icon on Budget balance pills
+• Summary and Cash Flow follow your month start
+• Option to hide goal icons on balance pills
+• Shorter Budget menu with a Display options sheet
+• Switch budget from the Budget tab
