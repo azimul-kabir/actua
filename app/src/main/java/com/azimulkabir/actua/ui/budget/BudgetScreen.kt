@@ -1884,7 +1884,7 @@ private fun tableAmountsFit(
 private val TableRowPadding = Spacing.lg
 
 /** The smallest scale the table's amounts shrink to side by side; below it rows stack instead. */
-internal const val TableLayoutMinScale = 0.75f
+internal const val TableLayoutMinScale = 0.60f
 
 /** The share of the table's width the name column keeps, however wide the amounts are. */
 internal const val TableNameMinShare = 0.32f
