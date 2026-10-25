@@ -3,12 +3,12 @@ package com.azimulkabir.actua.ui.budget
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,12 +25,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
+import com.azimulkabir.actua.ui.components.ActuaListRow
 import com.azimulkabir.actua.ui.components.ActuaSheetCard
 import com.azimulkabir.actua.ui.components.ActuaSheetContent
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
@@ -80,11 +84,11 @@ internal fun BudgetDisplayOptionsSheet(
                 OptionSwitchRow(stringResource(R.string.budget_show_overview), options.showOverview) {
                     onOptionsChange(options.copy(showOverview = it))
                 }
-                ActuaCardDivider()
+                OptionDivider()
                 OptionSwitchRow(stringResource(R.string.budget_show_warnings), options.showBudgetStatusBanners) {
                     onOptionsChange(options.copy(showBudgetStatusBanners = it))
                 }
-                ActuaCardDivider()
+                OptionDivider()
                 OptionSwitchRow(stringResource(R.string.budget_show_filters), options.showCategoryFilters) {
                     onOptionsChange(options.copy(showCategoryFilters = it))
                 }
@@ -105,27 +109,31 @@ internal fun BudgetDisplayOptionsSheet(
                     else stringResource(R.string.budget_show_spent_column),
                     options.showSpent,
                 ) { onOptionsChange(options.copy(showSpent = it)) }
-                ActuaCardDivider()
+                OptionDivider()
                 OptionSwitchRow(stringResource(R.string.budget_show_progress_bars), options.showProgressBars) {
                     onOptionsChange(options.copy(showProgressBars = it))
                 }
-                ActuaCardDivider()
-                OptionSwitchRow(stringResource(R.string.budget_show_status_dots), statusDots) {
-                    statusColors?.updateShowDots(it)
-                }
-                ActuaCardDivider()
-                OptionSwitchRow(stringResource(R.string.settings_color_balances), colorBalances) {
-                    statusColors?.updateColorBudgetedAmounts(it)
-                }
-                ActuaCardDivider()
+                OptionDivider()
+                OptionSwitchRow(
+                    stringResource(R.string.budget_show_status_dots),
+                    statusDots,
+                    stringResource(R.string.settings_category_status_dot_description),
+                ) { statusColors?.updateShowDots(it) }
+                OptionDivider()
+                OptionSwitchRow(
+                    stringResource(R.string.settings_color_balances),
+                    colorBalances,
+                    stringResource(R.string.settings_color_balances_description),
+                ) { statusColors?.updateColorBudgetedAmounts(it) }
+                OptionDivider()
                 OptionSwitchRow(stringResource(R.string.budget_show_balance_pills), options.showBalancePills) {
                     onOptionsChange(options.copy(showBalancePills = it))
                 }
-                ActuaCardDivider()
+                OptionDivider()
                 OptionSwitchRow(stringResource(R.string.budget_show_goal_icons), options.showGoalIcons) {
                     onOptionsChange(options.copy(showGoalIcons = it))
                 }
-                ActuaCardDivider()
+                OptionDivider()
                 OptionSwitchRow(stringResource(R.string.budget_show_group_totals), options.showGroupTotals) {
                     onOptionsChange(options.copy(showGroupTotals = it))
                 }
@@ -140,7 +148,7 @@ internal fun BudgetDisplayOptionsSheet(
                 OptionSwitchRow(stringResource(R.string.budget_hide_fully_spent), options.hideFullySpent) {
                     onOptionsChange(options.copy(hideFullySpent = it))
                 }
-                ActuaCardDivider()
+                OptionDivider()
                 OptionSwitchRow(stringResource(R.string.budget_show_hidden), options.showHidden) {
                     onOptionsChange(options.copy(showHidden = it))
                 }
@@ -149,7 +157,10 @@ internal fun BudgetDisplayOptionsSheet(
     }
 }
 
-/** One card: a header row that expands and collapses [content], with how many of its switches are on. */
+/**
+ * A collapsible group styled like a settings section: a primary label (with how many of its switches
+ * are on) over a rounded card of rows that expands and collapses.
+ */
 @Composable
 private fun OptionsSection(
     title: String,
@@ -163,52 +174,69 @@ private fun OptionsSection(
     val stateText = stringResource(
         if (expanded) R.string.budget_options_section_expanded else R.string.budget_options_section_collapsed,
     )
-    ActuaSheetCard {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .clickable(role = Role.Button, onClick = onToggle)
-                .semantics { stateDescription = stateText }
-                .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    stringResource(R.string.budget_options_section_summary, enabledCount, totalCount),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                Icons.Outlined.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.rotate(rotation),
-            )
-        }
-        AnimatedVisibility(visible = expanded) {
-            Column {
-                ActuaCardDivider()
-                content()
-            }
-        }
-    }
-}
-
-/** A labelled switch row that toggles as a whole and is announced as a single switch. */
-@Composable
-private fun OptionSwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onToggle)
+            .semantics { stateDescription = stateText }
+            .padding(
+                start = Spacing.screenHorizontal + Spacing.xs,
+                end = Spacing.screenHorizontal,
+                top = Spacing.sm,
+                bottom = Spacing.sm,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = null)
+        Text(
+            title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            stringResource(R.string.budget_options_section_summary, enabledCount, totalCount),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.width(Spacing.xs))
+        Icon(
+            Icons.Outlined.ExpandMore,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.rotate(rotation),
+        )
     }
+    AnimatedVisibility(visible = expanded) {
+        ActuaSheetCard { content() }
+    }
+}
+
+/** Divider between the rows of an options card, inset like the Settings cards. */
+@Composable
+private fun OptionDivider() = ActuaCardDivider(inset = Spacing.screenHorizontal)
+
+/**
+ * A switch row built like the Settings toggles: a title with an optional grey [detail] and a trailing
+ * switch, toggling as a whole and announced as a single switch.
+ */
+@Composable
+private fun OptionSwitchRow(
+    label: String,
+    checked: Boolean,
+    detail: String? = null,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    ActuaListRow(
+        title = { Text(label, style = MaterialTheme.typography.bodyLarge) },
+        subtitle = detail?.let {
+            { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        },
+        trailing = { Switch(checked = checked, onCheckedChange = null) },
+        onClick = { onCheckedChange(!checked) },
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            role = Role.Switch
+            toggleableState = ToggleableState(checked)
+        },
+    )
 }
