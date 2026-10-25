@@ -91,6 +91,11 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_BALANCE_PILLS, true)
         set(value) { preferences.edit().putBoolean(SHOW_BALANCE_PILLS, value).apply() }
 
+    /** Off hides the target funding icon on Budget tab balance pills, in both the table and plan views. */
+    var showGoalIcons: Boolean
+        get() = preferences.getBoolean(SHOW_GOAL_ICONS, true)
+        set(value) { preferences.edit().putBoolean(SHOW_GOAL_ICONS, value).apply() }
+
     var hideFullySpentCategories: Boolean
         get() = preferences.getBoolean(HIDE_FULLY_SPENT_CATEGORIES, false)
         set(value) { preferences.edit().putBoolean(HIDE_FULLY_SPENT_CATEGORIES, value).apply() }
@@ -226,6 +231,7 @@ class DisplayPreferences(context: Context) {
         const val SHOW_OVERSPENT_WARNING = "show_overspent_warning"
         const val SHOW_GROUP_TOTALS = "show_group_totals"
         const val SHOW_BALANCE_PILLS = "show_balance_pills"
+        const val SHOW_GOAL_ICONS = "show_goal_icons"
         const val HIDE_FULLY_SPENT_CATEGORIES = "hide_fully_spent_categories"
         const val BUDGET_CATEGORY_VIEW = "budget_category_view"
         const val SHOW_CATEGORY_FILTERS = "show_category_filters"
