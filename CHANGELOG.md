@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
-- Fixed OpenID sign-in failing immediately with a closed listener when the browser opens ([#1284](https://github.com/azimul-kabir/actua/issues/1284))
+- Fixed OpenID sign-in failing immediately with a closed listener when the browser opens ([#1320](https://github.com/azimul-kabir/actua/pull/1320))
 
 ## [2.2.0] - 2026-10-25
 
