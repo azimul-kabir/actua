@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.data.reports
 
+import com.azimulkabir.actua.data.home.StartDayAdjustment
 import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.budget.model.ActualCategory
 import com.azimulkabir.actua.data.budget.model.ActualCategoryGroup
@@ -771,6 +772,65 @@ class TimeFrameTest {
         assertEquals(-6_000L, CoreReportEngine.compute(stored, periodRows, today = today, monthStart = MonthStartRule(25)).valueCents)
         assertEquals(-3_000L, CoreReportEngine.compute(
             DashboardWidgetRow("w", "cash-flow-card", null), periodRows, today = today, monthStart = MonthStartRule(1)).valueCents)
+    }
+
+    private fun periodCard(type: String, frame: String?, rows: List<ActualTransaction>, on: LocalDate, rule: MonthStartRule) =
+        CoreReportEngine.compute(
+            DashboardWidgetRow("w", type, frame?.let { """{"timeFrame":$it}""" }), rows, today = on, monthStart = rule)
+
+    @Test fun `a saved 3-month sliding window on cash flow and summary becomes the last 3 pay periods`() {
+        // today 2026-08-20, start day 25: the periods are 05-25..06-24, 06-25..07-24 and 07-25..08-24 (up to today).
+        val rows = listOf(
+            tx("before", 20260510, -500), tx("a", 20260526, -1_000), tx("b", 20260626, -2_000),
+            tx("c1", 20260726, -4_000), tx("c2", 20260805, -8_000),
+        )
+        val frame = """{"mode":"sliding-window","start":"2026-06","end":"2026-08"}"""
+        val cash = periodCard("cash-flow-card", frame, rows, today, MonthStartRule(25))
+        assertEquals(listOf("2026-05", "2026-06", "2026-07"), cash.points.map { it.period })
+        assertEquals(listOf(1_000L, 2_000L, 12_000L), cash.points.map { it.secondaryCents })
+        assertEquals(listOf(20260525, 20260625, 20260725), cash.points.map { it.drillDownQuery?.startDate })
+        assertEquals(listOf(20260624, 20260724, 20260820), cash.points.map { it.drillDownQuery?.endDate })
+        assertEquals(-15_000L, cash.valueCents)
+        assertEquals(-15_000L, periodCard("summary-card", frame, rows, today, MonthStartRule(25)).valueCents)
+    }
+
+    @Test fun `last month on cash flow and summary is the previous pay period`() {
+        val rows = listOf(tx("b", 20260626, -2_000), tx("c", 20260805, -8_000), tx("edge", 20260724, -300))
+        val cash = periodCard("cash-flow-card", """{"mode":"lastMonth"}""", rows, today, MonthStartRule(25))
+        assertEquals(1, cash.points.size)
+        assertEquals(20260625, cash.points.single().drillDownQuery?.startDate)
+        assertEquals(20260724, cash.points.single().drillDownQuery?.endDate)
+        assertEquals(-2_300L, cash.valueCents)
+        assertEquals(-2_300L, periodCard("summary-card", """{"mode":"lastMonth"}""", rows, today, MonthStartRule(25)).valueCents)
+    }
+
+    @Test fun `the pay periods follow the working day adjustment for a Friday and Saturday weekend`() {
+        // Sep 25 2026 is a Friday, so with "previous working day" that period starts Thursday Sep 24.
+        val rule = MonthStartRule(25, StartDayAdjustment.PREVIOUS_WORKING_DAY, setOf(java.time.DayOfWeek.FRIDAY, java.time.DayOfWeek.SATURDAY))
+        val on = LocalDate.of(2026, 10, 25)
+        val rows = listOf(
+            tx("out", 20260824, -100), tx("a1", 20260825, -1_000), tx("a2", 20260923, -2_000),
+            tx("b1", 20260924, -4_000), tx("b2", 20261024, -8_000), tx("c", 20261025, -16_000),
+        )
+        val frame = """{"mode":"sliding-window","start":"2026-08","end":"2026-10"}"""
+        val cash = periodCard("cash-flow-card", frame, rows, on, rule)
+        assertEquals(listOf("2026-08", "2026-09", "2026-10"), cash.points.map { it.period })
+        assertEquals(listOf(3_000L, 12_000L, 16_000L), cash.points.map { it.secondaryCents })
+        assertEquals(listOf(20260825, 20260924, 20261025), cash.points.map { it.drillDownQuery?.startDate })
+        assertEquals(listOf(20260923, 20261024, 20261025), cash.points.map { it.drillDownQuery?.endDate })
+        assertEquals(-31_000L, periodCard("summary-card", frame, rows, on, rule).valueCents)
+    }
+
+    @Test fun `saved ranges that are not month-shaped and start day 1 keep calendar months`() {
+        val rows = listOf(tx("a", 20260526, -1_000), tx("b", 20260626, -2_000), tx("c", 20260805, -8_000))
+        val sliding = """{"mode":"sliding-window","start":"2026-06","end":"2026-08"}"""
+        // Start day 1 with no adjustment: calendar months June, July and August.
+        val calendar = periodCard("cash-flow-card", sliding, rows, today, MonthStartRule(1))
+        assertEquals(listOf("2026-06", "2026-07", "2026-08"), calendar.points.map { it.period })
+        assertEquals(-10_000L, calendar.valueCents)
+        // A year-to-date range is not month-shaped, so it keeps its meaning even with a start day.
+        val ytd = periodCard("cash-flow-card", """{"mode":"yearToDate"}""", rows, today, MonthStartRule(25))
+        assertEquals(-11_000L, ytd.valueCents)
     }
 
     @Test fun `a net worth card without a time frame charts the last 6 months`() {
