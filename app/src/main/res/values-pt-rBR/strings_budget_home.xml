@@ -27,6 +27,13 @@
     <string name="budget_options_section_expanded">Expandido</string>
     <string name="budget_options_section_collapsed">Recolhido</string>
     <string name="budget_show_status_dots">Exibir indicadores de status</string>
+    <string name="budget_switch_budget">Trocar orçamento</string>
+    <string name="budget_type_confirm_title_tracking">Mudar para um orçamento de acompanhamento?</string>
+    <string name="budget_type_confirm_title_envelope">Mudar para um orçamento de envelope?</string>
+    <string name="budget_type_confirm_all_devices">Isso altera o tipo de orçamento em todos os dispositivos que sincronizam este orçamento. Suas categorias e valores são mantidos.</string>
+    <string name="budget_type_confirm_tracking">Um orçamento de acompanhamento não tem valor a orçar.</string>
+    <string name="budget_type_confirm_envelope">Um orçamento de envelope financia as categorias a partir do valor a orçar.</string>
+    <string name="budget_type_confirm_action">Mudar</string>
     <string name="budget_hide_fully_spent">Ocultar categorias totalmente gastas</string>
     <string name="budget_show_hidden">Mostrar categorias e grupos ocultos</string>
     <string name="budget_show_filters">Exibir filtros de categorias</string>

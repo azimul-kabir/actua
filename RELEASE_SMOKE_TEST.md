@@ -300,6 +300,7 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] Rules: open rule editor and verify the live matching-transaction count and expandable preview list update as conditions are changed; tap "Apply rule now" and confirm the rule is applied across existing transactions in the budget.
 - [ ] File import: import OFX, QFX, QIF, and CAMT.053 XML statement files; confirm exact-ID deduplication against existing `FITID`/references.
 - [ ] Budget settings: switch budget type between Envelope and Tracking; verify budget views and calculations update immediately.
+- [ ] Switching the budget type in Settings > Budget first asks for confirmation that names the new type and says it applies on every device; Cancel changes nothing and Switch applies it. With two or more local budgets, the Budget tab's ⋮ > Switch budget lists them with the active one marked, and choosing another opens it; Settings > Manage no longer shows an active budget picker.
 - [ ] Manage Categories: delete a category group and verify Actua prompts to reassign contained categories to another group before tombstoning.
 - [ ] Accounts monthly summary: customize the pay cycle start day and verify month-to-date income and expense recalculate according to the custom cycle.
 - [ ] 2.0.0 overflow menus: Budget, Accounts and account Transactions menus show switches (not checkboxes) for their display options; Reports header buttons use the same tonal pill as Budget and Accounts.

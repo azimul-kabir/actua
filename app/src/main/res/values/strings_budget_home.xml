@@ -27,6 +27,13 @@
     <string name="budget_options_section_expanded">Expanded</string>
     <string name="budget_options_section_collapsed">Collapsed</string>
     <string name="budget_show_status_dots">Show status dots</string>
+    <string name="budget_switch_budget">Switch budget</string>
+    <string name="budget_type_confirm_title_tracking">Switch to a tracking budget?</string>
+    <string name="budget_type_confirm_title_envelope">Switch to an envelope budget?</string>
+    <string name="budget_type_confirm_all_devices">This changes the budget type on every device that syncs this budget. Your categories and amounts are kept.</string>
+    <string name="budget_type_confirm_tracking">A tracking budget has no To Budget amount.</string>
+    <string name="budget_type_confirm_envelope">An envelope budget funds categories from To Budget.</string>
+    <string name="budget_type_confirm_action">Switch</string>
     <string name="budget_hide_fully_spent">Hide fully spent</string>
     <string name="budget_show_hidden">Show hidden categories and groups</string>
     <string name="budget_show_filters">Show category filters</string>

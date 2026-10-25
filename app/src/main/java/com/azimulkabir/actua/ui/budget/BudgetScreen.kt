@@ -162,6 +162,7 @@ import com.azimulkabir.actua.ui.components.ActuaNoteEditorSheet
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.ui.components.ActuaSwitchMenuItem
+import com.azimulkabir.actua.ui.settings.BudgetSelectionItem
 import com.azimulkabir.actua.ui.components.CategoryStatusDot
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.ActuaGroupedItem
@@ -279,6 +280,10 @@ fun BudgetScreen(
     onApplyCleanup: (CleanupPreview) -> Unit = {},
     onSearch: () -> Unit = {},
     onManageCategories: () -> Unit = {},
+    /** Local budgets to switch between; the Switch budget row shows only when there is more than one. */
+    budgetOptions: List<BudgetSelectionItem> = emptyList(),
+    activeBudgetId: String? = null,
+    onBudgetChange: (String) -> Unit = {},
     transactions: List<Transaction> = emptyList(),
     /** Unfiltered by the Transactions tab's own status/reconciled filters, unlike [transactions]. */
     allTransactions: List<Transaction> = emptyList(),
@@ -310,12 +315,12 @@ fun BudgetScreen(
     val budgetUiPreferences = remember(context) {
         context.applicationContext.getSharedPreferences("budget_ui_preferences", android.content.Context.MODE_PRIVATE)
     }
-    val activeBudgetId = remember(context) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
-    val collapsedGroupsKey = "collapsed_groups_$activeBudgetId"
+    val storedBudgetId = remember(context) { ActiveBudgetStore(context).budgetId ?: "no-budget" }
+    val collapsedGroupsKey = "collapsed_groups_$storedBudgetId"
     var selectedCategory by remember { mutableStateOf<BudgetCategory?>(null) }
     var selectedGroup by remember { mutableStateOf<BudgetGroup?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
-    var collapsedGroups by remember(activeBudgetId) {
+    var collapsedGroups by remember(storedBudgetId) {
         mutableStateOf(budgetUiPreferences.getStringSet(collapsedGroupsKey, emptySet()).orEmpty().toSet())
     }
     fun saveCollapsedGroups(value: Set<String>) {
@@ -400,6 +405,9 @@ fun BudgetScreen(
                 },
                 onSearch = onSearch,
                 onManageCategories = onManageCategories,
+                budgetOptions = budgetOptions,
+                activeBudgetId = activeBudgetId,
+                onBudgetChange = onBudgetChange,
             )
             AnimatedVisibility(
                 visible = showCategoryFilters,
@@ -951,7 +959,11 @@ private fun BudgetToolbar(
     onCollapseAll: () -> Unit,
     onSearch: () -> Unit,
     onManageCategories: () -> Unit,
+    budgetOptions: List<BudgetSelectionItem>,
+    activeBudgetId: String?,
+    onBudgetChange: (String) -> Unit,
 ) {
+    var switchBudgetOpen by remember { mutableStateOf(false) }
     var monthPickerOpen by remember { mutableStateOf(false) }
     var optionsSheetOpen by remember { mutableStateOf(false) }
     var expandedSections by rememberSaveable(stateSaver = BudgetOptionsSectionsSaver) {
@@ -1021,6 +1033,13 @@ private fun BudgetToolbar(
                         onManageCategories()
                     },
                 )
+                if (budgetOptions.size > 1) DropdownMenuItem(
+                    text = { Text(stringResource(R.string.budget_switch_budget)) },
+                    onClick = {
+                        onOptionsChange(false)
+                        switchBudgetOpen = true
+                    },
+                )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.budget_display_options_menu)) },
                     onClick = {
@@ -1050,6 +1069,14 @@ private fun BudgetToolbar(
             expanded = expandedSections,
             onExpandedChange = { expandedSections = it },
             onDismiss = { optionsSheetOpen = false },
+        )
+    }
+    if (switchBudgetOpen) {
+        SwitchBudgetSheet(
+            options = budgetOptions,
+            activeBudgetId = activeBudgetId,
+            onSelect = onBudgetChange,
+            onDismiss = { switchBudgetOpen = false },
         )
     }
 }

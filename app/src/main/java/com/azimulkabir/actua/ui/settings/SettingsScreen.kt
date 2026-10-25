@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -33,12 +32,10 @@ import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
@@ -63,20 +60,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.BuildConfig
 import com.azimulkabir.actua.R
@@ -88,6 +81,7 @@ import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.LocationPreferences
+import com.azimulkabir.actua.ui.components.BudgetTypeConfirmDialog
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
 import com.azimulkabir.actua.ui.components.ActuaFormRow
@@ -198,9 +192,6 @@ fun SettingsScreen(
     tabBarDisplay: com.azimulkabir.actua.ui.navigation.TabBarScrollState? = null,
     showCurrentBalanceSummary: Boolean = true,
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
-    budgetOptions: List<BudgetSelectionItem> = emptyList(),
-    activeBudgetId: String? = null,
-    onBudgetChange: (String) -> Unit = {},
     returnToRootRequest: Int = 0,
 ) {
     val context = LocalContext.current
@@ -333,13 +324,6 @@ fun SettingsScreen(
             }
             when (shownPage) {
                 SettingsPage.Manage -> {
-                    if (budgetOptions.isNotEmpty()) SettingsGroup {
-                        ActiveBudgetSelector(
-                            options = budgetOptions,
-                            activeBudgetId = activeBudgetId,
-                            onBudgetChange = onBudgetChange,
-                        )
-                    }
                     if (showHomeShortcut || showReportsShortcut) SettingsGroup(stringResource(R.string.settings_section_insights)) {
                         if (showHomeShortcut) {
                             SettingsRow(
@@ -893,6 +877,7 @@ fun SettingsScreen(
                 }
                 SettingsPage.Budget -> {
                     val categoryStatusColors = LocalCategoryStatusColors.current
+                    var pendingBudgetType by remember { mutableStateOf<String?>(null) }
                     SettingsGroup {
                         SettingsChoice(
                             stringResource(R.string.settings_budget_type),
@@ -901,8 +886,18 @@ fun SettingsScreen(
                                 SettingsChoiceOption("envelope", stringResource(R.string.settings_budget_type_envelope)),
                                 SettingsChoiceOption("tracking", stringResource(R.string.settings_budget_type_tracking)),
                             ),
-                            onChange = onBudgetTypeChange,
+                            onChange = { if (it != budgetType) pendingBudgetType = it },
                         )
+                        pendingBudgetType?.let { newType ->
+                            BudgetTypeConfirmDialog(
+                                newType = newType,
+                                onConfirm = {
+                                    pendingBudgetType = null
+                                    onBudgetTypeChange(newType)
+                                },
+                                onDismiss = { pendingBudgetType = null },
+                            )
+                        }
                         SettingsDivider()
                         SettingsToggle(
                             stringResource(R.string.settings_category_status_dot),
@@ -1068,70 +1063,6 @@ fun SettingsScreen(
                 SettingsPage.Tags, SettingsPage.Diagnostics -> Unit
             }
             Spacer(Modifier.height(Spacing.xl))
-        }
-    }
-}
-
-/**
- * The active budget at the top of Manage. With more than one local budget it opens a menu to switch,
- * styled like the Reports dashboard picker; with one it simply names the budget in use.
- */
-@Composable
-private fun ActiveBudgetSelector(
-    options: List<BudgetSelectionItem>,
-    activeBudgetId: String?,
-    onBudgetChange: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    var anchorWidth by remember { mutableStateOf(0) }
-    val anchorWidthDp = with(LocalDensity.current) { anchorWidth.toDp() }
-    val active = options.firstOrNull { it.id == activeBudgetId }
-    val switchable = options.size > 1
-    Box(Modifier.onSizeChanged { anchorWidth = it.width }) {
-        ActuaFormRow(
-            icon = Icons.Outlined.FolderOpen,
-            label = stringResource(R.string.settings_active_budget_label),
-            value = active?.name ?: stringResource(R.string.settings_select_budget),
-            valueIsPlaceholder = active == null,
-            trailing = if (switchable) {
-                {
-                    Icon(
-                        Icons.Outlined.ExpandMore,
-                        contentDescription = stringResource(R.string.settings_switch_budget),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else null,
-            onClick = if (switchable) ({ expanded = true }) else null,
-        )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.width(anchorWidthDp),
-            shape = MaterialTheme.shapes.medium,
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ) {
-            options.forEach { option ->
-                val isActive = option.id == activeBudgetId
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            option.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    trailingIcon = if (isActive) {
-                        { Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.settings_active_budget)) }
-                    } else null,
-                    onClick = {
-                        expanded = false
-                        if (!isActive) onBudgetChange(option.id)
-                    },
-                )
-            }
         }
     }
 }
