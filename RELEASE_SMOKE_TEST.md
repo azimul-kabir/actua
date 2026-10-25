@@ -320,6 +320,9 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] 2.2.0 Holidays: add a holiday under Settings > Budget > Holidays (with and without a name), confirm the month start and a weekend-skipping schedule step past it (also when it adjoins the weekend), remove it, and confirm the list is separate per budget and survives restarting the app.
 - [ ] 2.2.0 Budget menu: the ⋮ menu has Plan view, Expand all groups, Collapse all groups, Manage Categories, Switch budget (with two or more budgets) and Display options; Display options opens a sheet whose sections expand and collapse, with every switch (including Show status dots and Color balances) applying immediately and surviving a restart; Copy last month's budget is in the Add to budget sheet; Settings > Manage has no active budget picker; changing the budget type in Settings > Budget asks first.
 - [ ] 2.2.0 Navigation: switch between Home, Budget, Transactions, Accounts and Settings and open a few detail screens, confirm each tab keeps its scroll position and works, and that Settings > Budget changes (type, formats, language) still apply.
+- [ ] 2.2.1 Budget display options: open Display options in the Budget tab ⋮ menu; confirm all sections (Page, Each category row, Categories shown) are always expanded in a scrollable sheet without collapsible headers or tap delays.
+- [ ] 2.2.1 Budget table layout: in the Budget table view with Show goal icons off, confirm stacked category rows allocate equal width across Budgeted, Spent and Balance columns (1:1:1); confirm wide currency amounts scale down smoothly without wrapping prematurely into the stacked layout.
+- [ ] 2.2.1 OpenID sign-in: connect using OpenID and verify opening the browser for authorization does not close the local callback listener or fail with "OpenID callback listener was closed."
 
 ## Release/distribution
 
