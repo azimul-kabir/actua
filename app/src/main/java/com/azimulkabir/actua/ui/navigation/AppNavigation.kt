@@ -174,6 +174,7 @@ import com.azimulkabir.actua.data.sync.SyncSignals
 import com.azimulkabir.actua.data.sync.SyncStatus
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.home.HomeLayout
+import com.azimulkabir.actua.data.home.Holiday
 import com.azimulkabir.actua.data.home.HolidayCodec
 import com.azimulkabir.actua.data.home.MonthStartRule
 import com.azimulkabir.actua.data.navigation.TabItem
@@ -432,6 +433,21 @@ fun AppNavigation(
     val favoriteBudgetId = activeBudgetId ?: "no-budget"
     var homeMonthStart by remember(favoriteBudgetId) { mutableStateOf(homePreferences.monthStartRule(favoriteBudgetId)) }
     var homeHolidays by remember(favoriteBudgetId) { mutableStateOf(homePreferences.holidays(favoriteBudgetId)) }
+    // Kept out of the screen lambdas below: AppNavigation's content lambda is close to the JVM's
+    // 64 KB method limit, and inline handlers here pushed it over.
+    val onMonthStartChange: (MonthStartRule) -> Unit = { rule ->
+        val clamped = rule.copy(day = rule.day.coerceIn(1, 31))
+        homePreferences.setSummaryStartDay(favoriteBudgetId, clamped.day)
+        homePreferences.setStartDayAdjustment(favoriteBudgetId, clamped.adjustment)
+        homePreferences.setWeekendDays(favoriteBudgetId, clamped.weekendDays)
+        homeMonthStart = clamped
+    }
+    val onHolidaysChange: (List<Holiday>) -> Unit = { holidays ->
+        val normalized = HolidayCodec.normalize(holidays)
+        homePreferences.setHolidays(favoriteBudgetId, normalized)
+        homeHolidays = normalized
+        homeMonthStart = homeMonthStart.copy(holidays = normalized.mapTo(mutableSetOf()) { it.date })
+    }
     val availableBudgetOptions = remember(repositoryVersion) {
         BudgetFileManager(context).listLocalBudgets().map { budget ->
             BudgetSelectionItem(
@@ -3068,20 +3084,9 @@ fun AppNavigation(
                 MainDestination.Manage -> SettingsScreen(
                     modifier = contentModifier,
                     monthStart = homeMonthStart,
-                    onMonthStartChange = { rule ->
-                        val clamped = rule.copy(day = rule.day.coerceIn(1, 31))
-                        homePreferences.setSummaryStartDay(favoriteBudgetId, clamped.day)
-                        homePreferences.setStartDayAdjustment(favoriteBudgetId, clamped.adjustment)
-                        homePreferences.setWeekendDays(favoriteBudgetId, clamped.weekendDays)
-                        homeMonthStart = clamped
-                    },
+                    onMonthStartChange = onMonthStartChange,
                     holidays = homeHolidays,
-                    onHolidaysChange = { holidays ->
-                        val normalized = HolidayCodec.normalize(holidays)
-                        homePreferences.setHolidays(favoriteBudgetId, normalized)
-                        homeHolidays = normalized
-                        homeMonthStart = homeMonthStart.copy(holidays = normalized.mapTo(mutableSetOf()) { it.date })
-                    },
+                    onHolidaysChange = onHolidaysChange,
                     onConnectionClick = { detail = DetailDestination.Connection },
                     decimalPlacesMode = decimalPlacesMode,
                     onDecimalPlacesModeChange = {
