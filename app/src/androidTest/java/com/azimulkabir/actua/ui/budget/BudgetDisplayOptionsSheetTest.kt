@@ -60,8 +60,6 @@ class BudgetDisplayOptionsSheetTest {
         compose.onNodeWithText(label(R.string.budget_display_options_menu)).performClick()
     }
 
-    private fun section(id: Int) = compose.onNodeWithText(label(id))
-
     @Test fun theMenuIsShortAndDisplaySwitchesLiveInTheSheet() {
         setBudget()
         openMenu()
@@ -75,30 +73,23 @@ class BudgetDisplayOptionsSheetTest {
         compose.onNodeWithText(label(R.string.budget_copy_last_month)).assertDoesNotExist()
     }
 
-    @Test fun sectionsExpandAndCollapseAndRowsStartOpen() {
+    @Test fun allSectionsAreAlwaysVisibleInTheSheet() {
         setBudget()
         openSheet()
-        // Each category row starts open; Page and Categories shown start collapsed.
-        compose.onNodeWithText(label(R.string.budget_show_goal_icons)).assertExists()
-        compose.onNodeWithText(label(R.string.budget_show_overview)).assertDoesNotExist()
-
-        section(R.string.budget_options_section_page).performScrollTo().performClick()
+        // Page, Each category row, and Categories shown are all visible immediately.
         compose.onNodeWithText(label(R.string.budget_show_overview)).assertExists()
-
-        section(R.string.budget_options_section_rows).performScrollTo().performClick()
-        compose.onNodeWithText(label(R.string.budget_show_goal_icons)).assertDoesNotExist()
+        compose.onNodeWithText(label(R.string.budget_show_goal_icons)).assertExists()
+        compose.onNodeWithText(label(R.string.budget_hide_fully_spent)).performScrollTo().assertExists()
     }
 
-    @Test fun aSwitchInTheSheetAppliesImmediatelyAndUpdatesTheSummary() {
+    @Test fun aSwitchInTheSheetAppliesImmediately() {
         setBudget()
         openSheet()
-        compose.onNodeWithText("6 of 7 on").assertExists()
 
         compose.onNodeWithText(label(R.string.budget_show_goal_icons)).performScrollTo().performClick()
 
         assertFalse(options.showGoalIcons)
         assertTrue(options.showBalancePills)
-        compose.onNodeWithText("5 of 7 on").assertExists()
     }
 
     @Test fun statusDotsFollowTheSharedSetting() {

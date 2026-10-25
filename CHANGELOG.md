@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Changed
+
+- Changed Budget display options to always show all sections expanded in a scrollable sheet ([#1321](https://github.com/azimul-kabir/actua/pull/1321))
+
 ## [2.2.0] - 2026-10-25
 
 ### Added
