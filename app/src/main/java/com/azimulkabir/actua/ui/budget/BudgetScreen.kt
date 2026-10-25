@@ -966,9 +966,6 @@ private fun BudgetToolbar(
     var switchBudgetOpen by remember { mutableStateOf(false) }
     var monthPickerOpen by remember { mutableStateOf(false) }
     var optionsSheetOpen by remember { mutableStateOf(false) }
-    var expandedSections by rememberSaveable(stateSaver = BudgetOptionsSectionsSaver) {
-        mutableStateOf(setOf(BudgetOptionsSection.ROWS))
-    }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -1066,8 +1063,6 @@ private fun BudgetToolbar(
             options = displayOptions,
             onOptionsChange = onDisplayOptionsChange,
             planView = budgetView == "Plan",
-            expanded = expandedSections,
-            onExpandedChange = { expandedSections = it },
             onDismiss = { optionsSheetOpen = false },
         )
     }

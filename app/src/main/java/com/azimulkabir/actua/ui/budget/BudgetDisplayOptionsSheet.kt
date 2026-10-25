@@ -1,35 +1,22 @@
 package com.azimulkabir.actua.ui.budget
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.saveable.listSaver
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
@@ -41,19 +28,8 @@ import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.theme.LocalCategoryStatusColors
 import com.azimulkabir.actua.ui.theme.Spacing
 
-/** The collapsible groups in the Budget display options sheet. */
-internal enum class BudgetOptionsSection { PAGE, ROWS, CATEGORIES }
-
-/** Saves which sections are open across rotation and process recreation. */
-internal val BudgetOptionsSectionsSaver = listSaver<Set<BudgetOptionsSection>, String>(
-    save = { open -> open.map { it.name } },
-    restore = { names -> names.map(BudgetOptionsSection::valueOf).toSet() },
-)
-
 /**
- * The Budget tab's device-local display switches, in collapsible sections so the long list stays
- * scannable. Each switch applies immediately; [expanded] is owned by the caller so the open
- * sections survive closing and reopening the sheet.
+ * The Budget tab's device-local display switches. Each switch applies immediately.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,26 +37,16 @@ internal fun BudgetDisplayOptionsSheet(
     options: BudgetDisplayOptions,
     onOptionsChange: (BudgetDisplayOptions) -> Unit,
     planView: Boolean,
-    expanded: Set<BudgetOptionsSection>,
-    onExpandedChange: (Set<BudgetOptionsSection>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val statusColors = LocalCategoryStatusColors.current
     val statusDots = statusColors?.showDots ?: true
     val colorBalances = statusColors?.colorBudgetedAmounts ?: false
-    fun toggle(section: BudgetOptionsSection) =
-        onExpandedChange(if (section in expanded) expanded - section else expanded + section)
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ActuaSheetContent {
             ActuaSheetTitle(stringResource(R.string.budget_display_options_title))
-            OptionsSection(
-                title = stringResource(R.string.budget_options_section_page),
-                enabledCount = listOf(options.showOverview, options.showBudgetStatusBanners, options.showCategoryFilters).count { it },
-                totalCount = 3,
-                expanded = BudgetOptionsSection.PAGE in expanded,
-                onToggle = { toggle(BudgetOptionsSection.PAGE) },
-            ) {
+            OptionsSection(stringResource(R.string.budget_options_section_page)) {
                 OptionSwitchRow(stringResource(R.string.budget_show_overview), options.showOverview) {
                     onOptionsChange(options.copy(showOverview = it))
                 }
@@ -93,17 +59,7 @@ internal fun BudgetDisplayOptionsSheet(
                     onOptionsChange(options.copy(showCategoryFilters = it))
                 }
             }
-            val rowSwitches = listOf(
-                options.showSpent, options.showProgressBars, statusDots, colorBalances, options.showBalancePills,
-                options.showGoalIcons, options.showGroupTotals,
-            )
-            OptionsSection(
-                title = stringResource(R.string.budget_options_section_rows),
-                enabledCount = rowSwitches.count { it },
-                totalCount = rowSwitches.size,
-                expanded = BudgetOptionsSection.ROWS in expanded,
-                onToggle = { toggle(BudgetOptionsSection.ROWS) },
-            ) {
+            OptionsSection(stringResource(R.string.budget_options_section_rows)) {
                 OptionSwitchRow(
                     if (planView) stringResource(R.string.budget_show_spending_details)
                     else stringResource(R.string.budget_show_spent_column),
@@ -138,13 +94,7 @@ internal fun BudgetDisplayOptionsSheet(
                     onOptionsChange(options.copy(showGroupTotals = it))
                 }
             }
-            OptionsSection(
-                title = stringResource(R.string.budget_options_section_categories),
-                enabledCount = listOf(options.hideFullySpent, options.showHidden).count { it },
-                totalCount = 2,
-                expanded = BudgetOptionsSection.CATEGORIES in expanded,
-                onToggle = { toggle(BudgetOptionsSection.CATEGORIES) },
-            ) {
+            OptionsSection(stringResource(R.string.budget_options_section_categories)) {
                 OptionSwitchRow(stringResource(R.string.budget_hide_fully_spent), options.hideFullySpent) {
                     onOptionsChange(options.copy(hideFullySpent = it))
                 }
@@ -158,58 +108,24 @@ internal fun BudgetDisplayOptionsSheet(
 }
 
 /**
- * A collapsible group styled like a settings section: a primary label (with how many of its switches
- * are on) over a rounded card of rows that expands and collapses.
+ * A section styled like the settings screens: a primary label over a rounded card of switch rows.
  */
 @Composable
 private fun OptionsSection(
     title: String,
-    enabledCount: Int,
-    totalCount: Int,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    content: @Composable () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "optionsChevron")
-    val stateText = stringResource(
-        if (expanded) R.string.budget_options_section_expanded else R.string.budget_options_section_collapsed,
+    Text(
+        title,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(
+            start = Spacing.screenHorizontal + Spacing.xs,
+            end = Spacing.screenHorizontal,
+            top = Spacing.sm,
+        ),
     )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onToggle)
-            .semantics { stateDescription = stateText }
-            .padding(
-                start = Spacing.screenHorizontal + Spacing.xs,
-                end = Spacing.screenHorizontal,
-                top = Spacing.sm,
-                bottom = Spacing.sm,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            stringResource(R.string.budget_options_section_summary, enabledCount, totalCount),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.width(Spacing.xs))
-        Icon(
-            Icons.Outlined.ExpandMore,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.rotate(rotation),
-        )
-    }
-    AnimatedVisibility(visible = expanded) {
-        ActuaSheetCard { content() }
-    }
+    ActuaSheetCard { content() }
 }
 
 /** Divider between the rows of an options card, inset like the Settings cards. */
