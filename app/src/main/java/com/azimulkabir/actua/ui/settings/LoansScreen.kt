@@ -65,7 +65,7 @@ import com.azimulkabir.actua.ui.components.ActuaFormRow
 import com.azimulkabir.actua.ui.components.ActuaFormTextField
 import com.azimulkabir.actua.ui.components.ActuaMenuRow
 import com.azimulkabir.actua.ui.components.ActuaPrimaryActionBar
-import com.azimulkabir.actua.ui.components.ActuaTopAppBar
+import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.formatDate
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -91,27 +91,17 @@ fun LoansScreen(
     onRemove: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var adding by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<LoanStatus?>(null) }
-    val candidates = remember(accounts, loans) { loanCandidates(accounts, loans.mapTo(hashSetOf()) { it.accountId }) }
+    var adding by remember { mutableStateOf(false) }
+    val candidates = loanCandidates(accounts, loans.mapTo(mutableSetOf()) { it.accountId })
 
     Column(modifier.fillMaxSize()) {
-        ActuaTopAppBar(
-            title = stringResource(R.string.loans_title),
-            onBack = onBack,
-            actions = {
-                if (candidates.isNotEmpty()) {
-                    IconButton(onClick = { adding = true }) {
-                        Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.loans_add))
-                    }
-                }
-            },
-        )
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        ActuaScreenHeader(title = stringResource(R.string.loans_title), onBack = onBack) {
+            IconButton(onClick = { adding = true }, enabled = candidates.isNotEmpty()) {
+                Icon(Icons.Outlined.Add, stringResource(R.string.loans_add))
+            }
+        }
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (loans.isEmpty()) item {
                 Text(stringResource(R.string.loans_empty),
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
