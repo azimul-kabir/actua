@@ -467,10 +467,11 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Loan accounts (off-budget): terms synced in Actual's `preferences` table under
   `actuali:loan:<accountId>` with Actuali's JSON fields (original balance, APR, minimum
   payment, escrow/fees, paired category, snoozed month); Actua additionally writes the
-  optional `termMonths`, `paymentDay` and `startDate` keys, which Actuali ignores. Loans
-  screen, loan card with payoff progress/next payment/projected payoff/total paid, and a
+  optional `termMonths`, `paymentDay`, `startDate`, `paymentFrequency` (`monthly`,
+  `semi_monthly`, `biweekly`, `weekly`) and `secondPaymentDay` keys, which Actuali ignores.
+  Loans screen, loan card with payoff progress/next payment/projected payoff/total paid, and a
   payoff simulator with burndown chart are ported from Actuali's `LoanConfig`,
-  `LoanAmortization` and `LoanPayoffPlannerView` (monthly interest rate/12, rounded to the
+  `LoanAmortization` and `LoanPayoffPlannerView` (periodic interest rate rounded to the
   cent; escrow covered before principal). "Record payment" writes the interest/escrow
   charge rows and the funding-account transfer (carrying the paired category on its
   on-budget leg) as one atomic insert.

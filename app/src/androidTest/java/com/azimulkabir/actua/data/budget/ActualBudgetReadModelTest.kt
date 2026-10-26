@@ -630,7 +630,10 @@ class ActualBudgetReadModelTest {
         val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
         val prefix = ActualBudgetDatabase.LOAN_PREFERENCE_PREFIX
         writer.setPreference(prefix + "mortgage", ActualBudgetDatabase.encodeLoanConfig(
-            com.azimulkabir.actua.model.LoanConfig(25_000_000, 5.25, 150_000, 30_000, "cat-1", "2026-10", 360, 15, 20240201),
+            com.azimulkabir.actua.model.LoanConfig(
+                25_000_000, 5.25, 150_000, 30_000, "cat-1", "2026-10", 360, 15, 20240201,
+                com.azimulkabir.actua.model.LoanPaymentFrequency.BIWEEKLY,
+            ),
         ))
         writer.setPreference(
             prefix + "ios",
@@ -646,6 +649,8 @@ class ActualBudgetReadModelTest {
         assertEquals(360, mortgage.termMonths)
         assertEquals(15, mortgage.paymentDay)
         assertEquals(20240201, mortgage.startDate)
+        assertEquals(com.azimulkabir.actua.model.LoanPaymentFrequency.BIWEEKLY, mortgage.paymentFrequency)
+        assertEquals(com.azimulkabir.actua.model.LoanPaymentFrequency.MONTHLY, configs.getValue("ios").paymentFrequency)
         assertEquals(null, configs.getValue("ios").escrowOrFeesCents)
         assertEquals(null, configs.getValue("ios").termMonths)
         assertTrue(database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString()).any {

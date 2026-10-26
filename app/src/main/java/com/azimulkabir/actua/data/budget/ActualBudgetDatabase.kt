@@ -2387,6 +2387,8 @@ class ActualBudgetDatabase private constructor(
                 termMonths = json.optLongOrNull("termMonths")?.toInt(),
                 paymentDay = json.optLongOrNull("paymentDay")?.toInt(),
                 startDate = json.optLongOrNull("startDate")?.toInt(),
+                paymentFrequency = com.azimulkabir.actua.model.LoanPaymentFrequency.fromJson(json.optStringOrNull("paymentFrequency")),
+                secondPaymentDay = json.optLongOrNull("secondPaymentDay")?.toInt(),
             )
         }
 
@@ -2400,6 +2402,10 @@ class ActualBudgetDatabase private constructor(
             config.termMonths?.let { put("termMonths", it) }
             config.paymentDay?.let { put("paymentDay", it) }
             config.startDate?.let { put("startDate", it) }
+            if (config.paymentFrequency != com.azimulkabir.actua.model.LoanPaymentFrequency.MONTHLY) {
+                put("paymentFrequency", config.paymentFrequency.jsonValue)
+            }
+            config.secondPaymentDay?.let { put("secondPaymentDay", it) }
         }.toString()
         const val HIDE_RECONCILED_PREFERENCE_PREFIX = "hide-reconciled-"
         private const val transactionSearchClause = """
