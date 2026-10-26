@@ -1025,16 +1025,22 @@ private fun BudgetToolbar(
                     val activeBudgetName = budgetOptions.firstOrNull { it.id == activeBudgetId }?.name
                     DropdownMenuItem(
                         text = {
-                            Text(
-                                text = activeBudgetName ?: stringResource(R.string.budget_switch_budget),
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            Column {
+                                Text(
+                                    text = activeBudgetName ?: stringResource(R.string.budget_switch_budget),
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                if (activeBudgetName != null) {
+                                    Text(
+                                        text = stringResource(R.string.budget_switch_budget),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                         },
-                        supportingText = if (activeBudgetName != null) {
-                            { Text(stringResource(R.string.budget_switch_budget)) }
-                        } else null,
                         leadingIcon = {
                             Icon(Icons.Outlined.FolderOpen, contentDescription = null)
                         },
