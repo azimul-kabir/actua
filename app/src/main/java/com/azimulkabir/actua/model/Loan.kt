@@ -3,6 +3,23 @@ package com.azimulkabir.actua.model
 import com.azimulkabir.actua.data.loans.schedule
 import com.azimulkabir.actua.data.schedules.DayDate
 
+/** Frequency of loan payments and compounding periods. */
+enum class LoanPaymentFrequency(val jsonValue: String, val periodsPerYear: Int) {
+    MONTHLY("monthly", 12),
+    SEMI_MONTHLY("semi_monthly", 24),
+    BIWEEKLY("biweekly", 26),
+    WEEKLY("weekly", 52);
+
+    companion object {
+        fun fromJson(value: String?): LoanPaymentFrequency = when (value?.lowercase(java.util.Locale.ROOT)) {
+            "semi_monthly", "semimonthly" -> SEMI_MONTHLY
+            "biweekly", "bi-weekly" -> BIWEEKLY
+            "weekly" -> WEEKLY
+            else -> MONTHLY
+        }
+    }
+}
+
 /**
  * Synced loan terms, stored in Actual's `preferences` table under `actuali:loan:<accountId>`
  * with the same JSON field names as Actuali iOS `LoanConfig`. All amounts are integer cents.
@@ -25,10 +42,15 @@ data class LoanConfig(
     val paymentDay: Int? = null,
     /** When the loan started, as an Actual YYYYMMDD day integer. */
     val startDate: Int? = null,
+    /** Payment frequency (monthly, semi-monthly, biweekly, weekly); defaults to monthly. */
+    val paymentFrequency: LoanPaymentFrequency = LoanPaymentFrequency.MONTHLY,
+    /** Second day of the month for semi-monthly schedules (1..31). */
+    val secondPaymentDay: Int? = null,
 ) {
     init {
         require(termMonths == null || termMonths in 1..MAX_TERM_MONTHS) { "Term must be 1..$MAX_TERM_MONTHS months" }
         require(paymentDay == null || paymentDay in 1..31) { "Payment day must be 1..31" }
+        require(secondPaymentDay == null || secondPaymentDay in 1..31) { "Second payment day must be 1..31" }
         require(startDate == null || DayDate.fromYyyymmdd(startDate) != null) { "Start date must be a valid YYYYMMDD day" }
         require(originalBalanceCents > 0) { "Original balance must be positive" }
         require(minimumPaymentCents > 0) { "Monthly payment must be positive" }
@@ -43,14 +65,54 @@ data class LoanConfig(
         (originalBalanceCents - owedCents(accountBalanceCents)).coerceIn(0L, originalBalanceCents)
 
     /**
-     * Next due date for [paymentDay] on or after [today], clamped to short months; null without a
-     * payment day. A paid-off loan has no next payment either way, which callers decide.
+     * Next due date for this loan's schedule on or after [today], clamped to short months; null without a
+     * configured payment day or anchor start date. A paid-off loan has no next payment either way, which
+     * callers decide.
      */
-    fun nextPaymentDate(today: DayDate = DayDate.today()): DayDate? {
-        val day = paymentDay ?: return null
-        fun inMonth(month: DayDate) = DayDate(month.year, month.month, minOf(day, DayDate.lastDay(month.year, month.month)))
-        val thisMonth = inMonth(today)
-        return if (thisMonth >= today) thisMonth else inMonth(today.addingMonths(1).let { DayDate(it.year, it.month, 1) })
+    fun nextPaymentDate(today: DayDate = DayDate.today()): DayDate? = when (paymentFrequency) {
+        LoanPaymentFrequency.MONTHLY -> {
+            val day = paymentDay ?: return null
+            fun inMonth(month: DayDate) = DayDate(month.year, month.month, minOf(day, DayDate.lastDay(month.year, month.month)))
+            val thisMonth = inMonth(today)
+            if (thisMonth >= today) thisMonth else inMonth(today.addingMonths(1).let { DayDate(it.year, it.month, 1) })
+        }
+        LoanPaymentFrequency.SEMI_MONTHLY -> {
+            val d1 = paymentDay ?: 1
+            val d2 = secondPaymentDay ?: minOf(d1 + 14, 28)
+            val firstDay = minOf(d1, d2)
+            val secondDay = maxOf(d1, d2)
+            fun candidatesIn(month: DayDate): Pair<DayDate, DayDate> {
+                val last = DayDate.lastDay(month.year, month.month)
+                return DayDate(month.year, month.month, minOf(firstDay, last)) to
+                    DayDate(month.year, month.month, minOf(secondDay, last))
+            }
+            val (this1, this2) = candidatesIn(today)
+            when {
+                this1 >= today -> this1
+                this2 >= today -> this2
+                else -> candidatesIn(today.addingMonths(1).let { DayDate(it.year, it.month, 1) }).first
+            }
+        }
+        LoanPaymentFrequency.BIWEEKLY -> {
+            val start = startDate?.let(DayDate::fromYyyymmdd) ?: return null
+            if (start >= today) {
+                start
+            } else {
+                val elapsed = start.daysUntil(today)
+                val periods = (elapsed + 13) / 14
+                start.addingDays(periods * 14)
+            }
+        }
+        LoanPaymentFrequency.WEEKLY -> {
+            val start = startDate?.let(DayDate::fromYyyymmdd) ?: return null
+            if (start >= today) {
+                start
+            } else {
+                val elapsed = start.daysUntil(today)
+                val periods = (elapsed + 6) / 7
+                start.addingDays(periods * 7)
+            }
+        }
     }
 
     /** Share of the original balance repaid in tenths of a percent (0..1000), rounded down. */
@@ -75,8 +137,8 @@ data class LoanPaymentSplit(val interestCents: Long, val escrowCents: Long, val 
  * the shortfall into a negative principal (the loan grew) instead of shrinking the charge.
  */
 fun LoanConfig.paymentSplit(accountBalanceCents: Long, paymentCents: Long): LoanPaymentSplit {
-    val interest = com.azimulkabir.actua.data.loans.LoanAmortization.monthlyInterest(
-        LoanConfig.owedCents(accountBalanceCents), annualRatePercent,
+    val interest = com.azimulkabir.actua.data.loans.LoanAmortization.periodicInterest(
+        LoanConfig.owedCents(accountBalanceCents), annualRatePercent, paymentFrequency,
     )
     val escrow = escrowOrFeesCents ?: 0L
     return LoanPaymentSplit(interest, escrow, paymentCents - interest - escrow)
@@ -86,7 +148,7 @@ fun LoanConfig.paymentSplit(accountBalanceCents: Long, paymentCents: Long): Loan
 fun LoanConfig.payoffAmountCents(accountBalanceCents: Long): Long {
     val owed = LoanConfig.owedCents(accountBalanceCents)
     if (owed == 0L) return 0
-    return owed + com.azimulkabir.actua.data.loans.LoanAmortization.monthlyInterest(owed, annualRatePercent) +
+    return owed + com.azimulkabir.actua.data.loans.LoanAmortization.periodicInterest(owed, annualRatePercent, paymentFrequency) +
         (escrowOrFeesCents ?: 0L)
 }
 

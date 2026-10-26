@@ -74,4 +74,18 @@
     <string name="loan_planner_minimum_series">Pagamento mínimo</string>
     <string name="loan_planner_your_series">Seu pagamento</string>
     <string name="loan_planner_chart_description">Saldo do empréstimo ao longo do tempo, quitado em %1$s</string>
+    <string name="loans_frequency">Frequência de pagamento</string>
+    <string name="loans_frequency_monthly">Mensal</string>
+    <string name="loans_frequency_semi_monthly">Semimensal (duas vezes ao mês)</string>
+    <string name="loans_frequency_biweekly">A cada 2 semanas (bi-semanal)</string>
+    <string name="loans_frequency_weekly">Semanal</string>
+    <string name="loans_payment_amount">Valor do pagamento</string>
+    <string name="loans_second_payment_day">Segundo dia de pagamento no mês (opcional)</string>
+    <string name="loans_first_payment_date">Data do primeiro pagamento</string>
+    <string name="loans_payment_frequency_semi_monthly_value">%1$s semimensal</string>
+    <string name="loans_payment_frequency_biweekly_value">%1$s a cada 2 semanas</string>
+    <string name="loans_payment_frequency_weekly_value">%1$s por semana</string>
+    <string name="account_loan_semi_monthly_payment">Pagamento semimensal</string>
+    <string name="account_loan_biweekly_payment">Pagamento a cada 2 semanas</string>
+    <string name="account_loan_weekly_payment">Pagamento semanal</string>
 </resources>

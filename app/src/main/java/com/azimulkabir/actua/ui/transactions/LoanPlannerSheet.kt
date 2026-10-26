@@ -94,7 +94,12 @@ internal fun LoanPlannerSheet(loan: LoanStatus, hideDecimals: Boolean, onDismiss
                     value = formatMoneyCents(config.minimumPaymentCents, hideDecimals),
                 )
                 ActuaCardDivider()
-                ActuaFormTextField(Icons.Outlined.Payments, stringResource(R.string.loans_monthly_payment), payment,
+                val paymentLabel = if (config.paymentFrequency == com.azimulkabir.actua.model.LoanPaymentFrequency.MONTHLY) {
+                    stringResource(R.string.loans_monthly_payment)
+                } else {
+                    stringResource(R.string.loans_payment_amount)
+                }
+                ActuaFormTextField(Icons.Outlined.Payments, paymentLabel, payment,
                     { payment = filter(it); targetMonths = "" }, keyboardOptions = decimal)
                 ActuaCardDivider()
                 ActuaFormTextField(Icons.Outlined.Schedule, stringResource(R.string.loan_planner_target_months), targetMonths,
@@ -127,7 +132,8 @@ internal fun LoanPlannerSheet(loan: LoanStatus, hideDecimals: Boolean, onDismiss
                         HorizontalDivider()
                         Row(Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.loan_planner_time_remaining), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                            Text(loanDurationText(chosen.paymentCount), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            val monthsRemaining = (chosen.paymentCount * 12 + config.paymentFrequency.periodsPerYear - 1) / config.paymentFrequency.periodsPerYear
+                            Text(loanDurationText(monthsRemaining), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         }
                         plan.savings?.let { savings ->
                             Text(
@@ -170,9 +176,10 @@ private fun LoanBurndownChart(
         ))
         add(LineChartSeries(stringResource(R.string.loan_planner_your_series), MaterialTheme.colorScheme.primary, padded(chosenPoints), fill = true))
     }
-    val description = stringResource(R.string.loan_planner_chart_description, loanDurationText(chosen.paymentCount))
+    val monthsChosen = (chosen.paymentCount * 12 + plan.frequency.periodsPerYear - 1) / plan.frequency.periodsPerYear
+    val description = stringResource(R.string.loan_planner_chart_description, loanDurationText(monthsChosen))
     LineChart(
-        periods = LoanPlanner.periods(start, count),
+        periods = LoanPlanner.periods(start, count, plan.frequency, plan.paymentDay, plan.secondPaymentDay),
         series = series,
         formatValue = { formatMoneyCents(it, hideDecimals) },
         formatAxis = { formatMoneyCents(it, true) },

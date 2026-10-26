@@ -19,11 +19,12 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Event
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Percent
 import androidx.compose.material.icons.outlined.Receipt
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.RequestQuote
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,6 +53,7 @@ import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.LoanConfig
+import com.azimulkabir.actua.model.LoanPaymentFrequency
 import com.azimulkabir.actua.model.LoanStatus
 import com.azimulkabir.actua.model.PickerChoices
 import com.azimulkabir.actua.model.loanCandidates
@@ -74,6 +76,10 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
+/**
+ * Loans screen: lists tracked loan accounts with their balance, interest rate, monthly payment and
+ * payoff progress, and lets the user add/edit a loan's tracking terms.
+ */
 @Composable
 fun LoansScreen(
     loans: List<LoanStatus>,
@@ -139,12 +145,18 @@ private fun LoanRow(loan: LoanStatus, hideDecimals: Boolean, modifier: Modifier 
     val percent = if (loan.isPaidOff) stringResource(R.string.loans_paid_off)
         else stringResource(R.string.loans_paid_off_percent, paidOffPercentText(loan.paidOffPermille))
     val payment = formatMoneyCents(loan.config.minimumPaymentCents, hideDecimals)
+    val paymentText = when (loan.config.paymentFrequency) {
+        LoanPaymentFrequency.MONTHLY -> stringResource(R.string.loans_monthly_payment_value, payment)
+        LoanPaymentFrequency.SEMI_MONTHLY -> stringResource(R.string.loans_payment_frequency_semi_monthly_value, payment)
+        LoanPaymentFrequency.BIWEEKLY -> stringResource(R.string.loans_payment_frequency_biweekly_value, payment)
+        LoanPaymentFrequency.WEEKLY -> stringResource(R.string.loans_payment_frequency_weekly_value, payment)
+    }
     val payoff = when {
         loan.isPaidOff -> null
         else -> loan.payoffMonth()?.let { stringResource(R.string.loans_payoff_month, payoffMonthText(it)) }
             ?: stringResource(R.string.loans_payment_too_small)
     }
-    val description = stringResource(R.string.loans_row_description, loan.accountName, balance, percent, payment) +
+    val description = stringResource(R.string.loans_row_description, loan.accountName, balance, percent, paymentText) +
         (payoff?.let { ", $it" }.orEmpty())
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(
@@ -159,7 +171,7 @@ private fun LoanRow(loan: LoanStatus, hideDecimals: Boolean, modifier: Modifier 
             Row(Modifier.fillMaxWidth()) {
                 Text(percent, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                Text(stringResource(R.string.loans_monthly_payment_value, payment),
+                Text(paymentText,
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             payoff?.let {
@@ -184,15 +196,18 @@ private fun LoanEditorSheet(
     var accountId by remember { mutableStateOf(loan?.accountId ?: accounts.firstOrNull()?.id.orEmpty()) }
     var original by remember { mutableStateOf(centsText(existing?.originalBalanceCents)) }
     var rate by remember { mutableStateOf(existing?.annualRatePercent?.let { BigDecimal.valueOf(it).stripTrailingZeros().toPlainString() }.orEmpty()) }
+    var frequency by remember { mutableStateOf(existing?.paymentFrequency ?: LoanPaymentFrequency.MONTHLY) }
     var payment by remember { mutableStateOf(centsText(existing?.minimumPaymentCents)) }
     var escrow by remember { mutableStateOf(centsText(existing?.escrowOrFeesCents)) }
     var term by remember { mutableStateOf(existing?.termMonths?.toString().orEmpty()) }
     var paymentDay by remember { mutableStateOf(existing?.paymentDay?.toString().orEmpty()) }
+    var secondPaymentDay by remember { mutableStateOf(existing?.secondPaymentDay?.toString().orEmpty()) }
     var categoryId by remember { mutableStateOf(existing?.categoryId) }
     var startDate by remember { mutableStateOf(existing?.startDate?.let(DayDate::fromYyyymmdd)) }
     var pickingDate by remember { mutableStateOf(false) }
     val termValue = term.toIntOrNull()?.takeIf { it in 1..LoanConfig.MAX_TERM_MONTHS }
     val dayValue = paymentDay.toIntOrNull()?.takeIf { it in 1..31 }
+    val secondDayValue = secondPaymentDay.toIntOrNull()?.takeIf { it in 1..31 }
     val account = accounts.firstOrNull { it.id == accountId }
     val decimals = CurrencyDisplay.decimalPlaces
     val originalCents = parsePositiveCents(original, decimals)
@@ -200,9 +215,15 @@ private fun LoanEditorSheet(
     val escrowCents = parsePositiveCents(escrow, decimals)
     // A blank rate means an interest-free loan; anything typed must parse.
     val rateValue = if (rate.isBlank()) 0.0 else parseRatePercent(rate)
+    val dayOrDateValid = when (frequency) {
+        LoanPaymentFrequency.MONTHLY -> paymentDay.isBlank() || dayValue != null
+        LoanPaymentFrequency.SEMI_MONTHLY -> (paymentDay.isBlank() || dayValue != null) &&
+            (secondPaymentDay.isBlank() || secondDayValue != null)
+        LoanPaymentFrequency.BIWEEKLY, LoanPaymentFrequency.WEEKLY -> true
+    }
     val valid = accountId.isNotBlank() && originalCents != null && paymentCents != null &&
         rateValue != null && (escrow.isBlank() || escrowCents != null) &&
-        (term.isBlank() || termValue != null) && (paymentDay.isBlank() || dayValue != null)
+        (term.isBlank() || termValue != null) && dayOrDateValid
     val decimal = KeyboardOptions(keyboardType = KeyboardType.Decimal)
     if (pickingDate) {
         val picker = rememberDatePickerState(
@@ -252,7 +273,28 @@ private fun LoanEditorSheet(
                     ActuaFormTextField(Icons.Outlined.Percent, stringResource(R.string.loans_interest_rate), rate,
                         { value -> rate = value.filter { it.isDigit() || it == '.' || it == ',' } }, keyboardOptions = decimal)
                     ActuaCardDivider()
-                    ActuaFormTextField(Icons.Outlined.Payments, stringResource(R.string.loans_monthly_payment), payment,
+                    ActuaMenuRow(
+                        icon = Icons.Outlined.Repeat,
+                        label = stringResource(R.string.loans_frequency),
+                        value = when (frequency) {
+                            LoanPaymentFrequency.MONTHLY -> stringResource(R.string.loans_frequency_monthly)
+                            LoanPaymentFrequency.SEMI_MONTHLY -> stringResource(R.string.loans_frequency_semi_monthly)
+                            LoanPaymentFrequency.BIWEEKLY -> stringResource(R.string.loans_frequency_biweekly)
+                            LoanPaymentFrequency.WEEKLY -> stringResource(R.string.loans_frequency_weekly)
+                        },
+                        choices = listOf(
+                            stringResource(R.string.loans_frequency_monthly) to LoanPaymentFrequency.MONTHLY,
+                            stringResource(R.string.loans_frequency_semi_monthly) to LoanPaymentFrequency.SEMI_MONTHLY,
+                            stringResource(R.string.loans_frequency_biweekly) to LoanPaymentFrequency.BIWEEKLY,
+                            stringResource(R.string.loans_frequency_weekly) to LoanPaymentFrequency.WEEKLY,
+                        ),
+                    ) { frequency = it }
+                    ActuaCardDivider()
+                    val paymentLabel = when (frequency) {
+                        LoanPaymentFrequency.MONTHLY -> stringResource(R.string.loans_monthly_payment)
+                        else -> stringResource(R.string.loans_payment_amount)
+                    }
+                    ActuaFormTextField(Icons.Outlined.Payments, paymentLabel, payment,
                         { value -> payment = value.filter { it.isDigit() || it == '.' || it == ',' } }, keyboardOptions = decimal)
                     ActuaCardDivider()
                     ActuaFormTextField(Icons.Outlined.Receipt, stringResource(R.string.loans_escrow_optional), escrow,
@@ -260,9 +302,16 @@ private fun LoanEditorSheet(
                     ActuaCardDivider()
                     ActuaFormTextField(Icons.Outlined.Schedule, stringResource(R.string.loans_term_months), term,
                         { term = it.filter(Char::isDigit).take(3) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                    ActuaCardDivider()
-                    ActuaFormTextField(Icons.Outlined.Event, stringResource(R.string.loans_payment_day), paymentDay,
-                        { paymentDay = it.filter(Char::isDigit).take(2) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    if (frequency == LoanPaymentFrequency.MONTHLY || frequency == LoanPaymentFrequency.SEMI_MONTHLY) {
+                        ActuaCardDivider()
+                        ActuaFormTextField(Icons.Outlined.Event, stringResource(R.string.loans_payment_day), paymentDay,
+                            { paymentDay = it.filter(Char::isDigit).take(2) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    }
+                    if (frequency == LoanPaymentFrequency.SEMI_MONTHLY) {
+                        ActuaCardDivider()
+                        ActuaFormTextField(Icons.Outlined.Event, stringResource(R.string.loans_second_payment_day), secondPaymentDay,
+                            { secondPaymentDay = it.filter(Char::isDigit).take(2) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    }
                     ActuaCardDivider()
                     ActuaMenuRow(
                         icon = Icons.Outlined.Category,
@@ -274,9 +323,14 @@ private fun LoanEditorSheet(
                             categoryChoices.choices.filter { it.offered || it.id == categoryId }.map { it.label to it.id },
                     ) { categoryId = it }
                     ActuaCardDivider()
+                    val startDateLabel = if (frequency == LoanPaymentFrequency.BIWEEKLY || frequency == LoanPaymentFrequency.WEEKLY) {
+                        stringResource(R.string.loans_first_payment_date)
+                    } else {
+                        stringResource(R.string.loans_start_date)
+                    }
                     ActuaFormRow(
                         icon = Icons.Outlined.CalendarMonth,
-                        label = stringResource(R.string.loans_start_date),
+                        label = startDateLabel,
                         value = startDate?.let { formatDate(LocalDate.of(it.year, it.month, it.day)) }
                             ?: stringResource(R.string.loans_not_set),
                         valueIsPlaceholder = startDate == null,
@@ -304,8 +358,10 @@ private fun LoanEditorSheet(
                         categoryId = categoryId,
                         targetSnoozedMonth = existing?.targetSnoozedMonth,
                         termMonths = termValue,
-                        paymentDay = dayValue,
+                        paymentDay = if (frequency == LoanPaymentFrequency.MONTHLY || frequency == LoanPaymentFrequency.SEMI_MONTHLY) dayValue else null,
                         startDate = startDate?.yyyymmdd,
+                        paymentFrequency = frequency,
+                        secondPaymentDay = if (frequency == LoanPaymentFrequency.SEMI_MONTHLY) secondDayValue else null,
                     ))
                 },
                 icon = Icons.Outlined.Check,

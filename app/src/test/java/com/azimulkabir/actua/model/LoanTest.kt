@@ -45,8 +45,9 @@ class LoanTest {
         assertThrows(IllegalArgumentException::class.java) { LoanConfig(100, 1.0, 100, termMonths = 0) }
         assertThrows(IllegalArgumentException::class.java) { LoanConfig(100, 1.0, 100, termMonths = 601) }
         assertThrows(IllegalArgumentException::class.java) { LoanConfig(100, 1.0, 100, paymentDay = 32) }
+        assertThrows(IllegalArgumentException::class.java) { LoanConfig(100, 1.0, 100, secondPaymentDay = 32) }
         assertThrows(IllegalArgumentException::class.java) { LoanConfig(100, 1.0, 100, startDate = 20261340) }
-        LoanConfig(100, 1.0, 100, termMonths = 600, paymentDay = 31, startDate = 20240229)
+        LoanConfig(100, 1.0, 100, termMonths = 600, paymentDay = 31, secondPaymentDay = 15, startDate = 20240229)
     }
 
     @Test
@@ -106,6 +107,50 @@ class LoanTest {
     }
 
     @Test
+    fun nextPaymentDateSupportsSemiMonthlyFrequencies() {
+        val loan = LoanConfig(
+            1_000, 5.0, 100, paymentDay = 1, secondPaymentDay = 15,
+            paymentFrequency = LoanPaymentFrequency.SEMI_MONTHLY,
+        )
+        assertEquals(DayDate(2026, 10, 15), loan.nextPaymentDate(DayDate(2026, 10, 10)))
+        assertEquals(DayDate(2026, 10, 15), loan.nextPaymentDate(DayDate(2026, 10, 15)))
+        assertEquals(DayDate(2026, 11, 1), loan.nextPaymentDate(DayDate(2026, 10, 16)))
+        assertEquals(DayDate(2026, 11, 1), loan.nextPaymentDate(DayDate(2026, 11, 1)))
+
+        // Clamping to short month for days 15 and 31:
+        val monthEnd = LoanConfig(
+            1_000, 5.0, 100, paymentDay = 15, secondPaymentDay = 31,
+            paymentFrequency = LoanPaymentFrequency.SEMI_MONTHLY,
+        )
+        assertEquals(DayDate(2027, 2, 28), monthEnd.nextPaymentDate(DayDate(2027, 2, 16)))
+    }
+
+    @Test
+    fun nextPaymentDateSupportsBiweeklyAndWeeklyFrequencies() {
+        val biweekly = LoanConfig(
+            1_000, 5.0, 100, startDate = 20261002,
+            paymentFrequency = LoanPaymentFrequency.BIWEEKLY,
+        )
+        // Anchor is Oct 2, 2026
+        assertEquals(DayDate(2026, 10, 2), biweekly.nextPaymentDate(DayDate(2026, 10, 2)))
+        assertEquals(DayDate(2026, 10, 16), biweekly.nextPaymentDate(DayDate(2026, 10, 10)))
+        assertEquals(DayDate(2026, 10, 16), biweekly.nextPaymentDate(DayDate(2026, 10, 16)))
+        assertEquals(DayDate(2026, 10, 30), biweekly.nextPaymentDate(DayDate(2026, 10, 26)))
+        assertEquals(DayDate(2026, 10, 2), biweekly.nextPaymentDate(DayDate(2026, 9, 20)))
+
+        val weekly = LoanConfig(
+            1_000, 5.0, 100, startDate = 20261002,
+            paymentFrequency = LoanPaymentFrequency.WEEKLY,
+        )
+        assertEquals(DayDate(2026, 10, 2), weekly.nextPaymentDate(DayDate(2026, 10, 2)))
+        assertEquals(DayDate(2026, 10, 9), weekly.nextPaymentDate(DayDate(2026, 10, 5)))
+        assertEquals(DayDate(2026, 10, 9), weekly.nextPaymentDate(DayDate(2026, 10, 9)))
+        assertEquals(DayDate(2026, 10, 16), weekly.nextPaymentDate(DayDate(2026, 10, 10)))
+
+        assertNull(LoanConfig(1_000, 5.0, 100, paymentFrequency = LoanPaymentFrequency.BIWEEKLY).nextPaymentDate(DayDate(2026, 10, 10)))
+    }
+
+    @Test
     fun paymentSplitChargesInterestAndEscrowInFull() {
         val loan = LoanConfig(2_200_000, 6.0, 36_500, escrowOrFeesCents = 10_000)
         val split = loan.paymentSplit(-2_200_000, 36_500)
@@ -113,6 +158,23 @@ class LoanTest {
         // Underpaying grows the loan: the shortfall shows as negative principal, charges are not shrunk.
         assertEquals(LoanPaymentSplit(11_000, 10_000, -6_000), loan.paymentSplit(-2_200_000, 15_000))
         assertEquals(LoanPaymentSplit(0, 10_000, 5_000), loan.paymentSplit(0, 15_000))
+    }
+
+    @Test
+    fun paymentSplitCalculatesPeriodicInterestAcrossFrequencies() {
+        val owed = -2_200_000L
+        val rate = 6.0
+        val monthly = LoanConfig(2_200_000, rate, 36_500, paymentFrequency = LoanPaymentFrequency.MONTHLY)
+        val semiMonthly = LoanConfig(2_200_000, rate, 18_250, paymentFrequency = LoanPaymentFrequency.SEMI_MONTHLY)
+        val biweekly = LoanConfig(2_200_000, rate, 16_850, paymentFrequency = LoanPaymentFrequency.BIWEEKLY)
+        val weekly = LoanConfig(2_200_000, rate, 8_425, paymentFrequency = LoanPaymentFrequency.WEEKLY)
+
+        assertEquals(11_000L, monthly.paymentSplit(owed, 36_500).interestCents)
+        assertEquals(5_500L, semiMonthly.paymentSplit(owed, 18_250).interestCents)
+        // 2,200,000 * 6.0 / 2600 = 5076.92 -> 5077 cents
+        assertEquals(5_077L, biweekly.paymentSplit(owed, 16_850).interestCents)
+        // 2,200,000 * 6.0 / 5200 = 2538.46 -> 2538 cents
+        assertEquals(2_538L, weekly.paymentSplit(owed, 8_425).interestCents)
     }
 
     @Test

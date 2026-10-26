@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added biweekly, semi-monthly and weekly payment schedules for loan tracking ([#1326](https://github.com/azimul-kabir/actua/pull/1326))
+
 ## [2.2.1] - 2026-10-26
 
 ### Changed

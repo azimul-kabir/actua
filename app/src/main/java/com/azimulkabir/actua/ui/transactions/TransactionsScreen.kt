@@ -1410,7 +1410,13 @@ private fun LoanOverviewCard(
             LinearProgressIndicator(progress = { loan.paidOffPermille / 1000f }, modifier = Modifier.fillMaxWidth())
             if (!loan.isPaidOff) DetailAmount(stringResource(R.string.account_loan_owed), loan.owedCents, hideDecimals)
             if (loan.totalPaidCents > 0) DetailAmount(stringResource(R.string.account_loan_total_paid), loan.totalPaidCents, hideDecimals)
-            DetailAmount(stringResource(R.string.account_loan_monthly_payment), config.minimumPaymentCents, hideDecimals)
+            val paymentLabel = when (config.paymentFrequency) {
+                com.azimulkabir.actua.model.LoanPaymentFrequency.MONTHLY -> stringResource(R.string.account_loan_monthly_payment)
+                com.azimulkabir.actua.model.LoanPaymentFrequency.SEMI_MONTHLY -> stringResource(R.string.account_loan_semi_monthly_payment)
+                com.azimulkabir.actua.model.LoanPaymentFrequency.BIWEEKLY -> stringResource(R.string.account_loan_biweekly_payment)
+                com.azimulkabir.actua.model.LoanPaymentFrequency.WEEKLY -> stringResource(R.string.account_loan_weekly_payment)
+            }
+            DetailAmount(paymentLabel, config.minimumPaymentCents, hideDecimals)
             config.escrowOrFeesCents?.let { DetailAmount(stringResource(R.string.account_loan_escrow), it, hideDecimals) }
             Row(Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.account_loan_rate), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
