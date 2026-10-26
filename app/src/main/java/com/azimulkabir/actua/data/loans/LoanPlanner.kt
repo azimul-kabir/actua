@@ -17,6 +17,8 @@ object LoanPlanner {
         val chosen: LoanAmortization.Schedule?,
         val isAtMinimum: Boolean,
         val frequency: LoanPaymentFrequency = LoanPaymentFrequency.MONTHLY,
+        val paymentDay: Int? = null,
+        val secondPaymentDay: Int? = null,
     ) {
         val interestRemainingCents: Long? get() = chosen?.totalInterest
         val totalRemainingCents: Long? get() = chosen?.let { owedCents + it.totalInterest }
@@ -44,6 +46,7 @@ object LoanPlanner {
             owed, config.annualRatePercent, payment, start, config.escrowOrFeesCents ?: 0,
             if (extra > 0) mapOf(start to extra) else emptyMap(),
             frequency = config.paymentFrequency,
+            paymentDay = config.paymentDay,
             secondPaymentDay = config.secondPaymentDay,
         )
         return Plan(
@@ -52,6 +55,8 @@ object LoanPlanner {
             chosen = schedule(paymentCents, extraCents),
             isAtMinimum = paymentCents == config.minimumPaymentCents && extraCents == 0L,
             frequency = config.paymentFrequency,
+            paymentDay = config.paymentDay,
+            secondPaymentDay = config.secondPaymentDay,
         )
     }
 
@@ -62,6 +67,7 @@ object LoanPlanner {
             LoanConfig.owedCents(accountBalanceCents), config.annualRatePercent, periods, start,
             config.escrowOrFeesCents ?: 0,
             frequency = config.paymentFrequency,
+            paymentDay = config.paymentDay,
             secondPaymentDay = config.secondPaymentDay,
         )
     }
@@ -75,13 +81,41 @@ object LoanPlanner {
         start: DayDate,
         points: Int,
         frequency: LoanPaymentFrequency = LoanPaymentFrequency.MONTHLY,
-    ): List<String> = (0 until points).map { index ->
-        when (frequency) {
-            LoanPaymentFrequency.MONTHLY -> start.addingMonths(index - 1).iso
-            LoanPaymentFrequency.BIWEEKLY -> start.addingDays(14 * (index - 1)).iso
-            LoanPaymentFrequency.WEEKLY -> start.addingDays(7 * (index - 1)).iso
-            LoanPaymentFrequency.SEMI_MONTHLY -> start.addingDays(15 * (index - 1)).iso
+        paymentDay: Int? = null,
+        secondPaymentDay: Int? = null,
+    ): List<String> {
+        if (points <= 0) return emptyList()
+        val opening = when (frequency) {
+            LoanPaymentFrequency.MONTHLY -> start.addingMonths(-1)
+            LoanPaymentFrequency.BIWEEKLY -> start.addingDays(-14)
+            LoanPaymentFrequency.WEEKLY -> start.addingDays(-7)
+            LoanPaymentFrequency.SEMI_MONTHLY -> {
+                val d1 = paymentDay ?: start.day
+                val d2 = secondPaymentDay ?: if (d1 <= 14) d1 + 14 else maxOf(1, d1 - 14)
+                val firstDay = minOf(d1, d2)
+                val secondDay = if (firstDay == maxOf(d1, d2)) {
+                    if (firstDay <= 14) firstDay + 14 else maxOf(1, firstDay - 14)
+                } else {
+                    maxOf(d1, d2)
+                }
+                val minDay = minOf(firstDay, secondDay)
+                val maxDay = maxOf(firstDay, secondDay)
+                if (start.day > minDay) {
+                    DayDate(start.year, start.month, minOf(minDay, DayDate.lastDay(start.year, start.month)))
+                } else {
+                    val prev = start.addingMonths(-1)
+                    DayDate(prev.year, prev.month, minOf(maxDay, DayDate.lastDay(prev.year, prev.month)))
+                }
+            }
         }
+        val result = ArrayList<String>(points)
+        result.add(opening.iso)
+        var current = start
+        for (i in 1 until points) {
+            result.add(current.iso)
+            current = LoanAmortization.advanceDate(current, frequency, paymentDay, secondPaymentDay)
+        }
+        return result
     }
 
     /** Splits a month count into whole years and remaining months. */

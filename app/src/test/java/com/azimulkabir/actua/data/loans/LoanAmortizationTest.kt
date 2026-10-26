@@ -204,4 +204,34 @@ class LoanAmortizationTest {
         assertEquals(DayDate(2026, 11, 15), schedule.entries[3].month)
         assertEquals(0L, schedule.entries.last().balance)
     }
+
+    @Test
+    fun semiMonthlyScheduleStartingOnSecondPaymentDay() {
+        val startDate = DayDate(2026, 10, 15)
+        val schedule = LoanAmortization.schedule(
+            balanceCents = 500_000,
+            annualRatePercent = 4.8,
+            paymentCents = 100_000,
+            startingMonth = startDate,
+            frequency = LoanPaymentFrequency.SEMI_MONTHLY,
+            paymentDay = 1,
+            secondPaymentDay = 15,
+        )!!
+        assertEquals(DayDate(2026, 10, 15), schedule.entries[0].month)
+        assertEquals(DayDate(2026, 11, 1), schedule.entries[1].month)
+        assertEquals(DayDate(2026, 11, 15), schedule.entries[2].month)
+        assertEquals(DayDate(2026, 12, 1), schedule.entries[3].month)
+        assertEquals(0L, schedule.entries.last().balance)
+    }
+
+    @Test
+    fun advanceDateAdvancesSemiMonthlyCorrectly() {
+        var d = DayDate(2026, 1, 15)
+        d = LoanAmortization.advanceDate(d, LoanPaymentFrequency.SEMI_MONTHLY, paymentDay = 1, secondPaymentDay = 15)
+        assertEquals(DayDate(2026, 2, 1), d)
+        d = LoanAmortization.advanceDate(d, LoanPaymentFrequency.SEMI_MONTHLY, paymentDay = 1, secondPaymentDay = 15)
+        assertEquals(DayDate(2026, 2, 15), d)
+        d = LoanAmortization.advanceDate(d, LoanPaymentFrequency.SEMI_MONTHLY, paymentDay = 1, secondPaymentDay = 15)
+        assertEquals(DayDate(2026, 3, 1), d)
+    }
 }

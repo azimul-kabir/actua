@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.loans
 
 import com.azimulkabir.actua.data.schedules.DayDate
 import com.azimulkabir.actua.model.LoanConfig
+import com.azimulkabir.actua.model.LoanPaymentFrequency
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -100,6 +101,15 @@ class LoanPlannerTest {
     @Test
     fun periodsStartTheMonthBeforeTheFirstPayment() {
         assertEquals(listOf("2022-11-01", "2022-12-01", "2023-01-01"), LoanPlanner.periods(start, 3))
+    }
+
+    @Test
+    fun periodsSupportsSemiMonthlyAndWeekly() {
+        val semi = LoanPlanner.periods(DayDate(2026, 10, 1), 4, LoanPaymentFrequency.SEMI_MONTHLY, paymentDay = 1, secondPaymentDay = 15)
+        assertEquals(listOf("2026-09-15", "2026-10-01", "2026-10-15", "2026-11-01"), semi)
+
+        val weekly = LoanPlanner.periods(DayDate(2026, 10, 8), 3, LoanPaymentFrequency.WEEKLY)
+        assertEquals(listOf("2026-10-01", "2026-10-08", "2026-10-15"), weekly)
     }
 
     @Test

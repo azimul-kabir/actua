@@ -179,7 +179,7 @@ private fun LoanBurndownChart(
     val monthsChosen = (chosen.paymentCount * 12 + plan.frequency.periodsPerYear - 1) / plan.frequency.periodsPerYear
     val description = stringResource(R.string.loan_planner_chart_description, loanDurationText(monthsChosen))
     LineChart(
-        periods = LoanPlanner.periods(start, count, plan.frequency),
+        periods = LoanPlanner.periods(start, count, plan.frequency, plan.paymentDay, plan.secondPaymentDay),
         series = series,
         formatValue = { formatMoneyCents(it, hideDecimals) },
         formatAxis = { formatMoneyCents(it, true) },

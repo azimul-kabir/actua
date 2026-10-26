@@ -55,26 +55,38 @@ object LoanAmortization {
     internal fun advanceDate(
         current: DayDate,
         frequency: LoanPaymentFrequency,
+        paymentDay: Int? = null,
         secondPaymentDay: Int? = null,
     ): DayDate = when (frequency) {
         LoanPaymentFrequency.MONTHLY -> current.addingMonths(1)
         LoanPaymentFrequency.BIWEEKLY -> current.addingDays(14)
         LoanPaymentFrequency.WEEKLY -> current.addingDays(7)
         LoanPaymentFrequency.SEMI_MONTHLY -> {
-            val d1 = current.day
-            val d2 = secondPaymentDay ?: minOf(d1 + 14, 28)
+            val d1 = paymentDay
+                ?: if (secondPaymentDay != null && current.day == secondPaymentDay) {
+                    if (secondPaymentDay > 14) maxOf(1, secondPaymentDay - 14) else secondPaymentDay + 14
+                } else {
+                    current.day
+                }
+            val d2 = secondPaymentDay ?: if (d1 <= 14) d1 + 14 else maxOf(1, d1 - 14)
             val firstDay = minOf(d1, d2)
-            val secondDay = maxOf(d1, d2)
+            val secondDay = if (firstDay == maxOf(d1, d2)) {
+                if (firstDay <= 14) firstDay + 14 else maxOf(1, firstDay - 14)
+            } else {
+                maxOf(d1, d2)
+            }
+            val minDay = minOf(firstDay, secondDay)
+            val maxDay = maxOf(firstDay, secondDay)
             val last = DayDate.lastDay(current.year, current.month)
-            val cand1 = DayDate(current.year, current.month, minOf(firstDay, last))
-            val cand2 = DayDate(current.year, current.month, minOf(secondDay, last))
+            val cand1 = DayDate(current.year, current.month, minOf(minDay, last))
+            val cand2 = DayDate(current.year, current.month, minOf(maxDay, last))
             when {
                 current < cand1 -> cand1
                 current < cand2 -> cand2
                 else -> {
                     val nextMonth = current.addingMonths(1)
                     val nextLast = DayDate.lastDay(nextMonth.year, nextMonth.month)
-                    DayDate(nextMonth.year, nextMonth.month, minOf(firstDay, nextLast))
+                    DayDate(nextMonth.year, nextMonth.month, minOf(minDay, nextLast))
                 }
             }
         }
@@ -92,6 +104,7 @@ object LoanAmortization {
         escrowOrFeesCents: Long = 0,
         extraPayments: Map<DayDate, Long> = emptyMap(),
         frequency: LoanPaymentFrequency = LoanPaymentFrequency.MONTHLY,
+        paymentDay: Int? = null,
         secondPaymentDay: Int? = null,
     ): Schedule? {
         if (balanceCents <= 0) return Schedule(emptyList())
@@ -99,6 +112,14 @@ object LoanAmortization {
             .fold(0L) { total, entry -> total + entry.value }
         var remaining = balanceCents
         var date = startingMonth
+        val resolvedPaymentDay = paymentDay
+            ?: if (secondPaymentDay != null && startingMonth.day == secondPaymentDay) {
+                if (secondPaymentDay > 14) maxOf(1, secondPaymentDay - 14) else secondPaymentDay + 14
+            } else {
+                startingMonth.day
+            }
+        val resolvedSecondDay = secondPaymentDay
+            ?: if (resolvedPaymentDay <= 14) resolvedPaymentDay + 14 else maxOf(1, resolvedPaymentDay - 14)
         val entries = ArrayList<Entry>()
         val maxPeriods = 50 * frequency.periodsPerYear
         repeat(maxPeriods) {
@@ -115,7 +136,7 @@ object LoanAmortization {
             remaining -= principal
             entries += Entry(date, paid, interest, escrowOrFeesCents, principal, remaining)
             if (remaining <= 0) return Schedule(entries)
-            date = advanceDate(date, frequency, secondPaymentDay)
+            date = advanceDate(date, frequency, resolvedPaymentDay, resolvedSecondDay)
         }
         return null
     }
@@ -130,6 +151,7 @@ object LoanAmortization {
         startingMonth: DayDate,
         escrowOrFeesCents: Long = 0,
         frequency: LoanPaymentFrequency = LoanPaymentFrequency.MONTHLY,
+        paymentDay: Int? = null,
         secondPaymentDay: Int? = null,
     ): Long? {
         if (balanceCents <= 0) return 0
@@ -142,7 +164,7 @@ object LoanAmortization {
             val mid = low + (high - low) / 2
             val clears = schedule(
                 balanceCents, annualRatePercent, mid, startingMonth, escrowOrFeesCents,
-                frequency = frequency, secondPaymentDay = secondPaymentDay,
+                frequency = frequency, paymentDay = paymentDay, secondPaymentDay = secondPaymentDay,
             )?.let { it.paymentCount <= periods } ?: false
             if (clears) high = mid else low = mid + 1
         }
@@ -174,5 +196,6 @@ fun LoanConfig.schedule(
     LoanConfig.owedCents(accountBalanceCents), annualRatePercent, minimumPaymentCents, from,
     escrowOrFeesCents ?: 0, extraPayments,
     frequency = paymentFrequency,
+    paymentDay = paymentDay,
     secondPaymentDay = secondPaymentDay,
 )
