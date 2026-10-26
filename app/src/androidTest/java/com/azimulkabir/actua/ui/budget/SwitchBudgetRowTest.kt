@@ -2,6 +2,7 @@ package com.azimulkabir.actua.ui.budget
 
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -65,5 +66,12 @@ class SwitchBudgetRowTest {
         setBudget(twoBudgets)
         openMenu()
         compose.onNodeWithText(context.getString(R.string.settings_budget_type) + ": ", substring = true).assertDoesNotExist()
+    }
+
+    @Test fun switchBudgetRowDisplaysActiveBudgetName() {
+        setBudget(twoBudgets)
+        openMenu()
+        compose.onNodeWithText("First budget").assertIsDisplayed()
+        compose.onNodeWithText(label(R.string.budget_switch_budget)).assertIsDisplayed()
     }
 }

@@ -82,6 +82,11 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.UnfoldLess
+import androidx.compose.material.icons.outlined.UnfoldMore
+import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -1016,29 +1021,70 @@ private fun BudgetToolbar(
                 expanded = optionsExpanded,
                 onDismissRequest = { onOptionsChange(false) },
             ) {
-                ActuaSwitchMenuItem(stringResource(R.string.budget_plan_view), budgetView == "Plan", onCheckedChange = {
-                    onBudgetViewChange(if (it) "Plan" else "Table")
-                    onOptionsChange(false)
-                })
-                DropdownMenuItem(text = { Text(stringResource(R.string.budget_expand_all_groups)) }, onClick = onExpandAll)
-                DropdownMenuItem(text = { Text(stringResource(R.string.budget_collapse_all_groups)) }, onClick = onCollapseAll)
+                if (budgetOptions.size > 1) {
+                    val activeBudgetName = budgetOptions.firstOrNull { it.id == activeBudgetId }?.name
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(
+                                    text = activeBudgetName ?: stringResource(R.string.budget_switch_budget),
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                if (activeBudgetName != null) {
+                                    Text(
+                                        text = stringResource(R.string.budget_switch_budget),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.FolderOpen, contentDescription = null)
+                        },
+                        trailingIcon = {
+                            Icon(Icons.Outlined.UnfoldMore, contentDescription = null)
+                        },
+                        onClick = {
+                            onOptionsChange(false)
+                            switchBudgetOpen = true
+                        },
+                    )
+                    HorizontalDivider()
+                }
+                ActuaSwitchMenuItem(
+                    label = stringResource(R.string.budget_plan_view),
+                    checked = budgetView == "Plan",
+                    onCheckedChange = {
+                        onBudgetViewChange(if (it) "Plan" else "Table")
+                        onOptionsChange(false)
+                    },
+                    icon = Icons.Outlined.ViewAgenda,
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.budget_expand_all_groups)) },
+                    leadingIcon = { Icon(Icons.Outlined.UnfoldMore, contentDescription = null) },
+                    onClick = onExpandAll,
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.budget_collapse_all_groups)) },
+                    leadingIcon = { Icon(Icons.Outlined.UnfoldLess, contentDescription = null) },
+                    onClick = onCollapseAll,
+                )
                 HorizontalDivider()
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.budget_manage_categories)) },
+                    leadingIcon = { Icon(Icons.Outlined.Category, contentDescription = null) },
                     onClick = {
                         onOptionsChange(false)
                         onManageCategories()
                     },
                 )
-                if (budgetOptions.size > 1) DropdownMenuItem(
-                    text = { Text(stringResource(R.string.budget_switch_budget)) },
-                    onClick = {
-                        onOptionsChange(false)
-                        switchBudgetOpen = true
-                    },
-                )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.budget_display_options_menu)) },
+                    leadingIcon = { Icon(Icons.Outlined.Tune, contentDescription = null) },
                     onClick = {
                         onOptionsChange(false)
                         optionsSheetOpen = true

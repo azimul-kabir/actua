@@ -8,6 +8,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 - Added biweekly, semi-monthly and weekly payment schedules for loan tracking ([#1326](https://github.com/azimul-kabir/actua/pull/1326))
 
+### Changed
+
+- Changed the Budget dropdown menu to include row icons and prominently show the active budget name on the switch row ([#1328](https://github.com/azimul-kabir/actua/pull/1328))
+
 ## [2.2.1] - 2026-10-26
 
 ### Changed

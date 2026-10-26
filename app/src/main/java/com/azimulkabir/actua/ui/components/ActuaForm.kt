@@ -488,9 +488,11 @@ fun ActuaSwitchMenuItem(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
 ) {
     DropdownMenuItem(
         text = { Text(label) },
+        leadingIcon = icon?.let { { Icon(it, contentDescription = null) } },
         trailingIcon = { Switch(checked = checked, onCheckedChange = null) },
         onClick = { onCheckedChange(!checked) },
         modifier = modifier.semantics(mergeDescendants = true) {
