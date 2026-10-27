@@ -77,6 +77,7 @@
     <string name="navigation_merging_payees">Mesclando beneficiários</string>
     <string name="navigation_moving_budget">Movendo valores do orçamento</string>
     <string name="navigation_updating_budget">Atualizando orçamento</string>
+    <string name="navigation_saving_month_note">Salvando nota do mês</string>
     <string name="navigation_saving_category_note">Salvando nota da categoria</string>
     <string name="navigation_updating_rollover">Atualizando rolagem</string>
     <string name="navigation_holding_for_next_month">Guardando para o próximo mês</string>

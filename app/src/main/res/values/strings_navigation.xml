@@ -78,6 +78,7 @@
     <string name="navigation_merging_payees">Merging payees</string>
     <string name="navigation_moving_budget">Moving budget</string>
     <string name="navigation_updating_budget">Updating budget</string>
+    <string name="navigation_saving_month_note">Saving month note</string>
     <string name="navigation_saving_category_note">Saving category note</string>
     <string name="navigation_updating_rollover">Updating rollover</string>
     <string name="navigation_holding_for_next_month">Holding for next month</string>

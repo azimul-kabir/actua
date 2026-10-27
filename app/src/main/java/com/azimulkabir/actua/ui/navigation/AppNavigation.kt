@@ -498,6 +498,7 @@ fun AppNavigation(
         repository.budgetScheduleFunding(budgetMonth)
     }
     val budgetOverview = remember(dataVersion, budgetMonth) { repository.budgetOverview(budgetMonth) }
+    val budgetMonthNote = remember(dataVersion, budgetMonth) { repository.monthNote(budgetMonth) }
     val budgetHidesFraction = remember(dataVersion) { repository.budgetHidesFraction() }
     val budgetType = remember(dataVersion, repository) { repository.budgetType() }
     // Set during composition, before any amount below is formatted or parsed.
@@ -2859,6 +2860,10 @@ fun AppNavigation(
                     },
                     onSetBudgetAmount = { group, category, amount ->
                         mutate(R.string.navigation_updating_budget) { repository.setBudgetAmount(group, category, amount, budgetMonth) }
+                    },
+                    monthNote = budgetMonthNote,
+                    onSetMonthNote = { note ->
+                        mutate(R.string.navigation_saving_month_note) { repository.setMonthNote(budgetMonth, note) }
                     },
                     onSetCategoryNote = { categoryId, note ->
                         mutate(R.string.navigation_saving_category_note) { repository.setCategoryNote(categoryId, note) }

@@ -58,6 +58,28 @@ class ActuaRepositoryBudgetActionsTest {
     }
 
     @Test
+    fun monthNoteIsEditableClearableAndKeepsMovementLines() = withRepository { repository, db ->
+        // Month notes are the synced `budget-<YYYY-MM>` row (#1329); a missing row reads as empty.
+        assertEquals("", repository.monthNote("2026-10"))
+        db.exec("INSERT INTO zero_budgets (id, month, category, amount, carryover) VALUES ('202610-rent', 202610, 'rent', 100000, 0)")
+        repository.transferBudget("Bills", "Rent", null, null, 100, "2026-10")
+        val moved = repository.monthNote("2026-10")
+        assertTrue(moved.startsWith("- Reassigned 1.00 from Rent → To Budget on "))
+
+        // Editing keeps the movement line the user left in the text, and later moves still append to it.
+        assertTrue(repository.setMonthNote("2026-10", "Trip fund\n$moved"))
+        assertEquals("Trip fund\n$moved", db.note("budget-2026-10"))
+        assertTrue(db.hasCrdtMessage("notes", "budget-2026-10", "note"))
+        repository.transferBudget("Bills", "Rent", null, null, 200, "2026-10")
+        assertTrue(repository.monthNote("2026-10").startsWith("Trip fund\n$moved\n- Reassigned 2.00 from Rent → To Budget on "))
+
+        // Blank text is stored as "" and the row stays, as Actual does.
+        assertTrue(repository.setMonthNote("2026-10", "  \n"))
+        assertEquals("", db.note("budget-2026-10"))
+        assertEquals("", repository.monthNote("2026-10"))
+    }
+
+    @Test
     fun envelopeOverviewTotalsIncludeHiddenCategories() = withRepository { repository, db ->
         // Actual's envelope total-budgeted / total-spent / total-leftover count hidden categories (#909).
         db.exec("INSERT INTO zero_budgets (id, month, category, amount, carryover) VALUES ('202603-rent', 202603, 'rent', 100000, 0), ('202603-old', 202603, 'old', 5000, 0)")
