@@ -89,6 +89,8 @@ import androidx.compose.material.icons.outlined.UnfoldMore
 import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -261,6 +263,8 @@ fun BudgetScreen(
         if (covering) onTransferBudget(group, category, null, null, amount) else onTransferBudget(null, null, group, category, amount)
     },
     onSetBudgetAmount: (String, String, Long) -> Unit = { _, _, _ -> },
+    monthNote: String = "",
+    onSetMonthNote: (String) -> Unit = {},
     onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
     onHoldForNextMonth: (Long) -> Unit = {},
@@ -410,6 +414,8 @@ fun BudgetScreen(
                 },
                 onSearch = onSearch,
                 onManageCategories = onManageCategories,
+                monthNote = if (showNotes) monthNote else null,
+                onSetMonthNote = onSetMonthNote,
                 budgetOptions = budgetOptions,
                 activeBudgetId = activeBudgetId,
                 onBudgetChange = onBudgetChange,
@@ -964,6 +970,9 @@ private fun BudgetToolbar(
     onCollapseAll: () -> Unit,
     onSearch: () -> Unit,
     onManageCategories: () -> Unit,
+    /** The selected month's note; null hides the entry (global Notes display setting is off). */
+    monthNote: String?,
+    onSetMonthNote: (String) -> Unit,
     budgetOptions: List<BudgetSelectionItem>,
     activeBudgetId: String?,
     onBudgetChange: (String) -> Unit,
@@ -971,6 +980,7 @@ private fun BudgetToolbar(
     var switchBudgetOpen by remember { mutableStateOf(false) }
     var monthPickerOpen by remember { mutableStateOf(false) }
     var optionsSheetOpen by remember { mutableStateOf(false) }
+    var monthNoteOpen by remember(month) { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -1013,7 +1023,9 @@ private fun BudgetToolbar(
                         Icon(Icons.Outlined.AutoAwesome, contentDescription = stringResource(R.string.budget_add_to_budget))
                     }
                     IconButton(onClick = { onOptionsChange(true) }) {
-                        Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.budget_display_options))
+                        BadgedBox(badge = { if (!monthNote.isNullOrBlank()) Badge() }) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.budget_display_options))
+                        }
                     }
                 }
             }
@@ -1074,6 +1086,29 @@ private fun BudgetToolbar(
                     onClick = onCollapseAll,
                 )
                 HorizontalDivider()
+                if (monthNote != null) {
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(stringResource(R.string.budget_month_note))
+                                if (monthNote.isNotBlank()) {
+                                    Text(
+                                        text = monthNote.lineSequence().first { it.isNotBlank() },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Notes, contentDescription = null) },
+                        onClick = {
+                            onOptionsChange(false)
+                            monthNoteOpen = true
+                        },
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.budget_manage_categories)) },
                     leadingIcon = { Icon(Icons.Outlined.Category, contentDescription = null) },
@@ -1092,6 +1127,17 @@ private fun BudgetToolbar(
                 )
             }
         }
+    }
+    if (monthNoteOpen && monthNote != null) {
+        ActuaNoteEditorSheet(
+            initialNote = monthNote,
+            placeholder = stringResource(R.string.budget_month_note),
+            onDismiss = { monthNoteOpen = false },
+            onSave = {
+                onSetMonthNote(it)
+                monthNoteOpen = false
+            },
+        )
     }
     if (monthPickerOpen) {
         BudgetMonthPicker(

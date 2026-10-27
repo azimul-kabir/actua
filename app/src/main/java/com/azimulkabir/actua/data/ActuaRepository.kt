@@ -2209,6 +2209,14 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    /** The synced `budget-<YYYY-MM>` note for [month], read fresh so movement lines from other clients show. */
+    fun monthNote(month: String): String = actualDatabase?.fetchNote(BudgetMovementNote.noteId(month)).orEmpty()
+
+    fun setMonthNote(month: String, note: String): Boolean {
+        actualEntities?.setNote(BudgetMovementNote.noteId(month), normalizeNote(note)) ?: return false
+        return true
+    }
+
     fun setAccountNote(accountId: String, note: String): Boolean {
         actualEntities?.setNote("account-$accountId", normalizeNote(note)) ?: return false
         return true

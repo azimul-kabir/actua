@@ -93,7 +93,7 @@ Dashboards have no `notes` row; text widgets keep their Markdown in the widget's
 | Account | `account-<id>`, read and edit | same id, read and edit | Match |
 | Category | `<categoryId>`, read and edit; `#template` / cleanup lines are parsed from it | same id, read and edit; same parsing ([docs/BUDGET_AUTOMATION_PARITY.md](BUDGET_AUTOMATION_PARITY.md)) | Match |
 | Category group | `<groupId>`, read and edit | not shown or edited | Ignored (no group notes UI) |
-| Budget month | `budget-<YYYY-MM>`, read and edit; moves append `- Reassigned …` | same id; Actua only appends the move/cover line, it doesn't show or edit the note | Match for writes; showing month notes: Ignored |
+| Budget month | `budget-<YYYY-MM>`, read and edit; moves append `- Reassigned …` | same id; "Month note" in the Budget menu reads (fresh on open) and edits it, and moves still append the move/cover line ([#1329](https://github.com/azimul-kabir/actua/issues/1329)) | Match |
 | Dashboard | Markdown in `dashboard.meta`, not `notes` | rendered from `meta` | Match ([docs/REPORTS_PARITY.md](REPORTS_PARITY.md)) |
 | Missing row | `notes-get` returns `null`; UI shows empty | `fetchNote` returns `""`; `fetchNotes` omits the id | Match |
 | Clearing a note | writes `note: ''`; the row stays | writes `""` (blank or whitespace-only text is saved as `""`); the row stays | Match. Whitespace-only notes are normalized: other clients see an empty note either way. |

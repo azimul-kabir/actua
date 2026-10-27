@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added biweekly, semi-monthly and weekly payment schedules for loan tracking ([#1326](https://github.com/azimul-kabir/actua/pull/1326))
 
 ### Changed
@@ -27,6 +28,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a Switch budget row to the Budget menu ([#1316](https://github.com/azimul-kabir/actua/pull/1316))
 - Added a Show goal icons option in the Budget menu to hide the target icons on balance pills in the table and plan views ([#1311](https://github.com/azimul-kabir/actua/pull/1311))
 - Added a holiday list in Settings > Budget that the working-day month start and weekend-skipping schedules skip ([#1299](https://github.com/azimul-kabir/actua/pull/1299))
@@ -53,6 +55,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Budget balance pills show how far a goal, save-by-date or cover-schedule target is funded: not started, in progress, reached or funded past it ([#1281](https://github.com/azimul-kabir/actua/pull/1281))
 - Budget balance pills are now fully rounded and show an icon when the category has a target ([#1280](https://github.com/azimul-kabir/actua/pull/1280))
 - Sankey card defaults to the last 6 pay periods when a Home summary start day is set, on this device only ([#1273](https://github.com/azimul-kabir/actua/pull/1273))
@@ -89,6 +92,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Collapsible account groups in Accounts tab, flat favorites list, and section-scoped account reordering across groups ([#1193](https://github.com/azimul-kabir/actua/pull/1193))
 - In-place edit mode for account reordering and group management in the Accounts tab ([#1191](https://github.com/azimul-kabir/actua/pull/1191))
 - Optional Google Drive backup and restore with client-side authenticated encryption ([#1183](https://github.com/azimul-kabir/actua/pull/1183))
@@ -130,6 +134,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Report cards open a full-screen view with a larger chart, a view-only time range and a data table ([#1136](https://github.com/azimul-kabir/actua/pull/1136))
 - Budget Analysis shows budgeted, spent and overspending bars with a balance line, and Monte Carlo shows shaded outcome ranges around the median ([#1135](https://github.com/azimul-kabir/actua/pull/1135))
 - Sankey reports draw names and shares inside the bars, and tapping a node or flow opens its transactions ([#1134](https://github.com/azimul-kabir/actua/pull/1134))
@@ -156,6 +161,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - A Budget display option to show balances as plain amounts instead of on pills ([#1091](https://github.com/azimul-kabir/actua/pull/1091))
 
 ### Fixed
@@ -174,6 +180,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Transactions added by bank sync are marked as new on their account until you view it ([#1069](https://github.com/azimul-kabir/actua/pull/1069))
 - A Review captured launcher shortcut, and the Accounts tab icon counts waiting captures from any tab ([#1068](https://github.com/azimul-kabir/actua/pull/1068))
 - Captured transactions can use a default account, and Review captured sets an account for all rows at once ([#1067](https://github.com/azimul-kabir/actua/pull/1067))
@@ -206,6 +213,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - A Diagnostics page in About lets you copy, save or email a privacy-safe report of recent app activity, including crashes and errors ([#1020](https://github.com/azimul-kabir/actua/pull/1020))
 - Reconciling a bank-synced account offers "Use last synced total" ([#1000](https://github.com/azimul-kabir/actua/pull/1000))
 - Reconciling shows when the account was last reconciled, and locking records the time for Actual too ([#999](https://github.com/azimul-kabir/actua/pull/999))
@@ -272,6 +280,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Switch between downloaded budgets from a row at the top of Manage ([#844](https://github.com/azimul-kabir/actua/pull/844))
 - Cover an overspent category's full amount in one tap from the Move Money sheet ([#841](https://github.com/azimul-kabir/actua/pull/841))
 
@@ -302,6 +311,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Experimental Enable Banking bank sync for European banks, switched on under Settings → Experimental ([#833](https://github.com/azimul-kabir/actua/pull/833))
 - Optional status-colored Budgeted amounts on Budget rows, and a customizable "Funded past goal" status for categories above their goal ([#831](https://github.com/azimul-kabir/actua/pull/831))
 - Choose the day your Home Income, Spent and Net summary period starts, for pay cycles that don't begin on the 1st ([#830](https://github.com/azimul-kabir/actua/pull/830))
@@ -357,6 +367,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Transactions sent from Tasker and other automation apps now wait in the import review queue ([#802](https://github.com/azimul-kabir/actua/pull/802))
 - Tap an upcoming transaction to post it, post it today, skip its next date or complete its schedule ([#740](https://github.com/azimul-kabir/actua/pull/740))
 - Edit a schedule's underlying rule from the schedule editor with Edit as rule ([#742](https://github.com/azimul-kabir/actua/pull/742))
@@ -418,6 +429,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Custom reports can show their total and average per period ([#645](https://github.com/azimul-kabir/actua/pull/645))
 - About now links to the Actua website, FAQ and Discord server ([#649](https://github.com/azimul-kabir/actua/pull/649))
 
@@ -441,6 +453,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added manual drag-to-reorder for accounts on the Accounts screen ([#603](https://github.com/azimul-kabir/actua/pull/603))
 - Accounts synced into Actual's experimental account groups are now displayed grouped on the Accounts screen ([#609](https://github.com/azimul-kabir/actua/pull/609))
 - Added an uncategorized-transactions banner to the Budget screen, alongside the overspent-categories one, both now controlled by a single "Show warnings" toggle ([#612](https://github.com/azimul-kabir/actua/pull/612))
@@ -459,6 +472,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added "Apply/Overwrite budget templates" actions scoped to a single category group, available by long-pressing the group ([#586](https://github.com/azimul-kabir/actua/pull/586))
 - Added a "Set budgets to zero" action to the budget tab's + sheet ([#583](https://github.com/azimul-kabir/actua/pull/583))
 - Added a Privacy Policy link to the About page ([#588](https://github.com/azimul-kabir/actua/pull/588))
@@ -475,6 +489,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added the remaining currencies from Actual's currency list to the currency setting ([#566](https://github.com/azimul-kabir/actua/pull/566))
 
 ### Changed
@@ -518,6 +533,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Cash Flow, Calendar and Spending report widgets now support drill-down to their contributing transactions ([#502](https://github.com/azimul-kabir/actua/pull/502))
 - The Sankey report widget now renders as a real flow diagram instead of plain text columns ([#503](https://github.com/azimul-kabir/actua/pull/503))
 - Saved `StackedBarGraph` custom reports now render as a real per-category stacked bar chart ([#504](https://github.com/azimul-kabir/actua/pull/504))
@@ -537,6 +553,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Long-pressing a transaction now enters selection mode with that transaction pre-selected, opening a floating selection bar with Categorize and Label always shown as icon actions and Edit (single selection), Mark cleared/uncleared, Duplicate, Move, Link/Unlink schedule, View schedule and Delete moved into a 3-dot overflow menu; the top app bar's separate Select action is removed
 - Recognized `#tags` are now highlighted as you type them in a transaction's notes field, matching the coloring already used for saved tag chips (#493)
 - Synced report dashboard charts (Net Worth, Balance Forecast, Age of Money, Crossover, Budget Analysis, Monte Carlo, Cash Flow and Calendar) gained gradient fills, gridlines, axis labels and tappable/draggable tooltips; Cash Flow is now a real grouped income/expense bar chart with a legend, and Calendar gained month navigation, per-day tooltips and magnitude-scaled day bars with correct per-visible-month totals (the app's own Overview page is unaffected)
@@ -554,6 +571,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a customizable bottom tab bar (Settings → Tab Bar): reorder tabs by dragging or with up/down arrows, show or hide each tab (Manage stays pinned and required, and hiding is refused below a 3-tab minimum or above a 5-tab maximum instead of silently no-oping), add a "+ Add" pseudo-tab that opens Add Transaction directly from the bar, and Restore Defaults; Reports can now be shown as its own bottom tab instead of only being reachable from Home and Manage
 - When the "+ Add" tab is enabled, the floating Add Transaction button is hidden on tab roots and on a drilled-into account or budget category, since the tab bar already exposes it
 - Replaced the "category available" snackbar shown after saving a transaction with an animated balance-impact card that slides up from the bottom showing the account's balance before → after the save, tinted red for expenses and green for income
@@ -566,6 +584,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added read-only viewing of saved Actual custom reports, with a donut chart for category/group breakdowns, a viewer-side date, account, category-group and off-budget filter, per-interval (daily/weekly/monthly/yearly) charts with tappable bars, and drill-down from a report segment to its contributing transactions; report calculations share one Actual-compatible aggregator (see `docs/REPORTS_PARITY.md`)
 - Added an Income vs expenses report card leading the reports overview: tappable grouped monthly bars (income, expenses, net) that respect the shared date/account filter, with Income and Expenses rows drilling down to contributing transactions; refunds net against their side and same-side transfers and off-budget accounts are excluded
 - Report trend charts are now touch-interactive: tap or drag to read the exact value at a point
@@ -582,6 +601,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a dedicated Bank Sync management page (Accounts "+" → Set up bank sync, and Manage → Bank Sync): configure SimpleFIN (setup token) or GoCardless (Secret ID/Key), discover provider accounts, and link them to an existing or newly created account; Accounts now fetches all linked bank accounts via pull-to-refresh, and a single linked account's register can also be refreshed individually. Pluggy.ai is surfaced as not yet supported rather than partially implemented
 - Added status dots to category rows and cards, sharing the same color logic as the category progress bar; status colors can be customized per status (or reset to defaults) from Settings → Budget → Category status colors, and the dot itself can be hidden with a new "Category status dot" switch above it
 
@@ -601,6 +621,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Refreshed the Home dashboard with a more compact visual treatment, clearer section hierarchy, and reliable spacing above the floating Add Transaction button; its This Month activity now consistently reflects the selected budget month
 - Added pull-to-refresh to Transactions, so a downward swipe refreshes the visible transaction data without leaving the tab
 - Added a reverse control to transfer entry, letting you swap the source and destination accounts before saving
@@ -623,6 +644,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a new **Home** tab, replacing Reports in the bottom navigation (now Home | Budget | Transactions | Accounts | Manage): a financial overview with Ready to Budget, Favorite Categories, Favorite Accounts, Upcoming, This Month, Reports and Recent Activity sections, each routing straight into its full screen. Reports remains fully available and reachable from both Home and Manage; a start page previously set to Reports migrates automatically to Home
 - Added app-wide favorites for categories, accounts and report dashboards: star a category, account or report from its own screen and it shows up in Home's Favorite Categories/Accounts sections and in a new **Favorites** filter on Budget (composes with Budget's existing filters instead of replacing them) and continues to power the existing Favourite Categories widget. Favorites are a device-local preference, not synced budget data, and hidden/deleted/closed entries are filtered out automatically everywhere they'd otherwise appear
 - Added Home customization: reorder Home's sections with a drag handle or the accessible up/down arrows, show or hide any optional section (Favorite Categories, Favorite Accounts, Upcoming, This Month, Reports, Recent Activity), and restore the default layout, from a new "Customize Home" entry on the Home app bar and Settings → Home. Ready to Budget stays pinned first and can't be hidden, since it's Home's primary purpose. The layout is a device-local UI preference (not synced budget data), persisted once per committed change rather than on every drag step, and newly introduced sections are appended deterministically instead of disturbing a saved layout
@@ -637,6 +659,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added per-server certificate trust on the Connection screen: when a server's certificate can't be verified against Android's trusted authorities, Actua shows the host, issuer, validity dates and SHA-256 fingerprint and lets you explicitly trust that one certificate for that one host (scoped to Actua, with hostname verification still enforced); if the server later presents a different certificate, Actua warns that it changed and asks you to verify the new fingerprint before trusting it
 
 ### Fixed
@@ -651,6 +674,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Made the Budgets section on the Connection & data screen collapsible (tap-to-toggle chevron), since the budget list can grow long and push Backups and other settings far down the screen
 
 ### Fixed
@@ -669,6 +693,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added support for custom HTTP headers (e.g. `CF-Access-Client-Id`/`Secret`) sent with every request to the Actual server, configurable from the Connection screen for servers behind an auth proxy like Cloudflare Access
 - Added a type picker to the new-account dialog and a "Change account type" action to the account menu; every account previously showed as "Checking" regardless of its actual type
 - Release builds now ship an AOT-compiled baseline profile covering startup, tab switching, and core Budget/Accounts/Transactions scroll paths, reducing reliance on JIT warm-up
@@ -692,6 +717,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added the current billing cycle's date range and a "Statement history" link on a credit card account's Billing cycle card
 - Added a per-account "Show credit card section" toggle in the account dropdown menu to hide the billing cycle/statement history section
 - Added a global "Notes" toggle under Display settings to hide the notes field on accounts and budget categories
@@ -713,6 +739,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added credit card statement history: a history icon on each credit card row opens the last 3 closed statements with their due amounts, and each statement opens to its own transaction list
 
 ### Fixed
@@ -730,6 +757,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a "Running balance" toggle to an account's transaction register overflow menu; when enabled, each transaction row shows the account's balance after that transaction as a smaller line under its amount, computed from the account's full transaction history (including transfers, splits and the opening balance) rather than only the currently visible/filtered rows, and persists across sessions
 - Added a "Copy last month's budget" action to the Budget screen's overflow menu, which copies the previous month's budgeted amounts for visible expense categories (plus visible income categories for tracking budgets) into the selected month; hidden categories and groups are left unchanged
 
@@ -766,6 +794,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a "Duplicate" transaction action to the transaction bottom sheet, transaction details sheet, and the multi-select bulk-actions menu; duplicating creates an immediate, unlinked copy of the transaction(s) rather than opening the editor
 - Long-pressing a transaction now offers a "Select" action that enters multi-select mode with that transaction pre-selected, in addition to the existing app-bar select toggle
 - Added Budget category view filters (Overspent, Underfunded, Overfunded, Money Available) as a FilterChip row in the Budget toolbar, alongside the existing hide-fully-spent and show-hidden filters; the selection persists across sessions
@@ -786,6 +815,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added multi-select mode to Transactions: a select toggle enables checkbox-based multi-selection with a bulk-actions menu for mark cleared/uncleared, delete, link to schedule, unlink schedule, and (for a single linked selection) view schedule
 
 ### Fixed
@@ -801,6 +831,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a read-only Upcoming Schedules home-screen widget: overdue-first ordering, relative due labels (Today/Tomorrow/In N days/N days overdue), a per-instance configurable 7/14/30-day period, a compact layout for smaller sizes, and a tap-through deep link to Scheduled Transactions
 - Added a tappable `#` trailing icon to the transaction Notes field, matching Actual's mobile UI, for starting a tag without typing `#`
 
@@ -816,6 +847,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added full Actual Budget tag support: colored tag rendering consistent across every transaction list, `#` autocomplete with inline tag creation in transaction notes, a native Manage Tags screen for create/edit/delete/color/hidden state, and tap-a-tag transaction discovery/filtering, all backed by Actual's canonical tag dataset and refreshed after sync
 - Added a README hero image and a mobile-friendly screenshot gallery
 
@@ -837,6 +869,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added full standalone Balance Cap editing with daily, weekly, and monthly cadence, weekly start dates, and retain-overflow controls while preserving Actual's stored automation semantics
 - Added Actual Budget tag-colour rendering for recognized transaction-note tags using synced tag metadata, with readable foreground colours and safe fallback styling
 
@@ -857,6 +890,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added schedule-driven budget funding for resolved active schedules, including recurring occurrence counts, amount-range midpoints, priority ordering, and available-funds clamping
 - Added current-month percentage budget contributions from available funds, all income, or a specific income category, plus exact previous-month copy targets
 - Added notes-managed month-end cleanup groups with deterministic cent-preserving sink distribution, overspend filling, preview, and atomic application
@@ -887,6 +921,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added automatic nearby-payee suggestions and inline actions to save or remove synchronized payee locations
 - Added review-first XLSX and text-based PDF statement imports alongside CSV
 - Added reusable CSV import profiles with configurable columns, delimiters, date formats, and amount-sign handling
@@ -920,6 +955,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added review-first CSV bank-statement import with editable candidates, malformed-row exclusion, duplicate warnings, and batched transaction creation
 - Added opt-in foreground-only location-aware payee suggestions, eligible transaction recording, 500-metre deduplication, and synchronized location management
 - Added a dedicated **Bills & Calendar** destination for scheduled transactions and configured credit-card due dates
@@ -954,6 +990,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added OpenID Connect (OIDC) sign-in for Actual servers that use OpenID authentication
 - Added browser-based provider authorization with a temporary localhost callback that captures the resulting Actual session token
 
@@ -975,6 +1012,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added multi-automation category editing with explicit priority ordering for
   supported UI-managed target definitions
 - Added goal-only balance targets that track a desired balance without
@@ -1001,6 +1039,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added an Android document picker for importing exported Actua backup archives into the managed Backups list
 - Added preview-first whole-budget application for supported category targets, including per-category changes, net budget impact, unchanged-target counts, and explicit unsupported-automation disclosure
 - Added safe category and category-group deletion, ordinary-payee deletion and merge, and category/group reordering through Actual-compatible CRDT mutations
@@ -1022,6 +1061,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a manual **Build Test APK** GitHub Actions workflow for device testing without publishing a GitHub release
 - Test APKs install as a separate **Actua Test** app using `com.azimulkabir.actua.test`, with separate Android app data from normal Actua
 
@@ -1040,6 +1080,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added Material You home-screen widgets for the monthly budget snapshot,
   configurable favourite categories, quick transaction entry, and configurable
   account balances
@@ -1087,6 +1128,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a built-in local-only demo budget that can be opened without an Actual server and reset from Connection & Data
 - Added realistic demo data covering checking, savings, a credit card, an off-budget investment account, six months of transactions, paired card-payment transfers, cleared/uncleared/reconciled states, category targets, rules, scheduled transactions, notes, and report dashboard data
 - Added explicit sync protection for the reserved `demo` budget so it cannot be uploaded even when server credentials are configured
@@ -1095,6 +1137,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added schedule creation from Android with account, payee, amount, date,
   recurrence, and automatic-posting controls
 - Added a dedicated repeat editor covering daily, weekly, monthly and yearly
@@ -1134,6 +1177,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a complete scheduled transaction editor with recurrence, weekend handling,
   end conditions, upcoming dates, automatic posting, and lifecycle actions
 - Added synced category targets for monthly spending, monthly saving, save-by-date,
@@ -1165,6 +1209,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a dedicated scheduled transaction editor with synchronized Save and Delete actions
 - Added a tappable Actua GitHub repository link to the About page
 
@@ -1174,6 +1219,7 @@ First beta of the 1.0 release line.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Ported every dashboard widget currently rendered by Actuali: Age of Money,
   Formula, Custom Report, Calendar, Crossover, Budget Analysis, Sankey, Balance
   Forecast, and Monte Carlo
@@ -1206,6 +1252,7 @@ First beta of the 1.0 release line.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added an Actuali-style backup manager with automatic app-background backups,
   retention, restore, one-tap pre-restore revert, per-backup export, and optional
   mirroring to a user-selected device folder
@@ -1233,6 +1280,7 @@ First beta of the 1.0 release line.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a searchable Scheduled Transactions screen with due-state visibility and skip, complete, restart and delete actions
 - Added opt-in Android credit-card payment reminders for 7, 5, 3 and 1 days before the calculated due date
 - Added a persistent app-wide option to hide reconciled transactions from lists and searches
@@ -1254,6 +1302,7 @@ First public beta release.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added fixed day-of-month credit-card payment dates while retaining the existing days-after-statement option
 - Added fixed-date handling for short months and a compatible fallback offset for older Actua and Actuali builds
 
@@ -1286,6 +1335,7 @@ Thirteenth public testing release.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added predictable Android-style bottom navigation with per-tab state restoration and reselect-to-top behavior
 - Added category-aware Back navigation from View all and Transactions this month to the originating Category Details page
 
@@ -1318,6 +1368,7 @@ Eleventh public testing release.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added a category-specific Transaction button that preselects the category and returns to its details page after saving, cancelling or pressing Back
 - Added direct Budget, Move Money and Auto-Assign actions to the redesigned category summary
 
@@ -1338,6 +1389,7 @@ Tenth public testing release.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Added an account-specific Transaction button that preselects the open account and returns to that account after saving or cancelling
 - Added persistent Icons only and Icons and names choices for the bottom navigation bar
 - Added a global Current balance summary setting, synchronized with the account-page display menu
@@ -1416,6 +1468,7 @@ Fifth public testing release.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Global Material You search across transactions, accounts, payees, categories, notes, and transfer accounts
 - Unified category budget sheet with Budget entry, Auto-Assign, Move Money, Details, recent transactions, notes, rollover, rename, hide, and deletion actions
 - Screenshot-inspired Material You calculators for transaction amounts and category budgeting
@@ -1436,6 +1489,7 @@ Fourth public testing release.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Full-screen Material account, payee, and category selectors with immediate search, alphabetical sections, selected-item indicators, transfer-account grouping, new-payee creation, and account balances
 - A persistent availability-focused Plan budget view alongside the existing table view
 - Interactive Plan figures: Assigned opens assignment and money-moving actions, while Spent opens the category's transactions for the selected month
@@ -1487,6 +1541,7 @@ Second public testing release.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Account details now show working, cleared, uncleared, and reconciled balances
 - Synced notes for accounts and budget categories using Actual's native notes data
 - Credit-card account details with available credit, limit, current billing cycle, cycle spend, and payment due date
@@ -1507,6 +1562,7 @@ Initial public testing release.
 
 ### Added
 
+- Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
 - Native Jetpack Compose interface for Budget, Accounts, Add, Reports, and More
 - Password connection to self-hosted Actual servers
 - Remote budget selection, download, local SQLite storage, and offline access

@@ -124,6 +124,7 @@
     <string name="budget_unhide_category">Mostrar categoria</string>
     <string name="budget_delete_category">Excluir categoria</string>
     <string name="budget_budget">Orçamento</string>
+    <string name="budget_month_note">Nota do mês</string>
     <string name="budget_note">Nota</string>
     <string name="budget_add_note">Adicionar nota</string>
     <string name="budget_category_note">Nota da categoria</string>
