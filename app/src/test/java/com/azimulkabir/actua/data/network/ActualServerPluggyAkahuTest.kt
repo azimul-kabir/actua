@@ -115,4 +115,41 @@ class ActualServerPluggyAkahuTest {
         assertTrue(download.transactions.isEmpty())
         assertNull(download.balanceCents)
     }
+
+    @Test fun `pluggy routes and secrets carry the budget file id only when one is given`() {
+        val transport = FakeTransport(mapOf(
+            "/pluggyai/status" to (200 to """{"status":"ok","data":{"configured":true,"source":"per-budget-file"}}"""),
+            "/pluggyai/accounts" to (200 to """{"status":"ok","data":{"accounts":[]}}"""),
+            "/pluggyai/transactions" to (200 to """{"status":"ok","data":{"transactions":{"all":[]}}}"""),
+            "/secret/" to (200 to """{"status":"ok"}"""),
+        ))
+        val client = ActualServerClient(transport)
+
+        assertTrue(client.pluggyAiStatus(server, "token", "file-1"))
+        client.pluggyAiAccounts(server, "token", "file-1")
+        client.downloadPluggyAiTransactions(server, "token", "pl-1", "2026-07-01", "file-1")
+        client.setSecret(server, "token", "pluggyai_itemIds", "a,b", "file-1")
+        transport.requests.forEach { assertEquals("file-1", it.headers["X-Actual-File-Id"]) }
+
+        transport.requests.clear()
+        client.pluggyAiStatus(server, "token")
+        client.setSecret(server, "token", "pluggyai_itemIds", "a,b")
+        transport.requests.forEach { assertNull(it.headers["X-Actual-File-Id"]) }
+    }
+
+    @Test fun `a refused per-budget secret says it is about the budget, not the admin`() {
+        val client = ActualServerClient(FakeTransport(mapOf("/secret/" to (403 to """{"status":"error","reason":"file-access-denied"}"""))))
+        try {
+            client.setSecret(server, "token", "pluggyai_clientId", "x", "file-1")
+            fail("expected a refusal")
+        } catch (error: IllegalStateException) {
+            assertTrue(error.message!!.contains("this budget"))
+        }
+        try {
+            client.setSecret(server, "token", "pluggyai_clientId", "x")
+            fail("expected a refusal")
+        } catch (error: IllegalStateException) {
+            assertTrue(error.message!!.contains("admin"))
+        }
+    }
 }

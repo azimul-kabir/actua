@@ -18,6 +18,7 @@ import com.azimulkabir.actua.data.budget.ActualBudgetWriter
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.bank.BankSyncAccountSettings
 import com.azimulkabir.actua.data.bank.BankSyncFlag
+import com.azimulkabir.actua.data.bank.BankSyncMappings
 import com.azimulkabir.actua.data.bank.BankSyncResult
 import com.azimulkabir.actua.data.bank.BankSyncService
 import com.azimulkabir.actua.data.bank.NewBankTransactions
@@ -916,6 +917,7 @@ class ActuaRepository(context: Context) {
         val result = runCatching {
             BankSyncService(
                 database, requireNotNull(actualWriter), requireNotNull(actualEntities), server,
+                cloudFileId = serverBudgetFileId(),
             ).sync(serverUrl, token, accountId)
         }.onFailure { DiagnosticsLog.bankSyncFailed(it) }.getOrThrow()
         // Diagnostics get counts and each synced account's status code, never account names (#225).
@@ -926,6 +928,12 @@ class ActuaRepository(context: Context) {
         ActiveBudgetStore(appContext).budgetId?.let { NewBankTransactions(appContext).record(it, result.added) }
         return result
     }
+
+    /** The open budget's file id on the server, or null for a local-only or demo budget. */
+    private fun serverBudgetFileId(): String? = openedBudget?.second?.takeIf { it.isServerBacked }?.cloudFileId
+
+    /** Whether Pluggy.ai credentials can be stored for the open budget alone. */
+    fun canStorePerBudgetCredentials(): Boolean = serverBudgetFileId() != null
 
     private data class BankSyncClient(val server: ActualServerClient, val serverUrl: String, val token: String)
 
@@ -947,7 +955,7 @@ class ActuaRepository(context: Context) {
             "simpleFin" -> server.simpleFinStatus(serverUrl, token)
             "goCardless" -> server.goCardlessStatus(serverUrl, token)
             "enableBanking" -> server.enableBankingStatus(serverUrl, token)
-            "pluggyai" -> server.pluggyAiStatus(serverUrl, token)
+            "pluggyai" -> server.pluggyAiStatus(serverUrl, token, serverBudgetFileId())
             "akahu" -> server.akahuStatus(serverUrl, token)
             else -> false
         }
@@ -965,11 +973,13 @@ class ActuaRepository(context: Context) {
     }
 
     /** Actual's `pluggyai_clientId`, `pluggyai_clientSecret` and `pluggyai_itemIds` server secrets; nothing is stored on the device. */
-    fun setPluggyAiCredentials(clientId: String, clientSecret: String, itemIds: String) {
+    fun setPluggyAiCredentials(clientId: String, clientSecret: String, itemIds: String, perBudget: Boolean = false) {
         val (server, serverUrl, token) = bankSyncClient()
-        server.setSecret(serverUrl, token, "pluggyai_clientId", clientId)
-        server.setSecret(serverUrl, token, "pluggyai_clientSecret", clientSecret)
-        server.setSecret(serverUrl, token, "pluggyai_itemIds", itemIds)
+        // Like Actual's Pluggy.ai dialog: per-budget secrets are scoped by the budget's file id.
+        val fileId = if (perBudget) serverBudgetFileId() ?: error("Sync this budget to your server before storing credentials for it.") else null
+        server.setSecret(serverUrl, token, "pluggyai_clientId", clientId, fileId)
+        server.setSecret(serverUrl, token, "pluggyai_clientSecret", clientSecret, fileId)
+        server.setSecret(serverUrl, token, "pluggyai_itemIds", itemIds, fileId)
     }
 
     /** Actual's `akahu_userToken` and `akahu_appToken` server secrets; nothing is stored on the device. */
@@ -981,7 +991,7 @@ class ActuaRepository(context: Context) {
 
     fun discoverPluggyAiAccounts(): ProviderAccountsResult {
         val (server, serverUrl, token) = bankSyncClient()
-        return server.pluggyAiAccounts(serverUrl, token)
+        return server.pluggyAiAccounts(serverUrl, token, serverBudgetFileId())
     }
 
     fun discoverAkahuAccounts(): ProviderAccountsResult {
@@ -1040,6 +1050,13 @@ class ActuaRepository(context: Context) {
     /** The account's Bank Sync toggles, as Actual's Bank Sync page shows them. */
     fun bankSyncSettings(accountId: String): BankSyncAccountSettings? =
         actualDatabase?.let { BankSyncAccountSettings.read(it, accountId) }
+
+    /** Saves the account's payment and deposit field mappings as Actual's `custom-sync-mappings-<id>` JSON. */
+    fun setBankSyncMappings(accountId: String, payment: Map<String, String>, deposit: Map<String, String>): Boolean {
+        val entities = actualEntities ?: return false
+        entities.setPreference(BankSyncMappings.preferenceId(accountId), BankSyncMappings.toJson(payment, deposit))
+        return true
+    }
 
     /** Writes one of Actual's per-account Bank Sync toggles through the synced `preferences` table. */
     fun setBankSyncFlag(accountId: String, flag: BankSyncFlag, value: Boolean): Boolean {

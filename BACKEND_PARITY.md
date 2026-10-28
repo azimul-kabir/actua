@@ -110,12 +110,12 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   `_appToken`) are sent to `/secret` once and not kept on the device, accounts come from
   `/pluggyai/accounts` and `/akahu/accounts`, a link writes `account_id`, `account_sync_source`
   (`pluggyai`/`akahu`) and Actual's `banks` row, and rows download through `/pluggyai/transactions`
-  and `/akahu/transactions` into the same normalization and matching pipeline (#1154). Only
-  server-wide Pluggy.ai credentials are used: Actua doesn't send `X-Actual-File-Id`, so credentials
-  an admin stored per budget file on the server are reported as not configured. Each linked account's
-  Bank Sync toggles (import pending, import notes, import transactions, update dates, reimport
-  deleted) can be changed from Manage → Bank Sync; custom field mappings are read but still edited
-  in Actual.
+  and `/akahu/transactions` into the same normalization and matching pipeline (#1154). Pluggy.ai credentials can be
+  stored server-wide or, for a server-backed budget, for that budget only: Actua sends
+  `X-Actual-File-Id` (the budget's cloud file id) on `/secret` and the Pluggy.ai routes, as Actual
+  does. Each linked account's Bank Sync toggles (import pending, import notes, import
+  transactions, update dates, reimport deleted) and its payment/deposit field mappings
+  (`custom-sync-mappings-<id>`) can be changed from Manage → Bank Sync.
 - Enable Banking (EU banks) bank sync, which graduated out of Actua's former experimental switch
   (#1154; upstream still gates it behind its `enableBanking` flag)
   ([`59fe126f`](https://github.com/actualbudget/actual/tree/59fe126f637d858c061e1eeedbef5436c8f2225a),
@@ -542,8 +542,7 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 
 - Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
   cleanup source/sink groups already shipped
-- Per-budget-file Pluggy.ai credentials, an editor for custom bank-sync field mappings, and
-  bank-feed pending-import approval
+- Bank-feed pending-import approval
 - Broader country/bank parser templates beyond configurable financial-message keywords
 - General Android transaction notifications and new-transaction detection beyond
   the credit-card payment and scheduled-transaction reminders already shipped

@@ -2,6 +2,8 @@ package com.azimulkabir.actua.ui.banksync
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,7 @@ import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -45,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.bank.BankSyncAccountSettings
 import com.azimulkabir.actua.data.bank.BankSyncFlag
+import com.azimulkabir.actua.data.bank.BankSyncMappings
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
@@ -128,7 +132,7 @@ fun BankSyncScreen(
     onSaveEnableBankingCredentials: (applicationId: String, secretKey: String) -> Unit = { _, _ -> },
     onLoadEnableBankingBanks: (country: String) -> Unit = {},
     onAuthorizeEnableBanking: (bankName: String) -> Unit = {},
-    onSavePluggyAiCredentials: (clientId: String, clientSecret: String, itemIds: String) -> Unit = { _, _, _ -> },
+    onSavePluggyAiCredentials: (clientId: String, clientSecret: String, itemIds: String, perBudget: Boolean) -> Unit = { _, _, _, _ -> },
     pluggyAiDiscovery: DiscoveryState = DiscoveryState.Idle,
     onDiscoverPluggyAi: () -> Unit = {},
     onSaveAkahuCredentials: (userToken: String, appToken: String) -> Unit = { _, _ -> },
@@ -136,6 +140,8 @@ fun BankSyncScreen(
     onDiscoverAkahu: () -> Unit = {},
     syncSettingsFor: (Account) -> BankSyncAccountSettings? = { null },
     onSyncSettingChange: (Account, BankSyncFlag, Boolean) -> Unit = { _, _, _ -> },
+    onSaveMappings: (Account, payment: Map<String, String>, deposit: Map<String, String>) -> Unit = { _, _, _ -> },
+    canStorePerBudgetCredentials: Boolean = false,
     onLinkExisting: (DiscoveredBankAccount, Account, source: String) -> Unit,
     onCreateAndLink: (DiscoveredBankAccount, name: String, offBudget: Boolean, source: String) -> Unit,
     onUnlink: (Account) -> Unit,
@@ -202,6 +208,7 @@ fun BankSyncScreen(
                 ) {
                     PluggyAiSetup(
                         configured = pluggyAiConfigured,
+                        canStorePerBudget = canStorePerBudgetCredentials,
                         onSaveCredentials = onSavePluggyAiCredentials,
                         discovery = pluggyAiDiscovery,
                         onDiscover = onDiscoverPluggyAi,
@@ -256,6 +263,7 @@ fun BankSyncScreen(
             account = account,
             loadSettings = syncSettingsFor,
             onChange = { flag, value -> onSyncSettingChange(account, flag, value) },
+            onSaveMappings = { payment, deposit -> onSaveMappings(account, payment, deposit) },
             onDismiss = { settingsAccount = null },
         )
     }
@@ -403,7 +411,8 @@ private fun GoCardlessSetup(
 @Composable
 private fun PluggyAiSetup(
     configured: Boolean,
-    onSaveCredentials: (clientId: String, clientSecret: String, itemIds: String) -> Unit,
+    canStorePerBudget: Boolean,
+    onSaveCredentials: (clientId: String, clientSecret: String, itemIds: String, perBudget: Boolean) -> Unit,
     discovery: DiscoveryState,
     onDiscover: () -> Unit,
     onLink: (DiscoveredBankAccount) -> Unit,
@@ -411,6 +420,7 @@ private fun PluggyAiSetup(
     var clientId by remember { mutableStateOf("") }
     var clientSecret by remember { mutableStateOf("") }
     var itemIds by remember { mutableStateOf("") }
+    var perBudget by remember { mutableStateOf(false) }
     Column {
         Text(
             stringResource(R.string.fs_pluggyai_note),
@@ -425,9 +435,25 @@ private fun PluggyAiSetup(
         )
         Spacer(Modifier.height(Spacing.xs))
         OutlinedTextField(itemIds, { itemIds = it }, label = { Text(stringResource(R.string.fs_pluggyai_item_ids)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        if (canStorePerBudget) {
+            Row(Modifier.fillMaxWidth().clickable { perBudget = !perBudget }, verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = perBudget, onCheckedChange = null)
+                Spacer(Modifier.width(Spacing.sm))
+                Column {
+                    Text(stringResource(R.string.fs_pluggyai_per_budget))
+                    Text(
+                        stringResource(R.string.fs_pluggyai_per_budget_desc),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
         Spacer(Modifier.height(Spacing.sm))
         Button(
-            onClick = { onSaveCredentials(clientId.trim(), clientSecret.trim(), itemIds.trim()); clientId = ""; clientSecret = ""; itemIds = "" },
+            onClick = {
+                onSaveCredentials(clientId.trim(), clientSecret.trim(), itemIds.trim(), perBudget && canStorePerBudget)
+                clientId = ""; clientSecret = ""; itemIds = ""
+            },
             enabled = clientId.isNotBlank() && clientSecret.isNotBlank() && itemIds.isNotBlank(),
         ) { Text(stringResource(R.string.fs_save)) }
         if (configured) {
@@ -647,13 +673,22 @@ private fun SyncSettingsSheet(
     account: Account,
     loadSettings: (Account) -> BankSyncAccountSettings?,
     onChange: (BankSyncFlag, Boolean) -> Unit,
+    onSaveMappings: (payment: Map<String, String>, deposit: Map<String, String>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val values = remember(account.id) { mutableStateMapOf<BankSyncFlag, Boolean>() }
+    val payment = remember(account.id) { mutableStateMapOf<String, String>() }
+    val deposit = remember(account.id) { mutableStateMapOf<String, String>() }
+    var availableFields by remember(account.id) { mutableStateOf<List<String>>(emptyList()) }
     // The budget database is read off the main thread; the toggles appear once their values are known.
     val loaded by produceState(false, account.id) {
         val settings = withContext(Dispatchers.IO) { loadSettings(account) }
         BankSyncFlag.entries.forEach { values[it] = settings?.get(it) ?: it.default }
+        BankSyncMappings.FIELDS.forEach {
+            payment[it] = settings?.payment?.get(it) ?: BankSyncMappings.DEFAULT.getValue(it)
+            deposit[it] = settings?.deposit?.get(it) ?: BankSyncMappings.DEFAULT.getValue(it)
+        }
+        availableFields = settings?.availableFields.orEmpty()
         value = true
     }
     val rows = listOf(
@@ -685,11 +720,53 @@ private fun SyncSettingsSheet(
                     )
                 }
             }
+            MappingSection(stringResource(R.string.fs_sync_mappings_payment), payment, availableFields)
+            MappingSection(stringResource(R.string.fs_sync_mappings_deposit), deposit, availableFields)
+            Row(Modifier.padding(horizontal = Spacing.screenHorizontal), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Button(
+                    onClick = { onSaveMappings(payment.toMap(), deposit.toMap()); onDismiss() },
+                    enabled = payment.values.none(String::isBlank) && deposit.values.none(String::isBlank),
+                ) { Text(stringResource(R.string.fs_sync_mappings_save)) }
+                TextButton(onClick = {
+                    BankSyncMappings.FIELDS.forEach { payment[it] = BankSyncMappings.DEFAULT.getValue(it); deposit[it] = BankSyncMappings.DEFAULT.getValue(it) }
+                }) { Text(stringResource(R.string.fs_sync_mappings_reset)) }
+            }
             Text(
                 stringResource(R.string.fs_sync_mappings_note),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
             )
+        }
+    }
+}
+
+/** One direction's `date`, `payee` and `notes` provider fields, with the fields seen in recent downloads as suggestions. */
+@Composable
+private fun MappingSection(title: String, values: MutableMap<String, String>, suggestions: List<String>) {
+    Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+        Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        BankSyncMappings.FIELDS.forEach { field ->
+            var menuOpen by remember { mutableStateOf(false) }
+            Spacer(Modifier.height(Spacing.xs))
+            Box {
+                OutlinedTextField(
+                    value = values[field].orEmpty(), onValueChange = { values[field] = it },
+                    label = { Text(stringResource(when (field) {
+                        "date" -> R.string.fs_sync_mappings_date
+                        "payee" -> R.string.fs_sync_mappings_payee
+                        else -> R.string.fs_sync_mappings_notes
+                    })) },
+                    singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = if (suggestions.isEmpty()) null else {
+                        { TextButton(onClick = { menuOpen = true }) { Text(stringResource(R.string.fs_sync_mappings_pick)) } }
+                    },
+                )
+                DropdownMenu(menuOpen, { menuOpen = false }) {
+                    suggestions.forEach { name ->
+                        DropdownMenuItem(text = { Text(name) }, onClick = { values[field] = name; menuOpen = false })
+                    }
+                }
+            }
         }
     }
 }
