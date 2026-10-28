@@ -36,7 +36,7 @@ data class BankSyncResult(
     }.joinToString("\n\n")
 }
 
-/** Imports server-hosted bank-sync rows (SimpleFIN, GoCardless, and experimental Enable Banking) through the same CRDT writers as manual edits. */
+/** Imports server-hosted bank-sync rows (SimpleFIN, GoCardless, Pluggy.ai, Akahu and Enable Banking) through the same CRDT writers as manual edits. */
 class BankSyncService(
     private val database: ActualBudgetDatabase,
     private val transactions: ActualTransactionWriter,
@@ -44,8 +44,6 @@ class BankSyncService(
     private val server: ActualServerClient,
     private val idFactory: () -> String = { UUID.randomUUID().toString() },
     private val today: () -> LocalDate = LocalDate::now,
-    /** Actual's experimental `enableBanking` flag; Enable Banking accounts only sync while it is on. */
-    private val enableBankingEnabled: Boolean = false,
 ) {
     fun sync(serverUrl: String, token: String, accountId: String? = null): BankSyncResult {
         val accounts = database.fetchBankSyncAccounts().filter { !it.closed && (accountId == null || it.id == accountId) }
@@ -96,11 +94,16 @@ class BankSyncService(
                         )
                     }.recoverCatching { throw downloadFailure(it) }
                 }
-                // Experimental: with the flag off this falls through to the unsupported-provider message below.
-                "enableBanking" -> if (enableBankingEnabled) runCatching {
+                "enableBanking" -> runCatching {
                     server.downloadEnableBankingTransactions(serverUrl, token, account.externalId, startDateFor(account.id))
-                }.recoverCatching { throw downloadFailure(it) } else unsupportedProvider(account)
-                // Actual syncs these, but Actua can't yet; leave the stored status to Actual.
+                }.recoverCatching { throw downloadFailure(it) }
+                "pluggyai" -> runCatching {
+                    server.downloadPluggyAiTransactions(serverUrl, token, account.externalId, startDateFor(account.id))
+                }.recoverCatching { throw downloadFailure(it) }
+                "akahu" -> runCatching {
+                    server.downloadAkahuTransactions(serverUrl, token, account.externalId, startDateFor(account.id))
+                }.recoverCatching { throw downloadFailure(it) }
+                // An unknown source: leave the stored status to whichever client understands it.
                 else -> unsupportedProvider(account)
             }
             account.id to outcome
@@ -321,7 +324,7 @@ class BankSyncService(
 
     /**
      * The opening balance for an account's first sync, from `processBankSyncDownload`. The server's
-     * `startingBalance` is the current balance; SimpleFIN and Enable Banking subtract the downloaded
+     * `startingBalance` is the current balance; SimpleFIN, Enable Banking, Pluggy.ai and Akahu subtract the downloaded
      * rows from it (SimpleFIN with Actual's `parseInt(amount.replace('.', ''))`), and GoCardless
      * sends the opening balance itself. Null when the server sent no balance.
      */
@@ -333,6 +336,8 @@ class BankSyncService(
                 total?.minus(cents)
             }
             "enableBanking" -> current - download.transactions.filter { importPending || it.booked }.sumOf { it.amountCents }
+            // Pluggy.ai and Akahu subtract every downloaded row, pending or not, from the current balance.
+            "pluggyai", "akahu" -> current - download.transactions.sumOf { it.amountCents }
             else -> current
         }
     }
@@ -375,18 +380,15 @@ class BankSyncService(
             private val DEFAULT_MAPPING = mapOf("date" to "date", "payee" to "payeeName", "notes" to "notes")
 
             fun read(database: ActualBudgetDatabase, accountId: String): SyncSettings {
-                val keys = listOf("sync-import-pending", "sync-import-notes", "sync-import-transactions",
-                    "sync-update-dates", "sync-reimport-deleted", "custom-sync-mappings").map { "$it-$accountId" }
-                val prefs = database.fetchPreferences(keys)
-                // Actual's `String(value ?? default) === 'true'`.
-                fun flag(name: String, default: Boolean) = (prefs["$name-$accountId"] ?: default.toString()) == "true"
-                val mappings = prefs["custom-sync-mappings-$accountId"]?.let(::parseMappings)
+                val flags = BankSyncAccountSettings.read(database, accountId)
+                val mappings = database.fetchPreferences(listOf("custom-sync-mappings-$accountId"))["custom-sync-mappings-$accountId"]
+                    ?.let(::parseMappings)
                 return SyncSettings(
-                    importPending = flag("sync-import-pending", true),
-                    importNotes = flag("sync-import-notes", true),
-                    importTransactions = flag("sync-import-transactions", true),
-                    updateDates = flag("sync-update-dates", false),
-                    reimportDeleted = flag("sync-reimport-deleted", true),
+                    importPending = flags[BankSyncFlag.ImportPending],
+                    importNotes = flags[BankSyncFlag.ImportNotes],
+                    importTransactions = flags[BankSyncFlag.ImportTransactions],
+                    updateDates = flags[BankSyncFlag.UpdateDates],
+                    reimportDeleted = flags[BankSyncFlag.ReimportDeleted],
                     payment = mappings?.get("payment") ?: DEFAULT_MAPPING,
                     deposit = mappings?.get("deposit") ?: DEFAULT_MAPPING,
                 )
@@ -433,12 +435,7 @@ class BankSyncService(
 
         private fun Throwable.isTimeout(): Boolean = generateSequence(this) { it.cause }.any { it is SocketTimeoutException }
 
-        private fun providerName(source: String): String = when (source) {
-            "pluggyai" -> "Pluggy.ai"
-            "enableBanking" -> "Enable Banking"
-            "akahu" -> "Akahu"
-            else -> source
-        }
+        private fun providerName(source: String): String = source
     }
 
     private fun Int.shiftDays(days: Long): Int {

@@ -10,7 +10,6 @@
     <string name="settings_page_budget">Orçamento</string>
     <string name="settings_page_category_colors">Cores de status das categorias</string>
     <string name="settings_page_holidays">Feriados</string>
-    <string name="settings_page_experimental">Experimental</string>
     <string name="settings_page_support">Apoiar o Actua</string>
     <string name="settings_page_about">Sobre</string>
     <string name="settings_page_diagnostics">Diagnóstico</string>
@@ -57,9 +56,6 @@
     <string name="settings_support_actua">Apoiar o Actua</string>
     <string name="settings_support_thank_you">Você é um Apoiador do Actua — obrigado!</string>
     <string name="settings_support_description">O Actua é gratuito e de código aberto. Deixe uma gorjeta única.</string>
-    <string name="settings_section_labs">Labs</string>
-    <string name="settings_experimental">Experimental</string>
-    <string name="settings_experimental_description">Recursos opcionais que seguem as sinalizações experimentais do Actual</string>
     <string name="settings_section_about">Sobre</string>
     <string name="settings_about_actua">Sobre o Actua</string>
     <string name="settings_about_actua_description">Versão, informações do projeto, créditos e licença</string>
@@ -249,10 +245,6 @@
     <string name="settings_swatch_orange">Laranja</string>
     <string name="settings_swatch_burnt_orange">Laranja-queimado</string>
 
-    <!-- Experimental. -->
-    <string name="settings_enable_banking">Enable Banking</string>
-    <string name="settings_enable_banking_description">Sincronização bancária para bancos europeus por meio do Enable Banking, como na sinalização experimental do Actual. Precisa de um servidor Actual com o Enable Banking configurado. Aparece em Gerenciar → Sincronização Bancária.</string>
-    <string name="settings_experimental_note">Recursos experimentais podem mudar ou ser removidos. Eles ficam armazenados somente neste dispositivo e não alteram seu orçamento até você vincular uma conta.</string>
 
     <!-- Apoiar o Actua. -->
     <string name="settings_support_intro">O Actua é gratuito e de código aberto. Se você o considera útil, pode apoiar seu desenvolvimento contínuo.</string>

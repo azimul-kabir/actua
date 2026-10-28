@@ -23,7 +23,7 @@ data class EnableBankingMessages(
 )
 
 /**
- * Drives the experimental Enable Banking link flow: pick a country and bank, send the user to the bank's
+ * Drives the Enable Banking link flow: pick a country and bank, send the user to the bank's
  * consent page, wait for the server to report the accounts the bank granted, then hand them to the link
  * sheet. Network work runs on [io]; state is Compose-observable. Mirrors Actual's `enablebanking.ts`.
  */

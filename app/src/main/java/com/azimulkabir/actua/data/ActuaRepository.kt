@@ -15,9 +15,10 @@ import com.azimulkabir.actua.data.budget.BudgetAverages
 import com.azimulkabir.actua.data.budget.BudgetMovementNote
 import com.azimulkabir.actua.data.budget.PayeeSuggestions
 import com.azimulkabir.actua.data.budget.ActualBudgetWriter
-import com.azimulkabir.actua.data.bank.BankSyncResult
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
-import com.azimulkabir.actua.data.preferences.ExperimentalPreferences
+import com.azimulkabir.actua.data.bank.BankSyncAccountSettings
+import com.azimulkabir.actua.data.bank.BankSyncFlag
+import com.azimulkabir.actua.data.bank.BankSyncResult
 import com.azimulkabir.actua.data.bank.BankSyncService
 import com.azimulkabir.actua.data.bank.NewBankTransactions
 import com.azimulkabir.actua.data.network.ActualServerClient
@@ -27,6 +28,7 @@ import com.azimulkabir.actua.data.network.EnableBankingBank
 import com.azimulkabir.actua.data.network.GoCardlessAccountsResult
 import com.azimulkabir.actua.data.network.GoCardlessInstitution
 import com.azimulkabir.actua.data.network.GoCardlessWebToken
+import com.azimulkabir.actua.data.network.ProviderAccountsResult
 import com.azimulkabir.actua.data.network.SimpleFinAccountsResult
 import com.azimulkabir.actua.data.network.TrustedCertificateStore
 import com.azimulkabir.actua.data.network.UrlConnectionTransport
@@ -914,7 +916,6 @@ class ActuaRepository(context: Context) {
         val result = runCatching {
             BankSyncService(
                 database, requireNotNull(actualWriter), requireNotNull(actualEntities), server,
-                enableBankingEnabled = ExperimentalPreferences(appContext).enableBanking,
             ).sync(serverUrl, token, accountId)
         }.onFailure { DiagnosticsLog.bankSyncFailed(it) }.getOrThrow()
         // Diagnostics get counts and each synced account's status code, never account names (#225).
@@ -946,6 +947,8 @@ class ActuaRepository(context: Context) {
             "simpleFin" -> server.simpleFinStatus(serverUrl, token)
             "goCardless" -> server.goCardlessStatus(serverUrl, token)
             "enableBanking" -> server.enableBankingStatus(serverUrl, token)
+            "pluggyai" -> server.pluggyAiStatus(serverUrl, token)
+            "akahu" -> server.akahuStatus(serverUrl, token)
             else -> false
         }
     }
@@ -959,6 +962,31 @@ class ActuaRepository(context: Context) {
         val (server, serverUrl, token) = bankSyncClient()
         server.setSecret(serverUrl, token, "gocardless_secretId", secretId)
         server.setSecret(serverUrl, token, "gocardless_secretKey", secretKey)
+    }
+
+    /** Actual's `pluggyai_clientId`, `pluggyai_clientSecret` and `pluggyai_itemIds` server secrets; nothing is stored on the device. */
+    fun setPluggyAiCredentials(clientId: String, clientSecret: String, itemIds: String) {
+        val (server, serverUrl, token) = bankSyncClient()
+        server.setSecret(serverUrl, token, "pluggyai_clientId", clientId)
+        server.setSecret(serverUrl, token, "pluggyai_clientSecret", clientSecret)
+        server.setSecret(serverUrl, token, "pluggyai_itemIds", itemIds)
+    }
+
+    /** Actual's `akahu_userToken` and `akahu_appToken` server secrets; nothing is stored on the device. */
+    fun setAkahuCredentials(userToken: String, appToken: String) {
+        val (server, serverUrl, token) = bankSyncClient()
+        server.setSecret(serverUrl, token, "akahu_userToken", userToken)
+        server.setSecret(serverUrl, token, "akahu_appToken", appToken)
+    }
+
+    fun discoverPluggyAiAccounts(): ProviderAccountsResult {
+        val (server, serverUrl, token) = bankSyncClient()
+        return server.pluggyAiAccounts(serverUrl, token)
+    }
+
+    fun discoverAkahuAccounts(): ProviderAccountsResult {
+        val (server, serverUrl, token) = bankSyncClient()
+        return server.akahuAccounts(serverUrl, token)
     }
 
     /** Sends the Enable Banking Application ID and private key to the server; nothing is stored on the device. */
@@ -1007,6 +1035,17 @@ class ActuaRepository(context: Context) {
     fun goCardlessAccountsForRequisition(requisitionId: String): GoCardlessAccountsResult {
         val (server, serverUrl, token) = bankSyncClient()
         return server.goCardlessAccounts(serverUrl, token, requisitionId)
+    }
+
+    /** The account's Bank Sync toggles, as Actual's Bank Sync page shows them. */
+    fun bankSyncSettings(accountId: String): BankSyncAccountSettings? =
+        actualDatabase?.let { BankSyncAccountSettings.read(it, accountId) }
+
+    /** Writes one of Actual's per-account Bank Sync toggles through the synced `preferences` table. */
+    fun setBankSyncFlag(accountId: String, flag: BankSyncFlag, value: Boolean): Boolean {
+        val entities = actualEntities ?: return false
+        entities.setPreference(flag.preferenceId(accountId), value.toString())
+        return true
     }
 
     /** Links an existing Actual account to a discovered provider account. */

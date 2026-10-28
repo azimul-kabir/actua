@@ -26,10 +26,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,8 +40,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.R
+import com.azimulkabir.actua.data.bank.BankSyncAccountSettings
+import com.azimulkabir.actua.data.bank.BankSyncFlag
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
@@ -51,6 +57,8 @@ import com.azimulkabir.actua.ui.components.ActuaSheetContent
 import com.azimulkabir.actua.ui.components.ActuaSheetTitle
 import com.azimulkabir.actua.ui.theme.Sizes
 import com.azimulkabir.actua.ui.theme.Spacing
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** A bank-sync provider account discovered on the server, not yet linked to an Actua account. */
 /** A provider account to link; [bankId] and [bankName] become Actual's `banks` row. */
@@ -70,9 +78,7 @@ sealed class DiscoveryState {
 
 data class GoCardlessInstitutionUi(val id: String, val name: String)
 
-/** Enable Banking is experimental (Settings → Experimental); it is only shown while [visible]. */
 data class EnableBankingUiState(
-    val visible: Boolean = false,
     val configured: Boolean = false,
     val banks: List<String> = emptyList(),
     val banksLoading: Boolean = false,
@@ -104,6 +110,8 @@ fun BankSyncScreen(
     modifier: Modifier = Modifier,
     simpleFinConfigured: Boolean,
     goCardlessConfigured: Boolean,
+    pluggyAiConfigured: Boolean = false,
+    akahuConfigured: Boolean = false,
     linkedAccounts: List<Account>,
     linkableAccounts: List<Account>,
     onSaveSimpleFinToken: (String) -> Unit,
@@ -120,12 +128,21 @@ fun BankSyncScreen(
     onSaveEnableBankingCredentials: (applicationId: String, secretKey: String) -> Unit = { _, _ -> },
     onLoadEnableBankingBanks: (country: String) -> Unit = {},
     onAuthorizeEnableBanking: (bankName: String) -> Unit = {},
+    onSavePluggyAiCredentials: (clientId: String, clientSecret: String, itemIds: String) -> Unit = { _, _, _ -> },
+    pluggyAiDiscovery: DiscoveryState = DiscoveryState.Idle,
+    onDiscoverPluggyAi: () -> Unit = {},
+    onSaveAkahuCredentials: (userToken: String, appToken: String) -> Unit = { _, _ -> },
+    akahuDiscovery: DiscoveryState = DiscoveryState.Idle,
+    onDiscoverAkahu: () -> Unit = {},
+    syncSettingsFor: (Account) -> BankSyncAccountSettings? = { null },
+    onSyncSettingChange: (Account, BankSyncFlag, Boolean) -> Unit = { _, _, _ -> },
     onLinkExisting: (DiscoveredBankAccount, Account, source: String) -> Unit,
     onCreateAndLink: (DiscoveredBankAccount, name: String, offBudget: Boolean, source: String) -> Unit,
     onUnlink: (Account) -> Unit,
 ) {
     var expanded by remember { mutableStateOf<String?>(null) }
     var linkingSource by remember { mutableStateOf<Pair<DiscoveredBankAccount, String>?>(null) }
+    var settingsAccount by remember { mutableStateOf<Account?>(null) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         ActuaScreenHeader(title = stringResource(R.string.fs_bank_sync_title), onBack = onBack)
@@ -163,33 +180,46 @@ fun BankSyncScreen(
                         onLink = { linkingSource = it to "goCardless" },
                     )
                 }
-                if (enableBanking.visible) {
-                    ActuaCardDivider(inset = Spacing.screenHorizontal)
-                    ProviderRow(
-                        name = stringResource(R.string.fs_provider_enable_banking), configured = enableBanking.configured,
-                        expanded = expanded == "enableBanking",
-                        onClick = { expanded = if (expanded == "enableBanking") null else "enableBanking" },
-                    ) {
-                        EnableBankingSetup(
-                            state = enableBanking,
-                            onSaveCredentials = onSaveEnableBankingCredentials,
-                            onLoadBanks = onLoadEnableBankingBanks,
-                            onAuthorize = onAuthorizeEnableBanking,
-                            onLink = { linkingSource = it to "enableBanking" },
-                        )
-                    }
+                ActuaCardDivider(inset = Spacing.screenHorizontal)
+                ProviderRow(
+                    name = stringResource(R.string.fs_provider_enable_banking), configured = enableBanking.configured,
+                    expanded = expanded == "enableBanking",
+                    onClick = { expanded = if (expanded == "enableBanking") null else "enableBanking" },
+                ) {
+                    EnableBankingSetup(
+                        state = enableBanking,
+                        onSaveCredentials = onSaveEnableBankingCredentials,
+                        onLoadBanks = onLoadEnableBankingBanks,
+                        onAuthorize = onAuthorizeEnableBanking,
+                        onLink = { linkingSource = it to "enableBanking" },
+                    )
                 }
                 ActuaCardDivider(inset = Spacing.screenHorizontal)
                 ProviderRow(
-                    name = stringResource(R.string.fs_provider_pluggyai), configured = false, notSupported = true,
+                    name = stringResource(R.string.fs_provider_pluggyai), configured = pluggyAiConfigured,
                     expanded = expanded == "pluggyai",
                     onClick = { expanded = if (expanded == "pluggyai") null else "pluggyai" },
                 ) {
-                    Text(
-                        stringResource(R.string.fs_provider_pluggyai_note),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+                    PluggyAiSetup(
+                        configured = pluggyAiConfigured,
+                        onSaveCredentials = onSavePluggyAiCredentials,
+                        discovery = pluggyAiDiscovery,
+                        onDiscover = onDiscoverPluggyAi,
+                        onLink = { linkingSource = it to "pluggyai" },
+                    )
+                }
+                ActuaCardDivider(inset = Spacing.screenHorizontal)
+                ProviderRow(
+                    name = stringResource(R.string.fs_provider_akahu), configured = akahuConfigured,
+                    expanded = expanded == "akahu",
+                    onClick = { expanded = if (expanded == "akahu") null else "akahu" },
+                ) {
+                    AkahuSetup(
+                        configured = akahuConfigured,
+                        onSaveCredentials = onSaveAkahuCredentials,
+                        discovery = akahuDiscovery,
+                        onDiscover = onDiscoverAkahu,
+                        onLink = { linkingSource = it to "akahu" },
                     )
                 }
             }
@@ -206,18 +236,28 @@ fun BankSyncScreen(
                                 Text(
                                     statusLabel ?: (account.bankSyncSource.orEmpty().ifBlank {
                                         stringResource(R.string.fs_bank_sync_linked)
-                                    }),
+                                    } + " · " + stringResource(R.string.fs_sync_settings)),
                                     color = if (statusLabel != null) MaterialTheme.colorScheme.error
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             },
+                            onClick = { settingsAccount = account },
                             trailing = { TextButton(onClick = { onUnlink(account) }) { Text(stringResource(R.string.fs_unlink)) } },
                         )
                     }
                 }
             }
         }
+    }
+
+    settingsAccount?.let { account ->
+        SyncSettingsSheet(
+            account = account,
+            loadSettings = syncSettingsFor,
+            onChange = { flag, value -> onSyncSettingChange(account, flag, value) },
+            onDismiss = { settingsAccount = null },
+        )
     }
 
     linkingSource?.let { (discovered, source) ->
@@ -248,7 +288,6 @@ private fun ProviderRow(
     name: String,
     configured: Boolean,
     expanded: Boolean,
-    notSupported: Boolean = false,
     onClick: () -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -258,11 +297,7 @@ private fun ProviderRow(
             subtitle = {
                 Text(
                     stringResource(
-                        when {
-                            notSupported -> R.string.fs_provider_not_supported
-                            configured -> R.string.fs_provider_configured
-                            else -> R.string.fs_provider_not_configured
-                        },
+                        if (configured) R.string.fs_provider_configured else R.string.fs_provider_not_configured,
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (configured) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -360,6 +395,82 @@ private fun GoCardlessSetup(
             Button(onClick = onCheckAccounts, enabled = discovery != DiscoveryState.Loading) {
                 Text(stringResource(R.string.fs_gocardless_check_accounts))
             }
+            DiscoveryResults(discovery, onLink)
+        }
+    }
+}
+
+@Composable
+private fun PluggyAiSetup(
+    configured: Boolean,
+    onSaveCredentials: (clientId: String, clientSecret: String, itemIds: String) -> Unit,
+    discovery: DiscoveryState,
+    onDiscover: () -> Unit,
+    onLink: (DiscoveredBankAccount) -> Unit,
+) {
+    var clientId by remember { mutableStateOf("") }
+    var clientSecret by remember { mutableStateOf("") }
+    var itemIds by remember { mutableStateOf("") }
+    Column {
+        Text(
+            stringResource(R.string.fs_pluggyai_note),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        OutlinedTextField(clientId, { clientId = it }, label = { Text(stringResource(R.string.fs_pluggyai_client_id)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(Spacing.xs))
+        OutlinedTextField(
+            clientSecret, { clientSecret = it }, label = { Text(stringResource(R.string.fs_pluggyai_client_secret)) },
+            singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(Spacing.xs))
+        OutlinedTextField(itemIds, { itemIds = it }, label = { Text(stringResource(R.string.fs_pluggyai_item_ids)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(Spacing.sm))
+        Button(
+            onClick = { onSaveCredentials(clientId.trim(), clientSecret.trim(), itemIds.trim()); clientId = ""; clientSecret = ""; itemIds = "" },
+            enabled = clientId.isNotBlank() && clientSecret.isNotBlank() && itemIds.isNotBlank(),
+        ) { Text(stringResource(R.string.fs_save)) }
+        if (configured) {
+            Spacer(Modifier.height(Spacing.sm))
+            Button(onClick = onDiscover, enabled = discovery != DiscoveryState.Loading) { Text(stringResource(R.string.fs_discover_accounts)) }
+            DiscoveryResults(discovery, onLink)
+        }
+    }
+}
+
+@Composable
+private fun AkahuSetup(
+    configured: Boolean,
+    onSaveCredentials: (userToken: String, appToken: String) -> Unit,
+    discovery: DiscoveryState,
+    onDiscover: () -> Unit,
+    onLink: (DiscoveredBankAccount) -> Unit,
+) {
+    var userToken by remember { mutableStateOf("") }
+    var appToken by remember { mutableStateOf("") }
+    Column {
+        Text(
+            stringResource(R.string.fs_akahu_note),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        OutlinedTextField(
+            userToken, { userToken = it }, label = { Text(stringResource(R.string.fs_akahu_user_token)) },
+            singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(Spacing.xs))
+        OutlinedTextField(
+            appToken, { appToken = it }, label = { Text(stringResource(R.string.fs_akahu_app_token)) },
+            singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        Button(
+            onClick = { onSaveCredentials(userToken.trim(), appToken.trim()); userToken = ""; appToken = "" },
+            enabled = userToken.isNotBlank() && appToken.isNotBlank(),
+        ) { Text(stringResource(R.string.fs_save)) }
+        if (configured) {
+            Spacer(Modifier.height(Spacing.sm))
+            Button(onClick = onDiscover, enabled = discovery != DiscoveryState.Loading) { Text(stringResource(R.string.fs_discover_accounts)) }
             DiscoveryResults(discovery, onLink)
         }
     }
@@ -525,6 +636,60 @@ private fun LinkAccountSheet(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Actual's per-account Bank Sync toggles. Changes apply at once and are written through the synced preferences. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SyncSettingsSheet(
+    account: Account,
+    loadSettings: (Account) -> BankSyncAccountSettings?,
+    onChange: (BankSyncFlag, Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val values = remember(account.id) { mutableStateMapOf<BankSyncFlag, Boolean>() }
+    // The budget database is read off the main thread; the toggles appear once their values are known.
+    val loaded by produceState(false, account.id) {
+        val settings = withContext(Dispatchers.IO) { loadSettings(account) }
+        BankSyncFlag.entries.forEach { values[it] = settings?.get(it) ?: it.default }
+        value = true
+    }
+    val rows = listOf(
+        Triple(BankSyncFlag.ImportPending, R.string.fs_sync_import_pending, R.string.fs_sync_import_pending_desc),
+        Triple(BankSyncFlag.ImportNotes, R.string.fs_sync_import_notes, R.string.fs_sync_import_notes_desc),
+        Triple(BankSyncFlag.ImportTransactions, R.string.fs_sync_import_transactions, R.string.fs_sync_import_transactions_desc),
+        Triple(BankSyncFlag.UpdateDates, R.string.fs_sync_update_dates, R.string.fs_sync_update_dates_desc),
+        Triple(BankSyncFlag.ReimportDeleted, R.string.fs_sync_reimport_deleted, R.string.fs_sync_reimport_deleted_desc),
+    )
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        ActuaSheetContent {
+            ActuaSheetTitle(stringResource(R.string.fs_sync_settings_title, account.name))
+            if (!loaded) {
+                CircularProgressIndicator(Modifier.padding(Spacing.screenHorizontal).size(24.dp))
+                return@ActuaSheetContent
+            }
+            ActuaSheetCard {
+                rows.forEachIndexed { index, (flag, title, description) ->
+                    if (index > 0) ActuaCardDivider()
+                    val checked = values[flag] ?: flag.default
+                    ActuaListRow(
+                        title = { Text(stringResource(title)) },
+                        subtitle = { Text(stringResource(description), style = MaterialTheme.typography.bodySmall) },
+                        onClick = { values[flag] = !checked; onChange(flag, !checked) },
+                        trailing = {
+                            // The row handles the tap, so the switch itself is not a second target.
+                            Switch(checked = checked, onCheckedChange = null)
+                        },
+                    )
+                }
+            }
+            Text(
+                stringResource(R.string.fs_sync_mappings_note),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+            )
         }
     }
 }

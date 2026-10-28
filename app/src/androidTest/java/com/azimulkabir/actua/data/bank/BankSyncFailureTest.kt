@@ -51,15 +51,15 @@ class BankSyncFailureTest {
 
     @Test fun unsupportedProviderIsNamedAndItsStatusLeftAlone() = withDatabase(
         "INSERT INTO accounts(id,name,type,account_id,account_sync_source) VALUES " +
-            "('broker','Broker','investment','ext-3','enableBanking')",
+            "('broker','Broker','investment','ext-3','plaid')",
     ) { database ->
         val result = service(database) { error("no request expected") }.sync("https://actual.test", "token", accountId = "broker")
 
-        assertEquals(listOf("Broker: Actua can't sync Enable Banking accounts yet. Sync this account in Actual."), result.problems)
+        assertEquals(listOf("Broker: Actua can't sync plaid accounts yet. Sync this account in Actual."), result.problems)
         assertNull(status(database, "broker"))
     }
 
-    @Test fun enableBankingAccountIsDownloadedAndImportedOnlyWhileTheExperimentIsOn() = withDatabase(
+    @Test fun enableBankingAccountIsDownloadedAndImported() = withDatabase(
         "INSERT INTO accounts(id,name,type,account_id,account_sync_source) VALUES " +
             "('eu','EU Account','checking','uid-eu','enableBanking')",
     ) { database ->
@@ -74,12 +74,7 @@ class BankSyncFailureTest {
             ActualHttpResponse(200, rows.encodeToByteArray())
         }
 
-        val off = service(database, transport = transport).sync("https://actual.test", "token", accountId = "eu")
-        assertEquals(listOf("EU Account: Actua can't sync Enable Banking accounts yet. Sync this account in Actual."), off.problems)
-        assertTrue("no request while the experiment is off", paths.isEmpty())
-        assertNull(status(database, "eu"))
-
-        val on = service(database, enableBanking = true, transport = transport).sync("https://actual.test", "token", accountId = "eu")
+        val on = service(database, transport = transport).sync("https://actual.test", "token", accountId = "eu")
         assertEquals(listOf("/enablebanking/transactions"), paths)
         assertEquals(2, on.imported)
         assertTrue(on.problems.isEmpty())
@@ -91,11 +86,61 @@ class BankSyncFailureTest {
         assertEquals(true, imported.getValue("eb-2").pending)
     }
 
+    @Test fun pluggyAiAccountIsDownloadedWithAStartingBalanceThatSubtractsEveryRow() = withDatabase(
+        "INSERT INTO accounts(id,name,type,account_id,account_sync_source) VALUES " +
+            "('br','BR Account','checking','pl-1','pluggyai')",
+    ) { database ->
+        val paths = mutableListOf<String>()
+        val result = service(database) { request ->
+            paths += request.url.path
+            ActualHttpResponse(200, """{"status":"ok","data":{"startingBalance":100000,"transactions":{"all":[
+                {"transactionId":"pl-t1","date":"2026-09-10","payeeName":"Mercado","notes":"Compra","booked":true,
+                 "transactionAmount":{"amount":-50.25,"currency":"BRL"}},
+                {"transactionId":"pl-t2","date":"2026-09-11","payeeName":"","notes":"Pix","booked":false,
+                 "transactionAmount":{"amount":200.0,"currency":"BRL"}}]}}}""".encodeToByteArray())
+        }.sync("https://actual.test", "token", accountId = "br")
+
+        assertEquals(listOf("/pluggyai/transactions"), paths)
+        assertEquals(2, result.imported)
+        assertEquals("ok", status(database, "br"))
+        val rows = database.fetchTransactions("br")
+        assertEquals(-5_025L, rows.single { it.financialId == "pl-t1" }.amountCents)
+        // Current balance 1000.00 minus the downloaded rows (-50.25 + 200.00) is 850.25 before them.
+        assertEquals(85_025L, rows.single { it.startingBalance }.amountCents)
+    }
+
+    @Test fun akahuAccountIsDownloadedAndAFeedErrorIsStoredAsFailed() = withDatabase(
+        "INSERT INTO accounts(id,name,type,account_id,account_sync_source) VALUES " +
+            "('nz','NZ Account','checking','acc_1','akahu')",
+    ) { database ->
+        var failing = false
+        val paths = mutableListOf<String>()
+        val transport = ActualHttpTransport { request ->
+            paths += request.url.path
+            val body = if (failing) """{"status":"error","data":{"error":"Failed to fetch transactions: boom"}}"""
+            else """{"status":"ok","data":{"startingBalance":5000,"transactions":{"all":[
+                {"transactionId":"tx_1","date":"2026-09-12","payeeName":"Countdown","notes":"Groceries","booked":true,
+                 "transactionAmount":{"amount":-20.0,"currency":"NZD"}}]}}}"""
+            ActualHttpResponse(200, body.encodeToByteArray())
+        }
+
+        val ok = service(database, transport = transport).sync("https://actual.test", "token", accountId = "nz")
+        assertEquals(listOf("/akahu/transactions"), paths)
+        assertEquals(1, ok.imported)
+        assertEquals("ok", status(database, "nz"))
+
+        failing = true
+        val failed = service(database, transport = transport).sync("https://actual.test", "token", accountId = "nz")
+        assertEquals(0, failed.imported)
+        assertEquals(listOf("NZ Account: Failed to fetch transactions: boom"), failed.problems)
+        assertEquals("failed", status(database, "nz"))
+    }
+
     @Test fun enableBankingConsentExpiryIsStoredAsReauthorizationRequired() = withDatabase(
         "INSERT INTO accounts(id,name,type,account_id,account_sync_source) VALUES " +
             "('eu','EU Account','checking','uid-eu','enableBanking')",
     ) { database ->
-        val result = service(database, enableBanking = true) {
+        val result = service(database) {
             ActualHttpResponse(200,
                 """{"status":"ok","data":{"error_type":"ITEM_ERROR","error_code":"ITEM_LOGIN_REQUIRED"}}""".encodeToByteArray())
         }.sync("https://actual.test", "token", accountId = "eu")
@@ -104,13 +149,12 @@ class BankSyncFailureTest {
         assertEquals("reauth-required", status(database, "eu"))
     }
 
-    private fun service(database: ActualBudgetDatabase, enableBanking: Boolean = false, transport: ActualHttpTransport) = BankSyncService(
+    private fun service(database: ActualBudgetDatabase, transport: ActualHttpTransport) = BankSyncService(
         database = database,
         transactions = ActualTransactionWriter(database = database, nodeId = "5252525252525252", nowMillis = { FIXED_MILLIS }),
         entities = ActualEntityWriter(database = database, nodeId = "6363636363636363", nowMillis = { FIXED_MILLIS }),
         server = ActualServerClient(transport),
         today = { java.time.LocalDate.of(2026, 9, 16) },
-        enableBankingEnabled = enableBanking,
     )
 
     private fun status(database: ActualBudgetDatabase, id: String): String? =

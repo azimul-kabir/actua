@@ -105,13 +105,21 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   authorization opens the bank's consent flow in the browser; the user returns and taps "check
   accounts" to finish linking. Linking writes Actual's `banks` row referenced by `accounts.bank`
   (see [docs/ACCOUNTS_PARITY.md](docs/ACCOUNTS_PARITY.md) for recovering budgets linked by
-  Actua 1.0.0–1.2.0). Pluggy.ai is not yet implemented (server-side credential storage
-  only; no account discovery/linking/download).
-- **Experimental** Enable Banking (EU banks) bank sync, following Actual's `enableBanking` flag
+  Actua 1.0.0–1.2.0). Pluggy.ai (Latin America) and Akahu (New Zealand) are supported the same
+  way: their server secrets (`pluggyai_clientId`/`_clientSecret`/`_itemIds`, `akahu_userToken`/
+  `_appToken`) are sent to `/secret` once and not kept on the device, accounts come from
+  `/pluggyai/accounts` and `/akahu/accounts`, a link writes `account_id`, `account_sync_source`
+  (`pluggyai`/`akahu`) and Actual's `banks` row, and rows download through `/pluggyai/transactions`
+  and `/akahu/transactions` into the same normalization and matching pipeline (#1154). Only
+  server-wide Pluggy.ai credentials are used: Actua doesn't send `X-Actual-File-Id`, so credentials
+  an admin stored per budget file on the server are reported as not configured. Each linked account's
+  Bank Sync toggles (import pending, import notes, import transactions, update dates, reimport
+  deleted) can be changed from Manage → Bank Sync; custom field mappings are read but still edited
+  in Actual.
+- Enable Banking (EU banks) bank sync, which graduated out of Actua's former experimental switch
+  (#1154; upstream still gates it behind its `enableBanking` flag)
   ([`59fe126f`](https://github.com/actualbudget/actual/tree/59fe126f637d858c061e1eeedbef5436c8f2225a),
-  `sync-server/src/app-enablebanking`, `loot-core/src/server/accounts/app.ts`): off by default
-  behind a device-local Settings → Experimental switch, which also hides it from Bank Sync. When on,
-  the Application ID and private key are sent to the server's `/enablebanking/configure` (not kept on
+  `sync-server/src/app-enablebanking`, `loot-core/src/server/accounts/app.ts`): always shown in Bank Sync. The Application ID and private key are sent to the server's `/enablebanking/configure` (not kept on
   the device), the user picks a country and bank (`/aspsps`), authorizes it in the browser
   (`/start-auth` with `<server>/enablebanking/auth_callback`, then a long `/poll-auth`), and links a
   returned account to an existing or new Actual account. A link writes `accounts.account_id`,
@@ -130,9 +138,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
   provider ID); a row downloaded again under a stored ID updates the stored row as Actual's
   `reconcileTransactions` does (#1001). Downloads get Actual's 5-minute bank-sync read timeout; a
   timeout is stored as `timed-out`, an account left out of a SimpleFIN batch as `account-missing`,
-  and other download errors as `failed`, as in Actual. Accounts linked through providers Actua
-  can't download yet (Pluggy.ai, Akahu, and Enable Banking while its experiment is off) are named
-  as unsupported and their stored status is left to Actual. Parity matrix:
+  and other download errors as `failed`, as in Actual. A feed error (`data.error`) is stored as `failed`. Accounts linked through a source Actua
+  doesn't know are named as unsupported and their stored status is left to Actual. Parity matrix:
   [docs/BANK_SYNC_PARITY.md](docs/BANK_SYNC_PARITY.md). Rows are normalized as in Actual's
   `normalizeBankSyncTransactions` (#1002), except that two different rows sent under one provider
   id are skipped rather than guessed at. An account's first sync writes Actual's starting-balance
@@ -535,8 +542,8 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 
 - Broader goal-template authoring beyond the category targets, target-aware Auto Assign, and
   cleanup source/sink groups already shipped
-- Pluggy.ai and Akahu account discovery, linking, and transaction download (Enable Banking is
-  available as an experiment); and bank-feed pending-import approval
+- Per-budget-file Pluggy.ai credentials, an editor for custom bank-sync field mappings, and
+  bank-feed pending-import approval
 - Broader country/bank parser templates beyond configurable financial-message keywords
 - General Android transaction notifications and new-transaction detection beyond
   the credit-card payment and scheduled-transaction reminders already shipped

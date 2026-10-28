@@ -78,6 +78,20 @@ sealed class EnableBankingAuthResult {
     data class Error(val reason: String) : EnableBankingAuthResult()
 }
 
+/**
+ * A Pluggy.ai or Akahu account to link. Actual keys the `banks` row on [bankId] and names it
+ * [institution]; [balance] is the provider's current balance in major units, for display only.
+ */
+data class ProviderAccount(
+    val id: String, val name: String, val institution: String?, val bankId: String?, val balance: Double?,
+)
+
+/** Discovered Pluggy.ai or Akahu accounts, or why none could be listed. */
+sealed class ProviderAccountsResult {
+    data class Available(val accounts: List<ProviderAccount>) : ProviderAccountsResult()
+    data class Error(val reason: String) : ProviderAccountsResult()
+}
+
 /** A discovered SimpleFIN account, or why none could be listed. */
 sealed class SimpleFinAccountsResult {
     data class Available(val accounts: List<SimpleFinAccount>) : SimpleFinAccountsResult()
@@ -666,6 +680,122 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         return parseSingleBankSyncDownload(response.json(), accountId)
     }
 
+    fun pluggyAiStatus(serverUrl: String, token: String): Boolean =
+        providerConfigured(serverUrl, token, "/pluggyai/status")
+
+    fun akahuStatus(serverUrl: String, token: String): Boolean =
+        providerConfigured(serverUrl, token, "/akahu/status")
+
+    /** Lists the accounts of the Pluggy.ai items the server has credentials for (`/pluggyai/accounts`). */
+    fun pluggyAiAccounts(serverUrl: String, token: String): ProviderAccountsResult =
+        providerAccounts(serverUrl, token, "/pluggyai/accounts", "Pluggy.ai", ::parsePluggyAiAccounts)
+
+    /** Lists the accounts of the Akahu user the server has tokens for (`/akahu/accounts`). */
+    fun akahuAccounts(serverUrl: String, token: String): ProviderAccountsResult =
+        providerAccounts(serverUrl, token, "/akahu/accounts", "Akahu", ::parseAkahuAccounts)
+
+    private fun providerAccounts(
+        serverUrl: String, token: String, path: String, provider: String,
+        parse: (JSONObject) -> ProviderAccountsResult,
+    ): ProviderAccountsResult {
+        val response = request(
+            serverUrl, path, "POST", actualHeaders(token),
+            readTimeoutMillis = BANK_SYNC_READ_TIMEOUT_MILLIS,
+        )
+        checkAuthorization(response)
+        if (response.status in setOf(404, 405, 501)) {
+            throw IllegalStateException("This Actual server does not support $provider bank sync.")
+        }
+        // Actual's server answers `{status: 'error'|'ok', data: {error}}` for provider failures.
+        if (response.status == 400) {
+            val reason = runCatching { JSONObject(response.body.decodeToString()) }.getOrNull()
+                ?.let { it.optionalString("details") ?: it.optionalString("reason") }
+            if (reason != null) return ProviderAccountsResult.Error(reason)
+        }
+        requireSuccess(response)
+        return parse(response.json())
+    }
+
+    internal fun parsePluggyAiAccounts(root: JSONObject): ProviderAccountsResult {
+        providerError(root)?.let { return ProviderAccountsResult.Error(it) }
+        val accounts = root.optJSONObject("data")?.optJSONArray("accounts")
+            ?: return ProviderAccountsResult.Available(emptyList())
+        return ProviderAccountsResult.Available(buildList {
+            for (index in 0 until accounts.length()) {
+                val item = accounts.optJSONObject(index) ?: continue
+                val id = item.optionalString("id") ?: continue
+                val name = item.optionalString("name") ?: id
+                val isBank = item.optString("type") == "BANK"
+                // Desktop Actual labels an account "<name> - <tax number | owner>".
+                val holder = item.optionalString(if (isBank) "taxNumber" else "owner")
+                val bankData = item.optJSONObject("bankData")
+                val balance = if (isBank) {
+                    (bankData?.optDouble("automaticallyInvestedBalance", 0.0) ?: 0.0) +
+                        (bankData?.optDouble("closingBalance", 0.0) ?: 0.0)
+                } else item.optDouble("balance").takeIf { it.isFinite() }
+                add(ProviderAccount(
+                    id = id, name = if (holder != null) "${name.trim()} - $holder" else name.trim(),
+                    institution = name, bankId = id, balance = balance,
+                ))
+            }
+        })
+    }
+
+    internal fun parseAkahuAccounts(root: JSONObject): ProviderAccountsResult {
+        providerError(root)?.let { return ProviderAccountsResult.Error(it) }
+        val accounts = root.optJSONObject("data")?.optJSONArray("accounts")
+            ?: return ProviderAccountsResult.Available(emptyList())
+        return ProviderAccountsResult.Available(buildList {
+            for (index in 0 until accounts.length()) {
+                val item = accounts.optJSONObject(index) ?: continue
+                val id = item.optionalString("_id") ?: continue
+                val connection = item.optJSONObject("connection")
+                // Desktop Actual uses the connection's name as both the institution and `bank_id`.
+                val connectionName = connection?.optionalString("name")
+                add(ProviderAccount(
+                    id = id, name = item.optionalString("name") ?: id,
+                    institution = connectionName, bankId = connectionName ?: connection?.optionalString("_id"),
+                    balance = item.optJSONObject("balance")?.optDouble("current")?.takeIf { it.isFinite() },
+                ))
+            }
+        })
+    }
+
+    /** A provider failure: `data.error`, or the top-level `reason` of an `error_code` answer. */
+    private fun providerError(root: JSONObject): String? {
+        val data = root.optJSONObject("data")
+        return data?.optionalString("error") ?: data?.optionalString("reason")
+            ?: if (root.optString("status") == "error") root.optionalString("reason") else null
+    }
+
+    /** Downloads Actual's normalized Pluggy.ai feed for a single linked account. */
+    fun downloadPluggyAiTransactions(
+        serverUrl: String, token: String, accountId: String, startDate: String,
+    ): BankSyncDownload = downloadSingleAccount(serverUrl, token, "/pluggyai/transactions", "Pluggy.ai", accountId, startDate)
+
+    /** Downloads Actual's normalized Akahu feed for a single linked account. */
+    fun downloadAkahuTransactions(
+        serverUrl: String, token: String, accountId: String, startDate: String,
+    ): BankSyncDownload = downloadSingleAccount(serverUrl, token, "/akahu/transactions", "Akahu", accountId, startDate)
+
+    private fun downloadSingleAccount(
+        serverUrl: String, token: String, path: String, provider: String, accountId: String, startDate: String,
+    ): BankSyncDownload {
+        val body = JSONObject().put("accountId", accountId).put("startDate", startDate)
+            .toString().encodeToByteArray()
+        val response = request(
+            serverUrl, path, "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+            readTimeoutMillis = BANK_SYNC_READ_TIMEOUT_MILLIS,
+        )
+        checkAuthorization(response)
+        if (response.status in setOf(404, 405, 501)) {
+            throw IllegalStateException("This Actual server does not support $provider bank sync.")
+        }
+        requireSuccess(response)
+        return parseSingleBankSyncDownload(response.json(), accountId)
+    }
+
     private fun authenticatedGet(serverUrl: String, path: String, token: String): ActualHttpResponse {
         val response = request(serverUrl, path, "GET", actualHeaders(token))
         checkAuthorization(response)
@@ -726,6 +856,9 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         data.optString("error_code").takeIf(String::isNotBlank)?.let {
             return BankSyncDownload(accountId, emptyList(), bankSyncStatus(it), data.optString("reason", "Bank sync failed ($it)."))
         }
+        // Pluggy.ai, Akahu and Enable Banking report a failed feed as `data.error` (Actual throws a
+        // `Connection` BankSyncError), which must not read as an empty, successful download.
+        data.optionalString("error")?.let { return BankSyncDownload(accountId, emptyList(), "failed", it) }
         return BankSyncDownload(
             accountId, parseBankSyncRows(data.optJSONObject("transactions")?.optJSONArray("all")), "ok",
             balanceCents = data.startingBalance(),

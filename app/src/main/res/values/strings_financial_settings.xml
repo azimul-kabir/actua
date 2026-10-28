@@ -407,12 +407,31 @@
     <string name="fs_bank_sync_providers">Providers</string>
     <string name="fs_provider_simplefin" translatable="false">SimpleFIN</string>
     <string name="fs_provider_gocardless" translatable="false">GoCardless</string>
-    <string name="fs_provider_enable_banking" translatable="false">Enable Banking (experimental)</string>
+    <string name="fs_provider_enable_banking" translatable="false">Enable Banking</string>
     <string name="fs_provider_pluggyai" translatable="false">Pluggy.ai</string>
+    <string name="fs_provider_akahu" translatable="false">Akahu</string>
+    <string name="fs_pluggyai_note">Pluggy.ai (Latin America). Enter your Pluggy client ID and secret, and the item IDs of the connected banks, separated by commas. The server stores them; Actua keeps nothing.</string>
+    <string name="fs_pluggyai_client_id">Client ID</string>
+    <string name="fs_pluggyai_client_secret">Client secret</string>
+    <string name="fs_pluggyai_item_ids">Item IDs (comma-separated)</string>
+    <string name="fs_akahu_note">Akahu (New Zealand). Enter your Akahu user token and app token from my.akahu.nz. The server stores them; Actua keeps nothing.</string>
+    <string name="fs_akahu_user_token">User token</string>
+    <string name="fs_akahu_app_token">App token</string>
+    <string name="fs_sync_settings">Sync settings</string>
+    <string name="fs_sync_settings_title">Sync settings: %1$s</string>
+    <string name="fs_sync_import_pending">Import pending transactions</string>
+    <string name="fs_sync_import_pending_desc">Bring in transactions the bank has not booked yet.</string>
+    <string name="fs_sync_import_notes">Import notes</string>
+    <string name="fs_sync_import_notes_desc">Use the bank\'s description as the transaction notes.</string>
+    <string name="fs_sync_import_transactions">Import transactions</string>
+    <string name="fs_sync_import_transactions_desc">Turn off to update only the account balance.</string>
+    <string name="fs_sync_update_dates">Update dates of matched transactions</string>
+    <string name="fs_sync_update_dates_desc">Move a matched transaction to the date the bank reports.</string>
+    <string name="fs_sync_reimport_deleted">Reimport deleted transactions</string>
+    <string name="fs_sync_reimport_deleted_desc">Bring back a bank transaction you deleted if it is downloaded again.</string>
+    <string name="fs_sync_mappings_note">Custom field mappings are edited in Actual\'s Bank Sync settings and still apply here.</string>
     <string name="fs_provider_configured">Configured</string>
     <string name="fs_provider_not_configured">Not configured</string>
-    <string name="fs_provider_not_supported">Not yet supported</string>
-    <string name="fs_provider_pluggyai_note">Pluggy.ai account discovery and linking isn\'t available in Actua yet. Credentials can still be configured directly on your Actual server.</string>
     <string name="fs_linked_accounts">Linked accounts</string>
     <string name="fs_bank_sync_linked">Linked</string>
     <string name="fs_status_needs_reauth">Needs reauthorization</string>
@@ -430,7 +449,7 @@
     <string name="fs_country_label">Country: %1$s</string>
     <string name="fs_choose_bank">Choose bank to link</string>
     <string name="fs_gocardless_check_accounts">I\'ve authorized — check accounts</string>
-    <string name="fs_enable_banking_note">Experimental, like in Actual. Create an application at enablebanking.com and allow the redirect URL &lt;your Actual server&gt;/enablebanking/auth_callback. Enter its Application ID and choose the private key file. Both go to your Actual server and are not kept on this device.</string>
+    <string name="fs_enable_banking_note">Create an application at enablebanking.com and allow the redirect URL &lt;your Actual server&gt;/enablebanking/auth_callback. Enter its Application ID and choose the private key file. Both go to your Actual server and are not kept on this device.</string>
     <string name="fs_application_id">Application ID</string>
     <string name="fs_key_file_selected">Key file: %1$s</string>
     <string name="fs_choose_key_file">Choose private key file</string>
