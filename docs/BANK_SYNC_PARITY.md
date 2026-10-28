@@ -184,7 +184,7 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:107-211`), `ImportR
 | Transfer payee set by a rule creates the counterpart | `runTransfers = true` | same (`ImportBatch.insert` → `transferLegsFor`) | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | New rows' `sort_order` | `now − index × 1024`, download order; split children `0 − index` | same | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | `learnCategories = false` for imports | not run | Match |
-| Per-account preferences (`sync-import-pending`, `sync-import-notes`, `sync-import-transactions`, `sync-update-dates`, `sync-reimport-deleted`, `custom-sync-mappings`) | read from synced `preferences` | read and applied the same way; editing them needs Actual | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
+| Per-account preferences (`sync-import-pending`, `sync-import-notes`, `sync-import-transactions`, `sync-update-dates`, `sync-reimport-deleted`, `custom-sync-mappings`) | read from synced `preferences` | read and applied the same way; editable per account from Manage Bank Sync | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
 
 ## 6. File import
 
