@@ -408,12 +408,31 @@
     <string name="fs_bank_sync_providers">Provedores</string>
     <string name="fs_provider_simplefin" translatable="false">SimpleFIN</string>
     <string name="fs_provider_gocardless" translatable="false">GoCardless</string>
-    <string name="fs_provider_enable_banking" translatable="false">Enable Banking (experimental)</string>
+    <string name="fs_provider_enable_banking" translatable="false">Enable Banking</string>
     <string name="fs_provider_pluggyai" translatable="false">Pluggy.ai</string>
+    <string name="fs_provider_akahu" translatable="false">Akahu</string>
+    <string name="fs_pluggyai_note">Pluggy.ai (América Latina). Informe o ID e o segredo do cliente Pluggy e os IDs dos itens dos bancos conectados, separados por vírgulas. O servidor os guarda; o Actua não guarda nada.</string>
+    <string name="fs_pluggyai_client_id">ID do cliente</string>
+    <string name="fs_pluggyai_client_secret">Segredo do cliente</string>
+    <string name="fs_pluggyai_item_ids">IDs dos itens (separados por vírgula)</string>
+    <string name="fs_akahu_note">Akahu (Nova Zelândia). Informe seu token de usuário e o token do app do Akahu em my.akahu.nz. O servidor os guarda; o Actua não guarda nada.</string>
+    <string name="fs_akahu_user_token">Token de usuário</string>
+    <string name="fs_akahu_app_token">Token do app</string>
+    <string name="fs_sync_settings">Configurações de sincronização</string>
+    <string name="fs_sync_settings_title">Sincronização: %1$s</string>
+    <string name="fs_sync_import_pending">Importar transações pendentes</string>
+    <string name="fs_sync_import_pending_desc">Traz transações que o banco ainda não registrou.</string>
+    <string name="fs_sync_import_notes">Importar notas</string>
+    <string name="fs_sync_import_notes_desc">Usa a descrição do banco como notas da transação.</string>
+    <string name="fs_sync_import_transactions">Importar transações</string>
+    <string name="fs_sync_import_transactions_desc">Desative para atualizar apenas o saldo da conta.</string>
+    <string name="fs_sync_update_dates">Atualizar datas de transações correspondentes</string>
+    <string name="fs_sync_update_dates_desc">Move a transação correspondente para a data informada pelo banco.</string>
+    <string name="fs_sync_reimport_deleted">Reimportar transações excluídas</string>
+    <string name="fs_sync_reimport_deleted_desc">Traz de volta uma transação do banco que você excluiu se ela for baixada novamente.</string>
+    <string name="fs_sync_mappings_note">Os mapeamentos personalizados de campos são editados nas configurações de Sincronização bancária do Actual e continuam valendo aqui.</string>
     <string name="fs_provider_configured">Configurado</string>
     <string name="fs_provider_not_configured">Não configurado</string>
-    <string name="fs_provider_not_supported">Ainda não suportado</string>
-    <string name="fs_provider_pluggyai_note">A descoberta e a vinculação de contas do Pluggy.ai ainda não estão disponíveis no Actua. As credenciais ainda podem ser configuradas diretamente no seu servidor Actual.</string>
     <string name="fs_linked_accounts">Contas vinculadas</string>
     <string name="fs_bank_sync_linked">Vinculada</string>
     <string name="fs_status_needs_reauth">Precisa de reautorização</string>
@@ -431,7 +450,7 @@
     <string name="fs_country_label">País: %1$s</string>
     <string name="fs_choose_bank">Escolher banco para vincular</string>
     <string name="fs_gocardless_check_accounts">Autorizei — verificar contas</string>
-    <string name="fs_enable_banking_note">Experimental, como no Actual. Crie uma aplicação em enablebanking.com e permita a URL de redirecionamento &lt;seu servidor Actual&gt;/enablebanking/auth_callback. Informe o ID da aplicação e escolha o arquivo de chave privada. Ambos vão para o seu servidor Actual e não ficam neste dispositivo.</string>
+    <string name="fs_enable_banking_note">Crie uma aplicação em enablebanking.com e permita a URL de redirecionamento &lt;seu servidor Actual&gt;/enablebanking/auth_callback. Informe o ID da aplicação e escolha o arquivo de chave privada. Ambos vão para o seu servidor Actual e não ficam neste dispositivo.</string>
     <string name="fs_application_id">ID da aplicação</string>
     <string name="fs_key_file_selected">Arquivo de chave: %1$s</string>
     <string name="fs_choose_key_file">Escolher arquivo de chave privada</string>

@@ -48,7 +48,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Budgeting, categories and money movement, including one-tap cover for overspent categories, switching budget type between Envelope and Tracking, category group deletion with target reassignment, and Actual's budget actions (3/6/12-month averages, copy last month or to year end, hold income)
 - Transactions, splits (including transfer lines in split transactions), transfers, Make transfer for two existing transactions, merging duplicates and reconciliation, including "Use last synced total" for bank-synced accounts
 - Amount keypad with + − × ÷ arithmetic
-- Bank sync through your Actual server (SimpleFIN and GoCardless), plus experimental Enable Banking for European banks; newly synced transactions are marked until you view the account
+- Bank sync through your Actual server (SimpleFIN, GoCardless, Pluggy.ai, Akahu and Enable Banking), with per-account sync settings; newly synced transactions are marked until you view the account
 - Category targets and budget automations, including `#template` notes, checked against Actual's own template engine
 - Scheduled transactions and Bills calendar, with optional reminders before they are due, shown on your own weekend days and holidays when a schedule skips weekends
 - Accounts with collapsible groups, custom group creation/management, in-place reordering, group totals, flat favorites, credit cards, payment reminders, loan accounts with a payoff planner, and a device-local month start day for monthly summaries, report presets and report cards that can follow your own weekend days and holidays

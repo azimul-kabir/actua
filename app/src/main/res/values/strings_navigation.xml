@@ -120,6 +120,13 @@
     <string name="navigation_gocardless_credentials_saved">GoCardless credentials saved.</string>
     <string name="navigation_gocardless_credentials_save_failed">Could not save GoCardless credentials.</string>
     <string name="navigation_simplefin_accounts_load_failed">Could not load SimpleFIN accounts.</string>
+    <string name="navigation_pluggyai_credentials_saved">Pluggy.ai credentials saved.</string>
+    <string name="navigation_pluggyai_credentials_save_failed">Could not save Pluggy.ai credentials.</string>
+    <string name="navigation_akahu_credentials_saved">Akahu tokens saved.</string>
+    <string name="navigation_akahu_credentials_save_failed">Could not save Akahu tokens.</string>
+    <string name="navigation_pluggyai_accounts_load_failed">Could not load Pluggy.ai accounts.</string>
+    <string name="navigation_akahu_accounts_load_failed">Could not load Akahu accounts.</string>
+    <string name="navigation_saving_sync_setting">Saving sync setting</string>
     <string name="navigation_banks_load_failed">Could not load banks for %1$s.</string>
     <string name="navigation_gocardless_authorization_start_failed">Could not start GoCardless authorization.</string>
     <string name="navigation_choose_bank_first">Choose a bank to link first.</string>

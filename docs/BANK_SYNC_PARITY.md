@@ -1,12 +1,14 @@
 # Bank sync and file import parity
 
-Feature-by-feature audit of Actual Budget's server-hosted bank sync (SimpleFIN, GoCardless) and
+Feature-by-feature audit of Actual Budget's server-hosted bank sync (SimpleFIN, GoCardless, Pluggy.ai, Akahu, Enable Banking) and
 transaction file import as Actua implements them, tracked in
 [#673](https://github.com/azimul-kabir/actua/issues/673) (part of
 [#658](https://github.com/azimul-kabir/actua/issues/658)). The user-facing import sources are
 described in [TRANSACTION_IMPORTS.md](TRANSACTION_IMPORTS.md). Locked (reconciled) rows are covered
-in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable Banking provider
-(#832) is out of scope here.
+in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). Pluggy.ai, Akahu and Enable Banking
+were added by [#1154](https://github.com/azimul-kabir/actua/issues/1154); their upstream sources are
+`SS/app-pluggyai/app-pluggyai.js`, `SS/app-akahu/app-akahu.ts` and `LC/server/accounts/app.ts`
+(`linkPluggyAiAccount`, `linkAkahuAccount`). They have not been run against live providers.
 
 - **Upstream reference:** `actualbudget/actual` at
   [`59fe126f`](https://github.com/actualbudget/actual/tree/59fe126f637d858c061e1eeedbef5436c8f2225a)
@@ -29,7 +31,7 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Area | Status |
 | --- | --- |
 | Provider secrets (`/secret`) and status endpoints | Match. Secrets are never logged or stored on the device (§1). |
-| Account discovery (SimpleFIN, GoCardless) | Match |
+| Account discovery (SimpleFIN, GoCardless, Pluggy.ai, Akahu) | Match |
 | Linking: `account_id`, `account_sync_source` | Match |
 | Linking: `banks` rows (`findOrCreateBank`) | Match ([#1004](https://github.com/azimul-kabir/actua/issues/1004)) |
 | Starting balance on the first sync; `balance_current` | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
@@ -41,7 +43,7 @@ in [RECONCILIATION_PARITY.md](RECONCILIATION_PARITY.md). The experimental Enable
 | Exact `imported_id` match for rows already imported (update path) | Match ([#1001](https://github.com/azimul-kabir/actua/issues/1001)) |
 | Fuzzy matching (±7 days, payee pass, then date pass) | Match |
 | Updating a fuzzy-matched row | Match |
-| Per-account sync preferences (`sync-import-pending-…` etc.) | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)); not editable in Actua yet |
+| Per-account sync preferences (`sync-import-pending-…` etc.) | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)); the toggles are editable per account, custom mappings are not |
 | Atomic batch, transfers, `sort_order` | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | Match (neither client learns from imports) |
 | File import: formats and mapping | Match ([#1149](https://github.com/azimul-kabir/actua/issues/1149)) for all upstream formats (CSV, OFX/QFX, QIF, CAMT.053), plus XLSX and PDF |
@@ -72,7 +74,8 @@ Actua: `ActuaRepository.setSimpleFinToken` / `setGoCardlessCredentials` (`data/A
 | Non-admin rejected | server 403 | 403 → "You must be an admin…" | Match |
 | Provider configured? | `POST /simplefin/status`, `/gocardless/status` → `data.configured` | same; 404/405/501 → not configured | Match |
 | Remove a secret (`value: null` → `DELETE /secret/<name>`) | offered | not offered | N/A |
-| `X-Actual-File-Id` header on `/secret` | sent when a file is open | not sent | Intentional. The header only scopes Pluggy.ai secrets, which Actua doesn't support. |
+| `X-Actual-File-Id` header on `/secret` and the Pluggy.ai routes | sent when a file is open; scopes per-budget Pluggy.ai secrets | not sent | Intentional boundary. Only server-wide Pluggy.ai credentials work; per-budget ones read as not configured. |
+| Pluggy.ai secrets `pluggyai_clientId`, `_clientSecret`, `_itemIds`; Akahu `akahu_userToken`, `_appToken` | `POST /secret` | same | Match |
 | Secrets on the client | sent once; not persisted by the client | held in composable `remember` state, cleared after **Save**, never written to preferences, the budget, logs or error messages. Server error bodies are not logged. | Match |
 | Synced rows from the provider | `raw_synced_data` keeps the provider row (may include account names and descriptions) | same ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) | Match. It is budget data, like Actual's, not a secret. |
 
@@ -126,7 +129,8 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:39`),
 | SimpleFIN batch entry carrying both rows and an error | error stored, **no rows imported** | same | Match ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) |
 | Success → `last_sync = now ms`, `bank_sync_status = 'ok'` | `handleSyncResponse` | `recordBankSyncStatus(…, "ok", now)` | Match |
 | GoCardless account with no `banks` row | skipped, status untouched | skipped with a message, status untouched | Match |
-| Pluggy.ai / Akahu | synced | reported as unsupported, status untouched | N/A (BACKEND_PARITY boundary) |
+| Pluggy.ai / Akahu | `POST /pluggyai/transactions`, `/akahu/transactions` `{accountId, startDate}`; starting balance = `startingBalance` − Σ row amounts | same; every downloaded row counts, pending or not | Match |
+| Feed answers `data.error` | `BankSyncError('Connection', …)` → `failed` | `failed` with the message, nothing imported | Match |
 | First sync of an empty account inserts a Starting Balance row | yes | yes (`ActualEntityWriter.addStartingBalance`), same amount per provider, date, payee, category and flags | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
 | `balance_current` updated from the download | every non-initial sync | same, with the sync status | Match ([#1003](https://github.com/azimul-kabir/actua/issues/1003)) |
 | Per-account error reporting | `errors[]` with the account name, notification per account | one summary line per account in a snackbar | Match (presentation differs) |

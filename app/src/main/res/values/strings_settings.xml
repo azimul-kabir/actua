@@ -10,7 +10,6 @@
     <string name="settings_page_budget">Budget</string>
     <string name="settings_page_holidays">Holidays</string>
     <string name="settings_page_category_colors">Category status colors</string>
-    <string name="settings_page_experimental">Experimental</string>
     <string name="settings_page_support">Support Actua</string>
     <string name="settings_page_about">About</string>
     <string name="settings_page_diagnostics">Diagnostics</string>
@@ -57,9 +56,6 @@
     <string name="settings_support_actua">Support Actua</string>
     <string name="settings_support_thank_you">You\'re an Actua Supporter — thank you!</string>
     <string name="settings_support_description">Actua is free and open source. Leave a one-time tip.</string>
-    <string name="settings_section_labs">Labs</string>
-    <string name="settings_experimental">Experimental</string>
-    <string name="settings_experimental_description">Opt-in features that follow Actual\'s experimental flags</string>
     <string name="settings_section_about">About</string>
     <string name="settings_about_actua">About Actua</string>
     <string name="settings_about_actua_description">Version, project information, credits and license</string>
@@ -249,10 +245,6 @@
     <string name="settings_swatch_orange">Orange</string>
     <string name="settings_swatch_burnt_orange">Burnt orange</string>
 
-    <!-- Experimental settings. -->
-    <string name="settings_enable_banking">Enable Banking</string>
-    <string name="settings_enable_banking_description">Bank sync for European banks through Enable Banking, as in Actual\'s experimental flag. Needs an Actual server with Enable Banking set up. Shows in Manage → Bank Sync.</string>
-    <string name="settings_experimental_note">Experimental features can change or be removed. They are stored on this device only and don\'t change your budget until you link an account.</string>
 
     <!-- Support Actua. -->
     <string name="settings_support_intro">Actua is free and open source. If you find it useful, you can support its continued development.</string>

@@ -655,9 +655,11 @@ fun AppNavigation(
     var goCardlessInstitutions by remember { mutableStateOf<List<com.azimulkabir.actua.ui.banksync.GoCardlessInstitutionUi>>(emptyList()) }
     var goCardlessInstitutionsLoading by remember { mutableStateOf(false) }
     var goCardlessRequisitionId by remember { mutableStateOf<String?>(null) }
-    val experimentalPreferences = remember { com.azimulkabir.actua.data.preferences.ExperimentalPreferences(context) }
-    var enableBankingExperiment by remember { mutableStateOf(experimentalPreferences.enableBanking) }
     var enableBankingConfigured by remember { mutableStateOf(false) }
+    var pluggyAiConfigured by remember { mutableStateOf(false) }
+    var akahuConfigured by remember { mutableStateOf(false) }
+    var pluggyAiDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
+    var akahuDiscovery by remember { mutableStateOf<com.azimulkabir.actua.ui.banksync.DiscoveryState>(com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle) }
     var reconcileOpen by remember { mutableStateOf(false) }
     var scheduleReturnsToBills by rememberSaveable { mutableStateOf(false) }
     var scheduleReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
@@ -952,9 +954,14 @@ fun AppNavigation(
             goCardlessConfigured = withContext(Dispatchers.IO) {
                 runCatching { repository.bankSyncProviderConfigured("goCardless") }.getOrDefault(false)
             }
-            // Enable Banking is experimental: don't touch its server routes unless the user opted in.
-            enableBankingConfigured = enableBankingExperiment && withContext(Dispatchers.IO) {
+            enableBankingConfigured = withContext(Dispatchers.IO) {
                 runCatching { repository.bankSyncProviderConfigured("enableBanking") }.getOrDefault(false)
+            }
+            pluggyAiConfigured = withContext(Dispatchers.IO) {
+                runCatching { repository.bankSyncProviderConfigured("pluggyai") }.getOrDefault(false)
+            }
+            akahuConfigured = withContext(Dispatchers.IO) {
+                runCatching { repository.bankSyncProviderConfigured("akahu") }.getOrDefault(false)
             }
         }
     }
@@ -989,6 +996,74 @@ fun AppNavigation(
                     errorMessage = it.message?.takeIf(String::isNotBlank)
                         ?: navStrings.enableBankingSaveFailed
                 }
+        }
+    }
+
+    val pluggyAiSavedMessage = stringResource(R.string.navigation_pluggyai_credentials_saved)
+    val pluggyAiSaveFailedMessage = stringResource(R.string.navigation_pluggyai_credentials_save_failed)
+    val akahuSavedMessage = stringResource(R.string.navigation_akahu_credentials_saved)
+    val akahuSaveFailedMessage = stringResource(R.string.navigation_akahu_credentials_save_failed)
+    val pluggyAiLoadFailedMessage = stringResource(R.string.navigation_pluggyai_accounts_load_failed)
+    val akahuLoadFailedMessage = stringResource(R.string.navigation_akahu_accounts_load_failed)
+
+    fun savePluggyAiCredentials(clientId: String, clientSecret: String, itemIds: String) {
+        coroutineScope.launch {
+            runCatching { withContext(Dispatchers.IO) { repository.setPluggyAiCredentials(clientId, clientSecret, itemIds) } }
+                .onSuccess {
+                    loadBankSyncProviderStatus()
+                    snackbarHostState.showSnackbar(pluggyAiSavedMessage)
+                }
+                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: pluggyAiSaveFailedMessage }
+        }
+    }
+
+    fun saveAkahuCredentials(userToken: String, appToken: String) {
+        coroutineScope.launch {
+            runCatching { withContext(Dispatchers.IO) { repository.setAkahuCredentials(userToken, appToken) } }
+                .onSuccess {
+                    loadBankSyncProviderStatus()
+                    snackbarHostState.showSnackbar(akahuSavedMessage)
+                }
+                .onFailure { errorMessage = it.message?.takeIf(String::isNotBlank) ?: akahuSaveFailedMessage }
+        }
+    }
+
+    fun providerDiscovery(
+        result: com.azimulkabir.actua.data.network.ProviderAccountsResult,
+    ): com.azimulkabir.actua.ui.banksync.DiscoveryState = when (result) {
+        is com.azimulkabir.actua.data.network.ProviderAccountsResult.Available -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Available(
+            result.accounts.map {
+                com.azimulkabir.actua.ui.banksync.DiscoveredBankAccount(
+                    it.id, it.name, it.institution, bankId = it.bankId, bankName = it.institution,
+                )
+            },
+        )
+        is com.azimulkabir.actua.data.network.ProviderAccountsResult.Error -> com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(result.reason)
+    }
+
+    fun discoverPluggyAiAccounts() {
+        pluggyAiDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
+        coroutineScope.launch {
+            pluggyAiDiscovery = runCatching { withContext(Dispatchers.IO) { repository.discoverPluggyAiAccounts() } }.fold(
+                onSuccess = ::providerDiscovery,
+                onFailure = { error ->
+                    DiagnosticsLog.actionFailed("Loading Pluggy.ai accounts", error)
+                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(error.message ?: pluggyAiLoadFailedMessage)
+                },
+            )
+        }
+    }
+
+    fun discoverAkahuAccounts() {
+        akahuDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Loading
+        coroutineScope.launch {
+            akahuDiscovery = runCatching { withContext(Dispatchers.IO) { repository.discoverAkahuAccounts() } }.fold(
+                onSuccess = ::providerDiscovery,
+                onFailure = { error ->
+                    DiagnosticsLog.actionFailed("Loading Akahu accounts", error)
+                    com.azimulkabir.actua.ui.banksync.DiscoveryState.Error(error.message ?: akahuLoadFailedMessage)
+                },
+            )
         }
     }
 
@@ -1126,6 +1201,8 @@ fun AppNavigation(
             "enableBanking" -> discovered.id to discovered.id
             // SimpleFIN's `banks` row is keyed on the org domain, or its id (#1004).
             "simpleFin" -> discovered.bankId to discovered.id
+            // Actual's `findOrCreateBank(institution, orgDomain ?? orgId)` for Pluggy.ai and Akahu.
+            "pluggyai", "akahu" -> discovered.bankId to discovered.id
             else -> null to discovered.id
         }
         val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else discovered.bankName
@@ -1134,6 +1211,8 @@ fun AppNavigation(
             onChanged = {
                 goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
                 simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+                pluggyAiDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+                akahuDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
                 enableBankingFlow.reset()
             },
         ) { repository.linkBankAccount(account.id, externalId, source, requisitionId, bankName) }
@@ -1146,6 +1225,8 @@ fun AppNavigation(
             "goCardless" -> splitGoCardlessId(discovered.id)
             "enableBanking" -> discovered.id to discovered.id
             "simpleFin" -> discovered.bankId to discovered.id
+            // Actual's `findOrCreateBank(institution, orgDomain ?? orgId)` for Pluggy.ai and Akahu.
+            "pluggyai", "akahu" -> discovered.bankId to discovered.id
             else -> null to discovered.id
         }
         val bankName = if (source == "enableBanking") enableBankingFlow.institutionFor(discovered.id) else discovered.bankName
@@ -1154,6 +1235,8 @@ fun AppNavigation(
             onChanged = {
                 goCardlessDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
                 simpleFinDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+                pluggyAiDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
+                akahuDiscovery = com.azimulkabir.actua.ui.banksync.DiscoveryState.Idle
                 enableBankingFlow.reset()
             },
         ) { repository.createLinkedAccount(name, offBudget, externalId, source, requisitionId, bankName) }
@@ -1823,11 +1906,6 @@ fun AppNavigation(
         }
         val settingsBankSyncClick: () -> Unit = {                        loadBankSyncProviderStatus()
             detail = DetailDestination.BankSync
-        }
-        val settingsEnableBankingExperimentChange: (Boolean) -> Unit = { value ->
-            experimentalPreferences.enableBanking = value
-            enableBankingExperiment = value
-            if (!value) enableBankingFlow.reset()
         }
         val settingsRulesClick: () -> Unit = {                        scheduleRuleId = null
             detail = DetailDestination.Rules
@@ -2555,6 +2633,8 @@ fun AppNavigation(
                 onBack = { detail = DetailDestination.Main },
                 simpleFinConfigured = simpleFinConfigured,
                 goCardlessConfigured = goCardlessConfigured,
+                pluggyAiConfigured = pluggyAiConfigured,
+                akahuConfigured = akahuConfigured,
                 linkedAccounts = accounts.filter { it.bankSyncSource != null },
                 linkableAccounts = accounts.filter { it.bankSyncSource == null && !it.closed },
                 onSaveSimpleFinToken = ::saveSimpleFinToken,
@@ -2568,7 +2648,6 @@ fun AppNavigation(
                 goCardlessDiscovery = goCardlessDiscovery,
                 onCheckGoCardlessAccounts = ::checkGoCardlessAccounts,
                 enableBanking = com.azimulkabir.actua.ui.banksync.EnableBankingUiState(
-                    visible = enableBankingExperiment,
                     configured = enableBankingConfigured,
                     banks = enableBankingFlow.banks.map { it.name },
                     banksLoading = enableBankingFlow.banksLoading,
@@ -2578,6 +2657,16 @@ fun AppNavigation(
                 onLoadEnableBankingBanks = enableBankingFlow::loadBanks,
                 onAuthorizeEnableBanking = { name ->
                     enableBankingFlow.banks.firstOrNull { it.name == name }?.let(enableBankingFlow::authorize)
+                },
+                onSavePluggyAiCredentials = ::savePluggyAiCredentials,
+                pluggyAiDiscovery = pluggyAiDiscovery,
+                onDiscoverPluggyAi = ::discoverPluggyAiAccounts,
+                onSaveAkahuCredentials = ::saveAkahuCredentials,
+                akahuDiscovery = akahuDiscovery,
+                onDiscoverAkahu = ::discoverAkahuAccounts,
+                syncSettingsFor = { account -> repository.bankSyncSettings(account.id) },
+                onSyncSettingChange = { account, flag, value ->
+                    mutate(R.string.navigation_saving_sync_setting) { repository.setBankSyncFlag(account.id, flag, value) }
                 },
                 onLinkExisting = { discovered, account, source -> linkBankAccount(discovered, account, source) },
                 onCreateAndLink = { discovered, name, offBudget, source -> createAndLinkBankAccount(discovered, name, offBudget, source) },
@@ -3232,8 +3321,6 @@ fun AppNavigation(
                     onCreditCardsClick = settingsCreditCardsClick,
                     onLoansClick = { detail = DetailDestination.Loans },
                     onBankSyncClick = settingsBankSyncClick,
-                    enableBankingExperiment = enableBankingExperiment,
-                    onEnableBankingExperimentChange = settingsEnableBankingExperimentChange,
                     onRulesClick = settingsRulesClick,
                     onSchedulesClick = { detail = DetailDestination.Schedules },
                     onImportTransactionsClick = { detail = DetailDestination.ImportTransactions },

@@ -40,7 +40,6 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.PieChartOutline
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Sell
@@ -105,7 +104,6 @@ internal enum class SettingsPage(@StringRes val titleRes: Int, val depth: Int) {
     Budget(R.string.settings_page_budget, 2),
     CategoryColors(R.string.settings_page_category_colors, 3),
     Holidays(R.string.settings_page_holidays, 3),
-    Experimental(R.string.settings_page_experimental, 2),
     Support(R.string.settings_page_support, 2),
     About(R.string.settings_page_about, 2),
     Diagnostics(R.string.settings_page_diagnostics, 3),
@@ -170,9 +168,6 @@ fun SettingsScreen(
     onCreditCardsClick: () -> Unit = {},
     onLoansClick: () -> Unit = {},
     onBankSyncClick: () -> Unit = {},
-    /** Actual's experimental `enableBanking` flag; device-local and off by default. */
-    enableBankingExperiment: Boolean = false,
-    onEnableBankingExperimentChange: (Boolean) -> Unit = {},
     onBillsCalendarClick: () -> Unit = {},
     onRulesClick: () -> Unit = {},
     onSchedulesClick: () -> Unit = {},
@@ -253,7 +248,7 @@ fun SettingsScreen(
     fun parentPage(current: SettingsPage): SettingsPage = when (current) {
         SettingsPage.Tags -> SettingsPage.Manage
         SettingsPage.Transactions, SettingsPage.Display, SettingsPage.Privacy, SettingsPage.Budget,
-        SettingsPage.Experimental, SettingsPage.Support, SettingsPage.About,
+        SettingsPage.Support, SettingsPage.About,
         -> SettingsPage.General
         SettingsPage.CategoryColors, SettingsPage.Holidays -> SettingsPage.Budget
         SettingsPage.Diagnostics -> SettingsPage.About
@@ -500,16 +495,6 @@ fun SettingsScreen(
                             Icons.Outlined.FavoriteBorder,
                         ) {
                             page = SettingsPage.Support
-                        }
-                    }
-                    SettingsGroup(stringResource(R.string.settings_section_labs)) {
-                        SettingsRow(
-                            stringResource(R.string.settings_experimental),
-                            stringResource(R.string.settings_experimental_description),
-                            true,
-                            Icons.Outlined.Science,
-                        ) {
-                            page = SettingsPage.Experimental
                         }
                     }
                     SettingsGroup(stringResource(R.string.settings_section_about)) {
@@ -942,19 +927,6 @@ fun SettingsScreen(
                     CategoryStatusColorSettings(Modifier.padding(top = Spacing.md))
                 }
                 SettingsPage.Holidays -> HolidaysSettings(holidays, onHolidaysChange)
-                SettingsPage.Experimental -> {
-                    SettingsGroup {
-                        SettingsToggle(
-                            stringResource(R.string.settings_enable_banking),
-                            stringResource(R.string.settings_enable_banking_description),
-                            enableBankingExperiment,
-                            onEnableBankingExperimentChange,
-                        )
-                    }
-                    SettingsNote(
-                        stringResource(R.string.settings_experimental_note),
-                    )
-                }
                 SettingsPage.Support -> {
                     SettingsNote(
                         stringResource(R.string.settings_support_intro),
