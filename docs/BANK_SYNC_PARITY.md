@@ -43,7 +43,7 @@ were added by [#1154](https://github.com/azimul-kabir/actua/issues/1154); their 
 | Exact `imported_id` match for rows already imported (update path) | Match ([#1001](https://github.com/azimul-kabir/actua/issues/1001)) |
 | Fuzzy matching (±7 days, payee pass, then date pass) | Match |
 | Updating a fuzzy-matched row | Match |
-| Per-account sync preferences (`sync-import-pending-…` etc.) | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)); the toggles are editable per account, custom mappings are not |
+| Per-account sync preferences (`sync-import-pending-…` etc.) | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)); toggles and custom mappings are editable per account |
 | Atomic batch, transfers, `sort_order` | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | Match (neither client learns from imports) |
 | File import: formats and mapping | Match ([#1149](https://github.com/azimul-kabir/actua/issues/1149)) for all upstream formats (CSV, OFX/QFX, QIF, CAMT.053), plus XLSX and PDF |
@@ -74,7 +74,7 @@ Actua: `ActuaRepository.setSimpleFinToken` / `setGoCardlessCredentials` (`data/A
 | Non-admin rejected | server 403 | 403 → "You must be an admin…" | Match |
 | Provider configured? | `POST /simplefin/status`, `/gocardless/status` → `data.configured` | same; 404/405/501 → not configured | Match |
 | Remove a secret (`value: null` → `DELETE /secret/<name>`) | offered | not offered | N/A |
-| `X-Actual-File-Id` header on `/secret` and the Pluggy.ai routes | sent when a file is open; scopes per-budget Pluggy.ai secrets | not sent | Intentional boundary. Only server-wide Pluggy.ai credentials work; per-budget ones read as not configured. |
+| `X-Actual-File-Id` header on `/secret` and the Pluggy.ai routes | sent when a file is open; scopes per-budget Pluggy.ai secrets | sent on the Pluggy.ai routes for a server-backed budget, and on `/secret` when "Store for this budget only" is ticked | Match. Other providers' secrets are always global, as upstream. |
 | Pluggy.ai secrets `pluggyai_clientId`, `_clientSecret`, `_itemIds`; Akahu `akahu_userToken`, `_appToken` | `POST /secret` | same | Match |
 | Secrets on the client | sent once; not persisted by the client | held in composable `remember` state, cleared after **Save**, never written to preferences, the budget, logs or error messages. Server error bodies are not logged. | Match |
 | Synced rows from the provider | `raw_synced_data` keeps the provider row (may include account names and descriptions) | same ([#1002](https://github.com/azimul-kabir/actua/issues/1002)) | Match. It is budget data, like Actual's, not a secret. |
@@ -184,7 +184,7 @@ Actua: `BankSyncService.sync` (`data/bank/BankSyncService.kt:107-211`), `ImportR
 | Transfer payee set by a rule creates the counterpart | `runTransfers = true` | same (`ImportBatch.insert` → `transferLegsFor`) | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | New rows' `sort_order` | `now − index × 1024`, download order; split children `0 − index` | same | Match ([#1007](https://github.com/azimul-kabir/actua/issues/1007)) |
 | Category learning | `learnCategories = false` for imports | not run | Match |
-| Per-account preferences (`sync-import-pending`, `sync-import-notes`, `sync-import-transactions`, `sync-update-dates`, `sync-reimport-deleted`, `custom-sync-mappings`) | read from synced `preferences` | read and applied the same way; editing them needs Actual | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
+| Per-account preferences (`sync-import-pending`, `sync-import-notes`, `sync-import-transactions`, `sync-update-dates`, `sync-reimport-deleted`, `custom-sync-mappings`) | read from synced `preferences` | read and applied the same way; editable per account from Manage Bank Sync | Match ([#1006](https://github.com/azimul-kabir/actua/issues/1006)) |
 
 ## 6. File import
 

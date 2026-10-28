@@ -1006,9 +1006,9 @@ fun AppNavigation(
     val pluggyAiLoadFailedMessage = stringResource(R.string.navigation_pluggyai_accounts_load_failed)
     val akahuLoadFailedMessage = stringResource(R.string.navigation_akahu_accounts_load_failed)
 
-    fun savePluggyAiCredentials(clientId: String, clientSecret: String, itemIds: String) {
+    fun savePluggyAiCredentials(clientId: String, clientSecret: String, itemIds: String, perBudget: Boolean) {
         coroutineScope.launch {
-            runCatching { withContext(Dispatchers.IO) { repository.setPluggyAiCredentials(clientId, clientSecret, itemIds) } }
+            runCatching { withContext(Dispatchers.IO) { repository.setPluggyAiCredentials(clientId, clientSecret, itemIds, perBudget) } }
                 .onSuccess {
                     loadBankSyncProviderStatus()
                     snackbarHostState.showSnackbar(pluggyAiSavedMessage)
@@ -2668,6 +2668,10 @@ fun AppNavigation(
                 onSyncSettingChange = { account, flag, value ->
                     mutate(R.string.navigation_saving_sync_setting) { repository.setBankSyncFlag(account.id, flag, value) }
                 },
+                onSaveMappings = { account, payment, deposit ->
+                    mutate(R.string.navigation_saving_sync_setting) { repository.setBankSyncMappings(account.id, payment, deposit) }
+                },
+                canStorePerBudgetCredentials = repository.canStorePerBudgetCredentials(),
                 onLinkExisting = { discovered, account, source -> linkBankAccount(discovered, account, source) },
                 onCreateAndLink = { discovered, name, offBudget, source -> createAndLinkBankAccount(discovered, name, offBudget, source) },
                 onUnlink = ::unlinkBankAccount,

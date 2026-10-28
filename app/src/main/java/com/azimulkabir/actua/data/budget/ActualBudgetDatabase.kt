@@ -411,6 +411,22 @@ class ActualBudgetDatabase private constructor(
             .use { if (it.moveToFirst()) it.stringOrNull(0) else null }
     }
 
+    /** Top-level provider fields in an account's 20 most recent downloaded rows, for choosing field mappings. */
+    @Synchronized
+    fun syncedFieldNames(accountId: String): List<String> {
+        return database.rawQuery(
+            "SELECT raw_synced_data FROM transactions WHERE acct = ? AND tombstone = 0 AND raw_synced_data IS NOT NULL " +
+                "ORDER BY date DESC LIMIT 20", arrayOf(accountId),
+        ).use { cursor ->
+            val names = sortedSetOf<String>()
+            while (cursor.moveToNext()) {
+                val raw = runCatching { org.json.JSONObject(cursor.getString(0)) }.getOrNull() ?: continue
+                raw.keys().forEach { names += it }
+            }
+            names.toList()
+        }
+    }
+
     /** The synced preferences among [ids] that have a row, keyed by id. */
     @Synchronized
     fun fetchPreferences(ids: Collection<String>): Map<String, String?> {
