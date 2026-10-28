@@ -406,14 +406,18 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
     }
 
     /** Stores an admin-managed provider secret (e.g. `simplefin_token`, `gocardless_secretId`) on the server. */
-    fun setSecret(serverUrl: String, token: String, name: String, value: String) {
+    fun setSecret(serverUrl: String, token: String, name: String, value: String, fileId: String? = null) {
         val body = JSONObject().put("name", name).put("value", value).toString().encodeToByteArray()
         val response = request(
             serverUrl, "/secret/", "POST",
-            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+            actualHeaders(token) + fileIdHeader(fileId) + ("Content-Type" to "application/json"), body,
         )
+        if (response.status == 403) {
+            // Per-budget secrets need access to the file; global ones need an admin.
+            error(if (fileId != null) "You don't have permission to configure bank sync for this budget."
+                else "You must be an admin on this server to configure bank sync.")
+        }
         checkAuthorization(response)
-        if (response.status == 403) error("You must be an admin on this server to configure bank sync.")
         requireSuccess(response)
     }
 
@@ -423,8 +427,13 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
     fun goCardlessStatus(serverUrl: String, token: String): Boolean =
         providerConfigured(serverUrl, token, "/gocardless/status")
 
-    private fun providerConfigured(serverUrl: String, token: String, path: String): Boolean {
-        val response = request(serverUrl, path, "POST", actualHeaders(token))
+    private fun fileIdHeader(fileId: String?): Map<String, String> =
+        if (fileId.isNullOrBlank()) emptyMap() else mapOf("X-Actual-File-Id" to fileId)
+
+    private fun providerConfigured(
+        serverUrl: String, token: String, path: String, extraHeaders: Map<String, String> = emptyMap(),
+    ): Boolean {
+        val response = request(serverUrl, path, "POST", actualHeaders(token) + extraHeaders)
         checkAuthorization(response)
         if (response.status in setOf(404, 405, 501)) return false
         requireSuccess(response)
@@ -680,15 +689,16 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         return parseSingleBankSyncDownload(response.json(), accountId)
     }
 
-    fun pluggyAiStatus(serverUrl: String, token: String): Boolean =
-        providerConfigured(serverUrl, token, "/pluggyai/status")
+    /** [fileId] also finds credentials stored for that budget file (`X-Actual-File-Id`). */
+    fun pluggyAiStatus(serverUrl: String, token: String, fileId: String? = null): Boolean =
+        providerConfigured(serverUrl, token, "/pluggyai/status", fileIdHeader(fileId))
 
     fun akahuStatus(serverUrl: String, token: String): Boolean =
         providerConfigured(serverUrl, token, "/akahu/status")
 
     /** Lists the accounts of the Pluggy.ai items the server has credentials for (`/pluggyai/accounts`). */
-    fun pluggyAiAccounts(serverUrl: String, token: String): ProviderAccountsResult =
-        providerAccounts(serverUrl, token, "/pluggyai/accounts", "Pluggy.ai", ::parsePluggyAiAccounts)
+    fun pluggyAiAccounts(serverUrl: String, token: String, fileId: String? = null): ProviderAccountsResult =
+        providerAccounts(serverUrl, token, "/pluggyai/accounts", "Pluggy.ai", ::parsePluggyAiAccounts, fileIdHeader(fileId))
 
     /** Lists the accounts of the Akahu user the server has tokens for (`/akahu/accounts`). */
     fun akahuAccounts(serverUrl: String, token: String): ProviderAccountsResult =
@@ -697,9 +707,10 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
     private fun providerAccounts(
         serverUrl: String, token: String, path: String, provider: String,
         parse: (JSONObject) -> ProviderAccountsResult,
+        extraHeaders: Map<String, String> = emptyMap(),
     ): ProviderAccountsResult {
         val response = request(
-            serverUrl, path, "POST", actualHeaders(token),
+            serverUrl, path, "POST", actualHeaders(token) + extraHeaders,
             readTimeoutMillis = BANK_SYNC_READ_TIMEOUT_MILLIS,
         )
         checkAuthorization(response)
@@ -770,8 +781,10 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
 
     /** Downloads Actual's normalized Pluggy.ai feed for a single linked account. */
     fun downloadPluggyAiTransactions(
-        serverUrl: String, token: String, accountId: String, startDate: String,
-    ): BankSyncDownload = downloadSingleAccount(serverUrl, token, "/pluggyai/transactions", "Pluggy.ai", accountId, startDate)
+        serverUrl: String, token: String, accountId: String, startDate: String, fileId: String? = null,
+    ): BankSyncDownload = downloadSingleAccount(
+        serverUrl, token, "/pluggyai/transactions", "Pluggy.ai", accountId, startDate, fileIdHeader(fileId),
+    )
 
     /** Downloads Actual's normalized Akahu feed for a single linked account. */
     fun downloadAkahuTransactions(
@@ -780,12 +793,13 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
 
     private fun downloadSingleAccount(
         serverUrl: String, token: String, path: String, provider: String, accountId: String, startDate: String,
+        extraHeaders: Map<String, String> = emptyMap(),
     ): BankSyncDownload {
         val body = JSONObject().put("accountId", accountId).put("startDate", startDate)
             .toString().encodeToByteArray()
         val response = request(
             serverUrl, path, "POST",
-            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+            actualHeaders(token) + extraHeaders + ("Content-Type" to "application/json"), body,
             readTimeoutMillis = BANK_SYNC_READ_TIMEOUT_MILLIS,
         )
         checkAuthorization(response)

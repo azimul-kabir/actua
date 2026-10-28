@@ -44,6 +44,8 @@ class BankSyncService(
     private val server: ActualServerClient,
     private val idFactory: () -> String = { UUID.randomUUID().toString() },
     private val today: () -> LocalDate = LocalDate::now,
+    /** The open budget's server file id, so Pluggy.ai finds credentials stored for this budget only. */
+    private val cloudFileId: String? = null,
 ) {
     fun sync(serverUrl: String, token: String, accountId: String? = null): BankSyncResult {
         val accounts = database.fetchBankSyncAccounts().filter { !it.closed && (accountId == null || it.id == accountId) }
@@ -98,7 +100,7 @@ class BankSyncService(
                     server.downloadEnableBankingTransactions(serverUrl, token, account.externalId, startDateFor(account.id))
                 }.recoverCatching { throw downloadFailure(it) }
                 "pluggyai" -> runCatching {
-                    server.downloadPluggyAiTransactions(serverUrl, token, account.externalId, startDateFor(account.id))
+                    server.downloadPluggyAiTransactions(serverUrl, token, account.externalId, startDateFor(account.id), cloudFileId)
                 }.recoverCatching { throw downloadFailure(it) }
                 "akahu" -> runCatching {
                     server.downloadAkahuTransactions(serverUrl, token, account.externalId, startDateFor(account.id))
@@ -377,12 +379,12 @@ class BankSyncService(
         }
 
         companion object {
-            private val DEFAULT_MAPPING = mapOf("date" to "date", "payee" to "payeeName", "notes" to "notes")
+            private val DEFAULT_MAPPING = BankSyncMappings.DEFAULT
 
             fun read(database: ActualBudgetDatabase, accountId: String): SyncSettings {
-                val flags = BankSyncAccountSettings.read(database, accountId)
+                val flags = BankSyncAccountSettings.read(database, accountId, includeFields = false)
                 val mappings = database.fetchPreferences(listOf("custom-sync-mappings-$accountId"))["custom-sync-mappings-$accountId"]
-                    ?.let(::parseMappings)
+                    ?.let(BankSyncMappings::parse)
                 return SyncSettings(
                     importPending = flags[BankSyncFlag.ImportPending],
                     importNotes = flags[BankSyncFlag.ImportNotes],
@@ -392,16 +394,6 @@ class BankSyncService(
                     payment = mappings?.get("payment") ?: DEFAULT_MAPPING,
                     deposit = mappings?.get("deposit") ?: DEFAULT_MAPPING,
                 )
-            }
-
-            /** `mappingsFromString`: `{"payment": {"date": …, "payee": …, "notes": …}, "deposit": {…}}`. */
-            private fun parseMappings(text: String): Map<String, Map<String, String>> {
-                val root = runCatching { JSONObject(text) }
-                    .getOrElse { throw IllegalArgumentException("its custom field mapping can't be read. Fix it in Actual's Bank Sync settings.") }
-                return root.keys().asSequence().associateWith { direction ->
-                    val fields = root.optJSONObject(direction) ?: JSONObject()
-                    fields.keys().asSequence().associateWith { fields.optString(it) }
-                }
             }
         }
     }
