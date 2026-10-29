@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Privacy setting to hide Actua's contents in the recents screen and block screenshots ([#1384](https://github.com/azimul-kabir/actua/pull/1384))
 - Added per-budget Pluggy.ai credentials and an editor for each linked account's bank sync field mappings ([#1332](https://github.com/azimul-kabir/actua/pull/1332))
 - Added Pluggy.ai and Akahu bank sync, Enable Banking as a regular provider, and per-account sync settings in Manage Bank Sync ([#1331](https://github.com/azimul-kabir/actua/pull/1331))
 - Added a Month note entry to the Budget menu to view and edit the selected month's note ([#1330](https://github.com/azimul-kabir/actua/pull/1330))
