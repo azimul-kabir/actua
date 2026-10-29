@@ -183,6 +183,9 @@
     <string name="settings_balances_hiding">Ocultar mascara os valores de orçamento, contas e transações</string>
     <string name="settings_balances_budget_hidden">. Orçamento: ocultos</string>
     <string name="settings_balances_budget_shown">. Orçamento: exibidos</string>
+    <string name="settings_section_screen_privacy">Privacidade da tela</string>
+    <string name="settings_hide_in_recents">Ocultar conteúdo do app nos recentes</string>
+    <string name="settings_hide_in_recents_description">Mostra um cartão em branco na tela de recentes e bloqueia capturas e gravações de tela no Actua. Desativado por padrão. Vale imediatamente.</string>
     <string name="settings_section_location_payees">Beneficiários por localização</string>
     <string name="settings_record_payee_locations">Registrar locais de beneficiários</string>
     <string name="settings_record_payee_locations_enabled_description">Use sua localização somente enquanto o Actua estiver aberto, para lembrar de beneficiários elegíveis próximos. As coordenadas ficam no seu orçamento do Actual e são sincronizadas com ele.</string>

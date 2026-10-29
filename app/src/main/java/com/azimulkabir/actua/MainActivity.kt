@@ -1,5 +1,6 @@
 package com.azimulkabir.actua
 
+import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import android.content.Intent
 import android.os.Bundle
@@ -39,6 +40,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ScreenPrivacyPreferences.apply(this)
         DiagnosticsLog.attach(this)
         if (savedInstanceState == null) DiagnosticsLog.appLaunched()
         launchRequest = intent.toLaunchRequest()
