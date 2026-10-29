@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added Export to CSV in an account's register menu ([#1387](https://github.com/azimul-kabir/actua/pull/1387))
 - Added opening bank statement files shared from other apps directly in the transaction importer ([#1386](https://github.com/azimul-kabir/actua/pull/1386))
 - Added a Privacy setting to hide Actua's contents in the recents screen and block screenshots ([#1385](https://github.com/azimul-kabir/actua/pull/1385))
 - Added per-budget Pluggy.ai credentials and an editor for each linked account's bank sync field mappings ([#1332](https://github.com/azimul-kabir/actua/pull/1332))
