@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: 2026-10-13_
+_Last updated: 2026-10-29_
 
 Actua is an independent, community-built Android client for [Actual
 Budget](https://actualbudget.org/). It is not affiliated with or endorsed by
@@ -41,10 +41,19 @@ locations.
 
 ## Imports
 
-CSV, XLSX, PDF, SMS and notification imports are processed entirely on your
-device to create transactions in your budget. Imported files and their
-contents are not uploaded anywhere except as part of the transactions they
-produce, which sync to your own Actual server like any other budget data.
+CSV, OFX, QFX, QIF, CAMT.053, XLSX, PDF, SMS and notification imports are
+processed entirely on your device to create transactions in your budget.
+Imported files and their contents are not uploaded anywhere except as part of
+the transactions they produce, which sync to your own Actual server like any
+other budget data. A statement file shared to Actua from another app is read
+through the temporary access Android grants for that file and is not kept.
+
+## Exports
+
+Actua can export transactions to a CSV file. The file is written only to the
+location you choose in Android's file picker and is not uploaded anywhere. It
+is an ordinary, unencrypted file that contains your transaction details, so
+keep it as private as the budget itself.
 
 ## Bank notifications and automation apps
 
@@ -65,6 +74,17 @@ To pre-fill accounts, Actua remembers on your device the account you chose
 for each card or source and an optional default account, per budget. Deleting
 notification data on the import screen removes the queue, those choices, the
 parser settings and the token.
+
+## App lock and screen privacy
+
+Actua can optionally ask you to unlock it with a fingerprint, face or your
+device PIN, pattern or password. The check is done by Android's own biometric
+prompt: Actua only learns whether it succeeded and never receives, stores or
+transmits your biometric data or device credential. For this Actua declares
+Android's `USE_BIOMETRIC` (and `USE_FINGERPRINT` on older versions)
+permissions, which are normal permissions that show no prompt. The setting and
+its timeout are stored on your device only. A separate setting hides Actua's
+screens from the recents list and blocks screenshots and screen recording.
 
 ## Notifications
 
