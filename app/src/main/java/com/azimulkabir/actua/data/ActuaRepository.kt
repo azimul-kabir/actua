@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.azimulkabir.actua.data.budget.CategoryDeletePlan
 import com.azimulkabir.actua.data.budget.ActualBudgetDatabase
+import com.azimulkabir.actua.data.export.TransactionCsv
+import com.azimulkabir.actua.data.export.toCsvTransaction
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.ActualTransactionForm
 import com.azimulkabir.actua.data.budget.ActualTransactionFormService
@@ -1254,6 +1256,21 @@ class ActuaRepository(context: Context) {
                 .let { rows -> toTransactions(db, rows, accountNames, offBudgetAccountIds) }
         }
         return emptyList()
+    }
+
+    /**
+     * Writes every live transaction of [accountId], newest first with split lines after their
+     * parent, as CSV to [output] (Actual's account export layout). Read-only; returns the number
+     * of transactions written. Blocking: call off the main thread.
+     */
+    fun exportAccountTransactionsCsv(accountId: String, output: Appendable): Int {
+        val db = actualDatabase ?: throw IllegalStateException("No Actual budget is open")
+        val accountNames = db.fetchAccounts().associate { it.id to it.name }
+        val categoryGroupNames = db.fetchCategoryGroups()
+            .flatMap { group -> group.categories.map { it.id to group.name } }
+            .toMap()
+        val rows = db.fetchTransactions(accountId = accountId, limit = Int.MAX_VALUE)
+        return TransactionCsv.write(rows.map { it.toCsvTransaction(accountNames, categoryGroupNames) }, output)
     }
 
     /** List rows, each flagged when its other transfer leg is reconciled (#746). */

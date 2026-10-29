@@ -1,6 +1,9 @@
 package com.azimulkabir.actua.ui.transactions
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -25,6 +28,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Sell
@@ -194,6 +198,8 @@ fun TransactionsScreen(
     onShowCurrentBalanceSummaryChange: (Boolean) -> Unit = {},
     showRunningBalance: Boolean = false,
     onShowRunningBalanceChange: (Boolean) -> Unit = {},
+    /** Writes the account's transactions as CSV to the chosen document; null hides the menu entry. */
+    onExportCsv: ((Account, Uri) -> Unit)? = null,
     showNotes: Boolean = true,
     allTransactions: List<Transaction> = transactions,
     onReconcileVisibilityChange: (Boolean) -> Unit = {},
@@ -261,6 +267,9 @@ fun TransactionsScreen(
     }
     var accountNote by remember(account) { mutableStateOf(account?.note.orEmpty()) }
     val context = LocalContext.current
+    val exportCsvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        if (uri != null && account != null) onExportCsv?.invoke(account, uri)
+    }
     val tagColors = rememberActualTagColors(transactions)
     val tagRepository = remember(context) { ActiveTagRepository(context) }
     val availableTags = remember(tagVersion) { tagRepository.tags(tagVersion) }
@@ -434,6 +443,18 @@ fun TransactionsScreen(
                                         accountDetailPreferences.edit()
                                             .putBoolean("show_credit_card_section_${selectedAccount.id}", show).apply()
                                     })
+                                }
+                                if (onExportCsv != null) {
+                                    val exportFileName = stringResource(R.string.transactions_export_csv_filename, selectedAccount.name)
+                                    HorizontalDivider()
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.transactions_export_csv)) },
+                                        leadingIcon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
+                                        onClick = {
+                                            menuOpen = false
+                                            exportCsvLauncher.launch(exportFileName)
+                                        },
+                                    )
                                 }
                             }
                         }

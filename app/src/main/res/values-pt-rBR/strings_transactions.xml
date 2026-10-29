@@ -87,6 +87,8 @@
     <string name="transactions_options">Opções de transação</string>
     <string name="transactions_group_by_date">Agrupar por data</string>
     <string name="transactions_show_upcoming">Mostrar transações próximas</string>
+    <string name="transactions_export_csv">Exportar para CSV</string>
+    <string name="transactions_export_csv_filename">Transações de %1$s.csv</string>
     <string name="transactions_reconcile">Reconciliar</string>
     <string name="transactions_hide_reconciled">Ocultar transações reconciliadas</string>
     <string name="transactions_show_balance_summary">Mostrar resumo do saldo atual</string>

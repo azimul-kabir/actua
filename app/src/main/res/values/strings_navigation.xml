@@ -113,6 +113,8 @@
     <string name="navigation_renaming_dashboard_page">Renaming dashboard page</string>
     <string name="navigation_deleting_dashboard_page">Deleting dashboard page</string>
 
+    <string name="navigation_account_csv_exported">Exported %1$s to CSV.</string>
+    <string name="navigation_account_csv_export_failed">Could not export the transactions.</string>
     <string name="navigation_enable_banking_credentials_saved">Enable Banking credentials saved.</string>
     <string name="navigation_enable_banking_credentials_save_failed">Could not save Enable Banking credentials.</string>
     <string name="navigation_simplefin_token_saved">SimpleFIN token saved.</string>
