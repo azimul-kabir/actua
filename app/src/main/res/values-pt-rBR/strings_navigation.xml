@@ -112,6 +112,7 @@
     <string name="navigation_renaming_dashboard_page">Renomeando página do painel</string>
     <string name="navigation_deleting_dashboard_page">Excluindo página do painel</string>
 
+    <string name="navigation_transactions_csv_exported">Transações exportadas para CSV.</string>
     <string name="navigation_account_csv_exported">%1$s exportada para CSV.</string>
     <string name="navigation_account_csv_export_failed">Não foi possível exportar as transações.</string>
     <string name="navigation_enable_banking_credentials_saved">Credenciais do Enable Banking salvas.</string>

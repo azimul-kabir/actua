@@ -89,6 +89,10 @@
     <string name="transactions_show_upcoming">Show upcoming transactions</string>
     <string name="transactions_export_csv">Export to CSV</string>
     <string name="transactions_export_csv_filename">%1$s transactions.csv</string>
+    <string name="transactions_export_shown_csv">Export shown transactions to CSV</string>
+    <string name="transactions_export_shown_csv_filename">Actua transactions.csv</string>
+    <string name="search_export_csv">Export all matching transactions to CSV</string>
+    <string name="search_export_csv_filename">Actua search results.csv</string>
     <string name="transactions_reconcile">Reconcile</string>
     <string name="transactions_hide_reconciled">Hide reconciled transactions</string>
     <string name="transactions_show_balance_summary">Show current balance summary</string>
