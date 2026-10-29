@@ -224,6 +224,7 @@
     <string name="no_local_backups_yet">Ainda não há cópias de segurança locais.</string>
     <string name="backup_exported">Cópia de segurança exportada.</string>
     <string name="could_not_export_backup">Não foi possível exportar a cópia de segurança.</string>
+    <string name="import_shared_file_unsupported">Este tipo de arquivo não pode ser importado. Compartilhe um extrato CSV, OFX, QFX, QIF, XLSX, PDF ou CAMT.053.</string>
     <string name="could_not_read_selected_file">Não foi possível ler o arquivo selecionado</string>
     <string name="backup_imported">Cópia de segurança importada. Toque nela abaixo quando estiver pronto para restaurar.</string>
     <string name="could_not_import_backup">Não foi possível importar esta cópia de segurança.</string>

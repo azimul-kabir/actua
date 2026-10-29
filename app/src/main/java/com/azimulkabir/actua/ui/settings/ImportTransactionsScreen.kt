@@ -77,6 +77,7 @@ import com.azimulkabir.actua.data.importing.NotificationImportPreferences
 import com.azimulkabir.actua.data.importing.FinancialMessageProfile
 import com.azimulkabir.actua.data.importing.StatementFormat
 import com.azimulkabir.actua.data.importing.StatementDocumentReader
+import com.azimulkabir.actua.data.importing.StatementFormatDetector
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.ui.components.ActuaScreenHeader
 import kotlinx.coroutines.Dispatchers
@@ -116,6 +117,7 @@ import androidx.compose.foundation.layout.height
 
 /** The selected statement document could not be opened at all; localized at display. */
 private class SelectedStatementUnreadableException : Exception()
+private class UnsupportedStatementTypeException : Exception()
 
 /** Statements above the size limit are refused before parsing; localized at display. */
 private class StatementTooLargeException : Exception()
@@ -155,6 +157,9 @@ fun ImportTransactionsScreen(
     modifier: Modifier = Modifier,
     initialSharedText: String? = null,
     onSharedTextConsumed: () -> Unit = {},
+    /** A statement another app shared or opened with Actua (#1333); reviewed like a picked file. */
+    initialSharedFile: Uri? = null,
+    onSharedFileConsumed: () -> Unit = {},
     /**
      * Shows only the capture review queue on its own page (#1050), opened from the Accounts tab, a
      * captured-transaction notification (#1046) or [onOpenCapturedReview].
@@ -310,22 +315,18 @@ fun ImportTransactionsScreen(
         }
     }
 
-    fun load(uri: Uri) {
+    fun load(uri: Uri, requireKnownFormat: Boolean = false) {
         busy = true
         scope.launch {
             runCatching { withContext(Dispatchers.IO) {
                 val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
                     ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
                     ?: resources.getString(R.string.default_statement_filename)
-                val format = when (name.substringAfterLast('.', "").lowercase()) {
-                    "xlsx" -> StatementFormat.XLSX
-                    "pdf" -> StatementFormat.PDF
-                    "ofx" -> StatementFormat.OFX
-                    "qfx" -> StatementFormat.QFX
-                    "qif" -> StatementFormat.QIF
-                    "xml" -> StatementFormat.CAMT053
-                    else -> StatementFormat.CSV
-                }
+                val detected = StatementFormatDetector.detect(name, context.contentResolver.getType(uri))
+                // The picker has always treated an unrecognised file as CSV; a file another app pushed
+                // at us is rejected instead, so an unrelated share doesn't open a nonsense review.
+                if (detected == null && requireKnownFormat) throw UnsupportedStatementTypeException()
+                val format = detected ?: StatementFormat.CSV
                 val bytes = context.contentResolver.openInputStream(uri)?.use { it.readLimitedStatement() }
                     ?: throw SelectedStatementUnreadableException()
                 Triple(name, format, StatementDocumentReader.read(context, bytes, format))
@@ -346,6 +347,7 @@ fun ImportTransactionsScreen(
                 }.onFailure {
                     message = when (it) {
                         is SelectedStatementUnreadableException -> resources.getString(R.string.could_not_read_selected_file)
+                        is UnsupportedStatementTypeException -> resources.getString(R.string.import_shared_file_unsupported)
                         is StatementTooLargeException -> resources.getString(R.string.statement_too_large)
                         is ImportStatementException -> resources.getString(
                             when (it.code) {
@@ -361,7 +363,13 @@ fun ImportTransactionsScreen(
         }
     }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        uri?.let(::load)
+        uri?.let { load(it) }
+    }
+    LaunchedEffect(initialSharedFile) {
+        initialSharedFile?.let {
+            load(it, requireKnownFormat = true)
+            onSharedFileConsumed()
+        }
     }
 
     Column(modifier.fillMaxSize()) {
