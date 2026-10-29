@@ -81,6 +81,11 @@ import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.LocationPreferences
 import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
+import com.azimulkabir.actua.data.security.AppLockPreferences
+import com.azimulkabir.actua.data.security.AppLockTimeout
+import com.azimulkabir.actua.ui.lock.AppLock
+import com.azimulkabir.actua.ui.lock.AppLockAuthenticator
+import com.azimulkabir.actua.ui.lock.findFragmentActivity
 import com.azimulkabir.actua.ui.components.BudgetTypeConfirmDialog
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
@@ -202,6 +207,48 @@ fun SettingsScreen(
     val locationPreferences = remember { LocationPreferences(context) }
     val screenPrivacyPreferences = remember { ScreenPrivacyPreferences(context) }
     var hideInRecents by remember { mutableStateOf(screenPrivacyPreferences.hideInRecents) }
+    val appLockPreferences = remember { AppLockPreferences(context) }
+    var appLockEnabled by remember { mutableStateOf(appLockPreferences.enabled) }
+    var appLockTimeout by remember { mutableStateOf(appLockPreferences.timeout) }
+    var appLockMessage by remember { mutableStateOf<String?>(null) }
+    val appLockEnableTitle = stringResource(R.string.app_lock_prompt_enable_title)
+    val appLockDisableTitle = stringResource(R.string.app_lock_prompt_disable_title)
+    val appLockPromptSubtitle = stringResource(R.string.app_lock_prompt_subtitle)
+    val appLockUnavailableMessage = stringResource(R.string.settings_app_lock_unavailable)
+
+    // Turning the lock on or off both require authenticating first, so someone holding an unlocked
+    // phone can neither switch it off nor enrol it on the owner's behalf.
+    fun setAppLockEnabled(enable: Boolean) {
+        val activity = context.findFragmentActivity() ?: return
+        appLockMessage = null
+        val availability = AppLockAuthenticator.availability(context)
+        if (availability != AppLockAuthenticator.Availability.AVAILABLE) {
+            if (enable) {
+                appLockMessage = appLockUnavailableMessage
+                return
+            }
+            // No screen lock left on the device means there is nothing to authenticate with, and
+            // nothing the lock was protecting beyond what an open phone already exposes.
+            appLockPreferences.enabled = false
+            appLockEnabled = false
+            AppLock.onSettingChanged()
+            return
+        }
+        AppLockAuthenticator.authenticate(
+            activity,
+            if (enable) appLockEnableTitle else appLockDisableTitle,
+            appLockPromptSubtitle,
+        ) { result ->
+            when (result) {
+                AppLockAuthenticator.Result.Success -> {
+                    appLockPreferences.enabled = enable
+                    appLockEnabled = enable
+                    AppLock.onSettingChanged()
+                }
+                is AppLockAuthenticator.Result.Error -> if (!result.cancelled) appLockMessage = result.message
+            }
+        }
+    }
     val tagRepository = remember { ActiveTagRepository(context) }
     var tagVersion by remember { mutableStateOf(0L) }
     val managedTags = remember(tagVersion) { tagRepository.tags(tagVersion) }
@@ -837,6 +884,29 @@ fun SettingsScreen(
                             onChange = onPrivacyModeChange,
                         )
                     }
+                    SettingsGroup(stringResource(R.string.settings_section_app_lock)) {
+                        SettingsToggle(
+                            stringResource(R.string.settings_app_lock),
+                            stringResource(R.string.settings_app_lock_description),
+                            appLockEnabled,
+                            ::setAppLockEnabled,
+                        )
+                        if (appLockEnabled) {
+                            SettingsDivider()
+                            SettingsChoice(
+                                stringResource(R.string.settings_app_lock_timeout),
+                                appLockTimeout.name,
+                                AppLockTimeout.entries.map {
+                                    SettingsChoiceOption(it.name, appLockTimeoutLabel(it))
+                                },
+                                onChange = {
+                                    appLockTimeout = AppLockTimeout.fromStored(it)
+                                    appLockPreferences.timeout = appLockTimeout
+                                },
+                            )
+                        }
+                    }
+                    appLockMessage?.let { SettingsNote(it) }
                     SettingsGroup(stringResource(R.string.settings_section_screen_privacy)) {
                         SettingsToggle(
                             stringResource(R.string.settings_hide_in_recents),
@@ -1203,6 +1273,16 @@ private fun SettingsChoice(
     preview: String? = null,
     onChange: (String) -> Unit,
 ) = SettingsChoice(label, value, options.map { SettingsChoiceOption(it, it) }, preview, onChange)
+
+@Composable
+private fun appLockTimeoutLabel(timeout: AppLockTimeout): String = stringResource(
+    when (timeout) {
+        AppLockTimeout.IMMEDIATELY -> R.string.app_lock_timeout_immediately
+        AppLockTimeout.ONE_MINUTE -> R.string.app_lock_timeout_1_minute
+        AppLockTimeout.FIVE_MINUTES -> R.string.app_lock_timeout_5_minutes
+        AppLockTimeout.FIFTEEN_MINUTES -> R.string.app_lock_timeout_15_minutes
+    },
+)
 
 /**
  * As above, for choices whose stored value and displayed label differ (e.g. the app language).

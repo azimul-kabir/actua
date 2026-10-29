@@ -2,6 +2,9 @@ package com.azimulkabir.actua
 
 import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import com.azimulkabir.actua.data.importing.SharedStatementIntent
+import com.azimulkabir.actua.ui.lock.AppLock
+import com.azimulkabir.actua.data.security.AppLockPreferences
+import com.azimulkabir.actua.ui.lock.AppLockGate
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import android.content.Intent
 import android.os.Bundle
@@ -48,21 +51,25 @@ class MainActivity : AppCompatActivity() {
         // A recreated activity (rotation, theme change) still holds the original share intent; only
         // a fresh launch may start a file import, or the same statement would open again.
         launchRequest = intent.toLaunchRequest(allowSharedFile = savedInstanceState == null)
+        // Decide before the first frame so a locked app never draws budget content, not even briefly.
+        refreshAppLock()
         enableEdgeToEdge()
         setContent {
             var appearance by remember { mutableStateOf(DisplayPreferences(this).appearance) }
             var useDynamicColor by remember { mutableStateOf(DisplayPreferences(this).useDynamicColor) }
             val categoryStatusColorState = remember { CategoryStatusColorState(this) }
             ActuaTheme(appearance = appearance, dynamicColor = useDynamicColor) {
-                CompositionLocalProvider(LocalCategoryStatusColors provides categoryStatusColorState) {
-                    AppNavigation(
-                        modifier = Modifier.fillMaxSize(),
-                        foregroundGeneration = foregroundGeneration,
-                        launchRequest = launchRequest,
-                        onLaunchRequestConsumed = { launchRequest = null },
-                        onAppearanceChange = { appearance = it },
-                        onUseDynamicColorChange = { useDynamicColor = it },
-                    )
+                AppLockGate(locked = AppLock.locked, onUnlocked = AppLock::unlock) {
+                    CompositionLocalProvider(LocalCategoryStatusColors provides categoryStatusColorState) {
+                        AppNavigation(
+                            modifier = Modifier.fillMaxSize(),
+                            foregroundGeneration = foregroundGeneration,
+                            launchRequest = launchRequest,
+                            onLaunchRequestConsumed = { launchRequest = null },
+                            onAppearanceChange = { appearance = it },
+                            onUseDynamicColorChange = { useDynamicColor = it },
+                        )
+                    }
                 }
             }
         }
@@ -78,6 +85,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        refreshAppLock()
         foregroundGeneration += 1
         // Looking up widget instances crosses Binder. Keep it off the input/render thread just
         // like the per-widget database reads triggered by the resulting broadcast.
@@ -94,7 +102,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        // A rotation or theme change stops the activity too, but the user hasn't left the app.
+        if (!isChangingConfigurations) AppLock.onBackground()
         if (!isChangingConfigurations) ActualSyncScheduler.scheduleLocalBackup(this)
+    }
+
+    private fun refreshAppLock() {
+        val preferences = AppLockPreferences(this)
+        AppLock.onForeground(preferences.enabled, preferences.timeout)
     }
 
     private fun Intent.toLaunchRequest(allowSharedFile: Boolean = true): AppLaunchRequest? = action?.takeIf {
