@@ -33,7 +33,12 @@ suffix) it first uploads the signed `.aab` to Google Play's production track, wi
 `changelogs/<versionCode>.txt` as "What's new"; Play publishes it once Google's review passes
 (Managed publishing is off). A failed upload, a missing "What's new" file or a missing
 `PLAY_SERVICE_ACCOUNT_JSON` stops the run before the F-Droid template, the GitHub release or the
-Discord post. The `.aab` is also kept as the `Actua-v<version>-aab` artifact (90 days). To
+Discord post. The `.aab` is also kept as the `Actua-v<version>-aab` artifact (90 days). Right
+after the upload, the same stable-release run also syncs the Play title, short description and full
+description from `fastlane/metadata/android/en-US/` through the `update-play-listing-text` action
+(it changes nothing when they already match). That step does not stop the release: if it fails, the
+run still publishes the GitHub release, the F-Droid template and the Discord post, and ends with a
+warning annotation and a job-summary note; run **Google Play Listing Text** with "apply" to retry. To
 re-run a release Play already has, run the workflow manually with "Upload a stable release to
 Google Play" turned off. Update `versionCode`, `versionName`, and `CHANGELOG.md` together for
 each release.
@@ -71,12 +76,12 @@ Every release follows this sequence:
    features change. When the UI changes noticeably, refresh `images/phoneScreenshots/` (2–8 PNGs,
    from `artwork/screenshots/light/`) and `images/featureGraphic.png` (1024 × 500, no calls to
    action), then run the **Google Play Listing Images** workflow to upload just those images.
-   Google Play does not read those text files on release: after changing `title.txt`,
-   `short_description.txt` or `full_description.txt`, run the **Google Play Listing Text**
-   workflow. It first compares the files with the live listing and prints what would change
-   (title 30, short description 80 and full description 4000 characters at most); run it again
-   with "apply" turned on to publish. It only touches those three fields, never the images,
-   release notes or any release.
+   A stable release publishes `title.txt`, `short_description.txt` and `full_description.txt` to
+   Google Play automatically (see below), so keep them current in the release PR: title 30, short
+   description 80 and full description 4000 characters at most. To change them between releases, run
+   the **Google Play Listing Text** workflow: it first compares the files with the live listing and
+   prints what would change, and publishes only when run again with "apply" turned on. It only
+   touches those three fields, never the images, release notes or any release.
    `PRIVACY.md` must stay accurate for the Play Data safety form and any
    permission declarations.
 8. Open the release PR linked to that issue. Merging it to `main` triggers the Android

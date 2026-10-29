@@ -145,6 +145,25 @@ jobs:
           track: production
           status: completed
           whatsNewDirectory: ${{ runner.temp }}/whatsnew
+      # The store description lives in fastlane/metadata next to the "What's new" text, so a release
+      # keeps Google Play's title and descriptions in step with it (nothing happens when they already
+      # match). It runs after the bundle is on Play and is deliberately not a release blocker: a listing
+      # problem (for example a service account without "Manage store presence") must not leave Play
+      # ahead of the GitHub release, the F-Droid template and the Discord post. The next step turns a
+      # failure into a visible warning; run "Google Play Listing Text" to retry it.
+      - name: Update Google Play listing text
+        id: listing
+        if: steps.play.outputs.published == 'true'
+        continue-on-error: true
+        uses: ./.github/actions/update-play-listing-text
+        with:
+          service-account-json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          apply: 'true'
+      - name: Warn that the Google Play listing text was not updated
+        if: steps.listing.outcome == 'failure'
+        run: |
+          echo "::warning title=Google Play listing text not updated::The release is published, but the title and descriptions on Google Play were not updated. See the 'Update Google Play listing text' step, then run the 'Google Play Listing Text' workflow to retry."
+          echo "Google Play listing text was NOT updated by this release. Run the Google Play Listing Text workflow to retry." >> "$GITHUB_STEP_SUMMARY"
       - name: Update F-Droid submission template
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.name }}
