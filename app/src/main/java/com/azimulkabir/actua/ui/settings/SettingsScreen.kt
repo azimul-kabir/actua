@@ -80,6 +80,7 @@ import com.azimulkabir.actua.data.location.ForegroundLocationPermission
 import com.azimulkabir.actua.data.preferences.BudgetDisplayFormats
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.LocationPreferences
+import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import com.azimulkabir.actua.ui.components.BudgetTypeConfirmDialog
 import com.azimulkabir.actua.ui.components.ActuaCardDivider
 import com.azimulkabir.actua.ui.components.ActuaFormCard
@@ -199,6 +200,8 @@ fun SettingsScreen(
         onDispose { supportBillingManager.stop() }
     }
     val locationPreferences = remember { LocationPreferences(context) }
+    val screenPrivacyPreferences = remember { ScreenPrivacyPreferences(context) }
+    var hideInRecents by remember { mutableStateOf(screenPrivacyPreferences.hideInRecents) }
     val tagRepository = remember { ActiveTagRepository(context) }
     var tagVersion by remember { mutableStateOf(0L) }
     val managedTags = remember(tagVersion) { tagRepository.tags(tagVersion) }
@@ -833,6 +836,17 @@ fun SettingsScreen(
                                 } else "",
                             onChange = onPrivacyModeChange,
                         )
+                    }
+                    SettingsGroup(stringResource(R.string.settings_section_screen_privacy)) {
+                        SettingsToggle(
+                            stringResource(R.string.settings_hide_in_recents),
+                            stringResource(R.string.settings_hide_in_recents_description),
+                            hideInRecents,
+                        ) { enabled ->
+                            hideInRecents = enabled
+                            screenPrivacyPreferences.hideInRecents = enabled
+                            (context as? Activity)?.let { ScreenPrivacyPreferences.apply(it, enabled) }
+                        }
                     }
                     SettingsGroup(stringResource(R.string.settings_section_location_payees)) {
                         SettingsToggle(

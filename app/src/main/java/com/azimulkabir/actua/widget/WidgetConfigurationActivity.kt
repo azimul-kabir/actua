@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.widget
 
+import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
@@ -55,6 +56,7 @@ class WidgetConfigurationActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ScreenPrivacyPreferences.apply(this)
         widgetId = intent.getIntExtra(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID,
