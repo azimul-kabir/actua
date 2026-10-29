@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added exporting the transactions a filter or search shows, and all Global Search matches, to CSV ([#1389](https://github.com/azimul-kabir/actua/pull/1389))
 - Added an optional app lock that asks for biometrics or the device PIN to open Actua, with a relock timeout ([#1388](https://github.com/azimul-kabir/actua/pull/1388))
 - Added Export to CSV in an account's register menu ([#1387](https://github.com/azimul-kabir/actua/pull/1387))
 - Added opening bank statement files shared from other apps directly in the transaction importer ([#1386](https://github.com/azimul-kabir/actua/pull/1386))
