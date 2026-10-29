@@ -1264,12 +1264,38 @@ class ActuaRepository(context: Context) {
      * of transactions written. Blocking: call off the main thread.
      */
     fun exportAccountTransactionsCsv(accountId: String, output: Appendable): Int {
-        val db = actualDatabase ?: throw IllegalStateException("No Actual budget is open")
+        val db = openBudgetForExport()
+        return writeTransactionsCsv(db, db.fetchTransactions(accountId = accountId, limit = Int.MAX_VALUE), output)
+    }
+
+    /**
+     * Writes exactly the transactions with [transactionIds], in that order, as CSV: the rows a
+     * filtered register is showing. Ids that no longer exist are skipped. Read-only and blocking.
+     */
+    fun exportTransactionsCsv(transactionIds: List<String>, output: Appendable): Int {
+        val db = openBudgetForExport()
+        return writeTransactionsCsv(db, db.fetchTransactionsByIds(transactionIds), output)
+    }
+
+    /**
+     * Writes every transaction matching the Global Search [query] and [statusFilter] as CSV, not
+     * just the pages loaded on screen: it runs the same query unpaged. Read-only and blocking.
+     */
+    fun exportSearchTransactionsCsv(query: String, statusFilter: TransactionStatusFilter, output: Appendable): Int {
+        require(query.isNotBlank()) { "A search export needs a search term" }
+        val db = openBudgetForExport()
+        val rows = db.fetchTransactions(limit = Int.MAX_VALUE, query = query, statusFilter = statusFilter)
+        return writeTransactionsCsv(db, rows, output)
+    }
+
+    private fun openBudgetForExport(): ActualBudgetDatabase =
+        actualDatabase ?: throw IllegalStateException("No Actual budget is open")
+
+    private fun writeTransactionsCsv(db: ActualBudgetDatabase, rows: List<ActualTransaction>, output: Appendable): Int {
         val accountNames = db.fetchAccounts().associate { it.id to it.name }
         val categoryGroupNames = db.fetchCategoryGroups()
             .flatMap { group -> group.categories.map { it.id to group.name } }
             .toMap()
-        val rows = db.fetchTransactions(accountId = accountId, limit = Int.MAX_VALUE)
         return TransactionCsv.write(rows.map { it.toCsvTransaction(accountNames, categoryGroupNames) }, output)
     }
 

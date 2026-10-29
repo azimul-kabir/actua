@@ -1447,6 +1447,11 @@ class ActualBudgetDatabase private constructor(
         database.rawQuery(transactionSelect + accountClause + dateClause + stateClause + searchClause + " ORDER BY t.date DESC, t.starting_balance_flag, t.sort_order DESC, t.id LIMIT ? OFFSET ?", args.toTypedArray()).use { cursor ->
             while (cursor.moveToNext()) rows += cursor.toActualTransaction()
         }
+        return withSplitPortions(rows)
+    }
+
+    /** Attaches the live split lines of every split parent in [rows]. */
+    private fun withSplitPortions(rows: List<ActualTransaction>): List<ActualTransaction> {
         val parentIds = rows.filter(ActualTransaction::isParent).map(ActualTransaction::id)
         if (parentIds.isEmpty()) return rows
         val portions = mutableMapOf<String, MutableList<ActualTransaction.SplitPortion>>()
@@ -1482,6 +1487,25 @@ class ActualBudgetDatabase private constructor(
             }
         }
         return rows.map { it.copy(splitPortions = portions[it.id].orEmpty()) }
+    }
+
+    /**
+     * Live top-level transactions with the given [ids], split lines included, in the order of
+     * [ids]. Unknown, deleted and split-child ids are skipped. Used to export exactly the rows a
+     * screen is showing.
+     */
+    @Synchronized
+    fun fetchTransactionsByIds(ids: List<String>): List<ActualTransaction> {
+        if (ids.isEmpty()) return emptyList()
+        val byId = HashMap<String, ActualTransaction>()
+        // Stay below SQLite's bind limit (999 on older Android releases).
+        ids.distinct().chunked(500).forEach { batch ->
+            val placeholders = batch.joinToString { "?" }
+            database.rawQuery(transactionSelect + " AND t.id IN ($placeholders)", batch.toTypedArray()).use { cursor ->
+                while (cursor.moveToNext()) cursor.toActualTransaction().let { byId[it.id] = it }
+            }
+        }
+        return withSplitPortions(ids.mapNotNull(byId::get))
     }
 
     @Synchronized

@@ -1,6 +1,9 @@
 package com.azimulkabir.actua.ui.search
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +24,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
+import com.azimulkabir.actua.R
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
@@ -58,6 +63,8 @@ fun GlobalSearchScreen(
     onCategoryClick: (String) -> Unit,
     onPayeeClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** Writes every transaction matching the given search term (not just the loaded pages) as CSV to the chosen document. */
+    onExportCsv: ((String, Uri) -> Unit)? = null,
 ) {
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(SearchFilter.ALL) }
@@ -92,6 +99,10 @@ fun GlobalSearchScreen(
     val matchingCategories = remember(term, categories) { if (term.isBlank()) emptyList() else categories.filter { it.contains(term, true) }.take(20) }
 
     BackHandler(onBack = onBack)
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        if (uri != null) onExportCsv?.invoke(term, uri)
+    }
+    val exportFileName = stringResource(R.string.search_export_csv_filename)
     Column(modifier.fillMaxSize()) {
         OutlinedTextField(
             value = query,
@@ -137,6 +148,13 @@ fun GlobalSearchScreen(
                             searchFailed -> Text("Search failed. Change the search to try again.", modifier = Modifier.padding(20.dp))
                             hasMore -> TextButton(onClick = { page += 1 }) { Text("Load more transactions") }
                             matchingTransactions.isEmpty() -> Text("No matching transactions", modifier = Modifier.padding(20.dp))
+                        }
+                    }
+                    if (onExportCsv != null && matchingTransactions.isNotEmpty() && !loading && !searchFailed) {
+                        item("transaction-search-export") {
+                            TextButton(onClick = { exportLauncher.launch(exportFileName) }) {
+                                Text(stringResource(R.string.search_export_csv))
+                            }
                         }
                     }
                 }

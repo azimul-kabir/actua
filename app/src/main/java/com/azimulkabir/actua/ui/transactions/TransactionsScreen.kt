@@ -200,6 +200,11 @@ fun TransactionsScreen(
     onShowRunningBalanceChange: (Boolean) -> Unit = {},
     /** Writes the account's transactions as CSV to the chosen document; null hides the menu entry. */
     onExportCsv: ((Account, Uri) -> Unit)? = null,
+    /**
+     * Writes exactly the given transactions (the rows currently shown, upcoming projections
+     * excluded) as CSV to the chosen document; null hides the menu entry.
+     */
+    onExportShownCsv: ((List<String>, Uri) -> Unit)? = null,
     showNotes: Boolean = true,
     allTransactions: List<Transaction> = transactions,
     onReconcileVisibilityChange: (Boolean) -> Unit = {},
@@ -335,6 +340,15 @@ fun TransactionsScreen(
                         .any { text -> text.contains(search, ignoreCase = true) })
         }
     }
+    // Upcoming rows are a display projection of schedules, not transactions, so they never export.
+    val shownTransactionIds = remember(visible) { visible.filterNot { it.isUpcoming }.map { it.id } }
+    val exportShownLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        if (uri != null) onExportShownCsv?.invoke(shownTransactionIds, uri)
+    }
+    // A single account's whole register already has "Export to CSV"; this entry is for what a
+    // filter or search narrowed down, and for views that span accounts or a category.
+    val filtersActive = search.isNotBlank() || transactionStatusFilter != TransactionStatusFilter.ALL ||
+        hideReconciledTransactions || categoryName != null || month != null
     // Otherwise re-grouped inside the LazyColumn content block on every recomposition of this
     // screen (e.g. every selection-mode tap), not just when `visible` actually changes.
     val groupedByDate = remember(visible) { visible.groupBy { it.date } }
@@ -456,6 +470,18 @@ fun TransactionsScreen(
                                         },
                                     )
                                 }
+                            }
+                            if (onExportShownCsv != null && shownTransactionIds.isNotEmpty() && (account == null || filtersActive)) {
+                                val exportShownFileName = stringResource(R.string.transactions_export_shown_csv_filename)
+                                if (account == null) HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.transactions_export_shown_csv)) },
+                                    leadingIcon = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        exportShownLauncher.launch(exportShownFileName)
+                                    },
+                                )
                             }
                         }
                     }

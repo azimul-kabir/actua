@@ -796,6 +796,25 @@ fun AppNavigation(
         }
     }
 
+    // Writes a CSV to the document the user picked, off the main thread. A failed export removes
+    // the empty or truncated file it created at that location.
+    fun exportCsvTo(uri: Uri, successMessage: String, write: (Appendable) -> Int) {
+        coroutineScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri, "w")!!.bufferedWriter(Charsets.UTF_8).use(write)
+                }
+            }.onSuccess {
+                snackbarHostState.showSnackbar(successMessage)
+            }.onFailure { error ->
+                if (error is CancellationException) throw error
+                DiagnosticsLog.actionFailed("Export CSV", error)
+                runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
+                snackbarHostState.showSnackbar(navStrings.accountCsvExportFailed)
+            }
+        }
+    }
+
     val transactionLoanAccount = accounts.firstOrNull { it.name == transactionAccount }
     val transactionLoanActions = remember(repository, transactionLoanAccount) {
         LoanScreenActions(repository, transactionLoanAccount) { res, action -> mutate(res, action = action) }
@@ -2059,23 +2078,12 @@ fun AppNavigation(
                     mutate(R.string.navigation_reconciling_account, onChanged = onReconciled) { repository.reconcileAccount(account.id) }
                 },
                 onExportCsv = { account, uri ->
-                    coroutineScope.launch {
-                        runCatching {
-                            withContext(Dispatchers.IO) {
-                                context.contentResolver.openOutputStream(uri, "w")!!.bufferedWriter(Charsets.UTF_8).use {
-                                    repository.exportAccountTransactionsCsv(account.id, it)
-                                }
-                            }
-                        }.onSuccess {
-                            snackbarHostState.showSnackbar(navStrings.accountCsvExportedFormat.format(account.name))
-                        }.onFailure { error ->
-                            if (error is CancellationException) throw error
-                            DiagnosticsLog.actionFailed("Export account CSV", error)
-                            // Don't leave an empty or truncated file behind at the chosen location.
-                            runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
-                            snackbarHostState.showSnackbar(navStrings.accountCsvExportFailed)
-                        }
+                    exportCsvTo(uri, navStrings.accountCsvExportedFormat.format(account.name)) {
+                        repository.exportAccountTransactionsCsv(account.id, it)
                     }
+                },
+                onExportShownCsv = { ids, uri ->
+                    exportCsvTo(uri, navStrings.transactionsCsvExported) { repository.exportTransactionsCsv(ids, it) }
                 },
                 onCreateReconciliationAdjustment = { account, difference, onCreated ->
                     mutate(R.string.navigation_creating_reconciliation_adjustment, onChanged = onCreated) {
@@ -2507,6 +2515,11 @@ fun AppNavigation(
                 onBack = {
                     detail = if (searchReturnsToReports) DetailDestination.Reports else DetailDestination.Main
                     searchReturnsToReports = false
+                },
+                onExportCsv = { term, uri ->
+                    exportCsvTo(uri, navStrings.transactionsCsvExported) {
+                        repository.exportSearchTransactionsCsv(term, transactionStatusFilter, it)
+                    }
                 },
                 onTransactionEdit = {
                     addOrigin = destination
@@ -3153,6 +3166,9 @@ fun AppNavigation(
                     onReconcileAccount = { account, onReconciled ->
                         mutate(R.string.navigation_reconciling_account, onChanged = onReconciled) { repository.reconcileAccount(account.id) }
                     },
+                    onExportShownCsv = { ids, uri ->
+                        exportCsvTo(uri, navStrings.transactionsCsvExported) { repository.exportTransactionsCsv(ids, it) }
+                    },
                     onCreateReconciliationAdjustment = { account, difference, onCreated ->
                         mutate(R.string.navigation_creating_reconciliation_adjustment, onChanged = onCreated) {
                             repository.createReconciliationAdjustment(account.id, difference)
@@ -3524,6 +3540,7 @@ private data class NavigationStrings(
     val unlockBeforeSyncing: String,
     val accountCsvExportedFormat: String,
     val accountCsvExportFailed: String,
+    val transactionsCsvExported: String,
 )
 
 @Composable
@@ -3549,6 +3566,7 @@ private fun navigationStrings(): NavigationStrings = NavigationStrings(
     unlockBeforeSyncing = stringResource(R.string.navigation_unlock_before_syncing),
     accountCsvExportedFormat = stringResource(R.string.navigation_account_csv_exported),
     accountCsvExportFailed = stringResource(R.string.navigation_account_csv_export_failed),
+    transactionsCsvExported = stringResource(R.string.navigation_transactions_csv_exported),
 )
 
 /**
