@@ -1,6 +1,7 @@
 package com.azimulkabir.actua
 
 import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
+import com.azimulkabir.actua.data.importing.SharedStatementIntent
 import com.azimulkabir.actua.data.diagnostics.DiagnosticsLog
 import android.content.Intent
 import android.os.Bundle
@@ -33,6 +34,7 @@ import kotlinx.coroutines.launch
 
 data class AppLaunchRequest(val action: String, val target: String?, val nonce: Long = System.nanoTime())
 const val SHARED_IMPORT_ACTION = "com.azimulkabir.actua.IMPORT_SHARED_TEXT"
+const val SHARED_IMPORT_FILE_ACTION = "com.azimulkabir.actua.IMPORT_SHARED_FILE"
 
 class MainActivity : AppCompatActivity() {
     private var foregroundGeneration by mutableIntStateOf(0)
@@ -43,7 +45,9 @@ class MainActivity : AppCompatActivity() {
         ScreenPrivacyPreferences.apply(this)
         DiagnosticsLog.attach(this)
         if (savedInstanceState == null) DiagnosticsLog.appLaunched()
-        launchRequest = intent.toLaunchRequest()
+        // A recreated activity (rotation, theme change) still holds the original share intent; only
+        // a fresh launch may start a file import, or the same statement would open again.
+        launchRequest = intent.toLaunchRequest(allowSharedFile = savedInstanceState == null)
         enableEdgeToEdge()
         setContent {
             var appearance by remember { mutableStateOf(DisplayPreferences(this).appearance) }
@@ -93,7 +97,7 @@ class MainActivity : AppCompatActivity() {
         if (!isChangingConfigurations) ActualSyncScheduler.scheduleLocalBackup(this)
     }
 
-    private fun Intent.toLaunchRequest(): AppLaunchRequest? = action?.takeIf {
+    private fun Intent.toLaunchRequest(allowSharedFile: Boolean = true): AppLaunchRequest? = action?.takeIf {
         it.startsWith("com.azimulkabir.actua.widget.")
     }?.let { AppLaunchRequest(it, getStringExtra(WidgetActions.EXTRA_TARGET)) }
         ?: takeIf { action == CreditCardDueLaunch.ACTION }
@@ -105,4 +109,6 @@ class MainActivity : AppCompatActivity() {
         ?: takeIf { action == Intent.ACTION_SEND && type?.startsWith("text/") == true }
             ?.getStringExtra(Intent.EXTRA_TEXT)?.takeIf(String::isNotBlank)
             ?.let { AppLaunchRequest(SHARED_IMPORT_ACTION, it) }
+        ?: takeIf { allowSharedFile }?.let(SharedStatementIntent::fileUri)
+            ?.let { AppLaunchRequest(SHARED_IMPORT_FILE_ACTION, it.toString()) }
 }

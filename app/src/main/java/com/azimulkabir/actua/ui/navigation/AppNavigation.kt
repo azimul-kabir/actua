@@ -206,6 +206,7 @@ import com.azimulkabir.actua.ui.components.findTagOccurrences
 import com.azimulkabir.actua.ui.components.applyDisplayFormats
 import com.azimulkabir.actua.AppLaunchRequest
 import com.azimulkabir.actua.SHARED_IMPORT_ACTION
+import com.azimulkabir.actua.SHARED_IMPORT_FILE_ACTION
 import com.azimulkabir.actua.widget.WidgetActions
 import com.azimulkabir.actua.widget.WidgetUpdater
 import androidx.compose.foundation.clickable
@@ -460,6 +461,7 @@ fun AppNavigation(
     val repository = remember(repositoryVersion) { ActuaRepository(context) }
     var dataVersion by remember { mutableStateOf(0) }
     var sharedImportText by remember { mutableStateOf<String?>(null) }
+    var sharedImportFile by remember { mutableStateOf<Uri?>(null) }
     // Each request reloads the capture queue, even when Review captured is already open.
     var capturedReviewRequest by remember { mutableIntStateOf(0) }
     var capturedReviewReturnsToImport by remember { mutableStateOf(false) }
@@ -1467,6 +1469,11 @@ fun AppNavigation(
         when (request.action) {
             SHARED_IMPORT_ACTION -> {
                 sharedImportText = request.target
+                destination = MainDestination.Manage
+                detail = DetailDestination.ImportTransactions
+            }
+            SHARED_IMPORT_FILE_ACTION -> {
+                sharedImportFile = request.target?.let(Uri::parse)
                 destination = MainDestination.Manage
                 detail = DetailDestination.ImportTransactions
             }
@@ -2804,6 +2811,8 @@ fun AppNavigation(
                 onScheduleRuleIdChange = { scheduleRuleId = it },
                 sharedImportText = sharedImportText,
                 onSharedTextConsumed = { sharedImportText = null },
+                sharedImportFile = sharedImportFile,
+                onSharedFileConsumed = { sharedImportFile = null },
                 capturedReviewRequest = capturedReviewRequest,
                 onReturnFromCapturedReview = ::returnFromCapturedReview,
                 onOpenCapturedReview = ::openCapturedReview,
@@ -3599,6 +3608,8 @@ private fun NavigationScheduleScreens(
     onScheduleRuleIdChange: (String?) -> Unit,
     sharedImportText: String?,
     onSharedTextConsumed: () -> Unit,
+    sharedImportFile: Uri?,
+    onSharedFileConsumed: () -> Unit,
     capturedReviewRequest: Int,
     onReturnFromCapturedReview: () -> Unit,
     onOpenCapturedReview: (Boolean) -> Unit,
@@ -3708,6 +3719,8 @@ private fun NavigationScheduleScreens(
             modifier = contentModifier,
             initialSharedText = sharedImportText,
             onSharedTextConsumed = onSharedTextConsumed,
+            initialSharedFile = sharedImportFile,
+            onSharedFileConsumed = onSharedFileConsumed,
             onOpenCapturedReview = { onOpenCapturedReview(true) },
         )
         DetailDestination.ReviewCaptured -> key(capturedReviewRequest) {

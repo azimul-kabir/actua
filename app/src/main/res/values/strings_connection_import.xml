@@ -224,6 +224,7 @@
     <string name="no_local_backups_yet">No local backups yet.</string>
     <string name="backup_exported">Backup exported.</string>
     <string name="could_not_export_backup">Could not export backup.</string>
+    <string name="import_shared_file_unsupported">This file type can\'t be imported. Share a CSV, OFX, QFX, QIF, XLSX, PDF or CAMT.053 statement.</string>
     <string name="could_not_read_selected_file">Could not read the selected file</string>
     <string name="backup_imported">Backup imported. Tap it below when you are ready to restore.</string>
     <string name="could_not_import_backup">Could not import this backup.</string>

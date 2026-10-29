@@ -15,6 +15,14 @@ can map each column to Date, Payee, Notes, Reference, Amount, Debit, Credit, or 
 format; and indicate whether a single amount column lists expenses as positive numbers. Separate
 debit and credit columns always retain their normal debit-negative, credit-positive meaning.
 
+Statements can also be shared to Actua from a banking app, mail client or file manager (share, or
+"Open with"). Actua accepts the same formats as the picker (CSV, XLSX, PDF, OFX, QFX, QIF, CAMT.053),
+chosen from the file extension and then the MIME type, and opens the usual import review with the
+file loaded. Nothing is imported until the review is confirmed. Shared files are read through the
+temporary `content://` grant from the sending app; a file of any other type is rejected with a message
+instead of being guessed as CSV. Only one file is handled per share, and pasted or shared text keeps
+its existing message flow.
+
 Mappings can be saved as named device-local profiles. A profile is loaded only when the user chooses
 it and the statement has the same number of columns. Profiles do not contain statement rows or budget
 data.
