@@ -1,6 +1,10 @@
 # Submission template for fdroiddata/metadata/com.azimulkabir.actua.yml.
 # Actua 2.3.0 is built from source at the release commit pinned below.
 
+AntiFeatures:
+  NonFreeNet:
+    en-US: Optional backup and restore to your own Google Drive account.
+
 Categories:
   - Finance Manager
 License: GPL-3.0-or-later
