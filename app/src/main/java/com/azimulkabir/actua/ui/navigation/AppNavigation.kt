@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.annotation.SuppressLint
 import android.os.Build
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -2057,6 +2058,25 @@ fun AppNavigation(
                 onReconcileAccount = { account, onReconciled ->
                     mutate(R.string.navigation_reconciling_account, onChanged = onReconciled) { repository.reconcileAccount(account.id) }
                 },
+                onExportCsv = { account, uri ->
+                    coroutineScope.launch {
+                        runCatching {
+                            withContext(Dispatchers.IO) {
+                                context.contentResolver.openOutputStream(uri, "w")!!.bufferedWriter(Charsets.UTF_8).use {
+                                    repository.exportAccountTransactionsCsv(account.id, it)
+                                }
+                            }
+                        }.onSuccess {
+                            snackbarHostState.showSnackbar(navStrings.accountCsvExportedFormat.format(account.name))
+                        }.onFailure { error ->
+                            if (error is CancellationException) throw error
+                            DiagnosticsLog.actionFailed("Export account CSV", error)
+                            // Don't leave an empty or truncated file behind at the chosen location.
+                            runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
+                            snackbarHostState.showSnackbar(navStrings.accountCsvExportFailed)
+                        }
+                    }
+                },
                 onCreateReconciliationAdjustment = { account, difference, onCreated ->
                     mutate(R.string.navigation_creating_reconciliation_adjustment, onChanged = onCreated) {
                         repository.createReconciliationAdjustment(account.id, difference)
@@ -3502,6 +3522,8 @@ private data class NavigationStrings(
     val gocardlessAccountsCheckFailed: String,
     val reportsLoadFailedFormat: String,
     val unlockBeforeSyncing: String,
+    val accountCsvExportedFormat: String,
+    val accountCsvExportFailed: String,
 )
 
 @Composable
@@ -3525,6 +3547,8 @@ private fun navigationStrings(): NavigationStrings = NavigationStrings(
     gocardlessAccountsCheckFailed = stringResource(R.string.navigation_gocardless_accounts_check_failed),
     reportsLoadFailedFormat = stringResource(R.string.navigation_reports_load_failed_with_reason),
     unlockBeforeSyncing = stringResource(R.string.navigation_unlock_before_syncing),
+    accountCsvExportedFormat = stringResource(R.string.navigation_account_csv_exported),
+    accountCsvExportFailed = stringResource(R.string.navigation_account_csv_export_failed),
 )
 
 /**
