@@ -71,6 +71,12 @@ Every release follows this sequence:
    features change. When the UI changes noticeably, refresh `images/phoneScreenshots/` (2–8 PNGs,
    from `artwork/screenshots/light/`) and `images/featureGraphic.png` (1024 × 500, no calls to
    action), then run the **Google Play Listing Images** workflow to upload just those images.
+   Google Play does not read those text files on release: after changing `title.txt`,
+   `short_description.txt` or `full_description.txt`, run the **Google Play Listing Text**
+   workflow. It first compares the files with the live listing and prints what would change
+   (title 30, short description 80 and full description 4000 characters at most); run it again
+   with "apply" turned on to publish. It only touches those three fields, never the images,
+   release notes or any release.
    `PRIVACY.md` must stay accurate for the Play Data safety form and any
    permission declarations.
 8. Open the release PR linked to that issue. Merging it to `main` triggers the Android
