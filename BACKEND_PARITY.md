@@ -98,7 +98,14 @@ Backend compatibility is audited against Actual Budget v26.9.0 at commit
 - Source-independent transaction-import candidates with local CSV, OFX, QFX, QIF, CAMT.053 XML, XLSX, and text-based PDF sources,
   configurable delimiter/column/date/sign mapping, reusable local profiles, bounded import
   history, review/edit/reject/bulk approval, normalized payee matching, malformed-row exclusion,
-  stable ID deduplication (`financial_id`), explained existing/within-file duplicate warnings, and batched Actual-compatible writes
+  stable ID deduplication (`financial_id`), explained existing/within-file duplicate warnings, and batched Actual-compatible writes;
+  statement files shared or opened from other apps (`ACTION_SEND` / `ACTION_VIEW`, `content://` only) enter the same review before anything is written
+- Read-only CSV export in the column layout of Actual's account export (`exportQueryToCSV`: split parent and lines, Reconciled/Cleared status,
+  formula-injection guard) for an account register, for the rows a filter or search shows (by id, upcoming projections excluded) and for every
+  Global Search match (the same query unpaged); amounts are exact two-decimal values from integer cents; see
+  [docs/TRANSACTIONS_PARITY.md](docs/TRANSACTIONS_PARITY.md)
+- Device-local app lock (Android biometric prompt or device credential, relock timeout) and a recents/screenshot privacy switch; neither is part of
+  the budget or of any synced preference and no database, sync or Keystore storage changes (see [docs/APP_LOCK.md](docs/APP_LOCK.md))
 - Dedicated Bank Sync management page (Accounts "+" → Set up bank sync, and Manage → Bank Sync):
   SimpleFIN setup token and GoCardless Secret ID/Key configuration, account discovery, linking a
   discovered account to an existing or newly created Actual account, and unlinking. GoCardless

@@ -1,0 +1,8 @@
+• Optional app lock with biometrics or PIN
+• Hide Actua in the recents screen
+• Export transactions and search results to CSV
+• Open shared bank statement files
+• Pluggy.ai and Akahu bank sync
+• Bank sync field mapping editor
+• Month note in the Budget menu
+• Weekly and biweekly loan schedules
