@@ -183,6 +183,9 @@
     <string name="settings_balances_hiding">Hiding masks budget, account and transaction amounts</string>
     <string name="settings_balances_budget_hidden">. Budget: hidden</string>
     <string name="settings_balances_budget_shown">. Budget: shown</string>
+    <string name="settings_section_screen_privacy">Screen privacy</string>
+    <string name="settings_hide_in_recents">Hide app contents in recents</string>
+    <string name="settings_hide_in_recents_description">Show a blank card in the recents screen and block screenshots and screen recording in Actua. Off by default. Takes effect immediately.</string>
     <string name="settings_section_location_payees">Location-aware payees</string>
     <string name="settings_record_payee_locations">Record payee locations</string>
     <string name="settings_record_payee_locations_enabled_description">Use your location only while Actua is open to remember eligible payees nearby. Coordinates stay in your Actual budget and sync with it.</string>

@@ -1,5 +1,6 @@
 package com.azimulkabir.actua.tasker
 
+import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -57,6 +58,7 @@ import kotlinx.coroutines.withContext
 class TaskerEditActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ScreenPrivacyPreferences.apply(this)
         // Only a host that asked for a result (Tasker) can receive the bundle and its token.
         val caller = callingPackage ?: run { finish(); return }
         setResult(Activity.RESULT_CANCELED)

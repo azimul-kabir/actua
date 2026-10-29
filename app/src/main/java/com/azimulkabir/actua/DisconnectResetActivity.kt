@@ -1,5 +1,6 @@
 package com.azimulkabir.actua
 
+import com.azimulkabir.actua.data.preferences.ScreenPrivacyPreferences
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
@@ -46,6 +47,7 @@ class DisconnectResetActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ScreenPrivacyPreferences.apply(this)
         setContent {
             ActuaTheme(
                 appearance = DisplayPreferences(this).appearance,
