@@ -88,6 +88,14 @@
     <string name="transactions_group_by_date">Group by date</string>
     <string name="transactions_show_upcoming">Show upcoming transactions</string>
     <string name="transactions_export_csv">Export to CSV</string>
+    <string name="transaction_make_one_time_schedule">Make one-time schedule</string>
+    <string name="transaction_make_one_time_schedule_question">Make a one-time schedule?</string>
+    <string name="transaction_make_one_time_schedule_message">This replaces the saved transaction with a schedule that posts it on %1$s. Changes in this form that aren\'t saved are not included.</string>
+    <plurals name="transaction_one_time_schedule_beyond_window">
+        <item quantity="one">This transaction is %1$d day away, beyond your upcoming window of %2$d days. The schedule won\'t show as upcoming until then.</item>
+        <item quantity="other">This transaction is %1$d days away, beyond your upcoming window of %2$d days. The schedule won\'t show as upcoming until then.</item>
+    </plurals>
+    <string name="transaction_make_one_time_schedule_confirm">Make schedule</string>
     <string name="transactions_export_csv_filename">%1$s transactions.csv</string>
     <string name="transactions_export_shown_csv">Export shown transactions to CSV</string>
     <string name="transactions_export_shown_csv_filename">Actua transactions.csv</string>
