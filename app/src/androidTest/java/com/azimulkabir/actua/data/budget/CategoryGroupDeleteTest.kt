@@ -92,6 +92,22 @@ class CategoryGroupDeleteTest {
         assertTrue(database.fetchCategoryGroups().any { it.id == "bills" })
     }
 
+    @Test
+    fun categoryCreatedInIncomeGroupIsIncomeAndPlacedFirst() = withDatabase { database, writer ->
+        val id = writer.createCategory(name = "Bonus", groupId = "income")
+
+        val income = database.fetchCategoryGroups().first { it.id == "income" }
+        val created = income.categories.single { it.id == id }
+        assertTrue(created.isIncome)
+        assertFalse(created.hidden)
+        assertEquals("income", created.groupId)
+        assertEquals(listOf(id, "salary"), income.categories.sortedBy { it.sortOrder }.map { it.id })
+
+        val messages = database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString())
+        assertTrue(messages.any { it.dataset == "categories" && it.row == id && it.column == "is_income" })
+        assertTrue(messages.any { it.dataset == "category_mapping" && it.row == id && it.column == "transferId" })
+    }
+
     private fun withDatabase(block: (ActualBudgetDatabase, ActualEntityWriter) -> Unit) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val file = File(context.cacheDir, "category-group-delete-${UUID.randomUUID()}.sqlite")

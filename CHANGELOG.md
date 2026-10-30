@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added adding categories to the income group in Manage Categories (PR_LINK)
+
 ## [2.3.0] - 2026-10-29
 
 ### Added
