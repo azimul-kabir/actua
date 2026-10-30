@@ -184,6 +184,7 @@ fun ReportsScreen(
     onCreateDashboardPage: (name: String) -> Unit = {},
     onRenameDashboardPage: (pageId: String, name: String) -> Unit = { _, _ -> },
     onDeleteDashboardPage: (pageId: String) -> Unit = {},
+    onExportReportCsv: ((ReportDataTable, android.net.Uri) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
     var datePreset by rememberSaveable { mutableStateOf<String?>(null) }
@@ -406,6 +407,7 @@ fun ReportsScreen(
                 onDrillDown = { updateDrill(it to base.name) },
                 onBack = { expandedWidgetId = null },
                 backEnabled = currentDrill == null,
+                onExportCsv = onExportReportCsv,
             )
         }
     }
@@ -1828,9 +1830,20 @@ private fun FullScreenWidget(
     onDrillDown: (ReportCategory) -> Unit,
     onBack: () -> Unit,
     backEnabled: Boolean,
+    onExportCsv: ((ReportDataTable, android.net.Uri) -> Unit)? = null,
 ) {
     androidx.activity.compose.BackHandler(enabled = backEnabled, onBack = onBack)
-    val table = remember(widget, hideDecimals) { reportDataTable(widget) { formatMoneyCents(it, hideDecimals) } }
+    val table = remember(widget, hideDecimals) { reportDataTable(widget, { formatMoneyCents(it, hideDecimals) }) }
+    // The file always carries exact amounts, whatever the display (privacy, hidden decimals) shows.
+    val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/csv"),
+    ) { uri ->
+        if (uri != null) {
+            reportDataTable(widget, com.azimulkabir.actua.data.export.TransactionCsv::amount, csv = true)
+                ?.let { onExportCsv?.invoke(it, uri) }
+        }
+    }
+    val exportFileName = "${widget.name.replace(Regex("[\\\\/:*?\"<>|]"), "-").trim().ifEmpty { "Report" }}.csv"
     Surface(Modifier.fillMaxSize().testTag("fullScreenWidget"), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1879,14 +1892,22 @@ private fun FullScreenWidget(
                     }
                 }
             } else {
-                DataTableTab(table, widget.name, onDrillDown)
+                DataTableTab(
+                    table, widget.name, onDrillDown,
+                    onExport = if (onExportCsv != null) ({ exportLauncher.launch(exportFileName) }) else null,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun DataTableTab(table: ReportDataTable?, name: String, onDrillDown: (ReportCategory) -> Unit) {
+private fun DataTableTab(
+    table: ReportDataTable?,
+    name: String,
+    onDrillDown: (ReportCategory) -> Unit,
+    onExport: (() -> Unit)? = null,
+) {
     if (table == null || table.rows.isEmpty()) {
         Text(
             "No figures to tabulate for $name.", Modifier.padding(Spacing.screenHorizontal),
@@ -1895,6 +1916,17 @@ private fun DataTableTab(table: ReportDataTable?, name: String, onDrillDown: (Re
         return
     }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal)) {
+        if (onExport != null) item {
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "The file has exact, unmasked amounts.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                androidx.compose.material3.TextButton(onClick = onExport) { Text("Export to CSV") }
+            }
+        }
         item {
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 table.headers.forEachIndexed { i, header ->

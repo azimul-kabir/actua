@@ -146,6 +146,8 @@ import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.transactions.upcomingTransactionsFrom
 import com.azimulkabir.actua.ui.transactions.recurringScheduleIds
 import com.azimulkabir.actua.ui.transactions.UpcomingTransactionAction
+import com.azimulkabir.actua.data.export.ReportCsv
+import com.azimulkabir.actua.ui.reports.ReportDataTable
 import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.ui.home.HomeScreen
@@ -798,7 +800,12 @@ fun AppNavigation(
 
     // Writes a CSV to the document the user picked, off the main thread. A failed export removes
     // the empty or truncated file it created at that location.
-    fun exportCsvTo(uri: Uri, successMessage: String, write: (Appendable) -> Int) {
+    fun exportCsvTo(
+        uri: Uri,
+        successMessage: String,
+        failureMessage: String = navStrings.accountCsvExportFailed,
+        write: (Appendable) -> Int,
+    ) {
         coroutineScope.launch {
             runCatching {
                 withContext(Dispatchers.IO) {
@@ -810,7 +817,7 @@ fun AppNavigation(
                 if (error is CancellationException) throw error
                 DiagnosticsLog.actionFailed("Export CSV", error)
                 runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
-                snackbarHostState.showSnackbar(navStrings.accountCsvExportFailed)
+                snackbarHostState.showSnackbar(failureMessage)
             }
         }
     }
@@ -2029,6 +2036,11 @@ fun AppNavigation(
                 hasFab = hasFab,
                 repository = repository,
                 onMutate = { labelRes, action -> mutate(labelRes, action = action) },
+                onExportReportCsv = { table, uri ->
+                    exportCsvTo(uri, navStrings.reportCsvExported, navStrings.reportCsvExportFailed) {
+                        ReportCsv.write(table.headers, table.rows.map { it.cells }, it)
+                    }
+                },
             )
             DetailDestination.Transactions -> TransactionsScreen(
                 accountName = transactionAccount,
@@ -3311,6 +3323,11 @@ fun AppNavigation(
                     hasFab = hasFab,
                     repository = repository,
                     onMutate = { labelRes, action -> mutate(labelRes, action = action) },
+                    onExportReportCsv = { table, uri ->
+                        exportCsvTo(uri, navStrings.reportCsvExported, navStrings.reportCsvExportFailed) {
+                            ReportCsv.write(table.headers, table.rows.map { it.cells }, it)
+                        }
+                    },
                 )
                 MainDestination.Manage -> NavigationBranch { SettingsScreen(
                     modifier = contentModifier,
@@ -3441,6 +3458,7 @@ private fun NavigationReportsScreen(
     hasFab: Boolean,
     repository: ActuaRepository,
     onMutate: (labelRes: Int, action: () -> Boolean) -> Unit,
+    onExportReportCsv: (ReportDataTable, Uri) -> Unit,
 ) {
     ReportsScreen(
         snapshot = snapshot ?: ReportSnapshot(emptyList(), emptyList(), 0),
@@ -3510,6 +3528,7 @@ private fun NavigationReportsScreen(
                 repository.deleteDashboardPage(pageId)
             }
         },
+        onExportReportCsv = onExportReportCsv,
     )
 }
 
@@ -3541,6 +3560,8 @@ private data class NavigationStrings(
     val accountCsvExportedFormat: String,
     val accountCsvExportFailed: String,
     val transactionsCsvExported: String,
+    val reportCsvExported: String,
+    val reportCsvExportFailed: String,
 )
 
 @Composable
@@ -3567,6 +3588,8 @@ private fun navigationStrings(): NavigationStrings = NavigationStrings(
     accountCsvExportedFormat = stringResource(R.string.navigation_account_csv_exported),
     accountCsvExportFailed = stringResource(R.string.navigation_account_csv_export_failed),
     transactionsCsvExported = stringResource(R.string.navigation_transactions_csv_exported),
+    reportCsvExported = stringResource(R.string.navigation_report_csv_exported),
+    reportCsvExportFailed = stringResource(R.string.navigation_report_csv_export_failed),
 )
 
 /**

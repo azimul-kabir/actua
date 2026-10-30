@@ -115,6 +115,13 @@ Tests: `TimeFrameTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.s
 - **Weekly intervals** and "This week"/"Last week" use the synced `firstDayOfWeekIdx` (default
   Sunday), as upstream's `weekFromDate` does: Match (#953). Tests: `FirstDayOfWeekTest`.
 - **Hidden decimals / currency** only change display; stored amounts are untouched: Match.
+- **CSV export:** the full-screen widget's Data table tab has "Export to CSV" ([#1337](https://github.com/azimul-kabir/actua/issues/1337)).
+  The file is that table as shown (same rows, intervals and hidden zero rows, built by the same
+  `reportDataTable`), with amounts as exact two-decimal numbers from integer cents regardless of
+  privacy or hidden-decimals display settings, unit-free numeric cells (units move into headers,
+  e.g. `Age (days)`, `Share (%)`), RFC 4180 quoting and UTF-8. It is read-only. Upstream's own
+  export layout was not compared, and there is no totals row or interval-per-column pivot because
+  the on-screen table has none.
 - **Freshness:** reports are computed from the synced on-device database, so a budget that hasn't
   synced recently shows older numbers than the PWA (#605). This is expected local-first behavior.
 
