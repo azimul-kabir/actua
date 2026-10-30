@@ -2394,6 +2394,13 @@ class ActualBudgetDatabase private constructor(
 
     private fun quoteIdentifier(value: String): String = "\"${value.replace("\"", "\"\"")}\""
 
+    /**
+     * Runs [block] in one SQLite transaction. The writers' own transactions nest inside it, so
+     * messages from several writers commit together or not at all.
+     */
+    @Synchronized
+    fun <T> atomically(block: () -> T): T = transaction(block)
+
     private inline fun <T> transaction(block: () -> T): T {
         database.beginTransaction()
         return try {

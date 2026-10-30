@@ -108,6 +108,9 @@ import com.azimulkabir.actua.data.schedules.ScheduleRecurrence
 import com.azimulkabir.actua.data.schedules.ScheduleStatusCalculator
 import com.azimulkabir.actua.data.schedules.ScheduleUpcomingLength
 import com.azimulkabir.actua.data.schedules.ScheduleWriteBuilder
+import com.azimulkabir.actua.data.schedules.OneTimeSchedule
+import com.azimulkabir.actua.data.schedules.OneTimeScheduleProblem
+import com.azimulkabir.actua.data.schedules.OneTimeScheduleWindow
 import com.azimulkabir.actua.data.schedules.ScheduleFormFields
 import com.azimulkabir.actua.data.schedules.ScheduleDiscovery
 import com.azimulkabir.actua.data.schedules.BillCalendarItem
@@ -359,6 +362,47 @@ class ActuaRepository(context: Context) {
                 displayDate,
             )
         }.sortedForDisplay()
+    }
+
+    /** Null when [transactionId] can be made into a one-time schedule; otherwise why not. */
+    fun oneTimeScheduleProblem(transactionId: String): OneTimeScheduleProblem? {
+        val transaction = actualDatabase?.fetchTransaction(transactionId) ?: return OneTimeScheduleProblem.NOT_FUTURE
+        return OneTimeSchedule.problem(transaction, DayDate.today())
+    }
+
+    /** The transaction's distance from the upcoming window, shown before converting it. */
+    fun oneTimeScheduleWindow(transactionId: String): OneTimeScheduleWindow? {
+        val db = actualDatabase ?: return null
+        val transaction = db.fetchTransaction(transactionId) ?: return null
+        return OneTimeSchedule.window(transaction, DayDate.today(), db.upcomingScheduledTransactionLength())
+    }
+
+    /**
+     * Actual's mobile "Schedule" action for a future transaction (`createSingleTimeScheduleFromTransaction`
+     * then `transaction-delete`): a non-recurring posting schedule that carries the transaction's payee,
+     * account, amount, category and notes (per line for a split), and the original row is removed. Both
+     * writes commit as one batch, so a failure leaves the transaction in place with no schedule.
+     * Returns the new schedule's id.
+     */
+    fun convertTransactionToOneTimeSchedule(transactionId: String): String {
+        val database = actualDatabase ?: error("No budget is open")
+        val transaction = database.fetchTransaction(transactionId)
+            ?: throw IllegalArgumentException("That transaction no longer exists.")
+        OneTimeSchedule.problem(transaction, DayDate.today())?.let { throw IllegalArgumentException(it.message) }
+        val children = if (transaction.isParent) database.fetchChildTransactions(transaction.id) else emptyList()
+        val scheduleId = java.util.UUID.randomUUID().toString().lowercase()
+        val plan = ScheduleWriteBuilder.createOneTime(
+            source = OneTimeSchedule.source(transaction, children),
+            scheduleId = scheduleId,
+            ruleId = java.util.UUID.randomUUID().toString().lowercase(),
+            nextDateRowId = java.util.UUID.randomUUID().toString().lowercase(),
+            now = System.currentTimeMillis(),
+        )
+        database.atomically {
+            actualSchedules!!.apply(plan)
+            actualWriter!!.deleteTransaction(transaction)
+        }
+        return scheduleId
     }
 
     /** The budget's default schedule upcoming window (`upcomingScheduledTransactionLength`), or null for 7 days. */

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Lock
@@ -60,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -118,6 +120,9 @@ fun AddTransactionScreen(
     onBack: () -> Unit,
     onSave: (Transaction) -> Unit,
     onDelete: (Transaction) -> Unit = {},
+    /** Whether [editing] can become a one-time schedule, and how far it is from the upcoming window; null hides the action. */
+    oneTimeScheduleInfo: ((Transaction) -> OneTimeScheduleInfo?)? = null,
+    onMakeOneTimeSchedule: ((Transaction) -> Unit)? = null,
     modifier: Modifier = Modifier,
     accountOptions: List<String> = listOf("Everyday account", "Cash", "Credit card"),
     offBudgetAccountOptions: Set<String> = emptySet(),
@@ -154,6 +159,8 @@ fun AddTransactionScreen(
     var autoStep by remember(editing) { mutableStateOf<AddStep?>(null) }
     var amountExpression by remember(editing) { mutableStateOf<String?>(null) }
     var confirmDelete by remember(editing) { mutableStateOf(false) }
+    var confirmOneTimeSchedule by remember(editing) { mutableStateOf(false) }
+    val oneTimeInfo = remember(editing) { editing?.let { oneTimeScheduleInfo?.invoke(it) } }
     var confirmReconciledSave by remember(editing) { mutableStateOf(false) }
     // Like Actual's mobile editor there is no type selector: a `Transfer: <account>` payee makes a
     // transfer, otherwise the sign decides expense or income. [account] is always the edited
@@ -599,6 +606,13 @@ fun AddTransactionScreen(
                 )
             }
         }
+        if (editing != null && onMakeOneTimeSchedule != null && oneTimeInfo != null && oneTimeInfo.problem == null) {
+            ActuaSecondaryButton(
+                text = stringResource(R.string.transaction_make_one_time_schedule),
+                onClick = { confirmOneTimeSchedule = true },
+                icon = Icons.Outlined.Event,
+            )
+        }
         ActuaPrimaryActionBar(
             text = stringResource(R.string.action_save),
             onClick = saveTransaction,
@@ -646,6 +660,35 @@ fun AddTransactionScreen(
                 if (canSave) onSave(draft())
             },
             onDismiss = { confirmReconciledSave = false },
+        )
+    }
+    if (confirmOneTimeSchedule && editing != null && oneTimeInfo != null) {
+        AlertDialog(
+            onDismissRequest = { confirmOneTimeSchedule = false },
+            title = { Text(stringResource(R.string.transaction_make_one_time_schedule_question)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(R.string.transaction_make_one_time_schedule_message, parseStoredDate(editing.date)?.let(::formatDate) ?: editing.date))
+                    oneTimeInfo.window?.takeIf { it.beyondWindow }?.let { window ->
+                        Text(
+                            pluralStringResource(
+                                R.plurals.transaction_one_time_schedule_beyond_window,
+                                window.daysUntil, window.daysUntil, window.upcomingDays,
+                            ),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmOneTimeSchedule = false
+                    onMakeOneTimeSchedule?.invoke(editing)
+                }) { Text(stringResource(R.string.transaction_make_one_time_schedule_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmOneTimeSchedule = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
         )
     }
     if (confirmDelete && editing != null) {
@@ -1538,3 +1581,9 @@ private fun PickerRow(
         }
     }
 }
+
+/** What the editor needs to offer "Make one-time schedule": [problem] is null when it applies. */
+data class OneTimeScheduleInfo(
+    val problem: com.azimulkabir.actua.data.schedules.OneTimeScheduleProblem?,
+    val window: com.azimulkabir.actua.data.schedules.OneTimeScheduleWindow?,
+)

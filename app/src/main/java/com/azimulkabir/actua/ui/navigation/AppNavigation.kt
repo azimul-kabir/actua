@@ -148,6 +148,7 @@ import com.azimulkabir.actua.ui.transactions.recurringScheduleIds
 import com.azimulkabir.actua.ui.transactions.UpcomingTransactionAction
 import com.azimulkabir.actua.data.export.ReportCsv
 import com.azimulkabir.actua.ui.reports.ReportDataTable
+import com.azimulkabir.actua.ui.transactions.OneTimeScheduleInfo
 import com.azimulkabir.actua.ui.reports.ReportsScreen
 import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.ui.home.HomeScreen
@@ -2279,6 +2280,27 @@ fun AppNavigation(
             val payeeOptions = remember(payeeNames, accountOptions) {
                 (payeeNames + accountOptions.map { editorStrings.transferPayeeFormat.format(it) }).distinct()
             }
+            val leaveEditorAfterRemoval: () -> Unit = {
+                editingTransaction = null
+                detail = when {
+                    editorReturnsToStatementDetail -> {
+                        editorReturnsToStatementDetail = false
+                        DetailDestination.CreditCardStatementDetail
+                    }
+                    editorReturnsToTransactions -> DetailDestination.Transactions
+                    editorReturnsToReports -> {
+                        destination = MainDestination.Reports
+                        val target = editorReturnsToReportsDetail ?: DetailDestination.Main
+                        editorReturnsToReports = false
+                        editorReturnsToReportsDetail = null
+                        target
+                    }
+                    else -> {
+                        destination = addOrigin
+                        DetailDestination.Main
+                    }
+                }
+            }
             AddTransactionScreen(
                 editing = editingTransaction,
                 prefill = transactionPrefill,
@@ -2377,27 +2399,25 @@ fun AppNavigation(
                         R.string.navigation_deleting_transaction,
                         budgetCategoriesOf(transaction),
                         { repository.deleteTransaction(transaction.id) },
-                    ) {
-                        editingTransaction = null
-                        detail = when {
-                            editorReturnsToStatementDetail -> {
-                                editorReturnsToStatementDetail = false
-                                DetailDestination.CreditCardStatementDetail
-                            }
-                            editorReturnsToTransactions -> DetailDestination.Transactions
-                            editorReturnsToReports -> {
-                                destination = MainDestination.Reports
-                                val target = editorReturnsToReportsDetail ?: DetailDestination.Main
-                                editorReturnsToReports = false
-                                editorReturnsToReportsDetail = null
-                                target
-                            }
-                            else -> {
-                                destination = addOrigin
-                                DetailDestination.Main
-                            }
-                        }
-                    }
+                        onChanged = leaveEditorAfterRemoval,
+                    )
+                },
+                oneTimeScheduleInfo = { transaction ->
+                    OneTimeScheduleInfo(
+                        problem = repository.oneTimeScheduleProblem(transaction.id),
+                        window = repository.oneTimeScheduleWindow(transaction.id),
+                    )
+                },
+                onMakeOneTimeSchedule = { transaction ->
+                    mutateAsyncWithImpactCue(
+                        R.string.navigation_creating_one_time_schedule,
+                        budgetCategoriesOf(transaction),
+                        { repository.convertTransactionToOneTimeSchedule(transaction.id); true },
+                        onChanged = {
+                            leaveEditorAfterRemoval()
+                            coroutineScope.launch { snackbarHostState.showSnackbar(navStrings.oneTimeScheduleCreated) }
+                        },
+                    )
                 },
                 modifier = contentModifier,
                     accountOptions = accountOptions,
@@ -3560,6 +3580,7 @@ private data class NavigationStrings(
     val accountCsvExportedFormat: String,
     val accountCsvExportFailed: String,
     val transactionsCsvExported: String,
+    val oneTimeScheduleCreated: String,
     val reportCsvExported: String,
     val reportCsvExportFailed: String,
 )
@@ -3588,6 +3609,7 @@ private fun navigationStrings(): NavigationStrings = NavigationStrings(
     accountCsvExportedFormat = stringResource(R.string.navigation_account_csv_exported),
     accountCsvExportFailed = stringResource(R.string.navigation_account_csv_export_failed),
     transactionsCsvExported = stringResource(R.string.navigation_transactions_csv_exported),
+    oneTimeScheduleCreated = stringResource(R.string.navigation_one_time_schedule_created),
     reportCsvExported = stringResource(R.string.navigation_report_csv_exported),
     reportCsvExportFailed = stringResource(R.string.navigation_report_csv_export_failed),
 )
