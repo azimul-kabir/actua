@@ -461,4 +461,17 @@
         <item quantity="one">Clear import history (%1$d)</item>
         <item quantity="other">Clear import history (%1$d)</item>
     </plurals>
+
+    <string name="sync_reset_recover_action">Back up and re-download</string>
+    <string name="sync_reset_title">Re-download this budget?</string>
+    <plurals name="sync_reset_unsynced">
+        <item quantity="one">%d change on this device hasn\'t synced and won\'t carry over to the new server file.</item>
+        <item quantity="other">%d changes on this device haven\'t synced and won\'t carry over to the new server file.</item>
+    </plurals>
+    <string name="sync_reset_unsynced_unknown">This device can\'t tell whether every change has synced. Changes that haven\'t synced won\'t carry over to the new server file.</string>
+    <string name="sync_reset_no_unsynced">Every change on this device has already synced.</string>
+    <string name="sync_reset_explanation">Actua will save a verified backup of this budget on this device, then download the server\'s current copy and replace this one. You can restore the backup from Backups. Nothing is replaced unless the download succeeds.</string>
+    <string name="sync_reset_confirm">Back up and re-download</string>
+    <string name="sync_reset_done">Re-downloaded %1$s. A backup of the previous copy was saved first.</string>
+    <string name="sync_reset_failed">Could not re-download the budget. This device\'s copy is unchanged.</string>
 </resources>

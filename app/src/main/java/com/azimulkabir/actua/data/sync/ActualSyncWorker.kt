@@ -46,10 +46,23 @@ object ActualSyncRunner {
     private var lastSuccessElapsedMillis: Long = Long.MIN_VALUE
     private var lastSuccess: SyncRunResult.Success? = null
 
-    internal fun resetForTesting() {
+    internal fun resetForTesting() = clearRecentSuccess()
+
+    private fun clearRecentSuccess() {
         lastSuccessBudgetId = null
         lastSuccessElapsedMillis = Long.MIN_VALUE
         lastSuccess = null
+    }
+
+    /**
+     * Runs [block] while no sync can start or be mid-flight, e.g. to replace the budget's files.
+     * The recent-success shortcut is cleared afterwards so the next sync really talks to the server.
+     */
+    @Synchronized
+    fun <T> whileSyncPaused(block: () -> T): T = try {
+        block()
+    } finally {
+        clearRecentSuccess()
     }
 
     @Synchronized
@@ -152,7 +165,10 @@ object ActualSyncRunner {
         DiagnosticsLog.syncStarted(trigger)
         val startedAt = SystemClock.elapsedRealtime()
         return try {
+            // Taken before the round trip, so an edit made during it is never counted as sent.
+            var sentThrough: String? = null
             val result = ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { database ->
+                sentThrough = database.maxMessageTimestamp()
                 val server = ActualServerClient(UrlConnectionTransport(TrustedCertificateStore(context))).apply { customHeaders = credentials.customHeaders }
                 fun syncAt(url: String) = ActualSyncClient(url, token, server, database, fileId, groupId,
                     loadedKey?.keyId, loadedKey?.let { ActualMessageCipher(it.key) }).sync()
@@ -173,6 +189,7 @@ object ActualSyncRunner {
             lastSuccessElapsedMillis = SystemClock.elapsedRealtime()
             lastSuccess = result
             status.succeeded(result.outcome)
+            SyncedLogMarkers(app).record(budgetId, sentThrough)
             DiagnosticsLog.syncSucceeded(
                 result.outcome.sentMessages, result.outcome.receivedMessages, result.outcome.attempts,
                 SystemClock.elapsedRealtime() - startedAt,

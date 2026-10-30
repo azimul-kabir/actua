@@ -121,11 +121,14 @@ class BudgetFileManager(context: Context) {
     /**
      * Imports the same two-root-entry archive Actual and Actuali use. Cloud
      * identity is supplied by the server response, while unknown metadata keys
-     * are preserved verbatim.
+     * are preserved verbatim. With [targetBudgetId] the files replace that existing
+     * local budget instead of the id the archive carries; the archive is fully
+     * extracted and validated first, and a failed install restores the previous files.
      */
     fun importBudget(
         archive: InputStream,
         cloud: CloudFileIdentity? = null,
+        targetBudgetId: String? = null,
     ): BudgetMetadata {
         val staging = File(root, ".import-${UUID.randomUUID()}")
         check(staging.mkdirs()) { "Unable to create import staging directory" }
@@ -136,6 +139,7 @@ class BudgetFileManager(context: Context) {
 
             val json = JSONObject(extracted.metadata.readText())
             val original = BudgetMetadata.fromJson(json)
+            if (targetBudgetId != null) json.put("id", targetBudgetId)
             // Same keys Actual's importBuffer overwrites, including an explicit null key id.
             if (cloud != null) {
                 json.put("cloudFileId", cloud.fileId)
@@ -146,7 +150,7 @@ class BudgetFileManager(context: Context) {
             extracted.metadata.writeText(json.toString())
             val updated = BudgetMetadata.fromJson(json)
 
-            installLiveFiles(original.id, extracted)
+            installLiveFiles(targetBudgetId ?: original.id, extracted)
             return updated
         } finally {
             if (staging.exists()) staging.deleteRecursively()

@@ -2228,6 +2228,13 @@ class ActualBudgetDatabase private constructor(
         null,
     ).use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getString(0) else null }
 
+    /** Log entries newer than [timestamp]; with a sync marker, the edits that haven't reached the server. */
+    @Synchronized
+    fun messageCountAfter(timestamp: String): Int = database.rawQuery(
+        "SELECT COUNT(*) FROM messages_crdt WHERE timestamp > ?",
+        arrayOf(timestamp),
+    ).use { cursor -> if (cursor.moveToFirst()) cursor.getInt(0) else 0 }
+
     /** Newest parseable message-log timestamp; writers' clocks advance past it before each send. */
     fun messageLogHighWater(): HlcTimestamp? = maxMessageTimestamp()?.let(HlcTimestamp::parse)
 

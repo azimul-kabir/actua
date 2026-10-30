@@ -996,8 +996,12 @@ private val SYNC_REASON_PATTERN = Regex("[a-z][a-z0-9-]{0,63}")
 
 /** Actionable text for Actual's `/sync` rejection reasons; local data is never touched for any of them. */
 internal fun syncRejectionMessage(reason: String): String = when (reason) {
-    "file-has-reset", "file-has-new-key" ->
-        "This budget's sync was reset in Actual${if (reason == "file-has-new-key") " with a new encryption key" else ""}. " +
+    "file-has-reset" ->
+        "This budget's sync was reset in Actual. Syncing is paused and this device's copy is unchanged. " +
+            "Choose Back up and re-download to save a backup and fetch the server's copy; " +
+            "changes here that haven't synced won't carry over."
+    "file-has-new-key" ->
+        "This budget's sync was reset in Actual with a new encryption key. " +
             "Syncing is paused and this device's copy is unchanged. It needs a fresh download to sync again; " +
             "changes here that haven't synced won't carry over, so back it up first."
     "file-old-version", "file-needs-upload" ->

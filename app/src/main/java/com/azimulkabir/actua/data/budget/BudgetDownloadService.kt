@@ -49,6 +49,22 @@ class BudgetDownloadService(
      * Actual only re-uploads snapshots every few days, so the archive's copy can be stale.
      */
     fun download(serverUrl: String, token: String, remote: RemoteBudgetFile): BudgetMetadata {
+        val fetched = fetchArchive(serverUrl, token, remote)
+        return files.importBudget(ByteArrayInputStream(fetched.archive), fetched.identity)
+    }
+
+    /**
+     * Downloads [remote]'s snapshot over the installed budget [budgetId], keeping its local id.
+     * Nothing local changes unless the download decrypts and validates; see [BudgetFileManager.importBudget].
+     */
+    fun redownload(serverUrl: String, token: String, remote: RemoteBudgetFile, budgetId: String): BudgetMetadata {
+        val fetched = fetchArchive(serverUrl, token, remote)
+        return files.importBudget(ByteArrayInputStream(fetched.archive), fetched.identity, budgetId)
+    }
+
+    private class FetchedArchive(val archive: ByteArray, val identity: CloudFileIdentity)
+
+    private fun fetchArchive(serverUrl: String, token: String, remote: RemoteBudgetFile): FetchedArchive {
         val info = server.getFileInfo(serverUrl, token, remote.fileId)
         if (info.deleted) throw ActualServerException.FileNotFound
         val encryption = info.encryption
@@ -57,10 +73,7 @@ class BudgetDownloadService(
         }
         var archive = server.downloadFile(serverUrl, token, remote.fileId)
         if (encryption != null && key != null) archive = decryptArchive(remote.fileId, encryption, key, archive)
-        return files.importBudget(
-            ByteArrayInputStream(archive),
-            CloudFileIdentity(remote.fileId, info.groupId, encryption?.keyId),
-        )
+        return FetchedArchive(archive, CloudFileIdentity(remote.fileId, info.groupId, encryption?.keyId))
     }
 
     private fun decryptArchive(
