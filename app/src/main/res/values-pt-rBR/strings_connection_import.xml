@@ -471,6 +471,10 @@
     <string name="sync_reset_unsynced_unknown">Este dispositivo não consegue saber se todas as alterações foram sincronizadas. As alterações não sincronizadas não serão transferidas para o novo arquivo do servidor.</string>
     <string name="sync_reset_no_unsynced">Todas as alterações neste dispositivo já foram sincronizadas.</string>
     <string name="sync_reset_explanation">O Actua salvará um backup verificado deste orçamento neste dispositivo, depois baixará a cópia atual do servidor e substituirá esta. Você pode restaurar o backup em Backups. Nada é substituído se o download não for concluído com sucesso.</string>
+    <string name="sync_reset_new_key_title">Digite a nova senha de criptografia</string>
+    <string name="sync_reset_new_key_explanation">A senha de criptografia deste orçamento foi alterada no Actual. Digite a nova senha; ela é verificada primeiro, e a senha salva só é substituída depois que a nova cópia estiver instalada.</string>
+    <string name="sync_reset_new_password_label">Nova senha de criptografia</string>
+    <string name="sync_reset_wrong_password">Senha de criptografia incorreta. Nada foi alterado.</string>
     <string name="sync_reset_confirm">Fazer backup e baixar novamente</string>
     <string name="sync_reset_done">%1$s baixado novamente. Um backup da cópia anterior foi salvo antes.</string>
     <string name="sync_reset_failed">Não foi possível baixar o orçamento novamente. A cópia deste dispositivo não foi alterada.</string>

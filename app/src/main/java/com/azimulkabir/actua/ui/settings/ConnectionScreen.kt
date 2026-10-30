@@ -111,6 +111,8 @@ import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_MANUAL
 import com.azimulkabir.actua.data.sync.SyncErrorCode
 import com.azimulkabir.actua.data.sync.SyncRunResult
+import com.azimulkabir.actua.data.sync.EncryptionKeyException
+import com.azimulkabir.actua.data.sync.SYNC_REASON_FILE_HAS_NEW_KEY
 import com.azimulkabir.actua.data.sync.SYNC_REASON_FILE_HAS_RESET
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.sync.SyncedLogMarkers
@@ -284,6 +286,7 @@ fun ConnectionScreen(
     val resetRecovery = remember { BudgetResetRecovery(files, backupService, downloader, SyncedLogMarkers(context)) }
     var resetRecoveryPrompt by remember { mutableStateOf<ResetRecoveryPrompt?>(null) }
     var recoveringFromReset by remember { mutableStateOf(false) }
+    var newKeyPassword by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     var serverUrl by remember { mutableStateOf(credentials.serverUrl) }
     var fallbackServerUrl by remember { mutableStateOf(credentials.fallbackServerUrl) }
@@ -739,8 +742,10 @@ fun ConnectionScreen(
 
     resetRecoveryPrompt?.let { prompt ->
         AlertDialog(
-            onDismissRequest = { if (!recoveringFromReset) resetRecoveryPrompt = null },
-            title = { Text(stringResource(R.string.sync_reset_title)) },
+            onDismissRequest = { if (!recoveringFromReset) { resetRecoveryPrompt = null; newKeyPassword = "" } },
+            title = {
+                Text(stringResource(if (prompt.needsNewPassword) R.string.sync_reset_new_key_title else R.string.sync_reset_title))
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     val unsynced = prompt.unsyncedChanges
@@ -753,12 +758,25 @@ fun ConnectionScreen(
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(stringResource(R.string.sync_reset_explanation))
+                    if (prompt.needsNewPassword) {
+                        Text(stringResource(R.string.sync_reset_new_key_explanation))
+                        OutlinedTextField(
+                            value = newKeyPassword,
+                            onValueChange = { newKeyPassword = it },
+                            enabled = !recoveringFromReset,
+                            singleLine = true,
+                            label = { Text(stringResource(R.string.sync_reset_new_password_label)) },
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     if (recoveringFromReset) LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
             },
             confirmButton = {
                 TextButton(
-                    enabled = !recoveringFromReset,
+                    enabled = !recoveringFromReset && (!prompt.needsNewPassword || newKeyPassword.isNotBlank()),
                     onClick = {
                         val budgetId = activeBudget.budgetId ?: return@TextButton
                         val token = credentials.token() ?: return@TextButton
@@ -767,8 +785,14 @@ fun ConnectionScreen(
                         // Releases the app's handle on the database before its files are replaced.
                         onBeforeBudgetReplacement()
                         scope.launch {
+                            var tryAgain = false
                             runCatching {
-                                withContext(Dispatchers.IO) { resetRecovery.recover(activeServerUrl, token, budgetId) }
+                                withContext(Dispatchers.IO) {
+                                    resetRecovery.recover(
+                                        activeServerUrl, token, budgetId,
+                                        newPassword = newKeyPassword.takeIf { prompt.needsNewPassword },
+                                    )
+                                }
                             }.onSuccess { result ->
                                 syncStatusStore.rejectionResolved()
                                 syncStatus = syncStatusStore.read()
@@ -782,7 +806,10 @@ fun ConnectionScreen(
                                 ActualSyncScheduler.scheduleMutation(context)
                             }.onFailure { error ->
                                 // The local budget is untouched on any failure; reopen it as it was.
+                                tryAgain = error == EncryptionKeyException.InvalidPassword
                                 message = when (error) {
+                                    EncryptionKeyException.InvalidPassword ->
+                                        resources.getString(R.string.sync_reset_wrong_password)
                                     BudgetDownloadException.EncryptionPasswordRequired ->
                                         resources.getString(R.string.enter_budget_encryption_password)
                                     BudgetDownloadException.EncryptionKeyChanged ->
@@ -799,13 +826,14 @@ fun ConnectionScreen(
                                 onBudgetInstalled()
                             }
                             recoveringFromReset = false
-                            resetRecoveryPrompt = null
+                            // A wrong password keeps the dialog open to retry; nothing was changed.
+                            if (!tryAgain) { resetRecoveryPrompt = null; newKeyPassword = "" }
                         }
                     },
                 ) { Text(stringResource(R.string.sync_reset_confirm)) }
             },
             dismissButton = {
-                TextButton(enabled = !recoveringFromReset, onClick = { resetRecoveryPrompt = null }) {
+                TextButton(enabled = !recoveringFromReset, onClick = { resetRecoveryPrompt = null; newKeyPassword = "" }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -1667,7 +1695,9 @@ fun ConnectionScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 syncStatus.error?.let { Text(syncErrorDisplayMessage(it), color = MaterialTheme.colorScheme.error) }
-                if (syncStatus.rejectionReason == SYNC_REASON_FILE_HAS_RESET && activeBudget.budgetId != null) {
+                if ((syncStatus.rejectionReason == SYNC_REASON_FILE_HAS_RESET ||
+                        syncStatus.rejectionReason == SYNC_REASON_FILE_HAS_NEW_KEY) && activeBudget.budgetId != null
+                ) {
                     FilledTonalButton(
                         enabled = !syncing && !loading && downloadingId == null && !recoveringFromReset,
                         modifier = Modifier.fillMaxWidth().height(Sizes.secondaryButtonHeight),
@@ -1677,7 +1707,12 @@ fun ConnectionScreen(
                             message = null
                             scope.launch {
                                 runCatching { withContext(Dispatchers.IO) { resetRecovery.unsyncedChanges(budgetId) } }
-                                    .onSuccess { resetRecoveryPrompt = ResetRecoveryPrompt(it) }
+                                    .onSuccess {
+                                        newKeyPassword = ""
+                                        resetRecoveryPrompt = ResetRecoveryPrompt(
+                                            it, needsNewPassword = syncStatus.rejectionReason == SYNC_REASON_FILE_HAS_NEW_KEY,
+                                        )
+                                    }
                                     .onFailure { message = resources.getString(R.string.sync_reset_failed) }
                             }
                         },
@@ -1966,4 +2001,4 @@ private fun ConnectionAction(
 }
 
 /** What the re-download confirmation shows; [unsyncedChanges] is null when this device can't tell. */
-private class ResetRecoveryPrompt(val unsyncedChanges: Int?)
+private class ResetRecoveryPrompt(val unsyncedChanges: Int?, val needsNewPassword: Boolean = false)

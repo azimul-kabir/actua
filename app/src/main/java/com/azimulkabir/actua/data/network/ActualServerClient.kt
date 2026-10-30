@@ -1001,9 +1001,9 @@ internal fun syncRejectionMessage(reason: String): String = when (reason) {
             "Choose Back up and re-download to save a backup and fetch the server's copy; " +
             "changes here that haven't synced won't carry over."
     "file-has-new-key" ->
-        "This budget's sync was reset in Actual with a new encryption key. " +
-            "Syncing is paused and this device's copy is unchanged. It needs a fresh download to sync again; " +
-            "changes here that haven't synced won't carry over, so back it up first."
+        "This budget's encryption key was changed in Actual. Syncing is paused and this device's copy is unchanged. " +
+            "Choose Back up and re-download, enter the new password, and Actua saves a backup and fetches the server's copy; " +
+            "changes here that haven't synced won't carry over."
     "file-old-version", "file-needs-upload" ->
         "The server's copy of this budget needs attention. Open it in Actual's web app and follow its sync " +
             "prompt, then sync again. Your local changes are kept."

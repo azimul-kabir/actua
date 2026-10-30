@@ -19,7 +19,7 @@ data class BudgetResetRecoveryResult(
 )
 
 /**
- * Recovery after the server reports `file-has-reset` (docs/SYNC_PARITY.md section 8): back up the
+ * Recovery after the server reports `file-has-reset` or `file-has-new-key` (docs/SYNC_PARITY.md section 8): back up the
  * local copy, verify the backup, download the server's snapshot, and only then swap it in. Every
  * step before the swap leaves the local budget untouched, and the swap restores the previous files
  * if it fails. Callers must have the user's confirmation first and close any open handle on the
@@ -40,11 +40,17 @@ class BudgetResetRecovery(
         return ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { it.messageCountAfter(syncedThrough) }
     }
 
-    fun recover(serverUrl: String, token: String, budgetId: String): BudgetResetRecoveryResult =
+    /**
+     * [newPassword] is the file's new encryption password after `file-has-new-key`. It is verified
+     * against the server first, so a wrong password changes nothing, and the stored key is replaced
+     * only once the new file is installed.
+     */
+    fun recover(serverUrl: String, token: String, budgetId: String, newPassword: String? = null): BudgetResetRecoveryResult =
         // Held against the sync runner so no sync starts or is mid-flight while the files change.
         ActualSyncRunner.whileSyncPaused {
             val local = files.metadata(budgetId) ?: throw IllegalArgumentException("Budget no longer exists on this device")
             val fileId = local.cloudFileId ?: throw BudgetRecoveryException.NotServerBacked
+            val newKey = newPassword?.let { downloader.verifyPassword(serverUrl, token, fileId, it) }
             val unsynced = unsyncedChanges(budgetId)
 
             val backup = try {
@@ -55,7 +61,8 @@ class BudgetResetRecovery(
             verifyBackup(budgetId, backup)
 
             val remote = RemoteBudgetFile(fileId, local.groupId, local.budgetName.orEmpty(), local.encryptKeyId)
-            val metadata = downloader.redownload(serverUrl, token, remote, budgetId)
+            val metadata = downloader.redownload(serverUrl, token, remote, budgetId, newKey)
+            newKey?.let { downloader.storeKey(fileId, it) }
             // The new file is the server's: everything in its log is synced.
             markers.record(budgetId, ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { it.maxMessageTimestamp() })
             BudgetResetRecoveryResult(metadata, backup, unsynced)

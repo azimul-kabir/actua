@@ -27,6 +27,9 @@ data class SyncStatus(
 /** Actual's `/sync` rejection when the server file's sync was reset; the app can recover from it. */
 const val SYNC_REASON_FILE_HAS_RESET = "file-has-reset"
 
+/** Actual's `/sync` rejection when the file's encryption key was changed elsewhere. */
+const val SYNC_REASON_FILE_HAS_NEW_KEY = "file-has-new-key"
+
 /**
  * Stable persisted codes for sync failures, translated only when displayed. Screens map these to
  * `sync_error_*` strings; anything that is not a code (legacy installs, message-bearing errors)
