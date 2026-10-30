@@ -478,4 +478,14 @@
     <string name="sync_reset_confirm">Fazer backup e baixar novamente</string>
     <string name="sync_reset_done">%1$s baixado novamente. Um backup da cópia anterior foi salvo antes.</string>
     <string name="sync_reset_failed">Não foi possível baixar o orçamento novamente. A cópia deste dispositivo não foi alterada.</string>
+
+    <string name="rename_budget_action">Renomear %1$s</string>
+    <string name="rename_budget_title">Renomear orçamento</string>
+    <string name="rename_budget_label">Nome do orçamento</string>
+    <string name="rename_budget_server_note">O novo nome também é salvo no seu servidor Actual, então aparece na lista de arquivos do Actual.</string>
+    <string name="rename_budget_confirm">Renomear</string>
+    <string name="budget_renamed">Renomeado para %1$s.</string>
+    <string name="could_not_rename_budget">Não foi possível renomear o orçamento. Nada foi alterado.</string>
+    <string name="only_owner_can_rename">Somente o proprietário do orçamento ou um administrador do servidor pode renomeá-lo. Nada foi alterado.</string>
+    <string name="rename_budget_not_on_server">Este orçamento não está mais no servidor, então não foi renomeado.</string>
 </resources>

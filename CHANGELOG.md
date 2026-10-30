@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added renaming a budget from Connection settings, including its name on the Actual server (PR_LINK)
 - Added exporting a report widget's data table to CSV from its full-screen view ([#1402](https://github.com/azimul-kabir/actua/pull/1402))
 - Added recovering a budget whose encryption password was changed in Actual, by entering the new password and re-downloading it ([#1401](https://github.com/azimul-kabir/actua/pull/1401))
 - Added Back up and re-download in Connection settings to recover a budget whose server sync was reset ([#1400](https://github.com/azimul-kabir/actua/pull/1400))

@@ -478,4 +478,14 @@
     <string name="sync_reset_confirm">Back up and re-download</string>
     <string name="sync_reset_done">Re-downloaded %1$s. A backup of the previous copy was saved first.</string>
     <string name="sync_reset_failed">Could not re-download the budget. This device\'s copy is unchanged.</string>
+
+    <string name="rename_budget_action">Rename %1$s</string>
+    <string name="rename_budget_title">Rename budget</string>
+    <string name="rename_budget_label">Budget name</string>
+    <string name="rename_budget_server_note">The new name is also saved on your Actual server, so it shows in Actual\'s file list.</string>
+    <string name="rename_budget_confirm">Rename</string>
+    <string name="budget_renamed">Renamed to %1$s.</string>
+    <string name="could_not_rename_budget">Could not rename the budget. Nothing was changed.</string>
+    <string name="only_owner_can_rename">Only the budget\'s owner or a server admin can rename it. Nothing was changed.</string>
+    <string name="rename_budget_not_on_server">This budget is no longer on the server, so it wasn\'t renamed.</string>
 </resources>

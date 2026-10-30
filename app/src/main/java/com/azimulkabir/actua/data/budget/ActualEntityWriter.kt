@@ -772,6 +772,15 @@ class ActualEntityWriter(
         persist(messages)
     }
 
+    /**
+     * The synced `prefs/budgetName` message Actual's `savePrefs` sends when a budget is renamed, so other
+     * clients' logs agree. Actua doesn't apply `prefs` messages (there is no table), it only logs them.
+     */
+    @Synchronized
+    fun recordBudgetName(name: String) {
+        persist(fields("prefs", "budgetName", linkedMapOf("value" to requiredName(name))))
+    }
+
     private fun fields(dataset: String, row: String, values: Map<String, Any?>) = values.map { (column, value) ->
         CrdtMessage(clock.send(), dataset, row, column, CrdtValue.serialize(value))
     }

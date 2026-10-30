@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PhoneAndroid
@@ -93,6 +94,7 @@ import com.azimulkabir.actua.data.network.inspectServerCertificate
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetDownloadException
 import com.azimulkabir.actua.data.budget.BudgetDownloadService
+import com.azimulkabir.actua.data.budget.BudgetRenameService
 import com.azimulkabir.actua.data.budget.BudgetResetRecovery
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BackupItem
@@ -323,6 +325,9 @@ fun ConnectionScreen(
     var showCreateLocalBudget by remember { mutableStateOf(false) }
     var newLocalBudgetName by remember { mutableStateOf("") }
     var pendingDeleteLocal by remember { mutableStateOf<BudgetMetadata?>(null) }
+    val renamer = remember { BudgetRenameService(client, files) }
+    var pendingRename by remember { mutableStateOf<BudgetMetadata?>(null) }
+    var renameInput by remember { mutableStateOf("") }
     var pendingUploadBudget by remember { mutableStateOf<BudgetMetadata?>(null) }
     var showConnectDriveDialog by remember { mutableStateOf(false) }
     var showBrowseDriveBackupsDialog by remember { mutableStateOf(false) }
@@ -1036,6 +1041,63 @@ fun ConnectionScreen(
         },
     )
 
+    pendingRename?.let { target ->
+        val newName = renameInput.trim()
+        AlertDialog(
+            onDismissRequest = { if (!loading) pendingRename = null },
+            title = { Text(stringResource(R.string.rename_budget_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (target.isServerBacked) Text(stringResource(R.string.rename_budget_server_note))
+                    OutlinedTextField(
+                        value = renameInput,
+                        onValueChange = { renameInput = it },
+                        label = { Text(stringResource(R.string.rename_budget_label)) },
+                        singleLine = true,
+                        enabled = !loading,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !loading && newName.isNotEmpty() && newName != (target.budgetName ?: target.id),
+                    onClick = {
+                        val isActive = target.id == activeBudget.budgetId
+                        loading = true; message = null
+                        // Releases the app's handle on the open budget before its files change.
+                        if (isActive) onBeforeBudgetReplacement()
+                        scope.launch {
+                            runCatching {
+                                withContext(Dispatchers.IO) { renamer.rename(activeServerUrl, credentials.token(), target.id, newName) }
+                            }.onSuccess {
+                                message = resources.getString(R.string.budget_renamed, newName)
+                                localBudgetsGeneration++
+                                if (target.isServerBacked && connected) loadBudgets()
+                                if (isActive) {
+                                    onBudgetInstalled()
+                                    // Sends the renamed-budget message to the server.
+                                    if (target.isServerBacked) ActualSyncScheduler.scheduleMutation(context)
+                                }
+                            }.onFailure { error ->
+                                // Nothing local changes unless the server accepted the new name.
+                                when (error) {
+                                    is ActualServerException.FileAccessDenied ->
+                                        message = resources.getString(R.string.only_owner_can_rename)
+                                    is ActualServerException.FileNotFound ->
+                                        message = resources.getString(R.string.rename_budget_not_on_server)
+                                    else -> showServerError(error, R.string.could_not_rename_budget)
+                                }
+                                if (isActive) onBudgetInstalled()
+                            }
+                            loading = false
+                            pendingRename = null
+                        }
+                    },
+                ) { Text(stringResource(R.string.rename_budget_confirm)) }
+            },
+            dismissButton = { TextButton(enabled = !loading, onClick = { pendingRename = null }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
     pendingDeleteLocal?.let { local ->
         val budgetName = local.budgetName ?: local.id
         AlertDialog(
@@ -1441,6 +1503,13 @@ fun ConnectionScreen(
                                 ) {
                                     Text(stringResource(R.string.upload))
                                 }
+                            }
+                            // A server budget is renamed on the server too, so it needs the connection.
+                            IconButton(
+                                enabled = !loading && downloadingId == null && !syncing && (local.isUserLocalOnly || connected),
+                                onClick = { pendingRename = local; renameInput = budgetName },
+                            ) {
+                                Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.rename_budget_action, budgetName))
                             }
                             TextButton(
                                 enabled = !loading && downloadingId == null && !syncing,
