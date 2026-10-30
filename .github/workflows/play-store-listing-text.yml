@@ -1,0 +1,29 @@
+name: Google Play Listing Text
+
+# Updates the store listing's title, short description and full description on Google Play
+# from fastlane/metadata/android/en-US/{title,short_description,full_description}.txt. It never
+# touches the screenshots, feature graphic, icon, video, release notes or any release. Run it
+# manually after changing those files. By default it only compares the files with the live
+# listing and shows what would change; turn on "apply" to publish.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Publish the change to Google Play (leave off to only compare)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  update-listing-text:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compare and update listing text
+        uses: ./.github/actions/update-play-listing-text
+        with:
+          service-account-json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          apply: ${{ inputs.apply }}
