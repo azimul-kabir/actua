@@ -35,7 +35,7 @@ Upstream: [`LC/server/sql/init.sql#L58-L83`](https://github.com/actualbudget/act
 | `categories(id, name, is_income, cat_group, sort_order, tombstone, hidden, goal_def, template_settings, cleanup_def)` | migrations | same columns | Match |
 | `category_groups(id, name, is_income, sort_order, tombstone, hidden)`, no unique name constraint | migrations | same | Match |
 | `category_mapping(id, transferId)`, one self-row per category | `init.sql` | same, also in new blank budgets (`INSERT INTO category_mapping SELECT id,id FROM categories`) | Match |
-| Income group is never hidden | `1712784523000_unhide_input_group.sql`; no hide action for it | no hide action for the income group (`ui/categories/ManageCategoriesScreen.kt:308`) | Match |
+| Income group is never hidden | `1712784523000_unhide_input_group.sql`; no hide action for it | no hide action for the income group (`ui/categories/ManageCategoriesScreen.kt:325`) | Match |
 
 ## 2. Create
 
@@ -55,7 +55,7 @@ mobile `BudgetPage` new category (`isHidden: false`). Actua: `ActualEntityWriter
 | New category is inserted first in its group: neighbors shoved (`shoveSortOrders`, increment 16384) and the new row gets the midpoint | `insertCategory` (not `atEnd`) | `SortOrder.shove` before the group's first category (`data/budget/SortOrder.kt`, an exact port) | Match |
 | New category writes its `category_mapping` self-row in the same batch | `insertCategory` | same batch | Match |
 | `is_income` from the group | client passes the group's flag | from the group | Match |
-| Add a category to the income group | offered (mobile `BudgetPage` passes `isIncome`) | not offered: "Add category" is hidden for the income group (`ui/categories/ManageCategoriesScreen.kt:308`) | **N/A** |
+| Add a category to the income group | offered (mobile `BudgetPage` passes `isIncome`) | offered from the income group's menu; `createCategory` writes `is_income = 1` from the group | Match ([#1350](https://github.com/azimul-kabir/actua/issues/1350)) |
 | `hidden` on a new category | `0` (hidden only through a hidden group) | `0` | Match ([#927](https://github.com/azimul-kabir/actua/issues/927)) |
 | Duplicate category name in the same group (case-insensitive, hidden included) rejected | client and `insertCategory` | rejected | Match |
 | Duplicate group name (case-insensitive, live groups) rejected | `insertCategoryGroup` | rejected | Match |

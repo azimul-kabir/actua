@@ -321,8 +321,8 @@ private fun GroupManageRow(
             IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Outlined.MoreVert, contentDescription = "${group.name} group options") }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 DropdownMenuItem(text = { Text("Rename") }, onClick = { menuExpanded = false; onRename() })
+                DropdownMenuItem(text = { Text("Add category") }, onClick = { menuExpanded = false; onAddCategory() })
                 if (!group.isIncome) {
-                    DropdownMenuItem(text = { Text("Add category") }, onClick = { menuExpanded = false; onAddCategory() })
                     DropdownMenuItem(
                         text = { Text(if (group.hidden) "Unhide group" else "Hide group") },
                         onClick = { menuExpanded = false; onToggleHidden() },

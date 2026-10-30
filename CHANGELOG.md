@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Added
+
+- Added adding categories to the income group in Manage Categories ([#1398](https://github.com/azimul-kabir/actua/pull/1398))
+
 ## [2.3.0] - 2026-10-29
 
 ### Added
