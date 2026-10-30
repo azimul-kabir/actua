@@ -88,6 +88,14 @@
     <string name="transactions_group_by_date">Agrupar por data</string>
     <string name="transactions_show_upcoming">Mostrar transações próximas</string>
     <string name="transactions_export_csv">Exportar para CSV</string>
+    <string name="transaction_make_one_time_schedule">Criar agendamento único</string>
+    <string name="transaction_make_one_time_schedule_question">Criar um agendamento único?</string>
+    <string name="transaction_make_one_time_schedule_message">A transação salva será substituída por um agendamento que a lança em %1$s. As alterações deste formulário que não foram salvas não são incluídas.</string>
+    <plurals name="transaction_one_time_schedule_beyond_window">
+        <item quantity="one">Esta transação é daqui a %1$d dia, além da sua janela de próximos de %2$d dias. O agendamento só aparecerá como próximo até lá.</item>
+        <item quantity="other">Esta transação é daqui a %1$d dias, além da sua janela de próximos de %2$d dias. O agendamento só aparecerá como próximo até lá.</item>
+    </plurals>
+    <string name="transaction_make_one_time_schedule_confirm">Criar agendamento</string>
     <string name="transactions_export_csv_filename">Transações de %1$s.csv</string>
     <string name="transactions_export_shown_csv">Exportar transações exibidas para CSV</string>
     <string name="transactions_export_shown_csv_filename">Transações do Actua.csv</string>
