@@ -468,6 +468,7 @@
         <item quantity="one">%d change on this device hasn\'t synced and won\'t carry over to the new server file.</item>
         <item quantity="other">%d changes on this device haven\'t synced and won\'t carry over to the new server file.</item>
     </plurals>
+    <string name="sync_reset_unsynced_unknown">This device can\'t tell whether every change has synced. Changes that haven\'t synced won\'t carry over to the new server file.</string>
     <string name="sync_reset_no_unsynced">Every change on this device has already synced.</string>
     <string name="sync_reset_explanation">Actua will save a verified backup of this budget on this device, then download the server\'s current copy and replace this one. You can restore the backup from Backups. Nothing is replaced unless the download succeeds.</string>
     <string name="sync_reset_confirm">Back up and re-download</string>

@@ -2,6 +2,7 @@ package com.azimulkabir.actua.data.budget
 
 import com.azimulkabir.actua.data.network.RemoteBudgetFile
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
+import com.azimulkabir.actua.data.sync.SyncedLogMarkers
 import java.io.File
 
 sealed class BudgetRecoveryException(message: String, cause: Throwable? = null) : Exception(message, cause) {
@@ -13,8 +14,8 @@ data class BudgetResetRecoveryResult(
     val metadata: BudgetMetadata,
     /** The verified archive written before anything was replaced; restorable from Backups. */
     val backup: File,
-    /** Local edits that were not on the server and are not in the new file. */
-    val unsyncedChanges: Int,
+    /** Local edits that were not on the server and are not in the new file; null if unknown. */
+    val unsyncedChanges: Int?,
 )
 
 /**
@@ -28,10 +29,16 @@ class BudgetResetRecovery(
     private val files: BudgetFileManager,
     private val backups: BackupService,
     private val downloader: BudgetDownloadService,
+    private val markers: SyncedLogMarkers,
 ) {
-    /** Local changes that haven't synced, shown to the user before they confirm. */
-    fun unsyncedChanges(budgetId: String): Int =
-        ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { it.unsyncedMessageCount() }
+    /**
+     * Local changes that haven't synced, shown to the user before they confirm. Null when this device
+     * never recorded a completed sync for the budget, so the count can't be known.
+     */
+    fun unsyncedChanges(budgetId: String): Int? {
+        val syncedThrough = markers.read(budgetId) ?: return null
+        return ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { it.messageCountAfter(syncedThrough) }
+    }
 
     fun recover(serverUrl: String, token: String, budgetId: String): BudgetResetRecoveryResult =
         // Held against the sync runner so no sync starts or is mid-flight while the files change.
@@ -49,6 +56,8 @@ class BudgetResetRecovery(
 
             val remote = RemoteBudgetFile(fileId, local.groupId, local.budgetName.orEmpty(), local.encryptKeyId)
             val metadata = downloader.redownload(serverUrl, token, remote, budgetId)
+            // The new file is the server's: everything in its log is synced.
+            markers.record(budgetId, ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { it.maxMessageTimestamp() })
             BudgetResetRecoveryResult(metadata, backup, unsynced)
         }
 

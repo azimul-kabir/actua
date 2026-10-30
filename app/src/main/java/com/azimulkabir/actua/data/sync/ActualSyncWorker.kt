@@ -165,7 +165,10 @@ object ActualSyncRunner {
         DiagnosticsLog.syncStarted(trigger)
         val startedAt = SystemClock.elapsedRealtime()
         return try {
+            // Taken before the round trip, so an edit made during it is never counted as sent.
+            var sentThrough: String? = null
             val result = ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { database ->
+                sentThrough = database.maxMessageTimestamp()
                 val server = ActualServerClient(UrlConnectionTransport(TrustedCertificateStore(context))).apply { customHeaders = credentials.customHeaders }
                 fun syncAt(url: String) = ActualSyncClient(url, token, server, database, fileId, groupId,
                     loadedKey?.keyId, loadedKey?.let { ActualMessageCipher(it.key) }).sync()
@@ -186,6 +189,7 @@ object ActualSyncRunner {
             lastSuccessElapsedMillis = SystemClock.elapsedRealtime()
             lastSuccess = result
             status.succeeded(result.outcome)
+            SyncedLogMarkers(app).record(budgetId, sentThrough)
             DiagnosticsLog.syncSucceeded(
                 result.outcome.sentMessages, result.outcome.receivedMessages, result.outcome.attempts,
                 SystemClock.elapsedRealtime() - startedAt,

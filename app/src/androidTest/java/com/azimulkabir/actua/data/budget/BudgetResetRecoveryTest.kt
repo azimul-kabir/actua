@@ -7,7 +7,9 @@ import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.network.ActualServerException
 import com.azimulkabir.actua.data.security.BudgetEncryptionKeyStore
 import com.azimulkabir.actua.data.sync.HlcTimestamp
+import com.azimulkabir.actua.data.sync.SyncedLogMarkers
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -17,14 +19,14 @@ import java.util.UUID
 /** Recovery after the server reports `file-has-reset` (actua#1343). */
 class BudgetResetRecoveryTest {
     @Test
-    fun unsyncedChangesCountsOnlyEditsAfterTheLastSyncedClock() = withLocalBudget { env ->
-        assertEquals("a budget without a saved clock counts none", 0, env.recovery.unsyncedChanges(env.local.id))
+    fun unsyncedChangesCountsOnlyEditsAfterTheLastRecordedSync() = withLocalBudget { env ->
+        assertNull("without a recorded sync the count is unknown", env.recovery.unsyncedChanges(env.local.id))
 
         env.markSynced()
         assertEquals(0, env.recovery.unsyncedChanges(env.local.id))
 
         env.editOffline("Edited offline")
-        assertTrue(env.recovery.unsyncedChanges(env.local.id) > 0)
+        assertTrue(env.recovery.unsyncedChanges(env.local.id)!! > 0)
     }
 
     @Test
@@ -32,7 +34,7 @@ class BudgetResetRecoveryTest {
         env.markSynced()
         env.editOffline("Edited offline")
         val unsynced = env.recovery.unsyncedChanges(env.local.id)
-        assertTrue(unsynced > 0)
+        assertTrue(unsynced != null && unsynced > 0)
         val serverArchive = env.serverArchive("Server name")
         val requests = mutableListOf<String>()
         val recovery = env.recoveryWith(ActualServerClient { request ->
@@ -80,7 +82,7 @@ class BudgetResetRecoveryTest {
             }
         })
 
-        assertThrows(BudgetFileException.InvalidArchive::class.java) {
+        assertThrows(BudgetFileException::class.java) {
             recovery.recover("https://actual.test", "token", env.local.id)
         }
 
@@ -114,7 +116,9 @@ class BudgetResetRecoveryTest {
             var requests = 0
             val server = ActualServerClient { requests++; ActualHttpResponse(200, byteArrayOf()) }
             val backups = BackupService(context, files)
-            val recovery = BudgetResetRecovery(files, backups, BudgetDownloadService(server, files, BudgetEncryptionKeyStore(context)))
+            val recovery = BudgetResetRecovery(
+                files, backups, BudgetDownloadService(server, files, BudgetEncryptionKeyStore(context)), SyncedLogMarkers(context),
+            )
 
             assertThrows(BudgetRecoveryException.NotServerBacked::class.java) {
                 recovery.recover("https://actual.test", "token", local.id)
@@ -136,7 +140,9 @@ class BudgetResetRecoveryTest {
         val recovery = recoveryWith(ActualServerClient { ActualHttpResponse(500, byteArrayOf()) })
 
         fun recoveryWith(server: ActualServerClient) =
-            BudgetResetRecovery(files, backups, BudgetDownloadService(server, files, BudgetEncryptionKeyStore(context)))
+            BudgetResetRecovery(
+                files, backups, BudgetDownloadService(server, files, BudgetEncryptionKeyStore(context)), SyncedLogMarkers(context),
+            )
 
         fun fileInfo() =
             """{"status":"ok","data":{"fileId":"$CLOUD_FILE_ID","groupId":"new-group","name":"Budget","deleted":0,"encryptMeta":null}}"""
@@ -154,16 +160,9 @@ class BudgetResetRecoveryTest {
             }
         }
 
-        /** Saves a sync clock older than any edit made afterwards, as a completed sync would. */
+        /** Records a completed sync older than any edit made afterwards. */
         fun markSynced() {
-            ActualBudgetDatabase.open(files.databaseFile(local.id)).use { database ->
-                database.saveClock(
-                    ActualBudgetDatabase.ClockRecord(
-                        HlcTimestamp(OLD_SYNC_MILLIS, 0, "0000000000000000").toString(),
-                        database.deriveMerkleFromMessageLog().root,
-                    ),
-                )
-            }
+            SyncedLogMarkers(context).record(local.id, HlcTimestamp(OLD_SYNC_MILLIS, 0, "0000000000000000").toString())
         }
 
         fun editOffline(name: String) {

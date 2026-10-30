@@ -2228,20 +2228,12 @@ class ActualBudgetDatabase private constructor(
         null,
     ).use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getString(0) else null }
 
-    /**
-     * Local edits that haven't reached the server: log entries newer than the clock the last
-     * completed sync saved. Mirrors the sync client's boundary, so a budget without a saved clock
-     * (just downloaded) counts none.
-     */
+    /** Log entries newer than [timestamp]; with a sync marker, the edits that haven't reached the server. */
     @Synchronized
-    fun unsyncedMessageCount(): Int {
-        val boundary = loadClock()?.timestamp
-            ?.takeIf { !it.startsWith("1970-") && HlcTimestamp.parse(it) != null } ?: return 0
-        return database.rawQuery(
-            "SELECT COUNT(*) FROM messages_crdt WHERE timestamp > ?",
-            arrayOf(boundary),
-        ).use { cursor -> if (cursor.moveToFirst()) cursor.getInt(0) else 0 }
-    }
+    fun messageCountAfter(timestamp: String): Int = database.rawQuery(
+        "SELECT COUNT(*) FROM messages_crdt WHERE timestamp > ?",
+        arrayOf(timestamp),
+    ).use { cursor -> if (cursor.moveToFirst()) cursor.getInt(0) else 0 }
 
     /** Newest parseable message-log timestamp; writers' clocks advance past it before each send. */
     fun messageLogHighWater(): HlcTimestamp? = maxMessageTimestamp()?.let(HlcTimestamp::parse)

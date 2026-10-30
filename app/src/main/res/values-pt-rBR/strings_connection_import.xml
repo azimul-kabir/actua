@@ -468,6 +468,7 @@
         <item quantity="one">%d alteração neste dispositivo não foi sincronizada e não será transferida para o novo arquivo do servidor.</item>
         <item quantity="other">%d alterações neste dispositivo não foram sincronizadas e não serão transferidas para o novo arquivo do servidor.</item>
     </plurals>
+    <string name="sync_reset_unsynced_unknown">Este dispositivo não consegue saber se todas as alterações foram sincronizadas. As alterações não sincronizadas não serão transferidas para o novo arquivo do servidor.</string>
     <string name="sync_reset_no_unsynced">Todas as alterações neste dispositivo já foram sincronizadas.</string>
     <string name="sync_reset_explanation">O Actua salvará um backup verificado deste orçamento neste dispositivo, depois baixará a cópia atual do servidor e substituirá esta. Você pode restaurar o backup em Backups. Nada é substituído se o download não for concluído com sucesso.</string>
     <string name="sync_reset_confirm">Fazer backup e baixar novamente</string>

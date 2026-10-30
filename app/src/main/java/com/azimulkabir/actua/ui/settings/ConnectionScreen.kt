@@ -113,6 +113,7 @@ import com.azimulkabir.actua.data.sync.SyncErrorCode
 import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.sync.SYNC_REASON_FILE_HAS_RESET
 import com.azimulkabir.actua.data.sync.SyncStatusStore
+import com.azimulkabir.actua.data.sync.SyncedLogMarkers
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_AFTER_CHANGE
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_APP_OPEN
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_BACKGROUND
@@ -280,8 +281,8 @@ fun ConnectionScreen(
     val activeBudget = remember { ActiveBudgetStore(context) }
     val downloader = remember { BudgetDownloadService(client, files, BudgetEncryptionKeyStore(context)) }
     val backupService = remember { BackupService(context, files) }
-    val resetRecovery = remember { BudgetResetRecovery(files, backupService, downloader) }
-    var resetRecoveryUnsynced by remember { mutableStateOf<Int?>(null) }
+    val resetRecovery = remember { BudgetResetRecovery(files, backupService, downloader, SyncedLogMarkers(context)) }
+    var resetRecoveryPrompt by remember { mutableStateOf<ResetRecoveryPrompt?>(null) }
     var recoveringFromReset by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var serverUrl by remember { mutableStateOf(credentials.serverUrl) }
@@ -736,15 +737,19 @@ fun ConnectionScreen(
         )
     }
 
-    resetRecoveryUnsynced?.let { unsynced ->
+    resetRecoveryPrompt?.let { prompt ->
         AlertDialog(
-            onDismissRequest = { if (!recoveringFromReset) resetRecoveryUnsynced = null },
+            onDismissRequest = { if (!recoveringFromReset) resetRecoveryPrompt = null },
             title = { Text(stringResource(R.string.sync_reset_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val unsynced = prompt.unsyncedChanges
                     Text(
-                        if (unsynced > 0) pluralStringResource(R.plurals.sync_reset_unsynced, unsynced, unsynced)
-                        else stringResource(R.string.sync_reset_no_unsynced),
+                        when {
+                            unsynced == null -> stringResource(R.string.sync_reset_unsynced_unknown)
+                            unsynced > 0 -> pluralStringResource(R.plurals.sync_reset_unsynced, unsynced, unsynced)
+                            else -> stringResource(R.string.sync_reset_no_unsynced)
+                        },
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(stringResource(R.string.sync_reset_explanation))
@@ -794,13 +799,13 @@ fun ConnectionScreen(
                                 onBudgetInstalled()
                             }
                             recoveringFromReset = false
-                            resetRecoveryUnsynced = null
+                            resetRecoveryPrompt = null
                         }
                     },
                 ) { Text(stringResource(R.string.sync_reset_confirm)) }
             },
             dismissButton = {
-                TextButton(enabled = !recoveringFromReset, onClick = { resetRecoveryUnsynced = null }) {
+                TextButton(enabled = !recoveringFromReset, onClick = { resetRecoveryPrompt = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -1672,7 +1677,7 @@ fun ConnectionScreen(
                             message = null
                             scope.launch {
                                 runCatching { withContext(Dispatchers.IO) { resetRecovery.unsyncedChanges(budgetId) } }
-                                    .onSuccess { resetRecoveryUnsynced = it }
+                                    .onSuccess { resetRecoveryPrompt = ResetRecoveryPrompt(it) }
                                     .onFailure { message = resources.getString(R.string.sync_reset_failed) }
                             }
                         },
@@ -1959,3 +1964,6 @@ private fun ConnectionAction(
         )
     }
 }
+
+/** What the re-download confirmation shows; [unsyncedChanges] is null when this device can't tell. */
+private class ResetRecoveryPrompt(val unsyncedChanges: Int?)
