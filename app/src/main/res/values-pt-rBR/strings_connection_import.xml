@@ -461,4 +461,16 @@
         <item quantity="one">Limpar histórico de importações (%1$d)</item>
         <item quantity="other">Limpar histórico de importações (%1$d)</item>
     </plurals>
+
+    <string name="sync_reset_recover_action">Fazer backup e baixar novamente</string>
+    <string name="sync_reset_title">Baixar este orçamento novamente?</string>
+    <plurals name="sync_reset_unsynced">
+        <item quantity="one">%d alteração neste dispositivo não foi sincronizada e não será transferida para o novo arquivo do servidor.</item>
+        <item quantity="other">%d alterações neste dispositivo não foram sincronizadas e não serão transferidas para o novo arquivo do servidor.</item>
+    </plurals>
+    <string name="sync_reset_no_unsynced">Todas as alterações neste dispositivo já foram sincronizadas.</string>
+    <string name="sync_reset_explanation">O Actua salvará um backup verificado deste orçamento neste dispositivo, depois baixará a cópia atual do servidor e substituirá esta. Você pode restaurar o backup em Backups. Nada é substituído se o download não for concluído com sucesso.</string>
+    <string name="sync_reset_confirm">Fazer backup e baixar novamente</string>
+    <string name="sync_reset_done">%1$s baixado novamente. Um backup da cópia anterior foi salvo antes.</string>
+    <string name="sync_reset_failed">Não foi possível baixar o orçamento novamente. A cópia deste dispositivo não foi alterada.</string>
 </resources>

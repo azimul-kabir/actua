@@ -37,6 +37,29 @@ class SyncStatusStoreTest {
     }
 
     @Test
+    fun syncRejectionReasonIsKeptUntilTheNextSyncOrRecovery() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("actua-sync-status", Context.MODE_PRIVATE).edit().clear().commit()
+        val store = SyncStatusStore(context)
+
+        store.failed(com.azimulkabir.actua.data.network.ActualServerException.SyncRejected(SYNC_REASON_FILE_HAS_RESET))
+        assertEquals(SYNC_REASON_FILE_HAS_RESET, store.read().rejectionReason)
+
+        // A different failure replaces it, so the recovery action only shows for a real reset.
+        store.failed(java.io.IOException("connection refused"))
+        assertEquals(null, store.read().rejectionReason)
+
+        store.failed(com.azimulkabir.actua.data.network.ActualServerException.SyncRejected(SYNC_REASON_FILE_HAS_RESET))
+        store.rejectionResolved()
+        assertEquals(null, store.read().rejectionReason)
+        assertEquals(null, store.read().error)
+
+        store.failed(com.azimulkabir.actua.data.network.ActualServerException.SyncRejected(SYNC_REASON_FILE_HAS_RESET))
+        store.started(SYNC_TRIGGER_MANUAL)
+        assertEquals(null, store.read().rejectionReason)
+    }
+
+    @Test
     fun failuresPersistStableCodesForDisplay() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         context.getSharedPreferences("actua-sync-status", Context.MODE_PRIVATE).edit().clear().commit()

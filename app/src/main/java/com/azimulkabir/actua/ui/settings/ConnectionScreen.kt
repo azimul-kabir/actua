@@ -52,6 +52,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -92,6 +93,7 @@ import com.azimulkabir.actua.data.network.inspectServerCertificate
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetDownloadException
 import com.azimulkabir.actua.data.budget.BudgetDownloadService
+import com.azimulkabir.actua.data.budget.BudgetResetRecovery
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BackupItem
 import com.azimulkabir.actua.data.budget.BackupService
@@ -109,6 +111,7 @@ import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_MANUAL
 import com.azimulkabir.actua.data.sync.SyncErrorCode
 import com.azimulkabir.actua.data.sync.SyncRunResult
+import com.azimulkabir.actua.data.sync.SYNC_REASON_FILE_HAS_RESET
 import com.azimulkabir.actua.data.sync.SyncStatusStore
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_AFTER_CHANGE
 import com.azimulkabir.actua.data.sync.SYNC_TRIGGER_APP_OPEN
@@ -277,6 +280,9 @@ fun ConnectionScreen(
     val activeBudget = remember { ActiveBudgetStore(context) }
     val downloader = remember { BudgetDownloadService(client, files, BudgetEncryptionKeyStore(context)) }
     val backupService = remember { BackupService(context, files) }
+    val resetRecovery = remember { BudgetResetRecovery(files, backupService, downloader) }
+    var resetRecoveryUnsynced by remember { mutableStateOf<Int?>(null) }
+    var recoveringFromReset by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var serverUrl by remember { mutableStateOf(credentials.serverUrl) }
     var fallbackServerUrl by remember { mutableStateOf(credentials.fallbackServerUrl) }
@@ -730,6 +736,76 @@ fun ConnectionScreen(
         )
     }
 
+    resetRecoveryUnsynced?.let { unsynced ->
+        AlertDialog(
+            onDismissRequest = { if (!recoveringFromReset) resetRecoveryUnsynced = null },
+            title = { Text(stringResource(R.string.sync_reset_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        if (unsynced > 0) pluralStringResource(R.plurals.sync_reset_unsynced, unsynced, unsynced)
+                        else stringResource(R.string.sync_reset_no_unsynced),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(stringResource(R.string.sync_reset_explanation))
+                    if (recoveringFromReset) LinearProgressIndicator(Modifier.fillMaxWidth())
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !recoveringFromReset,
+                    onClick = {
+                        val budgetId = activeBudget.budgetId ?: return@TextButton
+                        val token = credentials.token() ?: return@TextButton
+                        recoveringFromReset = true
+                        message = null
+                        // Releases the app's handle on the database before its files are replaced.
+                        onBeforeBudgetReplacement()
+                        scope.launch {
+                            runCatching {
+                                withContext(Dispatchers.IO) { resetRecovery.recover(activeServerUrl, token, budgetId) }
+                            }.onSuccess { result ->
+                                syncStatusStore.rejectionResolved()
+                                syncStatus = syncStatusStore.read()
+                                message = resources.getString(
+                                    R.string.sync_reset_done,
+                                    result.metadata.budgetName ?: result.metadata.id,
+                                )
+                                localBudgetsGeneration++
+                                refreshBackups()
+                                onBudgetInstalled()
+                                ActualSyncScheduler.scheduleMutation(context)
+                            }.onFailure { error ->
+                                // The local budget is untouched on any failure; reopen it as it was.
+                                message = when (error) {
+                                    BudgetDownloadException.EncryptionPasswordRequired ->
+                                        resources.getString(R.string.enter_budget_encryption_password)
+                                    BudgetDownloadException.EncryptionKeyChanged ->
+                                        resources.getString(R.string.budget_encryption_key_changed)
+                                    BudgetDownloadException.InvalidEncryptionMetadata ->
+                                        resources.getString(R.string.invalid_budget_encryption_metadata)
+                                    else -> connectionErrorMessage(
+                                        error,
+                                        resources.getString(R.string.sync_reset_failed),
+                                        resources.getString(R.string.server_certificate_not_trusted_error),
+                                    )
+                                }
+                                if (error is ActualServerException.SessionExpired) showServerError(error, R.string.sync_reset_failed)
+                                onBudgetInstalled()
+                            }
+                            recoveringFromReset = false
+                            resetRecoveryUnsynced = null
+                        }
+                    },
+                ) { Text(stringResource(R.string.sync_reset_confirm)) }
+            },
+            dismissButton = {
+                TextButton(enabled = !recoveringFromReset, onClick = { resetRecoveryUnsynced = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
     if (showAddHeader) AlertDialog(
         onDismissRequest = { showAddHeader = false; headerNameInput = ""; headerValueInput = "" },
         title = { Text(stringResource(R.string.add_http_header)) },
@@ -1586,6 +1662,22 @@ fun ConnectionScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 syncStatus.error?.let { Text(syncErrorDisplayMessage(it), color = MaterialTheme.colorScheme.error) }
+                if (syncStatus.rejectionReason == SYNC_REASON_FILE_HAS_RESET && activeBudget.budgetId != null) {
+                    FilledTonalButton(
+                        enabled = !syncing && !loading && downloadingId == null && !recoveringFromReset,
+                        modifier = Modifier.fillMaxWidth().height(Sizes.secondaryButtonHeight),
+                        shape = MaterialTheme.shapes.large,
+                        onClick = {
+                            val budgetId = activeBudget.budgetId ?: return@FilledTonalButton
+                            message = null
+                            scope.launch {
+                                runCatching { withContext(Dispatchers.IO) { resetRecovery.unsyncedChanges(budgetId) } }
+                                    .onSuccess { resetRecoveryUnsynced = it }
+                                    .onFailure { message = resources.getString(R.string.sync_reset_failed) }
+                            }
+                        },
+                    ) { Text(stringResource(R.string.sync_reset_recover_action)) }
+                }
                 FilledTonalButton(enabled = !demoActive && !syncing && !loading && downloadingId == null,
                     modifier = Modifier.fillMaxWidth().height(Sizes.secondaryButtonHeight),
                     shape = MaterialTheme.shapes.large, onClick = {

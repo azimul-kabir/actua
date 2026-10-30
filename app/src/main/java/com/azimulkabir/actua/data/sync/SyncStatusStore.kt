@@ -20,7 +20,12 @@ data class SyncStatus(
     val activeTrigger: String?,
     val lastDurationMillis: Long,
     val lastForegroundRefreshMillis: Long,
+    /** Actual's reason code when the server refused the last sync (`file-has-reset`), else null. */
+    val rejectionReason: String? = null,
 )
+
+/** Actual's `/sync` rejection when the server file's sync was reset; the app can recover from it. */
+const val SYNC_REASON_FILE_HAS_RESET = "file-has-reset"
 
 /**
  * Stable persisted codes for sync failures, translated only when displayed. Screens map these to
@@ -69,12 +74,13 @@ class SyncStatusStore(context: Context) {
         preferences.getString("activeTrigger", null),
         preferences.getLong("lastDuration", 0),
         preferences.getLong("lastForegroundRefresh", 0),
+        preferences.getString("rejectionReason", null),
     )
 
     fun started(trigger: String = SYNC_TRIGGER_MANUAL, now: Long = System.currentTimeMillis()) {
         val stableTrigger = stableTriggerCode(trigger)
         preferences.edit().putBoolean("running", true).putLong("lastAttempt", now)
-            .putString("activeTrigger", stableTrigger).remove("error").apply()
+            .putString("activeTrigger", stableTrigger).remove("error").remove("rejectionReason").apply()
         SyncSignals.statusChanged()
     }
 
@@ -87,7 +93,13 @@ class SyncStatusStore(context: Context) {
             .apply {
                 if (trigger == SYNC_TRIGGER_APP_OPEN) putLong("lastForegroundRefresh", now)
             }
-            .remove("activeTrigger").remove("error").apply()
+            .remove("activeTrigger").remove("error").remove("rejectionReason").apply()
+        SyncSignals.statusChanged()
+    }
+
+    /** The budget was replaced by a fresh server copy, so the rejection no longer applies. */
+    fun rejectionResolved() {
+        preferences.edit().remove("error").remove("rejectionReason").apply()
         SyncSignals.statusChanged()
     }
 
@@ -98,7 +110,11 @@ class SyncStatusStore(context: Context) {
             ?: syncErrorCode(error).persistedValue
         preferences.edit().putBoolean("running", false)
             .remove("activeTrigger")
-            .putString("error", persisted).apply()
+            .putString("error", persisted)
+            .apply {
+                val reason = (error as? ActualServerException.SyncRejected)?.reason
+                if (reason != null) putString("rejectionReason", reason) else remove("rejectionReason")
+            }.apply()
         SyncSignals.statusChanged()
     }
 

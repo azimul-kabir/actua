@@ -46,10 +46,23 @@ object ActualSyncRunner {
     private var lastSuccessElapsedMillis: Long = Long.MIN_VALUE
     private var lastSuccess: SyncRunResult.Success? = null
 
-    internal fun resetForTesting() {
+    internal fun resetForTesting() = clearRecentSuccess()
+
+    private fun clearRecentSuccess() {
         lastSuccessBudgetId = null
         lastSuccessElapsedMillis = Long.MIN_VALUE
         lastSuccess = null
+    }
+
+    /**
+     * Runs [block] while no sync can start or be mid-flight, e.g. to replace the budget's files.
+     * The recent-success shortcut is cleared afterwards so the next sync really talks to the server.
+     */
+    @Synchronized
+    fun <T> whileSyncPaused(block: () -> T): T = try {
+        block()
+    } finally {
+        clearRecentSuccess()
     }
 
     @Synchronized
