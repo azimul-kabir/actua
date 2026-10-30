@@ -6,7 +6,11 @@ import com.azimulkabir.actua.data.network.ActualHttpResponse
 import com.azimulkabir.actua.data.network.ActualServerClient
 import com.azimulkabir.actua.data.network.ActualServerException
 import com.azimulkabir.actua.data.security.BudgetEncryptionKeyStore
+import com.azimulkabir.actua.data.sync.EncryptionKeyException
 import com.azimulkabir.actua.data.sync.HlcTimestamp
+import com.azimulkabir.actua.data.sync.LoadedEncryptionKey
+import com.azimulkabir.actua.data.sync.SyncEncryption
+import com.azimulkabir.actua.data.sync.SyncEncryptionException
 import com.azimulkabir.actua.data.sync.SyncedLogMarkers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -15,6 +19,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.util.UUID
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 /** Recovery after the server reports `file-has-reset` (actua#1343). */
 class BudgetResetRecoveryTest {
@@ -108,6 +115,71 @@ class BudgetResetRecoveryTest {
     }
 
     @Test
+    fun newKeyIsVerifiedFirstThenStoredOnlyAfterTheNewFileIsInstalled() = withLocalBudget { env ->
+        val keys = BudgetEncryptionKeyStore(env.context)
+        try {
+            env.useOldKey(keys)
+            env.editOffline("Edited offline")
+            val recovery = env.recoveryWith(env.encryptedServer(env.serverArchive("Server name")))
+
+            val result = recovery.recover("https://actual.test", "token", env.local.id, KEY_FIXTURE_PASSWORD)
+
+            assertEquals("Server name", env.categoryName(env.files.databaseFile(env.local.id).path))
+            assertEquals(KEY_FIXTURE_ID, result.metadata.encryptKeyId)
+            assertEquals(KEY_FIXTURE_ID, env.files.metadata(env.local.id)?.encryptKeyId)
+            assertEquals(KEY_FIXTURE_ID, keys.load(CLOUD_FILE_ID)?.keyId)
+            assertTrue(result.backup.isFile)
+        } finally {
+            keys.remove(CLOUD_FILE_ID)
+        }
+    }
+
+    @Test
+    fun wrongNewPasswordChangesNothingAndKeepsTheOldKey() = withLocalBudget { env ->
+        val keys = BudgetEncryptionKeyStore(env.context)
+        try {
+            env.useOldKey(keys)
+            env.editOffline("Edited offline")
+            val before = env.messageLog()
+            var downloads = 0
+            val recovery = env.recoveryWith(env.encryptedServer(env.serverArchive("Server name")) { downloads++ })
+
+            assertThrows(EncryptionKeyException.InvalidPassword::class.java) {
+                recovery.recover("https://actual.test", "token", env.local.id, "not the password")
+            }
+
+            assertEquals(0, downloads)
+            assertEquals(before, env.messageLog())
+            assertEquals("Edited offline", env.categoryName(env.files.databaseFile(env.local.id).path))
+            assertEquals(OLD_KEY_ID, keys.load(CLOUD_FILE_ID)?.keyId)
+            assertEquals(OLD_KEY_ID, env.files.metadata(env.local.id)?.encryptKeyId)
+            assertTrue("no backup is written for a wrong password", env.backups.availableBackups(env.local.id).isEmpty())
+        } finally {
+            keys.remove(CLOUD_FILE_ID)
+        }
+    }
+
+    @Test
+    fun undecryptableDownloadKeepsTheOldKeyAndTheLocalBudget() = withLocalBudget { env ->
+        val keys = BudgetEncryptionKeyStore(env.context)
+        try {
+            env.useOldKey(keys)
+            env.editOffline("Edited offline")
+            val recovery = env.recoveryWith(env.encryptedServer(env.serverArchive("Server name"), tamper = true))
+
+            assertThrows(SyncEncryptionException::class.java) {
+                recovery.recover("https://actual.test", "token", env.local.id, KEY_FIXTURE_PASSWORD)
+            }
+
+            assertEquals("Edited offline", env.categoryName(env.files.databaseFile(env.local.id).path))
+            assertEquals(OLD_KEY_ID, keys.load(CLOUD_FILE_ID)?.keyId)
+            assertEquals(OLD_KEY_ID, env.files.metadata(env.local.id)?.encryptKeyId)
+        } finally {
+            keys.remove(CLOUD_FILE_ID)
+        }
+    }
+
+    @Test
     fun budgetNotLinkedToTheServerIsRefusedWithoutBackupOrRequests() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val files = BudgetFileManager(context)
@@ -135,7 +207,7 @@ class BudgetResetRecoveryTest {
         val files: BudgetFileManager,
         val backups: BackupService,
         val local: BudgetMetadata,
-        private val context: android.content.Context,
+        val context: android.content.Context,
     ) {
         val recovery = recoveryWith(ActualServerClient { ActualHttpResponse(500, byteArrayOf()) })
 
@@ -144,8 +216,43 @@ class BudgetResetRecoveryTest {
                 files, backups, BudgetDownloadService(server, files, BudgetEncryptionKeyStore(context)), SyncedLogMarkers(context),
             )
 
-        fun fileInfo() =
-            """{"status":"ok","data":{"fileId":"$CLOUD_FILE_ID","groupId":"new-group","name":"Budget","deleted":0,"encryptMeta":null}}"""
+        fun fileInfo(encryptMeta: String = "null") =
+            """{"status":"ok","data":{"fileId":"$CLOUD_FILE_ID","groupId":"new-group","name":"Budget","deleted":0,"encryptMeta":$encryptMeta}}"""
+
+        /** Links the local budget to the old key, as it is when the server reports `file-has-new-key`. */
+        fun useOldKey(keys: BudgetEncryptionKeyStore) {
+            keys.store(CLOUD_FILE_ID, LoadedEncryptionKey(OLD_KEY_ID, ByteArray(32) { 7 }))
+            files.metadataFile(local.id).writeText(
+                org.json.JSONObject(files.metadataFile(local.id).readText()).put("encryptKeyId", OLD_KEY_ID).toString(),
+            )
+        }
+
+        /**
+         * A server whose file is now encrypted with the key for [KEY_FIXTURE_PASSWORD]. [downloads] counts
+         * downloads; [tamper] corrupts the ciphertext so decrypting it fails.
+         */
+        fun encryptedServer(plainArchive: ByteArray, tamper: Boolean = false, downloads: () -> Unit = {}): ActualServerClient {
+            val key = SyncEncryption.deriveKey(KEY_FIXTURE_PASSWORD, KEY_FIXTURE_SALT)
+            val iv = ByteArray(12) { (it + 1).toByte() }
+            val sealed = Cipher.getInstance("AES/GCM/NoPadding").run {
+                init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, iv))
+                doFinal(plainArchive)
+            }
+            val ciphertext = sealed.copyOf(sealed.size - 16).also { if (tamper) it[0] = (it[0] + 1).toByte() }
+            val authTag = sealed.copyOfRange(sealed.size - 16, sealed.size)
+            val encoder = java.util.Base64.getEncoder()
+            val meta = """{"keyId":"$KEY_FIXTURE_ID","algorithm":"aes-256-gcm","iv":"${encoder.encodeToString(iv)}","authTag":"${encoder.encodeToString(authTag)}"}"""
+            return ActualServerClient { request ->
+                when {
+                    request.url.path.endsWith("get-user-file-info") -> ActualHttpResponse(200, fileInfo(meta).encodeToByteArray())
+                    request.url.path.endsWith("user-get-key") -> ActualHttpResponse(
+                        200,
+                        """{"status":"ok","data":{"id":"$KEY_FIXTURE_ID","salt":"$KEY_FIXTURE_SALT","test":${org.json.JSONObject.quote(KEY_FIXTURE_TEST)}}}""".encodeToByteArray(),
+                    )
+                    else -> { downloads(); ActualHttpResponse(200, ciphertext) }
+                }
+            }
+        }
 
         /** A snapshot of another budget, as the server's reset file would be. */
         fun serverArchive(categoryName: String): ByteArray {
@@ -200,6 +307,12 @@ class BudgetResetRecoveryTest {
 
     private companion object {
         const val CLOUD_FILE_ID = "cloud-reset-file"
+        const val OLD_KEY_ID = "old-key"
+        /** Actual's key-test fixture, shared with `EncryptionKeyManagerTest`. */
+        const val KEY_FIXTURE_PASSWORD = "correct horse battery staple"
+        const val KEY_FIXTURE_ID = "11111111-1111-1111-1111-111111111111"
+        const val KEY_FIXTURE_SALT = "XfsOVKaxbU9A5bYyrQAasQrjy0Nvd3rllUW+ZRWCdTE="
+        const val KEY_FIXTURE_TEST = """{"value":"q6+m+aF63TaiPBXc8fqlqmmUQ4VIJZzk4NFa/uPsmyQ=","meta":{"keyId":"11111111-1111-1111-1111-111111111111","algorithm":"aes-256-gcm","iv":"AqLh9LX6BdIiavoO","authTag":"ikPp5J5szWjUn3XlE1TQFg=="}}"""
         /** 2020-01-01T00:00:00Z. */
         const val OLD_SYNC_MILLIS = 1_577_836_800_000L
         /** "General" in the blank budget template. */

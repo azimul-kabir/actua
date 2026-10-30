@@ -23,10 +23,19 @@ class BudgetDownloadService(
     private val keyStore: BudgetEncryptionKeyStore,
 ) {
     fun unlock(serverUrl: String, token: String, fileId: String, password: String): LoadedEncryptionKey {
-        val loaded = EncryptionKeyManager.deriveAndValidate(password, server.getKeyInfo(serverUrl, token, fileId))
+        val loaded = verifyPassword(serverUrl, token, fileId, password)
         keyStore.store(fileId, loaded)
         return loaded
     }
+
+    /**
+     * Derives the key for [password] and checks it against the server's key test without storing it,
+     * so a wrong password changes nothing and a stored key stays until a replacement is installed.
+     */
+    fun verifyPassword(serverUrl: String, token: String, fileId: String, password: String): LoadedEncryptionKey =
+        EncryptionKeyManager.deriveAndValidate(password, server.getKeyInfo(serverUrl, token, fileId))
+
+    fun storeKey(fileId: String, key: LoadedEncryptionKey) = keyStore.store(fileId, key)
 
     /** The installed copy of [remote], if this device has one with a database to open. */
     fun localCopy(remote: RemoteBudgetFile): BudgetMetadata? =
@@ -56,23 +65,31 @@ class BudgetDownloadService(
     /**
      * Downloads [remote]'s snapshot over the installed budget [budgetId], keeping its local id.
      * Nothing local changes unless the download decrypts and validates; see [BudgetFileManager.importBudget].
+     * An explicit [key] (the file's new key, not yet stored) is used instead of the stored one.
      */
-    fun redownload(serverUrl: String, token: String, remote: RemoteBudgetFile, budgetId: String): BudgetMetadata {
-        val fetched = fetchArchive(serverUrl, token, remote)
+    fun redownload(
+        serverUrl: String, token: String, remote: RemoteBudgetFile, budgetId: String,
+        key: LoadedEncryptionKey? = null,
+    ): BudgetMetadata {
+        val fetched = fetchArchive(serverUrl, token, remote, key)
         return files.importBudget(ByteArrayInputStream(fetched.archive), fetched.identity, budgetId)
     }
 
     private class FetchedArchive(val archive: ByteArray, val identity: CloudFileIdentity)
 
-    private fun fetchArchive(serverUrl: String, token: String, remote: RemoteBudgetFile): FetchedArchive {
+    private fun fetchArchive(
+        serverUrl: String, token: String, remote: RemoteBudgetFile, explicitKey: LoadedEncryptionKey? = null,
+    ): FetchedArchive {
         val info = server.getFileInfo(serverUrl, token, remote.fileId)
         if (info.deleted) throw ActualServerException.FileNotFound
         val encryption = info.encryption
         val key = encryption?.let {
-            keyStore.load(remote.fileId) ?: throw BudgetDownloadException.EncryptionPasswordRequired
+            explicitKey ?: keyStore.load(remote.fileId) ?: throw BudgetDownloadException.EncryptionPasswordRequired
         }
         var archive = server.downloadFile(serverUrl, token, remote.fileId)
-        if (encryption != null && key != null) archive = decryptArchive(remote.fileId, encryption, key, archive)
+        if (encryption != null && key != null) {
+            archive = decryptArchive(remote.fileId, encryption, key, archive, forgetStoredKeyOnMismatch = explicitKey == null)
+        }
         return FetchedArchive(archive, CloudFileIdentity(remote.fileId, info.groupId, encryption?.keyId))
     }
 
@@ -81,9 +98,10 @@ class BudgetDownloadService(
         metadata: FileEncryptionMetadata,
         key: LoadedEncryptionKey,
         ciphertext: ByteArray,
+        forgetStoredKeyOnMismatch: Boolean = true,
     ): ByteArray {
         if (metadata.keyId != key.keyId) {
-            keyStore.remove(fileId)
+            if (forgetStoredKeyOnMismatch) keyStore.remove(fileId)
             throw BudgetDownloadException.EncryptionKeyChanged
         }
         val iv = metadata.ivBase64?.decodeBase64OrNull()
