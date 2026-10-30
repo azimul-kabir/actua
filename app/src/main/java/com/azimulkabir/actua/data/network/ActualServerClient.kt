@@ -340,6 +340,24 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         requireSuccess(response)
     }
 
+    /**
+     * Renames the server's copy of a budget file, as Actual's client does when the budget name is saved
+     * (`saveMetadataPrefs` in loot-core `server/preferences/app.ts`). A missing file is
+     * `400 file-not-found` and someone else's file is `403 file-access-not-allowed`.
+     */
+    fun updateFileName(serverUrl: String, token: String, fileId: String, name: String) {
+        val body = JSONObject().put("token", token).put("fileId", fileId).put("name", name).toString().encodeToByteArray()
+        val response = request(
+            serverUrl, "/sync/update-user-filename", "POST",
+            actualHeaders(token) + ("Content-Type" to "application/json"), body,
+        )
+        checkAuthorization(response)
+        if (response.status == 400 && response.body.decodeToString().trim() == "file-not-found") {
+            throw ActualServerException.FileNotFound
+        }
+        requireSuccess(response)
+    }
+
     fun getFileInfo(serverUrl: String, token: String, fileId: String): ActualFileInfo {
         val response = request(serverUrl, "/sync/get-user-file-info", "GET", actualHeaders(token) + ("X-ACTUAL-FILE-ID" to fileId))
         checkAuthorization(response)

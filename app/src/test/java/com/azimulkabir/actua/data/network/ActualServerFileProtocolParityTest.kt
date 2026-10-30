@@ -105,6 +105,50 @@ class ActualServerFileProtocolParityTest {
         assertFalse(body.has("password"))
     }
 
+    @Test
+    fun `rename posts token fileId and name as JSON to update-user-filename`() {
+        val transport = RecordingTransport { ActualHttpResponse(200, """{"status":"ok"}""".encodeToByteArray()) }
+
+        ActualServerClient(transport).updateFileName("https://actual.test", "tok", "file-1", "Café \"Home\"")
+
+        assertEquals("https://actual.test/sync/update-user-filename", transport.last.url.toString())
+        assertEquals("POST", transport.last.method)
+        assertEquals("application/json", transport.last.headers["Content-Type"])
+        assertEquals("tok", transport.last.headers["X-ACTUAL-TOKEN"])
+        val body = JSONObject(transport.last.body!!.decodeToString())
+        assertEquals(setOf("token", "fileId", "name"), body.keys().asSequence().toSet())
+        assertEquals("tok", body.getString("token"))
+        assertEquals("file-1", body.getString("fileId"))
+        assertEquals("Café \"Home\"", body.getString("name"))
+    }
+
+    @Test
+    fun `rename maps the server's file-not-found and file-access-not-allowed replies`() {
+        val missing = ActualServerClient(RecordingTransport { ActualHttpResponse(400, "file-not-found".encodeToByteArray()) })
+        assertThrows(ActualServerException.FileNotFound::class.java) {
+            missing.updateFileName("https://actual.test", "tok", "file-1", "New")
+        }
+        val notOwner = ActualServerClient(RecordingTransport { ActualHttpResponse(403, "file-access-not-allowed".encodeToByteArray()) })
+        assertThrows(ActualServerException.FileAccessDenied::class.java) {
+            notOwner.updateFileName("https://actual.test", "tok", "file-1", "New")
+        }
+    }
+
+    @Test
+    fun `rename surfaces an expired session and other server errors`() {
+        val expired = ActualServerClient(RecordingTransport {
+            ActualHttpResponse(401, """{"status":"error","reason":"token-expired"}""".encodeToByteArray())
+        })
+        assertThrows(ActualServerException.SessionExpired::class.java) {
+            expired.updateFileName("https://actual.test", "tok", "file-1", "New")
+        }
+        val invalid = ActualServerClient(RecordingTransport { ActualHttpResponse(400, "invalid fileId".encodeToByteArray()) })
+        val error = assertThrows(ActualServerException.Http::class.java) {
+            invalid.updateFileName("https://actual.test", "tok", "bad@id", "New")
+        }
+        assertEquals(400, error.status)
+    }
+
     private class RecordingTransport(
         private val response: (ActualHttpRequest) -> ActualHttpResponse,
     ) : ActualHttpTransport {

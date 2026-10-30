@@ -100,6 +100,23 @@ class BudgetFileManager(context: Context) {
         file.writeText(json.toString())
     }
 
+    /**
+     * Sets `budgetName` in the budget's metadata and keeps every other key, as Actual's `savePrefs` does.
+     * The file is replaced in one rename, so a failure leaves the old metadata intact.
+     */
+    fun renameBudget(budgetId: String, name: String): BudgetMetadata {
+        val file = metadataFile(budgetId)
+        val json = JSONObject(file.readText()).put("budgetName", name)
+        val temporary = File(file.parentFile, "${file.name}.tmp")
+        try {
+            temporary.writeText(json.toString())
+            check(temporary.renameTo(file)) { "Unable to save the budget name" }
+        } finally {
+            temporary.delete()
+        }
+        return BudgetMetadata.fromJson(json)
+    }
+
     fun deleteBudget(budgetId: String) {
         val directory = budgetDirectory(budgetId)
         require(directory.isDirectory) { "Budget no longer exists on this device" }
