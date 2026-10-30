@@ -115,6 +115,8 @@
     <string name="navigation_transactions_csv_exported">Transações exportadas para CSV.</string>
     <string name="navigation_account_csv_exported">%1$s exportada para CSV.</string>
     <string name="navigation_account_csv_export_failed">Não foi possível exportar as transações.</string>
+    <string name="navigation_report_csv_exported">Relatório exportado para CSV.</string>
+    <string name="navigation_report_csv_export_failed">Não foi possível exportar o relatório.</string>
     <string name="navigation_enable_banking_credentials_saved">Credenciais do Enable Banking salvas.</string>
     <string name="navigation_enable_banking_credentials_save_failed">Não foi possível salvar as credenciais do Enable Banking.</string>
     <string name="navigation_simplefin_token_saved">Token do SimpleFIN salvo.</string>

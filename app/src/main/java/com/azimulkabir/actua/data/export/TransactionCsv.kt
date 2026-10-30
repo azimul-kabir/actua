@@ -46,7 +46,7 @@ object TransactionCsv {
         "Account", "Date", "Payee", "Notes", "Category_Group", "Category", "Amount", "Split_Amount", "Cleared",
     )
 
-    private const val LINE_END = "\r\n"
+    internal const val LINE_END = "\r\n"
     private val FORMULA_TRIGGERS = charArrayOf('=', '+', '-', '@', '\t', '\r')
 
     /** Writes the header and every row to [out]; returns the number of transactions written. */
@@ -113,10 +113,10 @@ object TransactionCsv {
         out.append(LINE_END)
     }
 
-    private fun guardFormula(value: String) =
+    internal fun guardFormula(value: String) =
         if (value.isNotEmpty() && value[0] in FORMULA_TRIGGERS) "'$value" else value
 
-    private fun quote(value: String): String =
+    internal fun quote(value: String): String =
         if (value.any { it == ',' || it == '"' || it == '\n' || it == '\r' }) {
             "\"" + value.replace("\"", "\"\"") + "\""
         } else {

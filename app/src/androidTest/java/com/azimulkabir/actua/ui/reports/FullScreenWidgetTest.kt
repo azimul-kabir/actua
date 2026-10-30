@@ -2,8 +2,10 @@ package com.azimulkabir.actua.ui.reports
 
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -62,6 +64,38 @@ class FullScreenWidgetTest {
                 },
             )
         }
+    }
+
+    private fun openDataTable(exportEnabled: Boolean) {
+        compose.setContent {
+            MaterialTheme {
+                ReportsScreen(
+                    snapshot = ReportSnapshot(emptyList(), emptyList(), 0, listOf(ReportDashboardPage("o", "Overview", listOf(saved)))),
+                    hideDecimalPlaces = false,
+                    onExportReportCsv = if (exportEnabled) ({ _, _ -> }) else null,
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Expand chart").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Data table").performClick()
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun dataTableOffersCsvExportWithTheUnmaskedNote() {
+        openDataTable(exportEnabled = true)
+
+        compose.onNodeWithText("Export to CSV").assertIsDisplayed()
+        compose.onNodeWithText("The file has exact, unmasked amounts.").assertIsDisplayed()
+    }
+
+    @Test
+    fun dataTableHasNoExportWhenTheHostDoesNotSupportIt() {
+        openDataTable(exportEnabled = false)
+
+        compose.onNodeWithText("2026-05-31").assertIsDisplayed()
+        compose.onAllNodesWithText("Export to CSV").assertCountEquals(0)
     }
 
     @Test

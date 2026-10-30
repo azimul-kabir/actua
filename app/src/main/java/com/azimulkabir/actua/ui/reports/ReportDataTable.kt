@@ -4,6 +4,7 @@ import com.azimulkabir.actua.model.ReportCategory
 import com.azimulkabir.actua.model.ReportPoint
 import com.azimulkabir.actua.model.ReportWidget
 import com.azimulkabir.actua.model.ReportWidgetKind
+import java.util.Locale
 
 /** One row of a widget's data table; [drill] opens its transactions when it has any. */
 data class ReportTableRow(val cells: List<String>, val drill: ReportCategory? = null) {
@@ -15,9 +16,13 @@ data class ReportDataTable(val headers: List<String>, val rows: List<ReportTable
 
 /**
  * The table for [widget], or null when it has no figures worth tabulating (notes, missing widgets).
- * [money] formats cents the way the rest of the screen does.
+ * [money] formats cents the way the rest of the screen does. With [csv] the table is for export:
+ * numbers are locale-neutral and unit-free (the unit moves into the header), and the rows are
+ * otherwise identical to the ones shown, so an export matches the report.
  */
-fun reportDataTable(widget: ReportWidget, money: (Long) -> String): ReportDataTable? {
+fun reportDataTable(widget: ReportWidget, money: (Long) -> String, csv: Boolean = false): ReportDataTable? {
+    fun number(pattern: String, value: Double) =
+        if (csv) String.format(Locale.ROOT, pattern, value) else pattern.format(value)
     fun pointDrill(point: ReportPoint, name: String, spent: Long) = ReportCategory(
         name, spent, point.transactionIds, drillDownQuery = point.drillDownQuery,
     )
@@ -29,8 +34,8 @@ fun reportDataTable(widget: ReportWidget, money: (Long) -> String): ReportDataTa
             periodRows { p -> ReportTableRow(listOf(p.period.take(10), money(p.primaryCents)), pointDrill(p, p.period.take(10), p.primaryCents)) },
         )
         ReportWidgetKind.AGE_OF_MONEY -> ReportDataTable(
-            listOf("Period", "Age"),
-            periodRows { p -> ReportTableRow(listOf(p.period.take(10), "${p.primaryCents} days")) },
+            listOf("Period", if (csv) "Age (days)" else "Age"),
+            periodRows { p -> ReportTableRow(listOf(p.period.take(10), if (csv) "${p.primaryCents}" else "${p.primaryCents} days")) },
         )
         ReportWidgetKind.CASH_FLOW, ReportWidgetKind.INCOME_EXPENSE -> ReportDataTable(
             listOf("Period", "Income", "Expense", "Net"),
@@ -95,9 +100,10 @@ fun reportDataTable(widget: ReportWidget, money: (Long) -> String): ReportDataTa
             val categories = widget.categories.filter { it.spentCents != 0L }
             val total = categories.sumOf { kotlin.math.abs(it.spentCents) }.coerceAtLeast(1)
             if (categories.isNotEmpty()) ReportDataTable(
-                listOf("Name", "Amount", "Share"),
+                listOf("Name", "Amount", if (csv) "Share (%)" else "Share"),
                 categories.map { c ->
-                    ReportTableRow(listOf(c.name, money(c.spentCents), "${"%.1f".format(kotlin.math.abs(c.spentCents) * 100.0 / total)}%"), c)
+                    val share = number("%.1f", kotlin.math.abs(c.spentCents) * 100.0 / total)
+                    ReportTableRow(listOf(c.name, money(c.spentCents), if (csv) share else "$share%"), c)
                 },
             ) else ReportDataTable(
                 listOf("Period", "Amount"),
@@ -106,7 +112,7 @@ fun reportDataTable(widget: ReportWidget, money: (Long) -> String): ReportDataTa
         }
         ReportWidgetKind.SUMMARY, ReportWidgetKind.FORMULA -> ReportDataTable(
             listOf("Value"),
-            listOf(ReportTableRow(listOf(widget.percentage?.let { "${"%.2f".format(it)}%" } ?: money(widget.valueCents ?: 0)))),
+            listOf(ReportTableRow(listOf(widget.percentage?.let { "${number("%.2f", it)}%" } ?: money(widget.valueCents ?: 0)))),
         )
         ReportWidgetKind.MARKDOWN, ReportWidgetKind.MISSING_REPORT, ReportWidgetKind.UNSUPPORTED -> null
     }
