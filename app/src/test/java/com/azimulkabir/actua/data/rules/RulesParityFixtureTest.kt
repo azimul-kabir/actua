@@ -133,6 +133,10 @@ class RulesParityFixtureTest {
         val FIELDS = listOf("account", "date", "amount", "payee", "category", "notes", "cleared", "schedule", "tombstone", "subtransactions")
 
         /** "<case name> #<transaction> <field>" → the issue tracking the divergence. */
-        val KNOWN_DIVERGENCES: Map<String, String> = emptyMap()
+        val KNOWN_DIVERGENCES: Map<String, String> = mapOf(
+            // The fixture is recorded from Actual 26.9.0, where formulas ran on cents and multiplied the
+            // result by 100. Actua follows Actual 26.11 (everyday amounts in and out): -25.00 * 2 = -50.00.
+            "set amount from a formula #1 amount" to "#1408",
+        )
     }
 }

@@ -16,6 +16,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Fixed
 
 - Fixed downloading a server budget replacing a different budget on the phone that shared its internal id ([#1419](https://github.com/azimul-kabir/actua/pull/1419))
+- Fixed rule formulas to read and return everyday amounts instead of cents, matching Actual 26.11 ([#1423](https://github.com/azimul-kabir/actua/pull/1423))
 - Fixed a new or edited weekly schedule skipping a weekend date that moves to the next weekday ([#1425](https://github.com/azimul-kabir/actua/pull/1425))
 
 ## [2.3.0] - 2026-10-29
