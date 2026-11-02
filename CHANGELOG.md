@@ -14,6 +14,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added Back up and re-download in Connection settings to recover a budget whose server sync was reset ([#1400](https://github.com/azimul-kabir/actua/pull/1400))
 - Added adding categories to the income group in Manage Categories ([#1398](https://github.com/azimul-kabir/actua/pull/1398))
 
+### Changed
+
+- Changed Disconnect to also end the session on the Actual server ([#1428](https://github.com/azimul-kabir/actua/pull/1428))
+
 ### Fixed
 
 - Fixed downloading a server budget replacing a different budget on the phone that shared its internal id ([#1419](https://github.com/azimul-kabir/actua/pull/1419))

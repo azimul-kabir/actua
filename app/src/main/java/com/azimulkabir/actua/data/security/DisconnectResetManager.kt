@@ -5,6 +5,9 @@ import android.content.Intent
 import androidx.work.WorkManager
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
 import com.azimulkabir.actua.data.budget.BudgetFileManager
+import com.azimulkabir.actua.data.network.ActualServerClient
+import com.azimulkabir.actua.data.network.TrustedCertificateStore
+import com.azimulkabir.actua.data.network.UrlConnectionTransport
 /**
  * Applies Actua's local reset policy after a deliberate server disconnect.
  *
@@ -28,7 +31,25 @@ import com.azimulkabir.actua.data.budget.BudgetFileManager
 class DisconnectResetManager(context: Context) {
     private val app = context.applicationContext
 
+    /**
+     * Ends the session on the server before the token is forgotten, like Actual 26.11's sign-out. It is
+     * best effort and never blocks the reset: offline, a timeout or an older server without the endpoint
+     * just leaves the session to expire on its own. The token is never logged.
+     */
+    private fun revokeServerSession() {
+        runCatching {
+            val credentials = CredentialStore(app)
+            val token = credentials.token() ?: return
+            val client = ActualServerClient(UrlConnectionTransport(TrustedCertificateStore(app)))
+                .apply { customHeaders = credentials.customHeaders }
+            // The first address that answers is the server that issued the session.
+            listOf(credentials.serverUrl, credentials.fallbackServerUrl).filter(String::isNotBlank).distinct()
+                .any { url -> client.logout(url, token) }
+        }
+    }
+
     fun resetLocalServerData() {
+        revokeServerSession()
         val files = BudgetFileManager(app)
         val encryptionKeys = BudgetEncryptionKeyStore(app)
         val activeStore = ActiveBudgetStore(app)

@@ -189,6 +189,9 @@ class UrlConnectionTransport(
     }
 }
 
+/** Actual's sign-out waits five seconds for the server before signing out locally anyway. */
+private const val LOGOUT_TIMEOUT_MILLIS = 5_000
+
 class ActualServerClient(private val transport: ActualHttpTransport = UrlConnectionTransport()) {
     /** Sent with every request, e.g. Cloudflare Access service-token headers. Never overrides a protocol header. */
     var customHeaders: Map<String, String> = emptyMap()
@@ -325,6 +328,23 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         if (json.optString("status") != "ok") throw ActualServerException.InvalidResponse
         return json.optString("groupId").takeIf(String::isNotBlank)
             ?: throw ActualServerException.InvalidResponse
+    }
+
+    /**
+     * Ends [token]'s session on the server like Actual 26.11's sign-out (`POST /account/logout` with
+     * `{ token }`, five second timeout). Best effort: signing out locally must work offline and against
+     * older servers, so a failure is never thrown. Returns whether the server answered at all (any HTTP
+     * status, e.g. 404 from a server without the endpoint), so a caller can stop trying other addresses.
+     */
+    fun logout(serverUrl: String, token: String): Boolean = try {
+        val body = JSONObject().put("token", token).toString().encodeToByteArray()
+        request(
+            serverUrl, "/account/logout", "POST", mapOf("Content-Type" to "application/json"), body,
+            readTimeoutMillis = LOGOUT_TIMEOUT_MILLIS,
+        )
+        true
+    } catch (_: Exception) {
+        false
     }
 
     fun deleteFile(serverUrl: String, token: String, fileId: String) {
