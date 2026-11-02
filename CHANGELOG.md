@@ -20,6 +20,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Fixed rule formulas to read and return everyday amounts instead of cents, matching Actual 26.11 ([#1423](https://github.com/azimul-kabir/actua/pull/1423))
 - Fixed `#template schedule` underfunding a category when a schedule repeats every N days or weeks and N spans more than a month ([#1424](https://github.com/azimul-kabir/actua/pull/1424))
 - Fixed a new or edited weekly schedule skipping a weekend date that moves to the next weekday ([#1425](https://github.com/azimul-kabir/actua/pull/1425))
+- Fixed a scheduled transaction that posts automatically not being posted until the next day when its schedule is created or edited after today's run ([#1426](https://github.com/azimul-kabir/actua/pull/1426))
 
 ## [2.3.0] - 2026-10-29
 

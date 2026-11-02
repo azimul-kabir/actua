@@ -962,6 +962,41 @@ class ActualBudgetReadModelTest {
         assertEquals(20261005, database.fetchSchedules().single().nextDate.yyyymmdd)
     }
 
+    /** #1411: a schedule created or edited after today's run can post the same day once the gate is cleared. */
+    @Test
+    fun clearingTheDailyGateLetsTheNextRunPostADueOccurrenceAgain() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = createDatabaseFile()
+        try {
+            ActualBudgetDatabase.open(file).use { database ->
+                var counter = 0
+                val nextId = { "gate-posted-${counter++}" }
+                val poster = com.azimulkabir.actua.data.schedules.SchedulePoster(
+                    context, database,
+                    ActualTransactionWriter(database, "bcbcbcbcbcbcbcbc", idFactory = nextId),
+                    com.azimulkabir.actua.data.schedules.ActualScheduleWriter(database, "cdcdcdcdcdcdcdcd"),
+                    idFactory = nextId,
+                )
+                val budgetId = "poster-gate-${UUID.randomUUID()}"
+                val today = com.azimulkabir.actua.data.schedules.DayDate(2026, 9, 5)
+                assertEquals(1, poster.runIfNeeded(budgetId, today))
+                // The occurrence is gone again, as if the schedule was edited after today's run.
+                SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                    it.execSQL("UPDATE transactions SET tombstone = 1 WHERE schedule = 'rent-schedule'")
+                }
+                assertEquals(0, poster.runIfNeeded(budgetId, today))
+
+                com.azimulkabir.actua.data.schedules.SchedulePoster.allowToRunAgainToday(context, budgetId)
+                assertEquals(1, poster.runIfNeeded(budgetId, today))
+                // Already posted: clearing the gate again posts nothing and creates no duplicate.
+                com.azimulkabir.actua.data.schedules.SchedulePoster.allowToRunAgainToday(context, budgetId)
+                assertEquals(0, poster.runIfNeeded(budgetId, today))
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
     /** #935: a paid recurring schedule that doesn't auto-post moves to its next occurrence. */
     @Test
     fun schedulePosterMovesAPaidManualScheduleToItsNextDate() = withScheduleVariant(

@@ -14,7 +14,7 @@ class SchedulePoster(
     private val schedules: ActualScheduleWriter,
     private val idFactory: () -> String = { UUID.randomUUID().toString().lowercase() },
 ) {
-    private val preferences = context.applicationContext.getSharedPreferences("actua-schedule-poster", Context.MODE_PRIVATE)
+    private val preferences = context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
     private var running = false
 
     @Synchronized
@@ -89,5 +89,19 @@ class SchedulePoster(
         }
     }
 
-    private fun gateKey(budgetId: String) = "lastScheduleRun-$budgetId"
+    companion object {
+        private const val PREFERENCES = "actua-schedule-poster"
+        private fun gateKey(budgetId: String) = "lastScheduleRun-$budgetId"
+
+        /**
+         * Upstream `allowAutoPostingToRunAgainToday`: auto-posting runs once a day, so a schedule that posts
+         * transactions and is created or edited after that run, yet is due today, would wait until tomorrow.
+         * Forgetting today's run lets the next sync post it. The poster only posts occurrences that have no
+         * transaction yet, so an extra run is harmless.
+         */
+        fun allowToRunAgainToday(context: Context, budgetId: String) {
+            context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+                .edit().remove(gateKey(budgetId)).apply()
+        }
+    }
 }

@@ -509,6 +509,7 @@ class ActuaRepository(context: Context) {
         val payeeId = payeeName.trim().takeIf(String::isNotEmpty)?.let {
             actualWriter!!.resolveOrCreatePayee(it).id
         }
+        if (fields.postsTransaction) allowAutoPostingToRunAgainToday()
         val plan = ScheduleWriteBuilder.update(
             schedule = schedule,
             fields = fields.copy(payeeId = payeeId),
@@ -521,6 +522,11 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    /** Lets the next sync post a due-today occurrence of a schedule created or edited after today's run (#1411). */
+    private fun allowAutoPostingToRunAgainToday() {
+        activeMetadata?.id?.let { com.azimulkabir.actua.data.schedules.SchedulePoster.allowToRunAgainToday(appContext, it) }
+    }
+
     fun createSchedule(fields: ScheduleFormFields, payeeName: String): Boolean {
         val database = actualDatabase ?: return false
         fields.normalizedName?.let { name ->
@@ -529,6 +535,7 @@ class ActuaRepository(context: Context) {
         val payeeId = payeeName.trim().takeIf(String::isNotEmpty)?.let {
             actualWriter!!.resolveOrCreatePayee(it).id
         }
+        if (fields.postsTransaction) allowAutoPostingToRunAgainToday()
         val plan = ScheduleWriteBuilder.create(
             fields = fields.copy(payeeId = payeeId),
             scheduleId = java.util.UUID.randomUUID().toString().lowercase(),
