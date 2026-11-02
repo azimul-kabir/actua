@@ -34,6 +34,19 @@ class ScheduleTemplateFundingTest {
         assertEquals(7_500L, request(weekly, carryover = 0))
     }
 
+    @Test fun everyThreeHundredSixtyDaysSinksTowardItsDeadline() {
+        // Regression for #1412 (upstream actualbudget/actual#6644). Every 360 days is daily in shape but
+        // yearly in effect: $500 due 2026-05-15 is $100 a month from February. Counting it as sub-monthly
+        // took the steady-accrual shortcut and used a 12-month divisor ($41.67), ignoring both the
+        // deadline and the $100 already saved.
+        val everyYearish = BudgetScheduleFunding(
+            id = "renewal", name = "Renewal", amountCents = 50_000,
+            occurrencesInMonth = 0, monthsUntilNextOccurrence = 3,
+            frequency = "daily", interval = 360, nextDate = LocalDate.of(2026, 5, 15),
+        )
+        assertEquals(10_000L, request(everyYearish, carryover = 10_000, month = "2026-02", previousMonthGoal = 10_000))
+    }
+
     @Test fun plannerUsesTheSinkingFundRequest() {
         val category = BudgetCategory(
             id = "insurance", name = "Insurance", assigned = 0, spent = 0, actualAvailable = 0,
@@ -48,7 +61,9 @@ class ScheduleTemplateFundingTest {
         assertEquals(listOf(10_000L), preview.changes.map { it.proposedCents })
     }
 
-    private fun request(funding: BudgetScheduleFunding, carryover: Long): Long {
+    private fun request(
+        funding: BudgetScheduleFunding, carryover: Long, month: String = "2026-08", previousMonthGoal: Long = 0L,
+    ): Long {
         val category = BudgetCategory(
             name = "Bills", assigned = 0, spent = 0, actualAvailable = carryover.toInt(),
             actualAssignedCents = 0, availableCents = carryover,
@@ -57,10 +72,10 @@ class ScheduleTemplateFundingTest {
             targets = listOf(BudgetTarget(BudgetTarget.Type.SCHEDULE, scheduleId = funding.id)),
             schedules = listOf(funding),
             category = category,
-            month = "2026-08",
+            month = month,
             balance = carryover,
             lastMonthBalance = carryover,
-            previousMonthGoal = 0L,
+            previousMonthGoal = previousMonthGoal,
         )
     }
 }
