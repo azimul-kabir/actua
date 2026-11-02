@@ -209,9 +209,13 @@ class ActuaRepositoryBudgetActionsTest {
     @Test
     fun switchingBudgetTypeWritesPreferenceAndCrdtMessage() = withRepository { repository, db ->
         // Default is envelope: To Budget is computed.
-        db.exec("INSERT INTO transactions (id, isParent, isChild, acct, category, amount, date, tombstone) VALUES ('s1', 0, 0, 'checking', 'salary', 300000, 20261001, 0)")
+        // The current month, so tracking mode labels it "Projected savings" in any month of the year.
+        val month = java.time.YearMonth.now()
+        val monthKey = month.toString()
+        val firstOfMonth = month.atDay(1).format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE)
+        db.exec("INSERT INTO transactions (id, isParent, isChild, acct, category, amount, date, tombstone) VALUES ('s1', 0, 0, 'checking', 'salary', 300000, $firstOfMonth, 0)")
         assertEquals(ActualBudgetDatabase.BUDGET_TYPE_ENVELOPE, repository.budgetType())
-        val envelopeOverview = repository.budgetOverview("2026-10")
+        val envelopeOverview = repository.budgetOverview(monthKey)
         assertEquals(300000L, envelopeOverview.toBudgetCents)
         assertEquals("To budget", envelopeOverview.lead().first)
 
@@ -223,7 +227,7 @@ class ActuaRepositoryBudgetActionsTest {
         assertTrue(db.hasCrdtMessage("preferences", "budgetType", "value"))
 
         // In tracking mode, To Budget header is replaced by savings summary.
-        val trackingOverview = repository.budgetOverview("2026-10")
+        val trackingOverview = repository.budgetOverview(monthKey)
         assertNull(trackingOverview.toBudgetCents)
         assertEquals("Projected savings", trackingOverview.lead().first)
 
@@ -233,7 +237,7 @@ class ActuaRepositoryBudgetActionsTest {
         assertEquals(ActualBudgetDatabase.BUDGET_TYPE_ENVELOPE, repository.budgetType())
         assertEquals("envelope", db.preference("budgetType"))
 
-        val restoredOverview = repository.budgetOverview("2026-10")
+        val restoredOverview = repository.budgetOverview(monthKey)
         assertEquals(300000L, restoredOverview.toBudgetCents)
         assertEquals("To budget", restoredOverview.lead().first)
     }
