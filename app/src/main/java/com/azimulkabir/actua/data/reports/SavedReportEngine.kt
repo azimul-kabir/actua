@@ -38,6 +38,8 @@ object SavedReportEngine {
          * Never written to the synced report, so Actual shows calendar months regardless.
          */
         val monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
+        /** The budget's tags, for reports grouped by tag. */
+        val tags: List<com.azimulkabir.actua.data.budget.model.ActualTag> = emptyList(),
     ) {
         val aggregator = ReportAggregator(accounts, groups)
         /** Upstream's `get-earliest-transaction`/`get-latest-transaction` dates, for live ranges. */
@@ -64,8 +66,9 @@ object SavedReportEngine {
         payees: List<ActualPayee> = emptyList(),
         firstDayOfWeek: Int = 0,
         monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
+        tags: List<com.azimulkabir.actua.data.budget.model.ActualTag> = emptyList(),
     ): List<ReportWidget> {
-        val shared = Shared(transactions, accounts, groups, payees, firstDayOfWeek, monthStart)
+        val shared = Shared(transactions, accounts, groups, payees, firstDayOfWeek, monthStart, tags)
         return listOf(incomeExpense(transactions, view, shared = shared)) +
             rows.map { compute(it, transactions, accounts, groups, view = view, shared = shared, budgetMonth = budgetMonth) }
     }
@@ -118,24 +121,26 @@ object SavedReportEngine {
             "Group" -> ReportGrouping.CATEGORY_GROUP
             "Payee" -> ReportGrouping.PAYEE
             "Account" -> ReportGrouping.ACCOUNT
+            "Tag" -> ReportGrouping.TAG
             else -> ReportGrouping.CATEGORY
         }
-        val itemOrder = itemOrder(grouping, shared)
+        val tagBuckets = if (grouping == ReportGrouping.TAG) TagBucketing(shared.tags, row.metadata) else null
+        val itemOrder = itemOrder(grouping, shared, tagBuckets)
         val segments = if (row.groupBy == "Interval") emptyList() else arrange(
-            aggregator.groupTotals(scoped, filter, grouping).map { ReportCategory(it.name, it.totalCents, it.transactionIds) },
+            aggregator.groupTotals(scoped, filter, grouping, tagBuckets).map { ReportCategory(it.name, it.totalCents, it.transactionIds) },
             row, balType, itemOrder,
         )
         val timeMode = row.mode == "time" || row.groupBy == "Interval"
         val stacked = timeMode && row.groupBy != "Interval" && row.graphType == "StackedBarGraph"
         val allPoints = if (stacked) {
-            intervalSegments(included, grouping, aggregator, filter, segments.map { it.name }, row.interval, start, end, today, weekStart)
+            intervalSegments(included, grouping, aggregator, filter, segments.map { it.name }, row.interval, start, end, today, weekStart, tagBuckets)
         } else {
             intervalPoints(included, row.interval, start, end, today, balType, weekStart)
         }
         val points = if (!row.trimIntervals) allPoints else {
             val byBucket = included.groupBy { bucketLabel(row.interval, bucketStart(row.interval, it.localDate(), shared.firstDayOfWeek)) }
             trimIntervals(allPoints) { point ->
-                aggregator.groupTotals(byBucket[point.period].orEmpty(), filter, grouping).any { it.totalCents != 0L }
+                aggregator.groupTotals(byBucket[point.period].orEmpty(), filter, grouping, tagBuckets).any { it.totalCents != 0L }
             }
         }
         val total = reportTotal(included, row.interval, balType, weekStart)
@@ -271,13 +276,14 @@ object SavedReportEngine {
      * order, then the synthetic items; groups; payees; accounts), which `show_empty` lists and the
      * `budget` sort keeps.
      */
-    private fun itemOrder(grouping: ReportGrouping, shared: Shared): List<String> = when (grouping) {
+    private fun itemOrder(grouping: ReportGrouping, shared: Shared, tagBuckets: TagBucketing? = null): List<String> = when (grouping) {
         ReportGrouping.CATEGORY -> shared.groups.sortedWith(compareBy({ it.isIncome }, { it.sortOrder }))
             .flatMap { group -> group.categories.sortedBy { it.sortOrder } }.map { it.name } +
             listOf("Uncategorized", "Off budget", "Transfers")
         ReportGrouping.CATEGORY_GROUP -> shared.groups.map { it.name } + "Uncategorized & Off budget"
         ReportGrouping.PAYEE -> shared.payeeNames
         ReportGrouping.ACCOUNT -> shared.accounts.sortedBy { it.sortOrder }.map { it.name }
+        ReportGrouping.TAG -> tagBuckets?.emptyBucketNames.orEmpty()
     }
 
     /**
@@ -382,11 +388,11 @@ object SavedReportEngine {
     internal fun intervalSegments(
         rows: List<ActualTransaction>, grouping: ReportGrouping, aggregator: ReportAggregator, filter: ReportFilter,
         canonicalOrder: List<String>, interval: String, start: LocalDate, end: LocalDate, today: LocalDate,
-        weekStart: Int = 0,
+        weekStart: Int = 0, tagBuckets: TagBucketing? = null,
     ): List<ReportPoint> {
         val byBucket = rows.groupBy { bucketStart(interval, it.localDate(), weekStart) }
         return bucketKeys(rows, interval, start, end, weekStart).map { key ->
-            val totals = aggregator.groupTotals(byBucket[key].orEmpty(), filter, grouping).associateBy { it.name }
+            val totals = aggregator.groupTotals(byBucket[key].orEmpty(), filter, grouping, tagBuckets).associateBy { it.name }
             val segments = canonicalOrder.map { name ->
                 totals[name]?.let { ReportCategory(it.name, it.totalCents, it.transactionIds) } ?: ReportCategory(name, 0, emptyList())
             }

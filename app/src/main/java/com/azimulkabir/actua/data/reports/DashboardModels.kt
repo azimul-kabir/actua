@@ -31,4 +31,6 @@ data class SavedReportRow(
     val showEmpty: Boolean = false,
     /** `trim_intervals`: drop leading and trailing intervals with no value. */
     val trimIntervals: Boolean = false,
+    /** Synced `metadata` JSON, which carries `tagScope` for a report grouped by tag. Never rewritten by Actua. */
+    val metadata: String? = null,
 )

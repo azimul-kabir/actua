@@ -30,7 +30,7 @@ enum class ReportBalanceType {
     val clampsNet: Boolean get() = this == NET_ASSETS || this == NET_DEBTS
 }
 
-enum class ReportGrouping { CATEGORY, CATEGORY_GROUP, PAYEE, ACCOUNT }
+enum class ReportGrouping { CATEGORY, CATEGORY_GROUP, PAYEE, ACCOUNT, TAG }
 
 /** Shared filter for every report; dates are Actual YYYYMMDD day integers, inclusive. */
 data class ReportFilter(
@@ -126,6 +126,8 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
         transactions: List<ActualTransaction>,
         filter: ReportFilter,
         grouping: ReportGrouping,
+        /** Required for [ReportGrouping.TAG]: how a transaction's notes map to its tag bucket. */
+        tagBuckets: TagBucketing? = null,
     ): List<ReportGroupTotal> = select(transactions, filter)
         .filter { grouping != ReportGrouping.PAYEE || it.payeeId != null }
         .groupBy { tx ->
@@ -143,6 +145,7 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
                 ReportGrouping.CATEGORY_GROUP -> entry?.second?.id ?: UNCATEGORIZED_GROUP_ID
                 ReportGrouping.PAYEE -> tx.payeeId
                 ReportGrouping.ACCOUNT -> tx.accountId
+                ReportGrouping.TAG -> (tagBuckets?.bucketOf(tx.notes) ?: TagBucketing.UNTAGGED).id
             }
         }
         .map { (id, rows) ->
@@ -156,6 +159,7 @@ class ReportAggregator(accounts: List<ActualAccount>, groups: List<ActualCategor
                     if (id == UNCATEGORIZED_GROUP_ID) "Uncategorized & Off budget" else id?.let { groupsById[it]?.name }
                 ReportGrouping.PAYEE -> rows.firstNotNullOfOrNull { it.payeeName?.takeIf(String::isNotBlank) }
                 ReportGrouping.ACCOUNT -> id?.let { accountsById[it]?.name }
+                ReportGrouping.TAG -> (tagBuckets?.bucketOf(rows.first().notes) ?: TagBucketing.UNTAGGED).name
             } ?: if (grouping == ReportGrouping.PAYEE) "Unknown" else "Uncategorized"
             ReportGroupTotal(id, name, filter.balanceType.clampNet(rows.sumOf { it.amountCents }), rows.map { it.id })
         }

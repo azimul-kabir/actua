@@ -10,6 +10,56 @@ class SavedReportEngineTest {
         SavedReportRow("r", "R", start, end, static, range, "Category", "Payment", false, false, true, null,
             "DonutGraph", null, "and", "Monthly")
 
+    @Test fun `a report grouped by tag splits spending by tag without double counting`() {
+        // Upstream 26.11 tagGroups.test.ts data (#1415): the groups add up to the report total of 210.
+        fun tx(id: String, amount: Long, notes: String?) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+            id, "a", 20260115, amount, null, null, null, null, notes, false, false, null, false, null, false, null, null, null, null)
+        val rows = listOf(
+            tx("1", 125, "#red #circle #red"), tx("2", 75, "#red #unmanaged"), tx("3", 50, "#redder and ##red"), tx("4", -40, null),
+        )
+        val account = com.azimulkabir.actua.data.budget.model.ActualAccount(
+            "a", "Checking", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 1.0, 0)
+        val tags = listOf(
+            com.azimulkabir.actua.data.budget.model.ActualTag("red-id", "red"),
+            com.azimulkabir.actua.data.budget.model.ActualTag("circle-id", "circle"),
+        )
+        val report = SavedReportRow("r", "R", "2026-01", "2026-01", true, null, "Tag", "Net", false, false, true, null,
+            "BarGraph", null, "and", "Monthly")
+        val widget = SavedReportEngine.compute(
+            report, rows, listOf(account), emptyList(), LocalDate.of(2026, 3, 1),
+            shared = SavedReportEngine.Shared(rows, listOf(account), emptyList(), tags = tags),
+        )
+        assertEquals(
+            mapOf("#circle + #red" to 125L, "#red" to 75L, "Untagged" to 10L),
+            widget.categories.associate { it.name to it.spentCents },
+        )
+        assertEquals(210L, widget.valueCents)
+        // Largest first by default; the combined bucket is not a category.
+        assertEquals(listOf("#circle + #red", "#red", "Untagged"), widget.categories.map { it.name })
+    }
+
+    @Test fun `show empty lists every tag and Untagged at zero and a selected scope limits the tags`() {
+        fun tx(id: String, amount: Long, notes: String?) = com.azimulkabir.actua.data.budget.model.ActualTransaction(
+            id, "a", 20260115, amount, null, null, null, null, notes, false, false, null, false, null, false, null, null, null, null)
+        val rows = listOf(tx("1", 100, "#red"))
+        val account = com.azimulkabir.actua.data.budget.model.ActualAccount(
+            "a", "Checking", com.azimulkabir.actua.data.budget.model.ActualAccountType.CHECKING, false, false, 1.0, 0)
+        val tags = listOf(
+            com.azimulkabir.actua.data.budget.model.ActualTag("red-id", "red"),
+            com.azimulkabir.actua.data.budget.model.ActualTag("circle-id", "circle"),
+        )
+        val base = SavedReportRow("r", "R", "2026-01", "2026-01", true, null, "Tag", "Net", false, false, true, null,
+            "BarGraph", null, "and", "Monthly", sortBy = "budget", showEmpty = true)
+        fun names(report: SavedReportRow) = SavedReportEngine.compute(
+            report, rows, listOf(account), emptyList(), LocalDate.of(2026, 3, 1),
+            shared = SavedReportEngine.Shared(rows, listOf(account), emptyList(), tags = tags),
+        ).categories.map { it.name }
+        assertEquals(listOf("#red", "#circle", "Untagged"), names(base))
+        val scoped = base.copy(metadata = """{"tagScope":{"mode":"selected","tagIds":["circle-id"]}}""")
+        // #red is out of scope, so its transaction is Untagged.
+        assertEquals(listOf("#circle", "Untagged"), names(scoped))
+    }
+
     @Test fun `relative ranges resolve from today`() {
         val today = LocalDate.of(2026, 9, 22)
         assertEquals(LocalDate.of(2026, 6, 1) to LocalDate.of(2026, 8, 31), SavedReportEngine.dateRange(row("Last 3 months"), today))

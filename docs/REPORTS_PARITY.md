@@ -348,6 +348,7 @@ Actua-only income-vs-expenses card (`SRE.incomeExpense`, `:305`) and view filter
 | `Budgeted` reads budget cells, income categories excluded | `fetchBudgetData` | `SRE.computeBudgeted` (`:172`) | Match |
 | `group_by` Category / Group / Payee / Account / Interval | | same | Match |
 | `group_by = CategoryGroup` (two-ring donut) | | treated as Category | **Not ported** |
+| `group_by = Tag` with `metadata.tagScope` (v26.11) | `tagGroups.ts`, `tagScope.ts` (`packages/desktop-client/src/components/reports`) | `TagBucketing` and `ReportGrouping.TAG`: one bucket per exact set of in-scope tags in a transaction's notes ("#a + #b"), "Untagged" for none, hidden tags excluded, empty or unreadable scope means all tags, show-empty lists every tag then Untagged. Actua reads the report but does not offer Tag in its own group-by picker, and never rewrites `metadata`, so the scope survives edits. A Budgeted balance type is not split by tags (upstream rejects it) and falls back to Category. | Match (#1415) | `TagBucketingTest`, `SavedReportEngineTest` |
 | Uncategorized split into Uncategorized / Transfers / Off budget (one "Uncategorized & Off budget" group for Group) | synthetic items | same | Match (#951) |
 | `show_uncategorized` off keeps uncategorized off-budget rows | yes | same | Match (#951) |
 | Payee grouping: rows with no payee | excluded from groups and totals | same | Match (#951) |

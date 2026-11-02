@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added viewing custom reports that split by tags, synced from Actual, with their tag selection ([#1427](https://github.com/azimul-kabir/actua/pull/1427))
 - Added renaming a budget from Connection settings, including its name on the Actual server ([#1404](https://github.com/azimul-kabir/actua/pull/1404))
 - Added Make one-time schedule in the editor of a future-dated transaction, which turns it into a schedule that posts it on its date ([#1403](https://github.com/azimul-kabir/actua/pull/1403))
 - Added exporting a report widget's data table to CSV from its full-screen view ([#1402](https://github.com/azimul-kabir/actua/pull/1402))

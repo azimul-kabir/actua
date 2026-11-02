@@ -1768,6 +1768,10 @@ class ActualBudgetDatabase private constructor(
         return rows
     }
 
+    /** The budget's live tags, for reports grouped by tag. */
+    @Synchronized
+    fun fetchTags(): List<com.azimulkabir.actua.data.budget.model.ActualTag> = readTags(database).tags
+
     @Synchronized
     fun fetchSavedReports(): List<com.azimulkabir.actua.data.reports.SavedReportRow> {
         if (!hasTable("custom_reports")) return emptyList()
@@ -1780,7 +1784,8 @@ class ActualBudgetDatabase private constructor(
             "SELECT id, COALESCE(name, ''), start_date, end_date, date_static, date_range, group_by, balance_type, " +
                 "show_offbudget, show_hidden, show_uncategorized, selected_categories, graph_type, conditions, " +
                 "conditions_op, interval, mode, ${optional("include_current", "0")}, " +
-                "${optional("sort_by", "NULL")}, ${optional("show_empty", "0")}, ${optional("trim_intervals", "0")} " +
+                "${optional("sort_by", "NULL")}, ${optional("show_empty", "0")}, ${optional("trim_intervals", "0")}, " +
+                "${optional("metadata", "NULL")} " +
                 "FROM custom_reports WHERE tombstone = 0 OR tombstone IS NULL ORDER BY name",
             null,
         ).use { c ->
@@ -1790,7 +1795,7 @@ class ActualBudgetDatabase private constructor(
                 c.longOrZero(8) == 1L, c.longOrZero(9) == 1L, c.longOrZero(10) == 1L, c.stringOrNull(11),
                 c.stringOrNull(12) ?: "BarGraph", c.stringOrNull(13), c.stringOrNull(14), c.stringOrNull(15) ?: "Monthly", c.stringOrNull(16) ?: "total",
                 c.longOrZero(17) == 1L, c.stringOrNull(18)?.takeIf(String::isNotBlank) ?: "desc",
-                c.longOrZero(19) == 1L, c.longOrZero(20) == 1L,
+                c.longOrZero(19) == 1L, c.longOrZero(20) == 1L, c.stringOrNull(21),
             )
         }
         return rows
@@ -1805,7 +1810,8 @@ class ActualBudgetDatabase private constructor(
             "SELECT id, COALESCE(name, ''), start_date, end_date, date_static, date_range, group_by, balance_type, " +
                 "show_offbudget, show_hidden, show_uncategorized, selected_categories, graph_type, conditions, " +
                 "conditions_op, interval, mode, ${optional("include_current", "0")}, " +
-                "${optional("sort_by", "NULL")}, ${optional("show_empty", "0")}, ${optional("trim_intervals", "0")} " +
+                "${optional("sort_by", "NULL")}, ${optional("show_empty", "0")}, ${optional("trim_intervals", "0")}, " +
+                "${optional("metadata", "NULL")} " +
                 "FROM custom_reports WHERE id = ? AND (tombstone = 0 OR tombstone IS NULL)",
             arrayOf(id),
         ).use { c ->
@@ -1815,7 +1821,7 @@ class ActualBudgetDatabase private constructor(
                 c.longOrZero(8) == 1L, c.longOrZero(9) == 1L, c.longOrZero(10) == 1L, c.stringOrNull(11),
                 c.stringOrNull(12) ?: "BarGraph", c.stringOrNull(13), c.stringOrNull(14), c.stringOrNull(15) ?: "Monthly", c.stringOrNull(16) ?: "total",
                 c.longOrZero(17) == 1L, c.stringOrNull(18)?.takeIf(String::isNotBlank) ?: "desc",
-                c.longOrZero(19) == 1L, c.longOrZero(20) == 1L,
+                c.longOrZero(19) == 1L, c.longOrZero(20) == 1L, c.stringOrNull(21),
             ) else null
         }
     }

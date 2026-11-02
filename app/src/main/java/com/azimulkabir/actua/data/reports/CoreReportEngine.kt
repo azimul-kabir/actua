@@ -53,6 +53,7 @@ object CoreReportEngine {
         payees: List<com.azimulkabir.actua.data.budget.model.ActualPayee> = emptyList(),
         firstDayOfWeek: Int = 0,
         monthStart: MonthStartRule = MonthStartRule.CALENDAR_MONTH,
+        tags: List<com.azimulkabir.actua.data.budget.model.ActualTag> = emptyList(),
         /** With [range], only widgets passing this filter are computed, over the viewer's range. */
         widgetFilter: (DashboardWidgetRow) -> Boolean = { true },
         range: com.azimulkabir.actua.model.ReportRange? = null,
@@ -72,7 +73,7 @@ object CoreReportEngine {
         val earliestMonth = transactions.asSequence().filterNot { it.tombstone }.minOfOrNull { it.date }
             ?.let { YearMonth.of(it / 10000, it / 100 % 100) }
         val savedShared = if (savedReports.isEmpty()) null else
-            SavedReportEngine.Shared(transactions, accounts, groups, payees, firstDayOfWeek, monthStart)
+            SavedReportEngine.Shared(transactions, accounts, groups, payees, firstDayOfWeek, monthStart, tags)
         return resolvedPages.map { page ->
             ReportDashboardPage(
                 page.id,
