@@ -155,6 +155,82 @@ class BudgetDownloadServiceTest {
     }
 
     @Test
+    fun downloadDoesNotReplaceAnUnrelatedLocalBudgetThatSharesTheArchiveId() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val local = files.createBudget("Local ${UUID.randomUUID()}")
+        var installedId: String? = null
+        try {
+            // A second server file whose archive carries the first budget's id.
+            val archive = archiveFromBudget(files, local.id)
+            val before = files.databaseFile(local.id).readBytes()
+            val service = BudgetDownloadService(
+                fakeServer(archive, fileInfo("other-cloud-file", "other-group")),
+                files,
+                BudgetEncryptionKeyStore(context),
+            )
+
+            val metadata = service.download(
+                "https://actual.test", "token", RemoteBudgetFile("other-cloud-file", "other-group", "Other", null),
+            )
+            installedId = metadata.id
+
+            assertFalse(metadata.id == local.id)
+            assertEquals("other-cloud-file", metadata.cloudFileId)
+            assertTrue(before.contentEquals(files.databaseFile(local.id).readBytes()))
+            assertNull(files.listLocalBudgets().first { it.id == local.id }.cloudFileId)
+        } finally {
+            runCatching { files.deleteBudget(local.id) }
+            installedId?.let { runCatching { files.deleteBudget(it) } }
+        }
+    }
+
+    @Test
+    fun redownloadRefusesABudgetThatIsNotTheCopyOfThatServerFile() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val local = files.createBudget("Mismatch ${UUID.randomUUID()}")
+        try {
+            val archive = archiveFromBudget(files, local.id)
+            val before = files.databaseFile(local.id).readBytes()
+            val service = BudgetDownloadService(
+                fakeServer(archive, fileInfo("some-file", "g")), files, BudgetEncryptionKeyStore(context),
+            )
+
+            try {
+                service.redownload("https://actual.test", "token", RemoteBudgetFile("some-file", "g", "X", null), local.id)
+                org.junit.Assert.fail("expected MismatchedCloudFile")
+            } catch (expected: BudgetDownloadException.MismatchedCloudFile) {
+            }
+            assertTrue(before.contentEquals(files.databaseFile(local.id).readBytes()))
+        } finally {
+            runCatching { files.deleteBudget(local.id) }
+        }
+    }
+
+    @Test
+    fun downloadRejectsFileInfoForADifferentFile() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val files = BudgetFileManager(context)
+        val source = files.createBudget("Wrong ${UUID.randomUUID()}")
+        try {
+            val archive = archiveFromBudget(files, source.id)
+            files.deleteBudget(source.id)
+            val service = BudgetDownloadService(
+                fakeServer(archive, fileInfo("different-file", "g")), files, BudgetEncryptionKeyStore(context),
+            )
+            try {
+                service.download("https://actual.test", "token", RemoteBudgetFile("requested-file", "g", "X", null))
+                org.junit.Assert.fail("expected MismatchedCloudFile")
+            } catch (expected: BudgetDownloadException.MismatchedCloudFile) {
+            }
+            assertFalse(files.databaseFile(source.id).exists())
+        } finally {
+            runCatching { files.deleteBudget(source.id) }
+        }
+    }
+
+    @Test
     fun serverFileInfoReplacesStaleArchiveMetadata() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val files = BudgetFileManager(context)

@@ -156,6 +156,12 @@ class BudgetFileManager(context: Context) {
 
             val json = JSONObject(extracted.metadata.readText())
             val original = BudgetMetadata.fromJson(json)
+            // An archive's own id is never trusted as a destination: it would replace an unrelated
+            // local budget that happens to carry the same id (Actual 26.11 `importBuffer`). It is kept
+            // only when it is free or already belongs to this same server file.
+            val installId = targetBudgetId ?: if (isOccupiedByOther(original.id, cloud?.fileId)) {
+                UUID.randomUUID().toString().also { json.put("id", it) }
+            } else original.id
             if (targetBudgetId != null) json.put("id", targetBudgetId)
             // Same keys Actual's importBuffer overwrites, including an explicit null key id.
             if (cloud != null) {
@@ -167,11 +173,18 @@ class BudgetFileManager(context: Context) {
             extracted.metadata.writeText(json.toString())
             val updated = BudgetMetadata.fromJson(json)
 
-            installLiveFiles(targetBudgetId ?: original.id, extracted)
+            installLiveFiles(installId, extracted)
             return updated
         } finally {
             if (staging.exists()) staging.deleteRecursively()
         }
+    }
+
+    /** True when a local budget already uses [id] and is not the copy of server file [cloudFileId]. */
+    private fun isOccupiedByOther(id: String, cloudFileId: String?): Boolean {
+        if (!budgetDirectory(id).exists()) return false
+        val existing = listLocalBudgets().firstOrNull { it.id == id }
+        return existing == null || cloudFileId == null || existing.cloudFileId != cloudFileId
     }
 
     /**

@@ -14,6 +14,7 @@ import java.util.Base64
 sealed class BudgetDownloadException(message: String) : Exception(message) {
     data object EncryptionPasswordRequired : BudgetDownloadException("Encryption password required")
     data object EncryptionKeyChanged : BudgetDownloadException("The budget encryption key changed")
+    data object MismatchedCloudFile : BudgetDownloadException("The server returned a different budget file")
     data object InvalidEncryptionMetadata : BudgetDownloadException("Invalid budget encryption metadata")
 }
 
@@ -71,6 +72,9 @@ class BudgetDownloadService(
         serverUrl: String, token: String, remote: RemoteBudgetFile, budgetId: String,
         key: LoadedEncryptionKey? = null,
     ): BudgetMetadata {
+        // Only the local copy of this same server file may be replaced (Actual's `mismatched-cloud-file`).
+        val local = files.listLocalBudgets().firstOrNull { it.id == budgetId }
+        if (local?.cloudFileId != remote.fileId) throw BudgetDownloadException.MismatchedCloudFile
         val fetched = fetchArchive(serverUrl, token, remote, key)
         return files.importBudget(ByteArrayInputStream(fetched.archive), fetched.identity, budgetId)
     }
@@ -82,6 +86,7 @@ class BudgetDownloadService(
     ): FetchedArchive {
         val info = server.getFileInfo(serverUrl, token, remote.fileId)
         if (info.deleted) throw ActualServerException.FileNotFound
+        if (info.fileId != remote.fileId) throw BudgetDownloadException.MismatchedCloudFile
         val encryption = info.encryption
         val key = encryption?.let {
             explicitKey ?: keyStore.load(remote.fileId) ?: throw BudgetDownloadException.EncryptionPasswordRequired
