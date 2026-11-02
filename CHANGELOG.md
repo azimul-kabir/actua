@@ -4,6 +4,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [2.4.0] - 2026-11-02
+
 ### Added
 
 - Added viewing custom reports that split by tags, synced from Actual, with their tag selection ([#1427](https://github.com/azimul-kabir/actua/pull/1427))
@@ -21,6 +23,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 ### Changed
 
 - Changed Disconnect to also end the session on the Actual server ([#1428](https://github.com/azimul-kabir/actua/pull/1428))
+- Changed sync to keep changes for tables or columns Actua doesn't know yet, so a newer Actual can still read them ([#1420](https://github.com/azimul-kabir/actua/pull/1420))
 
 ### Fixed
 

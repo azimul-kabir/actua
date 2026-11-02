@@ -331,6 +331,16 @@ Use this checklist for release candidates before promoting a beta or stable buil
 - [ ] 2.3.0 Month note: from the Budget menu open Month note, edit it, switch month and back, and verify it persists and syncs to Actual.
 - [ ] 2.3.0 Loan schedules: create a loan with a weekly, a biweekly and a semi-monthly payment schedule and verify the next payment, the payoff projection and the planner, and that an existing monthly loan is unchanged.
 - [ ] 2.3.0 Budget menu: verify the row icons and that the Switch budget row shows the active budget's name.
+- [ ] 2.4.0 Rule formulas: in a rule, set a formula such as `=amount * 0.5` on a 10.00 transaction and verify the result is 5.00 (not 0.05 or 500.00); verify `=amount / 100` now divides twice, and that a rule created in Actual 26.11 gives the same result in Actua.
+- [ ] 2.4.0 Tag reports: sync a custom report that groups by Tag (with and without a tag selection) from Actual and verify its groups and totals match the web app; verify other group-by reports are unchanged.
+- [ ] 2.4.0 Hide reconciled: in All Accounts toggle Hide reconciled transactions and verify reconciled rows disappear and return, the setting persists, and it matches Actual; single-account lists are unaffected.
+- [ ] 2.4.0 Fund goal: in an envelope budget, underfund a goal category and open its menu; verify Fund goal from To Budget budgets the lesser of the shortfall and To Budget, is absent in a tracking budget, for income categories and for long-term goals, and syncs to Actual.
+- [ ] 2.4.0 Forecast axis: sync a Balance Forecast widget set to a zero-based y-axis and verify it starts at zero; one without the setting autoscales as before.
+- [ ] 2.4.0 Currencies: pick NOK, TZS and ZAR in Settings and verify formatting; verify the Swiss franc shows as CHF.
+- [ ] 2.4.0 Schedules: edit an auto-posting schedule due today after the daily run and verify it posts today; for a schedule that skips weekends, verify the next date after a weekend-moved date matches Actual; verify a `#template schedule` repeating every 2 weeks funds the expected amount.
+- [ ] 2.4.0 Disconnect: with a reachable 26.11 server, Disconnect, then verify the old token no longer works (for example in Actual's session list); with the server unreachable, Disconnect still completes.
+- [ ] 2.4.0 Download safety: with a local budget present, download a different server budget and verify the local one is untouched and both open; verify Re-download over a local budget still works for the same server file.
+- [ ] 2.4.0 Sync deferral: sync a budget that a newer Actual changed in a table or column Actua does not know, verify nothing is lost for Actual afterwards and normal edits still sync.
 
 ## Release/distribution
 

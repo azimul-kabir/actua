@@ -1,0 +1,9 @@
+• Actual 26.11 compatibility
+• Reports split by tag
+• Fund goal from To Budget
+• Hide reconciled in All Accounts
+• Zero-based Balance Forecast axis
+• Rule formulas use everyday amounts
+• Safer budget download and sign-out
+• NOK, TZS and ZAR currencies
+• Schedule date and posting fixes

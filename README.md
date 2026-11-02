@@ -67,7 +67,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Built-in local demo budget
 - Privacy-safe Diagnostics report you can copy, save or email when reporting a problem
 
-See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status.
+See [BACKEND_PARITY.md](BACKEND_PARITY.md) for detailed compatibility and implementation status. Actua 2.4.0 is reviewed against Actual Budget 26.11 ([details](docs/ACTUAL_26_11_COMPATIBILITY.md)).
 
 ## Screenshots
 

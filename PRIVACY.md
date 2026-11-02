@@ -25,7 +25,7 @@ provide.
 Server credentials and sync/encryption keys are stored using the Android
 Keystore and are not readable by other apps. They are never logged or
 transmitted anywhere other than to your configured Actual server as part of
-authentication and sync.
+authentication, sync and ending your session when you disconnect.
 
 ## Location-aware payees
 
