@@ -77,6 +77,8 @@ internal data class DemoBudgetLabels(
 internal object DemoBudgetSeeder {
     const val BUDGET_ID = "demo"
     private const val HISTORY_MONTHS = 12
+    /** Days before today whose transactions stay unreconciled, whatever month they fall in. */
+    private const val UNRECONCILED_RECENT_DAYS = 10L
     private const val CARD_PAYMENT_DAY = 25
 
     fun seed(database: SQLiteDatabase, labels: DemoBudgetLabels, now: LocalDate = LocalDate.now()) {
@@ -178,19 +180,21 @@ internal object DemoBudgetSeeder {
                 fun vary(min: Long, max: Long, seed: Int): Long = min + Math.floorMod(monthsAgo * 7919L + seed * 104729L, max - min + 1)
                 fun dateOf(day: Int): LocalDate? = safeDay(base, day).takeUnless { it.isAfter(now) }
                 fun cleared(date: LocalDate) = monthsAgo > 0 || date.isBefore(now.minusDays(3))
+                // Recent days stay unreconciled even just after a month change, so the demo always has something to reconcile.
+                fun reconciled(date: LocalDate) = monthsAgo > 0 && date.isBefore(now.minusDays(UNRECONCILED_RECENT_DAYS))
                 fun spend(day: Int, account: String, category: String, payee: String, cents: Long) {
                     val date = dateOf(day) ?: return
-                    txn(database, account, category, payee, date, -cents, cleared(date), monthsAgo > 0)
+                    txn(database, account, category, payee, date, -cents, cleared(date), reconciled(date))
                     if (account == credit && day < CARD_PAYMENT_DAY) cardCharges += cents
                 }
 
-                dateOf(1)?.let { txn(database, checking, salary, paycheck, it, 290000, true, monthsAgo > 0) }
+                dateOf(1)?.let { txn(database, checking, salary, paycheck, it, 290000, true, reconciled(it)) }
                 spend(3, checking, rent, landlord, 110000)
                 spend(4, checking, groceries, supermarket, vary(9500, 13500, 1))
                 spend(7, credit, dining, restaurant, vary(1200, 2000, 2))
                 dateOf(8)?.let { date ->
                     val household = vary(4000, 6500, 3); val treats = vary(1500, 3200, 4)
-                    split(database, credit, bigBox, date, listOf(groceries to -household, entertainment to -treats), cleared(date), monthsAgo > 0)
+                    split(database, credit, bigBox, date, listOf(groceries to -household, entertainment to -treats), cleared(date), reconciled(date))
                     cardCharges += household + treats
                 }
                 spend(9, checking, utilities, utilityCo, vary(7000, 9500, 5))
@@ -209,14 +213,14 @@ internal object DemoBudgetSeeder {
                 spend(24, credit, dining, sushi, vary(4000, 6000, 15))
                 if (monthsAgo == 5) spend(17, credit, vacation, airline, 64800)
                 dateOf(CARD_PAYMENT_DAY)?.let { date ->
-                    transfer(database, checking, credit, transferPayeeOf(credit), transferPayeeOf(checking), date, cardCharges, monthsAgo > 0)
+                    transfer(database, checking, credit, transferPayeeOf(credit), transferPayeeOf(checking), date, cardCharges, reconciled(date))
                 }
                 spend(26, credit, groceries, cornerGrocer, vary(2500, 4500, 16))
                 spend(27, credit, entertainment, books, vary(1500, 3000, 17))
                 dateOf(28)?.let { date ->
-                    transfer(database, checking, savings, transferPayeeOf(savings), transferPayeeOf(checking), date, 35000, monthsAgo > 0)
+                    transfer(database, checking, savings, transferPayeeOf(savings), transferPayeeOf(checking), date, 35000, reconciled(date))
                     // Off-budget growth keeps Net Worth trending like a real portfolio.
-                    txn(database, investment, null, indexFund, date, vary(9000, 24000, 18), true, monthsAgo > 0)
+                    txn(database, investment, null, indexFund, date, vary(9000, 24000, 18), true, reconciled(date))
                 }
             }
 
