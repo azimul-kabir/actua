@@ -9,7 +9,7 @@ class MigrationBookkeepingTest {
     private val upstream = BlankBudgetFactory.MIGRATIONS.toList()
 
     @Test fun blankBudgetListsActualsMigrationsInOrderWithoutDuplicates() {
-        assertEquals(59, upstream.size)
+        assertEquals(60, upstream.size)
         assertEquals(upstream.sorted().distinct(), upstream)
     }
 

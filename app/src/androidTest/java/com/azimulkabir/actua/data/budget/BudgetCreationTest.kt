@@ -19,7 +19,7 @@ class BudgetCreationTest {
         try {
             ActualBudgetDatabase.validate(files.databaseFile(budget.id))
             SQLiteDatabase.openDatabase(files.databaseFile(budget.id).path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
-                assertEquals(59, db.rawQuery("SELECT COUNT(*) FROM __migrations__", null).use { it.moveToFirst(); it.getInt(0) })
+                assertEquals(60, db.rawQuery("SELECT COUNT(*) FROM __migrations__", null).use { it.moveToFirst(); it.getInt(0) })
                 assertEquals(7, db.rawQuery("SELECT COUNT(*) FROM categories", null).use { it.moveToFirst(); it.getInt(0) })
                 assertTrue(db.rawQuery("SELECT 1 FROM account_groups LIMIT 1", null).use { it.columnCount == 1 })
                 assertTrue(db.rawQuery("PRAGMA table_info(accounts)", null).use { cursor ->
