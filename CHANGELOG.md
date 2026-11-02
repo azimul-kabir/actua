@@ -16,6 +16,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
+- Fixed learning a payee's category creating a duplicate rule when a "payee is one of" rule already sets it ([#1429](https://github.com/azimul-kabir/actua/pull/1429))
 - Fixed downloading a server budget replacing a different budget on the phone that shared its internal id ([#1419](https://github.com/azimul-kabir/actua/pull/1419))
 - Fixed rule formulas to read and return everyday amounts instead of cents, matching Actual 26.11 ([#1423](https://github.com/azimul-kabir/actua/pull/1423))
 - Fixed `#template schedule` underfunding a category when a schedule repeats every N days or weeks and N spans more than a month ([#1424](https://github.com/azimul-kabir/actua/pull/1424))

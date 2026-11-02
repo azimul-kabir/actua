@@ -62,12 +62,14 @@ object CategoryLearning {
     /**
      * Rules to save: every existing default-stage `payee is/isNot X → set category` setter for the
      * payee is pointed at the learned category, or a new `payee is X` rule is created
-     * (upstream `getIsSetterRules(null, 'payee', 'category', …)`).
+     * (upstream `getIsSetterRules(null, 'payee', 'category', …)`). No rule is created when a default-stage
+     * `payee is one of […] → set category` rule already sets that category for the payee (Actual 26.11).
      */
     fun rulesToSave(learned: Map<String, String>, rules: List<Rule>, newRuleId: () -> String): List<Rule> =
         learned.flatMap { (payeeId, categoryId) ->
             val setters = rules.filter { it.isPayeeCategorySetter(payeeId) }
             if (setters.isEmpty()) {
+                if (rules.any { it.isOneOfSetter(payeeId, categoryId) }) return@flatMap emptyList<Rule>()
                 listOf(Rule(
                     newRuleId(), Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
                     listOf(Rule.Condition("is", "payee", RuleValue.Text(payeeId))),
@@ -78,6 +80,16 @@ object CategoryLearning {
                     .map { it.copy(actions = listOf(it.actions.single().copy(value = RuleValue.Text(categoryId)))) }
             }
         }
+
+    /** Upstream `getOneOfSetterRules(null, 'payee', 'category', { condValue: payeeId, actionValue: category })`. */
+    private fun Rule.isOneOfSetter(payeeId: String, categoryId: String): Boolean {
+        val action = actions.singleOrNull() ?: return false
+        val condition = conditions.singleOrNull() ?: return false
+        return stage == Rule.Stage.DEFAULT &&
+            action.op == "set" && action.field == "category" && action.value.text == categoryId &&
+            condition.op == "oneOf" && condition.field == "payee" &&
+            condition.value.list?.any { it.text == payeeId } == true
+    }
 
     private fun Rule.isPayeeCategorySetter(payeeId: String): Boolean {
         val action = actions.singleOrNull() ?: return false
