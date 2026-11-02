@@ -637,6 +637,13 @@ fun BudgetScreen(
             onTransactionsThisMonth = { selectedCategory = null; onShowCategoryTransactions(category.name, true, false) },
             onAllTransactions = { selectedCategory = null; onShowCategoryTransactions(category.name, false, false) },
             onMoveMoney = { selectedCategory = null; movingBudget = parent to category },
+            // Envelope budgets only: Actual 26.11's "Fund goal from To Budget".
+            fundGoalCents = if (category.isIncome) null else overview.toBudgetCents?.let(category::goalFundAmountCents),
+            hideDecimalPlaces = hideDecimalPlaces,
+            onFundGoal = { amount ->
+                selectedCategory = null
+                onSummaryMove(parent.name, category.name, amount, false)
+            },
             budgetActions = category.id != null && (!category.isIncome || overview.toBudgetCents == null),
             onBudgetAction = { action ->
                 selectedCategory = null
@@ -3377,6 +3384,10 @@ private fun CategoryActionsSheet(
     onFavoriteChange: (Boolean) -> Unit,
     hidden: Boolean,
     onSetHidden: (Boolean) -> Unit,
+    /** What "Fund goal from To Budget" would move, or null when the action is not offered. */
+    fundGoalCents: Long? = null,
+    hideDecimalPlaces: Boolean = false,
+    onFundGoal: (Long) -> Unit = {},
     budgetActions: Boolean = false,
     onBudgetAction: (CategoryBudgetAction) -> Unit = {},
     /** The envelope income category's "automatically hold" flag; null hides the action. */
@@ -3394,6 +3405,13 @@ private fun CategoryActionsSheet(
                         ActuaSheetAction(if (category.available < 0) stringResource(R.string.budget_cover_overspending)
                         else stringResource(R.string.budget_move_money_plain),
                             icon = Icons.Outlined.SwapHoriz, onClick = onMoveMoney)
+                        ActuaCardDivider()
+                    }
+                    fundGoalCents?.let { amount ->
+                        ActuaSheetAction(
+                            stringResource(R.string.budget_fund_goal, formatMoneyCents(amount, hideDecimalPlaces)),
+                            icon = Icons.Outlined.Savings, onClick = { onFundGoal(amount) },
+                        )
                         ActuaCardDivider()
                     }
                     ActuaSheetAction(when {

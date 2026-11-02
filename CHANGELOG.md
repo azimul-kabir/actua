@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added Make one-time schedule in the editor of a future-dated transaction, which turns it into a schedule that posts it on its date ([#1403](https://github.com/azimul-kabir/actua/pull/1403))
 - Added exporting a report widget's data table to CSV from its full-screen view ([#1402](https://github.com/azimul-kabir/actua/pull/1402))
 - Added recovering a budget whose encryption password was changed in Actual, by entering the new password and re-downloading it ([#1401](https://github.com/azimul-kabir/actua/pull/1401))
+- Added Fund goal from To Budget to a category's actions, which budgets the rest of an underfunded goal up to what is left to budget ([#1433](https://github.com/azimul-kabir/actua/pull/1433))
 - Added Back up and re-download in Connection settings to recover a budget whose server sync was reset ([#1400](https://github.com/azimul-kabir/actua/pull/1400))
 - Added adding categories to the income group in Manage Categories ([#1398](https://github.com/azimul-kabir/actua/pull/1398))
 

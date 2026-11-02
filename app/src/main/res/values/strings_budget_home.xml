@@ -86,6 +86,7 @@
     <string name="budget_auto_assign">Auto-Assign</string>
     <string name="budget_move_money">Move Money</string>
     <string name="budget_move_money_plain">Move money</string>
+    <string name="budget_fund_goal">Fund goal from To Budget (%1$s)</string>
     <string name="budget_details">Details</string>
     <string name="budget_no_suggestions">No suggestions available</string>
     <string name="budget_from">From</string>

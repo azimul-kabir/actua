@@ -86,6 +86,7 @@
     <string name="budget_auto_assign">Atribuir automaticamente</string>
     <string name="budget_move_money">Mover dinheiro</string>
     <string name="budget_move_money_plain">Mover dinheiro</string>
+    <string name="budget_fund_goal">Financiar a meta com Para Orçar (%1$s)</string>
     <string name="budget_details">Detalhes</string>
     <string name="budget_no_suggestions">Nenhuma sugestão disponível</string>
     <string name="budget_from">De</string>

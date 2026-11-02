@@ -40,6 +40,17 @@ data class BudgetCategory(
         get() = !hasUnsupportedTarget || (automationReadOnly && unsupportedAutomationTypes.isEmpty())
 
     /**
+     * What "Fund goal from To Budget" moves into this category (Actual 26.11's envelope balance menu):
+     * `min(goal - budgeted, To Budget)` using the month's synced `goal` cell, or null when there is
+     * nothing to fund. A long-term goal is funded by its balance instead, so it never offers this.
+     */
+    fun goalFundAmountCents(toBudgetCents: Long): Long? {
+        val goal = goalCents ?: return null
+        if (longGoal) return null
+        return minOf(goal - assignedCents, toBudgetCents).takeIf { it > 0L }
+    }
+
+    /**
      * The full balance this category is working toward, independent of this month's
      * installment. A locally-known "goal only", "by date" or "cover schedule" target wins
      * over Actual's server-synced [goalCents]: the server value can be a stale monthly
