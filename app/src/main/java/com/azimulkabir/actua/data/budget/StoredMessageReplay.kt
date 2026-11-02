@@ -9,7 +9,7 @@ import com.azimulkabir.actua.data.sync.CrdtValue
  * a migration adds that table or column, the latest stored value of each such cell is written in.
  */
 internal object StoredMessageReplay {
-    private val internalTables = setOf("messages_crdt", "messages_clock", "migrations", "__migrations__", "__meta__")
+    private val internalTables = setOf("messages_crdt", "messages_clock", "migrations", "__migrations__", "__meta__", "messages_pending")
 
     /** Syncable tables (those with an `id`) and their columns. */
     fun schema(database: SQLiteDatabase): Map<String, Set<String>> {
@@ -57,7 +57,7 @@ internal object StoredMessageReplay {
         }
     }
 
-    private fun ContentValues.putCrdt(column: String, serialized: String) {
+    internal fun ContentValues.putCrdt(column: String, serialized: String) {
         when (val value = CrdtValue.deserialize(serialized)) {
             CrdtValue.Null -> putNull(column)
             is CrdtValue.Integer -> put(column, value.value)

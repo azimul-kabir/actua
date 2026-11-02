@@ -2260,7 +2260,7 @@ class ActualBudgetDatabase private constructor(
     @Synchronized
     fun receiveMessages(messages: List<CrdtMessage>): ReceiveResult = transaction {
         val winners = messages.filterNot(::hasSameOrNewerCellMessage)
-        applyMessageRows(winners, syncableSchema())
+        applyMessageRows(winners, syncableSchema(), deferUnknown = true)
         ReceiveResult(winners, insertMessageRows(messages))
     }
 
@@ -2334,8 +2334,20 @@ class ActualBudgetDatabase private constructor(
         return inserted
     }
 
-    private fun applyMessageRows(messages: List<CrdtMessage>, schema: Map<String, Set<String>>) {
+    private fun applyMessageRows(
+        messages: List<CrdtMessage>,
+        schema: Map<String, Set<String>>,
+        deferUnknown: Boolean = false,
+    ) {
         messages.sortedBy(CrdtMessage::timestamp).forEach { message ->
+            // Inbound cells for schema or value formats from a newer Actual are kept for a later
+            // upgrade (and for the snapshot Actua uploads); locally written cells are never deferred.
+            if (deferUnknown && PendingMessages.shouldDefer(schema, message.dataset, message.column, message.value)) {
+                PendingMessages.defer(
+                    database, message.dataset, message.row, message.column, message.timestamp.toString(), message.value,
+                )
+                return@forEach
+            }
             val columns = schema[message.dataset] ?: return@forEach
             if (message.column !in columns) return@forEach
             upsertValue(message)
@@ -2589,7 +2601,7 @@ class ActualBudgetDatabase private constructor(
             1780606215005, 1787013118200,
         )
         internal val columnMigrationIds: List<Long> get() = columnMigrations.map { it.id }
-        private val internalTables = setOf("messages_crdt", "messages_clock", "migrations", "__migrations__")
+        private val internalTables = setOf("messages_crdt", "messages_clock", "messages_pending", "migrations", "__migrations__")
         private val requiredTables = setOf(
             "accounts",
             "categories",
@@ -2679,6 +2691,7 @@ class ActualBudgetDatabase private constructor(
                     database.execSQL("CREATE INDEX IF NOT EXISTS idx_transactions_schedule ON transactions(schedule)")
                 }
                 StoredMessageReplay.replay(database, schemaBefore)
+                PendingMessages.replay(database)
                 database.setTransactionSuccessful()
             } finally {
                 database.endTransaction()

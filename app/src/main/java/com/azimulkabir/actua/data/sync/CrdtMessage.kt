@@ -15,6 +15,10 @@ sealed interface CrdtValue {
     data class Text(val value: String) : CrdtValue
 
     companion object {
+        /** Whether [value] carries a type tag this client can decode (`0:`, `N:` or `S:`). */
+        fun isKnownFormat(value: String): Boolean =
+            value.length >= 2 && value[1] == ':' && value[0] in "0NS"
+
         fun serialize(value: Any?): String = when (value) {
             null -> "0:"
             is Boolean -> "N:${if (value) 1 else 0}"

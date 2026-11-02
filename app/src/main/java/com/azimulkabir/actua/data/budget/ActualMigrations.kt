@@ -32,6 +32,7 @@ internal object ActualMigrations {
     private const val CREATE_DASHBOARD = 1722804019000L
     private const val PREFS = 1723665565000L
     private const val MULTIPLE_DASHBOARDS = 1765518577215L
+    private const val PENDING_MESSAGES = PendingMessages.MIGRATION
 
     private val SQL_FILES = listOf(
         "1679728867040_rules_conditions.sql",
@@ -78,6 +79,7 @@ internal object ActualMigrations {
     private val sqlFileById: Map<Long, String> = SQL_FILES.associateBy { it.substringBefore('_').toLong() }
     private val PORTED = setOf(
         MOVE_SELECTED_CATEGORIES, CREATE_DASHBOARD, PREFS, MULTIPLE_DASHBOARDS, REMOVE_ACCOUNT_TYPE, SORTING_RENAME,
+        PENDING_MESSAGES,
     )
 
     /** Whether [id] has a bundled SQL file or a port here. */
@@ -136,6 +138,8 @@ internal object ActualMigrations {
             CREATE_DASHBOARD -> createDashboardTable(database)
             PREFS -> createPreferences(database, metadata)
             MULTIPLE_DASHBOARDS -> multipleDashboards(database)
+            // 1788468782000_add_messages_pending.js
+            PENDING_MESSAGES -> database.execSQL(PendingMessages.CREATE_TABLE_SQL)
             // Android 9-13 SQLite (3.22-3.32) lacks DROP COLUMN (3.35) and Android 9 lacks RENAME
             // COLUMN (3.25), so these two keep the column and apply the same data change instead.
             REMOVE_ACCOUNT_TYPE -> {
