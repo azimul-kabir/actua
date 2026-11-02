@@ -66,8 +66,41 @@ object ScheduleRecurrence {
     private sealed interface Kind { data object Plain : Kind; data class Days(val values: List<Int>) : Kind; data class Weekdays(val values: List<Pair<Int, Int>>) : Kind }
     private data class SubRule(val config: RecurConfig, val kind: Kind)
 
+    private const val MAX_ADVANCE_ATTEMPTS = 7
+
     fun nextOccurrence(config: RecurConfig, onOrAfter: DayDate): DayDate? =
         unadjustedNext(config, onOrAfter)?.let { solveWeekend(config, it) }
+
+    /**
+     * Upstream `getNextDateAfter`: the first weekend-adjusted occurrence strictly after [after]. It looks
+     * at raw occurrences from the day before [after], so one that the weekend rule moves later still
+     * counts, and skips any whose adjusted date is not after [after].
+     */
+    fun nextOccurrenceAfter(config: RecurConfig, after: DayDate): DayDate? {
+        var start = after.addingDays(-1)
+        repeat(MAX_ADVANCE_ATTEMPTS) {
+            val raw = unadjustedNext(config, start) ?: return null
+            // Past a bounded recurrence's end the search falls back to its final occurrence.
+            if (raw < start) return null
+            val next = solveWeekend(config, raw)
+            if (next > after) return next
+            start = raw.addingDays(1)
+        }
+        return null
+    }
+
+    /**
+     * Upstream `getNextDateFrom`, used when a schedule is created, edited or moved on from today.
+     * [nextOccurrence] only looks at occurrences from [today] before moving them off the weekend, so it
+     * misses an earlier one that a weekend rule of "after" moves onto [today] or later (a Saturday
+     * occurrence evaluated on its Monday). [nextOccurrenceAfter] sees that one, and it is used only when
+     * it comes first, so every other case keeps its next date.
+     */
+    fun nextOccurrenceFrom(config: RecurConfig, today: DayDate): DayDate? {
+        val next = nextOccurrence(config, today)
+        val movedOntoToday = nextOccurrenceAfter(config, today.addingDays(-1))
+        return if (movedOntoToday != null && (next == null || movedOntoToday < next)) movedOntoToday else next
+    }
 
     /**
      * Walks raw (pre-weekend-solve) occurrences, like upstream's `getFutureOccurrenceDates`

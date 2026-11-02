@@ -108,7 +108,7 @@ object ScheduleConditions {
     }
     fun nextDate(date: ScheduleDateCondition, today: DayDate): DayDate? = when (date) {
         is ScheduleDateCondition.Fixed -> date.day
-        is ScheduleDateCondition.Recurring -> ScheduleRecurrence.nextOccurrence(date.config, today)
+        is ScheduleDateCondition.Recurring -> ScheduleRecurrence.nextOccurrenceFrom(date.config, today)
         ScheduleDateCondition.Unsupported -> null
     }
 
