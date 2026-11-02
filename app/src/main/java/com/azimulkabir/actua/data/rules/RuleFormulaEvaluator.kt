@@ -3,6 +3,12 @@ package com.azimulkabir.actua.data.rules
 import kotlin.math.pow
 
 internal object RuleFormulaEvaluator {
+    /**
+     * Evaluates [formula] like Actual 26.11's `executeFormulaSync`: [variables] hold everyday amounts
+     * (not cents) for the monetary fields, `BALANCE_OF` returns an amount, and the result is returned
+     * as computed. [balanceOf] supplies integer cents, converted here. Callers writing the result into
+     * an amount field convert it with [amountToCents].
+     */
     fun evaluate(
         formula: String,
         variables: Map<String, Any?>,
@@ -10,9 +16,11 @@ internal object RuleFormulaEvaluator {
     ): Any? {
         require(formula.startsWith("=")) { "Formula must start with =" }
         require(formula.length <= 8192) { "Formula is too long" }
-        val result = Parser(formula.drop(1), variables, balanceOf).parse()
-        return if (result is Number) kotlin.math.floor(result.toDouble() * 100.0 + 0.5) else result
+        return Parser(formula.drop(1), variables, balanceOf).parse()
     }
+
+    /** Upstream's `amountToInteger`: `Math.round(amount * 100)`, ties toward positive infinity. */
+    fun amountToCents(amount: Double): Long = kotlin.math.floor(amount * 100.0 + 0.5).toLong()
 
     private class Parser(
         private val source: String,
@@ -115,7 +123,7 @@ internal object RuleFormulaEvaluator {
             fun values() = args.mapNotNull { (it as? Iterable<*>)?.toList() ?: listOf(it) }
                 .flatten().filterNotNull()
             return when (name) {
-                "BALANCE_OF" -> balanceOf(string(requireNotNull(arg(0)))).toDouble()
+                "BALANCE_OF" -> balanceOf(string(requireNotNull(arg(0)))).toDouble() / 100.0
                 "TODAY" -> variables["TODAY"]
                 "YEAR", "MONTH", "DAY" -> {
                     val date = java.time.LocalDate.parse(string(requireNotNull(arg(0))))

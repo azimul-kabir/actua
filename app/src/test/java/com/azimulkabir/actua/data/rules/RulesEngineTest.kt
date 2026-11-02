@@ -54,7 +54,7 @@ class RulesEngineTest {
             context,
         )
         assertTrue(result.transaction.notes!!.startsWith("act-79 on "))
-        assertEquals(-500000L, result.transaction.amountCents)
+        assertEquals(-5000L, result.transaction.amountCents)
 
         val balanceResult = RulesEngine.apply(
             transaction(), listOf(Rule("balance", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
@@ -62,14 +62,14 @@ class RulesEngineTest {
                 Rule.Action("set", "amount", RuleValue.Number(0.0), mapOf("formula" to RuleValue.Text("=BALANCE_OF(\"Checking\")"))),
             ))), context,
         )
-        assertEquals(123400L, balanceResult.transaction.amountCents)
+        assertEquals(1234L, balanceResult.transaction.amountCents)
         val runningBalanceResult = RulesEngine.apply(
             transaction(), listOf(Rule("running-balance", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
                 listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
                 Rule.Action("set", "amount", RuleValue.Number(0.0), mapOf("formula" to RuleValue.Text("=balance"))),
             ))), context,
         )
-        assertEquals(65000L, runningBalanceResult.transaction.amountCents)
+        assertEquals(650L, runningBalanceResult.transaction.amountCents)
     }
 
     @Test fun appliesSplitActionsAndAssignsRemaindersByIndex() {
@@ -125,7 +125,7 @@ class RulesEngineTest {
             listOf(Rule.Condition("is", "account", RuleValue.Text("a"))), listOf(
                 Rule.Action("set-split-amount", null, RuleValue.Null, mapOf(
                     "splitIndex" to RuleValue.Number(1.0), "method" to RuleValue.Text("formula"),
-                    "formula" to RuleValue.Text("=parent_amount/200"),
+                    "formula" to RuleValue.Text("=parent_amount/2"),
                 )),
                 Rule.Action("set-split-amount", null, RuleValue.Null, mapOf(
                     "splitIndex" to RuleValue.Number(2.0), "method" to RuleValue.Text("remainder"),
@@ -309,6 +309,51 @@ class RulesEngineTest {
         val child = result.splitChildren.first().transaction
         assertEquals("Child of Invoice #42 from STORE", child.notes)
         assertEquals(-500L, child.amountCents)
+    }
+
+    private fun formulaRule(field: String, formula: String) = Rule(
+        "formula-$field", Rule.Stage.DEFAULT, Rule.ConditionsOp.AND,
+        listOf(Rule.Condition("is", "account", RuleValue.Text("a"))),
+        listOf(Rule.Action("set", field, RuleValue.Text(""), mapOf("formula" to RuleValue.Text(formula)))),
+    )
+
+    @Test fun formulasReadAmountsAndResultsConvertBackToCents() {
+        // Upstream 26.11 `formula-action.test.ts`: amount -45.67 and parent_amount 200.00.
+        fun amountAfter(formula: String, cents: Long) =
+            RulesEngine.apply(transaction(amount = cents), listOf(formulaRule("amount", formula))).transaction.amountCents
+        assertEquals(12345L, amountAfter("=amount", 12345))
+        assertEquals(-10500L, amountAfter("=amount * 1.05", -10000))
+        assertEquals(-4567L, amountAfter("=amount", -4567))
+        assertEquals(-5L, amountAfter("=amount / 200", -1000))
+        // Integer cents survive without a floating-point round trip.
+        assertEquals(1L, amountAfter("=amount", 1))
+        assertEquals(-1L, amountAfter("=amount", -1))
+        assertEquals(99L, amountAfter("=0.99", 5))
+        // Half a cent rounds toward positive infinity, like Math.round.
+        assertEquals(1L, amountAfter("=0.005", 5))
+        assertEquals(0L, amountAfter("=-0.005", 5))
+    }
+
+    @Test fun textFieldsGetTheNumberTheFormulaProducedNotAScaledAmount() {
+        fun notesAfter(formula: String, cents: Long) =
+            RulesEngine.apply(transaction(amount = cents), listOf(formulaRule("notes", formula))).transaction.notes
+        assertEquals("750", notesAfter("=amount * 15", 5000))
+        assertEquals("-45.67", notesAfter("=amount", -4567))
+        assertEquals("0.05", notesAfter("=amount / 2", 10))
+        assertEquals("hello", notesAfter("=\"hello\"", 100))
+    }
+
+    @Test fun formulaThresholdsUseAmounts() {
+        val formula = "=IF(ABS(amount) > 100, \"Large\", IF(ABS(amount) > 50, \"Medium\", \"Small\"))"
+        fun label(cents: Long) = RulesEngine.apply(transaction(amount = cents), listOf(formulaRule("notes", formula))).transaction.notes
+        assertEquals("Large", label(-15000))
+        assertEquals("Medium", label(-7500))
+        assertEquals("Small", label(-2500))
+    }
+
+    @Test fun nonMonetaryNumbersAreNotScaled() {
+        val result = RulesEngine.apply(transaction(amount = 100), listOf(formulaRule("notes", "=date")))
+        assertEquals("2026-05-03", result.transaction.notes)
     }
 
     private fun transaction(
