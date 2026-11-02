@@ -70,9 +70,15 @@ object ScheduleTemplateFunding {
             (entry.frequency == "daily" && entry.interval <= 31) ||
             trackingBudget
 
+        fun isSubMonthly(entry: Entry) =
+            (entry.frequency == "weekly" && entry.interval <= 4) || (entry.frequency == "daily" && entry.interval <= 31)
+
         val payMonthOf = entries.filter(::isPayMonthOf)
         val sinking = entries.filterNot(::isPayMonthOf).sortedBy { it.nextDate ?: LocalDate.MAX }
-        val numSubMonthly = entries.count { it.frequency == "weekly" || it.frequency == "daily" }
+        // Sub-monthly means more often than monthly: the same weekly/daily caps as "pay month of". A
+        // "repeat every 360 days" schedule is daily in shape but yearly in effect, so it must not switch
+        // the category to the steady-accrual shortcut (upstream `isSubMonthly`, actualbudget/actual#6644).
+        val numSubMonthly = entries.count(::isSubMonthly)
         val totalPayMonthOf = payMonthOf.filter { it.numMonths == 0L }.sumOf { it.target }.toDouble()
         val totalSinking = sinking.sumOf { it.target }.toDouble()
         val needed = totalSinking + totalPayMonthOf
