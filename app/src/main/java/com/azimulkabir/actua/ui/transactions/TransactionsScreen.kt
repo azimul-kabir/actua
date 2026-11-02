@@ -420,6 +420,14 @@ fun TransactionsScreen(
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             ActuaSwitchMenuItem(stringResource(R.string.transactions_group_by_date), groupTransactionsByDate, onGroupTransactionsByDateChange)
                             ActuaSwitchMenuItem(stringResource(R.string.transactions_show_upcoming), showUpcomingTransactions, onShowUpcomingTransactionsChange)
+                            // The All Accounts list has its own synced hide-reconciled switch (Actual 26.11).
+                            if (account == null && categoryName == null && month == null) {
+                                ActuaSwitchMenuItem(
+                                    stringResource(R.string.transactions_hide_reconciled),
+                                    hideReconciledTransactions,
+                                    onHideReconciledTransactionsChange,
+                                )
+                            }
                             account?.let { selectedAccount ->
                                 if (!selectedAccount.closed) {
                                     DropdownMenuItem(

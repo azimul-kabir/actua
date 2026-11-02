@@ -236,6 +236,21 @@ class ActualBudgetReadModelTest {
         assertTrue(database.fetchHideReconciledAccountIds().isEmpty())
     }
 
+    /** #1417: Actual 26.11 stores the All Accounts list's switch under `hide-reconciled-all`. */
+    @Test
+    fun hideReconciledForTheAllAccountsListUsesTheAllPreference() = withDatabase { database ->
+        val writer = ActualEntityWriter(database, nodeId = "dededededededede")
+        writer.setPreference(ActualBudgetDatabase.HIDE_RECONCILED_PREFERENCE_PREFIX + ActualBudgetDatabase.ALL_ACCOUNTS_VIEW_ID, "true")
+        writer.setPreference(ActualBudgetDatabase.HIDE_RECONCILED_PREFERENCE_PREFIX + "checking", "true")
+        assertEquals(setOf("all", "checking"), database.fetchHideReconciledAccountIds())
+        assertTrue(database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString()).any {
+            it.dataset == "preferences" && it.row == "hide-reconciled-all" && it.column == "value"
+        })
+
+        writer.setPreference(ActualBudgetDatabase.HIDE_RECONCILED_PREFERENCE_PREFIX + ActualBudgetDatabase.ALL_ACCOUNTS_VIEW_ID, "false")
+        assertEquals(setOf("checking"), database.fetchHideReconciledAccountIds())
+    }
+
     @Test
     fun uncategorizedFilterExcludesOffBudgetAccounts() = withDatabase { database ->
         val offBudgetAccountId = ActualEntityWriter(database, idFactory = { "off-budget-uncat-acct" })

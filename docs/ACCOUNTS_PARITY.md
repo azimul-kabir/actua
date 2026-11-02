@@ -156,6 +156,7 @@ Actua: `ActuaRepository.setAccountNote` (`:1305`), `setHideReconciled` (`:1298`)
 | --- | --- | --- | --- |
 | Account note: `notes` row `account-<id>`, column `note` | `notes-save` | `setNote("account-$id", …)` | Match |
 | `hide-reconciled-<id>`, value string `"true"`/`"false"` | `useSyncedPref`; hidden when `String(v) === 'true'` | read `value = 'true'`; writes `"true"`/`"false"` | Match |
+| `hide-reconciled-all` for the All Accounts list (v26.11), same string `"true"`/`"false"` | `AllAccountTransactions.tsx` line 44 and `Account.tsx` line 2073 at v26.11.0 | The Transactions list with no account, category or month filter has a **Hide reconciled transactions** switch in its menu, read from and written to `hide-reconciled-all` (`ActualBudgetDatabase.ALL_ACCOUNTS_VIEW_ID`, `AppNavigation`). That list shows no running balance, so none can be wrong. | Match (#1417) | `ActualBudgetReadModelTest.hideReconciledForTheAllAccountsListUsesTheAllPreference` |
 | `show-balances-<id>`, `hide-cleared-<id>`, `transaction-table-columns-<id>`, `show-group-<id>`, `show-extra-balances-<id>`, `show-account-<id>-net-worth-chart`, `side-nav.show-balance-history-<id>` | desktop register/sidebar layout prefs | not read or written. Actua's running-balance toggle is a device-local display preference. | **Intentional** (desktop layout; Actua has its own mobile layout) |
 | Import/bank-sync prefs (`csv-*`, `parse-date-*`, `sync-*`, `custom-sync-mappings-*`, `ofx-*`, `qif-*`, `camt-*`, `flip-amount-*`) | import/bank-sync settings | out of scope here; see #673 | – |
 

@@ -2074,11 +2074,17 @@ fun AppNavigation(
                     displayPreferences.groupTransactionsByDate = it
                     groupTransactionsByDate = it
                 },
-                hideReconciledTransactions = accounts.firstOrNull { it.name == transactionAccount }
+                hideReconciledTransactions = if (transactionAccount == null && transactionCategory == null && transactionMonth == null) {
+                    // The All Accounts list uses Actual 26.11's synced `hide-reconciled-all` preference.
+                    com.azimulkabir.actua.data.budget.ActualBudgetDatabase.ALL_ACCOUNTS_VIEW_ID in hideReconciledAccountIds
+                } else accounts.firstOrNull { it.name == transactionAccount }
                     ?.let { it.id in hideReconciledAccountIds } == true,
                 onHideReconciledTransactionsChange = { hide ->
-                    accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
-                        mutate(R.string.navigation_updating_account_view) { repository.setHideReconciled(account.id, hide) }
+                    val viewId = if (transactionAccount == null && transactionCategory == null && transactionMonth == null) {
+                        com.azimulkabir.actua.data.budget.ActualBudgetDatabase.ALL_ACCOUNTS_VIEW_ID
+                    } else accounts.firstOrNull { it.name == transactionAccount }?.id
+                    viewId?.let { id ->
+                        mutate(R.string.navigation_updating_account_view) { repository.setHideReconciled(id, hide) }
                     }
                 },
                 onSetCleared = { transaction, cleared ->

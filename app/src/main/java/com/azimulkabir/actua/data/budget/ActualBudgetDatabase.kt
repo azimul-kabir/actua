@@ -2480,6 +2480,9 @@ class ActualBudgetDatabase private constructor(
             config.secondPaymentDay?.let { put("secondPaymentDay", it) }
         }.toString()
         const val HIDE_RECONCILED_PREFERENCE_PREFIX = "hide-reconciled-"
+
+        /** The id Actual 26.11 uses for the All Accounts list: its preference is `hide-reconciled-all`. */
+        const val ALL_ACCOUNTS_VIEW_ID = "all"
         private const val transactionSearchClause = """
             AND (
                 COALESCE(pa.name, p.name, cpa.name, cp.name,
