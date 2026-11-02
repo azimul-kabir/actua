@@ -525,6 +525,18 @@ class BalanceForecastTest {
 
     private fun row(meta: String? = null) = DashboardWidgetRow("w", "balance-forecast-card", meta)
 
+    @Test fun `the zero-based y axis option is read from the card and defaults to automatic`() {
+        // Actual 26.11 `yAxisBase` (#1416).
+        fun zeroBased(meta: String?) = CoreReportEngine.compute(
+            row(meta), emptyList(), context, today = LocalDate.of(2026, 9, 10), accountBalances = mapOf("checking" to 100_000L),
+        ).zeroBasedAxis
+        assertEquals(true, zeroBased("""{"yAxisBase":"Zero-Based"}"""))
+        assertEquals(false, zeroBased("""{"yAxisBase":"Auto"}"""))
+        assertEquals(false, zeroBased("""{}"""))
+        assertEquals(false, zeroBased(null))
+        assertEquals(false, zeroBased("""{"yAxisBase":"zero-based"}"""))
+    }
+
     @Test fun `an occurrence already posted as a real transaction is not also projected as a schedule delta`() {
         val today = LocalDate.of(2026, 9, 10)
         val rows = listOf(tx("posted-1", 20260905, -50_000, scheduleId = "rent"))

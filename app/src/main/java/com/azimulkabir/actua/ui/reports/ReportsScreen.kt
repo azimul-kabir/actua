@@ -1174,6 +1174,7 @@ internal fun WidgetBody(
                     widget.points, hideDecimals, onDrillDown = onDrillDown,
                     lowValue = widget.comparisonCents,
                     description = "Balance forecast with ${widget.points.size} months. The dashed part is a forecast.",
+                    zeroBased = widget.zeroBasedAxis,
                 )
                 widget.subtitle?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1196,6 +1197,7 @@ private fun TrendChart(
     onDrillDown: ((ReportCategory) -> Unit)? = null,
     lowValue: Long? = null,
     description: String = "Trend chart with ${points.size} points. Touch to read a value.",
+    zeroBased: Boolean = false,
 ) {
     if (points.isEmpty()) {
         Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1221,6 +1223,7 @@ private fun TrendChart(
         formatAxis = { if (isMoney) formatCompactMoney(it, hideDecimals = true) else "$it d" },
         contentDescription = description,
         lowValue = lowValue,
+        includeZero = zeroBased,
         canDrill = { drillable(points[it]) },
         onDrillDown = onDrillDown?.let { drill ->
             { i ->

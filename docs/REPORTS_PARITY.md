@@ -309,6 +309,7 @@ Upstream: `loot-core/src/server/forecast/` ([`forecast-projection.ts`][forecast]
 | `conditions` on posted and projected rows | | same | Match |
 | Headline ending and low balance; scheduled-count subtitle | | same | Match |
 | `source = tracking-budget` (tracking budgets only): on-budget balances + each month's budgeted income − budgeted expenses | `projectTrackingBudgetForecast` | same | Match (#958) |
+| `yAxisBase = Zero-Based` (v26.11; default `Auto`): the chart's value axis starts at zero | `BalanceForecastCard.tsx` lines 87 and 251, `BalanceForecast.tsx` line 120 | `ReportWidget.zeroBasedAxis`, read from the card's meta in `CoreReportEngine`, makes `LineChart` include zero in its axis range. Upstream's fixed lower bound of 0 would clip a negative balance; Actua widens the axis to include it instead. Actua does not offer the option in its own widget settings. | Match for rendering (#1416) | `CoreReportEngineTest`: `the zero-based y axis option is read from the card and defaults to automatic` |
 
 Tests: `BalanceForecastTest`, `TrackingBudgetForecastTest`, `src/androidTest/.../data/reports/CoreReportEngineTest.balanceForecast*`.
 

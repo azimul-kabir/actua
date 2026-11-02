@@ -207,14 +207,15 @@ object CoreReportEngine {
             "sankey-card" -> sankey(row.id, name, filtered, context, incomeCategoryIds, rangeStart, rangeEnd,
                 exactDates = sankeyPayRange != null)
             // Upstream's card only uses the tracking-budget source in a tracking budget file.
-            "balance-forecast-card" -> if (meta?.optString("source") == "tracking-budget" &&
+            // Actual 26.11's `yAxisBase`: `Zero-Based` pins the chart axis to zero, anything else is automatic.
+            "balance-forecast-card" -> (if (meta?.optString("source") == "tracking-budget" &&
                 budgetMonth(YearMonth.from(start))?.isTracking == true
             ) {
                 trackingBudgetForecast(row.id, name, accountBalances, context, budgetMonth, start, end)
             } else {
                 balanceForecast(row.id, name, meta, transactions, accountBalances, today, schedules, context,
                     transferAccountByPayee, start, end)
-            }
+            }).copy(zeroBasedAxis = meta?.optString("yAxisBase") == "Zero-Based")
             "monte-carlo-card" -> monteCarlo(row.id, name, meta, accountBalances, today)
             else -> ReportWidget(row.id, ReportWidgetKind.UNSUPPORTED, name, sourceType = row.type)
         }

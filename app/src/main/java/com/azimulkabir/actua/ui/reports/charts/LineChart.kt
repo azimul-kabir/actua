@@ -99,6 +99,8 @@ fun LineChart(
     detail: ((Int) -> String)? = null,
     canDrill: (Int) -> Boolean = { false },
     onDrillDown: ((Int) -> Unit)? = null,
+    /** Always include zero in the value axis (Balance Forecast's Zero-Based option). */
+    includeZero: Boolean = false,
 ) {
     val n = periods.size
     if (n == 0 || series.isEmpty()) {
@@ -122,9 +124,9 @@ fun LineChart(
     val allValues = remember(series, lowValue, bands) {
         series.flatMap { it.values } + listOfNotNull(lowValue) + bands.flatMap { it.lower + it.upper }
     }
-    val gridlines = remember(allValues) {
-        val lo = allValues.min()
-        val hi = allValues.max()
+    val gridlines = remember(allValues, includeZero) {
+        val lo = if (includeZero) minOf(0L, allValues.min()) else allValues.min()
+        val hi = if (includeZero) maxOf(0L, allValues.max()) else allValues.max()
         calculateNiceGridlines(lo, if (hi == lo) lo + 1 else hi).let { if (it.size >= 2) it else listOf(lo, lo + 1) }
     }
     val axisMin = gridlines.first()
