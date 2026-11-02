@@ -118,6 +118,13 @@ data class CreditCardCycle(
     fun daysRemainingInCycle(today: DayDate = DayDate.today()) =
         maxOf(0, today.daysUntil(cycleRange(today).second))
 
+    /**
+     * Whether [dueDate] falls on or before the current cycle's closing date, so it can only
+     * belong to an already-closed statement, not to the spend the cycle is still collecting.
+     */
+    fun isPriorStatementDue(dueDate: DayDate, today: DayDate = DayDate.today()): Boolean =
+        dueDate <= cycleRange(today).second
+
     /** Days until [dueDate], or until the next calculated due date when it is null. */
     fun daysUntilDue(today: DayDate = DayDate.today(), dueDate: DayDate? = null) =
         maxOf(0, today.daysUntil(dueDate ?: upcomingDueDate(today)))

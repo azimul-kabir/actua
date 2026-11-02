@@ -155,7 +155,9 @@ private fun CreditCardRow(
         else -> Color(0xFFF9A825)
     }
     // The pill's short text and its long form for TalkBack, which keeps the date the pill drops.
+    val priorStatement = !isPaid && statementDue != null && card.cycle.isPriorStatementDue(statementDue.dueDate)
     val pillText = duePillText(statementDue, isPaid, card.cycle, days, hideDecimals, short = true)
+    val lastStatementPill = if (priorStatement) stringResource(R.string.fs_last_statement_due, pillText) else null
     Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.padding(vertical = 0.dp).align(Alignment.CenterVertically)) {
@@ -167,7 +169,9 @@ private fun CreditCardRow(
                 card.accountName,
                 formatMoneyCents(card.balanceCents, hideDecimals),
                 formatMoneyCents(card.cycleSpendCents, hideDecimals),
-                duePillText(statementDue, isPaid, card.cycle, days, hideDecimals, short = false),
+                duePillText(statementDue, isPaid, card.cycle, days, hideDecimals, short = false).let {
+                    if (priorStatement) stringResource(R.string.fs_last_statement_due, it) else it
+                },
                 card.availableCreditCents?.let { formatMoneyCents(it, hideDecimals) },
                 stringResource(R.string.fs_row_balance_label),
                 stringResource(R.string.fs_row_cycle_spend_label),
@@ -192,8 +196,15 @@ private fun CreditCardRow(
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
                     )
-                    Text(pillText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(start = 8.dp))
+                    if (lastStatementPill == null) {
+                        Text(pillText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+                // A due date that precedes this cycle's closing belongs to the last statement, so it
+                // gets its own line rather than reading as the due date of the spend above.
+                lastStatementPill?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                 }
                 card.availableCreditCents?.let {
                     Text(

@@ -316,6 +316,7 @@
     <plurals name="fs_due_in_days"><item quantity="one">Due in %d day</item><item quantity="other">Due in %d days</item></plurals>
     <string name="fs_due_on_date_days">Due %1$s (%2$dd)</string>
     <string name="fs_due_in_days_short">Due in %1$dd</string>
+    <string name="fs_last_statement_due">Last statement: %1$s</string>
     <string name="fs_row_balance_label">balance</string>
     <string name="fs_row_cycle_spend_label">cycle spend</string>
     <string name="fs_row_available_credit_label">available credit</string>

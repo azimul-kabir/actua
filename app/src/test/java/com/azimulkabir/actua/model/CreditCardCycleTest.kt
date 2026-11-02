@@ -229,4 +229,21 @@ class CreditCardCycleTest {
         assertNull(status(-100_000L, null).utilizationPercent)
         assertNull(status(-100_000L, 0L).utilizationPercent)
     }
+
+    @Test fun dueDateBeforeTheCycleClosesBelongsToTheLastStatement() {
+        // 17 days left in the cycle, yet the unpaid October statement is due in 10 days (#1436).
+        val cycle = CreditCardCycle(20, CreditCardCycle.PaymentDue.DayOfMonth(13))
+        val today = DayDate(2026, 11, 3)
+        assertEquals(17, cycle.daysRemainingInCycle(today))
+        val due = cycle.upcomingDueDate(today)
+        assertEquals(DayDate(2026, 11, 13), due)
+        assertTrue(cycle.isPriorStatementDue(due, today))
+    }
+
+    @Test fun dueDateOfTheCurrentCycleStatementIsNotPrior() {
+        val cycle = CreditCardCycle(20, 15)
+        val today = DayDate(2026, 11, 3)
+        val currentDue = cycle.dueDate(cycle.cycleRange(today).second)
+        assertTrue(!cycle.isPriorStatementDue(currentDue, today))
+    }
 }
