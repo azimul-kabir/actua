@@ -130,12 +130,12 @@ private fun narrowCurrencySymbol(code: String): String = when (code) {
     "ARS" -> "Arg$"
     "BRL" -> "R$"
     "BYN" -> "Br"
-    "CHF" -> "Fr."
+    "CHF" -> "CHF"
     "CLP" -> "CLP$"
     "COP" -> "Col$"
     "CRC" -> "₡"
     "CZK" -> "Kč"
-    "DKK", "SEK" -> "kr"
+    "DKK", "NOK", "SEK" -> "kr"
     "DOP" -> "RD$"
     "EGP" -> "ج.م"
     "GTQ" -> "Q"
@@ -162,7 +162,9 @@ private fun narrowCurrencySymbol(code: String): String = when (code) {
     "TWD" -> "NT$"
     "UAH" -> "₴"
     "UYU" -> "\$U"
+    "TZS" -> "TSh"
     "UZS" -> "UZS"
+    "ZAR" -> "R"
     else -> runCatching { Currency.getInstance(code).symbol }.getOrDefault(code)
 }
 

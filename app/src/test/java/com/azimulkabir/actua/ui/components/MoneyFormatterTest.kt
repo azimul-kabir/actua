@@ -153,8 +153,18 @@ class MoneyFormatterTest {
         CurrencyDisplay.code = "BRL"
         assertEquals("R${'$'}", currencyInputPrefix())
 
+        // Actual 26.11 shows the Swiss franc as "CHF" instead of "Fr." (#1414).
         CurrencyDisplay.code = "CHF"
-        assertEquals("Fr.", currencyInputPrefix())
+        assertEquals("CHF", currencyInputPrefix())
+
+        CurrencyDisplay.code = "NOK"
+        assertEquals("kr", currencyInputPrefix())
+
+        CurrencyDisplay.code = "TZS"
+        assertEquals("TSh", currencyInputPrefix())
+
+        CurrencyDisplay.code = "ZAR"
+        assertEquals("R", currencyInputPrefix())
 
         CurrencyDisplay.code = "RUB"
         assertEquals("₽", currencyInputPrefix())

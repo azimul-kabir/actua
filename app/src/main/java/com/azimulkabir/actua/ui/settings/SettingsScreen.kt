@@ -1193,6 +1193,7 @@ private val currencyOptions = listOf(
     CurrencyOption(R.string.settings_currency_mkd, "MKD"),
     CurrencyOption(R.string.settings_currency_mxn, "MXN"),
     CurrencyOption(R.string.settings_currency_myr, "MYR"),
+    CurrencyOption(R.string.settings_currency_nok, "NOK"),
     CurrencyOption(R.string.settings_currency_pen, "PEN"),
     CurrencyOption(R.string.settings_currency_php, "PHP"),
     CurrencyOption(R.string.settings_currency_pkr, "PKR"),
@@ -1205,9 +1206,11 @@ private val currencyOptions = listOf(
     CurrencyOption(R.string.settings_currency_thb, "THB"),
     CurrencyOption(R.string.settings_currency_try, "TRY"),
     CurrencyOption(R.string.settings_currency_twd, "TWD"),
+    CurrencyOption(R.string.settings_currency_tzs, "TZS"),
     CurrencyOption(R.string.settings_currency_uah, "UAH"),
     CurrencyOption(R.string.settings_currency_uyu, "UYU"),
     CurrencyOption(R.string.settings_currency_uzs, "UZS"),
+    CurrencyOption(R.string.settings_currency_zar, "ZAR"),
 )
 
 /** The display label for a stored currency [code]; [noneLabel] localizes the no-currency entry. */

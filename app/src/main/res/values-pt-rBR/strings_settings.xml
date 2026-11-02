@@ -91,7 +91,7 @@
     <string name="settings_currency_ars">Arg$ ARS</string>
     <string name="settings_currency_byn">Br BYN</string>
     <string name="settings_currency_brl">R$ BRL</string>
-    <string name="settings_currency_chf">Fr. CHF</string>
+    <string name="settings_currency_chf">CHF CHF</string>
     <string name="settings_currency_clp">CLP$ CLP</string>
     <string name="settings_currency_cop">Col$ COP</string>
     <string name="settings_currency_crc">₡ CRC</string>
@@ -112,6 +112,7 @@
     <string name="settings_currency_mkd">ден MKD</string>
     <string name="settings_currency_mxn">$ MXN</string>
     <string name="settings_currency_myr">RM MYR</string>
+    <string name="settings_currency_nok">kr NOK</string>
     <string name="settings_currency_pen">S/ PEN</string>
     <string name="settings_currency_php">₱ PHP</string>
     <string name="settings_currency_pkr">Rs. PKR</string>
@@ -124,9 +125,11 @@
     <string name="settings_currency_thb">฿ THB</string>
     <string name="settings_currency_try">₺ TRY</string>
     <string name="settings_currency_twd">NT$ TWD</string>
+    <string name="settings_currency_tzs">TSh TZS</string>
     <string name="settings_currency_uah">₴ UAH</string>
     <string name="settings_currency_uyu">$U UYU</string>
     <string name="settings_currency_uzs">UZS UZS</string>
+    <string name="settings_currency_zar">R ZAR</string>
     <string name="settings_symbol_only">Somente o símbolo</string>
     <string name="settings_symbol_only_description">Mostre $ em vez de US$, CA$ ou A$ quando aplicável</string>
     <string name="settings_symbol_position">Posição do símbolo</string>
