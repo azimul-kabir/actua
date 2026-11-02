@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed a credit card's due date reading as if it belonged to the current cycle when it is for the last statement ([#1439](https://github.com/azimul-kabir/actua/pull/1439))
+
 ## [2.4.0] - 2026-11-02
 
 ### Added
