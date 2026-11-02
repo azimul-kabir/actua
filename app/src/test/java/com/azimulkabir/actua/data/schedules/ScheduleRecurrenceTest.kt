@@ -15,6 +15,38 @@ class ScheduleRecurrenceTest {
         assertEquals("2028-02-29", next(RecurConfig(RecurConfig.Frequency.YEARLY, 1, DayDate(2024,2,29)), "2025-01-01"))
     }
 
+    private fun from(config: RecurConfig, day: String) =
+        ScheduleRecurrence.nextOccurrenceFrom(config, requireNotNull(DayDate.fromIso(day)))?.iso
+
+    @Test fun anOccurrenceMovedAfterTheWeekendOntoTodayIsNotSkipped() {
+        // Regression for #1410. Weekly on Saturdays, moved to the next weekday: 2026-10-31 (Saturday)
+        // lands on Monday 2026-11-02.
+        val weekly = RecurConfig(RecurConfig.Frequency.WEEKLY, 1, DayDate(2026, 10, 31), skipWeekend = true,
+            weekendSolveMode = "after")
+        // On that Monday, looking only at raw occurrences from today jumps to the following week.
+        assertEquals("2026-11-09", next(weekly, "2026-11-02"))
+        assertEquals("2026-11-02", from(weekly, "2026-11-02"))
+        // On the Sunday in between, the same occurrence is still ahead.
+        assertEquals("2026-11-02", from(weekly, "2026-11-01"))
+        // Once Monday has passed, the next one is the following Monday, as before.
+        assertEquals("2026-11-09", from(weekly, "2026-11-03"))
+        assertEquals(next(weekly, "2026-11-03"), from(weekly, "2026-11-03"))
+    }
+
+    @Test fun nextDateFromKeepsOtherCasesUnchanged() {
+        val before = RecurConfig(RecurConfig.Frequency.WEEKLY, 1, DayDate(2026, 10, 31), skipWeekend = true,
+            weekendSolveMode = "before")
+        // "before" moves Saturday 2026-11-07 back to Friday 2026-11-06; evaluated on the Saturday it is
+        // already past, exactly as before.
+        assertEquals(next(before, "2026-11-07"), from(before, "2026-11-07"))
+        assertEquals(next(before, "2026-11-04"), from(before, "2026-11-04"))
+        val plain = RecurConfig(RecurConfig.Frequency.WEEKLY, 1, DayDate(2026, 10, 31))
+        listOf("2026-11-01", "2026-11-02", "2026-11-07").forEach { day -> assertEquals(next(plain, day), from(plain, day)) }
+        val bounded = RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2026, 1, 10),
+            endMode = "after_n_occurrences", endOccurrences = 2)
+        assertEquals(next(bounded, "2026-06-01"), from(bounded, "2026-06-01"))
+    }
+
     @Test fun monthlyPositiveNegativeAndNthWeekdayPatternsUnion() {
         val day = RecurConfig(RecurConfig.Frequency.MONTHLY, 1, DayDate(2026,1,1),
             listOf(RecurConfig.Pattern("day",-1), RecurConfig.Pattern("day",15)))

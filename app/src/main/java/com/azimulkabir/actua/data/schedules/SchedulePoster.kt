@@ -76,7 +76,7 @@ class SchedulePoster(
             val current = requireNotNull(schedule.nextDate)
             when (val date = schedule.dateCondition) {
                 is ScheduleDateCondition.Recurring -> if (!schedule.postsTransaction) {
-                    val next = ScheduleRecurrence.nextOccurrence(date.config, today)
+                    val next = ScheduleRecurrence.nextOccurrenceFrom(date.config, today)
                     if (next != null && next != current) {
                         ScheduleWriteBuilder.nextDate(schedule, next, reset = false, now = 0L)?.let(schedules::apply)
                     }
