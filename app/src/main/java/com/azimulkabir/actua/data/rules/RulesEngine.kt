@@ -30,6 +30,9 @@ data class RuleRunResult(
 data class RuleSplitChild(val transaction: ActualTransaction, val pendingPayeeName: String?)
 
 object RulesEngine {
+    /** Formula variables Actual 26.11 converts from integer cents to amounts (`MONETARY_FORMULA_VARIABLES`). */
+    private val MONETARY_FORMULA_VARIABLES = setOf("amount", "balance", "parent_amount")
+
     fun matches(
         transaction: ActualTransaction,
         conditions: List<Rule.Condition>,
@@ -297,23 +300,38 @@ object RulesEngine {
         fun setAmount(value: Long) { numbers["amount"] = value }
         fun setFormula(field: String, formula: String) {
             runCatching {
-                val result = RuleFormulaEvaluator.evaluate(formula, formulaVariables(), { literal ->
+                val result = RuleFormulaEvaluator.evaluate(formula, formulaVariables().asFormulaAmounts(), { literal ->
                     context.balanceOfCents(balanceTransaction, literal)
                 })
                 when (RuleSchema.type(field)) {
+                    // The formula works in amounts; the transaction stores cents (Actual's `amountToInteger`).
                     RuleFieldType.NUMBER -> when (result) {
-                        is Number -> set(field, RuleValue.Number(result.toDouble()))
-                        else -> result?.toString()?.let(::parseFloat)?.let { set(field, RuleValue.Number(it)) }
+                        is Number -> set(field, RuleValue.Number(RuleFormulaEvaluator.amountToCents(result.toDouble()).toDouble()))
+                        else -> result?.toString()?.let(::parseFloat)
+                            ?.let { set(field, RuleValue.Number(RuleFormulaEvaluator.amountToCents(it).toDouble())) }
                     }
                     RuleFieldType.DATE -> result?.toString()?.let(::parseDate)
                         ?.let { set(field, RuleValue.Text(it)) }
                     RuleFieldType.BOOLEAN -> set(field, RuleValue.Flag(
                         result is Boolean && result || result?.toString().equals("true", true),
                     ))
-                    else -> set(field, RuleValue.Text(result?.toString() ?: ""))
+                    else -> set(field, RuleValue.Text(if (result is Double) jsNumberText(result) else result?.toString() ?: ""))
                 }
             }
         }
+
+        /** Formulas read the monetary fields as everyday amounts, as Actual 26.11 does; templates keep cents. */
+        private fun Map<String, Any?>.asFormulaAmounts(): Map<String, Any?> = mapValues { (key, value) ->
+            if (key in MONETARY_FORMULA_VARIABLES && value is Number) value.toDouble() / 100.0 else value
+        }
+
+        /** A number as JavaScript's `String(n)` prints it: no trailing `.0`, no exponent. */
+        private fun jsNumberText(value: Double): String = when {
+            value.isNaN() || value.isInfinite() -> value.toString()
+            value == Math.floor(value) && Math.abs(value) < 1e15 -> value.toLong().toString()
+            else -> java.math.BigDecimal(value.toString()).toPlainString()
+        }
+
         fun setTemplate(field: String, template: String) {
             val variables = formulaVariables()
             val rendered = Regex("""\{\{\{?\s*([^{}]+?)\s*\}?\}\}""").replace(template) { match ->

@@ -139,8 +139,10 @@ transaction, coercing per field type; setting `payee_name` additionally sets `pa
 mutually-exclusive value sources instead of a literal: Handlebars field interpolation with `today`,
 and formulas beginning with `=`. Formula variables include transaction fields, account/category
 names, current date, and the transaction's running account balance; `BALANCE_OF("account name")`
-uses the same date/order-relative balance calculation as Actual. Formula numeric results are rounded
-to cents, and evaluation errors leave the target unchanged. Template results are coerced by field type;
+uses the same date/order-relative balance calculation as Actual. Since Actual 26.11 formulas read
+`amount`, `balance`, `parent_amount` and `BALANCE_OF` as everyday amounts (cents ÷ 100) and return the
+result as computed: a number-typed target converts it with `amountToInteger` (`Math.round(amount * 100)`),
+while a text target receives the plain number (`750`, not `75000`). Evaluation errors leave the target unchanged. Template results are coerced by field type;
 invalid template dates use Actual's `9999-12-31` sentinel.
 `prepend-notes`/`append-notes` concatenate onto the existing `notes` value (no-op onto an empty
 value, i.e. no leading/trailing separator is added, and no separator is inserted between the
