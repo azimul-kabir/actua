@@ -4,6 +4,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+### Fixed
+
+- Fixed the amount and cursor disappearing in the transaction form when a long amount or calculation is entered ([#1438](https://github.com/azimul-kabir/actua/pull/1438))
+
 ## [2.4.0] - 2026-11-02
 
 ### Added
