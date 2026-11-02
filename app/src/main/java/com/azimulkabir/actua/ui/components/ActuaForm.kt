@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -34,6 +35,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +56,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.azimulkabir.actua.ui.theme.AmountTypography
@@ -339,13 +342,13 @@ fun ActuaHeroAmount(
     footnote: String? = null,
 ) {
     val style = when (size) {
-        ActuaHeroSize.Large -> AmountTypography.heroAmount.let {
-            if (amount.length > HERO_LONG_AMOUNT_LENGTH) it.copy(fontSize = 32.sp) else it
-        }
-        ActuaHeroSize.Medium -> AmountTypography.mediumHeroAmount.let {
-            if (amount.length > HERO_LONG_AMOUNT_LENGTH) it.copy(fontSize = 26.sp) else it
-        }
-    }
+        ActuaHeroSize.Large -> AmountTypography.heroAmount
+        ActuaHeroSize.Medium -> AmountTypography.mediumHeroAmount
+    }.let { base -> heroAmountFontSize(amount.length, size)?.let { base.copy(fontSize = it) } ?: base }
+    val amountScroll = rememberScrollState()
+    // Keep the newest characters (and the editing cursor beside them) in view when the text is
+    // still wider than the row at the smallest size.
+    LaunchedEffect(amount, amountScroll.maxValue) { amountScroll.scrollTo(amountScroll.maxValue) }
     Column(
         modifier = modifier.fillMaxWidth().padding(top = Spacing.sm, bottom = Spacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -363,7 +366,10 @@ fun ActuaHeroAmount(
                 .semantics(mergeDescendants = true) { this.contentDescription = contentDescription },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(amount, style = style, color = amountColor, maxLines = 1, textAlign = TextAlign.Center)
+            Text(
+                amount, style = style, color = amountColor, maxLines = 1, softWrap = false, textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f, fill = false).horizontalScroll(amountScroll),
+            )
             amountTrailing?.invoke()
         }
         supportingText?.let {
@@ -383,8 +389,25 @@ fun ActuaHeroAmount(
     }
 }
 
-/** Amounts longer than this (sign and currency included) use a smaller hero size to fit. */
-private const val HERO_LONG_AMOUNT_LENGTH = 11
+/**
+ * Font size for a hero amount of [length] characters (sign and currency included), or null to
+ * keep the style's own size. Longer amounts, such as calculator expressions, step down so they fit.
+ */
+internal fun heroAmountFontSize(length: Int, size: ActuaHeroSize): TextUnit? = when (size) {
+    ActuaHeroSize.Large -> when {
+        length <= 11 -> null
+        length <= 14 -> 32.sp
+        length <= 18 -> 26.sp
+        length <= 24 -> 22.sp
+        else -> 18.sp
+    }
+    ActuaHeroSize.Medium -> when {
+        length <= 11 -> null
+        length <= 14 -> 26.sp
+        length <= 18 -> 22.sp
+        else -> 18.sp
+    }
+}
 
 /** The form's main action, full width and pinned at the bottom (above the keyboard). */
 @Composable
