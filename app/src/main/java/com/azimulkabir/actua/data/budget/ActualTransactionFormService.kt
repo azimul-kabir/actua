@@ -84,7 +84,7 @@ class ActualTransactionFormService(
         }
     }
 
-    /** Returns the newly-created ordinary transaction id; edits/transfers/splits return null. */
+    /** Returns the id of a newly created ordinary or split transaction; edits and transfers return null. */
     fun save(
         form: ActualTransactionForm,
         original: ActualTransaction? = null,
@@ -101,10 +101,13 @@ class ActualTransactionFormService(
                 null
             }
             is ActualTransactionFormPlan.Split -> {
-                if (original == null) createSplit(normalizedForm, plan, notes)
-                else if (original.isParent) updateSplit(original, normalizedForm, plan, notes)
-                else convertToSplit(original, normalizedForm, plan, notes)
-                null
+                if (original == null) {
+                    createSplit(normalizedForm, plan, notes)
+                } else {
+                    if (original.isParent) updateSplit(original, normalizedForm, plan, notes)
+                    else convertToSplit(original, normalizedForm, plan, notes)
+                    null
+                }
             }
             is ActualTransactionFormPlan.Standard -> {
                 if (original?.isParent == true && normalizedForm.collapseSplit) {
@@ -257,7 +260,7 @@ class ActualTransactionFormService(
     private fun withTransferLegRules(source: ActualTransaction, partner: ActualTransaction) =
         TransferLegRules.apply(source, partner, database.fetchRules(), database.ruleContext())
 
-    private fun createSplit(form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {
+    private fun createSplit(form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?): String {
         val parentPayee = resolvePayee(form.payeeName, null, form.accountId)
         val parentId = idFactory()
         val sort = nowMillis().toDouble()
@@ -274,6 +277,7 @@ class ActualTransactionFormService(
             )
         }
         writer.createSplit(parent, children, runTransfers = true)
+        return parentId
     }
 
     private fun updateSplit(original: ActualTransaction, form: ActualTransactionForm, plan: ActualTransactionFormPlan.Split, notes: String?) {

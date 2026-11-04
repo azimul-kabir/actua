@@ -720,6 +720,10 @@ fun AppNavigation(
     var showAccountsMonthlySummary by remember { mutableStateOf(displayPreferences.showAccountsMonthlySummary) }
     var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
     val receiptScanner = remember { createReceiptScanner(context) }
+    // The scanned receipt photo the user chose to keep with the transaction being added. It stays a cache
+    // file until the transaction is saved, then moves into this device's receipt photo folder.
+    var keptReceiptPhoto by remember { mutableStateOf<java.io.File?>(null) }
+    var receiptPhotoVersion by remember { mutableIntStateOf(0) }
     var keepLastTransactionDate by remember { mutableStateOf(displayPreferences.keepLastTransactionDate) }
     val tabBarScroll = remember { TabBarScrollState(displayPreferences) }
     val showBottomNavigationLabels = tabBarScroll.showLabels
@@ -2373,6 +2377,15 @@ fun AppNavigation(
                                 transactionImpactCues = impactCues(categoryBalancesBefore, categoryBalancesAfter)
                             }
                             WidgetUpdater.requestAll(context)
+                            keptReceiptPhoto?.let { photo ->
+                                val createdId = result.getOrNull()
+                                withContext(Dispatchers.IO) {
+                                    // A transfer has no single id to attach a photo to; the cache file goes away.
+                                    if (!wasEditing && createdId != null) repository.keepReceiptPhoto(createdId, photo)
+                                    photo.delete()
+                                }
+                                keptReceiptPhoto = null
+                            }
                             if (!wasEditing && wasPlainNewEntry) {
                                 parseStoredDate(savedTransaction.date)?.let {
                                     RememberedEntryDate.shared.saved(keepLastTransactionDate, it)
@@ -2471,6 +2484,18 @@ fun AppNavigation(
                     conventionalAmountEntry = conventionalAmountEntry,
                     newTransactionDate = { RememberedEntryDate.shared.startDate(keepLastTransactionDate) },
                     receiptScanner = receiptScanner,
+                    receiptPhoto = remember(editingTransaction?.id, receiptPhotoVersion, dataVersion) {
+                        editingTransaction?.id?.takeIf(String::isNotBlank)?.let(repository::receiptPhoto)
+                    },
+                    onKeptReceiptPhotoChange = { keptReceiptPhoto = it },
+                    onDeleteReceiptPhoto = {
+                        editingTransaction?.id?.let { id ->
+                            coroutineScope.launch {
+                                withContext(Dispatchers.IO) { repository.deleteReceiptPhoto(id) }
+                                receiptPhotoVersion += 1
+                            }
+                        }
+                    },
                     onPreviewRules = repository::previewRules,
                     onFindNearbyPayees = {
                         when (val location = AndroidLocationProvider(context).currentCoordinates()) {

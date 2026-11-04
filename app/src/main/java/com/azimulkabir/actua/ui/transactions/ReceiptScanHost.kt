@@ -31,21 +31,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.R
 import com.azimulkabir.actua.data.receipts.ReceiptLayout
+import com.azimulkabir.actua.data.receipts.ReceiptPhotoStore
 import com.azimulkabir.actua.data.receipts.ReceiptScanner
+import java.io.File
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Takes a photo of a receipt, or lets the user pick an image, reads its text on the device and hands the
- * rows of text to [onRows]. Nothing is saved, uploaded or kept: a photo made here is deleted as soon as it
- * has been read. Always composed when a [scanner] exists; the chooser shows while [show] is true.
+ * rows of text to [onScanned] together with a compressed copy of the image in the cache (null if it could
+ * not be made). Nothing is uploaded, and nothing is kept unless the caller keeps that copy: a photo taken
+ * here is deleted as soon as it has been read. Always composed when a [scanner] exists; the chooser shows
+ * while [show] is true.
  */
 @Composable
 fun ReceiptScanHost(
     scanner: ReceiptScanner,
     show: Boolean,
     onDismiss: () -> Unit,
-    onRows: (List<String>) -> Unit,
+    onScanned: (rows: List<String>, photo: File?) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -57,8 +63,13 @@ fun ReceiptScanHost(
     fun read(image: Uri, discardAfter: Boolean) {
         busy = true
         scope.launch {
+            var photo: File? = null
             val lines = try {
-                scanner.recognize(image)
+                scanner.recognize(image).also { recognized ->
+                    if (recognized.isNotEmpty()) {
+                        photo = withContext(Dispatchers.IO) { ReceiptPhotoStore.createPending(context, image) }
+                    }
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
@@ -70,7 +81,7 @@ fun ReceiptScanHost(
             when {
                 lines == null -> toast(R.string.scan_receipt_failed)
                 lines.isEmpty() -> toast(R.string.scan_receipt_no_text)
-                else -> onRows(ReceiptLayout.rows(lines))
+                else -> onScanned(ReceiptLayout.rows(lines), photo)
             }
         }
     }

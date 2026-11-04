@@ -268,6 +268,17 @@
     <string name="receipt_split_confirm">Dividir</string>
     <string name="receipt_split_not_now">Agora não</string>
     <string name="receipt_split_tax_note">Imposto</string>
+    <string name="receipt_photo_keep">Manter a foto do recibo</string>
+    <string name="receipt_photo_keep_caption">Fica apenas neste telefone. Não é sincronizada nem incluída em backups.</string>
+    <string name="receipt_photo_title">Foto do recibo</string>
+    <string name="receipt_photo_view">Ver</string>
+    <string name="receipt_photo_close">Fechar</string>
+    <string name="receipt_photo_description">Foto do recibo</string>
+    <string name="receipt_photo_unavailable">Não foi possível mostrar esta foto.</string>
+    <string name="receipt_photo_local_note">Fica apenas neste telefone. Não é sincronizada, incluída em backups nem exportada, então não estará em outro telefone nem após restaurar um backup.</string>
+    <string name="receipt_photo_remove">Remover foto</string>
+    <string name="receipt_photo_remove_title">Remover a foto?</string>
+    <string name="receipt_photo_remove_message">A foto é apagada deste telefone. A transação não é alterada.</string>
     <string name="amount_clear">Limpar</string>
     <string name="amount_clear_description">Limpar valor</string>
     <string name="amount_undo">Desfazer</string>

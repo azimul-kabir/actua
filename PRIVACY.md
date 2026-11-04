@@ -168,13 +168,34 @@ total:
   that is bundled with the app. The photo and the text read from it are never uploaded or
   sent to the Actua developers or to any service.
 - A photo you take is written to the app's temporary cache only while it is read, and is
-  deleted straight after. A photo you pick from your gallery is read in place and not
-  copied. Actua does not keep the photo or the recognized text.
+  deleted straight after unless you choose to keep it (see below). A photo you pick from
+  your gallery is read in place and not copied. Actua does not keep the recognized text.
 - Nothing is saved from a scan until you check the transaction and tap Save.
 - The camera app (not Actua) takes the photo, so Actua does not ask for camera permission.
 - Latin, Chinese, Japanese, Korean and Devanagari scripts are read. Receipts in Cyrillic,
   Arabic, Hebrew, Thai, Greek or Bangla may be read badly or not at all.
-- The F-Droid and GitHub builds do not include receipt scanning.
+- Receipt scanning is not in the F-Droid build, nor in `Actua-v<version>.apk` on GitHub
+  Releases (the same open-source build). It is in the Google Play version and in
+  `Actua-v<version>-full.apk` on GitHub Releases.
+
+### Keeping a receipt photo
+
+After a scan you can turn on "Keep the receipt photo" before saving the transaction:
+- The photo is stored as a compressed copy (longest side 1600 pixels) in Actua's private
+  storage on this phone, in a folder per budget, named after the transaction. You can open
+  it again from the transaction and remove it there.
+- **It stays on this phone only.** It is never synced to an Actual server, and it is not
+  included in local backups, Export archive, Google Drive backups or WebDAV backups: those
+  contain only the budget's database and metadata. The link between a transaction and its
+  photo is not stored in your budget at all. The folder is also excluded from Android
+  backup and device-to-device transfer.
+- Because of that, a photo is not on another phone, and not after restoring a backup or
+  downloading the budget again. The transactions come back without it; Actua shows
+  nothing for a missing photo and does not report an error.
+- Deleting the transaction deletes its photo, and removing a budget from the device
+  deletes that budget's photos.
+- The app lock protects the photo while it is inside Actua. Actua has no way to share or
+  export a photo.
 
 ## Other on-device data
 
