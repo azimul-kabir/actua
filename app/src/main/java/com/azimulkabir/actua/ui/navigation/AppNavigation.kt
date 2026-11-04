@@ -189,6 +189,7 @@ import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
 import com.azimulkabir.actua.data.preferences.RememberedEntryDate
+import com.azimulkabir.actua.data.receipts.createReceiptScanner
 import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
@@ -718,6 +719,7 @@ fun AppNavigation(
     var groupTransactionsByDate by remember { mutableStateOf(displayPreferences.groupTransactionsByDate) }
     var showAccountsMonthlySummary by remember { mutableStateOf(displayPreferences.showAccountsMonthlySummary) }
     var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
+    val receiptScanner = remember { createReceiptScanner(context) }
     var keepLastTransactionDate by remember { mutableStateOf(displayPreferences.keepLastTransactionDate) }
     val tabBarScroll = remember { TabBarScrollState(displayPreferences) }
     val showBottomNavigationLabels = tabBarScroll.showLabels
@@ -2468,6 +2470,7 @@ fun AppNavigation(
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,
                     newTransactionDate = { RememberedEntryDate.shared.startDate(keepLastTransactionDate) },
+                    receiptScanner = receiptScanner,
                     onPreviewRules = repository::previewRules,
                     onFindNearbyPayees = {
                         when (val location = AndroidLocationProvider(context).currentCoordinates()) {

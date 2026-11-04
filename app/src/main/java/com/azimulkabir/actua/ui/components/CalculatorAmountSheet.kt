@@ -58,6 +58,8 @@ fun CalculatorAmountSheet(
     onApply: (Long) -> Unit,
     onExpressionChange: (String) -> Unit = {},
     onDone: () -> Unit = {},
+    /** Shows a Scan button between Clear and Paste that reads a receipt (the `playstore` flavor only). */
+    onScan: (() -> Unit)? = null,
     /**
      * Signed arithmetic: a − before the first number makes it negative, and [onApply] receives a result
      * that can be negative, for a caller whose own sign control (an expense and income chip) combines
@@ -107,6 +109,7 @@ fun CalculatorAmountSheet(
                         onApply(calculator.cents)
                         onExpressionChange(calculator.expressionDisplay)
                     },
+                    onScan = onScan,
                     onPasted = { cents ->
                         undoSnapshot = null
                         calculator.setCents(cents)
@@ -139,6 +142,7 @@ private fun KeypadActionRow(
     undoAvailable: Boolean,
     onClear: () -> Unit,
     onUndo: () -> Unit,
+    onScan: (() -> Unit)?,
     onPasted: (Long) -> Unit,
 ) {
     Row(
@@ -155,6 +159,14 @@ private fun KeypadActionRow(
             announceChanges = true,
             modifier = Modifier.weight(1f, fill = false),
         )
+        if (onScan != null) {
+            KeypadTextButton(
+                label = stringResource(R.string.amount_scan),
+                description = stringResource(R.string.amount_scan_description),
+                onClick = onScan,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+        }
         PasteAmountButton(onPasted, Modifier.weight(1f, fill = false))
     }
 }

@@ -122,6 +122,8 @@ dependencies {
     // WebDAV backups need PROPFIND, MKCOL and MOVE, which HttpURLConnection rejects.
     implementation(libs.okhttp)
     add("playstoreImplementation", libs.android.billing.ktx)
+    // On-device receipt text recognition (bundled Latin model, nothing is sent anywhere); playstore only.
+    add("playstoreImplementation", libs.mlkit.text.recognition)
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)
     // Real org.json impl for JVM unit tests — the Android stub jar throws on use.
