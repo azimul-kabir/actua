@@ -258,6 +258,16 @@
     <string name="scan_receipt_no_total">No total found. Enter the amount by hand.</string>
     <string name="scan_receipt_failed">Could not read that image.</string>
     <string name="scan_receipt_no_camera">No camera app is available.</string>
+    <string name="receipt_split_title">Split the tax and items?</string>
+    <string name="receipt_split_message">The receipt shows more than a total. You can add it as split lines, then pick a category for each line.</string>
+    <string name="receipt_split_tax">Tax %1$s as its own line</string>
+    <plurals name="receipt_split_items">
+        <item quantity="one">One line for the %1$d item found (least reliable)</item>
+        <item quantity="other">One line for each of the %1$d items found (least reliable)</item>
+    </plurals>
+    <string name="receipt_split_confirm">Split</string>
+    <string name="receipt_split_not_now">Not now</string>
+    <string name="receipt_split_tax_note">Tax</string>
     <string name="amount_clear">Clear</string>
     <string name="amount_clear_description">Clear amount</string>
     <string name="amount_undo">Undo</string>
