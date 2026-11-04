@@ -299,11 +299,11 @@ class CalculatorAmountStateTest {
 
     // --- Signed entry (#1466) --------------------------------------------------------------------------
 
-    private fun signed() = CalculatorAmountState(allowsNegative = true, conventionalAmountEntry = true)
+    private fun signed() = CalculatorAmountState(allowsNegative = true, leadingMinus = true, conventionalAmountEntry = true)
 
     @Test fun aNegativeFirstOperandGivesASignedResult() {
         val state = signed()
-        state.toggleSign(); state.digit(1)
+        state.operator(CalculatorAmountState.Operator.SUBTRACT); state.digit(1)
         state.operator(CalculatorAmountState.Operator.SUBTRACT)
         state.digit(0); state.decimalPoint(); state.digit(0); state.digit(1)
 
@@ -426,5 +426,49 @@ class CalculatorAmountStateTest {
         state.digit(3)
 
         assertEquals(200, state.finish())
+    }
+
+    @Test fun aLeadingMinusMakesTheFirstNumberNegativeAndShowsAtOnce() {
+        val state = signed()
+        state.operator(CalculatorAmountState.Operator.SUBTRACT)
+
+        assertTrue(state.display.startsWith("−"))
+        state.digit(5)
+        assertEquals(-500, state.cents)
+    }
+
+    @Test fun aSecondLeadingMinusTakesTheFirstBack() {
+        val state = signed()
+        state.operator(CalculatorAmountState.Operator.SUBTRACT)
+        state.operator(CalculatorAmountState.Operator.SUBTRACT)
+        state.digit(5)
+
+        assertEquals(500, state.cents)
+    }
+
+    @Test fun otherOperatorsAtTheStartStillDoNothing() {
+        val state = signed()
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.operator(CalculatorAmountState.Operator.MULTIPLY)
+        state.digit(5)
+
+        assertEquals(500, state.cents)
+    }
+
+    @Test fun leadingMinusIsOffUnlessAsked() {
+        val state = CalculatorAmountState(allowsNegative = true, conventionalAmountEntry = true)
+        state.operator(CalculatorAmountState.Operator.SUBTRACT)
+        state.digit(5)
+
+        assertEquals(500, state.cents)
+    }
+
+    @Test fun minusAfterANumberIsStillSubtraction() {
+        val state = signed()
+        state.digit(5)
+        state.operator(CalculatorAmountState.Operator.SUBTRACT)
+        state.digit(2)
+
+        assertEquals(300, state.finish())
     }
 }

@@ -622,8 +622,8 @@ fun AddTransactionScreen(
         )
         }
     }
-    // The type when the keypad opened; the keypad's sign is applied to this, not to the live value.
-    val keypadStartIncoming = remember(showCalculator) { incoming }
+    // The type the keypad's own sign is applied to: the form's type when it opened, flipped by ±.
+    var keypadIncoming by remember(showCalculator) { mutableStateOf(incoming) }
     if (showCalculator) CalculatorAmountSheet(
         title = if (editing == null) stringResource(R.string.transaction_amount)
         else stringResource(R.string.transaction_edit_amount),
@@ -634,14 +634,20 @@ fun AddTransactionScreen(
             amountExpression = null
         },
         // The keypad does signed arithmetic: the amount is the size of the result and a negative
-        // result flips the type the form had when the keypad opened (see [incomingAfterEntry]).
+        // result is the opposite of the keypad's own type (see [incomingAfterEntry]). ± flips that
+        // type, as the chip does.
         signedEntry = true,
         onApply = { signed ->
             amountCents = abs(signed)
-            incoming = incomingAfterEntry(keypadStartIncoming, signed)
+            incoming = incomingAfterEntry(keypadIncoming, signed)
         },
         onExpressionChange = { amountExpression = it },
         onDone = { if (editing == null) autoStep = AddStep.Payee },
+        onToggleSign = {
+            keypadIncoming = !keypadIncoming
+            incoming = !incoming
+        },
+        toggleSignLabel = signToggleLabel,
     )
     splitCalculatorIndex?.let { index ->
         val line = splitLines.getOrNull(index)
@@ -746,11 +752,11 @@ internal const val TRANSFER_PAYEE_PREFIX = "Transfer: "
 
 /**
  * Whether the transaction is incoming after the keypad produced [signedCents]: a negative result is the
- * opposite of [startIncoming], the type the form had when the keypad opened, so the amount and the
- * expense or income chip never disagree. The chip itself still flips the type afterwards.
+ * opposite of [keypadIncoming], the type the keypad works in (the form's type when it opened, flipped by
+ * ±), so the amount and the expense or income chip never disagree.
  */
-internal fun incomingAfterEntry(startIncoming: Boolean, signedCents: Long): Boolean =
-    if (signedCents < 0) !startIncoming else startIncoming
+internal fun incomingAfterEntry(keypadIncoming: Boolean, signedCents: Long): Boolean =
+    if (signedCents < 0) !keypadIncoming else keypadIncoming
 
 /** A new transfer's starting values: [transferAccount] receives [amountCents]; the sender is picked in the form. */
 data class TransactionPrefill(val transferAccount: String, val amountCents: Long)

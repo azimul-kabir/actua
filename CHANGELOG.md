@@ -16,7 +16,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Fixed
 
-- Fixed the transaction amount keypad ignoring negative signs: ± now negates the number being typed and a negative result flips expense and income ([#1469](https://github.com/azimul-kabir/actua/pull/1469))
+- Fixed the transaction amount keypad ignoring negative signs: a leading − makes the first number negative and a negative result flips expense and income ([#1469](https://github.com/azimul-kabir/actua/pull/1469))
 - Fixed the keyboard covering the field being edited in Review captured ([#1449](https://github.com/azimul-kabir/actua/pull/1449))
 - Fixed the amount and cursor disappearing in the transaction form when a long amount or calculation is entered ([#1438](https://github.com/azimul-kabir/actua/pull/1438))
 - Fixed a credit card's due date reading as if it belonged to the current cycle when it is for the last statement ([#1439](https://github.com/azimul-kabir/actua/pull/1439))

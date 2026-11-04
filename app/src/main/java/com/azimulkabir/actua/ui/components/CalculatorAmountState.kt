@@ -10,6 +10,11 @@ import java.math.RoundingMode
 class CalculatorAmountState(
     initialCents: Long = 0,
     private val allowsNegative: Boolean = false,
+    /**
+     * Pressing − before any number makes the first number negative ("−1 − 0.01"), for a keypad whose ±
+     * key does something else (the transaction amount, where ± flips expense and income).
+     */
+    private val leadingMinus: Boolean = false,
     private val conventionalAmountEntry: Boolean = false,
     /** Decimal places of the budget's currency; amounts are integers in these minor units. */
     private val decimalPlaces: Int = CurrencyDisplay.decimalPlaces,
@@ -216,7 +221,10 @@ class CalculatorAmountState(
     }
 
     fun operator(operator: Operator) {
-        if (accumulatorCents == null && !hasOperand) return
+        if (accumulatorCents == null && !hasOperand) {
+            if (leadingMinus && allowsNegative && operator == Operator.SUBTRACT) negativeNext = !negativeNext
+            return
+        }
         if (hasOperand) {
             expressionParts += operandText()
             expressionParts += operator.symbol

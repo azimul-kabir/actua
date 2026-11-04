@@ -59,9 +59,10 @@ fun CalculatorAmountSheet(
     onExpressionChange: (String) -> Unit = {},
     onDone: () -> Unit = {},
     /**
-     * Signed arithmetic: ± negates the number being typed and [onApply] receives a result that can be
-     * negative, for a caller whose own sign control (an expense and income chip) combines with it.
-     * Without it the amount is a size and the keypad never goes negative.
+     * Signed arithmetic: a − before the first number makes it negative, and [onApply] receives a result
+     * that can be negative, for a caller whose own sign control (an expense and income chip) combines
+     * with it. ± stays with [onToggleSign]. Without it the amount is a size and the keypad never goes
+     * negative.
      */
     signedEntry: Boolean = false,
     /** When set, the ± key calls this (e.g. expense ↔ income) instead of negating the amount. */
@@ -72,6 +73,7 @@ fun CalculatorAmountSheet(
         CalculatorAmountState(
             initialCents,
             allowsNegative = signedEntry,
+            leadingMinus = signedEntry,
             conventionalAmountEntry = conventionalAmountEntry,
         )
     }
