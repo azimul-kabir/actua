@@ -2459,6 +2459,7 @@ fun AppNavigation(
                     } else {
                         defaultAccount
                     },
+                    accountFromContext = editingTransaction == null && editorReturnsToTransactions && transactionAccount != null,
                     defaultCategory = if (editingTransaction == null && editorReturnsToCategory) {
                         transactionCategory
                     } else {

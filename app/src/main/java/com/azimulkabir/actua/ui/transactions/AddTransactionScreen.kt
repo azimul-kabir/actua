@@ -133,6 +133,8 @@ fun AddTransactionScreen(
     accountBalanceLabels: Map<String, String> = emptyMap(),
     categoryBalanceLabels: Map<String, String> = emptyMap(),
     defaultAccount: String? = null,
+    /** [defaultAccount] is the account the user is adding from (not just the default account setting), so the walk skips the account step. */
+    accountFromContext: Boolean = false,
     defaultCategory: String? = null,
     defaultType: Type = Type.EXPENSE,
     hideDecimalPlaces: Boolean = false,
@@ -221,8 +223,11 @@ fun AddTransactionScreen(
     } && splitTotal == amountCents)
     val canSave = amountCents >= 0 && account.isNotBlank() && transferTarget != account && splitIsValid
     val categoryApplies = if (isTransfer) transferTakesCategory else !isSplit && !isOffBudget
-    LaunchedEffect(autoStep, categoryApplies) {
-        if (autoStep == AddStep.Category && !categoryApplies) autoStep = AddStep.Account
+    // Steps whose field is already decided are skipped; the fields stay editable by tapping them.
+    val accountDecided = accountFromContext && account.isNotBlank()
+    val walkStep = resolveAddStep(autoStep, categoryApplies, category.isNotBlank(), accountDecided)
+    LaunchedEffect(walkStep) {
+        if (walkStep != autoStep) autoStep = walkStep
     }
     val cursorTransition = rememberInfiniteTransition(label = "Amount cursor")
     val cursorAlpha by cursorTransition.animateFloat(
@@ -356,7 +361,7 @@ fun AddTransactionScreen(
                     supportingValues = accountBalanceLabels.mapKeys { TRANSFER_PAYEE_PREFIX + it.key },
                     onValueChange = onPayeeChange,
                     allowCustom = true,
-                    autoOpen = autoStep == AddStep.Payee,
+                    autoOpen = walkStep == AddStep.Payee,
                     onAutoOpenHandled = { autoStep = null },
                     onPicked = { if (editing == null) autoStep = AddStep.Category },
                     onFindNearby = onFindNearbyPayees,
@@ -375,7 +380,7 @@ fun AddTransactionScreen(
                             sections = categoryChoices.sections,
                             supportingValues = categoryBalanceLabels,
                             onValueChange = { category = it; categoryIsExplicit = it.isNotBlank() },
-                            autoOpen = autoStep == AddStep.Category,
+                            autoOpen = walkStep == AddStep.Category,
                             onAutoOpenHandled = { autoStep = null },
                             onPicked = { if (editing == null) autoStep = AddStep.Account },
                             rowIcon = Icons.Outlined.Category,
@@ -407,7 +412,7 @@ fun AddTransactionScreen(
                             splitLines = splitLines.map { line -> line.copy(category = "") }
                         }
                     },
-                    autoOpen = autoStep == AddStep.Account,
+                    autoOpen = walkStep == AddStep.Account,
                     onAutoOpenHandled = { autoStep = null },
                     rowIcon = Icons.Outlined.AccountBalanceWallet,
                     placeholder = stringResource(R.string.transaction_choose_account),
@@ -746,7 +751,26 @@ fun AddTransactionScreen(
     }
 }
 
-private enum class AddStep { Payee, Category, Account }
+internal enum class AddStep { Payee, Category, Account }
+
+/**
+ * The step of the automatic walk (payee, then category, then account) to open for [step], skipping a step
+ * whose field is already decided: the category when it does not apply (off budget, split, transfer) or was
+ * already filled in (a payee's usual category or a rule), the account when it came from the account being
+ * viewed. Null when the walk has ended.
+ */
+internal fun resolveAddStep(
+    step: AddStep?,
+    categoryApplies: Boolean,
+    categoryFilled: Boolean,
+    accountDecided: Boolean,
+): AddStep? = when (step) {
+    AddStep.Category ->
+        if (!categoryApplies || categoryFilled) resolveAddStep(AddStep.Account, categoryApplies, categoryFilled, accountDecided)
+        else AddStep.Category
+    AddStep.Account -> if (accountDecided) null else AddStep.Account
+    else -> step
+}
 
 internal const val TRANSFER_PAYEE_PREFIX = "Transfer: "
 

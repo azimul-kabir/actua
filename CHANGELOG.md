@@ -14,6 +14,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added automatic uploads of each backup to the WebDAV server, retried when they fail ([#1457](https://github.com/azimul-kabir/actua/pull/1457))
 - Added restoring a backup from a WebDAV server on a fresh install, from the no-budget screen and Connection and Data ([#1459](https://github.com/azimul-kabir/actua/pull/1459))
 
+### Changed
+
+- The new transaction form no longer opens the account picker when added from inside an account, or the category picker when the payee already filled it in ([#1470](https://github.com/azimul-kabir/actua/pull/1470))
+
 ### Fixed
 
 - Fixed the transaction amount keypad ignoring negative signs: a leading − makes the first number negative and a negative result flips expense and income ([#1469](https://github.com/azimul-kabir/actua/pull/1469))
