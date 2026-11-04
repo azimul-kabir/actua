@@ -160,6 +160,22 @@ NAS):
   forget the address and passwords on your phone; it does not delete backups
   already on your server.
 
+## Receipt scanning (Google Play version only)
+
+The Google Play version of Actua can read a receipt photo to suggest a payee, date and
+total:
+- The photo is read on your phone with Google ML Kit's text recognition, using a model
+  that is bundled with the app. The photo and the text read from it are never uploaded or
+  sent to the Actua developers or to any service.
+- A photo you take is written to the app's temporary cache only while it is read, and is
+  deleted straight after. A photo you pick from your gallery is read in place and not
+  copied. Actua does not keep the photo or the recognized text.
+- Nothing is saved from a scan until you check the transaction and tap Save.
+- The camera app (not Actua) takes the photo, so Actua does not ask for camera permission.
+- Latin, Chinese, Japanese, Korean and Devanagari scripts are read. Receipts in Cyrillic,
+  Arabic, Hebrew, Thai, Greek or Bangla may be read badly or not at all.
+- The F-Droid and GitHub builds do not include receipt scanning.
+
 ## Other on-device data
 
 Actua keeps app settings, which bank-synced transactions you haven't viewed

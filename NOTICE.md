@@ -60,6 +60,12 @@ WebDAV backups use [OkHttp](https://square.github.io/okhttp/), which is licensed
 License 2.0 and is not modified. It is needed because Android's built-in `HttpURLConnection` rejects the
 WebDAV methods PROPFIND, MKCOL and MOVE.
 
+## Google ML Kit
+
+The Google Play version of Actua uses [Google ML Kit](https://developers.google.com/ml-kit) text recognition
+(bundled Latin, Chinese, Japanese, Korean and Devanagari models, on-device) to read receipt photos. It is a proprietary dependency and is included in the
+`playstore` flavor only; the `fdroid` flavor, which GitHub Releases and F-Droid ship, does not contain it.
+
 ## Trademarks and support
 
 Project names and logos remain the property of their respective owners. Issues
