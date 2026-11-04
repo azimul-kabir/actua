@@ -64,15 +64,15 @@ class ReceiptTextParserTest {
     }
 
     @Test fun bengaliDigitsAreRead() {
-        val receipt = parse("TOTAL ১২.৫০", "০৪/১১/২০২৬")
+        val receipt = parse("TOTAL ১২.৫০", "১৩/১০/২০২৬")
 
         assertEquals(1250L, receipt.totalCents)
-        assertEquals(LocalDate.of(2026, 11, 4), receipt.date)
+        assertEquals(LocalDate.of(2026, 10, 13), receipt.date)
     }
 
     @Test fun datesInSeveralFormatsAreRead() {
         assertEquals(LocalDate.of(2026, 11, 2), parse("2026/11/02").date)
-        assertEquals(LocalDate.of(2026, 11, 2), parse("02.11.2026").date)
+        assertEquals(LocalDate.of(2026, 10, 25), parse("25.10.2026").date)
         assertEquals(LocalDate.of(2026, 11, 2), parse("02 Nov 2026").date)
         assertEquals(LocalDate.of(2026, 11, 2), parse("November 2, 2026").date)
         assertEquals(LocalDate.of(2026, 11, 2), parse("2nd Nov 2026").date)
