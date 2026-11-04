@@ -25,8 +25,9 @@ class TabBarPreferencesTest {
                 TabItem.REPORTS,
                 TabItem.HOME,
                 TabItem.TRANSACTIONS,
+                TabItem.BILLS,
             ),
-            hidden = setOf(TabItem.HOME, TabItem.TRANSACTIONS),
+            hidden = setOf(TabItem.HOME, TabItem.TRANSACTIONS, TabItem.BILLS),
         )
         fresh.save(customized)
 

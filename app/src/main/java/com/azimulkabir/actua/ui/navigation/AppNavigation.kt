@@ -53,6 +53,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.PieChartOutline
@@ -229,6 +230,7 @@ internal fun TabItem.labelRes(): Int = when (this) {
     TabItem.TRANSACTIONS -> R.string.navigation_transactions
     TabItem.ACCOUNTS -> R.string.navigation_accounts
     TabItem.REPORTS -> R.string.navigation_reports
+    TabItem.BILLS -> R.string.fs_bills
     TabItem.ADD -> R.string.navigation_add
     TabItem.MANAGE -> R.string.navigation_manage
 }
@@ -247,6 +249,7 @@ private enum class MainDestination(
     Transactions("Transactions", R.string.navigation_transactions, Icons.Outlined.ReceiptLong),
     Accounts("Accounts", R.string.navigation_accounts, Icons.Outlined.AccountBalanceWallet),
     Reports("Reports", R.string.navigation_reports, Icons.Outlined.BarChart),
+    Bills("Bills", R.string.fs_bills, Icons.Outlined.CalendarMonth),
     Manage("Manage", R.string.navigation_manage, Icons.Outlined.Tune),
 }
 
@@ -269,6 +272,7 @@ private fun TabItem.toMainDestination(): MainDestination? = when (this) {
     TabItem.TRANSACTIONS -> MainDestination.Transactions
     TabItem.ACCOUNTS -> MainDestination.Accounts
     TabItem.REPORTS -> MainDestination.Reports
+    TabItem.BILLS -> MainDestination.Bills
     TabItem.MANAGE -> MainDestination.Manage
     TabItem.ADD -> null
 }
@@ -1346,7 +1350,8 @@ fun AppNavigation(
                 detail = DetailDestination.Main
             }
             scheduleReturnsToTransactions -> detail = DetailDestination.Transactions
-            scheduleReturnsToBills -> detail = DetailDestination.BillsCalendar
+            scheduleReturnsToBills -> detail =
+                if (destination == MainDestination.Bills) DetailDestination.Main else DetailDestination.BillsCalendar
             else -> detail = DetailDestination.Schedules
         }
         scheduleReturnsToBills = false
@@ -1824,7 +1829,7 @@ fun AppNavigation(
     ) { innerPadding ->
         // Root list screens run behind the transparent area around the floating pill and clear it
         // with their own bottom padding; every other screen still ends above the bar.
-        val drawsBehindTabBar = (detail == DetailDestination.Main && destination != MainDestination.Manage) ||
+        val drawsBehindTabBar = (detail == DetailDestination.Main && destination != MainDestination.Manage && destination != MainDestination.Bills) ||
             detail == DetailDestination.Transactions || detail == DetailDestination.Reports
         val contentModifier = (if (drawsBehindTabBar) Modifier.padding(top = innerPadding.calculateTopPadding()) else Modifier.padding(innerPadding))
             .nestedScroll(fabScrollConnection)
@@ -2626,7 +2631,7 @@ fun AppNavigation(
                 accounts = accounts,
                 hideDecimalPlaces = hideDecimalPlaces,
                 onBack = {
-                    detail = if (creditCardsReturnToBills) DetailDestination.BillsCalendar else DetailDestination.Main
+                    detail = if (creditCardsReturnToBills && destination != MainDestination.Bills) DetailDestination.BillsCalendar else DetailDestination.Main
                     creditCardsReturnToBills = false
                 },
                 onSave = { accountId, day, paymentDue, limit ->
@@ -2888,6 +2893,7 @@ fun AppNavigation(
                 onReturnFromCapturedReview = ::returnFromCapturedReview,
                 onOpenCapturedReview = ::openCapturedReview,
                 onReturnFromEditSchedule = ::returnFromEditSchedule,
+                billsReturnDetail = if (destination == MainDestination.Bills) DetailDestination.Main else DetailDestination.BillsCalendar,
                 scheduleRemindersEnabled = scheduleRemindersEnabled,
                 onScheduleRemindersEnabledChange = { scheduleRemindersEnabled = it },
                 scheduleReminderLeadDays = scheduleReminderLeadDays,
@@ -3316,6 +3322,37 @@ fun AppNavigation(
                     onUpcomingAction = ::onUpcomingAction,
                     hasFab = hasFab,
                 ) }
+                MainDestination.Bills -> BillsCalendarScreen(
+                    loadItems = { year, month, cardBills ->
+                        repository.billCalendarItems(year, month, cardBills, homeMonthStart.nonWorkingDays)
+                    },
+                    refreshKey = dataVersion,
+                    hideDecimalPlaces = hideDecimalPlaces,
+                    onBack = null,
+                    onAddSchedule = {
+                        scheduleReturnsToBills = true
+                        detail = DetailDestination.NewSchedule
+                    },
+                    onConfigureCards = {
+                        creditCardsReturnToBills = true
+                        detail = DetailDestination.CreditCards
+                    },
+                    onEditSchedule = { id ->
+                        editingScheduleId = id
+                        scheduleReturnsToBills = true
+                        scheduleReturnsToTransactions = false
+                        scheduleReturnsToTransactionsTab = false
+                        detail = DetailDestination.EditSchedule
+                    },
+                    onPost = { id, today ->
+                        mutate(if (today) R.string.navigation_posting_schedule_today else R.string.navigation_posting_schedule) {
+                            repository.postScheduleTransaction(id, today, homeMonthStart.nonWorkingDays)
+                        }
+                    },
+                    onSkip = { id -> mutate(R.string.navigation_skipping_occurrence) { repository.skipScheduleNextDate(id) } },
+                    onDelete = { id -> mutate(R.string.navigation_deleting_schedule) { repository.deleteSchedule(id) } },
+                    modifier = contentModifier,
+                )
                 MainDestination.Reports -> NavigationReportsScreen(
                     snapshot = reportSnapshot,
                     snapshotVersion = reportSnapshotVersion,
@@ -3707,6 +3744,7 @@ private fun NavigationScheduleScreens(
     onReturnFromCapturedReview: () -> Unit,
     onOpenCapturedReview: (Boolean) -> Unit,
     onReturnFromEditSchedule: () -> Unit,
+    billsReturnDetail: DetailDestination,
     scheduleRemindersEnabled: Boolean,
     onScheduleRemindersEnabledChange: (Boolean) -> Unit,
     scheduleReminderLeadDays: Int,
@@ -3897,14 +3935,14 @@ private fun NavigationScheduleScreens(
             hideDecimalPlaces = hideDecimalPlaces,
             conventionalAmountEntry = conventionalAmountEntry,
             onBack = {
-                onDetailChange(if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules)
+                onDetailChange(if (scheduleReturnsToBills) billsReturnDetail else DetailDestination.Schedules)
                 onScheduleReturnsToBillsChange(false)
             },
             onSave = { fields, payeeName ->
                 onMutate(
                     R.string.navigation_creating_schedule,
                     {
-                        onDetailChange(if (scheduleReturnsToBills) DetailDestination.BillsCalendar else DetailDestination.Schedules)
+                        onDetailChange(if (scheduleReturnsToBills) billsReturnDetail else DetailDestination.Schedules)
                         onScheduleReturnsToBillsChange(false)
                     },
                 ) { repository.createSchedule(fields, payeeName) }

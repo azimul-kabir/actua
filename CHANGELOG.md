@@ -6,6 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
+- Added a Bills calendar option for the bottom bar, within the existing limit of five tabs ([#1467](https://github.com/azimul-kabir/actua/pull/1467))
 - Added a Paste button to the amount keypad that fills the amount from the clipboard ([#1451](https://github.com/azimul-kabir/actua/pull/1451))
 - Added a Clear button, with Undo, to the amount keypad ([#1453](https://github.com/azimul-kabir/actua/pull/1453))
 - Added encrypted backup to a WebDAV server such as Nextcloud, ownCloud or a NAS, with manual backup, list and restore ([#1455](https://github.com/azimul-kabir/actua/pull/1455))

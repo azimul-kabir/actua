@@ -7,12 +7,17 @@ import org.json.JSONObject
  * Stable bottom-tab identifiers. [ADD] is a pseudo-tab: an action shortcut to the add-transaction
  * flow, not a navigable destination, and is never assigned selection/back-stack state the way the
  * other entries are.
+ *
+ * [startsHidden] marks a tab that is hidden in the default layout and when it first appears in a layout saved
+ * before it existed, so an update never adds a tab to a bar the user already arranged.
  */
-enum class TabItem(val label: String) {
+enum class TabItem(val label: String, val startsHidden: Boolean = false) {
     HOME("Home"),
     BUDGET("Budget"),
     TRANSACTIONS("Transactions"),
     ACCOUNTS("Accounts"),
+    /** The bills calendar (recurring bills and credit card due dates). */
+    BILLS("Bills", startsHidden = true),
     REPORTS("Reports"),
     ADD("Add"),
     MANAGE("Manage"),
@@ -32,8 +37,8 @@ data class TabBarLayout(val order: List<TabItem>, val hidden: Set<TabItem>) {
 
     companion object {
         /**
-         * Today's fixed bottom bar — Budget, Accounts, Add, Reports, Manage — with Home and
-         * Transactions present but hidden. Every [TabItem] must appear in [order] (this is what
+         * Today's fixed bottom bar — Budget, Accounts, Add, Reports, Manage — with Home,
+         * Transactions and Bills present but hidden. Every [TabItem] must appear in [order] (this is what
          * [TabBarLayoutPlanner.sanitize] always produces, since it appends any missing entry), so
          * this value is already sanitize-idempotent: [TabBarPreferences] persisting and re-reading
          * it round-trips unchanged.
@@ -41,9 +46,9 @@ data class TabBarLayout(val order: List<TabItem>, val hidden: Set<TabItem>) {
         fun default(): TabBarLayout = TabBarLayout(
             order = listOf(
                 TabItem.HOME, TabItem.BUDGET, TabItem.ACCOUNTS, TabItem.ADD,
-                TabItem.REPORTS, TabItem.TRANSACTIONS, TabItem.MANAGE,
+                TabItem.REPORTS, TabItem.TRANSACTIONS, TabItem.BILLS, TabItem.MANAGE,
             ),
-            hidden = setOf(TabItem.HOME, TabItem.TRANSACTIONS),
+            hidden = setOf(TabItem.HOME, TabItem.TRANSACTIONS, TabItem.BILLS),
         )
     }
 }
@@ -76,8 +81,16 @@ object TabBarLayoutPlanner {
         val known = TabItem.entries
         val existing = layout.order.filter { it in known }.distinct()
         val missing = known.filterNot { it in existing }
-        val order = existing + missing
+        // A tab added after the layout was saved goes before Manage when Manage is last (the default
+        // arrangement), so it does not appear to the right of it, and otherwise at the end.
+        val order = if (existing.lastOrNull() == PINNED && PINNED !in missing) {
+            existing.dropLast(1) + missing + PINNED
+        } else {
+            existing + missing
+        }
         val hidden = layout.hidden.filterNot { it == PINNED }.toMutableSet()
+        // A new tab that starts hidden is added hidden, so an update never changes a bar the user arranged.
+        hidden += missing.filter { it.startsHidden && it != PINNED }
 
         var visibleCount = order.size - hidden.size
         val unhideCandidates = order.filterNot { it == PINNED }.filter { it in hidden }
