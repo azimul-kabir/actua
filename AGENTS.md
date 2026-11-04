@@ -72,8 +72,10 @@ which is not the Gradle runtime requirement. Install Android SDK 37; minSdk is
 28. Dependency versions live in `gradle/libs.versions.toml`.
 
 The app has two product flavors: `fdroid` (no proprietary dependencies, what
-GitHub Releases/F-Droid ship) and `playstore` (adds Google Play Billing for
-the optional Support Actua purchase). `assembleDebug`/`bundleRelease` still
+F-Droid builds and the main `Actua-v<version>.apk` on GitHub Releases ships) and
+`playstore` (adds proprietary Google libraries such as Play Billing for the
+optional Support Actua purchase; published to Google Play and as
+`Actua-v<version>-full.apk` on GitHub Releases). `assembleDebug`/`bundleRelease` still
 aggregate both flavors, but unit test and lint tasks don't — name the flavor
 explicitly for those, or use `connected<Flavor>InstrumentedAndroidTest` for
 instrumented tests (the flavors only differ in the billing wrapper, so

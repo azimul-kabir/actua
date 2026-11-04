@@ -28,7 +28,10 @@ in the main branch ruleset if they should be required for merging.
 Release metadata changes on `main` run the Android Release workflow. It
 builds and validates the persistently signed release APK, creates the version tag and
 GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
-description, and attaches the versioned APK. For a stable version (no `-beta.`/`-alpha.`/`-rc.`
+description, and attaches two APKs: `Actua-v<version>.apk` (the `fdroid` flavor) and
+`Actua-v<version>-full.apk` (the `playstore` flavor, with receipt scanning). Never change what
+`Actua-v<version>.apk` is: the F-Droid recipe's `Binaries` line and the F-Droid Verify workflow
+use that exact file. For a stable version (no `-beta.`/`-alpha.`/`-rc.`
 suffix) it first uploads the signed `.aab` to Google Play's production track, with that version's
 `changelogs/<versionCode>.txt` as "What's new"; Play publishes it once Google's review passes
 (Managed publishing is off). A failed upload, a missing "What's new" file or a missing

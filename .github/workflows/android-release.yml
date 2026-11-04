@@ -92,8 +92,14 @@ jobs:
           ACTUA_KEYSTORE_PASSWORD: ${{ secrets.ACTUA_RELEASE_STORE_PASSWORD }}
           ACTUA_KEY_ALIAS: ${{ secrets.ACTUA_RELEASE_KEY_ALIAS }}
           ACTUA_KEY_PASSWORD: ${{ secrets.ACTUA_RELEASE_KEY_PASSWORD }}
-        # The "playstore" flavor is the one that includes Play Billing (for Support Actua).
-        run: ./gradlew --no-daemon bundlePlaystoreRelease
+        # The "playstore" flavor is the one that includes Play Billing (for Support Actua) and
+        # receipt scanning (Google ML Kit). Its .aab goes to Google Play; its signed .apk is also
+        # published on GitHub as Actua-v<version>-full.apk.
+        run: ./gradlew --no-daemon bundlePlaystoreRelease assemblePlaystoreRelease
+      - name: Verify full APK signature
+        run: |
+          BUILD_TOOLS_VERSION="$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)"
+          "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner" verify --verbose --print-certs app/build/outputs/apk/playstore/release/app-playstore-release.apk
       - name: Read release version
         id: version
         run: |
@@ -240,8 +246,18 @@ jobs:
             fi
           fi
           test -s release-notes.md
-      - name: Prepare testing APK
-        run: cp app/build/outputs/apk/fdroid/release/app-fdroid-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
+      - name: Prepare release APKs
+        # Actua-v<version>.apk must stay the fdroid flavor: the F-Droid recipe's Binaries line and the
+        # F-Droid Verify workflow both use that exact file. The full build is a separate asset.
+        run: |
+          cp app/build/outputs/apk/fdroid/release/app-fdroid-release.apk "Actua-v${{ steps.version.outputs.name }}.apk"
+          cp app/build/outputs/apk/playstore/release/app-playstore-release.apk "Actua-v${{ steps.version.outputs.name }}-full.apk"
+          {
+            cat release-notes.md
+            printf '\n\n---\n\n**Which APK?**\n\n'
+            printf -- '- `Actua-v%s.apk`: fully open source, no Google libraries (this is the build F-Droid verifies).\n' "${{ steps.version.outputs.name }}"
+            printf -- '- `Actua-v%s-full.apk`: adds receipt scanning (on-device Google ML Kit) and the Google Play purchase code. Same app, same signing key, so you can switch between them.\n' "${{ steps.version.outputs.name }}"
+          } > github-release-notes.md
       - name: Upload Play Store bundle artifact
         uses: actions/upload-artifact@v7
         with:
@@ -256,8 +272,10 @@ jobs:
           tag_name: v${{ steps.version.outputs.name }}
           name: Actua ${{ steps.version.outputs.name }}
           target_commitish: ${{ github.sha }}
-          body_path: release-notes.md
-          files: Actua-v${{ steps.version.outputs.name }}.apk
+          body_path: github-release-notes.md
+          files: |
+            Actua-v${{ steps.version.outputs.name }}.apk
+            Actua-v${{ steps.version.outputs.name }}-full.apk
       - name: Notify Discord about release
         env:
           RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
@@ -294,6 +312,7 @@ jobs:
           tag = f"v{version}"
           release_url = f"{server}/{repo}/releases/tag/{tag}"
           apk_url = f"{server}/{repo}/releases/download/{tag}/Actua-v{version}.apk"
+          full_apk_url = f"{server}/{repo}/releases/download/{tag}/Actua-v{version}-full.apk"
           play_url = "https://play.google.com/store/apps/details?id=com.azimulkabir.actua"
           on_play = os.environ.get("ON_PLAY") == "true"
 
@@ -316,9 +335,9 @@ jobs:
           # reaches users only after Google's review.
           links = (
               f"**[Update on Google Play]({play_url})** (rolling out, usually within a day) • "
-              f"[View release]({release_url}) • [Download APK]({apk_url})"
+              f"[View release]({release_url}) • [Download APK]({apk_url}) • [APK with receipt scanning]({full_apk_url})"
               if on_play
-              else f"[View release]({release_url}) • [Download APK]({apk_url})"
+              else f"[View release]({release_url}) • [Download APK]({apk_url}) • [APK with receipt scanning]({full_apk_url})"
           )
           description = (
               f"{body}\n\n"
