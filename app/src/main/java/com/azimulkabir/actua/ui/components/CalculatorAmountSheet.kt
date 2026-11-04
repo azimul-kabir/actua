@@ -1,6 +1,5 @@
 package com.azimulkabir.actua.ui.components
 
-import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -28,10 +27,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -101,11 +98,9 @@ fun CalculatorAmountSheet(
 }
 
 /**
- * A Paste button on the keypad's top edge, shown only while the clipboard holds text. Whether it does is read
- * from the clip's description and kept current with a clipboard listener, which does not read the content, so
- * Android 12+ shows no "pasted from your clipboard" notice until the button is tapped. Tapping it reads the
- * clipboard, replaces the current entry with the amount found, and, when there is no single amount, leaves
- * the entry unchanged and says so.
+ * A Paste button on the keypad's top edge. The clipboard is read only when it is tapped (Android 12+ tells
+ * the user when an app reads it), the amount replaces the current entry, and a clipboard without a single
+ * amount leaves the entry unchanged and says so.
  */
 @Composable
 private fun PasteAmountButton(onPasted: (Long) -> Unit) {
@@ -113,22 +108,14 @@ private fun PasteAmountButton(onPasted: (Long) -> Unit) {
     val label = stringResource(R.string.amount_paste)
     val description = stringResource(R.string.amount_paste_description)
     val notFound = stringResource(R.string.amount_paste_not_found)
-    val clipboard = remember { context.getSystemService(ClipboardManager::class.java) }
-    var hasClipboardText by remember { mutableStateOf(clipboard.holdsText()) }
-    DisposableEffect(clipboard) {
-        val listener = ClipboardManager.OnPrimaryClipChangedListener { hasClipboardText = clipboard.holdsText() }
-        hasClipboardText = clipboard.holdsText()
-        clipboard?.addPrimaryClipChangedListener(listener)
-        onDispose { clipboard?.removePrimaryClipChangedListener(listener) }
-    }
-    if (!hasClipboardText) return
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 4.dp),
         horizontalArrangement = Arrangement.End,
     ) {
         TextButton(
             onClick = {
-                val text = clipboard?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)
+                val text = context.getSystemService(ClipboardManager::class.java)
+                    ?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)
                 val cents = PastedAmount.parseCents(text, CurrencyDisplay.decimalPlaces)
                 if (cents != null) onPasted(cents) else Toast.makeText(context, notFound, Toast.LENGTH_SHORT).show()
             },
@@ -140,15 +127,6 @@ private fun PasteAmountButton(onPasted: (Long) -> Unit) {
             Text(label)
         }
     }
-}
-
-/** True when the clipboard has a text clip. Reads only the clip's description, never its content. */
-private fun ClipboardManager?.holdsText(): Boolean {
-    val manager = this ?: return false
-    if (!manager.hasPrimaryClip()) return false
-    val description = manager.primaryClipDescription ?: return false
-    return description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) ||
-        description.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML)
 }
 
 @Composable
