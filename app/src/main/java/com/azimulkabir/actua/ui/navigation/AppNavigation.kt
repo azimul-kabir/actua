@@ -188,6 +188,7 @@ import com.azimulkabir.actua.data.preferences.BudgetDisplayOptions
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.data.preferences.EffectiveDisplayFormats
 import com.azimulkabir.actua.data.preferences.FavoritePreferences
+import com.azimulkabir.actua.data.preferences.RememberedEntryDate
 import com.azimulkabir.actua.data.preferences.HomePreferences
 import com.azimulkabir.actua.data.preferences.TabBarPreferences
 import com.azimulkabir.actua.data.budget.ActiveBudgetStore
@@ -204,6 +205,7 @@ import com.azimulkabir.actua.data.notifications.ScheduleReminderSettings
 import com.azimulkabir.actua.ui.components.ActuaSnackbarHost
 import com.azimulkabir.actua.ui.components.BalanceVisibility
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
+import com.azimulkabir.actua.ui.components.parseStoredDate
 import com.azimulkabir.actua.ui.components.formatMoneyCents
 import com.azimulkabir.actua.ui.components.TransactionImpactCue
 import com.azimulkabir.actua.ui.components.TransactionImpactPopup
@@ -716,6 +718,7 @@ fun AppNavigation(
     var groupTransactionsByDate by remember { mutableStateOf(displayPreferences.groupTransactionsByDate) }
     var showAccountsMonthlySummary by remember { mutableStateOf(displayPreferences.showAccountsMonthlySummary) }
     var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
+    var keepLastTransactionDate by remember { mutableStateOf(displayPreferences.keepLastTransactionDate) }
     val tabBarScroll = remember { TabBarScrollState(displayPreferences) }
     val showBottomNavigationLabels = tabBarScroll.showLabels
     var showCurrentBalanceSummary by remember { mutableStateOf(displayPreferences.showCurrentBalanceSummary) }
@@ -1953,6 +1956,11 @@ fun AppNavigation(
         val settingsHomeClick: () -> Unit = {                        detail = DetailDestination.Main
             destination = MainDestination.Home
         }
+        val settingsKeepLastTransactionDateChange: (Boolean) -> Unit = { value ->
+            displayPreferences.keepLastTransactionDate = value
+            keepLastTransactionDate = value
+            if (!value) RememberedEntryDate.shared.reset()
+        }
         val settingsConventionalAmountEntryChange: (Boolean) -> Unit = { value ->
             displayPreferences.conventionalAmountEntry = value
             conventionalAmountEntry = value
@@ -2340,6 +2348,7 @@ fun AppNavigation(
                 },
                 onSave = { savedTransaction ->
                     val wasEditing = editingTransaction != null
+                    val wasPlainNewEntry = transactionPrefill == null
                     val impactCategories = budgetCategoriesOf(savedTransaction) +
                         (editingTransaction?.let { budgetCategoriesOf(it) } ?: emptySet())
                     coroutineScope.launch {
@@ -2362,6 +2371,11 @@ fun AppNavigation(
                                 transactionImpactCues = impactCues(categoryBalancesBefore, categoryBalancesAfter)
                             }
                             WidgetUpdater.requestAll(context)
+                            if (!wasEditing && wasPlainNewEntry) {
+                                parseStoredDate(savedTransaction.date)?.let {
+                                    RememberedEntryDate.shared.saved(keepLastTransactionDate, it)
+                                }
+                            }
                             if (!wasEditing &&
                                 savedTransaction.type != com.azimulkabir.actua.model.Type.TRANSFER &&
                                 savedTransaction.payee.isNotBlank() &&
@@ -2452,6 +2466,7 @@ fun AppNavigation(
                     },
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,
+                    newTransactionDate = { RememberedEntryDate.shared.startDate(keepLastTransactionDate) },
                     onPreviewRules = repository::previewRules,
                     onFindNearbyPayees = {
                         when (val location = AndroidLocationProvider(context).currentCoordinates()) {
@@ -3463,6 +3478,8 @@ fun AppNavigation(
                     onCustomizeTabBarClick = { detail = DetailDestination.CustomizeTabBar },
                     conventionalAmountEntry = conventionalAmountEntry,
                     onConventionalAmountEntryChange = settingsConventionalAmountEntryChange,
+                    keepLastTransactionDate = keepLastTransactionDate,
+                    onKeepLastTransactionDateChange = settingsKeepLastTransactionDateChange,
                     tabBarDisplay = tabBarScroll,
                     showCurrentBalanceSummary = showCurrentBalanceSummary,
                     onShowCurrentBalanceSummaryChange = settingsShowCurrentBalanceSummaryChange,

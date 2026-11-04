@@ -137,6 +137,7 @@ fun AddTransactionScreen(
     defaultType: Type = Type.EXPENSE,
     hideDecimalPlaces: Boolean = false,
     conventionalAmountEntry: Boolean = false,
+    newTransactionDate: () -> LocalDate = { LocalDate.now() },
     onPreviewRules: (Transaction) -> Transaction = { it },
     onFindNearbyPayees: (suspend () -> NearbyPayeeSearchResult)? = null,
     onSavePayeeLocation: (suspend (String) -> PayeeLocationSaveResult)? = null,
@@ -181,7 +182,7 @@ fun AddTransactionScreen(
                 ?: accountOptions.firstOrNull { it != prefill?.transferAccount }.orEmpty(),
         )
     }
-    var date by remember(editing) { mutableStateOf(editing?.date?.let(::parseStoredDate) ?: LocalDate.now()) }
+    var date by remember(editing) { mutableStateOf(editing?.date?.let(::parseStoredDate) ?: newTransactionDate()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var notes by remember(editing) { mutableStateOf(editing?.notes ?: "") }
     var cleared by remember(editing) { mutableStateOf(editing?.cleared ?: false) }

@@ -189,6 +189,8 @@ fun SettingsScreen(
     onCustomizeTabBarClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = true,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
+    keepLastTransactionDate: Boolean = false,
+    onKeepLastTransactionDateChange: (Boolean) -> Unit = {},
     /** Tab bar display options (labels, hide while scrolling); null hides those rows. */
     tabBarDisplay: com.azimulkabir.actua.ui.navigation.TabBarScrollState? = null,
     showCurrentBalanceSummary: Boolean = true,
@@ -581,6 +583,13 @@ fun SettingsScreen(
                             stringResource(R.string.settings_conventional_amount_entry_description),
                             conventionalAmountEntry,
                             onConventionalAmountEntryChange,
+                        )
+                        SettingsDivider()
+                        SettingsToggle(
+                            stringResource(R.string.settings_keep_last_transaction_date),
+                            stringResource(R.string.settings_keep_last_transaction_date_description),
+                            keepLastTransactionDate,
+                            onKeepLastTransactionDateChange,
                         )
                         SettingsDivider()
                         SettingsToggle(

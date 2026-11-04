@@ -201,6 +201,11 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, true)
         set(value) { preferences.edit().putBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, value).apply() }
 
+    /** Whether a new transaction starts with the date of the last one added; off starts at today. */
+    var keepLastTransactionDate: Boolean
+        get() = preferences.getBoolean(KEEP_LAST_TRANSACTION_DATE, false)
+        set(value) { preferences.edit().putBoolean(KEEP_LAST_TRANSACTION_DATE, value).apply() }
+
     var conventionalAmountEntry: Boolean
         get() = preferences.getBoolean(CONVENTIONAL_AMOUNT_ENTRY, false)
         set(value) { preferences.edit().putBoolean(CONVENTIONAL_AMOUNT_ENTRY, value).apply() }
@@ -277,6 +282,7 @@ class DisplayPreferences(context: Context) {
         const val GROUP_TRANSACTIONS_BY_DATE = "group_transactions_by_date"
         const val SHOW_ACCOUNTS_MONTHLY_SUMMARY = "show_accounts_monthly_summary"
         const val CONVENTIONAL_AMOUNT_ENTRY = "conventional_amount_entry"
+        const val KEEP_LAST_TRANSACTION_DATE = "keep_last_transaction_date"
         const val SHOW_BOTTOM_NAVIGATION_LABELS = "show_bottom_navigation_labels"
         const val HIDE_TAB_BAR_ON_SCROLL = "hide_tab_bar_on_scroll"
         const val SHOW_CURRENT_BALANCE_SUMMARY = "show_current_balance_summary"
