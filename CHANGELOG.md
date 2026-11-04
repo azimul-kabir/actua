@@ -6,7 +6,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Added
 
-- Added a full APK, `Actua-v<version>-full.apk`, with the Google Play version's features to GitHub releases ([#1473](https://github.com/azimul-kabir/actua/pull/1473))
+- Added a full APK to GitHub releases, `Actua-v<version>-full.apk`, with the Google Play version's features ([#1473](https://github.com/azimul-kabir/actua/pull/1473))
 - Added offering a scanned receipt's tax and items as split lines in the Google Play version ([#1474](https://github.com/azimul-kabir/actua/pull/1474))
 - Added scanning a receipt photo to fill in the payee, date and total of a new transaction, in the Google Play version ([#1471](https://github.com/azimul-kabir/actua/pull/1471))
 - Added a setting to start new transactions with the date of the last one added ([#1468](https://github.com/azimul-kabir/actua/pull/1468))
