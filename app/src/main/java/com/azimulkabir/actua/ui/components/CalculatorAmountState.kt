@@ -10,6 +10,11 @@ import java.math.RoundingMode
 class CalculatorAmountState(
     initialCents: Long = 0,
     private val allowsNegative: Boolean = false,
+    /**
+     * Pressing − before any number makes the first number negative ("−1 − 0.01"), for a keypad whose ±
+     * key does something else (the transaction amount, where ± flips expense and income).
+     */
+    private val leadingMinus: Boolean = false,
     private val conventionalAmountEntry: Boolean = false,
     /** Decimal places of the budget's currency; amounts are integers in these minor units. */
     private val decimalPlaces: Int = CurrencyDisplay.decimalPlaces,
@@ -29,6 +34,12 @@ class CalculatorAmountState(
      */
     private var factor: String? = null
 
+    /**
+     * ± was pressed before any digit of the next amount, so that amount starts negative. Needed because
+     * a zero operand has no sign of its own.
+     */
+    private var negativeNext = false
+
     private val factorPending: Boolean get() = pending == Operator.MULTIPLY || pending == Operator.DIVIDE
 
     // Bumped by setCents so composables that read `cents` recompose after a programmatic change.
@@ -41,7 +52,7 @@ class CalculatorAmountState(
 
     val display: String
         get() {
-            val operand = factor ?: format(operandCents)
+            val operand = factor ?: signedZero(format(operandCents))
             val left = accumulatorCents ?: return operand
             val op = pending ?: return operand
             return if (hasOperand) "${format(left)} ${op.symbol} $operand" else "${format(left)} ${op.symbol}"
@@ -53,7 +64,10 @@ class CalculatorAmountState(
             if (hasOperand || expressionParts.isEmpty()) add(operandText())
         }.joinToString(" ")
 
-    private fun operandText(): String = factor ?: formatCompact(operandCents)
+    private fun operandText(): String = factor ?: signedZero(formatCompact(operandCents))
+
+    /** A zero that ± has marked negative reads "−0" until a digit makes it a real amount. */
+    private fun signedZero(text: String): String = if (negativeNext && operandCents == 0L) "−$text" else text
 
     fun digit(value: Int) {
         require(value in 0..9)
@@ -67,7 +81,7 @@ class CalculatorAmountState(
             hasOperand = true
             return
         }
-        val sign = if (operandCents < 0) -1 else 1
+        val sign = if (operandCents < 0 || (operandCents == 0L && negativeNext)) -1 else 1
         val magnitude = kotlin.math.abs(operandCents)
         if (conventionalAmountEntry) {
             val typed = decimalDigits
@@ -88,6 +102,7 @@ class CalculatorAmountState(
         } else if (magnitude <= (Long.MAX_VALUE - value) / 10) {
             operandCents = sign * (magnitude * 10 + value)
         }
+        if (operandCents != 0L) negativeNext = false
         hasOperand = true
     }
 
@@ -102,6 +117,13 @@ class CalculatorAmountState(
     }
 
     fun backspace() {
+        if (negativeNext && operandCents == 0L) {
+            // Takes back the ± (and any zeros typed after it) before touching the operator.
+            negativeNext = false
+            hasOperand = false
+            decimalDigits = null
+            return
+        }
         if (hasOperand && factor != null) {
             factor = requireNotNull(factor).dropLast(1).takeIf { it.isNotEmpty() && it != "-" }
             hasOperand = factor != null
@@ -138,12 +160,13 @@ class CalculatorAmountState(
         hasOperand = false
         decimalDigits = null
         factor = null
+        negativeNext = false
         expressionParts.clear()
     }
 
     /** True when there is nothing to clear: no amount, pending operator or typed factor. */
     val isEmpty: Boolean
-        get() = operandCents == 0L && accumulatorCents == null && pending == null && factor == null
+        get() = operandCents == 0L && accumulatorCents == null && pending == null && factor == null && !negativeNext
 
     /** Everything that makes up the entry, so a Clear can be undone with [restore]. */
     class Snapshot internal constructor(
@@ -153,11 +176,12 @@ class CalculatorAmountState(
         internal val hasOperand: Boolean,
         internal val decimalDigits: Int?,
         internal val factor: String?,
+        internal val negativeNext: Boolean,
         internal val expressionParts: List<String>,
     )
 
     fun snapshot(): Snapshot = Snapshot(
-        operandCents, accumulatorCents, pending, hasOperand, decimalDigits, factor, expressionParts.toList(),
+        operandCents, accumulatorCents, pending, hasOperand, decimalDigits, factor, negativeNext, expressionParts.toList(),
     )
 
     /** Puts the entry back exactly as it was when [snapshot] was taken. */
@@ -168,6 +192,7 @@ class CalculatorAmountState(
         hasOperand = snapshot.hasOperand
         decimalDigits = snapshot.decimalDigits
         factor = snapshot.factor
+        negativeNext = snapshot.negativeNext
         expressionParts.clear()
         expressionParts.addAll(snapshot.expressionParts)
         version++
@@ -184,12 +209,22 @@ class CalculatorAmountState(
     fun toggleSign() {
         if (!allowsNegative) return
         val typed = factor
-        if (factorPending && typed != null) factor = if (typed.startsWith("-")) typed.drop(1) else "-$typed"
-        else operandCents = -operandCents
+        when {
+            factorPending && typed != null -> factor = if (typed.startsWith("-")) typed.drop(1) else "-$typed"
+            // No factor typed yet: it starts negative.
+            factorPending -> factor = "-"
+            // A typed amount (or a result kept by =) changes sign in place.
+            operandCents != 0L -> operandCents = -operandCents
+            // Nothing typed yet: the next amount starts negative, so (−1) − 0.01 can be entered.
+            else -> negativeNext = !negativeNext
+        }
     }
 
     fun operator(operator: Operator) {
-        if (accumulatorCents == null && !hasOperand) return
+        if (accumulatorCents == null && !hasOperand) {
+            if (leadingMinus && allowsNegative && operator == Operator.SUBTRACT) negativeNext = !negativeNext
+            return
+        }
         if (hasOperand) {
             expressionParts += operandText()
             expressionParts += operator.symbol
@@ -203,7 +238,10 @@ class CalculatorAmountState(
             hasOperand = false
             decimalDigits = null
             factor = null
+        } else {
+            factor = null
         }
+        negativeNext = false
         pending = operator
     }
 
@@ -213,6 +251,7 @@ class CalculatorAmountState(
         pending = null
         factor = null
         decimalDigits = null
+        negativeNext = false
         operandCents = result
         hasOperand = result != 0L
         expressionParts.clear()

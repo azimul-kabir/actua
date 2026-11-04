@@ -622,6 +622,8 @@ fun AddTransactionScreen(
         )
         }
     }
+    // The type the keypad's own sign is applied to: the form's type when it opened, flipped by ±.
+    var keypadIncoming by remember(showCalculator) { mutableStateOf(incoming) }
     if (showCalculator) CalculatorAmountSheet(
         title = if (editing == null) stringResource(R.string.transaction_amount)
         else stringResource(R.string.transaction_edit_amount),
@@ -631,10 +633,20 @@ fun AddTransactionScreen(
             showCalculator = false
             amountExpression = null
         },
-        onApply = { amountCents = it },
+        // The keypad does signed arithmetic: the amount is the size of the result and a negative
+        // result is the opposite of the keypad's own type (see [incomingAfterEntry]). ± flips that
+        // type, as the chip does.
+        signedEntry = true,
+        onApply = { signed ->
+            amountCents = abs(signed)
+            incoming = incomingAfterEntry(keypadIncoming, signed)
+        },
         onExpressionChange = { amountExpression = it },
         onDone = { if (editing == null) autoStep = AddStep.Payee },
-        onToggleSign = { incoming = !incoming },
+        onToggleSign = {
+            keypadIncoming = !keypadIncoming
+            incoming = !incoming
+        },
         toggleSignLabel = signToggleLabel,
     )
     splitCalculatorIndex?.let { index ->
@@ -737,6 +749,14 @@ fun AddTransactionScreen(
 private enum class AddStep { Payee, Category, Account }
 
 internal const val TRANSFER_PAYEE_PREFIX = "Transfer: "
+
+/**
+ * Whether the transaction is incoming after the keypad produced [signedCents]: a negative result is the
+ * opposite of [keypadIncoming], the type the keypad works in (the form's type when it opened, flipped by
+ * ±), so the amount and the expense or income chip never disagree.
+ */
+internal fun incomingAfterEntry(keypadIncoming: Boolean, signedCents: Long): Boolean =
+    if (signedCents < 0) !keypadIncoming else keypadIncoming
 
 /** A new transfer's starting values: [transferAccount] receives [amountCents]; the sender is picked in the form. */
 data class TransactionPrefill(val transferAccount: String, val amountCents: Long)
