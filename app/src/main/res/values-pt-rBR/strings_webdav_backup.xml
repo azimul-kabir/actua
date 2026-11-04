@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webdav_backup_section">Backup WebDAV</string>
+    <string name="webdav_server_label">Servidor WebDAV</string>
+    <string name="webdav_not_set_up">Não configurado</string>
+    <string name="webdav_setup_title">Conectar a um servidor WebDAV</string>
+    <string name="webdav_server_url">Endereço do servidor</string>
+    <string name="webdav_server_url_hint">https://nuvem.exemplo.com/remote.php/dav/files/voce/</string>
+    <string name="webdav_username">Usuário</string>
+    <string name="webdav_app_password">Senha de aplicativo</string>
+    <string name="webdav_folder">Pasta de backup</string>
+    <string name="webdav_allow_http">Permitir HTTP sem criptografia</string>
+    <string name="webdav_http_warning">Sem HTTPS, seu usuário e sua senha de aplicativo podem ser lidos por qualquer pessoa na rede entre este celular e o servidor. Use apenas em uma rede confiável.</string>
+    <string name="webdav_connected">Conectado ao servidor WebDAV.</string>
+    <string name="webdav_back_up_now">Fazer backup no WebDAV agora</string>
+    <string name="webdav_backups_label">Backups no WebDAV</string>
+    <string name="webdav_uploaded">Enviado ao servidor WebDAV.</string>
+    <string name="webdav_disconnect_title">Desconectar do WebDAV?</string>
+    <string name="webdav_disconnect_description">O Actua esquece o endereço do servidor, a senha de aplicativo e a senha de backup neste celular. Os backups que já estão no servidor não são apagados.</string>
+    <string name="webdav_disconnected">Desconectado do servidor WebDAV.</string>
+    <string name="webdav_restore_title">Restaurar backup do WebDAV?</string>
+    <string name="webdav_encryption_note">Os backups são criptografados neste celular com a sua senha de backup antes de sair dele. O servidor recebe apenas um arquivo criptografado.</string>
+    <string name="webdav_error_missing_credentials">Informe o usuário e a senha de aplicativo.</string>
+    <string name="webdav_error_invalid_url">Informe o endereço WebDAV completo, começando com https://.</string>
+    <string name="webdav_error_insecure_http">Este endereço usa HTTP simples. Use https:// ou ative Permitir HTTP sem criptografia se confiar na rede.</string>
+    <string name="webdav_error_invalid_folder">A pasta de backup só pode ser um caminho simples, como Actua Backups.</string>
+    <string name="webdav_error_unauthorized">O servidor recusou o usuário ou a senha de aplicativo, ou esta conta pode não ter acesso a essa pasta.</string>
+    <string name="webdav_error_not_found">O servidor não encontrou o endereço ou a pasta. Confira o endereço.</string>
+    <string name="webdav_error_storage_full">O servidor não tem espaço para o backup. Libere espaço e tente novamente.</string>
+    <string name="webdav_error_tls">Não foi possível verificar o certificado do servidor.</string>
+    <string name="webdav_error_redirect">O servidor redirecionou para outro endereço. Use o endereço de destino, geralmente o que começa com https://.</string>
+    <string name="webdav_error_move_unsupported">Este servidor não permite renomear arquivos, algo de que o Actua precisa para enviar com segurança.</string>
+    <string name="webdav_error_incomplete">O servidor não guardou o backup inteiro, então ele foi removido. Tente novamente.</string>
+    <string name="webdav_error_server">O servidor respondeu com o erro %1$d.</string>
+    <string name="webdav_error_network">Não foi possível acessar o servidor. Confira o endereço e a conexão.</string>
+    <string name="webdav_error_generic">O backup WebDAV falhou.</string>
+</resources>

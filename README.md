@@ -60,6 +60,7 @@ Actua is an independent community project and is not affiliated with or endorsed
 - Global search, and transaction search that also matches amounts and dates
 - Optional app lock (biometrics or the device PIN, with a relock timeout) and a setting that hides Actua in the recents screen and blocks screenshots (see [docs/APP_LOCK.md](docs/APP_LOCK.md))
 - Automatic local backups and restore, plus optional Google Drive backup and restore with client-side authenticated AES-256-GCM encryption
+- Optional encrypted WebDAV backup and restore for Nextcloud, ownCloud and other WebDAV servers, with the same client-side encryption (see [docs/WEBDAV_BACKUPS.md](docs/WEBDAV_BACKUPS.md))
 - Home-screen widgets and launcher shortcuts
 - Currency (including the symbol before or after the amount), date and number formats that follow your budget's Actual settings or a device override, plus appearance options with an optional Material You dynamic-color mode (Android 12+)
 - Actual tag management, with colored `#tag` rendering, notes autocomplete, a Manage Tags screen, and tap-a-tag transaction filtering

@@ -761,6 +761,17 @@ fun BackupsScreen(
                     }
                 }
             }
+
+            WebDavBackupSection(
+                budgetId = budgetId,
+                service = service,
+                busy = busy,
+                onBusyChange = { busy = it },
+                onMessage = { message = it },
+                onBeforeRestore = onBeforeRestore,
+                onRestored = onRestored,
+                onLocalBackupsChanged = { refresh() },
+            )
         }
     }
 }

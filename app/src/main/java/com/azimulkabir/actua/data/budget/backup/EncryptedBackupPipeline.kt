@@ -57,6 +57,7 @@ class EncryptedBackupPipeline(
                 budgetName = budgetNameOf(budgetId) ?: budgetId,
                 archiveName = archiveFile.name,
                 createdAt = clock().toString(),
+                contentLength = stagingFile.length(),
             )
             val uploaded = stagingFile.inputStream().use { stream -> transport.upload(request, stream) }
 

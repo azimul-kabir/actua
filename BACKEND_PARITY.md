@@ -345,6 +345,8 @@ lists what was ported, what was only checked by reading, and what is not ported.
   optional Google Drive backup and restore with client-side authenticated AES-256-GCM encryption
   and zero-proprietary-SDK PKCE OAuth (RFC 8252; see [docs/GOOGLE_DRIVE_BACKUP_FEASIBILITY.md](docs/GOOGLE_DRIVE_BACKUP_FEASIBILITY.md)),
   restore, and one-shot pre-restore revert
+- Optional WebDAV backup and restore (Nextcloud, ownCloud, NAS) with the same ACTUABKP
+  encryption; manual backup, list and restore so far, see [docs/WEBDAV_BACKUPS.md](docs/WEBDAV_BACKUPS.md)
 - Foreground sync refresh and visible mutation failure reporting through Android snackbars
 - Explicit pull-to-refresh for the Transactions view, plus a loading state while switching
   budgets so stale content is not presented as the newly selected budget; both remain

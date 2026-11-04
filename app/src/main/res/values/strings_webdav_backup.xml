@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webdav_backup_section">WebDAV backup</string>
+    <string name="webdav_server_label">WebDAV server</string>
+    <string name="webdav_not_set_up">Not set up</string>
+    <string name="webdav_setup_title">Connect to a WebDAV server</string>
+    <string name="webdav_server_url">Server address</string>
+    <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/you/</string>
+    <string name="webdav_username">Username</string>
+    <string name="webdav_app_password">App password</string>
+    <string name="webdav_folder">Backup folder</string>
+    <string name="webdav_allow_http">Allow unencrypted HTTP</string>
+    <string name="webdav_http_warning">Without HTTPS, your username and app password can be read by anyone on the network between this phone and the server. Only use this on a network you trust.</string>
+    <string name="webdav_connected">Connected to the WebDAV server.</string>
+    <string name="webdav_back_up_now">Back up to WebDAV now</string>
+    <string name="webdav_backups_label">WebDAV backups</string>
+    <string name="webdav_uploaded">Uploaded to the WebDAV server.</string>
+    <string name="webdav_disconnect_title">Disconnect WebDAV?</string>
+    <string name="webdav_disconnect_description">Actua forgets the server address, app password and backup password on this phone. Backups already on the server are not deleted.</string>
+    <string name="webdav_disconnected">Disconnected from the WebDAV server.</string>
+    <string name="webdav_restore_title">Restore WebDAV backup?</string>
+    <string name="webdav_encryption_note">Backups are encrypted on this phone with your backup password before they leave it. The server only ever receives an encrypted file.</string>
+    <string name="webdav_error_missing_credentials">Enter the username and app password.</string>
+    <string name="webdav_error_invalid_url">Enter the full WebDAV address, starting with https://.</string>
+    <string name="webdav_error_insecure_http">This address uses plain HTTP. Use https://, or turn on Allow unencrypted HTTP if you trust the network.</string>
+    <string name="webdav_error_invalid_folder">The backup folder can only be a simple path such as Actua Backups.</string>
+    <string name="webdav_error_unauthorized">The server rejected the username or app password, or this account may not use that folder.</string>
+    <string name="webdav_error_not_found">The server could not find the address or folder. Check the address.</string>
+    <string name="webdav_error_storage_full">The server has no room for the backup. Free some space and try again.</string>
+    <string name="webdav_error_tls">The server\'s certificate could not be verified.</string>
+    <string name="webdav_error_redirect">The server redirected to another address. Use the address it redirects to, usually the https:// one.</string>
+    <string name="webdav_error_move_unsupported">This server does not support renaming files, which Actua needs to upload safely.</string>
+    <string name="webdav_error_incomplete">The server did not keep the whole backup, so it was removed. Try again.</string>
+    <string name="webdav_error_server">The server answered with error %1$d.</string>
+    <string name="webdav_error_network">Could not reach the server. Check the address and your connection.</string>
+    <string name="webdav_error_generic">The WebDAV backup failed.</string>
+</resources>

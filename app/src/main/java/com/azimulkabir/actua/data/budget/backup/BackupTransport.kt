@@ -24,6 +24,8 @@ data class BackupUpload(
     val archiveName: String,
     /** ISO-8601 instant of the upload. */
     val createdAt: String,
+    /** Exact size in bytes of the encrypted content, for targets that need it up front. */
+    val contentLength: Long,
 )
 
 /**

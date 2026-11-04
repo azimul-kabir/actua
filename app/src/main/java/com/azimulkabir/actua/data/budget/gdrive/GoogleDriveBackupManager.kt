@@ -4,11 +4,10 @@ import android.content.Context
 import com.azimulkabir.actua.data.budget.BackupService
 import com.azimulkabir.actua.data.budget.BudgetFileManager
 import com.azimulkabir.actua.data.budget.BudgetMetadata
-import com.azimulkabir.actua.data.budget.backup.BackupRestoreSink
+import com.azimulkabir.actua.data.budget.backup.BudgetRestoreSink
 import com.azimulkabir.actua.data.budget.backup.EncryptedBackupPipeline
 import com.azimulkabir.actua.data.budget.backup.RemoteBackupItem
 import java.io.File
-import java.io.InputStream
 import java.time.Instant
 
 /** The backup types now live with the transport-independent pipeline; these names keep Drive callers unchanged. */
@@ -72,15 +71,7 @@ class GoogleDriveBackupManager(
         transport = GoogleDriveBackupTransport(GoogleDriveRestClient(tokenProvider = { getValidAccessToken() })),
         passphraseProvider = { encryptionStore.loadPassphrase() },
         budgetNameOf = { budgetId -> files.listLocalBudgets().firstOrNull { it.id == budgetId }?.budgetName },
-        restoreSink = object : BackupRestoreSink {
-            override fun restoreInto(budgetId: String, archive: InputStream): BudgetMetadata {
-                val imported = backupService.importArchive(budgetId, archive)
-                backupService.restore(budgetId, imported.name)
-                return files.metadata(budgetId) ?: error("Restored budget metadata not found")
-            }
-
-            override fun importAsNew(archive: InputStream): BudgetMetadata = files.importLocalBudget(archive)
-        },
+        restoreSink = BudgetRestoreSink(files, backupService),
         workDir = appContext.cacheDir,
     )
 

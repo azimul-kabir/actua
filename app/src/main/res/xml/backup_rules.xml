@@ -9,4 +9,5 @@
     <exclude domain="sharedpref" path="trusted_server_certificates.xml" />
     <exclude domain="sharedpref" path="actua_gdrive_auth.xml" />
     <exclude domain="sharedpref" path="gdrive_backup_encryption.xml" />
+    <exclude domain="sharedpref" path="webdav_backup.xml" />
 </full-backup-content>

@@ -54,6 +54,12 @@ Local text extraction from PDF statements uses
 [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android), an Android port of Apache PDFBox.
 PdfBox-Android and Apache PDFBox are licensed under the Apache License 2.0.
 
+## OkHttp
+
+WebDAV backups use [OkHttp](https://square.github.io/okhttp/), which is licensed under the Apache
+License 2.0 and is not modified. It is needed because Android's built-in `HttpURLConnection` rejects the
+WebDAV methods PROPFIND, MKCOL and MOVE.
+
 ## Trademarks and support
 
 Project names and logos remain the property of their respective owners. Issues
