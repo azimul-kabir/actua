@@ -67,6 +67,8 @@
     <string name="settings_group_transactions_description">Use dated sections in transaction lists</string>
     <string name="settings_conventional_amount_entry">Conventional amount entry</string>
     <string name="settings_conventional_amount_entry_description">Type 324 as 324.00 instead of filling cents first</string>
+    <string name="settings_keep_last_transaction_date">Keep the last transaction date</string>
+    <string name="settings_keep_last_transaction_date_description">New transactions start with the date of the last one you added, until you close the app</string>
     <string name="settings_account_monthly_summary">Account monthly summary</string>
     <string name="settings_account_monthly_summary_description">Show Income, Expenses and Net at the top of Accounts</string>
     <string name="settings_current_balance_summary">Current balance summary</string>

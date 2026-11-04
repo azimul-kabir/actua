@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -151,5 +153,14 @@ class DisplayPreferencesTest {
 
         preferences.startPage = "Reports"
         assertEquals("Home", preferences.startPage)
+    }
+
+    @Test fun keepLastTransactionDateIsOffByDefaultAndPersists() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertFalse(DisplayPreferences(context).keepLastTransactionDate)
+
+        DisplayPreferences(context).keepLastTransactionDate = true
+
+        assertTrue(DisplayPreferences(context).keepLastTransactionDate)
     }
 }

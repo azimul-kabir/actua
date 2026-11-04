@@ -67,6 +67,8 @@
     <string name="settings_group_transactions_description">Use seções com data nas listas de transações</string>
     <string name="settings_conventional_amount_entry">Entrada de valor convencional</string>
     <string name="settings_conventional_amount_entry_description">Digite 324 como 324,00 em vez de preencher primeiro os centavos</string>
+    <string name="settings_keep_last_transaction_date">Manter a data da última transação</string>
+    <string name="settings_keep_last_transaction_date_description">Novas transações começam com a data da última adicionada, até você fechar o app</string>
     <string name="settings_account_monthly_summary">Resumo mensal da conta</string>
     <string name="settings_account_monthly_summary_description">Mostre Receita, Despesas e Líquido no topo de Contas</string>
     <string name="settings_current_balance_summary">Resumo do saldo atual</string>
