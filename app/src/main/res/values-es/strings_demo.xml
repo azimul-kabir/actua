@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="demo_budget_name">Presupuesto de demostración de Actua</string>
+
+    <string name="demo_account_checking">Cuenta corriente</string>
+    <string name="demo_account_savings">Ahorros para emergencias</string>
+    <string name="demo_account_credit">Tarjeta de crédito habitual</string>
+    <string name="demo_account_investment">Cuenta de inversión</string>
+
+    <string name="demo_group_income">Ingresos</string>
+    <string name="demo_group_essentials">Gastos esenciales</string>
+    <string name="demo_group_lifestyle">Estilo de vida</string>
+    <string name="demo_group_goals">Objetivos</string>
+
+    <string name="demo_category_salary">Salario</string>
+    <string name="demo_category_starting_balances">Saldos iniciales</string>
+    <string name="demo_category_rent">Alquiler</string>
+    <string name="demo_category_groceries">Supermercado</string>
+    <string name="demo_category_utilities">Servicios básicos</string>
+    <string name="demo_category_transport">Transporte</string>
+    <string name="demo_category_dining_out">Comer fuera</string>
+    <string name="demo_category_entertainment">Entretenimiento</string>
+    <string name="demo_category_emergency_fund">Fondo de emergencia</string>
+    <string name="demo_category_vacation">Vacaciones</string>
+
+    <string name="demo_payee_employer">Empleador</string>
+    <string name="demo_payee_landlord">Arrendador</string>
+    <string name="demo_payee_supermarket">Fresh Market</string>
+    <string name="demo_payee_utilities">City Utilities</string>
+    <string name="demo_payee_fuel">Fuel Station</string>
+    <string name="demo_payee_restaurant">Neighborhood Cafe</string>
+    <string name="demo_payee_streaming">StreamBox</string>
+    <string name="demo_payee_card_payment">Pago de tarjeta de crédito</string>
+    <string name="demo_payee_corner_grocer">Corner Grocer</string>
+    <string name="demo_payee_big_box_store">Big Box Store</string>
+    <string name="demo_payee_internet">Fiber Net</string>
+    <string name="demo_payee_mobile">Mobile Co</string>
+    <string name="demo_payee_transit">City Transit</string>
+    <string name="demo_payee_pizza">Slice House</string>
+    <string name="demo_payee_sushi">Sakura Sushi</string>
+    <string name="demo_payee_cinema">Cineplex</string>
+    <string name="demo_payee_books">Page Turner Books</string>
+    <string name="demo_payee_airline">SkyWay Airlines</string>
+    <string name="demo_payee_index_fund">Fondo indexado</string>
+
+    <string name="demo_note_groceries">Compras mensuales de alimentos y productos para el hogar. Prueba a cambiar el objetivo o mover dinero a esta categoría.</string>
+    <string name="demo_note_checking">Cuenta corriente de demostración. Incluye transacciones confirmadas, pendientes de confirmar y conciliadas.</string>
+
+    <string name="demo_schedule_salary">Salario mensual</string>
+    <string name="demo_schedule_rent">Alquiler</string>
+    <string name="demo_schedule_streaming">Suscripción de streaming</string>
+    <string name="demo_schedule_card_payment">Pago de tarjeta de crédito</string>
+
+    <string name="demo_report_overview">Resumen general</string>
+    <string name="demo_report_welcome">**Bienvenido a la demostración de Actua** 👋\n\nEste presupuesto se guarda únicamente en este dispositivo. Prueba los objetivos, las reglas, las transacciones programadas, la conciliación, las tarjetas de crédito y los informes.</string>
+    <string name="demo_report_this_month">Este mes</string>
+    <string name="demo_report_spending_by_category">Gastos por categoría</string>
+    <string name="demo_report_monthly_spending">Gastos mensuales</string>
+    <string name="demo_report_top_payees">Principales beneficiarios</string>
+    <string name="demo_report_spending_trend">Tendencia de gastos</string>
+    <string name="demo_report_net_worth">Patrimonio neto</string>
+    <string name="demo_report_cash_flow">Flujo de caja</string>
+    <string name="demo_report_food_per_month">Gastos mensuales en alimentación</string>
+    <string name="demo_report_where_the_money_went">En qué se gastó el dinero</string>
+    <string name="demo_report_budget_analysis">Análisis del presupuesto</string>
+    <string name="demo_report_age_of_money">Antigüedad del dinero</string>
+    <string name="demo_report_calendar">Calendario</string>
+</resources>
