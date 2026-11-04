@@ -728,6 +728,9 @@ fun AppNavigation(
     var receiptPhotoVersion by remember { mutableIntStateOf(0) }
     var receiptPhotoFolderVersion by remember { mutableIntStateOf(0) }
     val receiptPhotoFolder = remember(receiptPhotoFolderVersion) { ReceiptPhotoFolder(context).state() }
+    val selectedFolderLabel = stringResource(R.string.selected_folder)
+    val receiptFolderUnavailableNotice = stringResource(R.string.receipt_photo_folder_unavailable_kept_private)
+    val receiptNotKeptNotice = stringResource(R.string.receipt_photo_not_kept)
     var keepLastTransactionDate by remember { mutableStateOf(displayPreferences.keepLastTransactionDate) }
     val tabBarScroll = remember { TabBarScrollState(displayPreferences) }
     val showBottomNavigationLabels = tabBarScroll.showLabels
@@ -2391,11 +2394,11 @@ fun AppNavigation(
                                 }
                                 keptReceiptPhoto = null
                                 val notice = when (outcome) {
-                                    ReceiptKeepResult.PRIVATE_FOLDER_UNAVAILABLE -> R.string.receipt_photo_folder_unavailable_kept_private
-                                    ReceiptKeepResult.FAILED -> R.string.receipt_photo_not_kept
+                                    ReceiptKeepResult.PRIVATE_FOLDER_UNAVAILABLE -> receiptFolderUnavailableNotice
+                                    ReceiptKeepResult.FAILED -> receiptNotKeptNotice
                                     else -> null
                                 }
-                                if (notice != null) coroutineScope.launch { snackbarHostState.showSnackbar(context.getString(notice)) }
+                                if (notice != null) coroutineScope.launch { snackbarHostState.showSnackbar(notice) }
                             }
                             if (!wasEditing && wasPlainNewEntry) {
                                 parseStoredDate(savedTransaction.date)?.let {
@@ -2496,7 +2499,7 @@ fun AppNavigation(
                     newTransactionDate = { RememberedEntryDate.shared.startDate(keepLastTransactionDate) },
                     receiptScanner = receiptScanner,
                     receiptPhotoFolderName = receiptPhotoFolder.takeIf { it.usable }
-                        ?.let { it.name ?: context.getString(R.string.selected_folder) },
+                        ?.let { it.name ?: selectedFolderLabel },
                     receiptPhoto = remember(editingTransaction?.id, receiptPhotoVersion, dataVersion, receiptPhotoFolderVersion) {
                         editingTransaction?.id?.takeIf(String::isNotBlank)?.let(repository::receiptPhoto)
                     },
