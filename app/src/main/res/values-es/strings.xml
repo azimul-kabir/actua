@@ -27,4 +27,5 @@
     <string name="settings_language_system">Predeterminado del sistema</string>
     <string name="settings_language_english">Inglés</string>
     <string name="settings_language_portuguese_brazil">Portugués (Brasil)</string>
+    <string name="settings_language_spanish">Español</string>
 </resources>
