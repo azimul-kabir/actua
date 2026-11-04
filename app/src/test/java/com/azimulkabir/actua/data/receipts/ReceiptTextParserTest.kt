@@ -123,4 +123,76 @@ class ReceiptTextParserTest {
         assertTrue(parse("12 34", "55 0100", "...").isEmpty)
         assertTrue(parse().isEmpty)
     }
+
+    // --- Sales tax and line items (synthetic text) -------------------------------------------------------
+
+    private val groceryReceipt = arrayOf(
+        "GREEN LEAF MARKET", "12 Example Street", "Tel 555 0100", "2026-11-02 14:31",
+        "Milk 2.50", "Bread 3.00", "SUBTOTAL 5.50", "TAX 0.44", "TOTAL 5.94", "CASH 10.00", "CHANGE 4.06",
+    )
+
+    @Test fun taxAndItemsAreReadFromATypicalReceipt() {
+        val receipt = parse(*groceryReceipt)
+
+        assertEquals(594L, receipt.totalCents)
+        assertEquals(44L, receipt.taxCents)
+        assertEquals(listOf(ReceiptItem("Milk", 250), ReceiptItem("Bread", 300)), receipt.items)
+    }
+
+    @Test fun aReceiptWithOnlyATotalHasNoTaxAndNoItems() {
+        val receipt = parse("CORNER SHOP", "TOTAL 5.94")
+
+        assertNull(receipt.taxCents)
+        assertTrue(receipt.items.isEmpty())
+    }
+
+    @Test fun aPercentageIsNeverReadAsTheTaxAmount() {
+        assertEquals(47L, parse("Sales Tax 8.5% 0.47", "TOTAL 6.47").taxCents)
+        assertEquals(47L, parse("VAT 20% 0.47", "TOTAL 6.47").taxCents)
+    }
+
+    @Test fun taxRowsOfSeveralRatesAreAddedUp() {
+        assertEquals(44L, parse("TAX A 0.30", "TAX B 0.14", "TOTAL 5.94").taxCents)
+    }
+
+    @Test fun aTotalTaxRowWinsOverTheRatesAboveIt() {
+        assertEquals(44L, parse("TAX A 0.30", "TAX B 0.14", "TOTAL TAX 0.44", "TOTAL 5.94").taxCents)
+    }
+
+    @Test fun taxThatIsNotSmallerThanTheTotalIsIgnored() {
+        assertNull(parse("TAX 1.00", "TOTAL 1.00").taxCents)
+    }
+
+    @Test fun taxInvoiceHeadingsAndSubtotalsIncludingTaxAreNotTaxRows() {
+        assertNull(parse("TAX INVOICE", "Tax ID 12345678", "SUBTOTAL INCL TAX 5.50", "TOTAL 5.94").taxCents)
+    }
+
+    @Test fun paymentAndContactRowsAreNotItems() {
+        val receipt = parse("Tel 555 0100", "12 Example Street", "Milk 2.50", "CASH 10.00", "VISA 10.00", "SUBTOTAL 2.50", "TOTAL 2.50")
+
+        assertEquals(listOf(ReceiptItem("Milk", 250)), receipt.items)
+    }
+
+    @Test fun withoutASubtotalOrTotalRowNoItemsAreTrusted() {
+        assertTrue(parse("Milk 2.50", "Bread 3.00").items.isEmpty())
+    }
+
+    @Test fun itemsAcceptACurrencySymbolAndATaxCodeLetter() {
+        val receipt = parse("Milk $2.50 A", "Bread 3.00 B", "TOTAL 5.50")
+
+        assertEquals(listOf(ReceiptItem("Milk", 250), ReceiptItem("Bread", 300)), receipt.items)
+    }
+
+    @Test fun itemsAndTaxReadBengaliDigits() {
+        val receipt = parse("Rice ১২.৫০", "Oil ৩.০০", "SUBTOTAL ১৫.৫০", "TAX ১.০০", "TOTAL ১৬.৫০")
+
+        assertEquals(listOf(ReceiptItem("Rice", 1250), ReceiptItem("Oil", 300)), receipt.items)
+        assertEquals(100L, receipt.taxCents)
+    }
+
+    @Test fun anUnrecognizedLineIsSkippedNotGuessed() {
+        val receipt = parse("Milk 2.50", "x7#%", "Bread", "SUBTOTAL 2.50", "TOTAL 2.50")
+
+        assertEquals(listOf(ReceiptItem("Milk", 250)), receipt.items)
+    }
 }

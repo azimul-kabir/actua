@@ -258,6 +258,16 @@
     <string name="scan_receipt_no_total">Nenhum total encontrado. Digite o valor.</string>
     <string name="scan_receipt_failed">Não foi possível ler essa imagem.</string>
     <string name="scan_receipt_no_camera">Nenhum app de câmera disponível.</string>
+    <string name="receipt_split_title">Dividir o imposto e os itens?</string>
+    <string name="receipt_split_message">O recibo mostra mais do que o total. Você pode adicioná-los como linhas de divisão e escolher uma categoria para cada linha.</string>
+    <string name="receipt_split_tax">Imposto %1$s em uma linha separada</string>
+    <plurals name="receipt_split_items">
+        <item quantity="one">Uma linha para o %1$d item encontrado (menos confiável)</item>
+        <item quantity="other">Uma linha para cada um dos %1$d itens encontrados (menos confiável)</item>
+    </plurals>
+    <string name="receipt_split_confirm">Dividir</string>
+    <string name="receipt_split_not_now">Agora não</string>
+    <string name="receipt_split_tax_note">Imposto</string>
     <string name="amount_clear">Limpar</string>
     <string name="amount_clear_description">Limpar valor</string>
     <string name="amount_undo">Desfazer</string>

@@ -98,7 +98,9 @@ import com.azimulkabir.actua.ui.components.centsToInput
 import com.azimulkabir.actua.ui.components.currencyInputPrefix
 import com.azimulkabir.actua.ui.components.withCurrencySymbol
 import com.azimulkabir.actua.ui.components.CalculatorAmountSheet
+import com.azimulkabir.actua.data.receipts.ParsedReceipt
 import com.azimulkabir.actua.data.receipts.ReceiptScanner
+import com.azimulkabir.actua.data.receipts.ReceiptSplits
 import com.azimulkabir.actua.data.receipts.ReceiptTextParser
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
 import com.azimulkabir.actua.ui.components.formatDate
@@ -310,6 +312,7 @@ fun AddTransactionScreen(
     }
 
     var showReceiptScan by remember { mutableStateOf(false) }
+    var receiptSplitOffer by remember { mutableStateOf<ParsedReceipt?>(null) }
     val scanContext = LocalContext.current
     val scanLocale = LocalConfiguration.current.locales[0]
     val applyReceipt: (List<String>) -> Unit = { rows ->
@@ -330,6 +333,9 @@ fun AddTransactionScreen(
         if (total != null) {
             amountCents = total
             incoming = false
+            // Tax and items are only offered as split lines; the user decides.
+            val hasTax = parsed.taxCents != null
+            if ((hasTax || parsed.items.size >= 2) && transferTargetOf(payee) == null) receiptSplitOffer = parsed
         } else {
             Toast.makeText(scanContext, R.string.scan_receipt_no_total, Toast.LENGTH_LONG).show()
         }
@@ -667,6 +673,27 @@ fun AddTransactionScreen(
             icon = Icons.Outlined.Check,
         )
         }
+    }
+    receiptSplitOffer?.let { offer ->
+        val taxNote = stringResource(R.string.receipt_split_tax_note)
+        ReceiptSplitDialog(
+            taxText = offer.taxCents?.let { withCurrencySymbol(centsToInput(it), currencySymbol) },
+            itemCount = offer.items.size,
+            onConfirm = { includeTax, includeItems ->
+                val lines = ReceiptSplits.build(
+                    totalCents = amountCents,
+                    taxCents = offer.taxCents,
+                    items = offer.items,
+                    includeTax = includeTax,
+                    includeItems = includeItems,
+                    category = category,
+                    taxNote = taxNote,
+                )
+                if (lines.isNotEmpty()) splitLines = lines
+                receiptSplitOffer = null
+            },
+            onDismiss = { receiptSplitOffer = null },
+        )
     }
     if (receiptScanner != null) {
         ReceiptScanHost(

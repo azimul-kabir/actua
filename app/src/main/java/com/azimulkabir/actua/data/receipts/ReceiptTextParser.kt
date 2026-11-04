@@ -4,9 +4,22 @@ import com.azimulkabir.actua.ui.components.PastedAmount
 import java.time.LocalDate
 import java.util.Locale
 
-/** What could be read from a receipt. Each field is null when it was not found or was unclear. */
-data class ParsedReceipt(val payee: String?, val date: LocalDate?, val totalCents: Long?) {
-    val isEmpty: Boolean get() = payee == null && date == null && totalCents == null
+/** One line item read from a receipt: what it says and its price in minor units. */
+data class ReceiptItem(val name: String, val cents: Long)
+
+/**
+ * What could be read from a receipt. Each field is null (or empty) when it was not found or was unclear.
+ * [taxCents] is the sales tax or VAT amount; [items] are the priced lines above the subtotal, the least
+ * reliable part of a scan.
+ */
+data class ParsedReceipt(
+    val payee: String?,
+    val date: LocalDate?,
+    val totalCents: Long?,
+    val taxCents: Long? = null,
+    val items: List<ReceiptItem> = emptyList(),
+) {
+    val isEmpty: Boolean get() = payee == null && date == null && totalCents == null && taxCents == null && items.isEmpty()
 }
 
 /**
@@ -24,10 +37,13 @@ object ReceiptTextParser {
         dayFirst: Boolean? = null,
     ): ParsedReceipt {
         val clean = rows.map { normalizeDigits(it).trim() }.filter { it.isNotEmpty() }
+        val total = findTotal(clean, decimalPlaces)
         return ParsedReceipt(
             payee = findPayee(clean, knownPayees),
             date = findDate(clean, today, dayFirst),
-            totalCents = findTotal(clean, decimalPlaces),
+            totalCents = total,
+            taxCents = findTax(clean, decimalPlaces, total),
+            items = findItems(clean, decimalPlaces),
         )
     }
 
@@ -68,6 +84,60 @@ object ReceiptTextParser {
             if (decimalPlaces > 0 && token.none { it == '.' || it == ',' }) null
             else PastedAmount.parseCents(token, decimalPlaces)
         }.toList()
+
+    // --- Sales tax and items ---------------------------------------------------------------------------------
+
+    private val taxWord = Regex("""\b(tax|vat|gst|hst|pst|mwst|iva)\b""")
+    private val notTaxRow = Regex("""tax\s+(invoice|id|no|number|reg)""")
+    private val totalTaxRow = Regex("""total\s+(tax|vat)|(tax|vat)\s+total""")
+    private val percent = Regex("""\d+(?:[.,]\d+)?\s*%""")
+
+    /**
+     * The tax on the receipt: a "total tax" row when there is one, otherwise the tax rows added up (some
+     * receipts list one per rate). A percentage such as "8.5%" is never read as an amount. Null when no tax
+     * row has an amount, or the amount is not smaller than the total.
+     */
+    private fun findTax(rows: List<String>, decimalPlaces: Int, totalCents: Long?): Long? {
+        var overall: Long? = null
+        var sum = 0L
+        var any = false
+        for (row in rows) {
+            val lower = row.lowercase(Locale.ROOT)
+            if (!taxWord.containsMatchIn(lower) || notTaxRow.containsMatchIn(lower)) continue
+            val isTotalTax = totalTaxRow.containsMatchIn(lower)
+            // "Subtotal incl. tax" and "total due" rows are not tax rows.
+            if (!isTotalTax && "total" in lower) continue
+            val amount = amountsIn(percent.replace(row, " "), decimalPlaces).lastOrNull() ?: continue
+            if (isTotalTax) overall = amount else { sum += amount; any = true }
+        }
+        val tax = overall ?: if (any) sum else null
+        return tax?.takeIf { it > 0 && (totalCents == null || it < totalCents) }
+    }
+
+    private val itemRow = Regex("""^(.+?)\s+\p{Sc}?\s*(\d[\d.,']*[.,]\d{1,3})\s*[A-Za-z]{0,2}$""")
+    private val notAnItem = Regex(
+        """total|tax|vat|gst|cash|change|card|visa|master|tender|balance|discount|tip|rounding|due|paid|amex|debit|credit|payment|saving|tel|phone|www|http|@""",
+    )
+
+    /**
+     * Priced lines above the first subtotal or total row, as "name  amount". Rows that look like totals,
+     * tax, payment or contact details are skipped. Without a subtotal or total row nothing is returned,
+     * because the receipt's structure is then too unclear to trust.
+     */
+    private fun findItems(rows: List<String>, decimalPlaces: Int): List<ReceiptItem> {
+        val end = rows.indexOfFirst { row ->
+            val lower = row.lowercase(Locale.ROOT)
+            totalWords.any { it in lower } || "subtotal" in lower || Regex("""sub[\s-]?total""").containsMatchIn(lower)
+        }
+        if (end <= 0) return emptyList()
+        return rows.take(end).mapNotNull { row ->
+            val match = itemRow.find(row) ?: return@mapNotNull null
+            val name = match.groupValues[1].trim()
+            if (name.count(Char::isLetter) < 2 || notAnItem.containsMatchIn(name.lowercase(Locale.ROOT))) return@mapNotNull null
+            val cents = PastedAmount.parseCents(match.groupValues[2], decimalPlaces) ?: return@mapNotNull null
+            if (cents <= 0) null else ReceiptItem(name.replace(Regex("""\s+"""), " ").take(60), cents)
+        }
+    }
 
     // --- Date ----------------------------------------------------------------------------------------------
 
