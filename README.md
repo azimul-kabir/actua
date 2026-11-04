@@ -177,6 +177,8 @@ Actua requires **Android 9 or newer**.
 
 Actua is available to everyone on [Google Play](https://play.google.com/store/apps/details?id=com.azimulkabir.actua). You can also download the latest APK from [GitHub Releases](https://github.com/azimul-kabir/actua/releases) or add Actua to Obtainium for update notifications and in-place upgrades.
 
+Each release has two APKs, signed with the same key, so you can switch between them: `Actua-v<version>.apk` is fully open source with no Google libraries (the build F-Droid verifies), and `Actua-v<version>-full.apk` adds receipt scanning (on-device Google ML Kit, Google Play version features). Obtainium lists both; use its APK filter (a regular expression) to pick one, for example `-full` for the full build.
+
 Don't have an Actual server handy? Open **Manage → Connection & Data → Try demo budget** to explore Actua using a completely local sample budget.
 
 > [!CAUTION]
