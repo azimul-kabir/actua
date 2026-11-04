@@ -172,8 +172,8 @@ total:
   copied. Actua does not keep the photo or the recognized text.
 - Nothing is saved from a scan until you check the transaction and tap Save.
 - The camera app (not Actua) takes the photo, so Actua does not ask for camera permission.
-- Receipts in Latin script work best. Receipts in Cyrillic, Arabic, Bangla and some other
-  scripts may be read badly or not at all.
+- Latin, Chinese, Japanese, Korean and Devanagari scripts are read. Receipts in Cyrillic,
+  Arabic, Hebrew, Thai, Greek or Bangla may be read badly or not at all.
 - The F-Droid and GitHub builds do not include receipt scanning.
 
 ## Other on-device data
