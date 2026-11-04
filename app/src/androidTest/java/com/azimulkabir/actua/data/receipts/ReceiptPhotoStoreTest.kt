@@ -109,7 +109,7 @@ class ReceiptPhotoStoreTest {
             store.keep(budget.id, "txn", pending("secret receipt"))
 
             val exported = ByteArrayOutputStream().use { out -> files.writeArchive(budget.id, out); out.toByteArray() }
-            val uploaded = files.uploadArchive(budget.id).readBytes()
+            val uploaded = files.uploadArchive(budget.id)
 
             for (archive in listOf(exported, uploaded)) {
                 val names = ZipInputStream(archive.inputStream()).use { zip ->
