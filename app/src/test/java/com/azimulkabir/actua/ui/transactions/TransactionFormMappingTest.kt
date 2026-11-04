@@ -110,4 +110,15 @@ class TransactionFormMappingTest {
         assertEquals("Amex", saved.transferAccount)
         assertEquals(-2_431L, saved.amountCents)
     }
+
+    @Test fun aNegativeKeypadResultFlipsTheTypeTheFormStartedWith() {
+        assertEquals(false, incomingAfterEntry(startIncoming = true, signedCents = -101))
+        assertEquals(true, incomingAfterEntry(startIncoming = false, signedCents = -101))
+    }
+
+    @Test fun aPositiveOrZeroKeypadResultKeepsTheStartingType() {
+        assertEquals(true, incomingAfterEntry(startIncoming = true, signedCents = 99))
+        assertEquals(false, incomingAfterEntry(startIncoming = false, signedCents = 99))
+        assertEquals(false, incomingAfterEntry(startIncoming = false, signedCents = 0))
+    }
 }

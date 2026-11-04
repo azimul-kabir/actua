@@ -622,6 +622,8 @@ fun AddTransactionScreen(
         )
         }
     }
+    // The type when the keypad opened; the keypad's sign is applied to this, not to the live value.
+    val keypadStartIncoming = remember(showCalculator) { incoming }
     if (showCalculator) CalculatorAmountSheet(
         title = if (editing == null) stringResource(R.string.transaction_amount)
         else stringResource(R.string.transaction_edit_amount),
@@ -631,11 +633,15 @@ fun AddTransactionScreen(
             showCalculator = false
             amountExpression = null
         },
-        onApply = { amountCents = it },
+        // The keypad does signed arithmetic: the amount is the size of the result and a negative
+        // result flips the type the form had when the keypad opened (see [incomingAfterEntry]).
+        signedEntry = true,
+        onApply = { signed ->
+            amountCents = abs(signed)
+            incoming = incomingAfterEntry(keypadStartIncoming, signed)
+        },
         onExpressionChange = { amountExpression = it },
         onDone = { if (editing == null) autoStep = AddStep.Payee },
-        onToggleSign = { incoming = !incoming },
-        toggleSignLabel = signToggleLabel,
     )
     splitCalculatorIndex?.let { index ->
         val line = splitLines.getOrNull(index)
@@ -737,6 +743,14 @@ fun AddTransactionScreen(
 private enum class AddStep { Payee, Category, Account }
 
 internal const val TRANSFER_PAYEE_PREFIX = "Transfer: "
+
+/**
+ * Whether the transaction is incoming after the keypad produced [signedCents]: a negative result is the
+ * opposite of [startIncoming], the type the form had when the keypad opened, so the amount and the
+ * expense or income chip never disagree. The chip itself still flips the type afterwards.
+ */
+internal fun incomingAfterEntry(startIncoming: Boolean, signedCents: Long): Boolean =
+    if (signedCents < 0) !startIncoming else startIncoming
 
 /** A new transfer's starting values: [transferAccount] receives [amountCents]; the sender is picked in the form. */
 data class TransactionPrefill(val transferAccount: String, val amountCents: Long)

@@ -58,12 +58,22 @@ fun CalculatorAmountSheet(
     onApply: (Long) -> Unit,
     onExpressionChange: (String) -> Unit = {},
     onDone: () -> Unit = {},
+    /**
+     * Signed arithmetic: ± negates the number being typed and [onApply] receives a result that can be
+     * negative, for a caller whose own sign control (an expense and income chip) combines with it.
+     * Without it the amount is a size and the keypad never goes negative.
+     */
+    signedEntry: Boolean = false,
     /** When set, the ± key calls this (e.g. expense ↔ income) instead of negating the amount. */
     onToggleSign: (() -> Unit)? = null,
     toggleSignLabel: String? = null,
 ) {
-    val calculator = remember(conventionalAmountEntry) {
-        CalculatorAmountState(initialCents, conventionalAmountEntry = conventionalAmountEntry)
+    val calculator = remember(conventionalAmountEntry, signedEntry) {
+        CalculatorAmountState(
+            initialCents,
+            allowsNegative = signedEntry,
+            conventionalAmountEntry = conventionalAmountEntry,
+        )
     }
     // Set by Clear and dropped by the next key, Paste or Undo; while set, the Clear button reads Undo.
     var undoSnapshot by remember { mutableStateOf<CalculatorAmountState.Snapshot?>(null) }

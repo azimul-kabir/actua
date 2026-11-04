@@ -296,4 +296,135 @@ class CalculatorAmountStateTest {
         assertEquals("1.00 + 0.05", state.display)
         assertEquals(105, state.cents)
     }
+
+    // --- Signed entry (#1466) --------------------------------------------------------------------------
+
+    private fun signed() = CalculatorAmountState(allowsNegative = true, conventionalAmountEntry = true)
+
+    @Test fun aNegativeFirstOperandGivesASignedResult() {
+        val state = signed()
+        state.toggleSign(); state.digit(1)
+        state.operator(CalculatorAmountState.Operator.SUBTRACT)
+        state.digit(0); state.decimalPoint(); state.digit(0); state.digit(1)
+
+        assertEquals("−1 − 0.01", state.expressionDisplay)
+        assertEquals(-101, state.finish())
+    }
+
+    @Test fun subtractingMoreThanTheTotalGoesNegative() {
+        val state = signed()
+        state.digit(1)
+        state.operator(CalculatorAmountState.Operator.SUBTRACT)
+        state.digit(3)
+
+        assertEquals(-200, state.finish())
+    }
+
+    @Test fun signChangeIsVisibleBeforeAnyDigit() {
+        val state = signed()
+        state.toggleSign()
+
+        assertTrue(state.display.startsWith("−"))
+        assertEquals("−0", state.expressionDisplay)
+        state.toggleSign()
+        assertFalse(state.display.startsWith("−"))
+    }
+
+    @Test fun plusMinusNegatesATypedNumber() {
+        val state = signed()
+        state.digit(5)
+        state.toggleSign()
+
+        assertEquals(-500, state.cents)
+        state.toggleSign()
+        assertEquals(500, state.cents)
+    }
+
+    @Test fun plusMinusInTheMiddleOfAnExpressionNegatesTheNextNumber() {
+        val state = signed()
+        state.digit(5)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.toggleSign(); state.digit(2)
+
+        assertEquals(300, state.finish())
+    }
+
+    @Test fun plusMinusAfterEqualsNegatesTheResult() {
+        val state = signed()
+        state.digit(5)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.digit(2)
+        assertEquals(700, state.finish())
+        state.toggleSign()
+
+        assertEquals(-700, state.cents)
+    }
+
+    @Test fun multiplyAndDivideAcceptNegativeOperandsAndFactors() {
+        val negativeOperand = signed()
+        negativeOperand.toggleSign(); negativeOperand.digit(4)
+        negativeOperand.operator(CalculatorAmountState.Operator.MULTIPLY)
+        negativeOperand.digit(3)
+        assertEquals(-1_200, negativeOperand.finish())
+
+        val negativeFactor = signed()
+        negativeFactor.digit(4)
+        negativeFactor.operator(CalculatorAmountState.Operator.MULTIPLY)
+        negativeFactor.toggleSign(); negativeFactor.digit(3)
+        assertEquals(-1_200, negativeFactor.finish())
+
+        val divided = signed()
+        divided.digit(9)
+        divided.operator(CalculatorAmountState.Operator.DIVIDE)
+        divided.toggleSign(); divided.digit(3)
+        assertEquals(-300, divided.finish())
+    }
+
+    @Test fun negativeAmountsStayExactCentsWithoutConventionalEntry() {
+        val state = CalculatorAmountState(allowsNegative = true)
+        state.digit(1); state.digit(0); state.digit(0)
+        state.toggleSign()
+        state.operator(CalculatorAmountState.Operator.SUBTRACT)
+        state.digit(1)
+
+        assertEquals(-101, state.finish())
+    }
+
+    @Test fun backspaceTakesBackAPlusMinusBeforeAnyDigit() {
+        val state = signed()
+        state.toggleSign()
+        state.backspace()
+        state.digit(1)
+
+        assertEquals(100, state.cents)
+    }
+
+    @Test fun clearAndUndoKeepASignedEntry() {
+        val state = signed()
+        state.toggleSign(); state.digit(5)
+        val before = state.snapshot()
+        state.clear()
+        assertEquals(0, state.cents)
+        state.restore(before)
+        assertEquals(-500, state.cents)
+
+        val markedOnly = signed()
+        markedOnly.toggleSign()
+        assertFalse(markedOnly.isEmpty)
+        val marked = markedOnly.snapshot()
+        markedOnly.clear()
+        assertTrue(markedOnly.isEmpty)
+        markedOnly.restore(marked)
+        markedOnly.digit(2)
+        assertEquals(-200, markedOnly.cents)
+    }
+
+    @Test fun anAmountThatDoesNotAllowNegativesIgnoresPlusMinus() {
+        val state = CalculatorAmountState(conventionalAmountEntry = true)
+        state.toggleSign(); state.digit(1)
+        state.operator(CalculatorAmountState.Operator.SUBTRACT)
+        state.digit(3)
+
+        assertEquals(200, state.finish())
+    }
 }
