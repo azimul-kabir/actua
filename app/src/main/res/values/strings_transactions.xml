@@ -242,4 +242,7 @@
     <string name="account_note">Note</string>
     <string name="account_add_note">Add note</string>
     <string name="account_note_placeholder">Account note</string>
+    <string name="amount_paste">Paste</string>
+    <string name="amount_paste_description">Paste amount from clipboard</string>
+    <string name="amount_paste_not_found">No amount found on the clipboard</string>
 </resources>

@@ -242,4 +242,7 @@
     <string name="account_note">Nota</string>
     <string name="account_add_note">Adicionar nota</string>
     <string name="account_note_placeholder">Nota da conta</string>
+    <string name="amount_paste">Colar</string>
+    <string name="amount_paste_description">Colar valor da área de transferência</string>
+    <string name="amount_paste_not_found">Nenhum valor encontrado na área de transferência</string>
 </resources>
